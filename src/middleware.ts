@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export default function middleware(req: NextRequest) {
+  if (req.url.includes("/api/")) {
+    return NextResponse.next();
+  }
   return NextResponse.next();
 }
 
