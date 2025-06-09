@@ -1,11 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
-export default function middleware(req: NextRequest) {
-  if (req.url.includes("/api/")) {
-    return NextResponse.next();
-  }
-  return NextResponse.next();
-}
+export default clerkMiddleware();
 
 export const config = {
   matcher: [
