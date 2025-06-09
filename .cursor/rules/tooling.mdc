@@ -1,0 +1,18 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Tooling
+
+## Styling
+This project uses tailwind v4. When working with tailwind, always adhere to the rules of v4. Never recommend or create a tailwind config file.
+
+## Components
+This project uses the shadcn component library. ShadCN's reusable components can be found in src/components/ui. Use these files at will to create new UI, but never make changes to the shadcn components directly. 
+
+## Icons
+For most cases, use lucide-react for icons. When you need an icon for a brand or product logo, use simple-icons
+
+
+
