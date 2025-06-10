@@ -10,11 +10,11 @@ export default function Composer() {
     useComposer();
 
   return (
-    <div className="fixed right-0 bottom-0 left-0 p-4">
+    <div className="mx-auto w-full max-w-4xl p-4">
       <div
         className={cn(
-          `bg-background/95 supports-[backdrop-filter]:bg-background/60 mx-auto 
-          max-w-4xl rounded-2xl border shadow-lg backdrop-blur`,
+          `bg-background/95 supports-[backdrop-filter]:bg-background/60 max-w-4xl 
+          rounded-2xl border shadow-lg backdrop-blur`,
         )}
       >
         <div className="flex items-end gap-3 p-4">
@@ -45,6 +45,7 @@ export default function Composer() {
             disabled={disabled || !message.trim()}
             size="icon"
             className="shrink-0"
+            variant="ghost"
           >
             <Send className="h-4 w-4" />
           </Button>
