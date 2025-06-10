@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { api } from "@/convex/_generated/api";
+import { useMutation } from "convex/react";
 
 export default function useComposer() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [disabled, setDisabled] = useState(false);
+  const createThread = useMutation(api.threads.create);
 
   const router = useRouter();
 
@@ -13,8 +16,10 @@ export default function useComposer() {
     setIsLoading(true);
     setDisabled(true);
     setMessage("");
-    console.log(message);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await createThread({
+      id: crypto.randomUUID(),
+      title: message,
+    });
     setIsLoading(false);
     setDisabled(false);
   };

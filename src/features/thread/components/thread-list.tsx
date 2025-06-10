@@ -1,41 +1,32 @@
+"use client";
+
 import {
-  Sidebar,
-  SidebarContent,
   SidebarGroup,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
+import { api } from "@/convex/_generated/api";
+import { Preloaded, usePreloadedQuery } from "convex/react";
 
-export default function ThreadList() {
+export default function ThreadList({
+  preloadedThreads,
+}: {
+  preloadedThreads: Preloaded<typeof api.threads.get>;
+}) {
+  const threads = usePreloadedQuery(preloadedThreads);
   return (
     <SidebarGroup>
       <SidebarMenu className="gap-2">
-        <SidebarMenuItem>Thread List</SidebarMenuItem>
-        {/* {data.navMain.map((item) => (
-          <SidebarMenuItem key={item.title}>
-            <SidebarMenuButton asChild>
-              <a href={item.url} className="font-medium">
-                {item.title}
+        {threads?.map((item) => (
+          <SidebarMenuItem key={item._id}>
+            <SidebarMenuButton asChild className="py-5">
+              <a href={`/chat/${item._id}`} className="font-medium">
+                {item.title} {item.count ?? 0}
               </a>
             </SidebarMenuButton>
-            {item.items?.length ? (
-              <SidebarMenuSub className="ml-0 border-l-0 px-1.5">
-                {item.items.map((item) => (
-                  <SidebarMenuSubItem key={item.title}>
-                    <SidebarMenuSubButton asChild isActive={item.isActive}>
-                      <a href={item.url}>{item.title}</a>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                ))}
-              </SidebarMenuSub>
-            ) : null}
           </SidebarMenuItem>
-        ))} */}
+        ))}
       </SidebarMenu>
     </SidebarGroup>
   );

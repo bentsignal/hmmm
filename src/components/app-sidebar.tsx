@@ -7,8 +7,19 @@ import {
 } from "@/components/ui/sidebar";
 import ThreadList from "@/features/thread/components/thread-list";
 import NewThreadButton from "@/features/thread/components/new-thread-button";
+import { auth } from "@clerk/nextjs/server";
+import { preloadQuery } from "convex/nextjs";
+import { api } from "@/convex/_generated/api";
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export default async function AppSidebar({
+  ...props
+}: React.ComponentProps<typeof Sidebar>) {
+  const { userId } = await auth();
+  if (!userId) {
+    return null;
+  }
+  const preloadedThreads = await preloadQuery(api.threads.get);
+
   return (
     <Sidebar variant="floating" {...props}>
       <SidebarHeader>
@@ -19,7 +30,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <ThreadList />
+        <ThreadList preloadedThreads={preloadedThreads} />
       </SidebarContent>
     </Sidebar>
   );
