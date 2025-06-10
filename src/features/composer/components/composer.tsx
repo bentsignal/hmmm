@@ -1,34 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import useComposer from "../hooks/use-composer";
 
-interface ComposerProps {
-  onSendMessage?: (message: string) => void;
-  disabled?: boolean;
-}
-
-export default function Composer({
-  onSendMessage,
-  disabled = false,
-}: ComposerProps) {
-  const [message, setMessage] = useState("");
-
-  const handleSend = () => {
-    if (message.trim() && onSendMessage) {
-      onSendMessage(message.trim());
-      setMessage("");
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
+export default function Composer() {
+  const { message, setMessage, handleKeyPress, disabled, handleSendMessage } =
+    useComposer();
 
   return (
     <div className="fixed right-0 bottom-0 left-0 p-4">
@@ -62,7 +41,7 @@ export default function Composer({
             }}
           />
           <Button
-            onClick={handleSend}
+            onClick={handleSendMessage}
             disabled={disabled || !message.trim()}
             size="icon"
             className="shrink-0"
