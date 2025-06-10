@@ -1,7 +1,4 @@
-import Composer from "@/features/composer/components";
-import TopRightNav from "@/components/top-right-nav";
-
-export default function ChatLayout({
+export default function SettingsLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -9,8 +6,6 @@ export default function ChatLayout({
   return (
     <div className="flex h-screen w-screen flex-1 flex-col items-center justify-center gap-4">
       {children}
-      <Composer />
-      <TopRightNav />
     </div>
   );
 }
