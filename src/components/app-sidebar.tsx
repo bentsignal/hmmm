@@ -21,7 +21,7 @@ export default async function AppSidebar({
   const preloadedThreads = await preloadQuery(api.threads.get);
 
   return (
-    <Sidebar variant="floating" {...props}>
+    <Sidebar variant="floating" {...props} className="py-4 pr-0 pl-4">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
