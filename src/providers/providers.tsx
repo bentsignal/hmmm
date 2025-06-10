@@ -4,7 +4,7 @@ import { dark } from "@clerk/themes";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider appearance={{ baseTheme: dark }}>
+    <ClerkProvider appearance={{ baseTheme: dark }} afterSignOutUrl="/login">
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
         {children}
       </ThemeProvider>
