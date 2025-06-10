@@ -7,7 +7,7 @@ export default async function SignUpPage() {
   const { userId } = await auth();
 
   if (userId) {
-    redirect("/create");
+    redirect("/");
   }
 
   return (

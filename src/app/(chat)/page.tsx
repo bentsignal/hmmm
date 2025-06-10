@@ -1,12 +1,17 @@
+import { Button } from "@/components/ui/button";
 import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+import Link from "next/link";
 
 export default async function Home() {
   const { userId } = await auth();
-
-  if (!userId) {
-    redirect("/login");
-  }
-
-  return <span>Welcome to QBE</span>;
+  return (
+    <>
+      <span>Welcome to QBE</span>
+      {!userId && (
+        <Button asChild>
+          <Link href="/login">Login</Link>
+        </Button>
+      )}
+    </>
+  );
 }
