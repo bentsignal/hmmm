@@ -1,14 +1,17 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-export const get = query({
+export const getThreadList = query({
   args: {},
   handler: async (ctx) => {
     const userId = await ctx.auth.getUserIdentity();
     if (!userId) {
       return [];
     }
-    const threads = await ctx.db.query("threads").collect();
+    const threads = await ctx.db
+      .query("threads")
+      .filter((q) => q.eq(q.field("userId"), userId.subject))
+      .collect();
     return threads;
   },
 });
@@ -33,6 +36,7 @@ export const create = mutation({
     await ctx.db.insert("messages", {
       threadId: args.threadId,
       value: args.message,
+      type: "prompt",
     });
     return threadId;
   },

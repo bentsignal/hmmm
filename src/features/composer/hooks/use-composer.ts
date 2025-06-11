@@ -5,8 +5,6 @@ import { useMutation } from "convex/react";
 
 export default function useComposer() {
   const [message, setMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [disabled, setDisabled] = useState(false);
   const createThread = useMutation(api.threads.create);
   const createMessage = useMutation(api.messages.create);
   const pathname = usePathname();
@@ -15,8 +13,6 @@ export default function useComposer() {
 
   const handleSendMessage = async () => {
     setMessage("");
-    setIsLoading(true);
-    setDisabled(true);
     if (pathname === "/") {
       const threadId = crypto.randomUUID();
       router.push(`/chat/${threadId}`);
@@ -32,8 +28,6 @@ export default function useComposer() {
         message: message,
       });
     }
-    setIsLoading(false);
-    setDisabled(false);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -46,8 +40,6 @@ export default function useComposer() {
   return {
     message,
     setMessage,
-    isLoading,
-    disabled,
     handleSendMessage,
     handleKeyPress,
   };

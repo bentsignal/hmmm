@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import useComposer from "../hooks/use-composer";
 
 export default function Composer() {
-  const { message, setMessage, handleKeyPress, disabled, handleSendMessage } =
+  const { message, setMessage, handleKeyPress, handleSendMessage } =
     useComposer();
 
   return (
@@ -23,7 +23,6 @@ export default function Composer() {
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyPress}
             placeholder="Type your message..."
-            disabled={disabled}
             rows={1}
             className={cn(
               `file:text-foreground placeholder:text-muted-foreground selection:bg-primary 
@@ -42,7 +41,7 @@ export default function Composer() {
           />
           <Button
             onClick={handleSendMessage}
-            disabled={disabled || !message.trim()}
+            disabled={!message.trim()}
             size="icon"
             className="shrink-0"
             variant="ghost"

@@ -31,6 +31,7 @@ export const create = mutation({
     await ctx.db.insert("messages", {
       threadId: args.threadId,
       value: args.message,
+      type: "prompt",
     });
   },
 });

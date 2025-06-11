@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 export default function ThreadList({
   preloadedThreads,
 }: {
-  preloadedThreads: Preloaded<typeof api.threads.get>;
+  preloadedThreads: Preloaded<typeof api.threads.getThreadList>;
 }) {
   const threads = usePreloadedQuery(preloadedThreads);
   const pathname = usePathname();

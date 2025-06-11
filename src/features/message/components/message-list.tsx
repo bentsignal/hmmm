@@ -2,7 +2,8 @@
 
 import { api } from "@/convex/_generated/api";
 import { Preloaded, usePreloadedQuery } from "convex/react";
-import Message from "./message";
+import PromptMessage from "./prompt-message";
+import ResponseMessage from "./response-message";
 
 export default function MessageList({
   preloadedMessages,
@@ -11,10 +12,14 @@ export default function MessageList({
 }) {
   const messages = usePreloadedQuery(preloadedMessages);
   return (
-    <div>
-      {messages.map((message) => (
-        <Message key={message._id} message={message.value} />
-      ))}
+    <div className="mx-4 flex h-full w-full flex-col gap-4 px-4">
+      {messages.map((message) =>
+        message.type === "prompt" ? (
+          <PromptMessage key={message._id} message={message} />
+        ) : message.type === "response" ? (
+          <ResponseMessage key={message._id} message={message} />
+        ) : null,
+      )}
     </div>
   );
 }
