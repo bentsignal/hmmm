@@ -1,3 +1,4 @@
+import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -37,6 +38,15 @@ export const create = mutation({
       threadId: args.threadId,
       value: args.message,
       type: "prompt",
+    });
+    const responseId = await ctx.db.insert("messages", {
+      threadId: args.threadId,
+      value: "",
+      type: "response",
+    });
+    await ctx.scheduler.runAfter(0, internal.actions.generateResponse, {
+      message: args.message,
+      responseId: responseId,
     });
     return threadId;
   },

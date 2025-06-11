@@ -5,6 +5,9 @@ alwaysApply: true
 ---
 # Tooling
 
+## Package Manager
+This project uses pnpm as a package manager. Always use pnpm and pnpx.
+
 ## Framework
 This project uses Next 15 with React 19. 
 

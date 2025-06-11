@@ -7,6 +7,8 @@ export const env = createEnv({
     CLERK_SECRET_KEY: z.string().min(1),
     // convex
     CONVEX_DEPLOYMENT: z.string().min(1),
+    // openrouter
+    OPENROUTER_API_KEY: z.string().min(1),
   },
   client: {
     NEXT_PUBLIC_BASE_URL: z.string().min(1),
@@ -31,5 +33,7 @@ export const env = createEnv({
     // convex
     CONVEX_DEPLOYMENT: process.env.CONVEX_DEPLOYMENT,
     NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL,
+    // openrouter
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
   },
 });
