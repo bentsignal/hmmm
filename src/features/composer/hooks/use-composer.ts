@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import { useMutation } from "convex/react";
 
@@ -8,18 +8,30 @@ export default function useComposer() {
   const [isLoading, setIsLoading] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const createThread = useMutation(api.threads.create);
+  const createMessage = useMutation(api.messages.create);
+  const pathname = usePathname();
 
   const router = useRouter();
 
   const handleSendMessage = async () => {
-    router.push(`/chat/${crypto.randomUUID()}`);
+    setMessage("");
     setIsLoading(true);
     setDisabled(true);
-    setMessage("");
-    await createThread({
-      id: crypto.randomUUID(),
-      title: message,
-    });
+    if (pathname === "/") {
+      const threadId = crypto.randomUUID();
+      router.push(`/chat/${threadId}`);
+      await createThread({
+        threadId: threadId,
+        title: message,
+        message: message,
+      });
+      return;
+    } else {
+      await createMessage({
+        threadId: pathname.split("/")[2],
+        message: message,
+      });
+    }
     setIsLoading(false);
     setDisabled(false);
   };

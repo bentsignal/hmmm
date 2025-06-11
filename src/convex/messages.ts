@@ -2,38 +2,35 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const get = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
     const userId = await ctx.auth.getUserIdentity();
     if (!userId) {
       return [];
     }
-    const threads = await ctx.db.query("threads").collect();
-    return threads;
+    const messages = await ctx.db
+      .query("messages")
+      .filter((q) => q.eq(q.field("threadId"), args.threadId))
+      .collect();
+    return messages;
   },
 });
 
 export const create = mutation({
   args: {
     threadId: v.string(),
-    title: v.string(),
     message: v.string(),
   },
   handler: async (ctx, args) => {
-    // TODO: validate uuid
     const userId = await ctx.auth.getUserIdentity();
     if (!userId) {
       throw new Error("Unauthorized");
     }
-    const threadId = await ctx.db.insert("threads", {
-      threadId: args.threadId,
-      userId: userId.subject,
-      title: args.title,
-    });
     await ctx.db.insert("messages", {
       threadId: args.threadId,
       value: args.message,
     });
-    return threadId;
   },
 });

@@ -5,6 +5,12 @@ alwaysApply: true
 ---
 # Tooling
 
+## Framework
+This project uses Next 15 with React 19. 
+
+## Routing
+This projet uses the Next App Router
+
 ## Styling
 This project uses tailwind v4. When working with tailwind, always adhere to the rules of v4. Never recommend or create a tailwind config file.
 
