@@ -2,6 +2,7 @@ import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import { useMutation } from "convex/react";
+import { v4 as uuidv4 } from "uuid";
 
 export default function useComposer() {
   const [message, setMessage] = useState("");
@@ -14,7 +15,7 @@ export default function useComposer() {
   const handleSendMessage = async () => {
     setMessage("");
     if (pathname === "/") {
-      const threadId = crypto.randomUUID();
+      const threadId = uuidv4();
       router.push(`/chat/${threadId}`);
       await createThread({
         threadId: threadId,
