@@ -10,7 +10,7 @@ export function Code({ inline, className, children, ...props }: CodeProps) {
   const isBlock = !inline && (className?.includes("language-") || false);
   if (isBlock) {
     return (
-      <div className="not-prose flex flex-col">
+      <div className="not-prose w-full">
         <pre {...props} className="bg-card my-2 w-full rounded-xl border p-4">
           <code className="break-words whitespace-pre-wrap">{children}</code>
         </pre>

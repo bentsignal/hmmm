@@ -6,7 +6,7 @@ export const markdownComponents: Partial<Components> = {
   pre: ({ children }) => <>{children}</>,
   ol: ({ children, ...props }) => {
     return (
-      <ol className="ml-4 list-outside list-decimal" {...props}>
+      <ol className="w-full list-outside list-decimal pl-4" {...props}>
         {children}
       </ol>
     );
@@ -20,7 +20,7 @@ export const markdownComponents: Partial<Components> = {
   },
   ul: ({ children, ...props }) => {
     return (
-      <ul className="ml-4 list-outside list-decimal" {...props}>
+      <ul className="w-full list-outside list-decimal pl-4" {...props}>
         {children}
       </ul>
     );
