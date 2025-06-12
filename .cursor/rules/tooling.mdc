@@ -23,5 +23,8 @@ This project uses the shadcn component library. ShadCN's reusable components can
 ## Icons
 For most cases, use lucide-react for icons. When you need an icon for a brand or product logo, use simple-icons
 
+## AI Inference
+This project uses convex's agent component to handle ai inference for the user's prompts. Open router to handle multiple model providers, which plugs into vercel's ai-sdk that convex is built to work with. 
+
 
 

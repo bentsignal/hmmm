@@ -8,7 +8,7 @@ export default async function ChatPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const preloadedMessages = await preloadQuery(api.messages.get, {
+  const preloadedMessages = await preloadQuery(api.threads.getThreadMessages, {
     threadId: id,
   });
   return <MessageList preloadedMessages={preloadedMessages} />;

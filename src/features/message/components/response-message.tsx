@@ -3,11 +3,7 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { markdownComponents } from "./markdown-components";
 
-interface Message {
-  value: string;
-}
-
-export default function ResponseMessage({ message }: { message: Message }) {
+export default function ResponseMessage({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-start gap-2">
       <ReactMarkdown
@@ -15,7 +11,7 @@ export default function ResponseMessage({ message }: { message: Message }) {
         rehypePlugins={[rehypeHighlight]}
         components={markdownComponents}
       >
-        {message.value}
+        {message}
       </ReactMarkdown>
     </div>
   );

@@ -23,7 +23,7 @@ export default function ThreadList({
     <SidebarGroup>
       <SidebarMenu className="gap-2">
         {threads?.map((item) => (
-          <SidebarMenuItem key={item.threadId}>
+          <SidebarMenuItem key={item._id}>
             <SidebarMenuButton
               asChild
               className="py-5"
@@ -34,10 +34,10 @@ export default function ThreadList({
               }}
             >
               <Link
-                href={`/chat/${item.threadId}`}
+                href={`/chat/${item._id}`}
                 className={cn(
                   "font-medium whitespace-nowrap",
-                  pathname.endsWith(item.threadId) && "bg-accent",
+                  pathname.endsWith(item._id) && "bg-accent",
                 )}
               >
                 {item.title}
