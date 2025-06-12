@@ -3,7 +3,7 @@
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { streamText, smoothStream } from "ai";
+import { streamText, smoothStream, generateText } from "ai";
 import { internal } from "./_generated/api";
 
 const openRouter = createOpenRouter({
@@ -21,6 +21,7 @@ export const generateResponse = internalAction({
       prompt: args.message,
       experimental_transform: smoothStream({
         chunking: "word",
+        delayInMs: null,
       }),
     });
     let fullResponse = "";
@@ -31,5 +32,26 @@ export const generateResponse = internalAction({
         value: fullResponse,
       });
     }
+  },
+});
+
+export const generateTitle = internalAction({
+  args: {
+    message: v.string(),
+    threadId: v.id("threads"),
+  },
+  handler: async (ctx, args) => {
+    const response = await generateText({
+      model: openRouter.chat("google/gemma-3-4b-it"),
+      prompt: args.message,
+      system: `You are a helpful assistant for an AI chatbot. Generate a short, concise title
+      for a thread started by the following prompt. Pick a title that is relevant to the prompt, 
+      and only return the title, no other text.`,
+    });
+    const title = await response.text;
+    await ctx.runMutation(internal.threads.updateTitle, {
+      threadId: args.threadId,
+      title: title,
+    });
   },
 });

@@ -19,7 +19,6 @@ export default function useComposer() {
       router.push(`/chat/${threadId}`);
       await createThread({
         threadId: threadId,
-        title: message,
         message: message,
       });
       return;

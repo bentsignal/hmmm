@@ -1,5 +1,5 @@
 import { internal } from "./_generated/api";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const getThreadList = query({
@@ -17,10 +17,21 @@ export const getThreadList = query({
   },
 });
 
+export const updateTitle = internalMutation({
+  args: {
+    threadId: v.id("threads"),
+    title: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.threadId, {
+      title: args.title,
+    });
+  },
+});
+
 export const create = mutation({
   args: {
     threadId: v.string(),
-    title: v.string(),
     message: v.string(),
   },
   handler: async (ctx, args) => {
@@ -32,7 +43,7 @@ export const create = mutation({
     const threadId = await ctx.db.insert("threads", {
       threadId: args.threadId,
       userId: userId.subject,
-      title: args.title,
+      title: "New Chat",
     });
     await ctx.db.insert("messages", {
       threadId: args.threadId,
@@ -44,10 +55,16 @@ export const create = mutation({
       value: "",
       type: "response",
     });
-    await ctx.scheduler.runAfter(0, internal.actions.generateResponse, {
-      message: args.message,
-      responseId: responseId,
-    });
+    await Promise.all([
+      ctx.scheduler.runAfter(0, internal.actions.generateResponse, {
+        message: args.message,
+        responseId: responseId,
+      }),
+      ctx.scheduler.runAfter(0, internal.actions.generateTitle, {
+        message: args.message,
+        threadId: threadId,
+      }),
+    ]);
     return threadId;
   },
 });
