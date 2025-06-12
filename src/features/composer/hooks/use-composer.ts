@@ -2,11 +2,16 @@ import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import { useMutation } from "convex/react";
+import { optimisticallySendMessage } from "@convex-dev/agent/react";
 
 export default function useComposer() {
   const [message, setMessage] = useState("");
-  const createThread = useMutation(api.threads.requestThread);
-  const newThreadMessage = useMutation(api.threads.newThreadMessage);
+  const createThread = useMutation(api.threads.requestNewThreadCreation);
+  const newThreadMessage = useMutation(
+    api.threads.newThreadMessage,
+  ).withOptimisticUpdate(
+    optimisticallySendMessage(api.threads.getThreadMessages),
+  );
   const pathname = usePathname();
 
   const router = useRouter();
@@ -22,7 +27,7 @@ export default function useComposer() {
     } else {
       await newThreadMessage({
         threadId: pathname.split("/")[2],
-        message: message,
+        prompt: message,
       });
     }
   };

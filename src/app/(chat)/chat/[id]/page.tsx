@@ -1,6 +1,5 @@
-import { api } from "@/convex/_generated/api";
 import MessageList from "@/features/message/components/message-list";
-import { preloadQuery } from "convex/nextjs";
+import ErrorBoundary from "@/components/error-boundary";
 
 export default async function ChatPage({
   params,
@@ -8,8 +7,9 @@ export default async function ChatPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const preloadedMessages = await preloadQuery(api.threads.getThreadMessages, {
-    threadId: id,
-  });
-  return <MessageList preloadedMessages={preloadedMessages} />;
+  return (
+    <ErrorBoundary>
+      <MessageList threadId={id} />
+    </ErrorBoundary>
+  );
 }

@@ -1,13 +1,21 @@
 "use client";
 
 import { Send } from "lucide-react";
+import { useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import useComposer from "../hooks/use-composer";
 
 export default function Composer() {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { message, setMessage, handleKeyPress, handleSendMessage } =
     useComposer();
+
+  useEffect(() => {
+    if (message === "" && textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  }, [message]);
 
   return (
     <div className="mx-auto w-full max-w-2xl p-4">
@@ -19,6 +27,7 @@ export default function Composer() {
       >
         <div className="flex items-end gap-3 p-4">
           <textarea
+            ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyPress}
