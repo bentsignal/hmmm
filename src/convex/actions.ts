@@ -3,7 +3,7 @@
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { streamText } from "ai";
+import { streamText, smoothStream } from "ai";
 import { internal } from "./_generated/api";
 
 const openRouter = createOpenRouter({
@@ -19,6 +19,9 @@ export const generateResponse = internalAction({
     const response = await streamText({
       model: openRouter.chat("google/gemini-2.5-flash-preview-05-20"),
       prompt: args.message,
+      experimental_transform: smoothStream({
+        chunking: "word",
+      }),
     });
     let fullResponse = "";
     for await (const chunk of response.textStream) {
