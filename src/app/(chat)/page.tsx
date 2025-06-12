@@ -13,7 +13,7 @@ export default async function Home() {
 
   return (
     <>
-      <div className="flex flex-col items-center justify-center gap-2">
+      <div className="flex flex-1 flex-col items-center justify-center gap-2">
         <div className="flex items-center gap-2">
           <span className="text-2xl font-bold">
             {userId ? "Welcome back!" : "QBE"}

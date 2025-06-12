@@ -10,7 +10,7 @@ export default function Composer() {
     useComposer();
 
   return (
-    <div className="mx-auto w-full max-w-4xl p-4">
+    <div className="mx-auto w-full max-w-2xl p-4">
       <div
         className={cn(
           `bg-background/95 supports-[backdrop-filter]:bg-background/60 max-w-4xl 
@@ -44,7 +44,6 @@ export default function Composer() {
             disabled={!message.trim()}
             size="icon"
             className="shrink-0"
-            variant="ghost"
           >
             <Send className="h-4 w-4" />
           </Button>

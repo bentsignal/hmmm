@@ -13,7 +13,7 @@ export default function MessageList({
 }) {
   const messages = usePreloadedQuery(preloadedMessages);
   return (
-    <div className="mx-4 flex h-full w-full max-w-4xl flex-col gap-16 px-4">
+    <div className="mx-4 mb-8 flex h-full w-full max-w-4xl flex-col gap-16 px-4">
       {messages.map((message) =>
         message.type === "prompt" ? (
           <PromptMessage key={message._id} message={message} />
