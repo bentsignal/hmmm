@@ -138,7 +138,7 @@ export const continueThread = internalAction({
     });
     const result = await thread.streamText(
       { promptMessageId },
-      { saveStreamDeltas: { chunking: "word", throttleMs: 10 } },
+      { saveStreamDeltas: true },
     );
     await result.consumeStream();
   },
