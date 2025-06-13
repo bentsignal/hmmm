@@ -4,6 +4,7 @@ import { Code } from "@/features/message/components/code";
 export const markdownComponents: Partial<Components> = {
   code: Code as Components["code"],
   pre: ({ children }) => <>{children}</>,
+  hr: () => <></>,
   ol: ({ children, ...props }) => {
     return (
       <ol className="w-full list-outside list-decimal pl-4" {...props}>
