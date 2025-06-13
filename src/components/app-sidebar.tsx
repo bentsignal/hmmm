@@ -11,9 +11,7 @@ import { auth } from "@clerk/nextjs/server";
 import { preloadQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 
-export default async function AppSidebar({
-  ...props
-}: React.ComponentProps<typeof Sidebar>) {
+export default async function AppSidebar() {
   const { userId } = await auth();
   if (!userId) {
     return null;
@@ -21,7 +19,7 @@ export default async function AppSidebar({
   const preloadedThreads = await preloadQuery(api.threads.getThreadList);
 
   return (
-    <Sidebar variant="floating" {...props} className="py-4 pr-0 pl-4">
+    <Sidebar variant="floating" className="py-4 pr-0 pl-4">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -29,7 +27,10 @@ export default async function AppSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent
+        className="scrollbar-thin scrollbar-thumb-secondary 
+        scrollbar-track-transparent overflow-y-auto"
+      >
         <ThreadList preloadedThreads={preloadedThreads} />
       </SidebarContent>
     </Sidebar>

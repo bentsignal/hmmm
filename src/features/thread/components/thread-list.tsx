@@ -11,6 +11,8 @@ import { Preloaded, usePreloadedQuery } from "convex/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useSidebar } from "@/components/ui/sidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function ThreadList({
   preloadedThreads,
@@ -19,6 +21,8 @@ export default function ThreadList({
 }) {
   const threads = usePreloadedQuery(preloadedThreads);
   const pathname = usePathname();
+  const { toggleSidebar } = useSidebar();
+  const isMobile = useIsMobile();
   return (
     <SidebarGroup>
       <SidebarMenu className="gap-2">
@@ -31,6 +35,11 @@ export default function ThreadList({
                 WebkitMaskImage:
                   "linear-gradient(to right, black 75%, transparent)",
                 maskImage: "linear-gradient(to right, black 75%, transparent)",
+              }}
+              onClick={() => {
+                if (isMobile) {
+                  toggleSidebar();
+                }
               }}
             >
               <Link
