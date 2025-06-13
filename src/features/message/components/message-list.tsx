@@ -12,7 +12,6 @@ import useMessageListScroll from "../hooks/use-message-list-scroll";
 import "./tokyo-night-dark.min.css";
 import "./message-styles.css";
 import { memo } from "react";
-// import "flowtoken/dist/styles.css";
 
 const MemoizedPrompt = memo(PromptMessage);
 const MemoizedResponse = memo(ResponseMessage);
