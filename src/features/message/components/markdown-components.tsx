@@ -53,7 +53,7 @@ export const markdownComponents: Partial<Components> = {
   },
   td: ({ children, ...props }) => {
     return (
-      <td className="rounded-xl p-4 text-xs md:text-sm" {...props}>
+      <td className="rounded-xl p-2 text-xs sm:p-4 sm:text-sm" {...props}>
         {children}
       </td>
     );
@@ -61,7 +61,7 @@ export const markdownComponents: Partial<Components> = {
   th: ({ children, ...props }) => {
     return (
       <th
-        className="rounded-xl p-4 text-left text-sm font-bold md:text-lg"
+        className="rounded-xl p-2 text-left text-sm font-bold sm:p-4 sm:text-lg"
         {...props}
       >
         {children}
