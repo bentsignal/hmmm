@@ -9,7 +9,7 @@ import { useConvexAuth } from "convex/react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import useMessageListScroll from "../hooks/use-message-list-scroll";
 
 export default function MessageList({ threadId }: { threadId: string }) {
   const { isLoading, isAuthenticated } = useConvexAuth();
@@ -18,82 +18,9 @@ export default function MessageList({ threadId }: { threadId: string }) {
     initialNumItems: 10,
     stream: true,
   });
-
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const isInitialLoadRef = useRef(true);
-  const previousMessageCountRef = useRef(0);
   const uiMessages = toUIMessages(messages?.results ?? []);
-  const [isAtBottom, setIsAtBottom] = useState(true);
-
-  const checkIfAtBottom = () => {
-    const scrollElement = scrollAreaRef.current?.querySelector(
-      "[data-radix-scroll-area-viewport]",
-    );
-    if (scrollElement) {
-      const threshold = 100;
-      const isNearBottom =
-        scrollElement.scrollTop + scrollElement.clientHeight >=
-        scrollElement.scrollHeight - threshold;
-      setIsAtBottom(isNearBottom);
-    }
-  };
-
-  const scrollToBottom = () => {
-    const scrollElement = scrollAreaRef.current?.querySelector(
-      "[data-radix-scroll-area-viewport]",
-    );
-    if (scrollElement) {
-      scrollElement.scrollTo({
-        top: scrollElement.scrollHeight,
-        behavior: "auto",
-      });
-      setIsAtBottom(true);
-    }
-  };
-
-  useEffect(() => {
-    const scrollElement = scrollAreaRef.current?.querySelector(
-      "[data-radix-scroll-area-viewport]",
-    );
-
-    if (scrollElement) {
-      scrollElement.addEventListener("scroll", checkIfAtBottom);
-      return () => scrollElement.removeEventListener("scroll", checkIfAtBottom);
-    }
-  }, []);
-
-  useEffect(() => {
-    const scrollElement = scrollAreaRef.current?.querySelector(
-      "[data-radix-scroll-area-viewport]",
-    );
-
-    if (scrollElement && uiMessages.length > 0) {
-      if (isInitialLoadRef.current) {
-        scrollElement.scrollTo({
-          top: scrollElement.scrollHeight,
-          behavior: "auto",
-        });
-        isInitialLoadRef.current = false;
-        previousMessageCountRef.current = uiMessages.length;
-        setIsAtBottom(true);
-      } else if (uiMessages.length > previousMessageCountRef.current) {
-        const lastMessage = messagesEndRef.current?.previousElementSibling;
-        if (lastMessage) {
-          const scrollTop =
-            lastMessage.getBoundingClientRect().top -
-            scrollElement.getBoundingClientRect().top +
-            scrollElement.scrollTop;
-          scrollElement.scrollTo({
-            top: scrollTop,
-            behavior: "smooth",
-          });
-        }
-        previousMessageCountRef.current = uiMessages.length;
-        checkIfAtBottom();
-      }
-    }
-  }, [uiMessages.length]);
+  const { scrollAreaRef, messagesEndRef, isAtBottom, scrollToBottom } =
+    useMessageListScroll(uiMessages.length);
 
   if (isLoading) return null;
 
@@ -113,16 +40,15 @@ export default function MessageList({ threadId }: { threadId: string }) {
           </div>
         </div>
       </ScrollArea>
-
       {!isAtBottom && (
         <div
           className="absolute right-0 bottom-24 z-10 flex w-full items-center 
-          justify-center rounded-full p-0 shadow-lg"
+          justify-center rounded-full p-0"
         >
           <Button
             onClick={scrollToBottom}
             className="font-semibold shadow-lg"
-            variant="secondary"
+            variant="default"
           >
             Scroll to bottom <ChevronDown className="h-4 w-4" />
           </Button>
