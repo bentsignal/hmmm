@@ -3,13 +3,19 @@
 import { api } from "@/convex/_generated/api";
 import PromptMessage from "./prompt-message";
 import ResponseMessage from "./response-message";
-import "./tokyo-night-dark.min.css";
 import { useThreadMessages, toUIMessages } from "@convex-dev/agent/react";
 import { useConvexAuth } from "convex/react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import useMessageListScroll from "../hooks/use-message-list-scroll";
+import "./tokyo-night-dark.min.css";
+import "./message-styles.css";
+import { memo } from "react";
+// import "flowtoken/dist/styles.css";
+
+const MemoizedPrompt = memo(PromptMessage);
+const MemoizedResponse = memo(ResponseMessage);
 
 export default function MessageList({ threadId }: { threadId: string }) {
   const { isLoading, isAuthenticated } = useConvexAuth();
@@ -31,9 +37,13 @@ export default function MessageList({ threadId }: { threadId: string }) {
           <div className="mx-4 mb-8 flex h-full w-full max-w-4xl flex-col gap-16 px-4">
             {uiMessages.map((item) =>
               item.role === "user" ? (
-                <PromptMessage key={item.id} message={item.content} />
+                <div key={item.id} className="flex items-end justify-end">
+                  <MemoizedPrompt message={item.content} />
+                </div>
               ) : item.role === "assistant" ? (
-                <ResponseMessage key={item.id} message={item.content} />
+                <div key={item.id} className="flex flex-col items-start gap-2">
+                  <MemoizedResponse message={item.content} />
+                </div>
               ) : null,
             )}
             <div ref={messagesEndRef} />
