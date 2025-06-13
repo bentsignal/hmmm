@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Never attempt to run a command to start the dev server. Always assume that the dev server is running

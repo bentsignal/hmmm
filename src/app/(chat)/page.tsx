@@ -36,14 +36,14 @@ export default async function Home() {
             ? "How can I help you today?"
             : "The first AI Chat app to embrace the z-axis."}
         </span>
+        {!userId && (
+          <Button asChild className="mt-2">
+            <Link href="/login" className="text-lg font-semibold">
+              Login
+            </Link>
+          </Button>
+        )}
       </div>
-      {!userId && (
-        <Button asChild>
-          <Link href="/login" className="text-lg font-semibold">
-            Login
-          </Link>
-        </Button>
-      )}
     </>
   );
 }

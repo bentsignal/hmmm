@@ -29,11 +29,8 @@ export default async function ChatLayout({
             </div>
           </>
         )}
-        <div className="h-full min-h-screen overflow-y-auto pt-20 pb-20">
-          <div
-            className="flex min-h-full w-full flex-1 flex-col 
-          items-center justify-start gap-4"
-          >
+        <div className="h-full">
+          <div className="flex h-full w-full flex-1 flex-col items-center justify-start">
             {children}
           </div>
         </div>
