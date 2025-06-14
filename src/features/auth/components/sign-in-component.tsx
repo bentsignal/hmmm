@@ -44,7 +44,7 @@ export default function SignInComponent() {
               <Step name="start">
                 <Card className="flex w-full flex-col items-center justify-center sm:w-96">
                   <CardHeader className="flex flex-col items-center justify-center">
-                    <span className="text-4xl font-bold">QBE</span>
+                    <span className="text-2xl font-bold">QBE</span>
                   </CardHeader>
                   <CardContent className="mt-2 flex flex-col gap-y-4">
                     <Connection name="google" asChild>

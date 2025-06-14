@@ -38,8 +38,8 @@ export default async function Home() {
         </span>
         {!userId && (
           <Button asChild className="mt-2">
-            <Link href="/login" className="text-lg font-semibold">
-              Login
+            <Link href="/sign-up" className="text-lg font-semibold">
+              Get Started
             </Link>
           </Button>
         )}
