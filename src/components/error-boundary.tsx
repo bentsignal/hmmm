@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { Button } from "./ui/button";
+import Link from "next/link";
 
 class ErrorBoundaryClass extends React.Component<
   React.PropsWithChildren,
@@ -23,13 +25,16 @@ class ErrorBoundaryClass extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex h-full w-full items-center justify-center">
+        <div className="flex h-full w-full flex-col items-center justify-center gap-4">
           <div className="rounded-md bg-red-400 p-4 text-black">
             <h1 className="text-2xl font-bold">Error</h1>
             <p className="text-sm">
               An error occurred while loading the page. Please try again later.
             </p>
           </div>
+          <Button variant="outline" asChild>
+            <Link href="/">Back to safety</Link>
+          </Button>
         </div>
       );
     }
