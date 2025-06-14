@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { CopyButton } from "./copy-button";
 
 interface CodeProps {
   inline?: boolean;
@@ -8,14 +9,20 @@ interface CodeProps {
 
 export function Code({ inline, className, children, ...props }: CodeProps) {
   const isBlock = !inline && (className?.includes("language-") || false);
+
   if (isBlock) {
     return (
       <div className="not-prose w-full">
-        <pre {...props} className="bg-card my-2 w-full rounded-xl border p-4">
-          <code className="text-xs break-words whitespace-pre-wrap md:text-sm">
-            {children}
-          </code>
-        </pre>
+        <div className="bg-card relative my-4 w-full rounded-xl border">
+          <div className="absolute top-2 right-2 z-10">
+            <CopyButton code={children} />
+          </div>
+          <pre {...props} className="p-4 pr-12">
+            <code className="text-xs break-words whitespace-pre-wrap md:text-sm">
+              {children}
+            </code>
+          </pre>
+        </div>
       </div>
     );
   } else {
