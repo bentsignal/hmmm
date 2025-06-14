@@ -69,13 +69,17 @@ export default function ThreadList({
             <Fragment key={i}>
               {i === 0 ? (
                 <SidebarGroupLabel>Today</SidebarGroupLabel>
-              ) : i === threadGroupCounts.todayCount ? (
+              ) : i === threadGroupCounts.todayCount &&
+                threadGroupCounts.todayCount > 0 ? (
                 <SidebarGroupLabel>Yesterday</SidebarGroupLabel>
-              ) : i === threadGroupCounts.yesterdayCount ? (
+              ) : i === threadGroupCounts.yesterdayCount &&
+                threadGroupCounts.yesterdayCount > 0 ? (
                 <SidebarGroupLabel>Last 7 Days</SidebarGroupLabel>
-              ) : i === threadGroupCounts.lastWeekCount ? (
+              ) : i === threadGroupCounts.lastWeekCount &&
+                threadGroupCounts.lastWeekCount > 0 ? (
                 <SidebarGroupLabel>Last 30 Days</SidebarGroupLabel>
-              ) : i === threadGroupCounts.lastMonthCount ? (
+              ) : i === threadGroupCounts.lastMonthCount &&
+                threadGroupCounts.lastMonthCount > 0 ? (
                 <SidebarGroupLabel>Older than 30 days</SidebarGroupLabel>
               ) : null}
               <ThreadListItem
