@@ -16,7 +16,7 @@ export default async function Home() {
       <div className="flex flex-1 flex-col items-center justify-center gap-2">
         <div className="flex items-center gap-2">
           <span className="text-2xl font-bold">
-            {userId ? "Welcome back!" : "QBE"}
+            {userId ? "Welcome back" : "QBE"}
           </span>
           {!userId && (
             <Tooltip>
