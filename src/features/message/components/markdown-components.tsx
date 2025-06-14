@@ -19,9 +19,18 @@ export const markdownComponents: Partial<Components> = {
   },
   table: ({ children, ...props }) => {
     return (
-      <table className="bg-card w-full rounded-xl" {...props}>
+      <div className="bg-card mt-6 mb-2 w-full overflow-hidden rounded-xl border">
+        <table className="!m-0 w-full rounded-xl" {...props}>
+          {children}
+        </table>
+      </div>
+    );
+  },
+  tr: ({ children, ...props }) => {
+    return (
+      <tr className="!border-0" {...props}>
         {children}
-      </table>
+      </tr>
     );
   },
   td: ({ children, ...props }) => {
