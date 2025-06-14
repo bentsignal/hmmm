@@ -18,7 +18,8 @@ export default function PromptMessage({ message }: { message: string }) {
     >
       <div
         className="bg-secondary text-secondary-foreground 
-        flex max-w-xs flex-col gap-2 rounded-xl px-5 py-4"
+        flex max-w-xs flex-col gap-2 rounded-xl px-5 py-4
+        shadow-md"
       >
         <div>{message}</div>
       </div>

@@ -19,7 +19,7 @@ export default function ResponseMessage({ message }: { message: string }) {
       className="w-full transition-opacity duration-1000 ease-in-out"
       style={{ opacity }}
     >
-      <div className="relative w-full">
+      <div className="prose dark:prose-invert relative w-full max-w-full">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeHighlight]}

@@ -5,34 +5,6 @@ export const markdownComponents: Partial<Components> = {
   code: Code as Components["code"],
   pre: ({ children }) => <>{children}</>,
   hr: () => <></>,
-  ol: ({ children, ...props }) => {
-    return (
-      <ol className="w-full list-outside list-decimal pl-4" {...props}>
-        {children}
-      </ol>
-    );
-  },
-  li: ({ children, ...props }) => {
-    return (
-      <li className="py-1" {...props}>
-        {children}
-      </li>
-    );
-  },
-  ul: ({ children, ...props }) => {
-    return (
-      <ul className="w-full list-outside list-decimal pl-4" {...props}>
-        {children}
-      </ul>
-    );
-  },
-  strong: ({ children, ...props }) => {
-    return (
-      <span className="font-semibold" {...props}>
-        {children}
-      </span>
-    );
-  },
   a: ({ children, ...props }) => {
     return (
       <a
@@ -47,7 +19,7 @@ export const markdownComponents: Partial<Components> = {
   },
   table: ({ children, ...props }) => {
     return (
-      <table className="bg-card w-full rounded-xl border" {...props}>
+      <table className="bg-card w-full rounded-xl" {...props}>
         {children}
       </table>
     );
@@ -99,7 +71,7 @@ export const markdownComponents: Partial<Components> = {
   },
   h5: ({ children, ...props }) => {
     return (
-      <h5 className="text-base font-semibold" {...props}>
+      <h5 className="mt-6 mb-2 text-base font-semibold" {...props}>
         {children}
       </h5>
     );

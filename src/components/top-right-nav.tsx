@@ -10,7 +10,7 @@ export default function TopRightNav() {
   const { theme, setTheme } = useTheme();
   return (
     <div
-      className={`bg-card m-4 flex w-fit items-center rounded-lg p-1 shadow-lg`}
+      className={`bg-card m-4 flex w-fit items-center rounded-lg p-1 shadow-md`}
     >
       <Button
         variant="ghost"

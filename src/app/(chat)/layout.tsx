@@ -21,7 +21,7 @@ export default async function ChatLayout({
         {userId && (
           <>
             <div className="absolute top-0 right-0 left-0 z-50 flex w-full items-center justify-between">
-              <SidebarTrigger className="m-4 p-5 shadow-lg" />
+              <SidebarTrigger className="m-4 p-5 shadow-md" />
               <TopRightNav />
             </div>
             <div className="absolute right-0 bottom-0 left-0 z-50">
