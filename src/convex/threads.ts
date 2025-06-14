@@ -1,4 +1,4 @@
-import { components, internal } from "./_generated/api";
+import { api, components, internal } from "./_generated/api";
 import {
   internalAction,
   mutation,
@@ -41,6 +41,9 @@ export const getThreadMessages = query({
   },
   handler: async (ctx, args) => {
     const { threadId, paginationOpts, streamArgs } = args;
+    if (threadId === "skip" || threadId === "") {
+      throw new Error("Thread ID is required");
+    }
     await authorizeThreadAccess(ctx, threadId);
     const streams = await agent.syncStreams(ctx, {
       threadId,
@@ -114,6 +117,15 @@ export const newThreadMessage = mutation({
   handler: async (ctx, args) => {
     const { threadId, prompt } = args;
     await authorizeThreadAccess(ctx, threadId);
+    const isThreadStreaming = await ctx.runQuery(
+      api.threads.isThreadStreaming,
+      {
+        threadId,
+      },
+    );
+    if (isThreadStreaming) {
+      return;
+    }
     const { messageId } = await agent.saveMessage(ctx, {
       threadId,
       prompt: prompt,
@@ -158,5 +170,22 @@ export const deleteThread = mutation({
         threadId,
       },
     );
+  },
+});
+
+export const isThreadStreaming = query({
+  args: {
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { threadId } = args;
+    if (threadId === "skip" || threadId === "") {
+      return false;
+    }
+    await authorizeThreadAccess(ctx, threadId);
+    const streamingMessages = await ctx.runQuery(agent.component.streams.list, {
+      threadId,
+    });
+    return streamingMessages.length > 0;
   },
 });

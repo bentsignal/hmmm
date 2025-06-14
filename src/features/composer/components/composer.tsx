@@ -1,15 +1,21 @@
 "use client";
 
-import { Send } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import { useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import useComposer from "../hooks/use-composer";
 
 export default function Composer() {
+  const {
+    message,
+    setMessage,
+    handleKeyPress,
+    handleSendMessage,
+    isLoading,
+    blockSend,
+  } = useComposer();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { message, setMessage, handleKeyPress, handleSendMessage } =
-    useComposer();
 
   useEffect(() => {
     if (message === "" && textareaRef.current) {
@@ -40,8 +46,8 @@ export default function Composer() {
               scrollbar-thumb-secondary scrollbar-track-transparent flex h-auto max-h-32 min-h-[36px] 
               w-full min-w-0 resize-none overflow-y-auto px-3 py-2 
               text-base transition-[color,box-shadow] outline-none 
-              focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 
-              md:text-sm `,
+              focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed 
+              disabled:opacity-50 md:text-sm `,
             )}
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement;
@@ -51,11 +57,15 @@ export default function Composer() {
           />
           <Button
             onClick={handleSendMessage}
-            disabled={!message.trim()}
+            disabled={blockSend || isLoading}
             size="icon"
             className="shrink-0"
           >
-            <Send className="h-4 w-4" />
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </div>
