@@ -20,7 +20,7 @@ export default function MessageList({ threadId }: { threadId: string }) {
   const { isLoading, isAuthenticated } = useConvexAuth();
   const args = isAuthenticated ? { threadId } : "skip";
   const messages = useThreadMessages(api.threads.getThreadMessages, args, {
-    initialNumItems: 10,
+    initialNumItems: 100,
     stream: true,
   });
   const uiMessages = toUIMessages(messages?.results ?? []);

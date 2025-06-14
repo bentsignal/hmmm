@@ -10,19 +10,20 @@ import { Preloaded, usePreloadedQuery } from "convex/react";
 import ThreadListItem from "./thread-list-item";
 import CustomAlert from "@/components/alert";
 import { Fragment, useMemo, useRef, useState } from "react";
-// import { useMutation } from "convex/react";
+import { useMutation } from "convex/react";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function ThreadList({
   preloadedThreads,
 }: {
   preloadedThreads: Preloaded<typeof api.threads.getThreadList>;
 }) {
+  const pathname = usePathname();
+  const router = useRouter();
   const threads = usePreloadedQuery(preloadedThreads);
   const [open, setOpen] = useState(false);
   const selectedThread = useRef<string | null>(null);
-  // const deleteAllForThreadIdSync = useMutation(
-  //   api.threads.deleteAllForThreadIdSync,
-  // );
+  const deleteThread = useMutation(api.threads.deleteThread);
 
   // group threads by creation date
   const threadGroupCounts = useMemo(() => {
@@ -94,15 +95,16 @@ export default function ThreadList({
         open={open}
         setOpen={setOpen}
         onCancel={() => {
-          setOpen(false);
           selectedThread.current = null;
         }}
         onConfirm={() => {
-          // if (selectedThread.current) {
-          //   api.threads.deleteAllForThreadIdSync({
-          //     threadId: selectedThread.current,
-          //   });
-          // }
+          if (selectedThread.current) {
+            if (pathname.includes(selectedThread.current)) {
+              router.push("/");
+            }
+            deleteThread({ threadId: selectedThread.current });
+            selectedThread.current = null;
+          }
         }}
         title="Delete Thread"
         message="Are you sure you want to delete this thread?"

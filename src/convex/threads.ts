@@ -143,3 +143,20 @@ export const continueThread = internalAction({
     await result.consumeStream();
   },
 });
+
+export const deleteThread = mutation({
+  args: {
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { threadId } = args;
+    await authorizeThreadAccess(ctx, threadId);
+    ctx.scheduler.runAfter(
+      0,
+      components.agent.threads.deleteAllForThreadIdAsync,
+      {
+        threadId,
+      },
+    );
+  },
+});
