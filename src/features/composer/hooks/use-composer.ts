@@ -3,9 +3,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { optimisticallySendMessage } from "@convex-dev/agent/react";
+import useModelStore from "@/features/models/store";
 
 export default function useComposer() {
   const [message, setMessage] = useState("");
+  const { currentModel } = useModelStore();
 
   // handle creation of new messages & threads
   const createThread = useMutation(api.threads.requestNewThreadCreation);
@@ -40,6 +42,7 @@ export default function useComposer() {
     if (pathname === "/") {
       const threadId = await createThread({
         message: message,
+        modelId: currentModel.id,
       });
       router.push(`/chat/${threadId}`);
       return;
@@ -47,6 +50,7 @@ export default function useComposer() {
       await newThreadMessage({
         threadId: pathname.split("/")[2],
         prompt: message,
+        modelId: currentModel.id,
       });
     }
   };

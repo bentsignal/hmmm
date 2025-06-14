@@ -5,6 +5,7 @@ import { useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import useComposer from "../hooks/use-composer";
+import ModelSelector from "@/features/models/components/model-selector";
 
 export default function Composer() {
   const {
@@ -55,6 +56,7 @@ export default function Composer() {
               target.style.height = `${target.scrollHeight}px`;
             }}
           />
+          <ModelSelector />
           <Button
             onClick={handleSendMessage}
             disabled={blockSend || isLoading}

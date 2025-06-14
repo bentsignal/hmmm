@@ -1,13 +1,15 @@
 import { Agent } from "@convex-dev/agent";
 import { components } from "./_generated/api";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { models } from "@/features/models/types";
+import modelMap from "@/features/models/types/model-map";
 
-const openRouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY!,
-});
+const defaultModel = modelMap.get(models[0].id);
+if (!defaultModel) {
+  throw new Error("Default model not found");
+}
 
 export const agent = new Agent(components.agent, {
-  chat: openRouter.chat("google/gemini-2.5-flash-preview-05-20"),
+  chat: defaultModel,
   instructions: `You are a helpful assistent. Given a prompt or thread of messages, deliver
   a response that will help answer the question or task being proposed by the user.
   Give a concise response, unless explicitly asked to give an extended response by the user. 

@@ -1,11 +1,5 @@
 import { api, components, internal } from "./_generated/api";
-import {
-  internalAction,
-  mutation,
-  MutationCtx,
-  query,
-  QueryCtx,
-} from "./_generated/server";
+import { mutation, MutationCtx, query, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { agent } from "./agent";
 import { paginationOptsValidator } from "convex/server";
@@ -80,29 +74,32 @@ const authorizeThreadAccess = async (
 export const requestNewThreadCreation = mutation({
   args: {
     message: v.string(),
+    modelId: v.string(),
   },
   handler: async (ctx, args) => {
     const userId = await ctx.auth.getUserIdentity();
     if (!userId) {
       throw new Error("Unauthorized");
     }
+    const { message, modelId } = args;
     const { threadId } = await agent.createThread(ctx, {
       userId: userId.subject,
       title: "New Chat",
     });
     const { messageId } = await agent.saveMessage(ctx, {
       threadId,
-      prompt: args.message,
+      prompt: message,
       skipEmbeddings: true,
     });
     await Promise.all([
       ctx.scheduler.runAfter(0, internal.actions.generateTitle, {
         threadId: threadId,
-        message: args.message,
+        message: message,
       }),
-      ctx.scheduler.runAfter(0, internal.threads.continueThread, {
+      ctx.scheduler.runAfter(0, internal.actions.continueThread, {
         threadId: threadId,
         promptMessageId: messageId,
+        modelId: modelId,
       }),
     ]);
     return threadId;
@@ -113,9 +110,10 @@ export const newThreadMessage = mutation({
   args: {
     threadId: v.string(),
     prompt: v.string(),
+    modelId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { threadId, prompt } = args;
+    const { threadId, prompt, modelId } = args;
     await authorizeThreadAccess(ctx, threadId);
     const isThreadStreaming = await ctx.runQuery(
       api.threads.isThreadStreaming,
@@ -131,28 +129,11 @@ export const newThreadMessage = mutation({
       prompt: prompt,
       skipEmbeddings: true,
     });
-    ctx.scheduler.runAfter(0, internal.threads.continueThread, {
+    ctx.scheduler.runAfter(0, internal.actions.continueThread, {
       threadId: args.threadId,
       promptMessageId: messageId,
+      modelId: modelId,
     });
-  },
-});
-
-export const continueThread = internalAction({
-  args: {
-    threadId: v.string(),
-    promptMessageId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { threadId, promptMessageId } = args;
-    const { thread } = await agent.continueThread(ctx, {
-      threadId: threadId,
-    });
-    const result = await thread.streamText(
-      { promptMessageId },
-      { saveStreamDeltas: true },
-    );
-    await result.consumeStream();
   },
 });
 
