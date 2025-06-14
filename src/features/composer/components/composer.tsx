@@ -21,7 +21,7 @@ export default function Composer() {
     <div className="mx-auto w-full max-w-2xl p-4">
       <div
         className={cn(
-          `bg-background/95 supports-[backdrop-filter]:bg-background/60 max-w-4xl 
+          `bg-card supports-[backdrop-filter]:bg-card/60 max-w-4xl 
           rounded-2xl border shadow-lg backdrop-blur`,
         )}
       >
