@@ -9,7 +9,7 @@ import { api } from "@/convex/_generated/api";
 import { Preloaded, usePreloadedQuery } from "convex/react";
 import ThreadListItem from "./thread-list-item";
 import CustomAlert from "@/components/alert";
-import { Fragment, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -24,6 +24,13 @@ export default function ThreadList({
   const [open, setOpen] = useState(false);
   const selectedThread = useRef<string | null>(null);
   const deleteThread = useMutation(api.threads.deleteThread);
+  const [opacity, setOpacity] = useState(0);
+
+  useEffect(() => {
+    if (threads.length > 0) {
+      setOpacity(1);
+    }
+  }, [threads]);
 
   // group threads by creation date
   const threadGroupCounts = useMemo(() => {
@@ -64,7 +71,10 @@ export default function ThreadList({
   return (
     <>
       <SidebarGroup>
-        <SidebarMenu className="gap-2">
+        <SidebarMenu
+          className="gap-2 transition-opacity duration-1000 ease-in-out"
+          style={{ opacity }}
+        >
           {threads?.map((item, i) => (
             <Fragment key={i}>
               {i === 0 ? (
