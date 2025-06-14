@@ -36,11 +36,12 @@ export default function Composer() {
             className={cn(
               `file:text-foreground placeholder:text-muted-foreground selection:bg-primary 
               selection:text-primary-foreground focus-visible:ring-ring/0 
-              aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 flex 
-              h-auto max-h-32 min-h-[36px] w-full min-w-0 resize-none 
-              overflow-y-auto px-3 py-2 text-base transition-[color,box-shadow] outline-none 
-              focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed 
-              disabled:opacity-50 md:text-sm`,
+              aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 scrollbar-thin 
+              scrollbar-thumb-secondary scrollbar-track-transparent flex h-auto max-h-32 min-h-[36px] 
+              w-full min-w-0 resize-none overflow-y-auto px-3 py-2 
+              text-base transition-[color,box-shadow] outline-none 
+              focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 
+              md:text-sm `,
             )}
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement;
