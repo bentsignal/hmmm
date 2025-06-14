@@ -4,7 +4,7 @@ export default function PromptMessage({ message }: { message: string }) {
   const [opacity, setOpacity] = useState(0);
 
   useEffect(() => {
-    setOpacity(1);
+    setTimeout(() => setOpacity(1), 100);
   }, []);
 
   return (
