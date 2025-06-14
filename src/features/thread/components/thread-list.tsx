@@ -2,17 +2,14 @@
 
 import {
   SidebarGroup,
+  SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { api } from "@/convex/_generated/api";
 import { Preloaded, usePreloadedQuery } from "convex/react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { useSidebar } from "@/components/ui/sidebar";
-import { useIsMobile } from "@/hooks/use-mobile";
+import ThreadListItem from "./thread-list-item";
+import CustomAlert from "@/components/alert";
+import { useRef, useState } from "react";
 
 export default function ThreadList({
   preloadedThreads,
@@ -20,41 +17,89 @@ export default function ThreadList({
   preloadedThreads: Preloaded<typeof api.threads.getThreadList>;
 }) {
   const threads = usePreloadedQuery(preloadedThreads);
-  const pathname = usePathname();
-  const { toggleSidebar } = useSidebar();
-  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(false);
+  const today = threads?.filter((item) => {
+    const date = new Date(item._creationTime);
+    return date.toDateString() === new Date().toDateString();
+  });
+  const yesterday = threads?.filter((item) => {
+    const date = new Date(item._creationTime);
+    return (
+      date.toDateString() ===
+      new Date(new Date().setDate(new Date().getDate() - 1)).toDateString()
+    );
+  });
+  const lastWeek = threads?.filter((item) => {
+    const date = new Date(item._creationTime);
+    return (
+      date.toDateString() ===
+      new Date(new Date().setDate(new Date().getDate() - 7)).toDateString()
+    );
+  });
+  const lastMonth = threads?.filter((item) => {
+    const date = new Date(item._creationTime);
+    return (
+      date.toDateString() ===
+      new Date(new Date().setMonth(new Date().getMonth() - 1)).toDateString()
+    );
+  });
+  // const previousCreationDate = useRef(new Date());
   return (
-    <SidebarGroup>
-      <SidebarMenu className="gap-2">
-        {threads?.map((item) => (
-          <SidebarMenuItem key={item._id}>
-            <SidebarMenuButton
-              asChild
-              className="py-5"
-              style={{
-                WebkitMaskImage:
-                  "linear-gradient(to right, black 75%, transparent)",
-                maskImage: "linear-gradient(to right, black 75%, transparent)",
-              }}
-              onClick={() => {
-                if (isMobile) {
-                  toggleSidebar();
-                }
-              }}
-            >
-              <Link
-                href={`/chat/${item._id}`}
-                className={cn(
-                  "font-medium whitespace-nowrap",
-                  pathname.endsWith(item._id) && "bg-accent",
-                )}
-              >
-                {item.title}
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        ))}
-      </SidebarMenu>
-    </SidebarGroup>
+    <>
+      <SidebarGroup>
+        <SidebarMenu className="gap-2">
+          {today?.length > 0 && <SidebarGroupLabel>Today</SidebarGroupLabel>}
+          {today?.map((item) => (
+            <ThreadListItem
+              key={item._id}
+              title={item.title ?? ""}
+              id={item._id ?? ""}
+              handleDelete={() => setOpen(true)}
+            />
+          ))}
+          {yesterday?.length > 0 && (
+            <SidebarGroupLabel>Yesterday</SidebarGroupLabel>
+          )}
+          {yesterday?.map((item) => (
+            <ThreadListItem
+              key={item._id}
+              title={item.title ?? ""}
+              id={item._id ?? ""}
+              handleDelete={() => setOpen(true)}
+            />
+          ))}
+          {lastWeek?.length > 0 && (
+            <SidebarGroupLabel>Last Week</SidebarGroupLabel>
+          )}
+          {lastWeek?.map((item) => (
+            <ThreadListItem
+              key={item._id}
+              title={item.title ?? ""}
+              id={item._id ?? ""}
+              handleDelete={() => setOpen(true)}
+            />
+          ))}
+          {lastMonth?.length > 0 && (
+            <SidebarGroupLabel>Last Month</SidebarGroupLabel>
+          )}
+          {lastMonth?.map((item) => (
+            <ThreadListItem
+              key={item._id}
+              title={item.title ?? ""}
+              id={item._id ?? ""}
+              handleDelete={() => setOpen(true)}
+            />
+          ))}
+        </SidebarMenu>
+      </SidebarGroup>
+      <CustomAlert
+        open={open}
+        setOpen={setOpen}
+        onConfirm={() => {}}
+        title="Delete Thread"
+        message="Are you sure you want to delete this thread?"
+        destructive={true}
+      />
+    </>
   );
 }
