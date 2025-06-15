@@ -65,7 +65,12 @@ export default function CustomAlert({
           )}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel
+            onClick={onCancel}
+            className="hover:cursor-pointer"
+          >
+            Cancel
+          </AlertDialogCancel>
           <AlertDialogAction asChild>
             <Button
               variant={destructive ? "destructive" : "default"}
