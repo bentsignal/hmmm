@@ -10,33 +10,50 @@ import "./tokyo-night-dark.min.css";
 import "./message-styles.css";
 import { memo } from "react";
 import useThread from "@/features/thread/hooks/use-thread-messages";
+import ReasoningMessage from "./reasoning-message";
+import useThreadStatus from "@/features/thread/hooks/use-thread-status";
 
 const MemoizedPrompt = memo(PromptMessage);
 const MemoizedResponse = memo(ResponseMessage);
+const MemoizedReasoningMessage = memo(ReasoningMessage);
 
 export default function MessageList({ threadId }: { threadId: string }) {
-  const { isAuthenticated, uiMessages, messages } = useThread({ threadId });
+  const { messages, uiMessages } = useThread({ threadId });
   const { scrollAreaRef, messagesEndRef, isAtBottom, scrollToBottom } =
     useMessageListScroll(uiMessages.length);
-
-  if (!isAuthenticated) return null;
+  const { isThreadStreaming } = useThreadStatus({ threadId });
 
   return (
     <div className="relative h-full w-full">
       <ScrollArea ref={scrollAreaRef} className="h-full w-full">
         <div className="flex w-full justify-center pt-20 pb-20">
           <div className="mx-4 mb-8 flex h-full w-full max-w-4xl flex-col gap-16 px-4">
-            {uiMessages.map((item, index) =>
+            {uiMessages.map((item) =>
               item.role === "user" ? (
                 <div key={item.id} className="flex items-center justify-end">
                   <MemoizedPrompt message={item.content} />
                 </div>
-              ) : item.role === "assistant" ? (
+              ) : item.role === "assistant" && item.parts.length > 0 ? (
                 <div key={item.id} className="flex flex-col items-start gap-2">
-                  <MemoizedResponse
-                    message={item.content}
-                    creationTime={messages?.results[index]._creationTime ?? 0}
-                  />
+                  {item.parts
+                    .reverse()
+                    .map((part, index) =>
+                      part.type === "reasoning" && part.reasoning.length > 0 ? (
+                        <MemoizedReasoningMessage
+                          key={`${item.id}-${index}`}
+                          message={part.reasoning}
+                          loading={isThreadStreaming ?? false}
+                        />
+                      ) : part.type === "text" ? (
+                        <MemoizedResponse
+                          key={`${item.id}-${index}`}
+                          message={part.text}
+                          creationTime={
+                            messages?.results[index]._creationTime ?? 0
+                          }
+                        />
+                      ) : null,
+                    )}
                 </div>
               ) : null,
             )}
