@@ -1,30 +1,19 @@
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { api } from "@/convex/_generated/api";
-import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import { optimisticallySendMessage } from "@convex-dev/agent/react";
 import useModelStore from "@/features/models/store";
+import useThreadMutation from "@/features/thread/hooks/use-thread-mutation";
+import useThreadStatus from "@/features/thread/hooks/use-thread-status";
 
 export default function useComposer() {
-  const [message, setMessage] = useState("");
-  const { currentModel } = useModelStore();
-
-  // handle creation of new messages & threads
-  const createThread = useMutation(api.threads.requestNewThreadCreation);
-  const newThreadMessage = useMutation(
-    api.threads.newThreadMessage,
-  ).withOptimisticUpdate(
-    optimisticallySendMessage(api.threads.getThreadMessages),
-  );
-
   const pathname = usePathname();
   const router = useRouter();
   const threadId = pathname.split("/").pop() ?? "";
 
-  // determine if messages are being streamed back
-  const { isAuthenticated } = useConvexAuth();
-  const args = isAuthenticated ? { threadId } : "skip";
-  const isThreadStreaming = useQuery(api.threads.isThreadStreaming, args);
+  const [message, setMessage] = useState("");
+  const { currentModel } = useModelStore();
+  const { createThread, newThreadMessage } = useThreadMutation();
+  const { isThreadStreaming } = useThreadStatus({ threadId });
+
   const [optimisticallyBlockSend, setOptimisticallyBlockSend] = useState(false);
   const blockSend =
     isThreadStreaming || optimisticallyBlockSend || message.trim() === "";

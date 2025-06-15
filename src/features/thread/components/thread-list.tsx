@@ -10,8 +10,8 @@ import { Preloaded, usePreloadedQuery } from "convex/react";
 import ThreadListItem from "./thread-list-item";
 import CustomAlert from "@/components/alert";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { useMutation } from "convex/react";
 import { usePathname, useRouter } from "next/navigation";
+import useThreadMutation from "@/features/thread/hooks/use-thread-mutation";
 
 export default function ThreadList({
   preloadedThreads,
@@ -23,7 +23,7 @@ export default function ThreadList({
   const threads = usePreloadedQuery(preloadedThreads);
   const [open, setOpen] = useState(false);
   const selectedThread = useRef<string | null>(null);
-  const deleteThread = useMutation(api.threads.deleteThread);
+  const { deleteThread } = useThreadMutation();
   const [opacity, setOpacity] = useState(0);
 
   useEffect(() => {
