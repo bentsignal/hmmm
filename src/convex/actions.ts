@@ -7,6 +7,7 @@ import { components } from "./_generated/api";
 import modelMap from "@/features/models/types/model-map";
 import { publicModels } from "@/features/models/types";
 import { agent } from "./agent";
+import { openrouter } from "@openrouter/ai-sdk-provider";
 
 export const generateTitle = internalAction({
   args: {
@@ -57,7 +58,17 @@ export const continueThread = internalAction({
     }
     // generate repsonse, stream text back to client
     const result = await thread.streamText(
-      { promptMessageId, model: model },
+      {
+        promptMessageId,
+        model: model,
+        providerOptions: {
+          openrouter: {
+            reasoning: {
+              max_tokens: 2000,
+            },
+          },
+        },
+      },
       { saveStreamDeltas: true },
     );
     await result.consumeStream();
