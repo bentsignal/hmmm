@@ -81,22 +81,22 @@ export default function ThreadList({
                 <SidebarGroupLabel>Today</SidebarGroupLabel>
               ) : i === threadGroupCounts.todayCount &&
                 threadGroupCounts.todayCount > 0 ? (
-                <SidebarGroupLabel className="mt-4">
+                <SidebarGroupLabel className="mt-2">
                   Yesterday
                 </SidebarGroupLabel>
               ) : i === threadGroupCounts.yesterdayCount &&
                 threadGroupCounts.yesterdayCount > 0 ? (
-                <SidebarGroupLabel className="mt-4">
+                <SidebarGroupLabel className="mt-2">
                   Last 7 Days
                 </SidebarGroupLabel>
               ) : i === threadGroupCounts.lastWeekCount &&
                 threadGroupCounts.lastWeekCount > 0 ? (
-                <SidebarGroupLabel className="mt-4">
+                <SidebarGroupLabel className="mt-2">
                   Last 30 Days
                 </SidebarGroupLabel>
               ) : i === threadGroupCounts.lastMonthCount &&
                 threadGroupCounts.lastMonthCount > 0 ? (
-                <SidebarGroupLabel className="mt-4">
+                <SidebarGroupLabel className="mt-2">
                   Older than 30 days
                 </SidebarGroupLabel>
               ) : null}
