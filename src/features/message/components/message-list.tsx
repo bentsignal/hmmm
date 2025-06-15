@@ -33,7 +33,7 @@ export default function MessageList({ threadId }: { threadId: string }) {
     <div className="relative h-full w-full">
       <ScrollArea ref={scrollAreaRef} className="h-full w-full">
         <div className="flex w-full justify-center pt-20 pb-20">
-          <div className="mx-4 mb-8 flex h-full w-full max-w-4xl flex-col gap-16 px-4">
+          <div className="mx-4 mb-8 flex h-full w-full max-w-4xl flex-col gap-12 px-4 sm:gap-18">
             {uiMessages.map((item) =>
               item.role === "user" ? (
                 <div key={item.id} className="flex items-end justify-end">

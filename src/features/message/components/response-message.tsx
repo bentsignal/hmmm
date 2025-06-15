@@ -10,7 +10,7 @@ export default function ResponseMessage({ message }: { message: string }) {
   const [text] = useSmoothText(message, { charsPerSec: 100000 });
 
   return (
-    <div className="w-full">
+    <div className="relative w-full">
       <div className="prose dark:prose-invert relative w-full max-w-full">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
@@ -19,7 +19,7 @@ export default function ResponseMessage({ message }: { message: string }) {
         >
           {text}
         </ReactMarkdown>
-        <div className="mt-2 flex justify-start">
+        <div className="absolute -bottom-12 left-0 mt-2 flex justify-start">
           <CopyButton text={text} />
         </div>
       </div>
