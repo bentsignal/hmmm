@@ -23,7 +23,7 @@ import { SimpleIcon } from "@/components/simple-icon";
 import { useTheme } from "next-themes";
 import { Loader } from "lucide-react";
 import { Input as UIInput } from "@/components/ui/input";
-import { Label as UILabel } from "@/components/ui/label";
+// import { Label as UILabel } from "@/components/ui/label";
 import DefaultLoading from "@/components/default-loading";
 
 export default function SignUpComponent() {
@@ -42,7 +42,7 @@ export default function SignUpComponent() {
                       <span className="text-2xl font-bold">QBE</span>
                     </CardHeader>
                   </CardHeader>
-                  <CardContent className="mt-2 flex flex-col gap-y-4">
+                  <CardContent className="mt-2 flex w-[90%] flex-col gap-y-4 sm:w-[80%]">
                     <Connection name="google" asChild>
                       <Button
                         size="sm"
@@ -114,7 +114,7 @@ export default function SignUpComponent() {
                 </Card>
               </Step>
 
-              <Step name="continue">
+              {/* <Step name="continue">
                 <Card className="w-full sm:w-96">
                   <CardHeader className="text-center">
                     <CardTitle>Create your account</CardTitle>
@@ -168,7 +168,7 @@ export default function SignUpComponent() {
                     </div>
                   </CardFooter>
                 </Card>
-              </Step>
+              </Step> */}
 
               <Step name="verifications">
                 <Strategy name="email_code">

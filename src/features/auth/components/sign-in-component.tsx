@@ -46,7 +46,7 @@ export default function SignInComponent() {
                   <CardHeader className="flex flex-col items-center justify-center">
                     <span className="text-2xl font-bold">QBE</span>
                   </CardHeader>
-                  <CardContent className="mt-2 flex flex-col gap-y-4">
+                  <CardContent className="mt-2 flex w-[90%] flex-col gap-y-4 sm:w-[80%]">
                     <Connection name="google" asChild>
                       <Button
                         size="sm"
