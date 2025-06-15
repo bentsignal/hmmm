@@ -70,27 +70,35 @@ export default function ThreadList({
 
   return (
     <>
-      <SidebarGroup>
-        <SidebarMenu
-          className="gap-2 transition-opacity duration-500 ease-in-out"
-          style={{ opacity }}
-        >
+      <SidebarMenu
+        className="gap-2 transition-opacity duration-500 ease-in-out"
+        style={{ opacity }}
+      >
+        <SidebarGroup>
           {threads?.map((item, i) => (
             <Fragment key={i}>
               {i === 0 ? (
                 <SidebarGroupLabel>Today</SidebarGroupLabel>
               ) : i === threadGroupCounts.todayCount &&
                 threadGroupCounts.todayCount > 0 ? (
-                <SidebarGroupLabel>Yesterday</SidebarGroupLabel>
+                <SidebarGroupLabel className="mt-4">
+                  Yesterday
+                </SidebarGroupLabel>
               ) : i === threadGroupCounts.yesterdayCount &&
                 threadGroupCounts.yesterdayCount > 0 ? (
-                <SidebarGroupLabel>Last 7 Days</SidebarGroupLabel>
+                <SidebarGroupLabel className="mt-4">
+                  Last 7 Days
+                </SidebarGroupLabel>
               ) : i === threadGroupCounts.lastWeekCount &&
                 threadGroupCounts.lastWeekCount > 0 ? (
-                <SidebarGroupLabel>Last 30 Days</SidebarGroupLabel>
+                <SidebarGroupLabel className="mt-4">
+                  Last 30 Days
+                </SidebarGroupLabel>
               ) : i === threadGroupCounts.lastMonthCount &&
                 threadGroupCounts.lastMonthCount > 0 ? (
-                <SidebarGroupLabel>Older than 30 days</SidebarGroupLabel>
+                <SidebarGroupLabel className="mt-4">
+                  Older than 30 days
+                </SidebarGroupLabel>
               ) : null}
               <ThreadListItem
                 key={item._id}
@@ -103,8 +111,8 @@ export default function ThreadList({
               />
             </Fragment>
           ))}
-        </SidebarMenu>
-      </SidebarGroup>
+        </SidebarGroup>
+      </SidebarMenu>
       <CustomAlert
         open={open}
         setOpen={setOpen}
