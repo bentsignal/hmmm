@@ -62,6 +62,12 @@ const authorizeThreadAccess = async (
   if (!userId) {
     throw new Error("Unauthorized");
   }
+  const thread = await ctx.runQuery(components.agent.threads.getThread, {
+    threadId,
+  });
+  if (!thread) {
+    return false;
+  }
   const metadata = await agent.getThreadMetadata(ctx, {
     threadId,
   });
