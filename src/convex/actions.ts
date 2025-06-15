@@ -7,7 +7,6 @@ import { components } from "./_generated/api";
 import modelMap from "@/features/models/types/model-map";
 import { publicModels } from "@/features/models/types";
 import { agent } from "./agent";
-import { openrouter } from "@openrouter/ai-sdk-provider";
 
 export const generateTitle = internalAction({
   args: {
