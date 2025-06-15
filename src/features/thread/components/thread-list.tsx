@@ -72,7 +72,7 @@ export default function ThreadList({
     <>
       <SidebarGroup>
         <SidebarMenu
-          className="gap-2 transition-opacity duration-1000 ease-in-out"
+          className="gap-2 transition-opacity duration-500 ease-in-out"
           style={{ opacity }}
         >
           {threads?.map((item, i) => (

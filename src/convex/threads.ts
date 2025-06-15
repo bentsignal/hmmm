@@ -17,10 +17,10 @@ export const getThreadList = query({
       {
         userId: userId.subject,
         order: "desc",
-        paginationOpts: {
-          cursor: null,
-          numItems: 100,
-        },
+        // paginationOpts: {
+        //   cursor: null,
+        //   numItems: 100,
+        // },
       },
     );
     return threads;

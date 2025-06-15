@@ -1,18 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CopyButton } from "./copy-button";
 
 export default function PromptMessage({ message }: { message: string }) {
-  const [opacity, setOpacity] = useState(0);
   const [hovering, setHovering] = useState(false);
-
-  useEffect(() => {
-    setTimeout(() => setOpacity(1), 100);
-  }, []);
 
   return (
     <div
-      className="relative transition-opacity duration-1000 ease-in-out"
-      style={{ opacity }}
+      className="relative"
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
     >
