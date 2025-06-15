@@ -6,8 +6,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Loader2 } from "lucide-react";
 import useMessageListScroll from "../hooks/use-message-list-scroll";
-import "./tokyo-night-dark.min.css";
-import "./message-styles.css";
+import "@/features/message/styles/github-dark.min.css";
+import "@/features/message/styles/message-styles.css";
 import { memo } from "react";
 import useThread from "@/features/thread/hooks/use-thread-messages";
 import ReasoningMessage from "./reasoning-message";
@@ -36,6 +36,7 @@ export default function MessageList({ threadId }: { threadId: string }) {
               ) : item.role === "assistant" && item.parts.length > 0 ? (
                 <div key={item.id} className="flex flex-col items-start gap-2">
                   {item.parts
+                    .slice()
                     .reverse()
                     .map((part, index) =>
                       part.type === "reasoning" && part.reasoning.length > 0 ? (

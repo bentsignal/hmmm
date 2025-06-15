@@ -39,13 +39,13 @@ export const getThreadMessages = query({
       throw new Error("Thread ID is required");
     }
     await authorizeThreadAccess(ctx, threadId);
-    const streams = await agent.syncStreams(ctx, {
-      threadId,
-      streamArgs,
-    });
     const paginated = await agent.listMessages(ctx, {
       threadId,
       paginationOpts,
+    });
+    const streams = await agent.syncStreams(ctx, {
+      threadId,
+      streamArgs,
     });
     return {
       ...paginated,

@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { markdownComponents } from "./markdown-components";
+import { useSmoothText } from "@convex-dev/agent/react";
 
 interface ReasoningMessageProps {
   message: string;
@@ -15,6 +16,8 @@ export default function ReasoningMessage({
   loading,
 }: ReasoningMessageProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [text] = useSmoothText(message);
+
   return (
     <div className="my-4 flex w-full flex-col items-start gap-2">
       <div
@@ -41,7 +44,7 @@ export default function ReasoningMessage({
             rehypePlugins={[rehypeHighlight]}
             components={markdownComponents}
           >
-            {message}
+            {text}
           </ReactMarkdown>
         </div>
       )}
