@@ -68,6 +68,7 @@ export default function BetaPopup() {
               className="my-4 w-52"
               onChange={(e) => setAccessCode(e.target.value)}
               disabled={accessLoading || isUserSubscribed === true}
+              type="password"
             />
             <div className="flex flex-col gap-2">
               <CustomButton
