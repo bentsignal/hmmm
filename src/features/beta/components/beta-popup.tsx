@@ -21,14 +21,9 @@ import {
 
 export default function BetaPopup() {
   const [isOpen, setIsOpen] = useState(false);
+  const [accessCode, setAccessCode] = useState("");
 
-  const {
-    isUserSubscribed,
-    attemptAccess,
-    accessCode,
-    setAccessCode,
-    accessLoading,
-  } = useBetaAccess();
+  const { isUserSubscribed, attemptAccess, accessLoading } = useBetaAccess();
 
   const { isOnWaitlist, attemptJoinWaitlist, waitlistLoading } =
     useBetaWaitlist();
@@ -72,15 +67,15 @@ export default function BetaPopup() {
               value={accessCode}
               className="my-4 w-52"
               onChange={(e) => setAccessCode(e.target.value)}
-              disabled={accessLoading || isUserSubscribed}
+              disabled={accessLoading || isUserSubscribed === true}
             />
             <div className="flex flex-col gap-2">
               <CustomButton
                 className="w-52"
-                onClick={attemptAccess}
+                onClick={() => attemptAccess(accessCode)}
                 label="Check Code"
                 loading={accessLoading || isUserSubscribed === undefined}
-                disabled={accessLoading || isUserSubscribed}
+                disabled={accessLoading || isUserSubscribed === true}
               />
               <CustomButton
                 variant="secondary"

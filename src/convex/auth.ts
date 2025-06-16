@@ -10,9 +10,12 @@ if (!ACCESS_CODE) {
 
 export const isUserSubscribed = query({
   args: {},
-  handler: async (ctx): Promise<boolean> => {
+  handler: async (ctx): Promise<boolean | null> => {
     const user = await ctx.runQuery(internal.users.getUser);
-    return user?.access === true;
+    if (!user) {
+      return null;
+    }
+    return user.access === true;
   },
 });
 

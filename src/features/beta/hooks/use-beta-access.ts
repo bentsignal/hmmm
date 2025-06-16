@@ -8,9 +8,10 @@ import { useState } from "react";
 export const useBetaAccess = () => {
   const isUserSubscribed = useQuery(api.auth.isUserSubscribed, {});
   const requestAccess = useMutation(api.auth.requestAccess);
-  const [accessCode, setAccessCode] = useState("");
+
   const [accessLoading, setAccessLoading] = useState(false);
-  const attemptAccess = async () => {
+
+  const attemptAccess = async (accessCode: string) => {
     setAccessLoading(true);
     const { error } = await tryCatch(requestAccess({ code: accessCode }));
     setAccessLoading(false);
@@ -20,11 +21,10 @@ export const useBetaAccess = () => {
     }
     toast.success("Access granted. Welcome aboard!");
   };
+
   return {
     isUserSubscribed,
     attemptAccess,
-    accessCode,
-    setAccessCode,
     accessLoading,
     setAccessLoading,
   };
