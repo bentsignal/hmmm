@@ -53,9 +53,7 @@ export default function BetaPopup() {
                   <Info className="h-4 w-4" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  <span className="font-semibold">
-                    Like &quot;cube&quot;, lol
-                  </span>
+                  <span className="font-semibold">Like &quot;cube&quot;</span>
                 </TooltipContent>
               </Tooltip>
             </div>

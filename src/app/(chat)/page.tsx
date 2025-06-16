@@ -24,9 +24,7 @@ export default async function Home() {
                 <Info className="h-5 w-5" />
               </TooltipTrigger>
               <TooltipContent>
-                <span className="font-semibold">
-                  Like &quot;cube&quot;, lol
-                </span>
+                <span className="font-semibold">Like &quot;cube&quot;</span>
               </TooltipContent>
             </Tooltip>
           )}
