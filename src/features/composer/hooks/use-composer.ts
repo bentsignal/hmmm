@@ -3,6 +3,7 @@ import { usePathname, useRouter } from "next/navigation";
 import useModelStore from "@/features/models/store";
 import useThreadMutation from "@/features/thread/hooks/use-thread-mutation";
 import useThreadStatus from "@/features/thread/hooks/use-thread-status";
+import { toast } from "sonner";
 
 export default function useComposer() {
   const pathname = usePathname();
@@ -28,19 +29,28 @@ export default function useComposer() {
     setTimeout(() => {
       setOptimisticallyBlockSend(false);
     }, 2000);
-    if (pathname === "/") {
-      const threadId = await createThread({
-        message: message,
-        modelId: currentModel.id,
-      });
-      router.push(`/chat/${threadId}`);
-      return;
-    } else {
-      await newThreadMessage({
-        threadId: pathname.split("/")[2],
-        prompt: message,
-        modelId: currentModel.id,
-      });
+    try {
+      if (pathname === "/") {
+        const threadId = await createThread({
+          message: message,
+          modelId: currentModel.id,
+        });
+        router.push(`/chat/${threadId}`);
+        return;
+      } else {
+        await newThreadMessage({
+          threadId: pathname.split("/")[2],
+          prompt: message,
+          modelId: currentModel.id,
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      if ((error as Error).message.includes("User is not subscribed")) {
+        toast.error("Error: Access denied.");
+      } else {
+        toast.error("Error: Failed to generate response. Please try again.");
+      }
     }
   };
 

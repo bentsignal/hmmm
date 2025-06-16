@@ -1,9 +1,10 @@
 import { api, components, internal } from "./_generated/api";
-import { mutation, MutationCtx, query, QueryCtx } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { agent } from "./agent";
 import { paginationOptsValidator } from "convex/server";
 import { vStreamArgs } from "@convex-dev/agent/validators";
+import { authorizeThreadAccess } from "./auth";
 
 export const getThreadList = query({
   args: {},
@@ -54,29 +55,6 @@ export const getThreadMessages = query({
   },
 });
 
-const authorizeThreadAccess = async (
-  ctx: QueryCtx | MutationCtx,
-  threadId: string,
-) => {
-  const userId = await ctx.auth.getUserIdentity();
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
-  const thread = await ctx.runQuery(components.agent.threads.getThread, {
-    threadId,
-  });
-  if (!thread) {
-    return false;
-  }
-  const metadata = await agent.getThreadMetadata(ctx, {
-    threadId,
-  });
-  if (metadata.userId !== userId.subject) {
-    throw new Error("Unauthorized");
-  }
-  return metadata.userId;
-};
-
 export const requestNewThreadCreation = mutation({
   args: {
     message: v.string(),
@@ -86,6 +64,10 @@ export const requestNewThreadCreation = mutation({
     const userId = await ctx.auth.getUserIdentity();
     if (!userId) {
       throw new Error("Unauthorized");
+    }
+    const isUserSubscribed = await ctx.runQuery(api.auth.isUserSubscribed);
+    if (!isUserSubscribed) {
+      throw new Error("User is not subscribed");
     }
     const { message, modelId } = args;
     const { threadId } = await agent.createThread(ctx, {
@@ -121,6 +103,10 @@ export const newThreadMessage = mutation({
   handler: async (ctx, args) => {
     const { threadId, prompt, modelId } = args;
     await authorizeThreadAccess(ctx, threadId);
+    const isUserSubscribed = await ctx.runQuery(api.auth.isUserSubscribed);
+    if (!isUserSubscribed) {
+      throw new Error("User is not subscribed");
+    }
     const isThreadStreaming = await ctx.runQuery(
       api.threads.isThreadStreaming,
       {

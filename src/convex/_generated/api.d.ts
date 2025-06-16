@@ -10,7 +10,10 @@
 
 import type * as actions from "../actions.js";
 import type * as agent from "../agent.js";
+import type * as auth from "../auth.js";
 import type * as threads from "../threads.js";
+import type * as users from "../users.js";
+import type * as waitlist from "../waitlist.js";
 
 import type {
   ApiFromModules,
@@ -29,7 +32,10 @@ import type {
 declare const fullApi: ApiFromModules<{
   actions: typeof actions;
   agent: typeof agent;
+  auth: typeof auth;
   threads: typeof threads;
+  users: typeof users;
+  waitlist: typeof waitlist;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 
