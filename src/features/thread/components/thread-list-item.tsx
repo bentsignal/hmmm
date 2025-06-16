@@ -47,6 +47,7 @@ export default function ThreadListItem({
       >
         <Link
           href={`/chat/${id}`}
+          prefetch={true}
           className={cn(
             "font-medium whitespace-nowrap",
             pathname.endsWith(id) && "bg-primary/10",
