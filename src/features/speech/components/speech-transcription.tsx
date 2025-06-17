@@ -33,7 +33,7 @@ export default function SpeechTranscription({
             <Mic
               width={24}
               height={24}
-              className={cn(listening ? "animate-pulse text-red-500" : "")}
+              className={cn(listening ? "animate-pulse text-red-400" : "")}
             />
           </Button>
         </div>
