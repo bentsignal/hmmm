@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Trash } from "lucide-react";
+import { Brain, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
@@ -53,7 +53,13 @@ export default function ThreadListItem({
             pathname.endsWith(id) && "bg-primary/10",
           )}
         >
-          {title}
+          {title === "New Chat" ? (
+            <div className="flex items-center gap-2">
+              <Brain className="text-primary h-4 w-4 animate-pulse" />
+            </div>
+          ) : (
+            title
+          )}
         </Link>
       </SidebarMenuButton>
       {isHovering && !isMobile && (
