@@ -1,6 +1,6 @@
 import { Agent } from "@convex-dev/agent";
 import { components } from "./_generated/api";
-import { models } from "@/features/models/types";
+import { models } from "@/features/models/types/models";
 import modelMap from "@/features/models/types/model-map";
 
 const defaultModel = modelMap.get(models[0].id);

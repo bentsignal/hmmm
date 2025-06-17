@@ -16,7 +16,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import useModelStore from "../store";
-import { modelGroups } from "../types";
+import { modelGroups } from "../types/models";
 
 export default function ModelSelector() {
   const { currentModel, setCurrentModel } = useModelStore();

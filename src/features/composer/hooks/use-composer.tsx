@@ -1,15 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import useModelStore from "@/features/models/store";
 import useThreadMutation from "@/features/thread/hooks/use-thread-mutation";
 import useThreadStatus from "@/features/thread/hooks/use-thread-status";
+import { Brain } from "lucide-react";
 import { toast } from "sonner";
 import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
-import { publicModels } from "@/features/models/types";
 import { getSpeechCommands } from "@/features/speech/util/speech-commands";
 import useSpeechRecording from "@/features/speech/hooks/use-speech-recording";
+import { Model } from "@/features/models/types/model-types";
 
 export default function useComposer() {
   const pathname = usePathname();
@@ -21,6 +22,19 @@ export default function useComposer() {
   const { createThread, newThreadMessage } = useThreadMutation();
   const { isThreadStreaming } = useThreadStatus({ threadId });
 
+  // commands to change model with voice mode
+  const voiceSetModel = (model: Model, prompt: string) => {
+    setCurrentModel(model);
+    setMessage(prompt);
+    toast.message(
+      <div className="flex items-center gap-2">
+        <Brain className="h-4 w-4" />
+        <span className="text-sm">Using {model.name}</span>
+      </div>,
+    );
+  };
+  const commands = useMemo(() => getSpeechCommands(voiceSetModel), []);
+
   // transcribe audio for XR, where speech recognition api is not available
   const {
     transcribedAudio,
@@ -31,14 +45,6 @@ export default function useComposer() {
   } = useSpeechRecording();
 
   // voice mode, using in browser speech api
-  const voiceSetModel = (name: string, prompt: string) => {
-    const model = publicModels.find((model) => model.id.includes(name));
-    if (model) {
-      setCurrentModel(model);
-      setMessage(prompt);
-    }
-  };
-  const commands = getSpeechCommands(voiceSetModel);
   const {
     transcript,
     listening,

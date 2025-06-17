@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { Model, publicModels } from "../types";
+import { Model } from "../types/model-types";
+import { publicModels } from "../types/models";
 
 interface ModelStore {
   currentModel: Model;

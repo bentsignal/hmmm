@@ -5,7 +5,7 @@ import { v } from "convex/values";
 import { generateText } from "ai";
 import { components } from "./_generated/api";
 import modelMap from "@/features/models/types/model-map";
-import { publicModels } from "@/features/models/types";
+import { publicModels } from "@/features/models/types/models";
 import { agent } from "./agent";
 
 export const generateTitle = internalAction({
