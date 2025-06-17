@@ -5,7 +5,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import AppSidebar from "@/components/app-sidebar";
+import SidebarWrapper from "@/components/sidebar-wrapper";
 import { auth } from "@clerk/nextjs/server";
 import BetaPopup from "@/features/beta/components/beta-popup";
 
@@ -18,7 +18,7 @@ export default async function ChatLayout({
   return (
     <SidebarProvider>
       {userId && <BetaPopup />}
-      {userId && <AppSidebar />}
+      {userId && <SidebarWrapper />}
       <SidebarInset className="relative h-screen">
         {userId && (
           <>
