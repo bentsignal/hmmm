@@ -152,7 +152,7 @@ export const isThreadStreaming = query({
   },
   handler: async (ctx, args) => {
     const { threadId } = args;
-    if (threadId === "skip" || threadId === "") {
+    if (threadId === "skip" || threadId === "" || threadId === "xr") {
       return false;
     }
     await authorizeThreadAccess(ctx, threadId);

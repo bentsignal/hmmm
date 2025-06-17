@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import useModelStore from "@/features/models/store";
 import useThreadMutation from "@/features/thread/hooks/use-thread-mutation";
 import useThreadStatus from "@/features/thread/hooks/use-thread-status";
 import { toast } from "sonner";
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from "react-speech-recognition";
+import { publicModels } from "@/features/models/types";
+import { getSpeechCommands } from "@/features/speech/util/speech-commands";
 
 export default function useComposer() {
   const pathname = usePathname();
@@ -11,9 +16,38 @@ export default function useComposer() {
   const threadId = pathname.split("/").pop() ?? "";
 
   const [message, setMessage] = useState("");
-  const { currentModel } = useModelStore();
+  const { currentModel, setCurrentModel } = useModelStore();
   const { createThread, newThreadMessage } = useThreadMutation();
   const { isThreadStreaming } = useThreadStatus({ threadId });
+
+  // speech to prompt, includes commands to set model by voice command
+  const voiceSetModel = (name: string, prompt: string) => {
+    const model = publicModels.find((model) => model.id.includes(name));
+    if (model) {
+      setCurrentModel(model);
+      setMessage(prompt);
+    }
+  };
+  const commands = getSpeechCommands(voiceSetModel);
+  const {
+    transcript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition,
+  } = useSpeechRecognition({ commands });
+
+  // added to prevent hydration error with SpeechRecognition
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // update messages when transcript changes
+  useEffect(() => {
+    if (transcript) {
+      setMessage(transcript);
+    }
+  }, [transcript]);
 
   const [optimisticallyBlockSend, setOptimisticallyBlockSend] = useState(false);
   const blockSend =
@@ -36,7 +70,11 @@ export default function useComposer() {
           modelId: currentModel.id,
         });
         router.push(`/chat/${threadId}`);
-        return;
+      } else if (pathname === "/xr") {
+        await createThread({
+          message: message,
+          modelId: currentModel.id,
+        });
       } else {
         await newThreadMessage({
           threadId: pathname.split("/")[2],
@@ -54,6 +92,14 @@ export default function useComposer() {
     }
   };
 
+  const handleStartListening = () => {
+    SpeechRecognition.startListening();
+  };
+
+  const handleStopListening = () => {
+    SpeechRecognition.stopListening();
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -68,5 +114,10 @@ export default function useComposer() {
     handleKeyPress,
     isLoading,
     blockSend,
+    handleStartListening,
+    handleStopListening,
+    listening,
+    resetTranscript,
+    speechSupported: isClient && browserSupportsSpeechRecognition,
   };
 }
