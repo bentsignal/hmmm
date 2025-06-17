@@ -6,11 +6,15 @@ import XRApp from "@/features/xr/components/xr-app";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Box } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { PointerEvents } from "@react-three/xr";
 
 const store = createXRStore();
 
 export default function XRPage() {
   const router = useRouter();
+  let hideCanvas = true;
+  hideCanvas = true;
   return (
     <>
       <div className="flex h-screen flex-1 flex-col items-center justify-center gap-4">
@@ -36,7 +40,16 @@ export default function XRPage() {
           </Button>
         </div>
       </div>
-      <Canvas className="!absolute inset-0 top-0 -z-50 opacity-0">
+      <Canvas
+        className={cn(
+          "!absolute inset-0 top-0",
+          hideCanvas ? "-z-50 opacity-0" : "",
+        )}
+        // camera={{ position: [0, 0, 20], fov: 32.5 }}
+        style={{ height: "100dvh", touchAction: "none" }}
+        gl={{ localClippingEnabled: true }}
+      >
+        <PointerEvents />
         <XR store={store}>
           <XRApp />
         </XR>

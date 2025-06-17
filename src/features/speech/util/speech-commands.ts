@@ -37,6 +37,18 @@ export const getSpeechCommands = (
       callback: (prompt: string) => voiceSetModel("gpt-4o", prompt),
     },
     {
+      command: "* Use GPT 4o",
+      callback: (prompt: string) => voiceSetModel("gpt-4o", prompt),
+    },
+    {
+      command: "* Use GPT for oh",
+      callback: (prompt: string) => voiceSetModel("gpt-4o", prompt),
+    },
+    {
+      command: "* Use GPT for o",
+      callback: (prompt: string) => voiceSetModel("gpt-4o", prompt),
+    },
+    {
       command: "* Use 04 mini",
       callback: (prompt: string) => voiceSetModel("o4-mini", prompt),
     },

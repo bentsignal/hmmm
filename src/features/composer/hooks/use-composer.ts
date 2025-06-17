@@ -9,6 +9,7 @@ import SpeechRecognition, {
 } from "react-speech-recognition";
 import { publicModels } from "@/features/models/types";
 import { getSpeechCommands } from "@/features/speech/util/speech-commands";
+import useSpeechRecording from "@/features/speech/hooks/use-speech-recording";
 
 export default function useComposer() {
   const pathname = usePathname();
@@ -19,6 +20,10 @@ export default function useComposer() {
   const { currentModel, setCurrentModel } = useModelStore();
   const { createThread, newThreadMessage } = useThreadMutation();
   const { isThreadStreaming } = useThreadStatus({ threadId });
+
+  // transcribe audio for XR, where speech recognition api is not available
+  const { transcribedAudio, startRecording, stopRecording, isRecording } =
+    useSpeechRecording();
 
   // speech to prompt, includes commands to set model by voice command
   const voiceSetModel = (name: string, prompt: string) => {
@@ -48,6 +53,13 @@ export default function useComposer() {
       setMessage(transcript);
     }
   }, [transcript]);
+
+  // update message when transcribed audio from OpenAI comes in
+  useEffect(() => {
+    if (transcribedAudio) {
+      setMessage(transcribedAudio);
+    }
+  }, [transcribedAudio]);
 
   const [optimisticallyBlockSend, setOptimisticallyBlockSend] = useState(false);
   const blockSend =
@@ -119,5 +131,9 @@ export default function useComposer() {
     listening,
     resetTranscript,
     speechSupported: isClient && browserSupportsSpeechRecognition,
+    transcribedAudio,
+    startRecording,
+    stopRecording,
+    isRecording,
   };
 }

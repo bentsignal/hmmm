@@ -74,7 +74,7 @@ export default function ThreadList({
         className="gap-2 transition-opacity duration-500 ease-in-out"
         style={{ opacity }}
       >
-        <SidebarGroup>
+        <SidebarGroup className="gap-1">
           {threads?.map((item, i) => (
             <Fragment key={i}>
               {i === 0 ? (
