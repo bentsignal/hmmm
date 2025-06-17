@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import useModelStore from "@/features/models/store";
 import useThreadMutation from "@/features/thread/hooks/use-thread-mutation";
@@ -8,9 +8,8 @@ import { toast } from "sonner";
 import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
-import { getSpeechCommands } from "@/features/speech/util/speech-commands";
+import { speechCommands } from "@/features/speech/util/speech-commands";
 import useSpeechRecording from "@/features/speech/hooks/use-speech-recording";
-import { Model } from "@/features/models/types/model-types";
 
 export default function useComposer() {
   const pathname = usePathname();
@@ -22,18 +21,11 @@ export default function useComposer() {
   const { createThread, newThreadMessage } = useThreadMutation();
   const { isThreadStreaming } = useThreadStatus({ threadId });
 
-  // commands to change model with voice mode
-  const voiceSetModel = (model: Model, prompt: string) => {
-    setCurrentModel(model);
-    setMessage(prompt);
-    toast.message(
-      <div className="flex items-center gap-2">
-        <Brain className="h-4 w-4" />
-        <span className="text-sm">Using {model.name}</span>
-      </div>,
-    );
-  };
-  const commands = useMemo(() => getSpeechCommands(voiceSetModel), []);
+  // added to prevent hydration error with SpeechRecognition
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // transcribe audio for XR, where speech recognition api is not available
   const {
@@ -48,30 +40,68 @@ export default function useComposer() {
   const {
     transcript,
     listening,
+    finalTranscript,
     resetTranscript,
     browserSupportsSpeechRecognition,
-  } = useSpeechRecognition({ commands });
+  } = useSpeechRecognition();
 
-  // added to prevent hydration error with SpeechRecognition
-  const [isClient, setIsClient] = useState(false);
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const handleStartListening = () => {
+    SpeechRecognition.startListening();
+  };
 
-  // update messages when transcript changes
+  const handleStopListening = () => {
+    SpeechRecognition.stopListening();
+  };
+
+  /*
+
+    When transcription is complete, either from speech api or from call
+    to open ai, parse the transcribed text and search for commands. If 
+    found, update the current model and remove the command from the prompt.
+
+  */
+  const checkForCommand = (prompt: string) => {
+    // see if command exists in prompt
+    const command = speechCommands.find((value) =>
+      prompt.toLowerCase().includes(value.phrase.toLowerCase()),
+    );
+    if (command) {
+      // remove command from prompt
+      const phrase = command.phrase.toLowerCase();
+      const newMessage = prompt.toLowerCase().replace(phrase, "");
+      setMessage(newMessage);
+      // update model and inform user
+      setCurrentModel(command.model);
+      toast.message(
+        <div className="flex items-center gap-2">
+          <Brain className="h-4 w-4" />
+          <span className="text-sm">Using {command.model.name}</span>
+        </div>,
+      );
+    } else {
+      setMessage(prompt);
+    }
+  };
+
   useEffect(() => {
-    if (transcript) {
+    if (finalTranscript.trim().toLowerCase() !== "") {
+      checkForCommand(finalTranscript);
+    }
+  }, [finalTranscript]);
+
+  useEffect(() => {
+    if (transcript.trim().toLowerCase() !== "") {
       setMessage(transcript);
     }
   }, [transcript]);
 
-  // update message when transcribed audio from OpenAI comes in
   useEffect(() => {
-    if (transcribedAudio) {
-      setMessage(transcribedAudio);
+    if (transcribedAudio?.trim().toLowerCase()) {
+      checkForCommand(transcribedAudio);
     }
   }, [transcribedAudio]);
 
+  // prevent user from sending message while response is being streamed in
   const [optimisticallyBlockSend, setOptimisticallyBlockSend] = useState(false);
   const blockSend =
     isThreadStreaming ||
@@ -118,14 +148,6 @@ export default function useComposer() {
         toast.error("Error: Failed to generate response. Please try again.");
       }
     }
-  };
-
-  const handleStartListening = () => {
-    SpeechRecognition.startListening();
-  };
-
-  const handleStopListening = () => {
-    SpeechRecognition.stopListening();
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

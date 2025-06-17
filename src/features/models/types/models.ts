@@ -57,7 +57,7 @@ export const models: Model[] = [
     provider: "OpenAI",
     name: "o4 mini",
     id: "openai/o4-mini-2025-04-16",
-    prononciations: ["o4 mini", "04 mini", "oh 4 mini", "o 4 mini"],
+    prononciations: ["o4 mini", "04 mini", "oh 4 mini", "o 4 mini", "o4mini"],
   },
   {
     provider: "OpenAI",
@@ -82,6 +82,15 @@ export const models: Model[] = [
       "clod 4",
       "clod for sonnet",
       "clod four sonnet",
+      "claude force on it",
+      "clod force on it",
+      "quad 4 sonnet",
+      "quad 4",
+      "quad for sonnet",
+      "quad four sonnet",
+      "quad 4 sonnet",
+      "quad 4",
+      "quad force on it",
     ],
   },
   {
@@ -95,6 +104,10 @@ export const models: Model[] = [
       "clod 3.5 sonnet",
       "clod three five sonnet",
       "clod 3.5",
+      "quad 3.5 sonnet",
+      "quad three five sonnet",
+      "quad 3.5",
+      "quad force on it",
     ],
   },
   /*
@@ -121,18 +134,6 @@ export const models: Model[] = [
   */
   {
     provider: "xAI",
-    name: "Grok 3",
-    id: "x-ai/grok-3-beta",
-    prononciations: [
-      "grok 3",
-      "grok 3 beta",
-      "glock 3",
-      "glock 3 beta",
-      "rock 3",
-    ],
-  },
-  {
-    provider: "xAI",
     name: "Grok 3 Mini",
     id: "x-ai/grok-3-mini-beta",
     prononciations: [
@@ -141,6 +142,18 @@ export const models: Model[] = [
       "glock 3 mini",
       "glock 3 mini beta",
       "rock 3 mini",
+    ],
+  },
+  {
+    provider: "xAI",
+    name: "Grok 3",
+    id: "x-ai/grok-3-beta",
+    prononciations: [
+      "grok 3",
+      "grok 3 beta",
+      "glock 3",
+      "glock 3 beta",
+      "rock 3",
     ],
   },
   /*

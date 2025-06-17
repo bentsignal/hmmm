@@ -1,10 +1,11 @@
 "use client";
 
-import { Root, Container, Input } from "@react-three/uikit";
+import { Root, Container, Text, Input } from "@react-three/uikit";
 import { Button } from "@react-three/uikit-default";
-import { Mic, Send } from "@react-three/uikit-lucide";
+import { Brain, Mic, Send } from "@react-three/uikit-lucide";
 import { Handle, HandleTarget } from "@react-three/handle";
 import useComposer from "@/features/composer/hooks/use-composer";
+import useModelStore from "@/features/models/store";
 
 export default function XRComposer() {
   const {
@@ -18,11 +19,17 @@ export default function XRComposer() {
     setMessage,
   } = useComposer();
 
-  const inputValue = isTranscribing
-    ? "Transcribing..."
-    : message
-      ? message
-      : "How can I help you?";
+  const { currentModel } = useModelStore();
+
+  const inputValue = isRecording
+    ? "Listening..."
+    : isTranscribing
+      ? "Transcribing..."
+      : message
+        ? message
+        : "How can I help you?";
+
+  const buttonTextColor = "#111726";
 
   return (
     <group position={[0, 1, -0.5]}>
@@ -34,21 +41,36 @@ export default function XRComposer() {
               backgroundColor={"#404858"}
               flexDirection="row"
               padding={28}
-              alignItems="center"
+              alignItems="flex-end"
               justifyContent="space-between"
               borderRadius={20}
               castShadow
             >
-              <Input
-                value={inputValue}
-                onValueChange={(value) => setMessage(value)}
-                paddingLeft={28}
-                paddingRight={28}
-                width={300}
-                multiline
-                color={message ? "white" : "gray"}
-                disabled={isTranscribing}
-              />
+              <Container flexDirection="column" gap={16} width={300}>
+                <Input
+                  value={inputValue}
+                  onValueChange={(value) => setMessage(value)}
+                  width={300}
+                  backgroundColor="#404858"
+                  paddingRight={10}
+                  multiline
+                  color={
+                    isTranscribing || isRecording || !message ? "gray" : "white"
+                  }
+                  disabled
+                />
+                <Container
+                  flexDirection="row"
+                  gap={10}
+                  alignItems="center"
+                  paddingLeft={6}
+                >
+                  <Brain width={12} height={12} color="white" />
+                  <Text color="white" fontSize={12} fontWeight={500}>
+                    {currentModel.name}
+                  </Text>
+                </Container>
+              </Container>
               <Button
                 onClick={isRecording ? stopRecording : startRecording}
                 disabled={isTranscribing}
@@ -57,11 +79,11 @@ export default function XRComposer() {
                 <Mic
                   width={24}
                   height={24}
-                  color={isRecording ? "lightcoral" : "black"}
+                  color={isRecording ? "lightcoral" : buttonTextColor}
                 />
               </Button>
               <Button onClick={handleSendMessage} disabled={blockSend}>
-                <Send width={24} height={24} />
+                <Send width={24} height={24} color={buttonTextColor} />
               </Button>
             </Container>
           </Root>
