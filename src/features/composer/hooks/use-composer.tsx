@@ -21,6 +21,8 @@ export default function useComposer() {
   const { createThread, newThreadMessage } = useThreadMutation();
   const { isThreadStreaming } = useThreadStatus({ threadId });
 
+  const [xrThread, setXrThread] = useState<string | null>(null);
+
   // added to prevent hydration error with SpeechRecognition
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
@@ -129,10 +131,19 @@ export default function useComposer() {
         });
         router.push(`/chat/${threadId}`);
       } else if (pathname === "/xr") {
-        await createThread({
-          message: message,
-          modelId: currentModel.id,
-        });
+        if (xrThread) {
+          await newThreadMessage({
+            threadId: xrThread,
+            prompt: message,
+            modelId: currentModel.id,
+          });
+        } else {
+          const threadId = await createThread({
+            message: message,
+            modelId: currentModel.id,
+          });
+          setXrThread(threadId);
+        }
       } else {
         await newThreadMessage({
           threadId: pathname.split("/")[2],
