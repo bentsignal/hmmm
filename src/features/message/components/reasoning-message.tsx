@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { markdownComponents } from "./markdown-components";
 import { useSmoothText } from "@convex-dev/agent/react";
+import { cn } from "@/lib/utils";
 
 interface ReasoningMessageProps {
   message: string;
@@ -21,14 +22,14 @@ export default function ReasoningMessage({
   return (
     <div className="my-4 flex w-full flex-col items-start gap-2">
       <div
-        className="flex cursor-pointer items-center gap-2"
-        onClick={() => setIsOpen(!isOpen)}
+        className={cn("flex items-center gap-2", !loading && "cursor-pointer")}
+        onClick={() => !loading && setIsOpen(!isOpen)}
       >
-        {isOpen ? (
+        {!loading && isOpen ? (
           <ChevronDown className="h-4 w-4" />
-        ) : (
+        ) : !loading ? (
           <ChevronRight className="h-4 w-4 " />
-        )}
+        ) : null}
         <span className="mr-1 font-semibold">Reasoning</span>
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}
       </div>
@@ -37,7 +38,7 @@ export default function ReasoningMessage({
           className="bg-card prose dark:prose-invert scrollbar-thin
           scrollbar-thumb-background scrollbar-track-transparent relative 
           mt-2 max-h-96 w-full max-w-72 overflow-y-auto rounded-md p-4 
-          px-4 sm:max-w-full"
+          sm:max-w-full"
         >
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
