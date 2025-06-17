@@ -22,10 +22,15 @@ export default function useComposer() {
   const { isThreadStreaming } = useThreadStatus({ threadId });
 
   // transcribe audio for XR, where speech recognition api is not available
-  const { transcribedAudio, startRecording, stopRecording, isRecording } =
-    useSpeechRecording();
+  const {
+    transcribedAudio,
+    startRecording,
+    stopRecording,
+    isRecording,
+    isTranscribing,
+  } = useSpeechRecording();
 
-  // speech to prompt, includes commands to set model by voice command
+  // voice mode, using in browser speech api
   const voiceSetModel = (name: string, prompt: string) => {
     const model = publicModels.find((model) => model.id.includes(name));
     if (model) {
@@ -63,8 +68,13 @@ export default function useComposer() {
 
   const [optimisticallyBlockSend, setOptimisticallyBlockSend] = useState(false);
   const blockSend =
-    isThreadStreaming || optimisticallyBlockSend || message.trim() === "";
-  const isLoading = isThreadStreaming || optimisticallyBlockSend;
+    isThreadStreaming ||
+    optimisticallyBlockSend ||
+    message.trim() === "" ||
+    isTranscribing ||
+    isRecording;
+  const isLoading =
+    isThreadStreaming || optimisticallyBlockSend || isTranscribing;
 
   const handleSendMessage = async () => {
     if (blockSend) {
@@ -135,5 +145,6 @@ export default function useComposer() {
     startRecording,
     stopRecording,
     isRecording,
+    isTranscribing,
   };
 }

@@ -5,6 +5,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 interface SpeechTranscriptionProps {
   listening: boolean;
@@ -32,7 +33,7 @@ export default function SpeechTranscription({
             <Mic
               width={24}
               height={24}
-              color={listening ? "lightcoral" : "whitesmoke"}
+              className={cn(listening ? "animate-pulse text-red-500" : "")}
             />
           </Button>
         </div>

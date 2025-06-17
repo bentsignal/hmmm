@@ -7,6 +7,7 @@ export default function useSpeechRecording() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const [transcribedAudio, setTranscribedAudio] = useState<string | null>(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
 
   const startRecording = async () => {
     try {
@@ -24,6 +25,7 @@ export default function useSpeechRecording() {
       };
 
       mediaRecorder.onstop = async () => {
+        setIsTranscribing(true);
         const audioBlob = new Blob(audioChunksRef.current, {
           type: "audio/webm",
         });
@@ -33,6 +35,7 @@ export default function useSpeechRecording() {
         setTranscribedAudio(transcribedAudio);
         audioChunksRef.current = [];
         setStream(null);
+        setIsTranscribing(false);
       };
 
       mediaRecorder.start();
@@ -64,5 +67,6 @@ export default function useSpeechRecording() {
     stopRecording,
     isRecording,
     transcribedAudio,
+    isTranscribing,
   };
 }
