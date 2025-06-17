@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import useComposer from "../hooks/use-composer";
 import ModelSelector from "@/features/models/components/model-selector";
+import SpeechTranscription from "@/features/speech/components";
 
 export default function Composer() {
   const {
@@ -15,12 +16,20 @@ export default function Composer() {
     handleSendMessage,
     isLoading,
     blockSend,
+    handleStartListening,
+    handleStopListening,
+    listening,
+    speechSupported,
   } = useComposer();
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (message === "" && textareaRef.current) {
       textareaRef.current.style.height = "auto";
+    } else if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [message]);
 
@@ -50,11 +59,12 @@ export default function Composer() {
               focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed 
               disabled:opacity-50 md:text-sm `,
             )}
-            onInput={(e) => {
-              const target = e.target as HTMLTextAreaElement;
-              target.style.height = "auto";
-              target.style.height = `${target.scrollHeight}px`;
-            }}
+          />
+          <SpeechTranscription
+            listening={listening}
+            handleStartListening={handleStartListening}
+            handleStopListening={handleStopListening}
+            supported={speechSupported}
           />
           <ModelSelector />
           <Button

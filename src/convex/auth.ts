@@ -8,6 +8,22 @@ if (!ACCESS_CODE) {
   throw new Error("ACCESS_CODE is not set");
 }
 
+export const externalSubCheck = query({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_user_id", (q) => q.eq("userId", args.userId))
+      .unique();
+    if (!user) {
+      return false;
+    }
+    return user.access === true;
+  },
+});
+
 export const isUserSubscribed = query({
   args: {},
   handler: async (ctx): Promise<boolean | null> => {
