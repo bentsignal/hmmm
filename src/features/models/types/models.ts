@@ -21,7 +21,7 @@ export const models: Model[] = [
   {
     provider: "Google",
     name: "Gemma 3",
-    id: "google/gemma-3-4b-it",
+    id: "google/gemma-3-27b-it",
     hidden: true,
     prononciations: ["gemma 3"],
   },
