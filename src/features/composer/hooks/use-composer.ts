@@ -15,6 +15,8 @@ export default function useComposer() {
   const router = useRouter();
   const threadId = pathname.split("/").pop() ?? "";
 
+  const [useSearch, setUseSearch] = useState(false);
+
   const [message, setMessage] = useState("");
   const { currentModel, setCurrentModel } = useModelStore();
   const { createThread, newThreadMessage } = useThreadMutation();
@@ -121,6 +123,7 @@ export default function useComposer() {
         const threadId = await createThread({
           message: message,
           modelId: currentModel.id,
+          useSearch: useSearch,
         });
         router.push(`/chat/${threadId}`);
       } else if (pathname === "/xr") {
@@ -129,11 +132,13 @@ export default function useComposer() {
             threadId: xrThread,
             prompt: message,
             modelId: currentModel.id,
+            useSearch: useSearch,
           });
         } else {
           const threadId = await createThread({
             message: message,
             modelId: currentModel.id,
+            useSearch: useSearch,
           });
           setXrThread(threadId);
         }
@@ -142,6 +147,7 @@ export default function useComposer() {
           threadId: pathname.split("/")[2],
           prompt: message,
           modelId: currentModel.id,
+          useSearch: useSearch,
         });
       }
     } catch (error) {
@@ -178,5 +184,7 @@ export default function useComposer() {
     stopRecording,
     isRecording,
     isTranscribing,
+    useSearch,
+    setUseSearch,
   };
 }

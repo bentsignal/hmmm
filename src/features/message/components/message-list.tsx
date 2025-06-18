@@ -12,10 +12,12 @@ import { memo } from "react";
 import useThread from "@/features/thread/hooks/use-thread-messages";
 import ReasoningMessage from "./reasoning-message";
 import useThreadStatus from "@/features/thread/hooks/use-thread-status";
+import SearchResultMessage from "./search-result-message";
 
 const MemoizedPrompt = memo(PromptMessage);
 const MemoizedResponse = memo(ResponseMessage);
 const MemoizedReasoningMessage = memo(ReasoningMessage);
+const MemoizedSearchResultMessage = memo(SearchResultMessage);
 
 export default function MessageList({ threadId }: { threadId: string }) {
   const { messages, uiMessages } = useThread({ threadId });
@@ -52,6 +54,15 @@ export default function MessageList({ threadId }: { threadId: string }) {
                           creationTime={
                             messages?.results[index]._creationTime ?? 0
                           }
+                        />
+                      ) : part.type === "tool-invocation" &&
+                        part.toolInvocation.toolName === "search" ? (
+                        <MemoizedSearchResultMessage
+                          key={`${item.id}-${index}`}
+                          // @ts-expect-error custom prop appended in tool call definition
+                          text={part.toolInvocation.result?.text ?? ""}
+                          // @ts-expect-error custom prop appended in tool call definition
+                          sources={part.toolInvocation.result?.sources ?? []}
                         />
                       ) : null,
                     )}

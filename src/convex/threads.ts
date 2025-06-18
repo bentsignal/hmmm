@@ -61,6 +61,7 @@ export const requestNewThreadCreation = mutation({
     modelId: v.string(),
     key: v.optional(v.string()),
     userId: v.optional(v.string()),
+    useSearch: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     let uid;
@@ -80,7 +81,7 @@ export const requestNewThreadCreation = mutation({
         throw new Error("User is not subscribed");
       }
     }
-    const { message, modelId } = args;
+    const { message, modelId, useSearch } = args;
     const { threadId } = await agent.createThread(ctx, {
       userId: uid,
       title: "New Chat",
@@ -99,6 +100,7 @@ export const requestNewThreadCreation = mutation({
         threadId: threadId,
         promptMessageId: messageId,
         modelId: modelId,
+        useSearch: useSearch,
       }),
     ]);
     return threadId;
@@ -110,9 +112,10 @@ export const newThreadMessage = mutation({
     threadId: v.string(),
     prompt: v.string(),
     modelId: v.string(),
+    useSearch: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { threadId, prompt, modelId } = args;
+    const { threadId, prompt, modelId, useSearch } = args;
     await authorizeThreadAccess(ctx, threadId);
     const isUserSubscribed = await ctx.runQuery(api.auth.isUserSubscribed);
     if (!isUserSubscribed) {
@@ -136,6 +139,7 @@ export const newThreadMessage = mutation({
       threadId: args.threadId,
       promptMessageId: messageId,
       modelId: modelId,
+      useSearch: useSearch,
     });
   },
 });
