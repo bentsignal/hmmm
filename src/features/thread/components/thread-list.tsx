@@ -97,7 +97,7 @@ export default function ThreadList({
 
   return (
     <Sidebar variant="floating" className="py-4 pr-0 pl-4">
-      <SidebarHeader className="flex flex-col items-center justify-between">
+      <SidebarHeader className="md:px-auto flex flex-col items-center justify-between px-4 pt-4 md:pt-4">
         <NewThreadButton />
         <Input
           placeholder="Search"

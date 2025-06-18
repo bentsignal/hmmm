@@ -44,7 +44,7 @@ export default function Composer() {
           rounded-2xl border shadow-lg backdrop-blur`,
         )}
       >
-        <div className="flex items-end gap-3 p-4">
+        <div className="flex flex-col items-end gap-3 p-4 sm:flex-row">
           <textarea
             ref={textareaRef}
             value={message}
@@ -57,35 +57,39 @@ export default function Composer() {
               selection:text-primary-foreground focus-visible:ring-ring/0 
               aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 scrollbar-thin 
               scrollbar-thumb-secondary scrollbar-track-transparent flex h-auto max-h-32 min-h-[36px] 
-              w-full min-w-0 resize-none overflow-y-auto px-3 py-2 
+              w-full min-w-0 resize-none overflow-y-auto  py-2 
               text-base transition-[color,box-shadow] outline-none 
               focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed 
-              disabled:opacity-50 md:text-sm `,
+              disabled:opacity-50 sm:px-3 md:text-sm`,
             )}
           />
-          <SpeechTranscription
-            listening={listening}
-            handleStartListening={handleStartListening}
-            handleStopListening={handleStopListening}
-            supported={speechSupported}
-          />
-          <Search
-            toggleSearch={() => setUseSearch(!useSearch)}
-            useSearch={useSearch}
-          />
-          <ModelSelector />
-          <Button
-            onClick={handleSendMessage}
-            disabled={blockSend || isLoading}
-            size="icon"
-            className="shrink-0"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
+          <div className="flex w-full flex-1 items-center justify-between gap-2">
+            <div className="flex flex-1 items-center justify-start gap-2">
+              <SpeechTranscription
+                listening={listening}
+                handleStartListening={handleStartListening}
+                handleStopListening={handleStopListening}
+                supported={speechSupported}
+              />
+              <Search
+                toggleSearch={() => setUseSearch(!useSearch)}
+                useSearch={useSearch}
+              />
+              <ModelSelector />
+            </div>
+            <Button
+              onClick={handleSendMessage}
+              disabled={blockSend || isLoading}
+              size="icon"
+              className="shrink-0"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
