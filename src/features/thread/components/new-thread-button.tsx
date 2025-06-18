@@ -12,7 +12,7 @@ export default function NewThreadButton() {
   const isMobile = useIsMobile();
   return (
     <Button
-      size="icon"
+      className="w-full"
       onClick={() => {
         if (isMobile) {
           toggleSidebar();
@@ -21,6 +21,7 @@ export default function NewThreadButton() {
       }}
     >
       <SquarePen className="h-4 w-4" />
+      <span className="text-sm">New Chat</span>
     </Button>
   );
 }

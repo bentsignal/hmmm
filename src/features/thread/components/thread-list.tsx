@@ -97,13 +97,13 @@ export default function ThreadList({
 
   return (
     <Sidebar variant="floating" className="py-4 pr-0 pl-4">
-      <SidebarHeader className="flex flex-row items-center justify-between">
+      <SidebarHeader className="flex flex-col items-center justify-between">
+        <NewThreadButton />
         <Input
           placeholder="Search"
           className=" w-full"
           onChange={(e) => setSearch(e.target.value)}
         />
-        <NewThreadButton />
       </SidebarHeader>
       <SidebarContent
         className="scrollbar-thin scrollbar-thumb-secondary 
