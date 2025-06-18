@@ -7,7 +7,7 @@ import { components } from "./_generated/api";
 import modelMap from "@/features/models/types/model-map";
 import { publicModels } from "@/features/models/types/models";
 import { agent } from "./agent";
-import { search } from "./tools";
+import { search } from "@/features/tools";
 
 export const generateTitle = internalAction({
   args: {

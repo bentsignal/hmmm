@@ -12,7 +12,7 @@ import { memo } from "react";
 import useThread from "@/features/thread/hooks/use-thread-messages";
 import ReasoningMessage from "./reasoning-message";
 import useThreadStatus from "@/features/thread/hooks/use-thread-status";
-import SearchResultMessage from "./search-result-message";
+import SearchResultMessage from "@/features/tools/search/search-result-message";
 
 const MemoizedPrompt = memo(PromptMessage);
 const MemoizedResponse = memo(ResponseMessage);

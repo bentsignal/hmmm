@@ -12,7 +12,6 @@ import type * as actions from "../actions.js";
 import type * as agent from "../agent.js";
 import type * as auth from "../auth.js";
 import type * as threads from "../threads.js";
-import type * as tools from "../tools.js";
 import type * as users from "../users.js";
 import type * as waitlist from "../waitlist.js";
 
@@ -35,7 +34,6 @@ declare const fullApi: ApiFromModules<{
   agent: typeof agent;
   auth: typeof auth;
   threads: typeof threads;
-  tools: typeof tools;
   users: typeof users;
   waitlist: typeof waitlist;
 }>;

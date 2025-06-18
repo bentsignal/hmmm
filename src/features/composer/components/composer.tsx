@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import useComposer from "../hooks/use-composer";
 import ModelSelector from "@/features/models/components/model-selector";
 import SpeechTranscription from "@/features/speech/components";
-// import Search from "./search";
+import Search from "./search";
 
 export default function Composer() {
   const {
@@ -21,8 +21,8 @@ export default function Composer() {
     handleStopListening,
     listening,
     speechSupported,
-    // useSearch,
-    // setUseSearch,
+    useSearch,
+    setUseSearch,
   } = useComposer();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -69,10 +69,10 @@ export default function Composer() {
             handleStopListening={handleStopListening}
             supported={speechSupported}
           />
-          {/* <Search
+          <Search
             toggleSearch={() => setUseSearch(!useSearch)}
             useSearch={useSearch}
-          /> */}
+          />
           <ModelSelector />
           <Button
             onClick={handleSendMessage}
