@@ -59,19 +59,30 @@ export const requestNewThreadCreation = mutation({
   args: {
     message: v.string(),
     modelId: v.string(),
+    key: v.optional(v.string()),
+    userId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await ctx.auth.getUserIdentity();
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
-    const isUserSubscribed = await ctx.runQuery(api.auth.isUserSubscribed);
-    if (!isUserSubscribed) {
-      throw new Error("User is not subscribed");
+    let uid;
+    if (args.key && args.userId) {
+      if (args.key !== process.env.CONVEX_INTERNAL_API_KEY) {
+        throw new Error("Unauthorized");
+      }
+      uid = args.userId;
+    } else {
+      const userId = await ctx.auth.getUserIdentity();
+      if (!userId) {
+        throw new Error("Unauthorized");
+      }
+      uid = userId.subject;
+      const isUserSubscribed = await ctx.runQuery(api.auth.isUserSubscribed);
+      if (!isUserSubscribed) {
+        throw new Error("User is not subscribed");
+      }
     }
     const { message, modelId } = args;
     const { threadId } = await agent.createThread(ctx, {
-      userId: userId.subject,
+      userId: uid,
       title: "New Chat",
     });
     const { messageId } = await agent.saveMessage(ctx, {
