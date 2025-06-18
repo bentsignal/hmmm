@@ -13,8 +13,22 @@ export const search = tool({
       model: perplexity("sonar"),
       prompt: query,
     });
+
+    // add links to sources in response
+    const processedText = text.replace(/\[(\d+)\]/g, (match, number) => {
+      const sourceIndex = parseInt(number) - 1;
+      if (
+        sourceIndex >= 0 &&
+        sourceIndex < sources.length &&
+        sources[sourceIndex]?.url
+      ) {
+        return ` [\\[${number}\\]](${sources[sourceIndex].url})`;
+      }
+      return match;
+    });
+
     return {
-      text,
+      text: processedText,
       sources,
     };
   },

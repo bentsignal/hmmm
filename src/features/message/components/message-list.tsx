@@ -37,35 +37,40 @@ export default function MessageList({ threadId }: { threadId: string }) {
                 </div>
               ) : item.role === "assistant" && item.parts.length > 0 ? (
                 <div key={item.id} className="flex flex-col items-start gap-2">
-                  {item.parts
-                    .slice()
-                    .reverse()
-                    .map((part, index) =>
-                      part.type === "reasoning" && part.reasoning.length > 0 ? (
-                        <MemoizedReasoningMessage
-                          key={`${item.id}-${index}`}
-                          message={part.reasoning}
-                          loading={isThreadStreaming ?? false}
-                        />
-                      ) : part.type === "text" ? (
-                        <MemoizedResponse
-                          key={`${item.id}-${index}`}
-                          message={part.text}
-                          creationTime={
-                            messages?.results[index]._creationTime ?? 0
-                          }
-                        />
-                      ) : part.type === "tool-invocation" &&
-                        part.toolInvocation.toolName === "search" ? (
-                        <MemoizedSearchResultMessage
-                          key={`${item.id}-${index}`}
-                          // @ts-expect-error custom prop appended in tool call definition
-                          text={part.toolInvocation.result?.text ?? ""}
-                          // @ts-expect-error custom prop appended in tool call definition
-                          sources={part.toolInvocation.result?.sources ?? []}
-                        />
-                      ) : null,
-                    )}
+                  {(() => {
+                    const reasoningPart = item.parts.find(
+                      (part) =>
+                        part.type === "reasoning" && part.reasoning.length > 0,
+                    );
+                    return reasoningPart &&
+                      reasoningPart.type === "reasoning" ? (
+                      <MemoizedReasoningMessage
+                        key={`${item.id}-reasoning`}
+                        message={reasoningPart.reasoning}
+                        loading={isThreadStreaming ?? false}
+                      />
+                    ) : null;
+                  })()}
+                  {item.parts.map((part, index) =>
+                    part.type === "text" ? (
+                      <MemoizedResponse
+                        key={`${item.id}-${index}`}
+                        message={part.text}
+                        creationTime={
+                          messages?.results[index]._creationTime ?? 0
+                        }
+                      />
+                    ) : part.type === "tool-invocation" &&
+                      part.toolInvocation.toolName === "search" ? (
+                      <MemoizedSearchResultMessage
+                        key={`${item.id}-${index}`}
+                        // @ts-expect-error custom prop appended in tool call definition
+                        text={part.toolInvocation.result?.text ?? ""}
+                        // @ts-expect-error custom prop appended in tool call definition
+                        sources={part.toolInvocation.result?.sources ?? []}
+                      />
+                    ) : null,
+                  )}
                 </div>
               ) : null,
             )}

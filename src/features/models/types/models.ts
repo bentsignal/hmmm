@@ -9,13 +9,13 @@ export const models: Model[] = [
   {
     provider: "Google",
     name: "Gemini 2.5 Flash",
-    id: "google/gemini-2.5-flash-preview-05-20",
+    id: "google/gemini-2.5-flash",
     prononciations: ["gemini 2.5 flash", "2.5 flash"],
   },
   {
     provider: "Google",
     name: "Gemini 2.5 Pro",
-    id: "google/gemini-2.5-pro-preview-06-05",
+    id: "google/gemini-2.5-pro",
     prononciations: ["gemini 2.5 pro", "2.5 pro"],
   },
   {

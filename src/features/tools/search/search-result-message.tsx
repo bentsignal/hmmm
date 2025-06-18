@@ -46,20 +46,21 @@ export default function SearchResultMessage({
         <span className="mr-1 font-semibold">Sources</span>
       </div>
       {isOpen && (
-        <div className="bg-card mt-2 flex flex-col gap-2 rounded-md p-4">
+        <ol className="bg-card mt-2 flex flex-col gap-2 rounded-md p-4">
           {sources.map((source) => (
-            <div key={source.url}>
+            <li key={source.url} className="my-1 ml-4 list-decimal text-sm">
               <a
                 href={source.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted-foreground text-sm"
+                className="text-muted-foreground text-sm break-all"
+                style={{ wordBreak: "break-all" }}
               >
                 {source.url}
               </a>
-            </div>
+            </li>
           ))}
-        </div>
+        </ol>
       )}
     </div>
   );
