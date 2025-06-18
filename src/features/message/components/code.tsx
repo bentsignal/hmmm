@@ -18,7 +18,7 @@ export function Code({ inline, className, children, ...props }: CodeProps) {
             <CopyButton code={children} />
           </div>
           <pre {...props} className="p-4 pr-12">
-            <code className="text-xs break-words whitespace-pre-wrap md:text-sm">
+            <code className="font-mono text-xs break-words whitespace-pre-wrap md:text-sm">
               {children}
             </code>
           </pre>
@@ -28,7 +28,7 @@ export function Code({ inline, className, children, ...props }: CodeProps) {
   } else {
     return (
       <code
-        className={`${className || ""} bg-secondary rounded-md px-1 py-0.5 text-sm`}
+        className={`${className || ""} bg-secondary rounded-md px-1 py-0.5 font-mono text-sm`}
         {...props}
       >
         {children}
