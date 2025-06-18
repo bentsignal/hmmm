@@ -22,14 +22,14 @@ export default function ReasoningMessage({
   return (
     <div className="my-4 flex w-full flex-col items-start gap-2">
       <div
-        className={cn("flex items-center gap-2", !loading && "cursor-pointer")}
-        onClick={() => !loading && setIsOpen(!isOpen)}
+        className={cn("flex items-center gap-2", "cursor-pointer")}
+        onClick={() => setIsOpen(!isOpen)}
       >
-        {!loading && isOpen ? (
+        {isOpen ? (
           <ChevronDown className="h-4 w-4" />
-        ) : !loading ? (
+        ) : (
           <ChevronRight className="h-4 w-4 " />
-        ) : null}
+        )}
         <span className="mr-1 font-semibold">Reasoning</span>
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}
       </div>

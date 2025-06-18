@@ -14,7 +14,7 @@
     "@clerk/elements": "^0.23.32",
     "@clerk/nextjs": "^6.21.0",
     "@clerk/themes": "^2.2.49",
-    "@convex-dev/agent": "^0.1.7",
+    "@convex-dev/agent": "0.1.9-alpha.10",
     "@openrouter/ai-sdk-provider": "^0.7.1",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-dialog": "^1.1.14",
