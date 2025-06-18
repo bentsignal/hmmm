@@ -8,7 +8,7 @@ import { env } from "@/env";
 export default async function NewPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   // auth check
   const { userId } = await auth();
