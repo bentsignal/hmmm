@@ -30,7 +30,9 @@ export default function ReasoningMessage({
         ) : (
           <ChevronRight className="h-4 w-4 " />
         )}
-        <span className="mr-1 font-semibold">Reasoning</span>
+        <span className={cn("mr-1 font-semibold", loading && "animate-pulse")}>
+          Reasoning
+        </span>
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}
       </div>
       {isOpen && (
