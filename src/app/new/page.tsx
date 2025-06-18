@@ -32,12 +32,16 @@ export default async function NewPage({
     redirect("/");
   }
 
+  // use search?
+  const useSearch = params.search !== undefined;
+
   // create new thread
   const threadId = await fetchMutation(api.threads.requestNewThreadCreation, {
     message: parsedQuery,
     modelId: models[0].id,
     key: env.CONVEX_INTERNAL_API_KEY,
     userId,
+    useSearch,
   });
   if (!threadId) {
     redirect("/");
