@@ -3,7 +3,6 @@ import { usePathname, useRouter } from "next/navigation";
 import useModelStore from "@/features/models/store";
 import useThreadMutation from "@/features/thread/hooks/use-thread-mutation";
 import useThreadStatus from "@/features/thread/hooks/use-thread-status";
-import { Brain } from "lucide-react";
 import { toast } from "sonner";
 import SpeechRecognition, {
   useSpeechRecognition,
@@ -74,12 +73,6 @@ export default function useComposer() {
       setMessage(newMessage);
       // update model and inform user
       setCurrentModel(command.model);
-      toast.message(
-        <div className="flex items-center gap-2">
-          <Brain className="h-4 w-4" />
-          <span className="text-sm">Using {command.model.name}</span>
-        </div>,
-      );
     } else {
       setMessage(prompt);
     }

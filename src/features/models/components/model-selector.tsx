@@ -1,4 +1,5 @@
 import { Brain } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,9 +21,19 @@ import { modelGroups } from "../types/models";
 
 export default function ModelSelector() {
   const { currentModel, setCurrentModel } = useModelStore();
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+
+  // show model breifly after change
+  useEffect(() => {
+    setTooltipOpen(true);
+    const timer = setTimeout(() => {
+      setTooltipOpen(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [currentModel.id]);
 
   return (
-    <Tooltip>
+    <Tooltip open={tooltipOpen} onOpenChange={setTooltipOpen}>
       <DropdownMenu>
         <TooltipTrigger asChild>
           <DropdownMenuTrigger asChild>
