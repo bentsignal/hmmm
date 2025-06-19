@@ -36,6 +36,9 @@ This project is my entry for the [T3 cloneathon](https://cloneathon.t3.chat/), h
   - `https://www.qbe.sh/new?q=%s`
   - `https://www.qbe.sh/new?search&q=%s` (with search grounding)
 - Voice transcription (with commands to change models)
+  - _Use Gemini 2.5 Pro_ to teach me react
+  - Compare React to Angular using _Claude 4 Sonnet_
+  - Refactor that response _with o3_
 - XR app to step outside the 2 dimensions we're used to experiencing AI in.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
