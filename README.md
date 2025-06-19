@@ -2,7 +2,7 @@
 
 <br />
 <div align="center">
-  <a href="https://synq.cc">
+  <a href="https://www.youtube.com/watch?v=0tyf2mZNXcs">
     <img src="docs/assets/ar.gif" alt="Logo" width="500px">
   </a>
   <br />
