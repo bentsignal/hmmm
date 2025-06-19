@@ -20,5 +20,5 @@ export interface Model {
   name: string;
   id: string;
   hidden?: boolean;
-  prononciations: string[];
+  pronunciations: string[];
 }

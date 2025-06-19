@@ -3,7 +3,7 @@ import { publicModels } from "@/features/models/types/models";
 
 export const speechCommands = actions.flatMap((action) => {
   return publicModels.flatMap((model) => {
-    return model.prononciations.flatMap((prononciation) => {
+    return model.pronunciations.flatMap((prononciation) => {
       if (action === "use") {
         return [
           {

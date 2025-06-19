@@ -10,20 +10,20 @@ export const models: Model[] = [
     provider: "Google",
     name: "Gemini 2.5 Flash",
     id: "google/gemini-2.5-flash",
-    prononciations: ["gemini 2.5 flash", "2.5 flash"],
+    pronunciations: ["gemini 2.5 flash", "2.5 flash"],
   },
   {
     provider: "Google",
     name: "Gemini 2.5 Pro",
     id: "google/gemini-2.5-pro",
-    prononciations: ["gemini 2.5 pro", "2.5 pro"],
+    pronunciations: ["gemini 2.5 pro", "2.5 pro"],
   },
   {
     provider: "Google",
     name: "Gemma 3",
     id: "google/gemma-3-27b-it",
     hidden: true,
-    prononciations: ["gemma 3"],
+    pronunciations: ["gemma 3"],
   },
   /*
 
@@ -34,13 +34,13 @@ export const models: Model[] = [
     provider: "OpenAI",
     name: "GPT 4.1",
     id: "openai/gpt-4.1-2025-04-14",
-    prononciations: ["gpt 4.1", "4.1"],
+    pronunciations: ["gpt 4.1", "4.1"],
   },
   {
     provider: "OpenAI",
     name: "GPT 4o",
     id: "openai/gpt-4o-2024-11-20",
-    prononciations: [
+    pronunciations: [
       "gpt 4o",
       "4o",
       "gpt 40",
@@ -57,13 +57,13 @@ export const models: Model[] = [
     provider: "OpenAI",
     name: "o4 mini",
     id: "openai/o4-mini-2025-04-16",
-    prononciations: ["o4 mini", "04 mini", "oh 4 mini", "o 4 mini", "o4mini"],
+    pronunciations: ["o4 mini", "04 mini", "oh 4 mini", "o 4 mini", "o4mini"],
   },
   {
     provider: "OpenAI",
     name: "o3",
     id: "openai/o3-2025-04-16",
-    prononciations: ["o3", "oh 3", "o 3", "03"],
+    pronunciations: ["o3", "oh 3", "o 3", "03"],
   },
   /*
   
@@ -74,7 +74,7 @@ export const models: Model[] = [
     provider: "Anthropic",
     name: "Claude 4 Sonnet",
     id: "anthropic/claude-4-sonnet-20250522",
-    prononciations: [
+    pronunciations: [
       "claude 4 sonnet",
       "claude for sonnet",
       "claude four sonnet",
@@ -97,7 +97,7 @@ export const models: Model[] = [
     provider: "Anthropic",
     name: "Claude 3.5 Sonnet",
     id: "anthropic/claude-3.5-sonnet",
-    prononciations: [
+    pronunciations: [
       "claude 3.5 sonnet",
       "claude three five sonnet",
       "claude 3.5",
@@ -119,13 +119,13 @@ export const models: Model[] = [
     provider: "DeepSeek",
     name: "R1",
     id: "deepseek/deepseek-r1-0528:free",
-    prononciations: ["deepseek r1", "r1", "deep seek r1"],
+    pronunciations: ["deepseek r1", "r1", "deep seek r1"],
   },
   {
     provider: "DeepSeek",
     name: "V3",
     id: "deepseek/deepseek-chat-v3-0324:free",
-    prononciations: ["deepseek v3", "v3", "deep seek v3"],
+    pronunciations: ["deepseek v3", "v3", "deep seek v3"],
   },
   /*
   
@@ -136,7 +136,7 @@ export const models: Model[] = [
     provider: "xAI",
     name: "Grok 3 Mini",
     id: "x-ai/grok-3-mini-beta",
-    prononciations: [
+    pronunciations: [
       "grok 3 mini",
       "grok 3 mini beta",
       "glock 3 mini",
@@ -148,7 +148,7 @@ export const models: Model[] = [
     provider: "xAI",
     name: "Grok 3",
     id: "x-ai/grok-3-beta",
-    prononciations: [
+    pronunciations: [
       "grok 3",
       "grok 3 beta",
       "glock 3",
@@ -165,7 +165,7 @@ export const models: Model[] = [
     provider: "Meta",
     name: "Llama 4 Maverick",
     id: "meta-llama/llama-4-maverick:free",
-    prononciations: [
+    pronunciations: [
       "llama 4 maverick",
       "maverick",
       "llama for maverick",
@@ -176,7 +176,7 @@ export const models: Model[] = [
     provider: "Meta",
     name: "Llama 4 Scout",
     id: "meta-llama/llama-4-scout:free",
-    prononciations: [
+    pronunciations: [
       "llama 4 scout",
       "scout",
       "llama for scout",
