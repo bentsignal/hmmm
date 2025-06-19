@@ -46,8 +46,8 @@ export default function ReasoningMessage({
         <div
           className="bg-card prose dark:prose-invert scrollbar-thin
           scrollbar-thumb-background scrollbar-track-transparent relative 
-          mt-2 max-h-96 w-full max-w-72 overflow-y-auto rounded-md p-4 
-          sm:max-w-full"
+          mt-2 max-h-96 w-full max-w-72 overflow-y-auto rounded-md border 
+          p-4 sm:max-w-full"
         >
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
