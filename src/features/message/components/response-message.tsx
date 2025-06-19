@@ -34,21 +34,23 @@ export default function ResponseMessage({
         >
           {text}
         </ReactMarkdown>
-        <div className="absolute -bottom-10 left-0 mt-2 flex justify-start gap-2 sm:-bottom-12">
-          <CopyButton text={text} />
-          {creationTime && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <Info className="h-4 w-4" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Created at {createdAt}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-        </div>
+        {text.trim().length > 0 && (
+          <div className="absolute -bottom-10 left-0 mt-2 flex justify-start gap-2 sm:-bottom-12">
+            <CopyButton text={text} />
+            {creationTime && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Created at {createdAt}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
