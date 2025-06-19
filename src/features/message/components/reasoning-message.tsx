@@ -10,11 +10,13 @@ import { cn } from "@/lib/utils";
 interface ReasoningMessageProps {
   message: string;
   loading: boolean;
+  mostRecent: boolean;
 }
 
 export default function ReasoningMessage({
   message,
   loading,
+  mostRecent,
 }: ReasoningMessageProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [text] = useSmoothText(message);
@@ -30,10 +32,15 @@ export default function ReasoningMessage({
         ) : (
           <ChevronRight className="h-4 w-4 " />
         )}
-        <span className={cn("mr-1 font-semibold", loading && "animate-pulse")}>
+        <span
+          className={cn(
+            "mr-1 font-semibold",
+            loading && mostRecent && "animate-pulse",
+          )}
+        >
           Reasoning
         </span>
-        {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+        {loading && mostRecent && <Loader2 className="h-4 w-4 animate-spin" />}
       </div>
       {isOpen && (
         <div

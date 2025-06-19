@@ -30,7 +30,7 @@ export default function MessageList({ threadId }: { threadId: string }) {
       <ScrollArea ref={scrollAreaRef} className="h-full w-full">
         <div className="flex w-full justify-center pt-20 pb-20">
           <div className="mx-4 mb-8 flex h-full w-full max-w-4xl flex-col gap-16 px-4">
-            {uiMessages.map((item) =>
+            {uiMessages.map((item, index) =>
               item.role === "user" ? (
                 <div key={item.id} className="flex items-center justify-end">
                   <MemoizedPrompt message={item.content} />
@@ -48,6 +48,7 @@ export default function MessageList({ threadId }: { threadId: string }) {
                         key={`${item.id}-reasoning`}
                         message={reasoningPart.reasoning}
                         loading={isThreadStreaming ?? false}
+                        mostRecent={index === uiMessages.length - 1}
                       />
                     ) : null;
                   })()}
