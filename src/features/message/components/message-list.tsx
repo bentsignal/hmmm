@@ -86,8 +86,8 @@ export default function MessageList({ threadId }: { threadId: string }) {
       </ScrollArea>
       {!isAtBottom && (
         <div
-          className="absolute right-0 bottom-24 z-10 flex w-full items-center 
-          justify-center rounded-full p-0"
+          className="absolute right-0 bottom-36 z-10 flex w-full items-center justify-center 
+          rounded-full p-0 sm:bottom-24"
         >
           <Button
             onClick={scrollToBottom}
