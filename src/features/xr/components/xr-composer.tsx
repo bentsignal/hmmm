@@ -1,11 +1,18 @@
 "use client";
 
-import { Root, Container, Text, Input } from "@react-three/uikit";
+import { Root, Container, Input } from "@react-three/uikit";
 import { Button } from "@react-three/uikit-default";
-import { Brain, Mic, Send } from "@react-three/uikit-lucide";
+import {
+  Brain,
+  Mic,
+  Send,
+  Globe,
+  MessagesSquare,
+} from "@react-three/uikit-lucide";
 import { Handle, HandleTarget } from "@react-three/handle";
 import useComposer from "@/features/composer/hooks/use-composer";
-import useModelStore from "@/features/models/store";
+// import useModelStore from "@/features/models/store";
+import { useEffect } from "react";
 
 export default function XRComposer() {
   const {
@@ -17,64 +24,91 @@ export default function XRComposer() {
     isTranscribing,
     blockSend,
     setMessage,
+    useSearch,
+    setUseSearch,
   } = useComposer();
 
-  const { currentModel } = useModelStore();
+  // const { currentModel } = useModelStore();
 
-  const inputValue = isRecording
-    ? "Listening..."
-    : isTranscribing
-      ? "Transcribing..."
-      : message
-        ? message
-        : "How can I help you?";
+  const placeholder = "How can I help you?";
 
-  const buttonTextColor = "#111726";
+  useEffect(() => {
+    if (isTranscribing) {
+      setMessage("Transcribing...");
+    }
+  }, [isTranscribing]);
+
+  useEffect(() => {
+    if (isRecording) {
+      setMessage("Listening...");
+    }
+  }, [isRecording]);
+
+  const buttonTextColor = "#372835";
+  const cardColor = "#2A1C28";
 
   return (
     <group position={[0, 1, -0.5]}>
       <HandleTarget>
         <Handle>
-          <Root flexDirection="column" pixelSize={0.001}>
+          <Root flexDirection="column" pixelSize={0.001} gap={10}>
             <Handle />
             <Container
-              backgroundColor={"#404858"}
+              backgroundColor={cardColor}
               flexDirection="row"
               padding={28}
               alignItems="flex-end"
               justifyContent="space-between"
               borderRadius={20}
               castShadow
+              width={370}
             >
-              <Container flexDirection="column" gap={16} width={300}>
-                <Input
-                  value={inputValue}
-                  onValueChange={(value) => setMessage(value)}
-                  width={300}
-                  backgroundColor="#404858"
-                  paddingRight={10}
-                  multiline
-                  color={
-                    isTranscribing || isRecording || !message ? "gray" : "white"
+              <Input
+                value={message || placeholder}
+                onValueChange={(value) => {
+                  setMessage(value);
+                }}
+                width={"100%"}
+                multiline
+                color={
+                  isTranscribing ||
+                  isRecording ||
+                  !message ||
+                  message === placeholder
+                    ? "gray"
+                    : "white"
+                }
+                onFocusChange={(focus) => {
+                  if (focus && message === placeholder) {
+                    setMessage("");
+                  } else if (!focus && message === "") {
+                    setMessage(placeholder);
                   }
-                  disabled
+                }}
+                disabled={isRecording || isTranscribing}
+              />
+            </Container>
+            <Container
+              backgroundColor={cardColor}
+              flexDirection="row"
+              alignItems="center"
+              justifyContent="center"
+              borderRadius={20}
+              gap={10}
+              castShadow
+              width={370}
+              padding={16}
+            >
+              <Button>
+                <MessagesSquare
+                  width={24}
+                  height={24}
+                  color={buttonTextColor}
                 />
-                <Container
-                  flexDirection="row"
-                  gap={10}
-                  alignItems="center"
-                  paddingLeft={6}
-                >
-                  <Brain width={12} height={12} color="white" />
-                  <Text color="white" fontSize={12} fontWeight={500}>
-                    {currentModel.name}
-                  </Text>
-                </Container>
-              </Container>
+              </Button>
               <Button
                 onClick={isRecording ? stopRecording : startRecording}
                 disabled={isTranscribing}
-                marginRight={10}
               >
                 <Mic
                   width={24}
@@ -82,7 +116,20 @@ export default function XRComposer() {
                   color={isRecording ? "lightcoral" : buttonTextColor}
                 />
               </Button>
-              <Button onClick={handleSendMessage} disabled={blockSend}>
+              <Button onClick={() => setUseSearch(!useSearch)}>
+                <Globe
+                  width={24}
+                  height={24}
+                  color={useSearch ? "cornflowerblue" : buttonTextColor}
+                />
+              </Button>
+              <Button>
+                <Brain width={24} height={24} color={buttonTextColor} />
+              </Button>
+              <Button
+                onClick={handleSendMessage}
+                disabled={blockSend || message === placeholder}
+              >
                 <Send width={24} height={24} color={buttonTextColor} />
               </Button>
             </Container>
