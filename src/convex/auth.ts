@@ -16,8 +16,12 @@ if (!INTERNAL_API_KEY) {
 export const externalSubCheck = query({
   args: {
     userId: v.string(),
+    key: v.string(),
   },
   handler: async (ctx, args) => {
+    if (args.key !== INTERNAL_API_KEY) {
+      throw new Error("Unauthorized");
+    }
     const user = await ctx.db
       .query("users")
       .withIndex("by_user_id", (q) => q.eq("userId", args.userId))
@@ -65,8 +69,8 @@ export const authorizeThreadAccess = async (
   threadId: string,
   key?: string,
 ) => {
-  if (key && key === INTERNAL_API_KEY) {
-    return true;
+  if (key && key !== INTERNAL_API_KEY) {
+    throw new Error("Unauthorized");
   }
   const userId = await ctx.auth.getUserIdentity();
   if (!userId) {
@@ -84,5 +88,4 @@ export const authorizeThreadAccess = async (
   if (metadata.userId !== userId.subject) {
     throw new Error("Unauthorized");
   }
-  return true;
 };

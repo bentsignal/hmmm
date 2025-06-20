@@ -17,6 +17,7 @@ export async function transcribeAudio(audio: ArrayBuffer) {
   }
   const isUserSubscribed = await convex.query(api.auth.externalSubCheck, {
     userId,
+    key: env.CONVEX_INTERNAL_API_KEY,
   });
   if (!isUserSubscribed) {
     throw new Error("User is not subscribed");

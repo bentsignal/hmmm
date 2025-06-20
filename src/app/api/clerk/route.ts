@@ -7,10 +7,6 @@ import { api } from "@/convex/_generated/api";
 import { fetchMutation } from "convex/nextjs";
 
 export async function POST(req: NextRequest) {
-  if (!env.CLERK_WEBHOOK_SECRET) {
-    throw new Error("CLERK_WEBHOOK_SECRET is not set");
-  }
-
   const svixId = req.headers.get("svix-id");
   const svixTimestamp = req.headers.get("svix-timestamp");
   const svixSignature = req.headers.get("svix-signature");

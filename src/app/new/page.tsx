@@ -17,6 +17,7 @@ export default async function NewPage({
   }
   const isSubscribed = await fetchQuery(api.auth.externalSubCheck, {
     userId,
+    key: env.CONVEX_INTERNAL_API_KEY,
   });
   if (!isSubscribed) {
     redirect("/login");
