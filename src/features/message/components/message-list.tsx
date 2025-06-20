@@ -9,12 +9,10 @@ import useMessageListScroll from "../hooks/use-message-list-scroll";
 import "@/features/message/styles/github-dark.min.css";
 import "@/features/message/styles/message-styles.css";
 import { memo } from "react";
-import useThread from "@/features/thread/hooks/use-thread-messages";
+import useThread from "@/features/thread/hooks/use-thread";
 import ReasoningMessage from "./reasoning-message";
 import useThreadStatus from "@/features/thread/hooks/use-thread-status";
 import SearchResultMessage from "@/features/tools/search/search-result-message";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 const MemoizedPrompt = memo(PromptMessage);
@@ -23,13 +21,10 @@ const MemoizedReasoningMessage = memo(ReasoningMessage);
 const MemoizedSearchResultMessage = memo(SearchResultMessage);
 
 export default function MessageList({ threadId }: { threadId: string }) {
-  const { messages, uiMessages } = useThread({ threadId });
+  const { messages, uiMessages, title } = useThread({ threadId });
   const { scrollAreaRef, messagesEndRef, isAtBottom, scrollToBottom } =
     useMessageListScroll(uiMessages.length);
   const { isThreadStreaming } = useThreadStatus({ threadId });
-  const title = useQuery(api.threads.getThreadTitle, {
-    threadId,
-  });
   usePageTitle(title);
 
   return (
