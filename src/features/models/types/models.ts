@@ -196,6 +196,5 @@ export const modelGroups = providers.map((provider) => {
 export const publicModels = models.filter((model) => !model.hidden);
 
 export const defaultModel =
-  publicModels.find(
-    (model) => model.id === "google/gemini-2.5-flash-lite-preview-06-17",
-  ) ?? publicModels[0];
+  publicModels.find((model) => model.id === "google/gemini-2.5-flash") ??
+  publicModels[0];
