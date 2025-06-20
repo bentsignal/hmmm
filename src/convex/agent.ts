@@ -1,15 +1,15 @@
 import { Agent } from "@convex-dev/agent";
 import { components } from "./_generated/api";
-import { models } from "@/features/models/types/models";
+import { defaultModel } from "@/features/models/types/models";
 import modelMap from "@/features/models/types/model-map";
 
-const defaultModel = modelMap.get(models[0].id);
-if (!defaultModel) {
+const model = modelMap.get(defaultModel.id);
+if (!model) {
   throw new Error("Default model not found");
 }
 
 export const agent = new Agent(components.agent, {
-  chat: defaultModel,
+  chat: model,
   instructions: `You are a helpful assistent. Given a prompt or thread of messages, deliver
   a response that will help answer the question or task being proposed by the user.
 

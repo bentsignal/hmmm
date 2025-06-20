@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import useModelStore from "@/features/models/store";
+import useComposerStore from "@/features/composer/store/composer-store";
 import useThreadMutation from "@/features/thread/hooks/use-thread-mutation";
 import useThreadStatus from "@/features/thread/hooks/use-thread-status";
 import { toast } from "sonner";
@@ -18,7 +18,7 @@ export default function useComposer() {
   const [useSearch, setUseSearch] = useState(false);
 
   const [message, setMessage] = useState("");
-  const { currentModel, setCurrentModel } = useModelStore();
+  const { currentModel, setCurrentModel } = useComposerStore();
   const { createThread, newThreadMessage } = useThreadMutation();
   const { isThreadStreaming } = useThreadStatus({ threadId });
 
