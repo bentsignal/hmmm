@@ -1,13 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { auth } from "@clerk/nextjs/server";
-import { Info } from "lucide-react";
+import { Box, Info } from "lucide-react";
 import Link from "next/link";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import XREntry from "@/components/xr-entry";
 
 export default async function Home() {
   const { userId } = await auth();
@@ -42,7 +41,14 @@ export default async function Home() {
             </Link>
           </Button>
         )}
-        {userId && <XREntry />}
+        {userId && (
+          <Button asChild className="mt-2" variant="outline">
+            <Link href="/xr">
+              <Box className="h-4 w-4" />
+              Enter XR
+            </Link>
+          </Button>
+        )}
       </div>
     </>
   );
