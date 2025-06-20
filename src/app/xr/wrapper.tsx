@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Box } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PointerEvents } from "@react-three/xr";
-import XRComposer from "@/features/xr/components/xr-composer";
+import XRComposer from "@/features/composer/components/xr-composer";
 
 const store = createXRStore();
 

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Box } from "lucide-react";
 
-export default function XRLink() {
+export default function XREntry() {
   const router = useRouter();
   return (
     <Button

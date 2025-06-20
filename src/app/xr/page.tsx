@@ -1,4 +1,4 @@
-import XRWrapper from "@/features/xr/components/xr-wrapper";
+import XRWrapper from "@/app/xr/wrapper";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 

@@ -7,7 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import XRLink from "@/features/xr/components/xr-link";
+import XREntry from "@/components/xr-entry";
 
 export default async function Home() {
   const { userId } = await auth();
@@ -42,7 +42,7 @@ export default async function Home() {
             </Link>
           </Button>
         )}
-        {userId && <XRLink />}
+        {userId && <XREntry />}
       </div>
     </>
   );
