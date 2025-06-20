@@ -15,7 +15,7 @@ export const generateTitle = internalAction({
     threadId: v.string(),
   },
   handler: async (ctx, args) => {
-    const model = modelMap.get("google/gemma-3-27b-it");
+    const model = modelMap.get("google/gemini-2.5-flash-lite-preview-06-17");
     if (!model) {
       throw new Error("Model not found");
     }

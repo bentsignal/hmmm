@@ -8,6 +8,12 @@ export const models: Model[] = [
   */
   {
     provider: "Google",
+    name: "Gemini 2.5 Flash Lite",
+    id: "google/gemini-2.5-flash-lite-preview-06-17",
+    pronunciations: ["gemini 2.5 flash lite", "2.5 flash lite"],
+  },
+  {
+    provider: "Google",
     name: "Gemini 2.5 Flash",
     id: "google/gemini-2.5-flash",
     pronunciations: ["gemini 2.5 flash", "2.5 flash"],
@@ -17,13 +23,6 @@ export const models: Model[] = [
     name: "Gemini 2.5 Pro",
     id: "google/gemini-2.5-pro",
     pronunciations: ["gemini 2.5 pro", "2.5 pro"],
-  },
-  {
-    provider: "Google",
-    name: "Gemma 3",
-    id: "google/gemma-3-27b-it",
-    hidden: true,
-    pronunciations: ["gemma 3"],
   },
   /*
 
@@ -197,5 +196,6 @@ export const modelGroups = providers.map((provider) => {
 export const publicModels = models.filter((model) => !model.hidden);
 
 export const defaultModel =
-  publicModels.find((model) => model.id === "google/gemini-2.5-flash") ??
-  publicModels[0];
+  publicModels.find(
+    (model) => model.id === "google/gemini-2.5-flash-lite-preview-06-17",
+  ) ?? publicModels[0];
