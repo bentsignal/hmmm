@@ -177,3 +177,17 @@ export const isThreadStreaming = query({
     return streamingMessages.length > 0;
   },
 });
+
+export const getThreadTitle = query({
+  args: {
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { threadId } = args;
+    await authorizeThreadAccess(ctx, threadId);
+    const { title } = await agent.getThreadMetadata(ctx, {
+      threadId,
+    });
+    return title ?? "QBE";
+  },
+});

@@ -8,6 +8,11 @@ if (!ACCESS_CODE) {
   throw new Error("ACCESS_CODE is not set");
 }
 
+const INTERNAL_API_KEY = process.env.CONVEX_INTERNAL_API_KEY;
+if (!INTERNAL_API_KEY) {
+  throw new Error("CONVEX_INTERNAL_API_KEY is not set");
+}
+
 export const externalSubCheck = query({
   args: {
     userId: v.string(),
@@ -58,7 +63,11 @@ export const requestAccess = mutation({
 export const authorizeThreadAccess = async (
   ctx: QueryCtx | MutationCtx,
   threadId: string,
+  key?: string,
 ) => {
+  if (key && key === INTERNAL_API_KEY) {
+    return true;
+  }
   const userId = await ctx.auth.getUserIdentity();
   if (!userId) {
     throw new Error("Unauthorized");
@@ -67,7 +76,7 @@ export const authorizeThreadAccess = async (
     threadId,
   });
   if (!thread) {
-    return false;
+    throw new Error("Thread not found");
   }
   const metadata = await agent.getThreadMetadata(ctx, {
     threadId,
@@ -75,5 +84,5 @@ export const authorizeThreadAccess = async (
   if (metadata.userId !== userId.subject) {
     throw new Error("Unauthorized");
   }
-  return metadata.userId;
+  return true;
 };
