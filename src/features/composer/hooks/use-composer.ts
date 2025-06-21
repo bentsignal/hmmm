@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import useComposerStore from "@/features/composer/store/composer-store";
+import useComposerStore from "@/features/composer/store";
 import useThreadMutation from "@/features/thread/hooks/use-thread-mutation";
 import useThreadStatus from "@/features/thread/hooks/use-thread-status";
 import { toast } from "sonner";

@@ -16,7 +16,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import useComposerStore from "@/features/composer/store/composer-store";
+import useComposerStore from "@/features/composer/store";
 import { modelGroups } from "../types/models";
 
 export default function ModelSelector() {
