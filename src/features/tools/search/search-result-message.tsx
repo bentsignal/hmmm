@@ -1,6 +1,5 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
@@ -23,8 +22,7 @@ export default function SearchResultMessage({
   if (text.length === 0)
     return (
       <div className="flex items-center gap-2">
-        <span className="mr-1 animate-pulse font-semibold">Searching...</span>
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <span className="mr-1 animate-pulse font-semibold">Searching</span>
       </div>
     );
 

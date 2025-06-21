@@ -1,4 +1,4 @@
-import { Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -40,7 +40,6 @@ export default function ReasoningMessage({
         >
           Reasoning
         </span>
-        {loading && mostRecent && <Loader2 className="h-4 w-4 animate-spin" />}
       </div>
       {isOpen && (
         <div
