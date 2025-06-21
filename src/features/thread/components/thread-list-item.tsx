@@ -8,23 +8,25 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Brain, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, memo } from "react";
+import useThreadStore from "@/features/thread/store";
 
 interface ThreadListItemProps {
   title: string;
   id: string;
-  handleDelete: () => void;
 }
 
-export default function ThreadListItem({
-  title,
-  id,
-  handleDelete,
-}: ThreadListItemProps) {
+function ThreadListItem({ title, id }: ThreadListItemProps) {
   const pathname = usePathname();
-  const { toggleSidebar } = useSidebar();
   const isMobile = useIsMobile();
+  const { toggleSidebar } = useSidebar();
   const [isHovering, setIsHovering] = useState(false);
+
+  const setDeleteModalOpen = useThreadStore(
+    (state) => state.setDeleteModalOpen,
+  );
+  const setSelectedThread = useThreadStore((state) => state.setSelectedThread);
+
   return (
     <SidebarMenuItem
       key={id}
@@ -71,7 +73,14 @@ export default function ThreadListItem({
             maskImage: "linear-gradient(to left, black 75%, transparent)",
           }}
         >
-          <Button variant="destructive" size="icon" onClick={handleDelete}>
+          <Button
+            variant="destructive"
+            size="icon"
+            onClick={() => {
+              setSelectedThread(id);
+              setDeleteModalOpen(true);
+            }}
+          >
             <Trash className="h-4 w-4" />
           </Button>
         </div>
@@ -79,3 +88,5 @@ export default function ThreadListItem({
     </SidebarMenuItem>
   );
 }
+
+export default memo(ThreadListItem);

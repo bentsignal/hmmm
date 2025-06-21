@@ -24,9 +24,6 @@ export default function ThreadList({
 }) {
   const threads = usePreloadedQuery(preloadedThreads);
   const { threadGroups, setSearch } = useThreadList({ threads });
-  const [selectedThread, setSelectedThread] = useState<string | null>(null);
-
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   // fade in on load
   const [opacity, setOpacity] = useState(0);
@@ -64,22 +61,13 @@ export default function ThreadList({
                       key={item._id}
                       title={item.title ?? ""}
                       id={item._id ?? ""}
-                      handleDelete={() => {
-                        setSelectedThread(item._id);
-                        setDeleteModalOpen(true);
-                      }}
                     />
                   ))}
                 </SidebarGroup>
               ),
           )}
         </SidebarMenu>
-        <ThreadDeleteModal
-          selectedThread={selectedThread}
-          setSelectedThread={setSelectedThread}
-          open={deleteModalOpen}
-          setOpen={setDeleteModalOpen}
-        />
+        <ThreadDeleteModal />
       </SidebarContent>
     </Sidebar>
   );

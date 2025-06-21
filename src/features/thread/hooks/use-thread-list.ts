@@ -63,28 +63,37 @@ export default function useThreadList({ threads }: useThreadProps) {
   }, [filteredThreads]);
 
   // pack grouped threads into one array
-  const threadGroups = [
-    {
-      label: "Today",
-      threads: todaysThreads,
-    },
-    {
-      label: "Yesterday",
-      threads: yesterdayThreads,
-    },
-    {
-      label: "Last 7 Days",
-      threads: lastWeekThreads,
-    },
-    {
-      label: "Last 30 Days",
-      threads: lastMonthThreads,
-    },
-    {
-      label: "Older than 30 Days",
-      threads: oldThreads,
-    },
-  ];
+  const threadGroups = useMemo(
+    () => [
+      {
+        label: "Today",
+        threads: todaysThreads,
+      },
+      {
+        label: "Yesterday",
+        threads: yesterdayThreads,
+      },
+      {
+        label: "Last 7 Days",
+        threads: lastWeekThreads,
+      },
+      {
+        label: "Last 30 Days",
+        threads: lastMonthThreads,
+      },
+      {
+        label: "Older than 30 Days",
+        threads: oldThreads,
+      },
+    ],
+    [
+      todaysThreads,
+      yesterdayThreads,
+      lastWeekThreads,
+      lastMonthThreads,
+      oldThreads,
+    ],
+  );
 
   return {
     filteredThreads,
