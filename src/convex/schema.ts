@@ -8,4 +8,18 @@ export default defineSchema({
     access: v.optional(v.boolean()),
     waitlist: v.optional(v.boolean()),
   }).index("by_user_id", ["userId"]),
+  threadMetadata: defineTable({
+    title: v.string(),
+    mainId: v.string(),
+    userId: v.string(),
+    updatedAt: v.number(),
+    state: v.union(
+      v.literal("idle"),
+      v.literal("waiting"),
+      v.literal("thinking"),
+      v.literal("streaming"),
+    ),
+  })
+    .index("by_user_time", ["userId", "updatedAt"])
+    .index("by_main_id", ["mainId"]),
 });
