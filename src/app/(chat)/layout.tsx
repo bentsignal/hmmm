@@ -8,6 +8,7 @@ import {
 import ThreadListWrapper from "@/features/thread/components/thread-list-wrapper";
 import { auth } from "@clerk/nextjs/server";
 import BetaPopup from "@/features/beta/components/beta-popup";
+import ErrorBoundary from "@/components/error-boundary";
 
 export default async function ChatLayout({
   children,
@@ -27,7 +28,9 @@ export default async function ChatLayout({
               <TopRightNav />
             </div>
             <div className="absolute right-0 bottom-0 left-0 z-50">
-              <Composer />
+              <ErrorBoundary>
+                <Composer />
+              </ErrorBoundary>
             </div>
           </>
         )}

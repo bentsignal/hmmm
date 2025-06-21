@@ -1,5 +1,5 @@
 import MessageList from "@/features/message/components/message-list";
-import ErrorBoundary from "@/components/error-boundary";
+import { PageError } from "@/components/error-boundary";
 
 export default async function ChatPage({
   params,
@@ -8,8 +8,8 @@ export default async function ChatPage({
 }) {
   const { id } = await params;
   return (
-    <ErrorBoundary>
+    <PageError>
       <MessageList threadId={id} />
-    </ErrorBoundary>
+    </PageError>
   );
 }
