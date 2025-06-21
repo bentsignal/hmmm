@@ -9,9 +9,7 @@ export default function TopRightNav() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   return (
-    <div
-      className={`bg-card m-4 flex w-fit items-center rounded-lg p-1 shadow-md`}
-    >
+    <div className="bg-card m-4 flex w-fit items-center rounded-lg border p-1 shadow-md">
       <Button
         variant="ghost"
         onClick={() => router.push("/settings")}
