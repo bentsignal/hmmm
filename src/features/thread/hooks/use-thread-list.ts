@@ -1,11 +1,22 @@
 import { useMemo, useState } from "react";
-import { ThreadsData } from "../types";
+import { useConvexAuth, usePaginatedQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
-interface useThreadProps {
-  threads: ThreadsData;
-}
+const PAGE_SIZE = 100;
 
-export default function useThreadList({ threads }: useThreadProps) {
+export default function useThreadList() {
+  // thread pagination
+  const { isAuthenticated } = useConvexAuth();
+  const args = isAuthenticated ? {} : "skip";
+  const {
+    results: threads,
+    status,
+    loadMore,
+  } = usePaginatedQuery(api.threads.getThreadList, args, {
+    initialNumItems: PAGE_SIZE,
+  });
+  const loadMoreThreads = () => loadMore(PAGE_SIZE);
+
   // search for thread by title
   const [search, setSearch] = useState("");
   const filteredThreads = useMemo(() => {
@@ -96,9 +107,10 @@ export default function useThreadList({ threads }: useThreadProps) {
   );
 
   return {
+    status,
+    loadMoreThreads,
     filteredThreads,
-    search,
-    setSearch,
     threadGroups,
+    setSearch,
   };
 }

@@ -7,21 +7,20 @@ import { vStreamArgs } from "@convex-dev/agent/validators";
 import { authorizeThreadAccess } from "./auth";
 
 export const getThreadList = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
     const userId = await ctx.auth.getUserIdentity();
     if (!userId) {
-      return [];
+      throw new Error("Unauthorized");
     }
-    const { page: threads } = await ctx.runQuery(
+    const threads = await ctx.runQuery(
       components.agent.threads.listThreadsByUserId,
       {
         userId: userId.subject,
         order: "desc",
-        // paginationOpts: {
-        //   cursor: null,
-        //   numItems: 100,
-        // },
+        paginationOpts: args.paginationOpts,
       },
     );
     return threads;
@@ -36,7 +35,7 @@ export const getThreadMessages = query({
   },
   handler: async (ctx, args) => {
     const { threadId, paginationOpts, streamArgs } = args;
-    if (threadId === "skip" || threadId === "") {
+    if (threadId.trim().length === 0) {
       throw new Error("Thread ID is required");
     }
     await authorizeThreadAccess(ctx, threadId);

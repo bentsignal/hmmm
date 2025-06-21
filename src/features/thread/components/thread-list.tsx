@@ -8,30 +8,25 @@ import {
   SidebarMenu,
   SidebarContent,
 } from "@/components/ui/sidebar";
-import { api } from "@/convex/_generated/api";
-import { Preloaded, usePreloadedQuery } from "convex/react";
 import ThreadListItem from "./thread-list-item";
 import { useEffect, useState } from "react";
 import NewThreadButton from "./new-thread-button";
 import { Input } from "@/components/ui/input";
 import useThreadList from "../hooks/use-thread-list";
 import ThreadDeleteModal from "./thread-delete-modal";
+import PageLoader from "@/components/page-loader";
 
-export default function ThreadList({
-  preloadedThreads,
-}: {
-  preloadedThreads: Preloaded<typeof api.threads.getThreadList>;
-}) {
-  const threads = usePreloadedQuery(preloadedThreads);
-  const { threadGroups, setSearch } = useThreadList({ threads });
+export default function ThreadList() {
+  const { filteredThreads, threadGroups, setSearch, loadMoreThreads, status } =
+    useThreadList();
 
   // fade in on load
   const [opacity, setOpacity] = useState(0);
   useEffect(() => {
-    if (threads.length > 0) {
+    if (filteredThreads.length > 0) {
       setOpacity(1);
     }
-  }, [threads]);
+  }, [filteredThreads]);
 
   return (
     <Sidebar variant="floating" className="py-4 pr-0 pl-4">
@@ -51,6 +46,11 @@ export default function ThreadList({
           className="transition-opacity duration-500 ease-in-out"
           style={{ opacity }}
         >
+          {filteredThreads.length === 0 && (
+            <div className="flex w-full items-center justify-center py-4">
+              <p className="text-muted-foreground text-sm">No threads found</p>
+            </div>
+          )}
           {threadGroups.map(
             (group) =>
               group.threads.length > 0 && (
@@ -67,6 +67,7 @@ export default function ThreadList({
               ),
           )}
         </SidebarMenu>
+        <PageLoader status={status} loadMore={loadMoreThreads} />
         <ThreadDeleteModal />
       </SidebarContent>
     </Sidebar>

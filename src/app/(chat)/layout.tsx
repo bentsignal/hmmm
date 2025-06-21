@@ -5,10 +5,10 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import ThreadListWrapper from "@/features/thread/components/thread-list-wrapper";
 import { auth } from "@clerk/nextjs/server";
 import BetaPopup from "@/features/beta/components/beta-popup";
 import ErrorBoundary from "@/components/error-boundary";
+import ThreadList from "@/features/thread/components/thread-list";
 
 export default async function ChatLayout({
   children,
@@ -19,7 +19,7 @@ export default async function ChatLayout({
   return (
     <SidebarProvider>
       {userId && <BetaPopup />}
-      {userId && <ThreadListWrapper />}
+      {userId && <ThreadList />}
       <SidebarInset className="relative h-screen">
         {userId && (
           <>
