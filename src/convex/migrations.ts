@@ -5,7 +5,7 @@ import { DataModel } from "./_generated/dataModel.js";
 export const migrations = new Migrations<DataModel>(components.migrations);
 export const run = migrations.runner();
 
-export const threadMetadataCreation = migrations.define({
+export const threadMetadataBackfillTwo = migrations.define({
   table: "users",
   migrateOne: async (ctx, user) => {
     const threads = await ctx.runQuery(
@@ -19,7 +19,7 @@ export const threadMetadataCreation = migrations.define({
     threads.page.forEach(async (thread) => {
       const metadata = await ctx.db
         .query("threadMetadata")
-        .withIndex("by_main_id", (q) => q.eq("mainId", thread._id))
+        .withIndex("by_thread_id", (q) => q.eq("threadId", thread._id))
         .first();
       if (metadata) {
         return;
@@ -27,7 +27,7 @@ export const threadMetadataCreation = migrations.define({
       await ctx.db.insert("threadMetadata", {
         userId: user.userId,
         title: thread.title || "",
-        mainId: thread._id,
+        threadId: thread._id,
         updatedAt: thread._creationTime,
         state: "idle",
       });
@@ -35,6 +35,6 @@ export const threadMetadataCreation = migrations.define({
   },
 });
 
-export const runCreateThreadMetadata = migrations.runner(
-  internal.migrations.threadMetadataCreation,
+export const runThreadMetadataBackfillTwo = migrations.runner(
+  internal.migrations.threadMetadataBackfillTwo,
 );

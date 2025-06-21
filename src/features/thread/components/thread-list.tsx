@@ -17,16 +17,16 @@ import ThreadDeleteModal from "./thread-delete-modal";
 import PageLoader from "@/components/page-loader";
 
 export default function ThreadList() {
-  const { filteredThreads, threadGroups, setSearch, loadMoreThreads, status } =
+  const { threads, threadGroups, setSearch, loadMoreThreads, status } =
     useThreadList();
 
   // fade in on load
   const [opacity, setOpacity] = useState(0);
   useEffect(() => {
-    if (filteredThreads.length > 0) {
+    if (threads.length > 0) {
       setOpacity(1);
     }
-  }, [filteredThreads]);
+  }, [threads]);
 
   return (
     <Sidebar variant="floating" className="py-4 pr-0 pl-4">
@@ -46,7 +46,7 @@ export default function ThreadList() {
           className="transition-opacity duration-500 ease-in-out"
           style={{ opacity }}
         >
-          {filteredThreads.length === 0 && (
+          {threads.length === 0 && status !== "LoadingFirstPage" && (
             <div className="flex w-full items-center justify-center py-4">
               <p className="text-muted-foreground text-sm">No threads found</p>
             </div>
@@ -60,7 +60,7 @@ export default function ThreadList() {
                     <ThreadListItem
                       key={item._id}
                       title={item.title ?? ""}
-                      id={item._id ?? ""}
+                      id={item.threadId ?? ""}
                     />
                   ))}
                 </SidebarGroup>

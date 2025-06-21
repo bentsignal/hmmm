@@ -10,7 +10,7 @@ export default defineSchema({
   }).index("by_user_id", ["userId"]),
   threadMetadata: defineTable({
     title: v.string(),
-    mainId: v.string(),
+    threadId: v.string(),
     userId: v.string(),
     updatedAt: v.number(),
     state: v.union(
@@ -21,5 +21,9 @@ export default defineSchema({
     ),
   })
     .index("by_user_time", ["userId", "updatedAt"])
-    .index("by_main_id", ["mainId"]),
+    .index("by_thread_id", ["threadId"])
+    .searchIndex("search_title", {
+      searchField: "title",
+      filterFields: ["userId"],
+    }),
 });

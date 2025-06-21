@@ -6,8 +6,9 @@ const PAGE_SIZE = 100;
 
 export default function useThreadList() {
   // thread pagination
+  const [search, setSearch] = useState("");
   const { isAuthenticated } = useConvexAuth();
-  const args = isAuthenticated ? {} : "skip";
+  const args = isAuthenticated ? { search } : "skip";
   const {
     results: threads,
     status,
@@ -16,14 +17,6 @@ export default function useThreadList() {
     initialNumItems: PAGE_SIZE,
   });
   const loadMoreThreads = () => loadMore(PAGE_SIZE);
-
-  // search for thread by title
-  const [search, setSearch] = useState("");
-  const filteredThreads = useMemo(() => {
-    return threads.filter((thread) => {
-      return thread.title?.toLowerCase().includes(search.toLowerCase());
-    });
-  }, [threads, search]);
 
   // group threads by creation date
   const {
@@ -44,24 +37,24 @@ export default function useThreadList() {
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
     // filter threads by date range
-    const todaysThreads = filteredThreads.filter((item) => {
-      const itemDate = new Date(item._creationTime);
+    const todaysThreads = threads.filter((item) => {
+      const itemDate = new Date(item.updatedAt);
       return itemDate >= today && itemDate < tomorrow;
     });
-    const yesterdayThreads = filteredThreads.filter((item) => {
-      const itemDate = new Date(item._creationTime);
+    const yesterdayThreads = threads.filter((item) => {
+      const itemDate = new Date(item.updatedAt);
       return itemDate >= yesterday && itemDate < today;
     });
-    const lastWeekThreads = filteredThreads.filter((item) => {
-      const itemDate = new Date(item._creationTime);
+    const lastWeekThreads = threads.filter((item) => {
+      const itemDate = new Date(item.updatedAt);
       return itemDate >= lastWeek && itemDate < yesterday;
     });
-    const lastMonthThreads = filteredThreads.filter((item) => {
-      const itemDate = new Date(item._creationTime);
+    const lastMonthThreads = threads.filter((item) => {
+      const itemDate = new Date(item.updatedAt);
       return itemDate >= lastMonth && itemDate < lastWeek;
     });
-    const oldThreads = filteredThreads.filter((item) => {
-      const itemDate = new Date(item._creationTime);
+    const oldThreads = threads.filter((item) => {
+      const itemDate = new Date(item.updatedAt);
       return itemDate < lastMonth;
     });
     return {
@@ -71,7 +64,7 @@ export default function useThreadList() {
       lastMonthThreads,
       oldThreads,
     };
-  }, [filteredThreads]);
+  }, [threads]);
 
   // pack grouped threads into one array
   const threadGroups = useMemo(
@@ -109,7 +102,7 @@ export default function useThreadList() {
   return {
     status,
     loadMoreThreads,
-    filteredThreads,
+    threads,
     threadGroups,
     setSearch,
   };

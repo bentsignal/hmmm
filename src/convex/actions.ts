@@ -3,7 +3,7 @@
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { generateText } from "ai";
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import modelMap from "@/features/models/types/model-map";
 import { publicModels } from "@/features/models/types/models";
 import { agent } from "./agent";
@@ -31,6 +31,10 @@ export const generateTitle = internalAction({
       patch: {
         title: response.text.trim(),
       },
+    });
+    await ctx.runMutation(internal.threads.updateThreadTitle, {
+      threadId: args.threadId,
+      title: response.text.trim(),
     });
   },
 });

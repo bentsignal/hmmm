@@ -1,5 +1,5 @@
 import { api, components, internal } from "./_generated/api";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { agent } from "./agent";
 import { paginationOptsValidator } from "convex/server";
@@ -9,21 +9,30 @@ import { authorizeThreadAccess } from "./auth";
 export const getThreadList = query({
   args: {
     paginationOpts: paginationOptsValidator,
+    search: v.string(),
   },
   handler: async (ctx, args) => {
     const userId = await ctx.auth.getUserIdentity();
     if (!userId) {
       throw new Error("Unauthorized");
     }
-    const threads = await ctx.runQuery(
-      components.agent.threads.listThreadsByUserId,
-      {
-        userId: userId.subject,
-        order: "desc",
-        paginationOpts: args.paginationOpts,
-      },
-    );
-    return threads;
+    const { paginationOpts, search } = args;
+    if (search.trim().length > 0) {
+      const threads = await ctx.db
+        .query("threadMetadata")
+        .withSearchIndex("search_title", (q) =>
+          q.search("title", search).eq("userId", userId.subject),
+        )
+        .paginate(paginationOpts);
+      return threads;
+    } else {
+      const threads = await ctx.db
+        .query("threadMetadata")
+        .withIndex("by_user_time", (q) => q.eq("userId", userId.subject))
+        .order("desc")
+        .paginate(paginationOpts);
+      return threads;
+    }
   },
 });
 
@@ -36,7 +45,7 @@ export const getThreadMessages = query({
   handler: async (ctx, args) => {
     const { threadId, paginationOpts, streamArgs } = args;
     if (threadId.trim().length === 0) {
-      throw new Error("Thread ID is required");
+      throw new Error("Empty thread ID");
     }
     await authorizeThreadAccess(ctx, threadId);
     const streams = await agent.syncStreams(ctx, {
@@ -85,6 +94,13 @@ export const requestNewThreadCreation = mutation({
       userId: uid,
       title: "New Chat",
     });
+    await ctx.db.insert("threadMetadata", {
+      userId: uid,
+      title: "New Chat",
+      threadId: threadId,
+      updatedAt: Date.now(),
+      state: "waiting",
+    });
     const { messageId } = await agent.saveMessage(ctx, {
       threadId,
       prompt: message,
@@ -120,15 +136,20 @@ export const newThreadMessage = mutation({
     if (!isUserSubscribed) {
       throw new Error("User is not subscribed");
     }
-    const isThreadStreaming = await ctx.runQuery(
-      api.threads.isThreadStreaming,
-      {
-        threadId,
-      },
-    );
-    if (isThreadStreaming) {
-      return;
+    const metadata = await ctx.db
+      .query("threadMetadata")
+      .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
+      .first();
+    if (!metadata) {
+      throw new Error("Metadata not found");
     }
+    if (metadata.state !== "idle") {
+      throw new Error("Thread is not idle");
+    }
+    await ctx.db.patch(metadata._id, {
+      state: "waiting",
+      updatedAt: Date.now(),
+    });
     const { messageId } = await agent.saveMessage(ctx, {
       threadId,
       prompt: prompt,
@@ -150,6 +171,13 @@ export const deleteThread = mutation({
   handler: async (ctx, args) => {
     const { threadId } = args;
     await authorizeThreadAccess(ctx, threadId);
+    const metadata = await ctx.db
+      .query("threadMetadata")
+      .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
+      .first();
+    if (metadata) {
+      await ctx.db.delete(metadata._id);
+    }
     ctx.scheduler.runAfter(
       0,
       components.agent.threads.deleteAllForThreadIdAsync,
@@ -187,9 +215,33 @@ export const getThreadTitle = query({
       return "QBE";
     }
     await authorizeThreadAccess(ctx, threadId);
-    const { title } = await agent.getThreadMetadata(ctx, {
-      threadId,
+    const metadata = await ctx.db
+      .query("threadMetadata")
+      .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
+      .first();
+    if (!metadata) {
+      throw new Error("Metadata not found");
+    }
+    return metadata.title;
+  },
+});
+
+export const updateThreadTitle = internalMutation({
+  args: {
+    title: v.string(),
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { title, threadId } = args;
+    const metadata = await ctx.db
+      .query("threadMetadata")
+      .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
+      .first();
+    if (!metadata) {
+      throw new Error("Metadata not found");
+    }
+    await ctx.db.patch(metadata._id, {
+      title: title,
     });
-    return title ?? "QBE";
   },
 });
