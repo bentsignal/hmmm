@@ -7,7 +7,7 @@ import { components, internal } from "./_generated/api";
 import modelMap from "@/features/models/types/model-map";
 import { publicModels } from "@/features/models/types/models";
 import { agent } from "./agent";
-import { search } from "@/features/tools";
+import { webSearch } from "@/features/tools";
 
 export const generateTitle = internalAction({
   args: {
@@ -51,7 +51,7 @@ export const continueThread = internalAction({
     // get thread
     const { thread } = await agent.continueThread(ctx, {
       threadId: threadId,
-      tools: useSearch ? { search } : undefined,
+      tools: useSearch ? { webSearch } : undefined,
     });
     // select model
     const model = modelMap.get(modelId);

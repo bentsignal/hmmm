@@ -6,9 +6,25 @@ export const markdownComponents: Partial<Components> = {
   pre: ({ children }) => <>{children}</>,
   hr: () => <></>,
   a: ({ children, ...props }) => {
+    if (
+      children &&
+      children.toString().startsWith("[") &&
+      children.toString().endsWith("]")
+    ) {
+      return (
+        <a
+          className="text-muted bg-muted-foreground rounded-sm px-1 py-0.5 text-xs no-underline"
+          target="_blank"
+          rel="noreferrer"
+          {...props}
+        >
+          {children.toString().slice(1, -1)}
+        </a>
+      );
+    }
     return (
       <a
-        className="text-blue-500 hover:underline"
+        className="text-muted-foreground hover:underline"
         target="_blank"
         rel="noreferrer"
         {...props}

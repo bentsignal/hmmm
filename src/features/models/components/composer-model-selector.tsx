@@ -17,10 +17,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import useComposerStore from "@/features/composer/store";
-import { modelGroups } from "../types/models";
+import { modelGroups } from "@/features/models/types/models";
 
-export default function ModelSelector() {
-  const { currentModel, setCurrentModel } = useComposerStore();
+export default function ComposerModelSelector() {
+  const currentModel = useComposerStore((state) => state.currentModel);
+  const setCurrentModel = useComposerStore((state) => state.setCurrentModel);
+
   const [tooltipOpen, setTooltipOpen] = useState(false);
 
   // show model breifly after change

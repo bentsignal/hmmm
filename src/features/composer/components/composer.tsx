@@ -1,41 +1,13 @@
 "use client";
 
-import { Loader2, Send } from "lucide-react";
-import { useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import useComposer from "../hooks/use-composer";
-import ModelSelector from "@/features/models/components/model-selector";
-import SpeechTranscription from "@/features/speech/components";
-import Search from "./search";
+import ComposerSpeech from "@/features/speech/components/composer-speech";
+import ComposerSearchToggle from "@/features/web-search/components/composer-search-toggle";
+import ComposerInput from "./composer-input";
+import ComposerSend from "./composer-send";
+import ComposerModelSelector from "@/features/models/components/composer-model-selector";
 
 export default function Composer() {
-  const {
-    message,
-    setMessage,
-    handleKeyPress,
-    handleSendMessage,
-    isLoading,
-    blockSend,
-    handleStartListening,
-    handleStopListening,
-    listening,
-    speechSupported,
-    useSearch,
-    setUseSearch,
-  } = useComposer();
-
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (message === "" && textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    } else if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-    }
-  }, [message]);
-
   return (
     <div className="mx-auto w-full max-w-2xl p-4">
       <div
@@ -45,50 +17,14 @@ export default function Composer() {
         )}
       >
         <div className="flex flex-col items-end gap-3 p-4 sm:flex-row">
-          <textarea
-            ref={textareaRef}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={handleKeyPress}
-            placeholder="Type your message..."
-            rows={1}
-            className={cn(
-              `file:text-foreground placeholder:text-muted-foreground selection:bg-primary 
-              selection:text-primary-foreground focus-visible:ring-ring/0 
-              aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 scrollbar-thin 
-              scrollbar-thumb-secondary scrollbar-track-transparent flex h-auto max-h-32 min-h-[36px] 
-              w-full min-w-0 resize-none overflow-y-auto  py-2 
-              text-base transition-[color,box-shadow] outline-none 
-              focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed 
-              disabled:opacity-50 sm:px-3 md:text-sm`,
-            )}
-          />
+          <ComposerInput />
           <div className="flex w-full flex-1 items-center justify-between gap-2">
             <div className="flex flex-1 items-center justify-start gap-2">
-              <SpeechTranscription
-                listening={listening}
-                handleStartListening={handleStartListening}
-                handleStopListening={handleStopListening}
-                supported={speechSupported}
-              />
-              <Search
-                toggleSearch={() => setUseSearch(!useSearch)}
-                useSearch={useSearch}
-              />
-              <ModelSelector />
+              <ComposerSpeech />
+              <ComposerSearchToggle />
+              <ComposerModelSelector />
             </div>
-            <Button
-              onClick={handleSendMessage}
-              disabled={blockSend || isLoading}
-              size="icon"
-              className="shrink-0"
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </Button>
+            <ComposerSend />
           </div>
         </div>
       </div>

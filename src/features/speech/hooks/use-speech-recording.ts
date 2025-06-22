@@ -11,7 +11,7 @@ export default function useSpeechRecording() {
 
   const startRecording = async () => {
     try {
-      // Request microphone access
+      // request microphone access
       const userStream = await navigator.mediaDevices.getUserMedia({
         audio: true,
       });
@@ -53,7 +53,6 @@ export default function useSpeechRecording() {
     }
   };
 
-  // Optional: Clean up stream on component unmount
   useEffect(() => {
     return () => {
       if (stream) {

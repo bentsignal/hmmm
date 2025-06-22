@@ -6,20 +6,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import useSpeech from "@/features/speech/hooks/use-speech";
 
-interface SpeechTranscriptionProps {
-  listening: boolean;
-  handleStartListening: () => void;
-  handleStopListening: () => void;
-  supported: boolean;
-}
+export default function ComposerSpeech() {
+  const { startSpeech, stopSpeech, inProgress, processing } = useSpeech();
 
-export default function SpeechTranscription({
-  listening,
-  handleStartListening,
-  handleStopListening,
-  supported,
-}: SpeechTranscriptionProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -27,20 +18,24 @@ export default function SpeechTranscription({
           <Button
             variant="outline"
             size="icon"
-            onClick={listening ? handleStopListening : handleStartListening}
-            disabled={!supported}
+            onClick={inProgress ? stopSpeech : startSpeech}
+            disabled={processing}
           >
             <Mic
               width={24}
               height={24}
-              className={cn(listening ? "animate-pulse text-red-400" : "")}
+              className={cn(inProgress ? "animate-pulse text-red-400" : "")}
             />
           </Button>
         </div>
       </TooltipTrigger>
       <TooltipContent>
         <p>
-          {supported ? "Start listening" : "Not supported on this browser."}
+          {inProgress
+            ? "Listening..."
+            : processing
+              ? "Processing..."
+              : "Start listening"}
         </p>
       </TooltipContent>
     </Tooltip>

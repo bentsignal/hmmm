@@ -12,7 +12,7 @@ import { memo, useEffect } from "react";
 import useThread from "@/features/thread/hooks/use-thread";
 import ReasoningMessage from "./reasoning-message";
 import useThreadStatus from "@/features/thread/hooks/use-thread-status";
-import SearchResultMessage from "@/features/tools/search/search-result-message";
+import SearchResultMessage from "@/features/web-search/components/search-result-message";
 import { usePageTitle } from "@/hooks/use-page-title";
 import useThreadStore from "@/features/thread/store/thread-store";
 
