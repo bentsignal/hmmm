@@ -3,7 +3,7 @@ import { z } from "zod";
 import { generateText } from "ai";
 import { perplexity } from "@ai-sdk/perplexity";
 
-export const search = tool({
+export const webSearch = tool({
   description: `Used to search the web for up-to-date information.`,
   parameters: z.object({
     query: z.string().min(1).max(100).describe("The search query"),

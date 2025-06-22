@@ -2,6 +2,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { markdownComponents } from "@/features/message/components/markdown-components";
 
 type Source = {
   id: string;
@@ -33,7 +34,12 @@ export default function SearchResultMessage({
         key={text}
         className="prose dark:prose-invert relative w-full max-w-full"
       >
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={markdownComponents}
+        >
+          {text}
+        </ReactMarkdown>
       </div>
       <div
         className="mt-4 flex cursor-pointer items-center gap-2"
