@@ -4,6 +4,7 @@ import { api } from "@/convex/_generated/api";
 export default function useThreadStatus({ threadId }: { threadId: string }) {
   const { isAuthenticated } = useConvexAuth();
   const args = isAuthenticated ? { threadId } : "skip";
-  const isThreadStreaming = useQuery(api.threads.isThreadStreaming, args);
-  return { isThreadStreaming };
+  const threadState = useQuery(api.threads.getThreadState, args);
+  const isThreadIdle = threadState === "idle";
+  return { threadState, isThreadIdle };
 }

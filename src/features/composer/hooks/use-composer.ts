@@ -20,7 +20,7 @@ export default function useComposer() {
   const [message, setMessage] = useState("");
   const { currentModel, setCurrentModel } = useComposerStore();
   const { createThread, newThreadMessage } = useThreadMutation();
-  const { isThreadStreaming } = useThreadStatus({ threadId });
+  const { isThreadIdle } = useThreadStatus({ threadId });
 
   const [xrThread, setXrThread] = useState<string | null>(null);
 
@@ -99,25 +99,15 @@ export default function useComposer() {
   }, [transcribedAudio]);
 
   // prevent user from sending message while response is being streamed in
-  const [optimisticallyBlockSend, setOptimisticallyBlockSend] = useState(false);
   const blockSend =
-    isThreadStreaming ||
-    optimisticallyBlockSend ||
-    message.trim() === "" ||
-    isTranscribing ||
-    isRecording;
-  const isLoading =
-    isThreadStreaming || optimisticallyBlockSend || isTranscribing;
+    !isThreadIdle || message.trim() === "" || isTranscribing || isRecording;
+  const isLoading = !isThreadIdle || isTranscribing;
 
   const handleSendMessage = async () => {
     if (blockSend) {
       return;
     }
     setMessage("");
-    setOptimisticallyBlockSend(true);
-    setTimeout(() => {
-      setOptimisticallyBlockSend(false);
-    }, 2000);
     try {
       if (pathname === "/") {
         const threadId = await createThread({

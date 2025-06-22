@@ -24,7 +24,7 @@ export default function MessageList({ threadId }: { threadId: string }) {
   const { messages, uiMessages, title } = useThread({ threadId });
   const { scrollAreaRef, messagesEndRef, isAtBottom, scrollToBottom } =
     useMessageListScroll(uiMessages.length);
-  const { isThreadStreaming } = useThreadStatus({ threadId });
+  const { isThreadIdle } = useThreadStatus({ threadId });
   usePageTitle(title);
 
   return (
@@ -49,7 +49,7 @@ export default function MessageList({ threadId }: { threadId: string }) {
                       <MemoizedReasoningMessage
                         key={`${item.id}-reasoning`}
                         message={reasoningPart.reasoning}
-                        loading={isThreadStreaming ?? false}
+                        loading={!isThreadIdle}
                         mostRecent={index === uiMessages.length - 1}
                       />
                     ) : null;
@@ -77,7 +77,7 @@ export default function MessageList({ threadId }: { threadId: string }) {
                 </div>
               ) : null,
             )}
-            {uiMessages.length % 2 !== 0 && (
+            {uiMessages.length % 2 !== 0 && !isThreadIdle && (
               <div className="flex items-center justify-start">
                 <Loader2 className="h-4 w-4 animate-spin" />
               </div>

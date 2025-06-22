@@ -188,23 +188,6 @@ export const deleteThread = mutation({
   },
 });
 
-export const isThreadStreaming = query({
-  args: {
-    threadId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { threadId } = args;
-    if (threadId === "skip" || threadId === "" || threadId === "xr") {
-      return false;
-    }
-    await authorizeThreadAccess(ctx, threadId);
-    const streamingMessages = await ctx.runQuery(agent.component.streams.list, {
-      threadId,
-    });
-    return streamingMessages.length > 0;
-  },
-});
-
 export const getThreadTitle = query({
   args: {
     threadId: v.string(),
@@ -267,5 +250,26 @@ export const updateThreadState = internalMutation({
     await ctx.db.patch(metadata._id, {
       state: state,
     });
+  },
+});
+
+export const getThreadState = query({
+  args: {
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { threadId } = args;
+    if (threadId === "skip" || threadId === "" || threadId === "xr") {
+      return "idle";
+    }
+    await authorizeThreadAccess(ctx, threadId);
+    const metadata = await ctx.db
+      .query("threadMetadata")
+      .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
+      .first();
+    if (!metadata) {
+      throw new Error("Metadata not found");
+    }
+    return metadata.state;
   },
 });
