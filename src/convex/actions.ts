@@ -5,7 +5,7 @@ import { v } from "convex/values";
 import { generateText } from "ai";
 import { components, internal } from "./_generated/api";
 import modelMap from "@/features/models/types/model-map";
-import { publicModels } from "@/features/models/types/models";
+import { publicModels, titleGenerator } from "@/features/models/types/models";
 import { agent } from "./agent";
 import { webSearch } from "@/features/tools";
 
@@ -15,7 +15,7 @@ export const generateTitle = internalAction({
     threadId: v.string(),
   },
   handler: async (ctx, args) => {
-    const model = modelMap.get("google/gemini-2.5-flash-lite-preview-06-17");
+    const model = modelMap.get(titleGenerator.id);
     if (!model) {
       throw new Error("Model not found");
     }

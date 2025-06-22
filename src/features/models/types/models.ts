@@ -8,9 +8,9 @@ export const models: Model[] = [
   */
   {
     provider: "Google",
-    name: "Gemini 2.5 Flash Lite",
-    id: "google/gemini-2.5-flash-lite-preview-06-17",
-    pronunciations: ["gemini 2.5 flash lite", "2.5 flash lite"],
+    name: "Gemini 2.0 Flash",
+    id: "google/gemini-2.0-flash-001",
+    pronunciations: ["gemini 2.0 flash", "2.0 flash"],
   },
   {
     provider: "Google",
@@ -196,5 +196,9 @@ export const modelGroups = providers.map((provider) => {
 export const publicModels = models.filter((model) => !model.hidden);
 
 export const defaultModel =
-  publicModels.find((model) => model.id === "google/gemini-2.5-flash") ??
+  publicModels.find((model) => model.id === "google/gemini-2.0-flash-001") ??
+  publicModels[0];
+
+export const titleGenerator =
+  publicModels.find((model) => model.id === "google/gemini-2.0-flash-001") ??
   publicModels[0];
