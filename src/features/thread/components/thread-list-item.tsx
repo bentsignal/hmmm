@@ -2,7 +2,6 @@
 
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -15,11 +14,11 @@ import { Doc } from "@/convex/_generated/dataModel";
 interface ThreadListItemProps {
   title: string;
   id: string;
+  active: boolean;
   status: Doc<"threadMetadata">["state"];
 }
 
-function ThreadListItem({ title, id, status }: ThreadListItemProps) {
-  const pathname = usePathname();
+function ThreadListItem({ title, id, active, status }: ThreadListItemProps) {
   const isMobile = useIsMobile();
   const { toggleSidebar } = useSidebar();
   const [isHovering, setIsHovering] = useState(false);
@@ -54,7 +53,7 @@ function ThreadListItem({ title, id, status }: ThreadListItemProps) {
           prefetch={true}
           className={cn(
             "font-medium whitespace-nowrap",
-            pathname.endsWith(id) && "bg-primary/10",
+            active && "bg-primary/10",
           )}
         >
           {

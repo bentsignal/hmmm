@@ -15,8 +15,10 @@ import { Input } from "@/components/ui/input";
 import useThreadList from "../hooks/use-thread-list";
 import ThreadDeleteModal from "./thread-delete-modal";
 import PageLoader from "@/components/page-loader";
+import { usePathname } from "next/navigation";
 
 export default function ThreadList() {
+  const pathname = usePathname();
   const { threads, threadGroups, setSearch, loadMoreThreads, status } =
     useThreadList();
 
@@ -62,6 +64,7 @@ export default function ThreadList() {
                       title={item.title ?? ""}
                       id={item.threadId ?? ""}
                       status={item.state}
+                      active={pathname.endsWith(item.threadId)}
                     />
                   ))}
                 </SidebarGroup>
