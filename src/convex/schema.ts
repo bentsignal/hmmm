@@ -16,7 +16,6 @@ export default defineSchema({
     state: v.union(
       v.literal("idle"),
       v.literal("waiting"),
-      v.literal("thinking"),
       v.literal("streaming"),
     ),
   })

@@ -10,13 +10,15 @@ import { Brain, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, memo } from "react";
 import useThreadStore from "@/features/thread/store";
+import { Doc } from "@/convex/_generated/dataModel";
 
 interface ThreadListItemProps {
   title: string;
   id: string;
+  status: Doc<"threadMetadata">["state"];
 }
 
-function ThreadListItem({ title, id }: ThreadListItemProps) {
+function ThreadListItem({ title, id, status }: ThreadListItemProps) {
   const pathname = usePathname();
   const isMobile = useIsMobile();
   const { toggleSidebar } = useSidebar();
@@ -55,13 +57,14 @@ function ThreadListItem({ title, id }: ThreadListItemProps) {
             pathname.endsWith(id) && "bg-primary/10",
           )}
         >
-          {title === "New Chat" ? (
+          {
             <div className="flex items-center gap-2">
-              <Brain className="text-primary h-4 w-4 animate-pulse" />
+              {(status === "streaming" || status === "waiting") && (
+                <Brain className="text-muted-foreground h-4 w-4 animate-pulse" />
+              )}
+              {title !== "New Chat" && title}
             </div>
-          ) : (
-            title
-          )}
+          }
         </Link>
       </SidebarMenuButton>
       {isHovering && !isMobile && (

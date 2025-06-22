@@ -245,3 +245,27 @@ export const updateThreadTitle = internalMutation({
     });
   },
 });
+
+export const updateThreadState = internalMutation({
+  args: {
+    threadId: v.string(),
+    state: v.union(
+      v.literal("idle"),
+      v.literal("waiting"),
+      v.literal("streaming"),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const { threadId, state } = args;
+    const metadata = await ctx.db
+      .query("threadMetadata")
+      .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
+      .first();
+    if (!metadata) {
+      throw new Error("Metadata not found");
+    }
+    await ctx.db.patch(metadata._id, {
+      state: state,
+    });
+  },
+});

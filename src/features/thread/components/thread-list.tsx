@@ -61,6 +61,7 @@ export default function ThreadList() {
                       key={item._id}
                       title={item.title ?? ""}
                       id={item.threadId ?? ""}
+                      status={item.state}
                     />
                   ))}
                 </SidebarGroup>

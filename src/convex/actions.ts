@@ -77,6 +77,14 @@ export const continueThread = internalAction({
       },
       { saveStreamDeltas: true },
     );
+    await ctx.runMutation(internal.threads.updateThreadState, {
+      threadId: threadId,
+      state: "streaming",
+    });
     await result.consumeStream();
+    await ctx.runMutation(internal.threads.updateThreadState, {
+      threadId: threadId,
+      state: "idle",
+    });
   },
 });
