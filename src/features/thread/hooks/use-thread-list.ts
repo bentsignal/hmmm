@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useConvexAuth, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 50;
 
 export default function useThreadList() {
   // thread pagination
