@@ -8,12 +8,13 @@ import { ChevronDown, Loader2 } from "lucide-react";
 import useMessageListScroll from "../hooks/use-message-list-scroll";
 import "@/features/message/styles/github-dark.min.css";
 import "@/features/message/styles/message-styles.css";
-import { memo } from "react";
+import { memo, useEffect } from "react";
 import useThread from "@/features/thread/hooks/use-thread";
 import ReasoningMessage from "./reasoning-message";
 import useThreadStatus from "@/features/thread/hooks/use-thread-status";
 import SearchResultMessage from "@/features/tools/search/search-result-message";
 import { usePageTitle } from "@/hooks/use-page-title";
+import useThreadStore from "@/features/thread/store/thread-store";
 
 const MemoizedPrompt = memo(PromptMessage);
 const MemoizedResponse = memo(ResponseMessage);
@@ -25,7 +26,18 @@ export default function MessageList({ threadId }: { threadId: string }) {
   const { scrollAreaRef, messagesEndRef, isAtBottom, scrollToBottom } =
     useMessageListScroll(uiMessages.length);
   const { isThreadIdle } = useThreadStatus({ threadId });
+
+  // set tab label in browser to thread title
   usePageTitle(title);
+
+  // set active thread when component mounts
+  const setActiveThread = useThreadStore((state) => state.setActiveThread);
+  useEffect(() => {
+    setActiveThread(threadId);
+    return () => {
+      setActiveThread(null);
+    };
+  }, [threadId]);
 
   return (
     <div className="relative h-full w-full">
