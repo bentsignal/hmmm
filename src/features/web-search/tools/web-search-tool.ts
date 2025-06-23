@@ -1,7 +1,16 @@
 import { tool } from "ai";
 import { z } from "zod";
-import { generateText } from "ai";
-import { perplexity } from "@ai-sdk/perplexity";
+
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY!,
+  defaultHeaders: {
+    "HTTP-Referer": "https://www.qbe.sh",
+    "X-Title": "QBE ",
+  },
+});
 
 export const webSearch = tool({
   description: `Used to search the web for up-to-date information.`,
@@ -9,10 +18,14 @@ export const webSearch = tool({
     query: z.string().min(1).max(100).describe("The search query"),
   }),
   execute: async ({ query }) => {
-    const { text, sources } = await generateText({
-      model: perplexity("sonar"),
-      prompt: query,
+    const result = await openai.chat.completions.create({
+      model: "perplexity/sonar",
+      messages: [{ role: "user", content: query }],
     });
+
+    const text = result.choices[0].message.content ?? "";
+    // @ts-expect-error any
+    const sources = result.citations as string[];
 
     // add links to sources in response
     const processedText = text.replace(/\[(\d+)\]/g, (match, number) => {
@@ -20,9 +33,9 @@ export const webSearch = tool({
       if (
         sourceIndex >= 0 &&
         sourceIndex < sources.length &&
-        sources[sourceIndex]?.url
+        sources[sourceIndex]
       ) {
-        return ` [\\[${number}\\]](${sources[sourceIndex].url})`;
+        return ` [\\[${number}\\]](${sources[sourceIndex]})`;
       }
       return match;
     });

@@ -4,18 +4,12 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { markdownComponents } from "@/features/message/components/markdown-components";
 
-type Source = {
-  id: string;
-  sourceType: string;
-  url: string;
-};
-
 export default function WebSearchMessage({
   text,
   sources,
 }: {
   text: string;
-  sources: Source[];
+  sources: string[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -55,15 +49,15 @@ export default function WebSearchMessage({
       {isOpen && (
         <ol className="bg-card mt-2 flex flex-col gap-2 rounded-md p-4">
           {sources.map((source) => (
-            <li key={source.url} className="my-1 ml-4 list-decimal text-sm">
+            <li key={source} className="my-1 ml-4 list-decimal text-sm">
               <a
-                href={source.url}
+                href={source}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground text-sm break-all"
                 style={{ wordBreak: "break-all" }}
               >
-                {source.url}
+                {source}
               </a>
             </li>
           ))}
