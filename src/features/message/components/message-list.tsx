@@ -15,6 +15,8 @@ import useThreadStatus from "@/features/thread/hooks/use-thread-status";
 import SearchResultMessage from "@/features/web-search/components/search-result-message";
 import { usePageTitle } from "@/hooks/use-page-title";
 import useThreadStore from "@/features/thread/store/thread-store";
+import { useSearchParams } from "next/navigation";
+import useComposerStore from "@/features/composer/store";
 
 const MemoizedPrompt = memo(PromptMessage);
 const MemoizedResponse = memo(ResponseMessage);
@@ -26,6 +28,15 @@ export default function MessageList({ threadId }: { threadId: string }) {
   const { scrollAreaRef, messagesEndRef, isAtBottom, scrollToBottom } =
     useMessageListScroll(uiMessages.length);
   const { isThreadIdle } = useThreadStatus({ threadId });
+
+  // toggle web search on when called from bangs
+  const searchParams = useSearchParams();
+  const setUseSearch = useComposerStore((state) => state.setUseSearch);
+  useEffect(() => {
+    if (searchParams.get("search") === "true") {
+      setUseSearch(true);
+    }
+  }, [searchParams]);
 
   // set tab label in browser to thread title
   usePageTitle(title);
