@@ -3,6 +3,7 @@ import { components } from "./_generated/api";
 import { defaultModel } from "@/features/models/types/models";
 import modelMap from "@/features/models/types/model-map";
 import { intro, returnStyle } from "@/features/prompts/system-prompts";
+import { dateTime } from "@/features/tools";
 
 const model = modelMap.get(defaultModel.id);
 if (!model) {
@@ -12,5 +13,6 @@ if (!model) {
 export const agent = new Agent(components.agent, {
   chat: model,
   instructions: `${intro} ${returnStyle}`,
-  maxSteps: 1,
+  tools: { dateTime },
+  maxSteps: 10,
 });
