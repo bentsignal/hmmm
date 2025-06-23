@@ -64,7 +64,7 @@ export default function ThreadList() {
                       title={item.title ?? ""}
                       id={item.threadId ?? ""}
                       status={item.state}
-                      active={pathname.endsWith(item.threadId)}
+                      active={pathname.includes(item.threadId)}
                     />
                   ))}
                 </SidebarGroup>
