@@ -8,6 +8,7 @@ import modelMap from "@/features/models/types/model-map";
 import { publicModels, titleGenerator } from "@/features/models/types/models";
 import { agent } from "./agent";
 import { webSearch } from "@/features/tools";
+import { titleGeneratorPrompt } from "@/features/prompts/system-prompts";
 
 export const generateTitle = internalAction({
   args: {
@@ -22,9 +23,7 @@ export const generateTitle = internalAction({
     const response = await generateText({
       model: model,
       prompt: args.message,
-      system: `You are a helpful assistant for an AI chatbot. Generate a short, concise title
-      for a thread started by the following prompt. Pick a title that is relevant to the prompt, 
-      and only return the title, no other text.`,
+      system: titleGeneratorPrompt,
     });
     await ctx.runMutation(components.agent.threads.updateThread, {
       threadId: args.threadId,
