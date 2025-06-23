@@ -24,7 +24,7 @@ export default function ResponseMessage({
   creationTime,
   containsToolCall,
 }: ResponseMessageProps) {
-  const [text] = useSmoothText(message, { charsPerSec: 100 });
+  const [text] = useSmoothText(message, { charsPerSec: 300 });
   const createdAt = new Date(creationTime).toLocaleString();
   return (
     <div className="relative w-full">
