@@ -24,7 +24,7 @@ const MemoizedReasoningMessage = memo(ReasoningMessage);
 const MemoizedWebSearchMessage = memo(WebSearchMessage);
 
 export default function MessageList({ threadId }: { threadId: string }) {
-  const { messages, uiMessages, title } = useThread({ threadId });
+  const { uiMessages, title } = useThread({ threadId });
   const { scrollAreaRef, messagesEndRef, isAtBottom, scrollToBottom } =
     useMessageListScroll(uiMessages.length);
   const { isThreadIdle } = useThreadStatus({ threadId });
@@ -82,9 +82,7 @@ export default function MessageList({ threadId }: { threadId: string }) {
                       <MemoizedResponse
                         key={`${item.id}-${index}`}
                         message={part.text}
-                        creationTime={
-                          messages?.results[index]._creationTime ?? 0
-                        }
+                        creationTime={item.createdAt ?? 0}
                         containsToolCall={item.parts.some(
                           (part) => part.type === "tool-invocation",
                         )}

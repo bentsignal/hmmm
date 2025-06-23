@@ -1,7 +1,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Globe } from "lucide-react";
 import { markdownComponents } from "@/features/message/components/markdown-components";
 
 export default function WebSearchMessage({
@@ -17,7 +17,10 @@ export default function WebSearchMessage({
   if (text.length === 0)
     return (
       <div className="flex items-center gap-2">
-        <span className="mr-1 animate-pulse font-semibold">Searching</span>
+        <span className="mr-1 flex animate-pulse items-center gap-2 font-semibold">
+          <Globe className="h-4 w-4" />
+          Searching
+        </span>
       </div>
     );
 

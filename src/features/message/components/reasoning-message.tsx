@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { Brain, ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -34,10 +34,11 @@ export default function ReasoningMessage({
         )}
         <span
           className={cn(
-            "mr-1 font-semibold",
+            "mr-1 flex items-center gap-2 font-semibold",
             loading && mostRecent && "animate-pulse",
           )}
         >
+          <Brain className="h-4 w-4" />
           Reasoning
         </span>
       </div>

@@ -15,7 +15,7 @@ import { Info } from "lucide-react";
 
 interface ResponseMessageProps {
   message: string;
-  creationTime: number;
+  creationTime: number | Date;
   containsToolCall: boolean;
 }
 
