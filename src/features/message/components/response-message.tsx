@@ -16,11 +16,13 @@ import { Info } from "lucide-react";
 interface ResponseMessageProps {
   message: string;
   creationTime: number;
+  containsToolCall: boolean;
 }
 
 export default function ResponseMessage({
   message,
   creationTime,
+  containsToolCall,
 }: ResponseMessageProps) {
   const [text] = useSmoothText(message, { charsPerSec: 100000 });
   const createdAt = new Date(creationTime).toLocaleString();
@@ -34,7 +36,7 @@ export default function ResponseMessage({
         >
           {text}
         </ReactMarkdown>
-        {text.trim().length > 0 && (
+        {text.trim().length > 0 && !containsToolCall && (
           <div className="absolute -bottom-10 left-0 mt-2 flex justify-start gap-2 sm:-bottom-12">
             <CopyButton text={text} />
             {creationTime && (

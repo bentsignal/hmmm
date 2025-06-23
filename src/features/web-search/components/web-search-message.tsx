@@ -10,7 +10,7 @@ type Source = {
   url: string;
 };
 
-export default function SearchResultMessage({
+export default function WebSearchMessage({
   text,
   sources,
 }: {

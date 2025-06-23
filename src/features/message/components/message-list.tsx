@@ -12,7 +12,7 @@ import { memo, useEffect } from "react";
 import useThread from "@/features/thread/hooks/use-thread";
 import ReasoningMessage from "./reasoning-message";
 import useThreadStatus from "@/features/thread/hooks/use-thread-status";
-import SearchResultMessage from "@/features/web-search/components/search-result-message";
+import WebSearchMessage from "@/features/web-search/components/web-search-message";
 import { usePageTitle } from "@/hooks/use-page-title";
 import useThreadStore from "@/features/thread/store/thread-store";
 import { useSearchParams } from "next/navigation";
@@ -21,7 +21,7 @@ import useComposerStore from "@/features/composer/store";
 const MemoizedPrompt = memo(PromptMessage);
 const MemoizedResponse = memo(ResponseMessage);
 const MemoizedReasoningMessage = memo(ReasoningMessage);
-const MemoizedSearchResultMessage = memo(SearchResultMessage);
+const MemoizedWebSearchMessage = memo(WebSearchMessage);
 
 export default function MessageList({ threadId }: { threadId: string }) {
   const { messages, uiMessages, title } = useThread({ threadId });
@@ -85,10 +85,13 @@ export default function MessageList({ threadId }: { threadId: string }) {
                         creationTime={
                           messages?.results[index]._creationTime ?? 0
                         }
+                        containsToolCall={item.parts.some(
+                          (part) => part.type === "tool-invocation",
+                        )}
                       />
                     ) : part.type === "tool-invocation" &&
-                      part.toolInvocation.toolName === "search" ? (
-                      <MemoizedSearchResultMessage
+                      part.toolInvocation.toolName === "webSearch" ? (
+                      <MemoizedWebSearchMessage
                         key={`${item.id}-${index}`}
                         // @ts-expect-error custom prop appended in tool call definition
                         text={part.toolInvocation.result?.text ?? ""}
