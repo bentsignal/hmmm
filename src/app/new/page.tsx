@@ -49,5 +49,5 @@ export default async function NewPage({
   }
 
   // redirect to new thread;
-  redirect(`/chat/${threadId}${useSearch && "?search=true"}`);
+  redirect(`/chat/${threadId}${useSearch ? "?search=true" : ""}`);
 }

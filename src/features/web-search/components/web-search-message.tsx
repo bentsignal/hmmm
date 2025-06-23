@@ -41,14 +41,17 @@ export default function WebSearchMessage({
           {text}
         </ReactMarkdown>
       </div>
-      <div
-        className="mt-4 flex cursor-pointer items-center gap-2"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {isOpen && <ChevronDown className="h-4 w-4" />}
-        {!isOpen && <ChevronRight className="h-4 w-4" />}
-        <span className="mr-1 font-semibold">Sources</span>
-      </div>
+
+      {sources.length > 0 && (
+        <div
+          className="mt-4 flex cursor-pointer items-center gap-2"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          {isOpen && <ChevronDown className="h-4 w-4" />}
+          {!isOpen && <ChevronRight className="h-4 w-4" />}
+          <span className="mr-1 font-semibold">Sources</span>
+        </div>
+      )}
       {isOpen && (
         <ol className="bg-card mt-2 flex flex-col gap-2 rounded-md p-4">
           {sources.map((source) => (

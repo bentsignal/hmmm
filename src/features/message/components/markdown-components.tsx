@@ -13,7 +13,7 @@ export const markdownComponents: Partial<Components> = {
     ) {
       return (
         <a
-          className="text-muted bg-muted-foreground rounded-sm px-1 py-0.5 text-xs no-underline"
+          className="text-muted bg-muted-foreground rounded-sm px-1.5 py-0.5 text-xs no-underline"
           target="_blank"
           rel="noreferrer"
           {...props}
