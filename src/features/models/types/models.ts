@@ -11,18 +11,21 @@ export const models: Model[] = [
     name: "Gemini 2.0 Flash",
     id: "google/gemini-2.0-flash-001",
     pronunciations: ["gemini 2.0 flash", "2.0 flash"],
+    supportsToolCalls: true,
   },
   {
     provider: "Google",
     name: "Gemini 2.5 Flash",
     id: "google/gemini-2.5-flash",
     pronunciations: ["gemini 2.5 flash", "2.5 flash"],
+    supportsToolCalls: true,
   },
   {
     provider: "Google",
     name: "Gemini 2.5 Pro",
     id: "google/gemini-2.5-pro",
     pronunciations: ["gemini 2.5 pro", "2.5 pro"],
+    supportsToolCalls: true,
   },
   /*
 
@@ -57,12 +60,14 @@ export const models: Model[] = [
     name: "o4 mini",
     id: "openai/o4-mini-2025-04-16",
     pronunciations: ["o4 mini", "04 mini", "oh 4 mini", "o 4 mini", "o4mini"],
+    supportsToolCalls: true,
   },
   {
     provider: "OpenAI",
     name: "o3",
     id: "openai/o3-2025-04-16",
     pronunciations: ["o3", "oh 3", "o 3", "03"],
+    supportsToolCalls: true,
   },
   /*
   
@@ -91,6 +96,7 @@ export const models: Model[] = [
       "quad 4",
       "quad force on it",
     ],
+    supportsToolCalls: true,
   },
   {
     provider: "Anthropic",
@@ -108,6 +114,7 @@ export const models: Model[] = [
       "quad 3.5",
       "quad force on it",
     ],
+    supportsToolCalls: true,
   },
   /*
 
@@ -142,6 +149,7 @@ export const models: Model[] = [
       "glock 3 mini beta",
       "rock 3 mini",
     ],
+    supportsToolCalls: true,
   },
   {
     provider: "xAI",
@@ -154,6 +162,7 @@ export const models: Model[] = [
       "glock 3 beta",
       "rock 3",
     ],
+    supportsToolCalls: true,
   },
   /*
   

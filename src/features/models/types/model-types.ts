@@ -21,4 +21,5 @@ export interface Model {
   id: string;
   hidden?: boolean;
   pronunciations: string[];
+  supportsToolCalls?: boolean;
 }

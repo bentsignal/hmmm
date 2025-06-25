@@ -7,7 +7,13 @@ import { components, internal } from "./_generated/api";
 import modelMap from "@/features/models/types/model-map";
 import { publicModels, titleGenerator } from "@/features/models/types/models";
 import { agent } from "./agent";
-import { titleGeneratorPrompt } from "@/features/prompts/system-prompts";
+import {
+  defaultInstructions,
+  instructionsWithTools,
+  searchInstructions,
+  titleGeneratorPrompt,
+} from "@/features/prompts/system-prompts";
+import { tools } from "@/features/tools";
 
 export const generateTitle = internalAction({
   args: {
@@ -45,7 +51,7 @@ export const continueThread = internalAction({
     useSearch: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { threadId, promptMessageId, modelId } = args;
+    const { threadId, promptMessageId, modelId, useSearch } = args;
     // get thread
     const { thread } = await agent.continueThread(ctx, {
       threadId: threadId,
@@ -59,11 +65,21 @@ export const continueThread = internalAction({
     if (!isModelPublic) {
       throw new Error("Model is not public");
     }
+    const modelInfo = publicModels.find((model) => model.id === modelId);
+    if (!modelInfo) {
+      throw new Error("Model not found");
+    }
+    const instructions = modelInfo.supportsToolCalls
+      ? `${instructionsWithTools} ${useSearch ? searchInstructions : ""}`
+      : defaultInstructions;
+    const toolset = modelInfo.supportsToolCalls ? tools : undefined;
     // generate repsonse, stream text back to client
     const result = await thread.streamText(
       {
         promptMessageId,
         model: model,
+        system: instructions,
+        tools: toolset,
         providerOptions: {
           openrouter: {
             reasoning: {
