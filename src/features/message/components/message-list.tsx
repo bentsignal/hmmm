@@ -92,8 +92,6 @@ export default function MessageList({ threadId }: { threadId: string }) {
                       <MemoizedWebSearchMessage
                         key={`${item.id}-${index}`}
                         // @ts-expect-error custom prop appended in tool call definition
-                        text={part.toolInvocation.result?.text ?? ""}
-                        // @ts-expect-error custom prop appended in tool call definition
                         sources={part.toolInvocation.result?.sources ?? []}
                       />
                     ) : null,

@@ -7,7 +7,6 @@ import { components, internal } from "./_generated/api";
 import modelMap from "@/features/models/types/model-map";
 import { publicModels, titleGenerator } from "@/features/models/types/models";
 import { agent } from "./agent";
-import { webSearch } from "@/features/tools";
 import { titleGeneratorPrompt } from "@/features/prompts/system-prompts";
 
 export const generateTitle = internalAction({
@@ -46,11 +45,10 @@ export const continueThread = internalAction({
     useSearch: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { threadId, promptMessageId, modelId, useSearch } = args;
+    const { threadId, promptMessageId, modelId } = args;
     // get thread
     const { thread } = await agent.continueThread(ctx, {
       threadId: threadId,
-      tools: useSearch ? { webSearch } : undefined,
     });
     // select model
     const model = modelMap.get(modelId);

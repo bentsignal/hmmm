@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import ComposerSpeech from "@/features/speech/components/composer-speech";
-import ComposerSearchToggle from "@/features/web-search/components/composer-search-toggle";
+// import ComposerSearchToggle from "@/features/web-search/components/composer-search-toggle";
 import ComposerInput from "./composer-input";
 import ComposerSend from "./composer-send";
 import ComposerModelSelector from "@/features/models/components/composer-model-selector";
@@ -21,7 +21,7 @@ export default function Composer() {
           <div className="flex w-full flex-1 items-center justify-between gap-2">
             <div className="flex flex-1 items-center justify-start gap-2">
               <ComposerSpeech />
-              <ComposerSearchToggle />
+              {/* <ComposerSearchToggle /> */}
               <ComposerModelSelector />
             </div>
             <ComposerSend />
