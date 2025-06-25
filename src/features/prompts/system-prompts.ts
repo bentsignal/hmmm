@@ -32,7 +32,6 @@ You have access to the following tool: webSearch
 Only use the web search tool under the following conditions:
 
 - The user explicitly asks you to search the web for information.
-- If the user is asking local news or weather information.
 - If the user is asking for the current score of a sports game.
 - If the user is asking about the current price of a stock.
 - The user is asking about something that is happening
@@ -52,10 +51,18 @@ directly answers their question. Always do your best to give the user an answer,
 question may be harmful or dangerous.
 `;
 
+export const weatherInstructions = `
+You have access to the following tool: getWeather
+
+Only use the getWeather tool under the following conditions:
+
+- The user explicitly asks you to get the weather for a specific location.
+`;
+
 export const defaultInstructions = `
 ${intro} ${noToolsInstructions} ${returnStyle}
 `;
 
 export const instructionsWithTools = `
-${intro} ${hasToolsInstructions} ${dateTimeInstructions} ${searchInstructions} ${returnStyle}
+${intro} ${hasToolsInstructions} ${dateTimeInstructions} ${searchInstructions} ${weatherInstructions} ${returnStyle}
 `;
