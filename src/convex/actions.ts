@@ -54,14 +54,15 @@ export const continueThread = internalAction({
     const { thread } = await agent.continueThread(ctx, {
       threadId: threadId,
     });
-    // determine which model will be used
+    // classify the user's prompt
     const { object } = await generateObject({
       model: classifierModel,
       schema: z.object({
         queryType: z.enum(["general", "complex", "search"]),
       }),
-      prompt: `${classifierPrompt} The user's prompt is: ${prompt}`,
+      prompt: `${classifierPrompt} ${prompt}`,
     });
+    // determine which model to use based on the prompt type
     const model =
       object.queryType === "search"
         ? searchModel
