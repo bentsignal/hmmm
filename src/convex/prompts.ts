@@ -33,7 +33,6 @@ task being proposed by the user.`;
 export const returnStyle = `Give a concise response, unless explicitly asked to give 
 an extended response by the user. Do not over explain your response, unless explicitly 
 asked to do so by the user. If you are using sources to create an answer, do not cite them
-using brackets in the response. Your goal is to provide a response that is helpful 
-and informative, but not too verbose.`;
+using brackets in the response. ex: Do NOT include citations like [1] or [2] in your response.`;
 
 export const systemPrompt = `${intro} ${returnStyle}`;
