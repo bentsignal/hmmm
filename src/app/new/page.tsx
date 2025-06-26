@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { fetchMutation, fetchQuery } from "convex/nextjs";
 import { redirect } from "next/navigation";
 import { api } from "@/convex/_generated/api";
-import { models } from "@/features/models/types/models";
+// import { models } from "@/features/models/types/models";
 import { env } from "@/env";
 
 export default async function NewPage({
@@ -34,20 +34,21 @@ export default async function NewPage({
   }
 
   // use search?
-  const useSearch = params.search !== undefined;
+  // const useSearch = params.search !== undefined;
 
   // create new thread
   const threadId = await fetchMutation(api.threads.requestNewThreadCreation, {
     message: parsedQuery,
-    modelId: models[0].id,
+    // modelId: models[0].id,
     key: env.CONVEX_INTERNAL_API_KEY,
     userId,
-    useSearch,
+    // useSearch,
   });
   if (!threadId) {
     redirect("/");
   }
 
   // redirect to new thread;
-  redirect(`/chat/${threadId}${useSearch ? "?search=true" : ""}`);
+  // redirect(`/chat/${threadId}${useSearch ? "?search=true" : ""}`);
+  redirect(`/chat/${threadId}`);
 }
