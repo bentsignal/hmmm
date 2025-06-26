@@ -4,7 +4,8 @@ export type Provider =
   | "OpenAI"
   | "DeepSeek"
   | "xAI"
-  | "Meta";
+  | "Meta"
+  | "Perplexity";
 
 export const providers = [
   "Google",
@@ -13,6 +14,7 @@ export const providers = [
   "DeepSeek",
   "xAI",
   "Meta",
+  "Perplexity",
 ];
 
 export interface Model {

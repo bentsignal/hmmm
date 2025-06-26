@@ -191,6 +191,18 @@ export const models: Model[] = [
       "llama four scout",
     ],
   },
+  /*
+
+    perplexity
+
+
+  */
+  {
+    provider: "Perplexity",
+    name: "Sonar",
+    id: "perplexity/sonar",
+    pronunciations: ["sonar", "sonar"],
+  },
 ];
 
 export const modelGroups = providers.map((provider) => {
@@ -211,3 +223,7 @@ export const defaultModel =
 export const titleGenerator =
   publicModels.find((model) => model.id === "google/gemini-2.0-flash-001") ??
   publicModels[0];
+
+export const searchModel = publicModels.find(
+  (model) => model.id === "perplexity/sonar",
+);
