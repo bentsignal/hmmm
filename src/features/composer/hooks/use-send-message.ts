@@ -35,24 +35,24 @@ export default function useSendMessage() {
       return;
     }
     try {
-      const currentModel = useComposerStore.getState().currentModel;
+      // const currentModel = useComposerStore.getState().currentModel;
+      // const useSearch = useComposerStore.getState().useSearch;
       const prompt = useComposerStore.getState().prompt;
       setPrompt("");
       const activeThread = useThreadStore.getState().activeThread;
-      const useSearch = useComposerStore.getState().useSearch;
       if (activeThread === null) {
         const threadId = await createThread({
           message: prompt,
-          modelId: currentModel.id,
-          useSearch: useSearch,
+          // modelId: currentModel.id,
+          // useSearch: useSearch,
         });
         router.push(`/chat/${threadId}`);
       } else {
         await newThreadMessage({
           threadId: activeThread,
           prompt: prompt,
-          modelId: currentModel.id,
-          useSearch: useSearch,
+          // modelId: currentModel.id,
+          // useSearch: useSearch,
         });
       }
     } catch (error) {

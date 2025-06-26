@@ -27,15 +27,15 @@ export const generateTitle = internalAction({
       prompt: args.message,
       system: titleGeneratorPrompt,
     });
+    await ctx.runMutation(internal.threads.updateThreadTitle, {
+      threadId: args.threadId,
+      title: response.text.trim(),
+    });
     await ctx.runMutation(components.agent.threads.updateThread, {
       threadId: args.threadId,
       patch: {
         title: response.text.trim(),
       },
-    });
-    await ctx.runMutation(internal.threads.updateThreadTitle, {
-      threadId: args.threadId,
-      title: response.text.trim(),
     });
   },
 });
@@ -44,9 +44,9 @@ export const continueThread = internalAction({
   args: {
     threadId: v.string(),
     promptMessageId: v.string(),
-    modelId: v.string(),
-    useSearch: v.optional(v.boolean()),
     prompt: v.string(),
+    // modelId: v.string(),
+    // useSearch: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const { threadId, promptMessageId, prompt } = args;

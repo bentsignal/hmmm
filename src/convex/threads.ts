@@ -66,10 +66,10 @@ export const getThreadMessages = query({
 export const requestNewThreadCreation = mutation({
   args: {
     message: v.string(),
-    modelId: v.string(),
     key: v.optional(v.string()),
     userId: v.optional(v.string()),
-    useSearch: v.optional(v.boolean()),
+    // modelId: v.string(),
+    // useSearch: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     let uid;
@@ -89,7 +89,7 @@ export const requestNewThreadCreation = mutation({
         throw new Error("User is not subscribed");
       }
     }
-    const { message, modelId, useSearch } = args;
+    const { message } = args;
     const { threadId } = await agent.createThread(ctx, {
       userId: uid,
       title: "New Chat",
@@ -114,8 +114,8 @@ export const requestNewThreadCreation = mutation({
       ctx.scheduler.runAfter(0, internal.actions.continueThread, {
         threadId: threadId,
         promptMessageId: messageId,
-        modelId: modelId,
-        useSearch: useSearch,
+        // modelId: modelId,
+        // useSearch: useSearch,
         prompt: message,
       }),
     ]);
@@ -127,11 +127,11 @@ export const newThreadMessage = mutation({
   args: {
     threadId: v.string(),
     prompt: v.string(),
-    modelId: v.string(),
-    useSearch: v.optional(v.boolean()),
+    // modelId: v.string(),
+    // useSearch: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { threadId, prompt, modelId, useSearch } = args;
+    const { threadId, prompt } = args;
     await authorizeThreadAccess(ctx, threadId);
     const isUserSubscribed = await ctx.runQuery(api.auth.isUserSubscribed);
     if (!isUserSubscribed) {
@@ -159,8 +159,8 @@ export const newThreadMessage = mutation({
     ctx.scheduler.runAfter(0, internal.actions.continueThread, {
       threadId: args.threadId,
       promptMessageId: messageId,
-      modelId: modelId,
-      useSearch: useSearch,
+      // modelId: modelId,
+      // useSearch: useSearch,
       prompt: prompt,
     });
   },

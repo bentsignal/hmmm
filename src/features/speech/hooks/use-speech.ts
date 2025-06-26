@@ -4,10 +4,10 @@ import SpeechRecognition, {
 import useSpeechRecording from "./use-speech-recording";
 import useComposerStore from "@/features/composer/store";
 import { useEffect } from "react";
-import { speechCommands } from "../util/speech-commands";
+// import { speechCommands } from "../util/speech-commands";
 
 export default function useSpeech() {
-  const setCurrentModel = useComposerStore((state) => state.setCurrentModel);
+  // const setCurrentModel = useComposerStore((state) => state.setCurrentModel);
   const setPrompt = useComposerStore((state) => state.setPrompt);
 
   // listening or recording speech
@@ -24,7 +24,7 @@ export default function useSpeech() {
   const {
     transcript,
     listening,
-    finalTranscript,
+    // finalTranscript,
     browserSupportsSpeechRecognition,
   } = useSpeechRecognition();
 
@@ -51,7 +51,14 @@ export default function useSpeech() {
     setStoreIsListening(listening);
     setStoreIsRecording(isRecording);
     setStoreIsTranscribing(isTranscribing);
-  }, [listening, isRecording, isTranscribing]);
+  }, [
+    listening,
+    isRecording,
+    isTranscribing,
+    setStoreIsListening,
+    setStoreIsRecording,
+    setStoreIsTranscribing,
+  ]);
 
   // start speech, use web speech api when available
   const startSpeech = () => {
@@ -73,11 +80,11 @@ export default function useSpeech() {
   };
 
   // triggered when manual recording of speech has finished
-  useEffect(() => {
-    if (transcribedAudio?.trim().toLowerCase()) {
-      checkForCommand(transcribedAudio);
-    }
-  }, [transcribedAudio]);
+  // useEffect(() => {
+  //   if (transcribedAudio?.trim().toLowerCase()) {
+  //     checkForCommand(transcribedAudio);
+  //   }
+  // }, [transcribedAudio]);
 
   /*
   
@@ -85,35 +92,41 @@ export default function useSpeech() {
     update. only check for commands once transcription is complete
   
   */
-  useEffect(() => {
-    if (finalTranscript.trim().toLowerCase() !== "") {
-      checkForCommand(finalTranscript);
-    }
-  }, [finalTranscript]);
+  // useEffect(() => {
+  //   if (finalTranscript.trim().toLowerCase() !== "") {
+  //     checkForCommand(finalTranscript);
+  //   }
+  // }, [finalTranscript]);
 
   useEffect(() => {
     if (transcript.trim().toLowerCase() !== "") {
       setPrompt(transcript);
     }
-  }, [transcript]);
+  }, [transcript, setPrompt]);
 
-  // parse transcription for voice commands
-  const checkForCommand = (prompt: string) => {
-    // see if command exists in prompt
-    const command = speechCommands.find((value) =>
-      prompt.toLowerCase().includes(value.phrase.toLowerCase()),
-    );
-    if (command) {
-      // remove command from prompt
-      const phrase = command.phrase.toLowerCase();
-      const newMessage = prompt.toLowerCase().replace(phrase, "");
-      setPrompt(newMessage);
-      // update model selection
-      setCurrentModel(command.model);
-    } else {
-      setPrompt(prompt);
+  useEffect(() => {
+    if (transcribedAudio?.trim().toLowerCase()) {
+      setPrompt(transcribedAudio);
     }
-  };
+  }, [transcribedAudio, setPrompt]);
+
+  // // parse transcription for voice commands
+  // const checkForCommand = (prompt: string) => {
+  //   // see if command exists in prompt
+  //   const command = speechCommands.find((value) =>
+  //     prompt.toLowerCase().includes(value.phrase.toLowerCase()),
+  //   );
+  //   if (command) {
+  //     // remove command from prompt
+  //     const phrase = command.phrase.toLowerCase();
+  //     const newMessage = prompt.toLowerCase().replace(phrase, "");
+  //     setPrompt(newMessage);
+  //     // update model selection
+  //     setCurrentModel(command.model);
+  //   } else {
+  //     setPrompt(prompt);
+  //   }
+  // };
 
   return {
     startSpeech,
