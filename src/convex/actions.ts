@@ -4,15 +4,17 @@ import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { generateText } from "ai";
 import { components, internal } from "./_generated/api";
-import modelMap from "@/features/models/types/model-map";
-import { publicModels, titleGenerator } from "@/features/models/types/models";
 import { agent } from "./agent";
+import { generateObject } from "ai";
+import z from "zod";
 import {
-  defaultInstructions,
-  instructionsWithTools,
-  titleGeneratorPrompt,
-} from "@/features/prompts/system-prompts";
-import { tools } from "@/features/tools";
+  classifierModel,
+  searchModel,
+  complexModel,
+  generalModel,
+  titleGeneratorModel,
+} from "./models";
+import { classifierPrompt, titleGeneratorPrompt } from "./prompts";
 
 export const generateTitle = internalAction({
   args: {
@@ -20,12 +22,8 @@ export const generateTitle = internalAction({
     threadId: v.string(),
   },
   handler: async (ctx, args) => {
-    const model = modelMap.get(titleGenerator.id);
-    if (!model) {
-      throw new Error("Model not found");
-    }
     const response = await generateText({
-      model: model,
+      model: titleGeneratorModel,
       prompt: args.message,
       system: titleGeneratorPrompt,
     });
@@ -48,37 +46,33 @@ export const continueThread = internalAction({
     promptMessageId: v.string(),
     modelId: v.string(),
     useSearch: v.optional(v.boolean()),
+    prompt: v.string(),
   },
   handler: async (ctx, args) => {
-    const { threadId, promptMessageId, modelId } = args;
+    const { threadId, promptMessageId, prompt } = args;
     // get thread
     const { thread } = await agent.continueThread(ctx, {
       threadId: threadId,
     });
-    // select model
-    const model = modelMap.get(modelId);
-    if (!model) {
-      throw new Error("Model not found");
-    }
-    const isModelPublic = publicModels.some((model) => model.id === modelId);
-    if (!isModelPublic) {
-      throw new Error("Model is not public");
-    }
-    const modelInfo = publicModels.find((model) => model.id === modelId);
-    if (!modelInfo) {
-      throw new Error("Model not found");
-    }
-    const instructions = modelInfo.supportsToolCalls
-      ? instructionsWithTools
-      : defaultInstructions;
-    const toolset = modelInfo.supportsToolCalls ? tools : undefined;
+    // determine which model will be used
+    const { object } = await generateObject({
+      model: classifierModel,
+      schema: z.object({
+        queryType: z.enum(["general", "complex", "search"]),
+      }),
+      prompt: `${classifierPrompt} The user's prompt is: ${prompt}`,
+    });
+    const model =
+      object.queryType === "search"
+        ? searchModel
+        : object.queryType === "complex"
+          ? complexModel
+          : generalModel;
     // generate repsonse, stream text back to client
     const result = await thread.streamText(
       {
         promptMessageId,
-        model: model,
-        system: instructions,
-        tools: toolset,
+        model,
         providerOptions: {
           openrouter: {
             reasoning: {

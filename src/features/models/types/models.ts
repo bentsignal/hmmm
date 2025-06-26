@@ -15,6 +15,13 @@ export const models: Model[] = [
   },
   {
     provider: "Google",
+    name: "Gemini 2.5 Flash Lite",
+    id: "google/gemini-2.5-flash-lite-preview-06-17",
+    pronunciations: ["gemini 2.5 flash lite", "2.5 flash lite"],
+    supportsToolCalls: true,
+  },
+  {
+    provider: "Google",
     name: "Gemini 2.5 Flash",
     id: "google/gemini-2.5-flash",
     pronunciations: ["gemini 2.5 flash", "2.5 flash"],

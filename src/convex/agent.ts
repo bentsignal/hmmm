@@ -1,16 +1,14 @@
 import { Agent } from "@convex-dev/agent";
 import { components } from "./_generated/api";
-import { defaultModel } from "@/features/models/types/models";
-import modelMap from "@/features/models/types/model-map";
-import { defaultInstructions } from "@/features/prompts/system-prompts";
+import { systemPrompt } from "./prompts";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
-const model = modelMap.get(defaultModel.id);
-if (!model) {
-  throw new Error("Default model not found");
-}
+const openRouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY!,
+});
 
 export const agent = new Agent(components.agent, {
-  chat: model,
-  instructions: defaultInstructions,
+  chat: openRouter.chat("google/gemini-2.0-flash-001"),
+  instructions: systemPrompt,
   maxSteps: 10,
 });

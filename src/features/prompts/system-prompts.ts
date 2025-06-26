@@ -1,25 +1,16 @@
-export const intro = `This is the start of a new prompt. You are a 
-helpful assistant, and your role is to deliver a response that will 
-help answer the question or complete the task being proposed by the user.`;
-
 export const hasToolsInstructions = `You have access to certain tools
 that you can use to help improve your reponse. Make sure to read the
 tool descriptions thoroughly before using them. If a tool cautions you
-about using it, make sure to follow the instructions carefully.`;
+about using it, make sure to follow the instructions carefully. While
+you can use these tools to help assist you, do not let your selection 
+of tools prevent you from answering the prompt. Always do your best to
+provide the user with a useful answer.`;
 
 export const noToolsInstructions = `You do not currently have access 
 to any special tools. This may change in the future, but you must try 
 to answer the following prompt without making any tool calls . At the 
 start of a future new prompt, you may have gained access to tools 
 again. Use your knowledge to answer the prompt as best you can.`;
-
-export const returnStyle = `Give a concise response, unless explicitly asked to give 
-an extended response by the user. Do not over explain your response, unless explicitly 
-asked to do so by the user.`;
-
-export const titleGeneratorPrompt = `You are a helpful assistant for an AI chatbot. Generate
- a short, concise title for a thread started by the following prompt. Pick a title that
- is relevant to the prompt. Only return the title, no other text.`;
 
 export const dateTimeInstructions = `You have access to the following tool: dateTime
 this tool can be used to get the current date and time for a given location. If the 
@@ -78,12 +69,4 @@ You have access to the following tool: getWeather
 
 To use the tool, provide a query about what weather information the user is looking for. Use the
 repsonse from the tool to provide a concise answer to the user. Do not cite any sources.
-`;
-
-export const defaultInstructions = `
-${intro} ${noToolsInstructions} ${returnStyle}
-`;
-
-export const instructionsWithTools = `
-${intro} ${hasToolsInstructions} ${dateTimeInstructions} ${weatherInstructions} ${searchInstructions} ${returnStyle}
 `;

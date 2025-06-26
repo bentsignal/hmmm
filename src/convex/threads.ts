@@ -116,6 +116,7 @@ export const requestNewThreadCreation = mutation({
         promptMessageId: messageId,
         modelId: modelId,
         useSearch: useSearch,
+        prompt: message,
       }),
     ]);
     return threadId;
@@ -160,6 +161,7 @@ export const newThreadMessage = mutation({
       promptMessageId: messageId,
       modelId: modelId,
       useSearch: useSearch,
+      prompt: prompt,
     });
   },
 });

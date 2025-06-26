@@ -36,7 +36,7 @@ export default function MessageList({ threadId }: { threadId: string }) {
     if (searchParams.get("search") === "true") {
       setUseSearch(true);
     }
-  }, [searchParams]);
+  }, [searchParams, setUseSearch]);
 
   // set tab label in browser to thread title
   usePageTitle(title);
@@ -48,7 +48,7 @@ export default function MessageList({ threadId }: { threadId: string }) {
     return () => {
       setActiveThread(null);
     };
-  }, [threadId]);
+  }, [threadId, setActiveThread]);
 
   return (
     <div className="relative h-full w-full">
