@@ -8,12 +8,10 @@
  * @module
  */
 
-import type * as actions from "../actions.js";
 import type * as agent from "../agent.js";
 import type * as auth from "../auth.js";
+import type * as generation from "../generation.js";
 import type * as migrations from "../migrations.js";
-import type * as models from "../models.js";
-import type * as prompts from "../prompts.js";
 import type * as threads from "../threads.js";
 import type * as users from "../users.js";
 import type * as waitlist from "../waitlist.js";
@@ -33,12 +31,10 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  actions: typeof actions;
   agent: typeof agent;
   auth: typeof auth;
+  generation: typeof generation;
   migrations: typeof migrations;
-  models: typeof models;
-  prompts: typeof prompts;
   threads: typeof threads;
   users: typeof users;
   waitlist: typeof waitlist;

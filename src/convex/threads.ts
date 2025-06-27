@@ -107,11 +107,11 @@ export const requestNewThreadCreation = mutation({
       skipEmbeddings: true,
     });
     await Promise.all([
-      ctx.scheduler.runAfter(0, internal.actions.generateTitle, {
+      ctx.scheduler.runAfter(0, internal.generation.generateTitle, {
         threadId: threadId,
         message: message,
       }),
-      ctx.scheduler.runAfter(0, internal.actions.continueThread, {
+      ctx.scheduler.runAfter(0, internal.generation.continueThread, {
         threadId: threadId,
         promptMessageId: messageId,
         // modelId: modelId,
@@ -156,7 +156,7 @@ export const newThreadMessage = mutation({
       prompt: prompt,
       skipEmbeddings: true,
     });
-    ctx.scheduler.runAfter(0, internal.actions.continueThread, {
+    ctx.scheduler.runAfter(0, internal.generation.continueThread, {
       threadId: args.threadId,
       promptMessageId: messageId,
       // modelId: modelId,

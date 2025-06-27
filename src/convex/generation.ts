@@ -1,21 +1,17 @@
 "use node";
 
-import { internalAction } from "./_generated/server";
-import { v } from "convex/values";
-import { generateText } from "ai";
-import { components, internal } from "./_generated/api";
-import { agent } from "./agent";
-import { generateObject } from "ai";
+import { generateText, generateObject } from "ai";
 import z from "zod";
-import {
-  classifierModel,
-  searchModel,
-  complexModel,
-  generalModel,
-  titleGeneratorModel,
-} from "./models";
-import { classifierPrompt, titleGeneratorPrompt } from "./prompts";
+import { v } from "convex/values";
+import { components, internal } from "./_generated/api";
+import { internalAction } from "./_generated/server";
+import { agent } from "./agent";
+import { classifierModel, titleGeneratorModel } from "@/features/models";
+import { classifierPrompt, titleGeneratorPrompt } from "@/features/prompts";
+import { promptCategoryEnum } from "@/features/models/types/model-types";
+import { getModelByPromptCategory } from "@/features/models/util/model-utils";
 
+// generate title for thread based off of initial prompt
 export const generateTitle = internalAction({
   args: {
     message: v.string(),
@@ -40,6 +36,7 @@ export const generateTitle = internalAction({
   },
 });
 
+// generate reponse to users prompt in new or existing thread
 export const continueThread = internalAction({
   args: {
     threadId: v.string(),
@@ -58,17 +55,12 @@ export const continueThread = internalAction({
     const { object } = await generateObject({
       model: classifierModel,
       schema: z.object({
-        queryType: z.enum(["general", "complex", "search"]),
+        promptCategory: promptCategoryEnum,
       }),
       prompt: `${classifierPrompt} ${prompt}`,
     });
     // determine which model to use based on the prompt type
-    const model =
-      object.queryType === "search"
-        ? searchModel
-        : object.queryType === "complex"
-          ? complexModel
-          : generalModel;
+    const model = getModelByPromptCategory(object.promptCategory);
     // generate repsonse, stream text back to client
     const result = await thread.streamText(
       {

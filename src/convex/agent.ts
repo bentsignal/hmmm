@@ -1,14 +1,10 @@
 import { Agent } from "@convex-dev/agent";
 import { components } from "./_generated/api";
-import { systemPrompt } from "./prompts";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-
-const openRouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY!,
-});
+import { systemPrompt } from "@/features/prompts";
+import { generalModel } from "@/features/models";
 
 export const agent = new Agent(components.agent, {
-  chat: openRouter.chat("google/gemini-2.0-flash-001"),
+  chat: generalModel,
   instructions: systemPrompt,
   maxSteps: 10,
 });

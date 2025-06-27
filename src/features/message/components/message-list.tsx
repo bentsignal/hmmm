@@ -15,6 +15,7 @@ import useThreadStatus from "@/features/thread/hooks/use-thread-status";
 import WebSearchMessage from "@/features/web-search/components/web-search-message";
 import { usePageTitle } from "@/hooks/use-page-title";
 import useThreadStore from "@/features/thread/store/thread-store";
+import { UIMessage } from "ai";
 
 const MemoizedPrompt = memo(PromptMessage);
 const MemoizedResponse = memo(ResponseMessage);
