@@ -26,6 +26,7 @@ export function CopyButton({
       if (code) {
         textToCopy = extractTextFromChildren(code);
       }
+      textToCopy = textToCopy.trim();
       await navigator.clipboard.writeText(textToCopy);
       setCopied(true);
       setTimeout(() => setCopied(false), 1000);
