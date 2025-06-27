@@ -1,12 +1,12 @@
 "use server";
 
 import { experimental_transcribe as transcribe } from "ai";
-import { openai } from "@ai-sdk/openai";
 import { auth } from "@clerk/nextjs/server";
 import { api } from "@/convex/_generated/api";
 import { ConvexHttpClient } from "convex/browser";
 import { env } from "@/env";
 import { tryCatch } from "@/lib/utils";
+import { transcriptionModel } from "@/features/models/models";
 
 const convex = new ConvexHttpClient(env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -25,7 +25,7 @@ export async function transcribeAudio(audio: ArrayBuffer) {
   const audioBuffer = Buffer.from(audio);
   const { data: transcription, error } = await tryCatch(
     transcribe({
-      model: openai.transcription("whisper-1"),
+      model: transcriptionModel,
       audio: audioBuffer,
     }),
   );
