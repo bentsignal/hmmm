@@ -8,8 +8,11 @@ import { internalAction } from "./_generated/server";
 import { agent } from "./agent";
 import { classifierModel, titleGeneratorModel } from "@/features/models";
 import { classifierPrompt, titleGeneratorPrompt } from "@/features/prompts";
-import { promptCategoryEnum } from "@/features/models/types/model-types";
-import { getModelByPromptCategory } from "@/features/models/util/model-utils";
+import {
+  promptCategoryEnum,
+  promptDifficultyEnum,
+} from "@/features/prompts/types/prompt-types";
+import { getModelByPromptClassification } from "@/features/models/util/model-utils";
 
 // generate title for thread based off of initial prompt
 export const generateTitle = internalAction({
@@ -23,16 +26,18 @@ export const generateTitle = internalAction({
       prompt: args.message,
       system: titleGeneratorPrompt,
     });
-    await ctx.runMutation(internal.threads.updateThreadTitle, {
-      threadId: args.threadId,
-      title: response.text.trim(),
-    });
-    await ctx.runMutation(components.agent.threads.updateThread, {
-      threadId: args.threadId,
-      patch: {
+    await Promise.all([
+      ctx.runMutation(internal.threads.updateThreadTitle, {
+        threadId: args.threadId,
         title: response.text.trim(),
-      },
-    });
+      }),
+      ctx.runMutation(components.agent.threads.updateThread, {
+        threadId: args.threadId,
+        patch: {
+          title: response.text.trim(),
+        },
+      }),
+    ]);
   },
 });
 
@@ -55,12 +60,20 @@ export const continueThread = internalAction({
     const { object } = await generateObject({
       model: classifierModel,
       schema: z.object({
+        promptDifficulty: promptDifficultyEnum,
         promptCategory: promptCategoryEnum,
       }),
       prompt: `${classifierPrompt} ${prompt}`,
     });
     // determine which model to use based on the prompt type
-    const model = getModelByPromptCategory(object.promptCategory);
+    const model = getModelByPromptClassification(
+      object.promptCategory,
+      object.promptDifficulty,
+    );
+    console.log("----------------------");
+    console.log("Difficulty: ", object.promptDifficulty);
+    console.log("Category: ", object.promptCategory);
+    console.log("Model: ", model.modelId);
     // generate repsonse, stream text back to client
     const result = await thread.streamText(
       {

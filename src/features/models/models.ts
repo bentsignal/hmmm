@@ -15,22 +15,18 @@ export const models = {
     label: "Google",
     "Gemini 2.0 Flash": {
       label: "Gemini 2.0 Flash",
-      pronunciations: ["gemini 2.0 flash", "2.0 flash"],
       model: openRouter.chat("google/gemini-2.0-flash-001"),
     },
     "Gemini 2.5 Flash Lite": {
       label: "Gemini 2.5 Flash Lite",
-      pronunciations: ["gemini 2.5 flash lite", "2.5 flash lite"],
       model: openRouter.chat("google/gemini-2.5-flash-lite-preview-06-17"),
     },
     "Gemini 2.5 Flash": {
       label: "Gemini 2.5 Flash",
-      pronunciations: ["gemini 2.5 flash", "2.5 flash"],
       model: openRouter.chat("google/gemini-2.5-flash"),
     },
     "Gemini 2.5 Pro": {
       label: "Gemini 2.5 Pro",
-      pronunciations: ["gemini 2.5 pro", "2.5 pro"],
       model: openRouter.chat("google/gemini-2.5-pro"),
     },
   },
@@ -38,28 +34,54 @@ export const models = {
     label: "OpenAI",
     "o4 mini": {
       label: "o4 mini",
-      pronunciations: ["o4 mini", "04 mini", "oh 4 mini", "o 4 mini", "o4mini"],
       model: openRouter.chat("openai/o4-mini-high"),
+    },
+    o3: {
+      label: "o3",
+      model: openRouter.chat("openai/o3-2025-04-16"),
     },
     "Whisper 1": {
       label: "Whisper 1",
-      pronunciations: ["whisper 1", "whisper one", "whisper one 1"],
       model: openai.transcription("whisper-1"),
+    },
+  },
+  anthropic: {
+    label: "Anthropic",
+    "Claude 4 Sonnet": {
+      label: "Claude 4 Sonnet",
+      model: openRouter.chat("anthropic/claude-4-sonnet-20250522"),
+    },
+  },
+  xai: {
+    label: "xAI",
+    "Grok 3 Mini": {
+      label: "Grok 3 Mini",
+      model: openRouter.chat("x-ai/grok-3-mini"),
     },
   },
   perplexity: {
     label: "Perplexity",
     sonar: {
       label: "Sonar",
-      pronunciations: ["sonar"],
       model: openRouter.chat("perplexity/sonar"),
+    },
+    "Sonar Reasoning Pro": {
+      label: "Sonar Reasoning Pro",
+      model: openRouter.chat("perplexity/sonar-reasoning-pro"),
     },
   },
 };
 
+export const defaultModel = models.google["Gemini 2.0 Flash"].model;
+
+// used to classify prompt category and difficulty
 export const classifierModel = models.google["Gemini 2.5 Flash Lite"].model;
+
+// used to search the web
 export const searchModel = models.perplexity.sonar.model;
-export const complexModel = models.openai["o4 mini"].model;
-export const generalModel = models.google["Gemini 2.0 Flash"].model;
+
+// used to generate a title for a thread
 export const titleGeneratorModel = models.google["Gemini 2.0 Flash"].model;
+
+// used to transcribe audio to text
 export const transcriptionModel = models.openai["Whisper 1"].model;
