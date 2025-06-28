@@ -35,7 +35,7 @@ export default function ComposerSpeech() {
             ? "Listening..."
             : processing
               ? "Processing..."
-              : "Start listening"}
+              : "Record your voice"}
         </p>
       </TooltipContent>
     </Tooltip>

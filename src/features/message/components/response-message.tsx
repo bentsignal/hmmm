@@ -12,6 +12,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
+import { getDateAndTime } from "@/lib/utils";
 
 interface ResponseMessageProps {
   message: string;
@@ -25,7 +26,7 @@ export default function ResponseMessage({
   containsToolCall,
 }: ResponseMessageProps) {
   const [text] = useSmoothText(message, { charsPerSec: 300 });
-  const createdAt = new Date(creationTime).toLocaleString();
+  const createdAt = getDateAndTime(new Date(creationTime));
   return (
     <div className="relative w-full">
       <div className="prose dark:prose-invert relative w-full max-w-full">
@@ -46,7 +47,7 @@ export default function ResponseMessage({
                     <Info className="h-4 w-4" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Created at {createdAt}</p>
+                    <p>{createdAt}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
