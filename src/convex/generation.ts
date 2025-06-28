@@ -70,10 +70,6 @@ export const continueThread = internalAction({
       object.promptCategory,
       object.promptDifficulty,
     );
-    console.log("----------------------");
-    console.log("Difficulty: ", object.promptDifficulty);
-    console.log("Category: ", object.promptCategory);
-    console.log("Model: ", model.modelId);
     // generate repsonse, stream text back to client
     const result = await thread.streamText(
       {
