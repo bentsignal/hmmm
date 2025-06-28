@@ -66,46 +66,38 @@ export const getThreadMessages = query({
 export const requestNewThreadCreation = mutation({
   args: {
     message: v.string(),
-    key: v.optional(v.string()),
-    userId: v.optional(v.string()),
-    // modelId: v.string(),
-    // useSearch: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    let uid;
-    if (args.key && args.userId) {
-      if (args.key !== process.env.CONVEX_INTERNAL_API_KEY) {
-        throw new Error("Unauthorized");
-      }
-      uid = args.userId;
-    } else {
-      const userId = await ctx.auth.getUserIdentity();
-      if (!userId) {
-        throw new Error("Unauthorized");
-      }
-      uid = userId.subject;
-      const isUserSubscribed = await ctx.runQuery(api.auth.isUserSubscribed);
-      if (!isUserSubscribed) {
-        throw new Error("User is not subscribed");
-      }
+    // auth & sub check
+    const userId = await ctx.auth.getUserIdentity();
+    if (!userId) {
+      throw new Error("Unauthorized");
     }
-    const { message } = args;
+    const isUserSubscribed = await ctx.runQuery(api.auth.isUserSubscribed);
+    if (!isUserSubscribed) {
+      throw new Error("User is not subscribed");
+    }
+    // create new thread in agent component table, as well as
+    // new document in separate threadMetadata table
     const { threadId } = await agent.createThread(ctx, {
-      userId: uid,
+      userId: userId.subject,
       title: "New Chat",
     });
     await ctx.db.insert("threadMetadata", {
-      userId: uid,
+      userId: userId.subject,
       title: "New Chat",
       threadId: threadId,
       updatedAt: Date.now(),
       state: "waiting",
     });
+    // save user's message to thread
+    const { message } = args;
     const { messageId } = await agent.saveMessage(ctx, {
       threadId,
       prompt: message,
       skipEmbeddings: true,
     });
+    // generate title for new thread, and start response
     await Promise.all([
       ctx.scheduler.runAfter(0, internal.generation.generateTitle, {
         threadId: threadId,
@@ -114,8 +106,6 @@ export const requestNewThreadCreation = mutation({
       ctx.scheduler.runAfter(0, internal.generation.continueThread, {
         threadId: threadId,
         promptMessageId: messageId,
-        // modelId: modelId,
-        // useSearch: useSearch,
         prompt: message,
       }),
     ]);
@@ -127,8 +117,6 @@ export const newThreadMessage = mutation({
   args: {
     threadId: v.string(),
     prompt: v.string(),
-    // modelId: v.string(),
-    // useSearch: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const { threadId, prompt } = args;
@@ -159,8 +147,6 @@ export const newThreadMessage = mutation({
     ctx.scheduler.runAfter(0, internal.generation.continueThread, {
       threadId: args.threadId,
       promptMessageId: messageId,
-      // modelId: modelId,
-      // useSearch: useSearch,
       prompt: prompt,
     });
   },

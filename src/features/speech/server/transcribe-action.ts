@@ -3,22 +3,22 @@
 import { experimental_transcribe as transcribe } from "ai";
 import { auth } from "@clerk/nextjs/server";
 import { api } from "@/convex/_generated/api";
-import { ConvexHttpClient } from "convex/browser";
-import { env } from "@/env";
 import { tryCatch } from "@/lib/utils";
 import { transcriptionModel } from "@/features/models/models";
-
-const convex = new ConvexHttpClient(env.NEXT_PUBLIC_CONVEX_URL);
+import { getAuthToken } from "@/features/auth/util/auth-util";
+import { fetchQuery } from "convex/nextjs";
 
 export async function transcribeAudio(audio: ArrayBuffer) {
   const { userId } = await auth();
   if (!userId) {
     throw new Error("Unauthorized");
   }
-  const isUserSubscribed = await convex.query(api.auth.externalSubCheck, {
-    userId,
-    key: env.CONVEX_INTERNAL_API_KEY,
-  });
+  const authToken = await getAuthToken();
+  const isUserSubscribed = await fetchQuery(
+    api.auth.isUserSubscribed,
+    {},
+    { token: authToken },
+  );
   if (!isUserSubscribed) {
     throw new Error("User is not subscribed");
   }

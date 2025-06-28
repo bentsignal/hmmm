@@ -12,7 +12,6 @@ export const env = createEnv({
     OPENROUTER_API_KEY: z.string().min(1),
     // open ai
     OPENAI_API_KEY: z.string().min(1),
-    CONVEX_INTERNAL_API_KEY: z.string().min(1),
   },
   client: {
     NEXT_PUBLIC_BASE_URL: z.string().min(1),
@@ -38,7 +37,6 @@ export const env = createEnv({
     // convex
     CONVEX_DEPLOYMENT: process.env.CONVEX_DEPLOYMENT,
     NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL,
-    CONVEX_INTERNAL_API_KEY: process.env.CONVEX_INTERNAL_API_KEY,
     // openrouter
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
     // open ai

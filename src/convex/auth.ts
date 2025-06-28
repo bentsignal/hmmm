@@ -8,34 +8,10 @@ if (!ACCESS_CODE) {
   throw new Error("ACCESS_CODE is not set");
 }
 
-const INTERNAL_API_KEY = process.env.CONVEX_INTERNAL_API_KEY;
-if (!INTERNAL_API_KEY) {
-  throw new Error("CONVEX_INTERNAL_API_KEY is not set");
-}
-
-export const externalSubCheck = query({
-  args: {
-    userId: v.string(),
-    key: v.string(),
-  },
-  handler: async (ctx, args) => {
-    if (args.key !== INTERNAL_API_KEY) {
-      throw new Error("Unauthorized");
-    }
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_user_id", (q) => q.eq("userId", args.userId))
-      .unique();
-    if (!user) {
-      return false;
-    }
-    return user.access === true;
-  },
-});
-
 export const isUserSubscribed = query({
   args: {},
   handler: async (ctx): Promise<boolean | null> => {
+    // auth check is done in getUser
     const user = await ctx.runQuery(internal.users.getUser);
     if (!user) {
       return null;
@@ -67,11 +43,7 @@ export const requestAccess = mutation({
 export const authorizeThreadAccess = async (
   ctx: QueryCtx | MutationCtx,
   threadId: string,
-  key?: string,
 ) => {
-  if (key && key !== INTERNAL_API_KEY) {
-    throw new Error("Unauthorized");
-  }
   const userId = await ctx.auth.getUserIdentity();
   if (!userId) {
     throw new Error("Unauthorized");

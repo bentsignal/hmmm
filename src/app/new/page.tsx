@@ -1,9 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
-import { fetchMutation, fetchQuery } from "convex/nextjs";
+import { fetchMutation } from "convex/nextjs";
 import { redirect } from "next/navigation";
 import { api } from "@/convex/_generated/api";
-// import { models } from "@/features/models/types/models";
-import { env } from "@/env";
+import { getAuthToken } from "@/features/auth/util/auth-util";
+import { tryCatch } from "@/lib/utils";
 
 export default async function NewPage({
   searchParams,
@@ -13,13 +13,6 @@ export default async function NewPage({
   // auth check
   const { userId } = await auth();
   if (!userId) {
-    redirect("/login");
-  }
-  const isSubscribed = await fetchQuery(api.auth.externalSubCheck, {
-    userId,
-    key: env.CONVEX_INTERNAL_API_KEY,
-  });
-  if (!isSubscribed) {
     redirect("/login");
   }
 
@@ -33,22 +26,22 @@ export default async function NewPage({
     redirect("/");
   }
 
-  // use search?
-  // const useSearch = params.search !== undefined;
-
   // create new thread
-  const threadId = await fetchMutation(api.threads.requestNewThreadCreation, {
-    message: parsedQuery,
-    // modelId: models[0].id,
-    key: env.CONVEX_INTERNAL_API_KEY,
-    userId,
-    // useSearch,
-  });
-  if (!threadId) {
+  const authToken = await getAuthToken();
+  const { data: threadId, error } = await tryCatch(
+    fetchMutation(
+      api.threads.requestNewThreadCreation,
+      {
+        message: parsedQuery,
+      },
+      { token: authToken },
+    ),
+  );
+  if (error || !threadId) {
+    console.error(error);
     redirect("/");
   }
 
   // redirect to new thread;
-  // redirect(`/chat/${threadId}${useSearch ? "?search=true" : ""}`);
   redirect(`/chat/${threadId}`);
 }
