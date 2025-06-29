@@ -1,4 +1,4 @@
-import MessageListWrapper from "@/features/message/components/message-list-wrapper";
+import MessageList from "@/features/message/components/message-list";
 import { PageError } from "@/components/error-boundary";
 
 export default async function ChatPage({
@@ -9,7 +9,7 @@ export default async function ChatPage({
   const { id } = await params;
   return (
     <PageError>
-      <MessageListWrapper threadId={id} />
+      <MessageList threadId={id} />
     </PageError>
   );
 }

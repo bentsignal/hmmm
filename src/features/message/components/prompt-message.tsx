@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { CopyButton } from "./copy-button";
 import { UIMessage } from "ai";
 
@@ -27,3 +27,5 @@ export default function PromptMessage({ message }: { message: UIMessage }) {
     </div>
   );
 }
+
+export const MemoizedPrompt = memo(PromptMessage);
