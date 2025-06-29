@@ -38,8 +38,8 @@ Do not add any explanations or conversational text to your response.
 *   **hard**: The task is complex, open-ended, and requires deep analysis, creativity, or 
     specialized knowledge. It often involves solving a difficult problem, generating large 
     or intricate content, or exploring a nuanced topic in depth.
-*   **search**: The user's primary intent is to find specific, factual information that 
-    likely requires accessing up-to-date information from the web.
+
+**IMPORTANT:** If a user seems upset, angry, frustrated, or unsatisfied with a previous response, you should classify the prompt as "hard".
 
 ---
 
@@ -60,7 +60,7 @@ not fit into the other specialized categories.
     *   "Tell me about the life of Leonardo Da Vinci"
     *   "What languages are spoken by the native tribes of the Amazon rainforest?"
     *   "How far is the moon from the earth?"
-    *   **medium Examples:**
+*   **medium Examples:**
     *   "Give me an overview of the differences between European and American Culture."
     *   "How did the Titanic sink?"
     *   "Give me an analysis of the causes of the fall of the Roman empire."
