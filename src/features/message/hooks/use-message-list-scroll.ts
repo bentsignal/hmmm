@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from "react";
+import useMessages from "./use-messages";
 
-export default function useMessageListScroll() {
+export default function useMessageListScroll({
+  threadId,
+}: {
+  threadId: string;
+}) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isInitialLoadRef = useRef(true);
   const previousMessageCountRef = useRef(0);
   const [isAtBottom, setIsAtBottom] = useState(true);
-  const [numMessages, setNumMessages] = useState(0);
+  const { totalCount } = useMessages({ threadId });
 
   const checkIfAtBottom = () => {
     const scrollElement = scrollAreaRef.current?.querySelector(
@@ -50,16 +55,16 @@ export default function useMessageListScroll() {
       "[data-radix-scroll-area-viewport]",
     );
 
-    if (scrollElement && numMessages > 0) {
+    if (scrollElement && totalCount > 0) {
       if (isInitialLoadRef.current) {
         scrollElement.scrollTo({
           top: scrollElement.scrollHeight,
           behavior: "auto",
         });
         isInitialLoadRef.current = false;
-        previousMessageCountRef.current = numMessages;
+        previousMessageCountRef.current = totalCount;
         setIsAtBottom(true);
-      } else if (numMessages > previousMessageCountRef.current) {
+      } else if (totalCount > previousMessageCountRef.current) {
         const lastMessage = messagesEndRef.current?.previousElementSibling;
         if (lastMessage) {
           const scrollTop =
@@ -71,20 +76,16 @@ export default function useMessageListScroll() {
             behavior: "smooth",
           });
         }
-        previousMessageCountRef.current = numMessages;
+        previousMessageCountRef.current = totalCount;
         checkIfAtBottom();
       }
-    } else {
-      setNumMessages(0);
     }
-  }, [numMessages]);
+  }, [totalCount]);
 
   return {
     scrollAreaRef,
     messagesEndRef,
     isAtBottom,
     scrollToBottom,
-    numMessages,
-    setNumMessages,
   };
 }

@@ -16,7 +16,7 @@ import { api } from "@/convex/_generated/api";
 export default function MessageList({ threadId }: { threadId: string }) {
   // handle auto scroll & scroll to bottom
   const { scrollAreaRef, messagesEndRef, isAtBottom, scrollToBottom } =
-    useMessageListScroll();
+    useMessageListScroll({ threadId });
 
   // set active thread when component mounts
   const setActiveThread = useThreadStore((state) => state.setActiveThread);

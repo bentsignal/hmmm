@@ -35,5 +35,6 @@ export default function useMessages({ threadId }: { threadId: string }) {
   return {
     isAuthenticated,
     messages,
+    totalCount: unfilteredMessages.results.length,
   };
 }
