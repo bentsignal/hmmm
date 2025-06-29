@@ -6,8 +6,8 @@ import { ChevronDown } from "lucide-react";
 import useMessageListScroll from "../hooks/use-message-list-scroll";
 import "@/features/message/styles/github-dark.min.css";
 import "@/features/message/styles/message-styles.css";
-import NonStreamingMessages from "./non-streaming-messages";
-import StreamingMessages from "./streaming-messages";
+import Messages from "./messages";
+import StreamingMessage from "./streaming-message";
 import { useEffect } from "react";
 import useThreadStore from "@/features/thread/store/thread-store";
 import { useConvexAuth, useQuery } from "convex/react";
@@ -40,8 +40,8 @@ export default function MessageList({ threadId }: { threadId: string }) {
       <ScrollArea ref={scrollAreaRef} className="h-full w-full">
         <div className="flex w-full justify-center pt-20 pb-20">
           <div className="mx-4 mb-8 flex h-full w-full max-w-4xl flex-col gap-16 px-4">
-            <NonStreamingMessages threadId={threadId} />
-            <StreamingMessages threadId={threadId} />
+            <Messages threadId={threadId} />
+            <StreamingMessage threadId={threadId} />
             <div ref={messagesEndRef} />
           </div>
         </div>
