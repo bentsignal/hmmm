@@ -38,6 +38,8 @@ export default function useStreamingMessage({
   ) {
     streamingMessage = uiMessages[1];
   }
+
+  // dedupe
   if (messages.find((message) => message.id === streamingMessage?.id)) {
     streamingMessage = null;
   }
