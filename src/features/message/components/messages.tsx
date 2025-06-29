@@ -15,7 +15,7 @@ export default function Messages({ threadId }: { threadId: string }) {
     item.role === "user" ? (
       <MemoizedPrompt key={item.id} message={item} />
     ) : item.role === "assistant" && item.parts.length > 0 ? (
-      <MemoizedResponse key={item.id} message={item} />
+      <MemoizedResponse key={item.id} message={item} streaming={false} />
     ) : null,
   );
 }
