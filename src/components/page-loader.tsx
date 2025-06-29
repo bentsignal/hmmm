@@ -1,24 +1,27 @@
-import { Loader2 } from "lucide-react";
 import { useRef, useEffect } from "react";
 
 interface PageLoaderProps {
   status: "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
   loadMore: () => void;
+  children: React.ReactNode;
 }
 
-export default function PageLoader({ status, loadMore }: PageLoaderProps) {
+export default function PageLoader({
+  status,
+  loadMore,
+  children,
+}: PageLoaderProps) {
   const observer = useRef<IntersectionObserver | null>(null);
   const target = useRef<HTMLDivElement | null>(null);
+
+  const loadMoreRef = useRef(loadMore);
+  loadMoreRef.current = loadMore;
 
   useEffect(() => {
     observer.current = new IntersectionObserver(
       ([entry]) => {
-        if (
-          entry.isIntersecting &&
-          status !== "LoadingFirstPage" &&
-          status !== "LoadingMore"
-        ) {
-          loadMore();
+        if (entry.isIntersecting && status === "CanLoadMore") {
+          loadMoreRef.current();
         }
       },
       {
@@ -36,13 +39,13 @@ export default function PageLoader({ status, loadMore }: PageLoaderProps) {
       }
       observer.current?.disconnect();
     };
-  }, [loadMore]);
+  }, [status]);
 
   if (status === "Exhausted" || status === "LoadingFirstPage") return null;
 
   return (
     <div ref={target} className="flex w-full items-center justify-center">
-      <Loader2 className="h-4 w-4 animate-spin" />
+      {children}
     </div>
   );
 }

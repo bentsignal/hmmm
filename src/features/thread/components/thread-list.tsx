@@ -16,6 +16,7 @@ import useThreadList from "../hooks/use-thread-list";
 import ThreadDeleteModal from "./thread-delete-modal";
 import PageLoader from "@/components/page-loader";
 import { usePathname } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 export default function ThreadList() {
   const pathname = usePathname();
@@ -71,7 +72,9 @@ export default function ThreadList() {
               ),
           )}
         </SidebarMenu>
-        <PageLoader status={status} loadMore={loadMoreThreads} />
+        <PageLoader status={status} loadMore={loadMoreThreads}>
+          <Loader2 className="h-4 w-4 animate-spin" />
+        </PageLoader>
         <ThreadDeleteModal />
       </SidebarContent>
     </Sidebar>
