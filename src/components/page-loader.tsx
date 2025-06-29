@@ -1,24 +1,32 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 
 interface PageLoaderProps {
   status: "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
   loadMore: () => void;
   children: React.ReactNode;
+  singleUse?: boolean;
 }
 
 export default function PageLoader({
   status,
   loadMore,
   children,
+  singleUse = false,
 }: PageLoaderProps) {
   const observer = useRef<IntersectionObserver | null>(null);
   const target = useRef<HTMLDivElement | null>(null);
+  const [used, setUsed] = useState(false);
 
   useEffect(() => {
     observer.current = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && status === "CanLoadMore") {
-          loadMore();
+          if (!singleUse || (singleUse && !used)) {
+            loadMore();
+            if (singleUse) {
+              setUsed(true);
+            }
+          }
         }
       },
       {
