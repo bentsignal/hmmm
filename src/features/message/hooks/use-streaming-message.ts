@@ -46,5 +46,6 @@ export default function useStreamingMessage({
 
   return {
     streamingMessage,
+    messageLength: messages.length,
   };
 }

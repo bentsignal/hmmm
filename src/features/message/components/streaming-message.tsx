@@ -9,13 +9,14 @@ interface StreamingMessageProps {
 
 export default function StreamingMessage({ threadId }: StreamingMessageProps) {
   const { isThreadIdle } = useThreadStatus({ threadId });
-  const { streamingMessage } = useStreamingMessage({
+  const { streamingMessage, messageLength } = useStreamingMessage({
     threadId,
   });
 
   if (streamingMessage) {
     return <MemoizedResponse message={streamingMessage} />;
-  } else {
+  } else if (messageLength > 0) {
     return <MessageWaiting isThreadIdle={isThreadIdle} />;
   }
+  return null;
 }
