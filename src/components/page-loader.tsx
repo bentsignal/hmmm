@@ -14,14 +14,11 @@ export default function PageLoader({
   const observer = useRef<IntersectionObserver | null>(null);
   const target = useRef<HTMLDivElement | null>(null);
 
-  const loadMoreRef = useRef(loadMore);
-  loadMoreRef.current = loadMore;
-
   useEffect(() => {
     observer.current = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && status === "CanLoadMore") {
-          loadMoreRef.current();
+          loadMore();
         }
       },
       {
@@ -39,7 +36,7 @@ export default function PageLoader({
       }
       observer.current?.disconnect();
     };
-  }, [status]);
+  }, [loadMore]);
 
   if (status === "Exhausted" || status === "LoadingFirstPage") return null;
 
