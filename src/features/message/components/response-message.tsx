@@ -4,7 +4,6 @@ import rehypeHighlight from "rehype-highlight";
 import { markdownComponents } from "./markdown-components";
 import { useSmoothText } from "@convex-dev/agent/react";
 import { CopyButton } from "./copy-button";
-
 import {
   Tooltip,
   TooltipContent,
@@ -15,29 +14,23 @@ import { Info } from "lucide-react";
 import { getDateAndTime } from "@/lib/utils";
 import { UIMessage } from "ai";
 import { memo } from "react";
+import { MemoizedReasoningMessage } from "./reasoning-message";
 
 interface ResponseMessageProps {
   message: UIMessage;
+  streaming: boolean;
 }
 
-export default function ResponseMessage({ message }: ResponseMessageProps) {
+export default function ResponseMessage({
+  message,
+  streaming,
+}: ResponseMessageProps) {
   const [text] = useSmoothText(message.content, { charsPerSec: 300 });
   const createdAt = getDateAndTime(new Date(message.createdAt ?? 0));
+
   return (
     <div className="flex flex-col items-start gap-2">
-      {/* {(() => {
-        const reasoningPart = item.parts.find(
-          (part) => part.type === "reasoning" && part.reasoning.length > 0,
-        );
-        return reasoningPart && reasoningPart.type === "reasoning" ? (
-          <MemoizedReasoningMessage
-            key={`${item.id}-reasoning`}
-            message={reasoningPart.reasoning}
-            loading={!isThreadIdle}
-            mostRecent={index === numMessages - 1}
-          />
-        ) : null;
-      })()} */}
+      <MemoizedReasoningMessage message={message} streaming={streaming} />
       <div className="relative w-full">
         <div className="prose dark:prose-invert relative w-full max-w-full">
           <ReactMarkdown

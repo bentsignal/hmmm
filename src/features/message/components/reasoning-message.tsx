@@ -1,25 +1,37 @@
 import { Brain, ChevronDown, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { memo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { markdownComponents } from "./markdown-components";
 import { useSmoothText } from "@convex-dev/agent/react";
 import { cn } from "@/lib/utils";
+import { UIMessage } from "ai";
+import {
+  extractReasoningFromMessage,
+  getLatestPartType,
+} from "../util/message-util";
 
 interface ReasoningMessageProps {
-  message: string;
-  loading: boolean;
-  mostRecent: boolean;
+  message: UIMessage;
+  streaming: boolean;
 }
 
 export default function ReasoningMessage({
   message,
-  loading,
-  mostRecent,
+  streaming,
 }: ReasoningMessageProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [text] = useSmoothText(message);
+
+  // if message is being streamed and the latest part is of type "reasoning",
+  // then the model is currently in a reasoning state
+  const isReasoning = streaming && getLatestPartType(message) === "reasoning";
+
+  // extract text from reasoning parts & smooth
+  const content = extractReasoningFromMessage(message);
+  const [text] = useSmoothText(content);
+
+  if (content.length === 0) return null;
 
   return (
     <div className="my-4 flex w-full flex-col items-start gap-2">
@@ -35,7 +47,7 @@ export default function ReasoningMessage({
         <span
           className={cn(
             "mr-1 flex items-center gap-2 font-semibold",
-            loading && mostRecent && "animate-pulse",
+            isReasoning && "animate-pulse",
           )}
         >
           <Brain className="h-4 w-4" />
@@ -61,3 +73,5 @@ export default function ReasoningMessage({
     </div>
   );
 }
+
+export const MemoizedReasoningMessage = memo(ReasoningMessage);

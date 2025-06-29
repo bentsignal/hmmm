@@ -14,9 +14,11 @@ export default function StreamingMessage({ threadId }: StreamingMessageProps) {
   });
 
   if (streamingMessage) {
-    return <MemoizedResponse message={streamingMessage} />;
-  } else if (messageLength > 0) {
-    return <MessageWaiting isThreadIdle={isThreadIdle} />;
+    return (
+      <MemoizedResponse message={streamingMessage} streaming={!isThreadIdle} />
+    );
+  } else if (messageLength > 0 && !isThreadIdle) {
+    return <MessageWaiting />;
   }
   return null;
 }
