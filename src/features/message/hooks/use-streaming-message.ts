@@ -1,6 +1,11 @@
 import { useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { toUIMessages, useThreadMessages } from "@convex-dev/agent/react";
+import {
+  toUIMessages,
+  UIMessage,
+  useThreadMessages,
+} from "@convex-dev/agent/react";
+import useMessages from "./use-messages";
 
 export default function useStreamingMessage({
   threadId,
@@ -10,6 +15,7 @@ export default function useStreamingMessage({
   // don't get messages if the auth session data hasn't loaded yet
   const { isAuthenticated } = useConvexAuth();
   const args = isAuthenticated ? { threadId } : "skip";
+  const { messages } = useMessages({ threadId });
   const streamedMessages = useThreadMessages(
     api.threads.getThreadMessages,
     args,
@@ -21,7 +27,7 @@ export default function useStreamingMessage({
 
   // grab latest response message if present
   const uiMessages = toUIMessages(streamedMessages.results);
-  let streamingMessage = null;
+  let streamingMessage: UIMessage | null = null;
   if (uiMessages.length === 1 && uiMessages[0].role === "assistant") {
     streamingMessage = uiMessages[0];
   }
@@ -31,6 +37,9 @@ export default function useStreamingMessage({
     uiMessages[1].role === "assistant"
   ) {
     streamingMessage = uiMessages[1];
+  }
+  if (messages.find((message) => message.id === streamingMessage?.id)) {
+    streamingMessage = null;
   }
 
   return {
