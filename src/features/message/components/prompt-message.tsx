@@ -22,7 +22,7 @@ export default function PromptMessage({ message }: { message: UIMessage }) {
         className="absolute right-0 -bottom-10 mt-2 flex justify-end transition-opacity duration-300 ease-in-out"
         style={{ opacity: hovering ? 1 : 0 }}
       >
-        <CopyButton text={message.content} />
+        <CopyButton getContent={() => message.content} />
       </div>
     </div>
   );

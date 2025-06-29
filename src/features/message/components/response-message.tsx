@@ -49,7 +49,7 @@ export default function ResponseMessage({ message }: ResponseMessageProps) {
           </ReactMarkdown>
           {text.trim().length > 0 && (
             <div className="absolute -bottom-10 left-0 mt-2 flex justify-start gap-2 sm:-bottom-12">
-              <CopyButton text={text} />
+              <CopyButton getContent={() => text} />
               {message.createdAt && (
                 <TooltipProvider>
                   <Tooltip>
