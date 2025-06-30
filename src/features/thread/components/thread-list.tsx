@@ -73,7 +73,9 @@ export default function ThreadList() {
           )}
         </SidebarMenu>
         <PageLoader status={status} loadMore={loadMoreThreads}>
-          <Loader2 className="h-4 w-4 animate-spin" />
+          {status !== "Exhausted" && status !== "LoadingFirstPage" && (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          )}
         </PageLoader>
         <ThreadDeleteModal />
       </SidebarContent>

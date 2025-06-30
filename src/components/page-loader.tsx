@@ -46,8 +46,6 @@ export default function PageLoader({
     };
   }, [loadMore]);
 
-  if (status === "Exhausted" || status === "LoadingFirstPage") return null;
-
   return (
     <div ref={target} className="flex w-full items-center justify-center">
       {children}
