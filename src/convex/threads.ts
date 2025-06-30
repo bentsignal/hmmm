@@ -1,10 +1,16 @@
 import { api, components, internal } from "./_generated/api";
-import { internalMutation, mutation, query } from "./_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server";
 import { v } from "convex/values";
 import { agent } from "./agent";
 import { paginationOptsValidator } from "convex/server";
 import { vStreamArgs } from "@convex-dev/agent/validators";
 import { authorizeThreadAccess } from "./auth";
+import { convexCategoryEnum } from "@/features/prompts/types/prompt-types";
 
 export const getThreadList = query({
   args: {
@@ -259,5 +265,39 @@ export const getThreadState = query({
       throw new Error("Metadata not found");
     }
     return metadata.state;
+  },
+});
+
+export const updateThreadCategory = internalMutation({
+  args: {
+    threadId: v.string(),
+    category: convexCategoryEnum,
+  },
+  handler: async (ctx, args) => {
+    const { threadId, category } = args;
+    const metadata = await ctx.db
+      .query("threadMetadata")
+      .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
+      .first();
+    if (!metadata) {
+      throw new Error("Metadata not found");
+    }
+    await ctx.db.patch(metadata._id, {
+      category: category,
+    });
+  },
+});
+
+export const getThreadCategory = internalQuery({
+  args: {
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { threadId } = args;
+    const metadata = await ctx.db
+      .query("threadMetadata")
+      .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
+      .first();
+    return metadata?.category;
   },
 });

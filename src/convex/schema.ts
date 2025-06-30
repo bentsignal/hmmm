@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { convexCategoryEnum } from "@/features/prompts/types/prompt-types";
 
 export default defineSchema({
   users: defineTable({
@@ -18,6 +19,7 @@ export default defineSchema({
       v.literal("waiting"),
       v.literal("streaming"),
     ),
+    category: v.optional(convexCategoryEnum),
   })
     .index("by_user_time", ["userId", "updatedAt"])
     .index("by_thread_id", ["threadId"])

@@ -1,3 +1,5 @@
+import { PromptCategory } from "./types/prompt-types";
+
 export const titleGeneratorPrompt = `You are a helpful assistant for an AI chatbot. Generate
 a short, concise title for a thread started by the following prompt. Pick a title that
 is relevant to the prompt. Only return the title, no other text.`;
@@ -15,7 +17,10 @@ If you are using sources to create an answer, do NOT cite them
 using brackets in the response. ex: Do NOT include citations 
 like [1] or [2] in your response.`;
 
-export const classifierPrompt = `
+export const getClassifierPrompt = (
+  currentPrompt: string,
+  previousCategory: PromptCategory | null,
+) => `
 You are a highly accurate classification model. Your sole purpose is to analyze 
 a user's prompt and classify it based on its **difficulty** and **category**.
 
@@ -47,6 +52,14 @@ Do not add any explanations or conversational text to your response.
 
 Here are the definitions for each category, along with examples for each difficulty level 
 to guide your classification.
+
+${
+  previousCategory &&
+  `The previous prompt category was: ${previousCategory}. If you are not able to get a clear read
+    on the users intent from their new prompt, you can use this previous category to help make
+    your decision. While this new prompt could be a different category, this previous category can
+    be useful if you have trouble getting a clear read on the users intent from their new prompt.`
+}
 
 #### **Category: general**
 
@@ -174,6 +187,5 @@ debugging non-UI code (e.g., algorithms, data structures, backend logic, scripts
          database schema, the API endpoints (using Node.js and Express), and the logic for 
          generating and redirecting short URLs."
 
-Here is the users prompt:
-
+Here is the users prompt: ${currentPrompt}
 `;

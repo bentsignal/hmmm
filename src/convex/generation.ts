@@ -7,7 +7,7 @@ import { components, internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 import { agent } from "./agent";
 import { classifierModel, titleGeneratorModel } from "@/features/models";
-import { classifierPrompt, titleGeneratorPrompt } from "@/features/prompts";
+import { getClassifierPrompt, titleGeneratorPrompt } from "@/features/prompts";
 import {
   promptCategoryEnum,
   promptDifficultyEnum,
@@ -56,6 +56,10 @@ export const continueThread = internalAction({
     const { thread } = await agent.continueThread(ctx, {
       threadId: threadId,
     });
+    // get the category set by the last prompt
+    const category = await ctx.runQuery(internal.threads.getThreadCategory, {
+      threadId: threadId,
+    });
     // classify the user's prompt
     const { object } = await generateObject({
       model: classifierModel,
@@ -63,13 +67,15 @@ export const continueThread = internalAction({
         promptDifficulty: promptDifficultyEnum,
         promptCategory: promptCategoryEnum,
       }),
-      prompt: `${classifierPrompt} ${prompt}`,
+      prompt: getClassifierPrompt(prompt, category),
     });
     // determine which model to use based on the prompt type
     const model = getModelByPromptClassification(
       object.promptCategory,
       object.promptDifficulty,
     );
+    console.log(object);
+    console.log(model);
     // generate repsonse, stream text back to client
     const result = await thread.streamText(
       {
@@ -93,6 +99,10 @@ export const continueThread = internalAction({
     await ctx.runMutation(internal.threads.updateThreadState, {
       threadId: threadId,
       state: "idle",
+    });
+    await ctx.runMutation(internal.threads.updateThreadCategory, {
+      threadId: threadId,
+      category: object.promptCategory,
     });
   },
 });
