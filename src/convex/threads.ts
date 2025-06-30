@@ -196,10 +196,7 @@ export const getThreadTitle = query({
       .query("threadMetadata")
       .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
       .first();
-    if (!metadata) {
-      throw new Error("Metadata not found");
-    }
-    return metadata.title;
+    return metadata?.title;
   },
 });
 

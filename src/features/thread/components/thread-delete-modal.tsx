@@ -28,7 +28,7 @@ export default function ThreadDeleteModal() {
         setTimeout(() => {
           deleteThread({ threadId: selectedThread });
           setSelectedThread(null);
-        }, 100);
+        }, 500);
       }}
       title="Delete Thread"
       message="Are you sure you want to delete this thread?"
