@@ -1,3 +1,5 @@
+"use client";
+
 import { Separator } from "@/components/ui/separator";
 import { MoveLeft, LogOut } from "lucide-react";
 import Link from "next/link";
@@ -9,20 +11,28 @@ import {
   SidebarMenu,
 } from "@/components/ui/sidebar";
 import { settingsTabs } from "@/features/settings/data";
+import { Fragment } from "react";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export default function SettingsDesktop() {
+  const pathname = usePathname();
+
   return (
     <Sidebar
       collapsible="none"
       variant="floating"
-      className="bg-background ml-20"
+      className="bg-background hidden md:flex"
     >
-      <SidebarContent className="justify-center">
+      <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton
+              asChild
+              className="hover:text-primary hover:bg-card"
+            >
               <Link href="/">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 ">
                   <MoveLeft className="h-4 w-4" />
                   <span>Back to chat</span>
                 </div>
@@ -31,11 +41,23 @@ export default function SettingsDesktop() {
           </SidebarMenuItem>
           <Separator />
           {settingsTabs.map((group, index) => (
-            <>
+            <Fragment key={index}>
               {group.map((tab) => (
-                <SidebarMenuItem key={tab.label} className="hover:bg-green-600">
-                  <SidebarMenuButton asChild>
-                    <Link href={tab.href} className="text-muted-foreground">
+                <SidebarMenuItem
+                  key={tab.label}
+                  className="hover:bg-card rounded-md"
+                >
+                  <SidebarMenuButton
+                    asChild
+                    className={`${pathname === tab.href && "bg-card"}`}
+                  >
+                    <Link
+                      href={tab.href}
+                      className={cn(
+                        "text-muted-foreground",
+                        pathname === tab.href && "text-primary font-bold",
+                      )}
+                    >
                       <tab.icon className="h-4 w-4" />
                       <span>{tab.label}</span>
                     </Link>
@@ -43,11 +65,11 @@ export default function SettingsDesktop() {
                 </SidebarMenuItem>
               ))}
               {index !== settingsTabs.length - 1 && <Separator />}
-            </>
+            </Fragment>
           ))}
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link href="/signout" className="text-muted-foreground">
+              <Link href="/" className="text-muted-foreground">
                 <LogOut className="h-4 w-4" />
                 <span>Sign Out</span>
               </Link>
