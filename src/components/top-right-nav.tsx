@@ -1,6 +1,6 @@
 "use client";
 
-import { Moon, Settings, Sun } from "lucide-react";
+import { Moon, Cog, Sun } from "lucide-react";
 import { Button } from "./ui/button";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -24,7 +24,7 @@ export default function TopRightNav() {
         onClick={() => router.push("/settings")}
         size="icon"
       >
-        <Settings className="h-4 w-4" />
+        <Cog className="h-4 w-4" />
       </Button>
     </div>
   );
