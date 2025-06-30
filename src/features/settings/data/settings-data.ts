@@ -1,16 +1,16 @@
-import { Cog, User, CreditCard, ChartNoAxesColumn, Mail } from "lucide-react";
+import { Cog, CreditCard, ChartNoAxesColumn, Mail, User } from "lucide-react";
 
 export const settingsTabs = [
   [
     {
-      label: "General",
-      href: "/settings",
-      icon: Cog,
-    },
-    {
       label: "Account",
       href: "/account",
       icon: User,
+    },
+    {
+      label: "General",
+      href: "/settings",
+      icon: Cog,
     },
   ],
   [
