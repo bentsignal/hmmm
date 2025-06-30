@@ -21,7 +21,7 @@ export default function TopRightNav() {
       </Button>
       <Button
         variant="ghost"
-        onClick={() => router.push("/settings")}
+        onClick={() => router.push("/account")}
         size="icon"
       >
         <Cog className="h-4 w-4" />
