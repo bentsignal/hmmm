@@ -1,1 +1,1 @@
-export { default } from "@/components/default-loading";
+export { default } from "@/features/settings/components/settings-loading";
