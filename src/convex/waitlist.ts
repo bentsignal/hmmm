@@ -1,4 +1,4 @@
-import { internal } from "./_generated/api";
+import { api } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 
 export const isOnWaitlist = query({
@@ -8,7 +8,7 @@ export const isOnWaitlist = query({
     if (!userId) {
       return false;
     }
-    const user = await ctx.runQuery(internal.users.getUser);
+    const user = await ctx.runQuery(api.users.getUser);
     return user?.waitlist === true;
   },
 });
@@ -20,7 +20,7 @@ export const joinWaitlist = mutation({
     if (!userId) {
       throw new Error("Unauthorized");
     }
-    const user = await ctx.runQuery(internal.users.getUser);
+    const user = await ctx.runQuery(api.users.getUser);
     if (!user) {
       throw new Error("User not found");
     }

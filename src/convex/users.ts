@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalQuery, mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 
 export const createUser = mutation({
   args: {
@@ -25,7 +25,7 @@ export const createUser = mutation({
   },
 });
 
-export const getUser = internalQuery({
+export const getUser = query({
   args: {},
   handler: async (ctx) => {
     const userId = await ctx.auth.getUserIdentity();
