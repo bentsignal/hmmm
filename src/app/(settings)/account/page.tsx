@@ -1,10 +1,17 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default async function Account() {
   const { userId } = await auth();
   if (!userId) {
     redirect("/login");
   }
-  return <p>account</p>;
+  return (
+    <Card className="w-full">
+      <CardContent className="flex justify-center">
+        <span className="text-xl font-bold">Account</span>
+      </CardContent>
+    </Card>
+  );
 }

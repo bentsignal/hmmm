@@ -10,8 +10,8 @@ export default function SettingsLayout({
   return (
     <SidebarProvider>
       <div
-        className="mx-auto mt-8 flex w-screen max-w-[1200px] flex-col px-4 
-        sm:max-h-screen md:mt-30 md:flex-row"
+        className="mx-auto mt-8 flex w-screen max-w-[1200px] flex-col gap-4 
+        px-4 sm:max-h-screen md:mt-30 md:flex-row"
       >
         <SettingsMobile />
         <SettingsDesktop />
