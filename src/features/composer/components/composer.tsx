@@ -13,7 +13,7 @@ export default function Composer() {
       <div
         className={cn(
           `bg-card supports-[backdrop-filter]:bg-card/60 max-w-4xl 
-          rounded-2xl border shadow-lg backdrop-blur`,
+          rounded-xl border shadow-lg backdrop-blur`,
         )}
       >
         <div className="flex flex-col items-end gap-3 p-4 sm:flex-row">
