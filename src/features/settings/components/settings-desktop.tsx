@@ -14,6 +14,7 @@ import { settingsTabs } from "@/features/settings/data";
 import { Fragment } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { SignOutButton } from "@clerk/nextjs";
 
 export default function SettingsDesktop() {
   const pathname = usePathname();
@@ -68,12 +69,14 @@ export default function SettingsDesktop() {
             </Fragment>
           ))}
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href="/" className="text-muted-foreground">
-                <LogOut className="h-4 w-4" />
-                <span>Sign Out</span>
-              </Link>
-            </SidebarMenuButton>
+            <SignOutButton>
+              <SidebarMenuButton asChild className="text-muted-foreground">
+                <span className="flex items-center gap-2 hover:cursor-pointer">
+                  <LogOut />
+                  <span>Sign out</span>
+                </span>
+              </SidebarMenuButton>
+            </SignOutButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>

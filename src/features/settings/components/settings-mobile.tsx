@@ -14,6 +14,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Fragment, useState } from "react";
+import { SignOutButton } from "@clerk/nextjs";
 
 export default function SettingsMobile() {
   const pathname = usePathname();
@@ -40,20 +41,6 @@ export default function SettingsMobile() {
           <SelectValue placeholder="General" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem
-            value="/"
-            onClick={() => {
-              if (isMobile) setIsOpen(false);
-            }}
-          >
-            <Link href="/">
-              <div className="flex items-center gap-2">
-                <MoveLeft className="h-4 w-4" />
-                <span>Back to chat</span>
-              </div>
-            </Link>
-          </SelectItem>
-          <SelectSeparator />
           {settingsTabs.map((group, groupIndex) => (
             <Fragment key={groupIndex}>
               {group.map((tab) => (
@@ -67,14 +54,14 @@ export default function SettingsMobile() {
               {groupIndex !== settingsTabs.length - 1 && <SelectSeparator />}
             </Fragment>
           ))}
-          <SelectItem value="/signout">
-            <Link href="/">
-              <div className="flex items-center gap-2">
+          <SignOutButton>
+            <SelectItem value="/">
+              <span className="flex items-center gap-2 text-sm">
                 <LogOut className="h-4 w-4" />
-                <span>Sign Out</span>
-              </div>
-            </Link>
-          </SelectItem>
+                <span>Sign out</span>
+              </span>
+            </SelectItem>
+          </SignOutButton>
         </SelectContent>
       </Select>
     </div>
