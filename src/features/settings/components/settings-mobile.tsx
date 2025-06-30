@@ -10,9 +10,8 @@ import {
 } from "@/components/ui/select";
 import { settingsTabs } from "@/features/settings/data";
 import { MoveLeft, LogOut } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { usePathname, useRouter } from "next/navigation";
 import { Fragment, useState } from "react";
 import { SignOutButton } from "@clerk/nextjs";
 
@@ -20,13 +19,11 @@ export default function SettingsMobile() {
   const pathname = usePathname();
   const router = useRouter();
 
-  const isMobile = useIsMobile();
-
   const [isOpen, setIsOpen] = useState(false);
   const [value, setValue] = useState(pathname);
 
   return (
-    <div className="mb-4 flex justify-center md:hidden">
+    <div className="mb-4 flex flex-col items-center justify-center gap-4 md:hidden">
       <Select
         onValueChange={(value) => {
           setIsOpen(false);
@@ -64,6 +61,12 @@ export default function SettingsMobile() {
           </SignOutButton>
         </SelectContent>
       </Select>
+      <Link href="/" className="text-muted-foreground text-sm">
+        <div className="flex items-center gap-2">
+          <MoveLeft className="h-4 w-4" />
+          <span>Back to chat</span>
+        </div>
+      </Link>
     </div>
   );
 }
