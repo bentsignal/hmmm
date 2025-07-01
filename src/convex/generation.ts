@@ -52,15 +52,16 @@ export const continueThread = internalAction({
   },
   handler: async (ctx, args) => {
     const { threadId, promptMessageId, prompt } = args;
-    // get thread
-    const { thread } = await agent.continueThread(ctx, {
-      threadId: threadId,
-    });
-    // get the category set by the last prompt
-    const category = await ctx.runQuery(internal.threads.getThreadCategory, {
-      threadId: threadId,
-    });
-    // classify the user's prompt
+    // get thread info & previous category classification
+    const [category, { thread }] = await Promise.all([
+      ctx.runQuery(internal.threads.getThreadCategory, {
+        threadId: threadId,
+      }),
+      agent.continueThread(ctx, {
+        threadId: threadId,
+      }),
+    ]);
+    // classify the user's prompt by category and difficulty
     const { object } = await generateObject({
       model: classifierModel,
       schema: z.object({
@@ -69,12 +70,12 @@ export const continueThread = internalAction({
       }),
       prompt: getClassifierPrompt(prompt, category),
     });
-    // determine which model to use based on the prompt type
+    // determine which model to use based on the prompt classification
     const model = getModelByPromptClassification(
       object.promptCategory,
       object.promptDifficulty,
     );
-    // generate repsonse, stream text back to client
+    // initiate response
     const result = await thread.streamText(
       {
         promptMessageId,
@@ -89,18 +90,22 @@ export const continueThread = internalAction({
       },
       { saveStreamDeltas: true },
     );
-    await ctx.runMutation(internal.threads.updateThreadState, {
-      threadId: threadId,
-      state: "streaming",
-    });
+    // thread is ready to stream response, update state & category
+    await Promise.all([
+      ctx.runMutation(internal.threads.updateThreadState, {
+        threadId: threadId,
+        state: "streaming",
+      }),
+      ctx.runMutation(internal.threads.updateThreadCategory, {
+        threadId: threadId,
+        category: object.promptCategory,
+      }),
+    ]);
+    // stream response back to user, set back to idle once it has finished
     await result.consumeStream();
     await ctx.runMutation(internal.threads.updateThreadState, {
       threadId: threadId,
       state: "idle",
-    });
-    await ctx.runMutation(internal.threads.updateThreadCategory, {
-      threadId: threadId,
-      category: object.promptCategory,
     });
   },
 });
