@@ -47,11 +47,10 @@ export const continueThread = internalAction({
     threadId: v.string(),
     promptMessageId: v.string(),
     prompt: v.string(),
-    // modelId: v.string(),
-    // useSearch: v.optional(v.boolean()),
+    userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { threadId, promptMessageId, prompt } = args;
+    const { threadId, promptMessageId, prompt, userId } = args;
     // get thread info & previous category classification
     const [category, { thread }] = await Promise.all([
       ctx.runQuery(internal.threads.getThreadCategory, {
@@ -62,7 +61,7 @@ export const continueThread = internalAction({
       }),
     ]);
     // classify the user's prompt by category and difficulty
-    const { object } = await generateObject({
+    const { object, usage: classificationUsage } = await generateObject({
       model: classifierModel.model,
       schema: z.object({
         promptDifficulty: promptDifficultyEnum,
@@ -96,16 +95,50 @@ export const continueThread = internalAction({
         threadId: threadId,
         state: "streaming",
       }),
+    ]);
+    // stream response back to user
+    await result.consumeStream();
+    // stream has completed, set back to idle and store category
+    await Promise.all([
+      await ctx.runMutation(internal.threads.updateThreadState, {
+        threadId: threadId,
+        state: "idle",
+      }),
       ctx.runMutation(internal.threads.updateThreadCategory, {
         threadId: threadId,
         category: object.promptCategory,
       }),
     ]);
-    // stream response back to user, set back to idle once it has finished
-    await result.consumeStream();
-    await ctx.runMutation(internal.threads.updateThreadState, {
-      threadId: threadId,
-      state: "idle",
-    });
+    // calculate usage
+    const million = 1000000;
+    const { promptTokens: inputTokens, completionTokens: outputTokens } =
+      await result.usage;
+    // cost of prompt & response
+    const inputCost = chosenModel.cost.in * (inputTokens / million);
+    const outputCost = chosenModel.cost.out * (outputTokens / million);
+    // cost to classify prompt category & difficulty
+    const classificationCost =
+      classifierModel.cost.in * (classificationUsage.promptTokens / million) +
+      classifierModel.cost.out *
+        (classificationUsage.completionTokens / million);
+    // cost of other operations (currently just the flat search rate for perplexity)
+    const otherCost = chosenModel.cost.other;
+    const totalCost = inputCost + outputCost + classificationCost + otherCost;
+    await Promise.all([
+      ctx.runMutation(internal.messages.insertMessageMetadata, {
+        messageId: promptMessageId,
+        threadId: threadId,
+        userId: userId,
+        category: object.promptCategory,
+        difficulty: object.promptDifficulty,
+        model: chosenModel.id,
+        inputTokens: inputTokens,
+        outputTokens: outputTokens,
+        inputCost: inputCost,
+        outputCost: outputCost,
+        otherCost: otherCost,
+        totalCost: totalCost,
+      }),
+    ]);
   },
 });

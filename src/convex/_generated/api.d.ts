@@ -12,6 +12,7 @@ import type * as agent from "../agent.js";
 import type * as auth from "../auth.js";
 import type * as clerk from "../clerk.js";
 import type * as generation from "../generation.js";
+import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
 import type * as threads from "../threads.js";
 import type * as users from "../users.js";
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   clerk: typeof clerk;
   generation: typeof generation;
+  messages: typeof messages;
   migrations: typeof migrations;
   threads: typeof threads;
   users: typeof users;

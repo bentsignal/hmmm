@@ -113,6 +113,7 @@ export const requestNewThreadCreation = mutation({
         threadId: threadId,
         promptMessageId: messageId,
         prompt: message,
+        userId: userId.subject,
       }),
     ]);
     return threadId;
@@ -154,6 +155,7 @@ export const newThreadMessage = mutation({
       threadId: args.threadId,
       promptMessageId: messageId,
       prompt: prompt,
+      userId: metadata.userId,
     });
   },
 });
@@ -169,9 +171,13 @@ export const deleteThread = mutation({
       .query("threadMetadata")
       .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
       .first();
-    if (metadata) {
-      await ctx.db.delete(metadata._id);
+    if (!metadata) {
+      throw new Error("Metadata not found");
     }
+    if (metadata.state !== "idle") {
+      throw new Error("Thread is not idle");
+    }
+    await ctx.db.delete(metadata._id);
     ctx.scheduler.runAfter(
       0,
       components.agent.threads.deleteAllForThreadIdAsync,

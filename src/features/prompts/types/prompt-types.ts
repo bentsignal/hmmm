@@ -3,6 +3,11 @@ import { v } from "convex/values";
 
 export const promptDifficultyEnum = z.enum(["easy", "medium", "hard"]);
 export type PromptDifficulty = z.infer<typeof promptDifficultyEnum>;
+export const convexDifficultyEnum = v.union(
+  v.literal("easy"),
+  v.literal("medium"),
+  v.literal("hard"),
+);
 
 export const promptCategoryEnum = z.enum([
   "general",

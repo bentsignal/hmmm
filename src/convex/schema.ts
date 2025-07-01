@@ -1,6 +1,9 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { convexCategoryEnum } from "@/features/prompts/types/prompt-types";
+import {
+  convexCategoryEnum,
+  convexDifficultyEnum,
+} from "@/features/prompts/types/prompt-types";
 
 export default defineSchema({
   users: defineTable({
@@ -27,4 +30,18 @@ export default defineSchema({
       searchField: "title",
       filterFields: ["userId"],
     }),
+  messageMetadata: defineTable({
+    messageId: v.string(),
+    threadId: v.string(),
+    userId: v.string(),
+    category: convexCategoryEnum,
+    difficulty: convexDifficultyEnum,
+    model: v.string(),
+    inputTokens: v.number(),
+    outputTokens: v.number(),
+    inputCost: v.number(),
+    outputCost: v.number(),
+    otherCost: v.number(),
+    totalCost: v.number(),
+  }).index("by_user_thread", ["userId", "threadId"]),
 });
