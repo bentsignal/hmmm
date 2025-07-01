@@ -5,8 +5,19 @@ import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { useAuth } from "@clerk/nextjs";
 import { env } from "@/env";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ConvexQueryClient } from "@convex-dev/react-query";
 
 const convex = new ConvexReactClient(env.NEXT_PUBLIC_CONVEX_URL);
+const convexQueryClient = new ConvexQueryClient(convex);
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
+convexQueryClient.connect(queryClient);
 
 export default function ConvexClientProvider({
   children,
@@ -15,7 +26,7 @@ export default function ConvexClientProvider({
 }) {
   return (
     <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-      {children}
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </ConvexProviderWithClerk>
   );
 }
