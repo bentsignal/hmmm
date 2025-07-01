@@ -25,7 +25,7 @@ export async function transcribeAudio(audio: ArrayBuffer) {
   const audioBuffer = Buffer.from(audio);
   const { data: transcription, error } = await tryCatch(
     transcribe({
-      model: transcriptionModel,
+      model: transcriptionModel.model,
       audio: audioBuffer,
     }),
   );

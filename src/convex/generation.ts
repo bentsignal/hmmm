@@ -22,7 +22,7 @@ export const generateTitle = internalAction({
   },
   handler: async (ctx, args) => {
     const response = await generateText({
-      model: titleGeneratorModel,
+      model: titleGeneratorModel.model,
       prompt: args.message,
       system: titleGeneratorPrompt,
     });
@@ -63,7 +63,7 @@ export const continueThread = internalAction({
     ]);
     // classify the user's prompt by category and difficulty
     const { object } = await generateObject({
-      model: classifierModel,
+      model: classifierModel.model,
       schema: z.object({
         promptDifficulty: promptDifficultyEnum,
         promptCategory: promptCategoryEnum,
@@ -71,7 +71,7 @@ export const continueThread = internalAction({
       prompt: getClassifierPrompt(prompt, category),
     });
     // determine which model to use based on the prompt classification
-    const model = getModelByPromptClassification(
+    const chosenModel = getModelByPromptClassification(
       object.promptCategory,
       object.promptDifficulty,
     );
@@ -79,7 +79,7 @@ export const continueThread = internalAction({
     const result = await thread.streamText(
       {
         promptMessageId,
-        model,
+        model: chosenModel.model,
         providerOptions: {
           openrouter: {
             reasoning: {

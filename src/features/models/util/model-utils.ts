@@ -12,9 +12,9 @@ export const getModelByPromptClassification = (
         case "easy":
           return defaultModel;
         case "medium":
-          return models.google["Gemini 2.5 Flash"].model;
+          return models["google/gemini-2.5-flash"];
         case "hard":
-          return models.google["Gemini 2.5 Flash"].model;
+          return models["google/gemini-2.5-flash"];
         default:
           return defaultModel;
       }
@@ -23,9 +23,9 @@ export const getModelByPromptClassification = (
         case "easy":
           return defaultModel;
         case "medium":
-          return models.google["Gemini 2.5 Flash"].model;
+          return models["google/gemini-2.5-flash"];
         case "hard":
-          return models.openai.o3.model;
+          return models["openai/o3-2025-04-16"];
         default:
           return defaultModel;
       }
@@ -34,9 +34,9 @@ export const getModelByPromptClassification = (
         case "easy":
           return defaultModel;
         case "medium":
-          return models.google["Gemini 2.5 Flash"].model;
+          return models["google/gemini-2.5-flash"];
         case "hard":
-          return models.anthropic["Claude 4 Sonnet"].model;
+          return models["anthropic/claude-4-sonnet-20250522"];
         default:
           return defaultModel;
       }
@@ -45,22 +45,22 @@ export const getModelByPromptClassification = (
         case "easy":
           return defaultModel;
         case "medium":
-          return models.xai["Grok 3 Mini"].model;
+          return models["x-ai/grok-3-mini"];
         case "hard":
-          return models.openai["o4 mini"].model;
+          return models["openai/o4-mini-high"];
         default:
           return defaultModel;
       }
     case "search":
       switch (promptDifficulty) {
         case "easy":
-          return models.perplexity.sonar.model;
+          return models["perplexity/sonar"];
         case "medium":
-          return models.perplexity.sonar.model;
+          return models["perplexity/sonar"];
         case "hard":
-          return models.perplexity["Sonar Reasoning Pro"].model;
+          return models["perplexity/sonar-reasoning-pro"];
         default:
-          return models.perplexity.sonar.model;
+          return models["perplexity/sonar"];
       }
     default:
       return defaultModel;

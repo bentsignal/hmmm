@@ -4,7 +4,9 @@ import { systemPrompt } from "@/features/prompts";
 import { defaultModel } from "@/features/models";
 
 export const agent = new Agent(components.agent, {
-  chat: defaultModel,
+  chat: defaultModel.model,
+  name: "QBE",
   instructions: systemPrompt,
   maxSteps: 10,
+  // usageHandler: async (ctx, args) => {},
 });
