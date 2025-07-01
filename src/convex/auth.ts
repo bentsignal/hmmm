@@ -1,5 +1,5 @@
 import { mutation, MutationCtx, query, QueryCtx } from "./_generated/server";
-import { api, components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import { agent } from "./agent";
 import { v } from "convex/values";
 
@@ -12,7 +12,7 @@ export const isUserSubscribed = query({
   args: {},
   handler: async (ctx): Promise<boolean | null> => {
     // auth check is done in getUser
-    const user = await ctx.runQuery(api.users.getUser);
+    const user = await ctx.runQuery(internal.users.getUser);
     if (!user) {
       return null;
     }
@@ -26,7 +26,7 @@ export const requestAccess = mutation({
   },
   handler: async (ctx, args) => {
     const { code } = args;
-    const user = await ctx.runQuery(api.users.getUser);
+    const user = await ctx.runQuery(internal.users.getUser);
     if (!user) {
       throw new Error("Unauthorized");
     }
