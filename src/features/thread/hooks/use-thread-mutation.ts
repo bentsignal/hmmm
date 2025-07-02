@@ -1,6 +1,9 @@
 import { api } from "@/convex/_generated/api";
 import { optimisticallySendMessage } from "@convex-dev/agent/react";
 import { useMutation } from "convex/react";
+import { useConvexMutation } from "@convex-dev/react-query";
+import { useMutation as useTanstackMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export default function useThreadMutation() {
   const createThread = useMutation(api.threads.requestNewThreadCreation);
@@ -9,7 +12,13 @@ export default function useThreadMutation() {
   ).withOptimisticUpdate(
     optimisticallySendMessage(api.threads.getThreadMessages),
   );
-  const deleteThread = useMutation(api.threads.deleteThread);
+  const { mutate: deleteThread } = useTanstackMutation({
+    mutationFn: useConvexMutation(api.threads.deleteThread),
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to delete thread");
+    },
+  });
   return {
     createThread,
     newThreadMessage,
