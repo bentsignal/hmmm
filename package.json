@@ -17,6 +17,7 @@
     "@convex-dev/agent": "0.1.9",
     "@convex-dev/aggregate": "^0.1.21",
     "@convex-dev/migrations": "^0.2.9",
+    "@convex-dev/polar": "^0.5.0",
     "@convex-dev/react-query": "0.0.0-alpha.11",
     "@openrouter/ai-sdk-provider": "^0.7.1",
     "@radix-ui/react-alert-dialog": "^1.1.14",
