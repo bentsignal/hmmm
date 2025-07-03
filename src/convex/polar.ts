@@ -23,7 +23,7 @@ export const polar = new Polar(components.polar, {
   },
 });
 
-export const getCurrentUser = query({
+export const getUserPlan = query({
   args: {},
   handler: async (ctx) => {
     const user = await ctx.auth.getUserIdentity();
@@ -33,14 +33,7 @@ export const getCurrentUser = query({
       userId: user.subject,
     });
 
-    return {
-      ...user,
-      subscription,
-      isFree: !subscription,
-      isPremium:
-        subscription?.productKey === "premiumMonthly" ||
-        subscription?.productKey === "premiumYearly",
-    };
+    return subscription?.product.name ?? "Free";
   },
 });
 

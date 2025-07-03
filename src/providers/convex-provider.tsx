@@ -14,6 +14,8 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: false,
+      queryKeyHashFn: convexQueryClient.hashFn(),
+      queryFn: convexQueryClient.queryFn(),
     },
   },
 });
