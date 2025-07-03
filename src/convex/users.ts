@@ -1,22 +1,20 @@
 import { v } from "convex/values";
-import { mutation, query, internalQuery, QueryCtx } from "./_generated/server";
+import {
+  mutation,
+  query,
+  internalQuery,
+  QueryCtx,
+  internalMutation,
+} from "./_generated/server";
 import { components, internal } from "./_generated/api";
 
-export const createUser = mutation({
+export const createUser = internalMutation({
   args: {
     userId: v.string(),
     email: v.string(),
-    requestSecret: v.string(),
   },
   handler: async (ctx, args) => {
-    const { userId, email, requestSecret } = args;
-    const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
-    if (!webhookSecret) {
-      throw new Error("CLERK_WEBHOOK_SECRET is not set");
-    }
-    if (requestSecret !== webhookSecret) {
-      throw new Error("Invalid request secret");
-    }
+    const { userId, email } = args;
     await ctx.db.insert("users", {
       userId,
       email,
