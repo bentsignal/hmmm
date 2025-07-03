@@ -109,7 +109,7 @@ export declare const components: {
         "mutation",
         "internal",
         { fileIds: Array<string>; force?: boolean },
-        null
+        Array<string>
       >;
       get: FunctionReference<
         "query",
@@ -1901,6 +1901,36 @@ export declare const components: {
           splitCursor?: string | null;
         }
       >;
+      searchThreadTitles: FunctionReference<
+        "query",
+        "internal",
+        {
+          paginationOpts?: {
+            cursor: string | null;
+            endCursor?: string | null;
+            id?: number;
+            maximumBytesRead?: number;
+            maximumRowsRead?: number;
+            numItems: number;
+          };
+          query: string;
+          userId?: string | null;
+        },
+        {
+          continueCursor: string;
+          isDone: boolean;
+          page: Array<{
+            _creationTime: number;
+            _id: string;
+            status: "active" | "archived";
+            summary?: string;
+            title?: string;
+            userId?: string;
+          }>;
+          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+          splitCursor?: string | null;
+        }
+      >;
       updateThread: FunctionReference<
         "mutation",
         "internal",
@@ -1909,6 +1939,7 @@ export declare const components: {
             status?: "active" | "archived";
             summary?: string;
             title?: string;
+            userId?: string;
           };
           threadId: string;
         },
