@@ -1,5 +1,4 @@
 import { mutation, MutationCtx, query, QueryCtx } from "./_generated/server";
-import { components } from "./_generated/api";
 import { agent } from "./agent";
 import { v } from "convex/values";
 import { getUserByUserId } from "./users";
@@ -16,13 +15,17 @@ export const isUserSubscribed = query({
     if (!userId) {
       return null;
     }
-    const user = await getUserByUserId(ctx, userId.subject);
-    if (!user) {
-      return null;
-    }
-    return user.access === true;
+    return await subCheck(ctx, userId.subject);
   },
 });
+
+export const subCheck = async (ctx: QueryCtx, userId: string) => {
+  const user = await getUserByUserId(ctx, userId);
+  if (!user) {
+    return null;
+  }
+  return user.access === true;
+};
 
 export const requestAccess = mutation({
   args: {
@@ -33,7 +36,6 @@ export const requestAccess = mutation({
     if (!userId) {
       throw new Error("Unauthorized");
     }
-    const { code } = args;
     const user = await getUserByUserId(ctx, userId.subject);
     if (!user) {
       throw new Error("Unauthorized");
@@ -41,6 +43,7 @@ export const requestAccess = mutation({
     if (user.access === true) {
       throw new Error("User already has access");
     }
+    const { code } = args;
     if (code.toLowerCase() !== ACCESS_CODE.toLowerCase()) {
       throw new Error("Invalid code");
     }
@@ -56,15 +59,10 @@ export const authorizeThreadAccess = async (
   if (!userId) {
     throw new Error("Unauthorized");
   }
-  const thread = await ctx.runQuery(components.agent.threads.getThread, {
-    threadId,
-  });
-  if (!thread) {
+  const metadata = await agent.getThreadMetadata(ctx, { threadId });
+  if (!metadata) {
     throw new Error("Thread not found");
   }
-  const metadata = await agent.getThreadMetadata(ctx, {
-    threadId,
-  });
   if (metadata.userId !== userId.subject) {
     throw new Error("Unauthorized");
   }

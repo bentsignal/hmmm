@@ -1,4 +1,4 @@
-import { api, components, internal } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import {
   internalMutation,
   internalQuery,
@@ -9,7 +9,7 @@ import { v } from "convex/values";
 import { agent } from "./agent";
 import { paginationOptsValidator } from "convex/server";
 import { vStreamArgs } from "@convex-dev/agent/validators";
-import { authorizeThreadAccess } from "./auth";
+import { authorizeThreadAccess, subCheck } from "./auth";
 import { convexCategoryEnum } from "@/features/prompts/types/prompt-types";
 
 export const getThreadList = query({
@@ -79,7 +79,7 @@ export const requestNewThreadCreation = mutation({
     if (!userId) {
       throw new Error("Unauthorized");
     }
-    const isUserSubscribed = await ctx.runQuery(api.auth.isUserSubscribed);
+    const isUserSubscribed = await subCheck(ctx, userId.subject);
     if (!isUserSubscribed) {
       throw new Error("User is not subscribed");
     }
@@ -89,33 +89,32 @@ export const requestNewThreadCreation = mutation({
       userId: userId.subject,
       title: "New Chat",
     });
-    await ctx.db.insert("threadMetadata", {
-      userId: userId.subject,
-      title: "New Chat",
-      threadId: threadId,
-      updatedAt: Date.now(),
-      state: "waiting",
-    });
-    // save user's message to thread
-    const { message } = args;
-    const { messageId } = await agent.saveMessage(ctx, {
-      threadId,
-      prompt: message,
-      skipEmbeddings: true,
-    });
-    // generate title for new thread, and start response
-    await Promise.all([
-      ctx.scheduler.runAfter(0, internal.generation.generateTitle, {
-        threadId: threadId,
-        message: message,
+    // create metadata doc for thread and store first message
+    const [{ messageId }] = await Promise.all([
+      agent.saveMessage(ctx, {
+        threadId,
+        prompt: args.message,
+        skipEmbeddings: true,
       }),
-      ctx.scheduler.runAfter(0, internal.generation.continueThread, {
-        threadId: threadId,
-        promptMessageId: messageId,
-        prompt: message,
+      ctx.db.insert("threadMetadata", {
         userId: userId.subject,
+        title: "New Chat",
+        threadId: threadId,
+        updatedAt: Date.now(),
+        state: "waiting",
       }),
     ]);
+    // generate title for new thread, and start response
+    ctx.scheduler.runAfter(0, internal.generation.generateTitle, {
+      threadId: threadId,
+      message: args.message,
+    });
+    ctx.scheduler.runAfter(0, internal.generation.continueThread, {
+      threadId: threadId,
+      promptMessageId: messageId,
+      prompt: args.message,
+      userId: userId.subject,
+    });
     return threadId;
   },
 });
@@ -127,8 +126,11 @@ export const newThreadMessage = mutation({
   },
   handler: async (ctx, args) => {
     const { threadId, prompt } = args;
-    await authorizeThreadAccess(ctx, threadId);
-    const isUserSubscribed = await ctx.runQuery(api.auth.isUserSubscribed);
+    const userId = await ctx.auth.getUserIdentity();
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+    const isUserSubscribed = await subCheck(ctx, userId.subject);
     if (!isUserSubscribed) {
       throw new Error("User is not subscribed");
     }
@@ -139,23 +141,28 @@ export const newThreadMessage = mutation({
     if (!metadata) {
       throw new Error("Metadata not found");
     }
+    if (metadata.userId !== userId.subject) {
+      throw new Error("Unauthorized");
+    }
     if (metadata.state !== "idle") {
       throw new Error("Thread is not idle");
     }
-    await ctx.db.patch(metadata._id, {
-      state: "waiting",
-      updatedAt: Date.now(),
-    });
-    const { messageId } = await agent.saveMessage(ctx, {
-      threadId,
-      prompt: prompt,
-      skipEmbeddings: true,
-    });
+    const [{ messageId }] = await Promise.all([
+      agent.saveMessage(ctx, {
+        threadId,
+        prompt: prompt,
+        skipEmbeddings: true,
+      }),
+      ctx.db.patch(metadata._id, {
+        state: "waiting",
+        updatedAt: Date.now(),
+      }),
+    ]);
     ctx.scheduler.runAfter(0, internal.generation.continueThread, {
       threadId: args.threadId,
       promptMessageId: messageId,
       prompt: prompt,
-      userId: metadata.userId,
+      userId: userId.subject,
     });
   },
 });
@@ -178,7 +185,7 @@ export const deleteThread = mutation({
       throw new Error("Thread is not idle");
     }
     await ctx.db.delete(metadata._id);
-    ctx.scheduler.runAfter(
+    await ctx.scheduler.runAfter(
       0,
       components.agent.threads.deleteAllForThreadIdAsync,
       {

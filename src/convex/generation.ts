@@ -89,18 +89,17 @@ export const continueThread = internalAction({
       },
       { saveStreamDeltas: true },
     );
-    // thread is ready to stream response, update state & category
+    // stream response back to user
     await Promise.all([
       ctx.runMutation(internal.threads.updateThreadState, {
         threadId: threadId,
         state: "streaming",
       }),
+      result.consumeStream(),
     ]);
-    // stream response back to user
-    await result.consumeStream();
     // stream has completed, set back to idle and store category
     await Promise.all([
-      await ctx.runMutation(internal.threads.updateThreadState, {
+      ctx.runMutation(internal.threads.updateThreadState, {
         threadId: threadId,
         state: "idle",
       }),
@@ -124,21 +123,19 @@ export const continueThread = internalAction({
     // cost of other operations (currently just the flat search rate for perplexity)
     const otherCost = chosenModel.cost.other;
     const totalCost = inputCost + outputCost + classificationCost + otherCost;
-    await Promise.all([
-      ctx.runMutation(internal.messages.insertMessageMetadata, {
-        messageId: promptMessageId,
-        threadId: threadId,
-        userId: userId,
-        category: object.promptCategory,
-        difficulty: object.promptDifficulty,
-        model: chosenModel.id,
-        inputTokens: inputTokens,
-        outputTokens: outputTokens,
-        inputCost: inputCost,
-        outputCost: outputCost,
-        otherCost: otherCost,
-        totalCost: totalCost,
-      }),
-    ]);
+    await ctx.runMutation(internal.messages.insertMessageMetadata, {
+      messageId: promptMessageId,
+      threadId: threadId,
+      userId: userId,
+      category: object.promptCategory,
+      difficulty: object.promptDifficulty,
+      model: chosenModel.id,
+      inputTokens: inputTokens,
+      outputTokens: outputTokens,
+      inputCost: inputCost,
+      outputCost: outputCost,
+      otherCost: otherCost,
+      totalCost: totalCost,
+    });
   },
 });
