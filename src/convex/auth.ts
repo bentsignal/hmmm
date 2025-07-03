@@ -1,7 +1,8 @@
 import { mutation, MutationCtx, query, QueryCtx } from "./_generated/server";
-import { components, internal } from "./_generated/api";
+import { components } from "./_generated/api";
 import { agent } from "./agent";
 import { v } from "convex/values";
+import { getUserByUserId } from "./users";
 
 const ACCESS_CODE = process.env.ACCESS_CODE;
 if (!ACCESS_CODE) {
@@ -11,8 +12,11 @@ if (!ACCESS_CODE) {
 export const isUserSubscribed = query({
   args: {},
   handler: async (ctx): Promise<boolean | null> => {
-    // auth check is done in getUser
-    const user = await ctx.runQuery(internal.users.getUser);
+    const userId = await ctx.auth.getUserIdentity();
+    if (!userId) {
+      return null;
+    }
+    const user = await getUserByUserId(ctx, userId.subject);
     if (!user) {
       return null;
     }
@@ -25,8 +29,12 @@ export const requestAccess = mutation({
     code: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await ctx.auth.getUserIdentity();
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
     const { code } = args;
-    const user = await ctx.runQuery(internal.users.getUser);
+    const user = await getUserByUserId(ctx, userId.subject);
     if (!user) {
       throw new Error("Unauthorized");
     }

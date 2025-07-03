@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, internalQuery } from "./_generated/server";
+import { mutation, query, internalQuery, QueryCtx } from "./_generated/server";
 import { components, internal } from "./_generated/api";
 
 export const createUser = mutation({
@@ -33,18 +33,26 @@ export const getUser = internalQuery({
     if (!userId) {
       return null;
     }
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_user_id", (q) => q.eq("userId", userId.subject))
-      .unique();
-    return user;
+    return await getUserByUserId(ctx, userId.subject);
   },
 });
 
+export const getUserByUserId = async (ctx: QueryCtx, userId: string) => {
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_user_id", (q) => q.eq("userId", userId))
+    .unique();
+  return user;
+};
+
 export const getUserEmail = query({
   args: {},
-  handler: async (ctx): Promise<string | null> => {
-    const user = await ctx.runQuery(internal.users.getUser);
+  handler: async (ctx) => {
+    const userId = await ctx.auth.getUserIdentity();
+    if (!userId) {
+      return null;
+    }
+    const user = await getUserByUserId(ctx, userId.subject);
     if (!user) {
       return null;
     }
@@ -52,7 +60,7 @@ export const getUserEmail = query({
   },
 });
 
-export const deleteUser = mutation({
+export const requestDeleteUser = mutation({
   args: {},
   handler: async (ctx) => {
     // auth check
@@ -61,46 +69,41 @@ export const deleteUser = mutation({
       throw new Error("Unauthorized");
     }
 
-    // delete all thread metadata
-    const threadMetadata = await ctx.db
-      .query("threadMetadata")
-      .withIndex("by_user_time", (q) => q.eq("userId", userId.subject))
-      .collect();
-    await Promise.all(
+    // delete all thread & message, and usage
+    const [threadMetadata, messageMetadata] = await Promise.all([
+      ctx.db
+        .query("threadMetadata")
+        .withIndex("by_user_time", (q) => q.eq("userId", userId.subject))
+        .collect(),
+      ctx.db
+        .query("messageMetadata")
+        .withIndex("by_user_thread", (q) => q.eq("userId", userId.subject))
+        .collect(),
+    ]);
+    await Promise.all([
       threadMetadata.map((metadata) => {
         return ctx.db.delete(metadata._id);
       }),
-    );
-
-    // delete all threads & corresponding messages from agent
-    const { page: threads } = await ctx.runQuery(
-      components.agent.threads.listThreadsByUserId,
-      {
-        userId: userId.subject,
-      },
-    );
-    await Promise.all(
-      threads.map((thread) => {
-        return ctx.scheduler.runAfter(
-          0,
-          components.agent.threads.deleteAllForThreadIdAsync,
-          {
-            threadId: thread._id,
-          },
-        );
+      messageMetadata.map((metadata) => {
+        return ctx.db.delete(metadata._id);
       }),
-    );
+    ]);
 
-    // delete user from clerk
-    await ctx.scheduler.runAfter(0, internal.clerk.deleteUserFromClerk, {
+    // delete all user info from agent component
+    await ctx.runMutation(components.agent.users.deleteAllForUserIdAsync, {
       userId: userId.subject,
     });
 
-    // delete user from users table in convex
-    const user = await ctx.runQuery(internal.users.getUser);
+    // delete user from convex
+    const user = await getUserByUserId(ctx, userId.subject);
     if (!user) {
       throw new Error("User not found");
     }
     await ctx.db.delete(user._id);
+
+    // delete user from clerk & customer from polar
+    await ctx.scheduler.runAfter(0, internal.user_actions.deleteUserAction, {
+      userId: userId.subject,
+    });
   },
 });

@@ -14,7 +14,7 @@ export default function DeleteAccount() {
   const [isOpen, setIsOpen] = useState(false);
 
   const { mutate: deleteAccount, isPending } = useMutation({
-    mutationFn: useConvexMutation(api.users.deleteUser),
+    mutationFn: useConvexMutation(api.users.requestDeleteUser),
     onSuccess: () => {
       router.push("/goodbye");
     },

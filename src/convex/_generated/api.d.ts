@@ -10,13 +10,13 @@
 
 import type * as agent from "../agent.js";
 import type * as auth from "../auth.js";
-import type * as clerk from "../clerk.js";
 import type * as generation from "../generation.js";
 import type * as http from "../http.js";
 import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
 import type * as polar from "../polar.js";
 import type * as threads from "../threads.js";
+import type * as user_actions from "../user_actions.js";
 import type * as users from "../users.js";
 import type * as waitlist from "../waitlist.js";
 
@@ -37,13 +37,13 @@ import type {
 declare const fullApi: ApiFromModules<{
   agent: typeof agent;
   auth: typeof auth;
-  clerk: typeof clerk;
   generation: typeof generation;
   http: typeof http;
   messages: typeof messages;
   migrations: typeof migrations;
   polar: typeof polar;
   threads: typeof threads;
+  user_actions: typeof user_actions;
   users: typeof users;
   waitlist: typeof waitlist;
 }>;

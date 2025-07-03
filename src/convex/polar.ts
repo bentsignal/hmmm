@@ -52,9 +52,6 @@ export const syncProducts = internalAction({
 });
 
 export const {
-  // changeCurrentSubscription,
-  // cancelCurrentSubscription,
-  // getConfiguredProducts,
   listAllProducts,
   generateCheckoutLink,
   generateCustomerPortalUrl,
