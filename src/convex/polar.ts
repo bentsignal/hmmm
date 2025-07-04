@@ -33,7 +33,14 @@ export const getUserPlan = query({
       userId: user.subject,
     });
 
-    return subscription?.product.name ?? "Free";
+    if (!subscription) {
+      return null;
+    }
+
+    return {
+      name: subscription.product.name,
+      price: subscription.product.prices[0].priceAmount ?? 0,
+    };
   },
 });
 
