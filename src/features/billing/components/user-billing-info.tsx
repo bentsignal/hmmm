@@ -35,6 +35,9 @@ export default function UserBillingInfo({
         </span>
       </span>
       <div className="flex gap-2">
+        <Link href="/pricing">
+          <Button variant="outline">View plans</Button>
+        </Link>
         {!plan ? (
           <CheckoutLink
             polarApi={{
@@ -51,12 +54,11 @@ export default function UserBillingInfo({
               generateCustomerPortalUrl: api.polar.generateCustomerPortalUrl,
             }}
           >
-            <Button>Manage subscription</Button>
+            <Button className="animate-in fade-in duration-300">
+              Manage subscription
+            </Button>
           </CustomerPortalLink>
         )}
-        <Link href="/pricing">
-          <Button variant="outline">View plans</Button>
-        </Link>
       </div>
     </div>
   );
