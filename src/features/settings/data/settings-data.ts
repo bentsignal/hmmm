@@ -3,32 +3,32 @@ import { Cog, CreditCard, ChartNoAxesColumn, Mail, User } from "lucide-react";
 export const settingsTabs = [
   [
     {
-      label: "Account",
-      href: "/account",
-      icon: User,
+      label: "General",
+      href: "/settings/general",
+      icon: Cog,
     },
     {
-      label: "General",
-      href: "/settings",
-      icon: Cog,
+      label: "Account",
+      href: "/settings/account",
+      icon: User,
     },
   ],
   [
     {
       label: "Billing",
-      href: "/billing",
+      href: "/settings/billing",
       icon: CreditCard,
     },
     {
       label: "Usage",
-      href: "/usage",
+      href: "/settings/usage",
       icon: ChartNoAxesColumn,
     },
   ],
   [
     {
       label: "Contact",
-      href: "/contact",
+      href: "/settings/contact",
       icon: Mail,
     },
   ],
