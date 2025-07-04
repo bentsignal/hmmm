@@ -35,7 +35,7 @@ export default function SettingsDesktop() {
               <Link href="/">
                 <div className="flex items-center gap-2 ">
                   <MoveLeft className="h-4 w-4" />
-                  <span>Back to chat</span>
+                  <span>Back</span>
                 </div>
               </Link>
             </SidebarMenuButton>
