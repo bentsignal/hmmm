@@ -4,6 +4,7 @@ import {
   internalQuery,
   mutation,
   query,
+  QueryCtx,
 } from "./_generated/server";
 import { v } from "convex/values";
 import { agent } from "./agent";
@@ -12,18 +13,33 @@ import { vStreamArgs } from "@convex-dev/agent/validators";
 import { authorizeThreadAccess, subCheck } from "./auth";
 import { convexCategoryEnum } from "@/features/prompts/types/prompt-types";
 
+// get thread metadata from table separate from agent component. this
+// is where all custom info related to thread state is located
+const getThreadMetadata = async (ctx: QueryCtx, threadId: string) => {
+  const metadata = await ctx.db
+    .query("threadMetadata")
+    .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
+    .first();
+  if (!metadata) {
+    throw new Error("Metadata not found");
+  }
+  return metadata;
+};
+
 export const getThreadList = query({
   args: {
     paginationOpts: paginationOptsValidator,
     search: v.string(),
   },
   handler: async (ctx, args) => {
+    // auth check
     const userId = await ctx.auth.getUserIdentity();
     if (!userId) {
       throw new Error("Unauthorized");
     }
     const { paginationOpts, search } = args;
     if (search.trim().length > 0) {
+      // filter threads by search term
       const threads = await ctx.db
         .query("threadMetadata")
         .withSearchIndex("search_title", (q) =>
@@ -32,6 +48,7 @@ export const getThreadList = query({
         .paginate(paginationOpts);
       return threads;
     } else {
+      // get all threads for user
       const threads = await ctx.db
         .query("threadMetadata")
         .withIndex("by_user_time", (q) => q.eq("userId", userId.subject))
@@ -53,15 +70,18 @@ export const getThreadMessages = query({
     if (threadId.trim().length === 0) {
       throw new Error("Empty thread ID");
     }
+    // auth check is done here
     await authorizeThreadAccess(ctx, threadId);
-    const streams = await agent.syncStreams(ctx, {
-      threadId,
-      streamArgs,
-    });
-    const paginated = await agent.listMessages(ctx, {
-      threadId,
-      paginationOpts,
-    });
+    const [streams, paginated] = await Promise.all([
+      agent.syncStreams(ctx, {
+        threadId,
+        streamArgs,
+      }),
+      agent.listMessages(ctx, {
+        threadId,
+        paginationOpts,
+      }),
+    ]);
     return {
       ...paginated,
       streams,
@@ -126,6 +146,7 @@ export const newThreadMessage = mutation({
   },
   handler: async (ctx, args) => {
     const { threadId, prompt } = args;
+    // auth & sub check
     const userId = await ctx.auth.getUserIdentity();
     if (!userId) {
       throw new Error("Unauthorized");
@@ -134,19 +155,15 @@ export const newThreadMessage = mutation({
     if (!isUserSubscribed) {
       throw new Error("User is not subscribed");
     }
-    const metadata = await ctx.db
-      .query("threadMetadata")
-      .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
-      .first();
-    if (!metadata) {
-      throw new Error("Metadata not found");
-    }
+    // get thread metadata
+    const metadata = await getThreadMetadata(ctx, threadId);
     if (metadata.userId !== userId.subject) {
       throw new Error("Unauthorized");
     }
     if (metadata.state !== "idle") {
       throw new Error("Thread is not idle");
     }
+    // save new message, schedule response action
     const [{ messageId }] = await Promise.all([
       agent.saveMessage(ctx, {
         threadId,
@@ -172,20 +189,23 @@ export const deleteThread = mutation({
     threadId: v.string(),
   },
   handler: async (ctx, args) => {
+    // auth check
+    const userId = await ctx.auth.getUserIdentity();
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+    // get thread metadata
     const { threadId } = args;
-    await authorizeThreadAccess(ctx, threadId);
-    const metadata = await ctx.db
-      .query("threadMetadata")
-      .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
-      .first();
-    if (!metadata) {
-      throw new Error("Metadata not found");
+    const metadata = await getThreadMetadata(ctx, threadId);
+    if (metadata.userId !== userId.subject) {
+      throw new Error("Unauthorized");
     }
     if (metadata.state !== "idle") {
       throw new Error("Thread is not idle");
     }
+    // delete metadata and thread
     await ctx.db.delete(metadata._id);
-    await ctx.scheduler.runAfter(
+    ctx.scheduler.runAfter(
       0,
       components.agent.threads.deleteAllForThreadIdAsync,
       {
@@ -200,15 +220,15 @@ export const getThreadTitle = query({
     threadId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { threadId } = args;
-    if (threadId === "skip" || threadId === "" || threadId === "xr") {
-      return "QBE";
+    const userId = await ctx.auth.getUserIdentity();
+    if (!userId) {
+      throw new Error("Unauthorized");
     }
-    await authorizeThreadAccess(ctx, threadId);
-    const metadata = await ctx.db
-      .query("threadMetadata")
-      .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
-      .first();
+    const { threadId } = args;
+    const metadata = await getThreadMetadata(ctx, threadId);
+    if (metadata.userId !== userId.subject) {
+      throw new Error("Unauthorized");
+    }
     return metadata?.title;
   },
 });
@@ -220,13 +240,7 @@ export const updateThreadTitle = internalMutation({
   },
   handler: async (ctx, args) => {
     const { title, threadId } = args;
-    const metadata = await ctx.db
-      .query("threadMetadata")
-      .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
-      .first();
-    if (!metadata) {
-      throw new Error("Metadata not found");
-    }
+    const metadata = await getThreadMetadata(ctx, threadId);
     await ctx.db.patch(metadata._id, {
       title: title,
     });
@@ -244,13 +258,7 @@ export const updateThreadState = internalMutation({
   },
   handler: async (ctx, args) => {
     const { threadId, state } = args;
-    const metadata = await ctx.db
-      .query("threadMetadata")
-      .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
-      .first();
-    if (!metadata) {
-      throw new Error("Metadata not found");
-    }
+    const metadata = await getThreadMetadata(ctx, threadId);
     await ctx.db.patch(metadata._id, {
       state: state,
     });
@@ -262,17 +270,17 @@ export const getThreadState = query({
     threadId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { threadId } = args;
-    if (threadId === "skip" || threadId === "" || threadId === "xr") {
+    if (args.threadId.trim().length === 0) {
       return "idle";
     }
-    await authorizeThreadAccess(ctx, threadId);
-    const metadata = await ctx.db
-      .query("threadMetadata")
-      .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
-      .first();
-    if (!metadata) {
-      throw new Error("Metadata not found");
+    const userId = await ctx.auth.getUserIdentity();
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+    const { threadId } = args;
+    const metadata = await getThreadMetadata(ctx, threadId);
+    if (metadata.userId !== userId.subject) {
+      throw new Error("Unauthorized");
     }
     return metadata.state;
   },
@@ -285,13 +293,7 @@ export const updateThreadCategory = internalMutation({
   },
   handler: async (ctx, args) => {
     const { threadId, category } = args;
-    const metadata = await ctx.db
-      .query("threadMetadata")
-      .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
-      .first();
-    if (!metadata) {
-      throw new Error("Metadata not found");
-    }
+    const metadata = await getThreadMetadata(ctx, threadId);
     await ctx.db.patch(metadata._id, {
       category: category,
     });
@@ -304,10 +306,7 @@ export const getThreadCategory = internalQuery({
   },
   handler: async (ctx, args) => {
     const { threadId } = args;
-    const metadata = await ctx.db
-      .query("threadMetadata")
-      .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
-      .first();
+    const metadata = await getThreadMetadata(ctx, threadId);
     return metadata?.category;
   },
 });
