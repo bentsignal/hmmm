@@ -95,6 +95,9 @@ export const requestNewThreadCreation = mutation({
     message: v.string(),
   },
   handler: async (ctx, args) => {
+    if (args.message.length > 20000) {
+      throw new Error("Message is too long. Please shorten your message.");
+    }
     // auth & sub check
     const userId = await ctx.auth.getUserIdentity();
     if (!userId) {
@@ -147,6 +150,9 @@ export const newThreadMessage = mutation({
   },
   handler: async (ctx, args) => {
     const { threadId, prompt } = args;
+    if (prompt.length > 20000) {
+      throw new Error("Message is too long. Please shorten your message.");
+    }
     // auth & sub check
     const userId = await ctx.auth.getUserIdentity();
     if (!userId) {

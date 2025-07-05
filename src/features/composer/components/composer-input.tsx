@@ -33,6 +33,7 @@ export default function ComposerInput() {
       placeholder="Type your message..."
       disabled={disabled}
       rows={1}
+      maxLength={20000}
       className={`file:text-foreground placeholder:text-muted-foreground selection:bg-primary 
               selection:text-primary-foreground focus-visible:ring-ring/0 
               aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 scrollbar-thin 
