@@ -9,6 +9,6 @@ export default function useUsage() {
     data: usage,
     isLoading: usageLoading,
     error: usageError,
-  } = useQuery(convexQuery(api.messages.getUsage, args));
+  } = useQuery(convexQuery(api.usage.getUsage, args));
   return { usage, usageLoading, usageError };
 }

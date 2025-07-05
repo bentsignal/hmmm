@@ -1,6 +1,9 @@
 import { Polar } from "@convex-dev/polar";
 import { components, api, internal } from "./_generated/api";
-import { internalAction, mutation, query } from "./_generated/server";
+import { internalAction, mutation, query, QueryCtx } from "./_generated/server";
+
+// highest tier plan
+const MAX_PLAN_NAME = "Ultra";
 
 export const getUserIdentity = query({
   args: {},
@@ -28,21 +31,23 @@ export const getUserPlan = query({
   handler: async (ctx) => {
     const user = await ctx.auth.getUserIdentity();
     if (!user) throw new Error("No user found");
-
-    const subscription = await polar.getCurrentSubscription(ctx, {
-      userId: user.subject,
-    });
-
-    if (!subscription) {
-      return null;
-    }
-
-    return {
-      name: subscription.product.name,
-      price: subscription.product.prices[0].priceAmount ?? 0,
-    };
+    return await getUserPlanHelper(ctx, user.subject);
   },
 });
+
+export const getUserPlanHelper = async (ctx: QueryCtx, userId: string) => {
+  const subscription = await polar.getCurrentSubscription(ctx, {
+    userId,
+  });
+  if (!subscription) {
+    return null;
+  }
+  return {
+    name: subscription.product.name,
+    price: subscription.product.prices[0]?.priceAmount ?? 0,
+    max: subscription.product.name === MAX_PLAN_NAME,
+  };
+};
 
 export const triggerSync = mutation({
   args: {},
