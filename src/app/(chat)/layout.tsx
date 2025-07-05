@@ -1,4 +1,3 @@
-import Composer from "@/features/composer/components";
 import TopRightNav from "@/components/top-right-nav";
 import {
   SidebarInset,
@@ -6,7 +5,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { auth } from "@clerk/nextjs/server";
-import ErrorBoundary from "@/components/error-boundary";
 import ThreadList from "@/features/thread/components/thread-list";
 
 export default async function ChatLayout({
@@ -24,11 +22,6 @@ export default async function ChatLayout({
             <div className="absolute top-0 right-0 left-0 z-50 flex w-full items-center justify-between">
               <SidebarTrigger className="m-4 border p-5 shadow-md" />
               <TopRightNav />
-            </div>
-            <div className="absolute right-0 bottom-0 left-0 z-50">
-              <ErrorBoundary>
-                <Composer />
-              </ErrorBoundary>
             </div>
           </>
         )}
