@@ -10,8 +10,9 @@ import { v } from "convex/values";
 import { agent } from "./agent";
 import { paginationOptsValidator } from "convex/server";
 import { vStreamArgs } from "@convex-dev/agent/validators";
-import { authorizeThreadAccess, subCheck } from "./auth";
+import { authorizeThreadAccess } from "./auth";
 import { convexCategoryEnum } from "@/features/prompts/types/prompt-types";
+import { getCurrentUsage } from "./usage";
 
 // get thread metadata from table separate from agent component. this
 // is where all custom info related to thread state is located
@@ -99,9 +100,9 @@ export const requestNewThreadCreation = mutation({
     if (!userId) {
       throw new Error("Unauthorized");
     }
-    const isUserSubscribed = await subCheck(ctx, userId.subject);
-    if (!isUserSubscribed) {
-      throw new Error("User is not subscribed");
+    const usage = await getCurrentUsage(ctx, userId.subject);
+    if (usage.limitHit) {
+      throw new Error("User has reached usage limit");
     }
     // create new thread in agent component table, as well as
     // new document in separate threadMetadata table
@@ -151,9 +152,9 @@ export const newThreadMessage = mutation({
     if (!userId) {
       throw new Error("Unauthorized");
     }
-    const isUserSubscribed = await subCheck(ctx, userId.subject);
-    if (!isUserSubscribed) {
-      throw new Error("User is not subscribed");
+    const usage = await getCurrentUsage(ctx, userId.subject);
+    if (usage.limitHit) {
+      throw new Error("User has reached usage limit");
     }
     // get thread metadata
     const metadata = await getThreadMetadata(ctx, threadId);

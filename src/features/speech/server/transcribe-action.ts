@@ -14,13 +14,9 @@ export async function transcribeAudio(audio: ArrayBuffer) {
     throw new Error("Unauthorized");
   }
   const authToken = await getAuthToken();
-  const isUserSubscribed = await fetchQuery(
-    api.auth.isUserSubscribed,
-    {},
-    { token: authToken },
-  );
-  if (!isUserSubscribed) {
-    throw new Error("User is not subscribed");
+  const usage = await fetchQuery(api.usage.getUsage, {}, { token: authToken });
+  if (usage.limitHit) {
+    throw new Error("User has reached usage limit");
   }
   const audioBuffer = Buffer.from(audio);
   const { data: transcription, error } = await tryCatch(

@@ -1,55 +1,5 @@
-import { mutation, MutationCtx, query, QueryCtx } from "./_generated/server";
+import { MutationCtx, QueryCtx } from "./_generated/server";
 import { agent } from "./agent";
-import { v } from "convex/values";
-import { getUserByUserId } from "./users";
-
-const ACCESS_CODE = process.env.ACCESS_CODE;
-if (!ACCESS_CODE) {
-  throw new Error("ACCESS_CODE is not set");
-}
-
-export const isUserSubscribed = query({
-  args: {},
-  handler: async (ctx): Promise<boolean | null> => {
-    const userId = await ctx.auth.getUserIdentity();
-    if (!userId) {
-      return null;
-    }
-    return await subCheck(ctx, userId.subject);
-  },
-});
-
-export const subCheck = async (ctx: QueryCtx, userId: string) => {
-  const user = await getUserByUserId(ctx, userId);
-  if (!user) {
-    return null;
-  }
-  return user.access === true;
-};
-
-export const requestAccess = mutation({
-  args: {
-    code: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const userId = await ctx.auth.getUserIdentity();
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
-    const user = await getUserByUserId(ctx, userId.subject);
-    if (!user) {
-      throw new Error("Unauthorized");
-    }
-    if (user.access === true) {
-      throw new Error("User already has access");
-    }
-    const { code } = args;
-    if (code.toLowerCase() !== ACCESS_CODE.toLowerCase()) {
-      throw new Error("Invalid code");
-    }
-    await ctx.db.patch(user._id, { access: true });
-  },
-});
 
 export const authorizeThreadAccess = async (
   ctx: QueryCtx | MutationCtx,
@@ -67,3 +17,51 @@ export const authorizeThreadAccess = async (
     throw new Error("Unauthorized");
   }
 };
+
+// const ACCESS_CODE = process.env.ACCESS_CODE;
+// if (!ACCESS_CODE) {
+//   throw new Error("ACCESS_CODE is not set");
+// }
+
+// export const isUserSubscribed = query({
+//   args: {},
+//   handler: async (ctx): Promise<boolean | null> => {
+//     const userId = await ctx.auth.getUserIdentity();
+//     if (!userId) {
+//       return null;
+//     }
+//     return await subCheck(ctx, userId.subject);
+//   },
+// });
+
+// export const subCheck = async (ctx: QueryCtx, userId: string) => {
+//   const user = await getUserByUserId(ctx, userId);
+//   if (!user) {
+//     return null;
+//   }
+//   return user.access === true;
+// };
+
+// export const requestAccess = mutation({
+//   args: {
+//     code: v.string(),
+//   },
+//   handler: async (ctx, args) => {
+//     const userId = await ctx.auth.getUserIdentity();
+//     if (!userId) {
+//       throw new Error("Unauthorized");
+//     }
+//     const user = await getUserByUserId(ctx, userId.subject);
+//     if (!user) {
+//       throw new Error("Unauthorized");
+//     }
+//     if (user.access === true) {
+//       throw new Error("User already has access");
+//     }
+//     const { code } = args;
+//     if (code.toLowerCase() !== ACCESS_CODE.toLowerCase()) {
+//       throw new Error("Invalid code");
+//     }
+//     await ctx.db.patch(user._id, { access: true });
+//   },
+// });
