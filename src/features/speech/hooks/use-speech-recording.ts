@@ -1,55 +1,133 @@
 import { useEffect, useRef, useState } from "react";
 import { transcribeAudio } from "../server/transcribe-action";
+import { MAX_RECORDING_DURATION } from "../config";
+import { toast } from "sonner";
+import { tryCatch } from "@/lib/utils";
 
 export default function useSpeechRecording() {
-  const [stream, setStream] = useState<MediaStream | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const [transcribedAudio, setTranscribedAudio] = useState<string | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
 
+  // io & data
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  // track duration of recording
+  const maxDurationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const recordingStartTimeRef = useRef<number | null>(null);
+  const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // transcript returned from server
+  const [transcribedAudio, setTranscribedAudio] = useState<string | null>(null);
+
   const startRecording = async () => {
-    try {
-      // request microphone access
-      const userStream = await navigator.mediaDevices.getUserMedia({
+    setTranscribedAudio(null);
+
+    // request microphone access
+    const { data: userStream, error } = await tryCatch(
+      navigator.mediaDevices.getUserMedia({
         audio: true,
+      }),
+    );
+    if (error) {
+      toast.error("Failed to access microphone");
+      return;
+    }
+
+    // init recorder
+    setStream(userStream);
+    const mediaRecorder = new MediaRecorder(userStream);
+    mediaRecorderRef.current = mediaRecorder;
+
+    mediaRecorder.ondataavailable = (event) => {
+      audioChunksRef.current.push(event.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+      setIsTranscribing(true);
+
+      // Clear timers
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
+        durationIntervalRef.current = null;
+      }
+      if (maxDurationTimeoutRef.current) {
+        clearTimeout(maxDurationTimeoutRef.current);
+        maxDurationTimeoutRef.current = null;
+      }
+
+      const audioBlob = new Blob(audioChunksRef.current, {
+        type: "audio/webm",
       });
-      setStream(userStream);
 
-      const mediaRecorder = new MediaRecorder(userStream);
-      mediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorder.onstop = async () => {
-        setIsTranscribing(true);
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/webm",
-        });
-        const buffer = await audioBlob.arrayBuffer();
-        const uint8Array = new Uint8Array(buffer);
-        const transcribedAudio = await transcribeAudio(uint8Array.buffer);
-        setTranscribedAudio(transcribedAudio);
+      // validate duration
+      const audioDurationSeconds = recordingDuration / 1000;
+      if (audioDurationSeconds > MAX_RECORDING_DURATION) {
+        toast.error(`Recording exceeds ${MAX_RECORDING_DURATION} second limit`);
+        setIsTranscribing(false);
+        setRecordingDuration(0);
         audioChunksRef.current = [];
         setStream(null);
-        setIsTranscribing(false);
-      };
+        return;
+      }
 
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (err) {
-      console.error("Error accessing microphone:", err);
-    }
+      // send recording to server for transcription
+      const buffer = await audioBlob.arrayBuffer();
+      const uint8Array = new Uint8Array(buffer);
+      const { data: transcript, error: transcriptionError } = await tryCatch(
+        transcribeAudio(uint8Array.buffer),
+      );
+      if (transcriptionError) {
+        console.error(transcriptionError);
+        toast.error("Ran into an error while transcribing audio");
+      }
+      setTranscribedAudio(transcript);
+
+      // reset
+      audioChunksRef.current = [];
+      setStream(null);
+      setIsTranscribing(false);
+      setRecordingDuration(0);
+    };
+
+    // Start recording
+    mediaRecorder.start();
+    setIsRecording(true);
+    recordingStartTimeRef.current = Date.now();
+
+    // track duration of recording
+    durationIntervalRef.current = setInterval(() => {
+      if (recordingStartTimeRef.current) {
+        const currentDuration = Date.now() - recordingStartTimeRef.current;
+        setRecordingDuration(currentDuration);
+      }
+    }, 100);
+
+    // stop recording after hitting the duration limit
+    maxDurationTimeoutRef.current = setTimeout(() => {
+      if (mediaRecorderRef.current && isRecording) {
+        stopRecording();
+      }
+    }, MAX_RECORDING_DURATION);
   };
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
-      stream?.getTracks().forEach((track) => track.stop());
       setIsRecording(false);
+      stream?.getTracks().forEach((track) => track.stop());
+      recordingStartTimeRef.current = null;
+      // clear timers
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
+        durationIntervalRef.current = null;
+      }
+      if (maxDurationTimeoutRef.current) {
+        clearTimeout(maxDurationTimeoutRef.current);
+        maxDurationTimeoutRef.current = null;
+      }
     }
   };
 
@@ -57,6 +135,12 @@ export default function useSpeechRecording() {
     return () => {
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
+      }
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
+      }
+      if (maxDurationTimeoutRef.current) {
+        clearTimeout(maxDurationTimeoutRef.current);
       }
     };
   }, [stream]);

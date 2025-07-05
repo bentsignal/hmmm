@@ -7,22 +7,23 @@ import { useEffect } from "react";
 import useUsage from "@/features/billing/hooks/use-usage";
 
 export default function useSpeech() {
+  const setPrompt = useComposerStore((state) => state.setPrompt);
   // listening or recording speech
   const inProgress = useComposerStore(
     (state) => state.storeIsListening || state.storeIsRecording,
   );
-  const setPrompt = useComposerStore((state) => state.setPrompt);
 
   // recording finished, waiting for transcription response from api
   const processing = useComposerStore(
     (state) => state.storeIsTranscribing === true,
   );
 
-  // user usage limits
+  // prevent users from starting a new transcription while
+  // one is being processed, or after they have hit their limit
   const { usage } = useUsage();
   const disabled = usage?.limitHit || processing;
 
-  // browser native web speech api
+  // browser native web speech api, preferred when available
   const { transcript, listening, browserSupportsSpeechRecognition } =
     useSpeechRecognition();
 
@@ -77,13 +78,15 @@ export default function useSpeech() {
     }
   };
 
+  // update prompt when transcription has completed
   useEffect(() => {
+    // web speech api
     if (transcript.trim().toLowerCase() !== "") {
       setPrompt(transcript);
     }
   }, [transcript, setPrompt]);
-
   useEffect(() => {
+    // manual transcription
     if (transcribedAudio?.trim().toLowerCase()) {
       setPrompt(transcribedAudio);
     }
