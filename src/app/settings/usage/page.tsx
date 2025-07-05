@@ -6,44 +6,57 @@ import { tryCatch } from "@/lib/utils";
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import { PageFallback } from "@/components/error-boundary";
+import Link from "next/link";
+import UsageCountdown from "@/features/billing/components/usage-countdown";
+import UsageProgress from "@/features/billing/components/usage-progress";
 
 export default async function Usage() {
+  // auth check
   const { userId } = await auth();
   if (!userId) {
     redirect("/login");
   }
   const token = await getAuthToken();
+
+  // get initial usage data
   const { data: usage, error } = await tryCatch(
-    fetchQuery(api.messages.getUsage, {}, { token }),
+    fetchQuery(api.messages.getUsage, undefined, { token }),
   );
-  console.log(usage);
-  if (error || usage === null) {
+
+  // get user's plan
+  const { data: userPlan, error: userPlanError } = await tryCatch(
+    fetchQuery(api.polar.getUserPlan, undefined, {
+      token,
+    }),
+  );
+  if (error || usage === null || userPlanError) {
     console.error(error);
+    console.error(userPlanError);
     return <PageFallback />;
   }
-  const start = new Date(usage.start).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-  const end = new Date(usage.end).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+
   return (
     <Card className="w-full">
-      <CardContent className="flex flex-col gap-4">
-        <span className="text-xl font-bold">Usage</span>
-        <span className="text-muted-foreground text-sm">
-          {start} - {end}
-        </span>
-        <span className="font-bold">
-          Total:{" "}
-          <span className="text-muted-foreground font-normal">
-            ${usage.total.toFixed(2)}
-          </span>
-        </span>
+      <CardContent className="flex flex-col items-center gap-4 text-center">
+        <h1 className="text-2xl font-bold">Usage</h1>
+        <UsageProgress
+          initialRange={usage.range}
+          initialPercentageUsed={usage.percentageUsed}
+        />
+        <div className="flex flex-col items-center gap-2">
+          <UsageCountdown initialTarget={new Date(usage.endOfPeriod)} />
+          {!userPlan?.max && (
+            <span className="text-muted-foreground text-sm">
+              <Link
+                href="/pricing"
+                className="text-primary font-bold underline"
+              >
+                Upgrade
+              </Link>{" "}
+              to increase your limits.
+            </span>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

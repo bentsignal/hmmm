@@ -17,7 +17,6 @@ type Failure<E> = {
 
 export type Result<T, E = Error> = Success<T> | Failure<E>;
 
-// Main wrapper function
 export async function tryCatch<T, E = Error>(
   promise: Promise<T>,
 ): Promise<Result<T, E>> {
@@ -28,13 +27,3 @@ export async function tryCatch<T, E = Error>(
     return { data: null, error: error as E };
   }
 }
-
-export const getDateAndTime = (date: Date) => {
-  return date.toLocaleString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-};

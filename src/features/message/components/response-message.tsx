@@ -11,7 +11,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
-import { getDateAndTime } from "@/lib/utils";
+import { getDateTimeString } from "@/features/date-time/util/date-time-util";
 import { UIMessage } from "ai";
 import { memo } from "react";
 import { MemoizedReasoningMessage } from "./reasoning-message";
@@ -26,7 +26,7 @@ export default function ResponseMessage({
   streaming,
 }: ResponseMessageProps) {
   const [text] = useSmoothText(message.content, { charsPerSec: 2000 });
-  const createdAt = getDateAndTime(new Date(message.createdAt ?? 0));
+  const createdAt = getDateTimeString(new Date(message.createdAt ?? 0));
 
   return (
     <div className="flex flex-col items-start gap-2">
