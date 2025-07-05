@@ -2,9 +2,11 @@ import { defaultModel } from "@/features/models";
 import { PromptCategory, PromptDifficulty } from "@/features/prompts/types";
 import { models } from "@/features/models/models";
 
-export const getModelByPromptClassification = (
+// determine the model based on user plan, prompt difficulty, and prompt category
+export const getResponseModel = (
   promptCategory: PromptCategory,
   promptDifficulty: PromptDifficulty,
+  tier: 0 | 1 | 2,
 ) => {
   switch (promptCategory) {
     case "general":
@@ -12,9 +14,9 @@ export const getModelByPromptClassification = (
         case "easy":
           return defaultModel;
         case "medium":
-          return models["google/gemini-2.5-flash"];
+          return tier > 0 ? models["google/gemini-2.5-flash"] : defaultModel;
         case "hard":
-          return models["google/gemini-2.5-flash"];
+          return tier > 0 ? models["google/gemini-2.5-flash"] : defaultModel;
         default:
           return defaultModel;
       }
@@ -23,9 +25,13 @@ export const getModelByPromptClassification = (
         case "easy":
           return defaultModel;
         case "medium":
-          return models["google/gemini-2.5-flash"];
+          return tier > 0 ? models["google/gemini-2.5-flash"] : defaultModel;
         case "hard":
-          return models["openai/o3-2025-04-16"];
+          return tier > 1
+            ? models["openai/o3-2025-04-16"]
+            : tier > 0
+              ? models["google/gemini-2.5-flash"]
+              : defaultModel;
         default:
           return defaultModel;
       }
@@ -34,9 +40,13 @@ export const getModelByPromptClassification = (
         case "easy":
           return defaultModel;
         case "medium":
-          return models["google/gemini-2.5-flash"];
+          return tier > 0 ? models["google/gemini-2.5-flash"] : defaultModel;
         case "hard":
-          return models["anthropic/claude-4-sonnet-20250522"];
+          return tier > 1
+            ? models["anthropic/claude-4-sonnet-20250522"]
+            : tier > 0
+              ? models["google/gemini-2.5-flash"]
+              : defaultModel;
         default:
           return defaultModel;
       }
@@ -45,22 +55,30 @@ export const getModelByPromptClassification = (
         case "easy":
           return defaultModel;
         case "medium":
-          return models["x-ai/grok-3-mini"];
+          return tier > 0 ? models["x-ai/grok-3-mini"] : defaultModel;
         case "hard":
-          return models["openai/o4-mini-high"];
+          return tier > 1
+            ? models["openai/o4-mini-high"]
+            : tier > 0
+              ? models["x-ai/grok-3-mini"]
+              : defaultModel;
         default:
           return defaultModel;
       }
     case "search":
       switch (promptDifficulty) {
         case "easy":
-          return models["perplexity/sonar"];
+          return tier > 0 ? models["perplexity/sonar"] : defaultModel;
         case "medium":
-          return models["perplexity/sonar"];
+          return tier > 0 ? models["perplexity/sonar"] : defaultModel;
         case "hard":
-          return models["perplexity/sonar-reasoning-pro"];
+          return tier > 1
+            ? models["perplexity/sonar-reasoning-pro"]
+            : tier > 0
+              ? models["perplexity/sonar"]
+              : defaultModel;
         default:
-          return models["perplexity/sonar"];
+          return defaultModel;
       }
     default:
       return defaultModel;

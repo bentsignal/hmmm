@@ -12,7 +12,7 @@ import {
   promptCategoryEnum,
   promptDifficultyEnum,
 } from "@/features/prompts/types/prompt-types";
-import { getModelByPromptClassification } from "@/features/models/util/model-utils";
+import { getResponseModel } from "@/features/models/util/model-utils";
 
 // generate title for thread based off of initial prompt
 export const generateTitle = internalAction({
@@ -60,19 +60,25 @@ export const continueThread = internalAction({
         threadId: threadId,
       }),
     ]);
-    // classify the user's prompt by category and difficulty
-    const { object, usage: classificationUsage } = await generateObject({
-      model: classifierModel.model,
-      schema: z.object({
-        promptDifficulty: promptDifficultyEnum,
-        promptCategory: promptCategoryEnum,
+    // classify the user's prompt by category and difficulty, get their current plan
+    const [{ object, usage: classificationUsage }, tier] = await Promise.all([
+      generateObject({
+        model: classifierModel.model,
+        schema: z.object({
+          promptDifficulty: promptDifficultyEnum,
+          promptCategory: promptCategoryEnum,
+        }),
+        prompt: getClassifierPrompt(prompt, category),
       }),
-      prompt: getClassifierPrompt(prompt, category),
-    });
+      ctx.runQuery(internal.polar.getPlanTier, {
+        userId: userId,
+      }),
+    ]);
     // determine which model to use based on the prompt classification
-    const chosenModel = getModelByPromptClassification(
+    const chosenModel = getResponseModel(
       object.promptCategory,
       object.promptDifficulty,
+      tier,
     );
     // initiate response
     const result = await thread.streamText(

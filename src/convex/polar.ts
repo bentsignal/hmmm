@@ -1,6 +1,13 @@
 import { Polar } from "@convex-dev/polar";
 import { components, api, internal } from "./_generated/api";
-import { internalAction, mutation, query, QueryCtx } from "./_generated/server";
+import {
+  internalAction,
+  mutation,
+  query,
+  QueryCtx,
+  internalQuery,
+} from "./_generated/server";
+import { v } from "convex/values";
 
 // highest tier plan
 const MAX_PLAN_NAME = "Ultra";
@@ -32,6 +39,25 @@ export const getUserPlan = query({
     const user = await ctx.auth.getUserIdentity();
     if (!user) throw new Error("No user found");
     return await getUserPlanHelper(ctx, user.subject);
+  },
+});
+
+// plan tier is rated from 0 to 2, with 2 being the highest tier
+export const getPlanTier = internalQuery({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const plan = await getUserPlanHelper(ctx, args.userId);
+    const tier =
+      plan?.name === "Light"
+        ? 0
+        : plan?.name === "Premium"
+          ? 1
+          : plan?.name === "Ultra"
+            ? 2
+            : 0;
+    return tier;
   },
 });
 
