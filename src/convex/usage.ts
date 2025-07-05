@@ -15,6 +15,11 @@ import * as timeHelpers from "./time";
 const FREE_TIER_MAX_USAGE = 0.01;
 const FREE_TIER_RANGE = "daily";
 
+// user can use up to 75% of their plan's price. Hopefully
+// can be increased in the future, just need to see how all
+// of the other recurring costs stack up
+const ALLOWED_USAGE = 0.75;
+
 // aggregate usage per user
 const usage = new TableAggregate<{
   Namespace: string;
@@ -38,7 +43,9 @@ export const usageTriggerMutation = customMutation(
 export const getCurrentUsage = async (ctx: QueryCtx, userId: string) => {
   const plan = await getUserPlanHelper(ctx, userId);
   const limit =
-    plan?.price && plan.price > 0 ? plan.price : FREE_TIER_MAX_USAGE;
+    plan?.price && plan.price > 0
+      ? plan.price * ALLOWED_USAGE
+      : FREE_TIER_MAX_USAGE;
   const range = plan?.price && plan.price > 0 ? "monthly" : FREE_TIER_RANGE;
 
   // first and last day of the current month
