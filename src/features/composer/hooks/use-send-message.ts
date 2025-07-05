@@ -4,6 +4,7 @@ import useThreadStore from "@/features/thread/store/thread-store";
 import useThreadMutation from "@/features/thread/hooks/use-thread-mutation";
 import { useRouter } from "next/navigation";
 import useThreadStatus from "@/features/thread/hooks/use-thread-status";
+import useUsage from "@/features/billing/hooks/use-usage";
 
 export default function useSendMessage() {
   const router = useRouter();
@@ -16,6 +17,8 @@ export default function useSendMessage() {
   const activeThread = useThreadStore((state) => state.activeThread);
   const { isThreadIdle } = useThreadStatus({ threadId: activeThread ?? "" });
 
+  const { usage } = useUsage();
+
   // state of speech
   const storeIsTranscribing = useComposerStore(
     (state) => state.storeIsTranscribing,
@@ -25,7 +28,8 @@ export default function useSendMessage() {
   );
 
   // prevent user from sending messages
-  const blockSend = !isThreadIdle || listening || promptEmpty;
+  const blockSend =
+    !isThreadIdle || listening || promptEmpty || usage?.limitHit;
 
   // show loading spinner on send button
   const isLoading = !isThreadIdle || storeIsTranscribing;
