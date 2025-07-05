@@ -1,4 +1,9 @@
-import { internalMutation, query, QueryCtx } from "./_generated/server";
+import {
+  internalMutation,
+  mutation,
+  query,
+  QueryCtx,
+} from "./_generated/server";
 import { DataModel } from "./_generated/dataModel";
 import { components } from "./_generated/api";
 import { TableAggregate } from "@convex-dev/aggregate";
@@ -35,8 +40,12 @@ const usage = new TableAggregate<{
 // automatically update aggregate table whenever message metadata is updates
 const triggers = new Triggers<DataModel>();
 triggers.register("messageMetadata", usage.trigger());
-export const usageTriggerMutation = customMutation(
+export const usageTriggerInternalMutation = customMutation(
   internalMutation,
+  customCtx(triggers.wrapDB),
+);
+export const usageTriggerMutation = customMutation(
+  mutation,
   customCtx(triggers.wrapDB),
 );
 

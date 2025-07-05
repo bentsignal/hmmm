@@ -8,6 +8,7 @@ export const env = createEnv({
     CLERK_WEBHOOK_SECRET: z.string().min(1),
     // convex
     CONVEX_DEPLOYMENT: z.string().min(1),
+    NEXT_CONVEX_INTERNAL_KEY: z.string().min(1),
     // openrouter
     OPENROUTER_API_KEY: z.string().min(1),
     // open ai
@@ -37,6 +38,7 @@ export const env = createEnv({
     // convex
     CONVEX_DEPLOYMENT: process.env.CONVEX_DEPLOYMENT,
     NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL,
+    NEXT_CONVEX_INTERNAL_KEY: process.env.NEXT_CONVEX_INTERNAL_KEY,
     // openrouter
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
     // open ai
