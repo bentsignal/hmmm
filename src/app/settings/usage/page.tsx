@@ -6,9 +6,9 @@ import { tryCatch } from "@/lib/utils";
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import { PageFallback } from "@/components/error-boundary";
-import Link from "next/link";
 import UsageCountdown from "@/features/billing/components/usage-countdown";
 import UsageProgress from "@/features/billing/components/usage-progress";
+import UsageUpgradeCallout from "@/features/billing/components/usage-upgrade-callout";
 
 export default async function Usage() {
   // auth check
@@ -24,14 +24,8 @@ export default async function Usage() {
   );
 
   // get user's plan
-  const { data: userPlan, error: userPlanError } = await tryCatch(
-    fetchQuery(api.polar.getUserPlan, undefined, {
-      token,
-    }),
-  );
-  if (error || usage === null || userPlanError) {
+  if (error || usage === null) {
     console.error(error);
-    console.error(userPlanError);
     return <PageFallback />;
   }
 
@@ -45,17 +39,7 @@ export default async function Usage() {
         />
         <div className="flex flex-col items-center gap-2">
           <UsageCountdown initialTarget={new Date(usage.endOfPeriod)} />
-          {!userPlan?.max && (
-            <span className="text-muted-foreground text-sm">
-              <Link
-                href="/pricing"
-                className="text-primary font-bold underline"
-              >
-                Upgrade
-              </Link>{" "}
-              to increase your limits.
-            </span>
-          )}
+          <UsageUpgradeCallout />
         </div>
       </CardContent>
     </Card>
