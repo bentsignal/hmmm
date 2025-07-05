@@ -18,6 +18,7 @@ import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
 import type * as polar from "../polar.js";
 import type * as threads from "../threads.js";
+import type * as time from "../time.js";
 import type * as usage from "../usage.js";
 import type * as user_actions from "../user_actions.js";
 import type * as users from "../users.js";
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
   polar: typeof polar;
   threads: typeof threads;
+  time: typeof time;
   usage: typeof usage;
   user_actions: typeof user_actions;
   users: typeof users;
