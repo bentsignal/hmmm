@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 import useSpeech from "@/features/speech/hooks/use-speech";
 
 export default function ComposerSpeech() {
-  const { startSpeech, stopSpeech, inProgress, processing } = useSpeech();
+  const { startSpeech, stopSpeech, inProgress, processing, disabled } =
+    useSpeech();
 
   return (
     <Tooltip>
@@ -19,7 +20,7 @@ export default function ComposerSpeech() {
             variant="outline"
             size="icon"
             onClick={inProgress ? stopSpeech : startSpeech}
-            disabled={processing}
+            disabled={disabled}
           >
             <Mic
               width={24}
@@ -29,15 +30,17 @@ export default function ComposerSpeech() {
           </Button>
         </div>
       </TooltipTrigger>
-      <TooltipContent>
-        <p>
-          {inProgress
-            ? "Listening..."
-            : processing
-              ? "Processing..."
-              : "Record your voice"}
-        </p>
-      </TooltipContent>
+      {!disabled && (
+        <TooltipContent>
+          <p>
+            {inProgress
+              ? "Listening..."
+              : processing
+                ? "Processing..."
+                : "Record your voice"}
+          </p>
+        </TooltipContent>
+      )}
     </Tooltip>
   );
 }
