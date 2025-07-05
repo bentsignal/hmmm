@@ -3,6 +3,7 @@ import { Box } from "lucide-react";
 import Link from "next/link";
 import Composer from "@/features/composer/components";
 import ErrorBoundary from "@/components/error-boundary";
+import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
 
 export default async function Home() {
   return (
@@ -18,6 +19,7 @@ export default async function Home() {
           <Composer />
         </ErrorBoundary>
       </div>
+      <UsageChatCallout />
       <Button asChild variant="outline">
         <Link href="/xr">
           <Box className="h-4 w-4" />
