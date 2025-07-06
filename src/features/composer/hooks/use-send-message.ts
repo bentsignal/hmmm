@@ -5,6 +5,8 @@ import useThreadMutation from "@/features/thread/hooks/use-thread-mutation";
 import { useRouter } from "next/navigation";
 import useThreadStatus from "@/features/thread/hooks/use-thread-status";
 import useUsage from "@/features/billing/hooks/use-usage";
+import { tryCatch } from "@/lib/utils";
+import { ConvexError } from "convex/values";
 
 export default function useSendMessage() {
   const router = useRouter();
@@ -38,33 +40,38 @@ export default function useSendMessage() {
     if (blockSend) {
       return;
     }
-    try {
-      // const currentModel = useComposerStore.getState().currentModel;
-      // const useSearch = useComposerStore.getState().useSearch;
-      const prompt = useComposerStore.getState().prompt;
-      setPrompt("");
-      const activeThread = useThreadStore.getState().activeThread;
-      if (activeThread === null) {
-        const threadId = await createThread({
+    const prompt = useComposerStore.getState().prompt;
+    setPrompt("");
+    const activeThread = useThreadStore.getState().activeThread;
+    if (activeThread === null) {
+      const { data: threadId, error: threadCreationError } = await tryCatch(
+        createThread({
           message: prompt,
-          // modelId: currentModel.id,
-          // useSearch: useSearch,
-        });
-        router.push(`/chat/${threadId}`);
-      } else {
-        await newThreadMessage({
+        }),
+      );
+      if (threadCreationError) {
+        if (threadCreationError instanceof ConvexError) {
+          toast.error(threadCreationError.data as string);
+          return;
+        }
+        toast.error("An internal error occurred. Please try again.");
+        return;
+      }
+      router.push(`/chat/${threadId}`);
+    } else {
+      const { error: newThreadMessageError } = await tryCatch(
+        newThreadMessage({
           threadId: activeThread,
           prompt: prompt,
-          // modelId: currentModel.id,
-          // useSearch: useSearch,
-        });
-      }
-    } catch (error) {
-      console.error(error);
-      if ((error as Error).message.includes("User is not subscribed")) {
-        toast.error("Error: Access denied.");
-      } else {
-        toast.error("Error: Failed to generate response. Please try again.");
+        }),
+      );
+      if (newThreadMessageError) {
+        if (newThreadMessageError instanceof ConvexError) {
+          toast.error(newThreadMessageError.data as string);
+          return;
+        }
+        toast.error("An internal error occurred. Please try again.");
+        return;
       }
     }
   };

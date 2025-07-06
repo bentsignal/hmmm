@@ -3,16 +3,18 @@ import {
   internalMutation,
   internalQuery,
   mutation,
+  MutationCtx,
   query,
   QueryCtx,
 } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { agent } from "./agent";
 import { paginationOptsValidator } from "convex/server";
 import { vStreamArgs } from "@convex-dev/agent/validators";
 import { authorizeThreadAccess } from "./auth";
 import { convexCategoryEnum } from "@/features/prompts/types/prompt-types";
 import { getCurrentUsage } from "./usage";
+import { rateLimiter } from "./limiter";
 
 // get thread metadata from table separate from agent component. this
 // is where all custom info related to thread state is located
@@ -90,22 +92,38 @@ export const getThreadMessages = query({
   },
 });
 
+const messageSendRateLimit = async (ctx: MutationCtx, userId: string) => {
+  const { ok } = await rateLimiter.limit(ctx, "messageSend", {
+    key: userId,
+  });
+  if (!ok)
+    throw new ConvexError(
+      `Sending messages too fast, please wait a few seconds`,
+    );
+};
+
 export const requestNewThreadCreation = mutation({
   args: {
     message: v.string(),
   },
   handler: async (ctx, args) => {
     if (args.message.length > 20000) {
-      throw new Error("Message is too long. Please shorten your message.");
+      throw new ConvexError(
+        "Message is too long. Please shorten your message.",
+      );
     }
-    // auth & sub check
+    // auth check
     const userId = await ctx.auth.getUserIdentity();
     if (!userId) {
-      throw new Error("Unauthorized");
+      throw new ConvexError("Unauthorized");
     }
-    const usage = await getCurrentUsage(ctx, userId.subject);
+    // check usage and rate limiting
+    const [usage] = await Promise.all([
+      getCurrentUsage(ctx, userId.subject),
+      messageSendRateLimit(ctx, userId.subject),
+    ]);
     if (usage.limitHit) {
-      throw new Error("User has reached usage limit");
+      throw new ConvexError("User has reached usage limit");
     }
     // create new thread in agent component table, as well as
     // new document in separate threadMetadata table
@@ -151,24 +169,30 @@ export const newThreadMessage = mutation({
   handler: async (ctx, args) => {
     const { threadId, prompt } = args;
     if (prompt.length > 20000) {
-      throw new Error("Message is too long. Please shorten your message.");
+      throw new ConvexError(
+        "Message is too long. Please shorten your message.",
+      );
     }
-    // auth & sub check
+    // auth check
     const userId = await ctx.auth.getUserIdentity();
     if (!userId) {
-      throw new Error("Unauthorized");
+      throw new ConvexError("Unauthorized");
     }
-    const usage = await getCurrentUsage(ctx, userId.subject);
+    // check usage and rate limiting
+    const [usage] = await Promise.all([
+      getCurrentUsage(ctx, userId.subject),
+      messageSendRateLimit(ctx, userId.subject),
+    ]);
     if (usage.limitHit) {
-      throw new Error("User has reached usage limit");
+      throw new ConvexError("User has reached usage limit");
     }
     // get thread metadata
     const metadata = await getThreadMetadata(ctx, threadId);
     if (metadata.userId !== userId.subject) {
-      throw new Error("Unauthorized");
+      throw new ConvexError("Unauthorized");
     }
     if (metadata.state !== "idle") {
-      throw new Error("Thread is not idle");
+      throw new ConvexError("Thread is not idle");
     }
     // save new message, schedule response action
     const [{ messageId }] = await Promise.all([
