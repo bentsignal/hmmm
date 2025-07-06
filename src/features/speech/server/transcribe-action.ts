@@ -26,6 +26,16 @@ export async function transcribeAudio(audio: ArrayBuffer) {
     throw new Error("User has reached usage limit");
   }
 
+  // rate limit
+  const rateLimit = await fetchMutation(
+    api.limiter.transcriptionRateLimit,
+    { userId },
+    { token: authToken },
+  );
+  if (!rateLimit) {
+    throw new Error("Rate limit exceeded");
+  }
+
   // validate file size
   if (audio.byteLength === 0) {
     throw new Error("Audio file is empty");

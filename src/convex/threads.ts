@@ -3,7 +3,6 @@ import {
   internalMutation,
   internalQuery,
   mutation,
-  MutationCtx,
   query,
   QueryCtx,
 } from "./_generated/server";
@@ -14,7 +13,7 @@ import { vStreamArgs } from "@convex-dev/agent/validators";
 import { authorizeThreadAccess } from "./auth";
 import { convexCategoryEnum } from "@/features/prompts/types/prompt-types";
 import { getCurrentUsage } from "./usage";
-import { rateLimiter } from "./limiter";
+import { messageSendRateLimit } from "./limiter";
 
 // get thread metadata from table separate from agent component. this
 // is where all custom info related to thread state is located
@@ -91,16 +90,6 @@ export const getThreadMessages = query({
     };
   },
 });
-
-const messageSendRateLimit = async (ctx: MutationCtx, userId: string) => {
-  const { ok } = await rateLimiter.limit(ctx, "messageSend", {
-    key: userId,
-  });
-  if (!ok)
-    throw new ConvexError(
-      `Sending messages too fast, please wait a few seconds`,
-    );
-};
 
 export const requestNewThreadCreation = mutation({
   args: {
