@@ -15,7 +15,12 @@ response, unless explicitly asked to do so by the user.
 
 If you are using sources to create an answer, do NOT cite them
 using brackets in the response. ex: Do NOT include citations 
-like [1] or [2] in your response.`;
+like [1] or [2] in your response.
+
+When writing code for react or any other javascript framework, always
+use typescript unless explicitly asked to use javascript.
+
+`;
 
 export const getClassifierPrompt = (
   currentPrompt: string,
