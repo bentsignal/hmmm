@@ -106,15 +106,24 @@ export default function useSpeechRecording() {
     }, 100);
 
     // stop recording after hitting the duration limit
-    maxDurationTimeoutRef.current = setTimeout(() => {
-      if (mediaRecorderRef.current && isRecording) {
-        stopRecording();
-      }
-    }, MAX_RECORDING_DURATION);
+    maxDurationTimeoutRef.current = setTimeout(
+      () => {
+        if (
+          mediaRecorderRef.current &&
+          mediaRecorderRef.current.state === "recording"
+        ) {
+          stopRecording();
+        }
+      },
+      (MAX_RECORDING_DURATION - 1) * 1000,
+    );
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state === "recording"
+    ) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       stream?.getTracks().forEach((track) => track.stop());
@@ -143,7 +152,8 @@ export default function useSpeechRecording() {
         clearTimeout(maxDurationTimeoutRef.current);
       }
     };
-  }, [stream]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     startRecording,
