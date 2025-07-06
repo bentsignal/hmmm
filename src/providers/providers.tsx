@@ -1,7 +1,7 @@
 import { ThemeProvider } from "next-themes";
 import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
-import ConvexClientProvider from "./ConvexProvider";
+import ConvexClientProvider from "./convex-provider";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (

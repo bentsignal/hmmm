@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from "react";
+import useMessages from "./use-messages";
 
-export default function useMessageListScroll(uiMessagesLength: number) {
+export default function useMessageListScroll({
+  threadId,
+}: {
+  threadId: string;
+}) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isInitialLoadRef = useRef(true);
   const previousMessageCountRef = useRef(0);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const { totalCount } = useMessages({ threadId });
 
   const checkIfAtBottom = () => {
     const scrollElement = scrollAreaRef.current?.querySelector(
@@ -49,16 +55,16 @@ export default function useMessageListScroll(uiMessagesLength: number) {
       "[data-radix-scroll-area-viewport]",
     );
 
-    if (scrollElement && uiMessagesLength > 0) {
+    if (scrollElement && totalCount > 0) {
       if (isInitialLoadRef.current) {
         scrollElement.scrollTo({
           top: scrollElement.scrollHeight,
           behavior: "auto",
         });
         isInitialLoadRef.current = false;
-        previousMessageCountRef.current = uiMessagesLength;
+        previousMessageCountRef.current = totalCount;
         setIsAtBottom(true);
-      } else if (uiMessagesLength > previousMessageCountRef.current) {
+      } else if (totalCount > previousMessageCountRef.current) {
         const lastMessage = messagesEndRef.current?.previousElementSibling;
         if (lastMessage) {
           const scrollTop =
@@ -70,11 +76,11 @@ export default function useMessageListScroll(uiMessagesLength: number) {
             behavior: "smooth",
           });
         }
-        previousMessageCountRef.current = uiMessagesLength;
+        previousMessageCountRef.current = totalCount;
         checkIfAtBottom();
       }
     }
-  }, [uiMessagesLength]);
+  }, [totalCount]);
 
   return {
     scrollAreaRef,

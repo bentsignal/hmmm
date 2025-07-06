@@ -2,13 +2,17 @@
 
 import * as React from "react";
 import { Button } from "./ui/button";
-import Link from "next/link";
+
+interface ErrorBoundaryProps extends React.PropsWithChildren {
+  fallback?: React.ReactNode;
+  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
+}
 
 class ErrorBoundaryClass extends React.Component<
-  React.PropsWithChildren,
+  ErrorBoundaryProps,
   { hasError: boolean }
 > {
-  constructor(props: React.PropsWithChildren) {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
   }
@@ -20,23 +24,14 @@ class ErrorBoundaryClass extends React.Component<
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error(error, info);
+    this.props.onError?.(error, info);
   }
 
   render() {
     if (this.state.hasError) {
-      return (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-4">
-          <div className="rounded-md bg-red-400 p-4 text-black">
-            <h1 className="text-2xl font-bold">Error</h1>
-            <p className="text-sm">
-              An error occurred while loading the page. Please try again later.
-            </p>
-          </div>
-          <Button variant="outline" asChild>
-            <Link href="/">Back to safety</Link>
-          </Button>
-        </div>
-      );
+      const { fallback } = this.props;
+
+      return fallback ?? null;
     }
 
     return this.props.children;
@@ -45,8 +40,29 @@ class ErrorBoundaryClass extends React.Component<
 
 export default function ErrorBoundary({
   children,
-}: {
-  children: React.ReactNode;
-}) {
-  return <ErrorBoundaryClass>{children}</ErrorBoundaryClass>;
+  ...props
+}: ErrorBoundaryProps) {
+  return <ErrorBoundaryClass {...props}>{children}</ErrorBoundaryClass>;
 }
+
+export const PageFallback = () => {
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-4">
+      <div className="rounded-md bg-red-400 p-4 text-black">
+        <h1 className="text-2xl font-bold">Error</h1>
+        <p className="text-sm">
+          An error occurred while loading the page. Please try again later.
+        </p>
+      </div>
+      <Button variant="outline" asChild>
+        {/* force full page refresh to get composer to re render */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        <a href="/">Back to safety</a>
+      </Button>
+    </div>
+  );
+};
+
+export const PageError = ({ children }: { children: React.ReactNode }) => {
+  return <ErrorBoundary fallback={<PageFallback />}>{children}</ErrorBoundary>;
+};

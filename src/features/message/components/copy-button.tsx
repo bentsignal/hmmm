@@ -1,31 +1,25 @@
 import { useState } from "react";
 import { Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { extractTextFromChildren } from "../util/message-util";
 
 interface CopyButtonProps {
-  text?: string;
-  code?: React.ReactNode;
   size?: "sm" | "default";
   variant?: "ghost" | "outline" | "default";
   className?: string;
+  getContent: () => string;
 }
 
 export function CopyButton({
-  text,
-  code,
   size = "sm",
   variant = "ghost",
   className = "",
+  getContent,
 }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
     try {
-      let textToCopy = text || "";
-      if (code) {
-        textToCopy = extractTextFromChildren(code);
-      }
+      const textToCopy = getContent().trim();
       await navigator.clipboard.writeText(textToCopy);
       setCopied(true);
       setTimeout(() => setCopied(false), 1000);

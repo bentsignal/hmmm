@@ -8,10 +8,20 @@
  * @module
  */
 
-import type * as actions from "../actions.js";
 import type * as agent from "../agent.js";
 import type * as auth from "../auth.js";
+import type * as clerk from "../clerk.js";
+import type * as clerk_webhook from "../clerk_webhook.js";
+import type * as generation from "../generation.js";
+import type * as http from "../http.js";
+import type * as limiter from "../limiter.js";
+import type * as messages from "../messages.js";
+import type * as migrations from "../migrations.js";
+import type * as polar from "../polar.js";
 import type * as threads from "../threads.js";
+import type * as time from "../time.js";
+import type * as usage from "../usage.js";
+import type * as user_actions from "../user_actions.js";
 import type * as users from "../users.js";
 import type * as waitlist from "../waitlist.js";
 
@@ -30,10 +40,20 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  actions: typeof actions;
   agent: typeof agent;
   auth: typeof auth;
+  clerk: typeof clerk;
+  clerk_webhook: typeof clerk_webhook;
+  generation: typeof generation;
+  http: typeof http;
+  limiter: typeof limiter;
+  messages: typeof messages;
+  migrations: typeof migrations;
+  polar: typeof polar;
   threads: typeof threads;
+  time: typeof time;
+  usage: typeof usage;
+  user_actions: typeof user_actions;
   users: typeof users;
   waitlist: typeof waitlist;
 }>;
@@ -95,7 +115,7 @@ export declare const components: {
         "mutation",
         "internal",
         { fileIds: Array<string>; force?: boolean },
-        null
+        Array<string>
       >;
       get: FunctionReference<
         "query",
@@ -1887,6 +1907,36 @@ export declare const components: {
           splitCursor?: string | null;
         }
       >;
+      searchThreadTitles: FunctionReference<
+        "query",
+        "internal",
+        {
+          paginationOpts?: {
+            cursor: string | null;
+            endCursor?: string | null;
+            id?: number;
+            maximumBytesRead?: number;
+            maximumRowsRead?: number;
+            numItems: number;
+          };
+          query: string;
+          userId?: string | null;
+        },
+        {
+          continueCursor: string;
+          isDone: boolean;
+          page: Array<{
+            _creationTime: number;
+            _id: string;
+            status: "active" | "archived";
+            summary?: string;
+            title?: string;
+            userId?: string;
+          }>;
+          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+          splitCursor?: string | null;
+        }
+      >;
       updateThread: FunctionReference<
         "mutation",
         "internal",
@@ -1895,6 +1945,7 @@ export declare const components: {
             status?: "active" | "archived";
             summary?: string;
             title?: string;
+            userId?: string;
           };
           threadId: string;
         },
@@ -2083,6 +2134,1033 @@ export declare const components: {
           null
         >;
       };
+    };
+  };
+  migrations: {
+    lib: {
+      cancel: FunctionReference<
+        "mutation",
+        "internal",
+        { name: string },
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          error?: string;
+          isDone: boolean;
+          latestEnd?: number;
+          latestStart: number;
+          name: string;
+          next?: Array<string>;
+          processed: number;
+          state: "inProgress" | "success" | "failed" | "canceled" | "unknown";
+        }
+      >;
+      cancelAll: FunctionReference<
+        "mutation",
+        "internal",
+        { sinceTs?: number },
+        Array<{
+          batchSize?: number;
+          cursor?: string | null;
+          error?: string;
+          isDone: boolean;
+          latestEnd?: number;
+          latestStart: number;
+          name: string;
+          next?: Array<string>;
+          processed: number;
+          state: "inProgress" | "success" | "failed" | "canceled" | "unknown";
+        }>
+      >;
+      clearAll: FunctionReference<
+        "mutation",
+        "internal",
+        { before?: number },
+        null
+      >;
+      getStatus: FunctionReference<
+        "query",
+        "internal",
+        { limit?: number; names?: Array<string> },
+        Array<{
+          batchSize?: number;
+          cursor?: string | null;
+          error?: string;
+          isDone: boolean;
+          latestEnd?: number;
+          latestStart: number;
+          name: string;
+          next?: Array<string>;
+          processed: number;
+          state: "inProgress" | "success" | "failed" | "canceled" | "unknown";
+        }>
+      >;
+      migrate: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun: boolean;
+          fnHandle: string;
+          name: string;
+          next?: Array<{ fnHandle: string; name: string }>;
+        },
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          error?: string;
+          isDone: boolean;
+          latestEnd?: number;
+          latestStart: number;
+          name: string;
+          next?: Array<string>;
+          processed: number;
+          state: "inProgress" | "success" | "failed" | "canceled" | "unknown";
+        }
+      >;
+    };
+  };
+  polar: {
+    lib: {
+      createProduct: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          product: {
+            createdAt: string;
+            description: string | null;
+            id: string;
+            isArchived: boolean;
+            isRecurring: boolean;
+            medias: Array<{
+              checksumEtag: string | null;
+              checksumSha256Base64: string | null;
+              checksumSha256Hex: string | null;
+              createdAt: string;
+              id: string;
+              isUploaded: boolean;
+              lastModifiedAt: string | null;
+              mimeType: string;
+              name: string;
+              organizationId: string;
+              path: string;
+              publicUrl: string;
+              service?: string;
+              size: number;
+              sizeReadable: string;
+              storageVersion: string | null;
+              version: string | null;
+            }>;
+            metadata?: Record<string, any>;
+            modifiedAt: string | null;
+            name: string;
+            organizationId: string;
+            prices: Array<{
+              amountType?: string;
+              createdAt: string;
+              id: string;
+              isArchived: boolean;
+              modifiedAt: string | null;
+              priceAmount?: number;
+              priceCurrency?: string;
+              productId: string;
+              recurringInterval?: "month" | "year" | null;
+              type?: string;
+            }>;
+            recurringInterval?: "month" | "year" | null;
+          };
+        },
+        any
+      >;
+      createSubscription: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          subscription: {
+            amount: number | null;
+            cancelAtPeriodEnd: boolean;
+            checkoutId: string | null;
+            createdAt: string;
+            currency: string | null;
+            currentPeriodEnd: string | null;
+            currentPeriodStart: string;
+            customerCancellationComment?: string | null;
+            customerCancellationReason?: string | null;
+            customerId: string;
+            endedAt: string | null;
+            id: string;
+            metadata: Record<string, any>;
+            modifiedAt: string | null;
+            priceId?: string;
+            productId: string;
+            recurringInterval: "month" | "year" | null;
+            startedAt: string | null;
+            status: string;
+          };
+        },
+        any
+      >;
+      getCurrentSubscription: FunctionReference<
+        "query",
+        "internal",
+        { userId: string },
+        {
+          amount: number | null;
+          cancelAtPeriodEnd: boolean;
+          checkoutId: string | null;
+          createdAt: string;
+          currency: string | null;
+          currentPeriodEnd: string | null;
+          currentPeriodStart: string;
+          customerCancellationComment?: string | null;
+          customerCancellationReason?: string | null;
+          customerId: string;
+          endedAt: string | null;
+          id: string;
+          metadata: Record<string, any>;
+          modifiedAt: string | null;
+          priceId?: string;
+          product: {
+            createdAt: string;
+            description: string | null;
+            id: string;
+            isArchived: boolean;
+            isRecurring: boolean;
+            medias: Array<{
+              checksumEtag: string | null;
+              checksumSha256Base64: string | null;
+              checksumSha256Hex: string | null;
+              createdAt: string;
+              id: string;
+              isUploaded: boolean;
+              lastModifiedAt: string | null;
+              mimeType: string;
+              name: string;
+              organizationId: string;
+              path: string;
+              publicUrl: string;
+              service?: string;
+              size: number;
+              sizeReadable: string;
+              storageVersion: string | null;
+              version: string | null;
+            }>;
+            metadata?: Record<string, any>;
+            modifiedAt: string | null;
+            name: string;
+            organizationId: string;
+            prices: Array<{
+              amountType?: string;
+              createdAt: string;
+              id: string;
+              isArchived: boolean;
+              modifiedAt: string | null;
+              priceAmount?: number;
+              priceCurrency?: string;
+              productId: string;
+              recurringInterval?: "month" | "year" | null;
+              type?: string;
+            }>;
+            recurringInterval?: "month" | "year" | null;
+          };
+          productId: string;
+          recurringInterval: "month" | "year" | null;
+          startedAt: string | null;
+          status: string;
+        } | null
+      >;
+      getCustomerByUserId: FunctionReference<
+        "query",
+        "internal",
+        { userId: string },
+        { id: string; metadata?: Record<string, any>; userId: string } | null
+      >;
+      getProduct: FunctionReference<
+        "query",
+        "internal",
+        { id: string },
+        {
+          createdAt: string;
+          description: string | null;
+          id: string;
+          isArchived: boolean;
+          isRecurring: boolean;
+          medias: Array<{
+            checksumEtag: string | null;
+            checksumSha256Base64: string | null;
+            checksumSha256Hex: string | null;
+            createdAt: string;
+            id: string;
+            isUploaded: boolean;
+            lastModifiedAt: string | null;
+            mimeType: string;
+            name: string;
+            organizationId: string;
+            path: string;
+            publicUrl: string;
+            service?: string;
+            size: number;
+            sizeReadable: string;
+            storageVersion: string | null;
+            version: string | null;
+          }>;
+          metadata?: Record<string, any>;
+          modifiedAt: string | null;
+          name: string;
+          organizationId: string;
+          prices: Array<{
+            amountType?: string;
+            createdAt: string;
+            id: string;
+            isArchived: boolean;
+            modifiedAt: string | null;
+            priceAmount?: number;
+            priceCurrency?: string;
+            productId: string;
+            recurringInterval?: "month" | "year" | null;
+            type?: string;
+          }>;
+          recurringInterval?: "month" | "year" | null;
+        } | null
+      >;
+      getSubscription: FunctionReference<
+        "query",
+        "internal",
+        { id: string },
+        {
+          amount: number | null;
+          cancelAtPeriodEnd: boolean;
+          checkoutId: string | null;
+          createdAt: string;
+          currency: string | null;
+          currentPeriodEnd: string | null;
+          currentPeriodStart: string;
+          customerCancellationComment?: string | null;
+          customerCancellationReason?: string | null;
+          customerId: string;
+          endedAt: string | null;
+          id: string;
+          metadata: Record<string, any>;
+          modifiedAt: string | null;
+          priceId?: string;
+          productId: string;
+          recurringInterval: "month" | "year" | null;
+          startedAt: string | null;
+          status: string;
+        } | null
+      >;
+      insertCustomer: FunctionReference<
+        "mutation",
+        "internal",
+        { id: string; metadata?: Record<string, any>; userId: string },
+        string
+      >;
+      listCustomerSubscriptions: FunctionReference<
+        "query",
+        "internal",
+        { customerId: string },
+        Array<{
+          amount: number | null;
+          cancelAtPeriodEnd: boolean;
+          checkoutId: string | null;
+          createdAt: string;
+          currency: string | null;
+          currentPeriodEnd: string | null;
+          currentPeriodStart: string;
+          customerCancellationComment?: string | null;
+          customerCancellationReason?: string | null;
+          customerId: string;
+          endedAt: string | null;
+          id: string;
+          metadata: Record<string, any>;
+          modifiedAt: string | null;
+          priceId?: string;
+          productId: string;
+          recurringInterval: "month" | "year" | null;
+          startedAt: string | null;
+          status: string;
+        }>
+      >;
+      listProducts: FunctionReference<
+        "query",
+        "internal",
+        { includeArchived?: boolean },
+        Array<{
+          createdAt: string;
+          description: string | null;
+          id: string;
+          isArchived: boolean;
+          isRecurring: boolean;
+          medias: Array<{
+            checksumEtag: string | null;
+            checksumSha256Base64: string | null;
+            checksumSha256Hex: string | null;
+            createdAt: string;
+            id: string;
+            isUploaded: boolean;
+            lastModifiedAt: string | null;
+            mimeType: string;
+            name: string;
+            organizationId: string;
+            path: string;
+            publicUrl: string;
+            service?: string;
+            size: number;
+            sizeReadable: string;
+            storageVersion: string | null;
+            version: string | null;
+          }>;
+          metadata?: Record<string, any>;
+          modifiedAt: string | null;
+          name: string;
+          organizationId: string;
+          priceAmount?: number;
+          prices: Array<{
+            amountType?: string;
+            createdAt: string;
+            id: string;
+            isArchived: boolean;
+            modifiedAt: string | null;
+            priceAmount?: number;
+            priceCurrency?: string;
+            productId: string;
+            recurringInterval?: "month" | "year" | null;
+            type?: string;
+          }>;
+          recurringInterval?: "month" | "year" | null;
+        }>
+      >;
+      listUserSubscriptions: FunctionReference<
+        "query",
+        "internal",
+        { userId: string },
+        Array<{
+          amount: number | null;
+          cancelAtPeriodEnd: boolean;
+          checkoutId: string | null;
+          createdAt: string;
+          currency: string | null;
+          currentPeriodEnd: string | null;
+          currentPeriodStart: string;
+          customerCancellationComment?: string | null;
+          customerCancellationReason?: string | null;
+          customerId: string;
+          endedAt: string | null;
+          id: string;
+          metadata: Record<string, any>;
+          modifiedAt: string | null;
+          priceId?: string;
+          product: {
+            createdAt: string;
+            description: string | null;
+            id: string;
+            isArchived: boolean;
+            isRecurring: boolean;
+            medias: Array<{
+              checksumEtag: string | null;
+              checksumSha256Base64: string | null;
+              checksumSha256Hex: string | null;
+              createdAt: string;
+              id: string;
+              isUploaded: boolean;
+              lastModifiedAt: string | null;
+              mimeType: string;
+              name: string;
+              organizationId: string;
+              path: string;
+              publicUrl: string;
+              service?: string;
+              size: number;
+              sizeReadable: string;
+              storageVersion: string | null;
+              version: string | null;
+            }>;
+            metadata?: Record<string, any>;
+            modifiedAt: string | null;
+            name: string;
+            organizationId: string;
+            prices: Array<{
+              amountType?: string;
+              createdAt: string;
+              id: string;
+              isArchived: boolean;
+              modifiedAt: string | null;
+              priceAmount?: number;
+              priceCurrency?: string;
+              productId: string;
+              recurringInterval?: "month" | "year" | null;
+              type?: string;
+            }>;
+            recurringInterval?: "month" | "year" | null;
+          } | null;
+          productId: string;
+          recurringInterval: "month" | "year" | null;
+          startedAt: string | null;
+          status: string;
+        }>
+      >;
+      syncProducts: FunctionReference<
+        "action",
+        "internal",
+        { polarAccessToken: string; server: "sandbox" | "production" },
+        any
+      >;
+      updateProduct: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          product: {
+            createdAt: string;
+            description: string | null;
+            id: string;
+            isArchived: boolean;
+            isRecurring: boolean;
+            medias: Array<{
+              checksumEtag: string | null;
+              checksumSha256Base64: string | null;
+              checksumSha256Hex: string | null;
+              createdAt: string;
+              id: string;
+              isUploaded: boolean;
+              lastModifiedAt: string | null;
+              mimeType: string;
+              name: string;
+              organizationId: string;
+              path: string;
+              publicUrl: string;
+              service?: string;
+              size: number;
+              sizeReadable: string;
+              storageVersion: string | null;
+              version: string | null;
+            }>;
+            metadata?: Record<string, any>;
+            modifiedAt: string | null;
+            name: string;
+            organizationId: string;
+            prices: Array<{
+              amountType?: string;
+              createdAt: string;
+              id: string;
+              isArchived: boolean;
+              modifiedAt: string | null;
+              priceAmount?: number;
+              priceCurrency?: string;
+              productId: string;
+              recurringInterval?: "month" | "year" | null;
+              type?: string;
+            }>;
+            recurringInterval?: "month" | "year" | null;
+          };
+        },
+        any
+      >;
+      updateProducts: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          polarAccessToken: string;
+          products: Array<{
+            createdAt: string;
+            description: string | null;
+            id: string;
+            isArchived: boolean;
+            isRecurring: boolean;
+            medias: Array<{
+              checksumEtag: string | null;
+              checksumSha256Base64: string | null;
+              checksumSha256Hex: string | null;
+              createdAt: string;
+              id: string;
+              isUploaded: boolean;
+              lastModifiedAt: string | null;
+              mimeType: string;
+              name: string;
+              organizationId: string;
+              path: string;
+              publicUrl: string;
+              service?: string;
+              size: number;
+              sizeReadable: string;
+              storageVersion: string | null;
+              version: string | null;
+            }>;
+            metadata?: Record<string, any>;
+            modifiedAt: string | null;
+            name: string;
+            organizationId: string;
+            prices: Array<{
+              amountType?: string;
+              createdAt: string;
+              id: string;
+              isArchived: boolean;
+              modifiedAt: string | null;
+              priceAmount?: number;
+              priceCurrency?: string;
+              productId: string;
+              recurringInterval?: "month" | "year" | null;
+              type?: string;
+            }>;
+            recurringInterval?: "month" | "year" | null;
+          }>;
+        },
+        any
+      >;
+      updateSubscription: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          subscription: {
+            amount: number | null;
+            cancelAtPeriodEnd: boolean;
+            checkoutId: string | null;
+            createdAt: string;
+            currency: string | null;
+            currentPeriodEnd: string | null;
+            currentPeriodStart: string;
+            customerCancellationComment?: string | null;
+            customerCancellationReason?: string | null;
+            customerId: string;
+            endedAt: string | null;
+            id: string;
+            metadata: Record<string, any>;
+            modifiedAt: string | null;
+            priceId?: string;
+            productId: string;
+            recurringInterval: "month" | "year" | null;
+            startedAt: string | null;
+            status: string;
+          };
+        },
+        any
+      >;
+      upsertCustomer: FunctionReference<
+        "mutation",
+        "internal",
+        { id: string; metadata?: Record<string, any>; userId: string },
+        string
+      >;
+    };
+  };
+  rateLimiter: {
+    lib: {
+      checkRateLimit: FunctionReference<
+        "query",
+        "internal",
+        {
+          config:
+            | {
+                capacity?: number;
+                kind: "token bucket";
+                maxReserved?: number;
+                period: number;
+                rate: number;
+                shards?: number;
+                start?: null;
+              }
+            | {
+                capacity?: number;
+                kind: "fixed window";
+                maxReserved?: number;
+                period: number;
+                rate: number;
+                shards?: number;
+                start?: number;
+              };
+          count?: number;
+          key?: string;
+          name: string;
+          reserve?: boolean;
+          throws?: boolean;
+        },
+        { ok: true; retryAfter?: number } | { ok: false; retryAfter: number }
+      >;
+      clearAll: FunctionReference<
+        "mutation",
+        "internal",
+        { before?: number },
+        null
+      >;
+      getServerTime: FunctionReference<"mutation", "internal", {}, number>;
+      getValue: FunctionReference<
+        "query",
+        "internal",
+        {
+          config:
+            | {
+                capacity?: number;
+                kind: "token bucket";
+                maxReserved?: number;
+                period: number;
+                rate: number;
+                shards?: number;
+                start?: null;
+              }
+            | {
+                capacity?: number;
+                kind: "fixed window";
+                maxReserved?: number;
+                period: number;
+                rate: number;
+                shards?: number;
+                start?: number;
+              };
+          key?: string;
+          name: string;
+          sampleShards?: number;
+        },
+        {
+          config:
+            | {
+                capacity?: number;
+                kind: "token bucket";
+                maxReserved?: number;
+                period: number;
+                rate: number;
+                shards?: number;
+                start?: null;
+              }
+            | {
+                capacity?: number;
+                kind: "fixed window";
+                maxReserved?: number;
+                period: number;
+                rate: number;
+                shards?: number;
+                start?: number;
+              };
+          shard: number;
+          ts: number;
+          value: number;
+        }
+      >;
+      rateLimit: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          config:
+            | {
+                capacity?: number;
+                kind: "token bucket";
+                maxReserved?: number;
+                period: number;
+                rate: number;
+                shards?: number;
+                start?: null;
+              }
+            | {
+                capacity?: number;
+                kind: "fixed window";
+                maxReserved?: number;
+                period: number;
+                rate: number;
+                shards?: number;
+                start?: number;
+              };
+          count?: number;
+          key?: string;
+          name: string;
+          reserve?: boolean;
+          throws?: boolean;
+        },
+        { ok: true; retryAfter?: number } | { ok: false; retryAfter: number }
+      >;
+      resetRateLimit: FunctionReference<
+        "mutation",
+        "internal",
+        { key?: string; name: string },
+        null
+      >;
+    };
+    time: {
+      getServerTime: FunctionReference<"mutation", "internal", {}, number>;
+    };
+  };
+  aggregate: {
+    btree: {
+      aggregateBetween: FunctionReference<
+        "query",
+        "internal",
+        { k1?: any; k2?: any; namespace?: any },
+        { count: number; sum: number }
+      >;
+      atNegativeOffset: FunctionReference<
+        "query",
+        "internal",
+        { k1?: any; k2?: any; namespace?: any; offset: number },
+        { k: any; s: number; v: any }
+      >;
+      atOffset: FunctionReference<
+        "query",
+        "internal",
+        { k1?: any; k2?: any; namespace?: any; offset: number },
+        { k: any; s: number; v: any }
+      >;
+      get: FunctionReference<
+        "query",
+        "internal",
+        { key: any; namespace?: any },
+        null | { k: any; s: number; v: any }
+      >;
+      offset: FunctionReference<
+        "query",
+        "internal",
+        { k1?: any; key: any; namespace?: any },
+        number
+      >;
+      offsetUntil: FunctionReference<
+        "query",
+        "internal",
+        { k2?: any; key: any; namespace?: any },
+        number
+      >;
+      paginate: FunctionReference<
+        "query",
+        "internal",
+        {
+          cursor?: string;
+          k1?: any;
+          k2?: any;
+          limit: number;
+          namespace?: any;
+          order: "asc" | "desc";
+        },
+        {
+          cursor: string;
+          isDone: boolean;
+          page: Array<{ k: any; s: number; v: any }>;
+        }
+      >;
+      paginateNamespaces: FunctionReference<
+        "query",
+        "internal",
+        { cursor?: string; limit: number },
+        { cursor: string; isDone: boolean; page: Array<any> }
+      >;
+      validate: FunctionReference<
+        "query",
+        "internal",
+        { namespace?: any },
+        any
+      >;
+    };
+    inspect: {
+      display: FunctionReference<"query", "internal", { namespace?: any }, any>;
+      dump: FunctionReference<"query", "internal", { namespace?: any }, string>;
+      inspectNode: FunctionReference<
+        "query",
+        "internal",
+        { namespace?: any; node?: string },
+        null
+      >;
+    };
+    public: {
+      clear: FunctionReference<
+        "mutation",
+        "internal",
+        { maxNodeSize?: number; namespace?: any; rootLazy?: boolean },
+        null
+      >;
+      deleteIfExists: FunctionReference<
+        "mutation",
+        "internal",
+        { key: any; namespace?: any },
+        any
+      >;
+      delete_: FunctionReference<
+        "mutation",
+        "internal",
+        { key: any; namespace?: any },
+        null
+      >;
+      init: FunctionReference<
+        "mutation",
+        "internal",
+        { maxNodeSize?: number; namespace?: any; rootLazy?: boolean },
+        null
+      >;
+      insert: FunctionReference<
+        "mutation",
+        "internal",
+        { key: any; namespace?: any; summand?: number; value: any },
+        null
+      >;
+      makeRootLazy: FunctionReference<
+        "mutation",
+        "internal",
+        { namespace?: any },
+        null
+      >;
+      replace: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          currentKey: any;
+          namespace?: any;
+          newKey: any;
+          newNamespace?: any;
+          summand?: number;
+          value: any;
+        },
+        null
+      >;
+      replaceOrInsert: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          currentKey: any;
+          namespace?: any;
+          newKey: any;
+          newNamespace?: any;
+          summand?: number;
+          value: any;
+        },
+        any
+      >;
+    };
+  };
+  aggregateUsage: {
+    btree: {
+      aggregateBetween: FunctionReference<
+        "query",
+        "internal",
+        { k1?: any; k2?: any; namespace?: any },
+        { count: number; sum: number }
+      >;
+      atNegativeOffset: FunctionReference<
+        "query",
+        "internal",
+        { k1?: any; k2?: any; namespace?: any; offset: number },
+        { k: any; s: number; v: any }
+      >;
+      atOffset: FunctionReference<
+        "query",
+        "internal",
+        { k1?: any; k2?: any; namespace?: any; offset: number },
+        { k: any; s: number; v: any }
+      >;
+      get: FunctionReference<
+        "query",
+        "internal",
+        { key: any; namespace?: any },
+        null | { k: any; s: number; v: any }
+      >;
+      offset: FunctionReference<
+        "query",
+        "internal",
+        { k1?: any; key: any; namespace?: any },
+        number
+      >;
+      offsetUntil: FunctionReference<
+        "query",
+        "internal",
+        { k2?: any; key: any; namespace?: any },
+        number
+      >;
+      paginate: FunctionReference<
+        "query",
+        "internal",
+        {
+          cursor?: string;
+          k1?: any;
+          k2?: any;
+          limit: number;
+          namespace?: any;
+          order: "asc" | "desc";
+        },
+        {
+          cursor: string;
+          isDone: boolean;
+          page: Array<{ k: any; s: number; v: any }>;
+        }
+      >;
+      paginateNamespaces: FunctionReference<
+        "query",
+        "internal",
+        { cursor?: string; limit: number },
+        { cursor: string; isDone: boolean; page: Array<any> }
+      >;
+      validate: FunctionReference<
+        "query",
+        "internal",
+        { namespace?: any },
+        any
+      >;
+    };
+    inspect: {
+      display: FunctionReference<"query", "internal", { namespace?: any }, any>;
+      dump: FunctionReference<"query", "internal", { namespace?: any }, string>;
+      inspectNode: FunctionReference<
+        "query",
+        "internal",
+        { namespace?: any; node?: string },
+        null
+      >;
+    };
+    public: {
+      clear: FunctionReference<
+        "mutation",
+        "internal",
+        { maxNodeSize?: number; namespace?: any; rootLazy?: boolean },
+        null
+      >;
+      deleteIfExists: FunctionReference<
+        "mutation",
+        "internal",
+        { key: any; namespace?: any },
+        any
+      >;
+      delete_: FunctionReference<
+        "mutation",
+        "internal",
+        { key: any; namespace?: any },
+        null
+      >;
+      init: FunctionReference<
+        "mutation",
+        "internal",
+        { maxNodeSize?: number; namespace?: any; rootLazy?: boolean },
+        null
+      >;
+      insert: FunctionReference<
+        "mutation",
+        "internal",
+        { key: any; namespace?: any; summand?: number; value: any },
+        null
+      >;
+      makeRootLazy: FunctionReference<
+        "mutation",
+        "internal",
+        { namespace?: any },
+        null
+      >;
+      replace: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          currentKey: any;
+          namespace?: any;
+          newKey: any;
+          newNamespace?: any;
+          summand?: number;
+          value: any;
+        },
+        null
+      >;
+      replaceOrInsert: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          currentKey: any;
+          namespace?: any;
+          newKey: any;
+          newNamespace?: any;
+          summand?: number;
+          value: any;
+        },
+        any
+      >;
     };
   };
 };

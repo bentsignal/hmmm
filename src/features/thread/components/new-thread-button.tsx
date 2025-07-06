@@ -7,8 +7,8 @@ import { useRouter } from "next/navigation";
 import { SquarePen } from "lucide-react";
 
 export default function NewThreadButton() {
-  const router = useRouter();
   const { toggleSidebar } = useSidebar();
+  const router = useRouter();
   const isMobile = useIsMobile();
   return (
     <Button

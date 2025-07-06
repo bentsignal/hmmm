@@ -13,6 +13,7 @@ import { Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "./ui/input";
 import { useState } from "react";
+import CustomButton from "./custom-button";
 
 export default function CustomAlert({
   open,
@@ -24,6 +25,7 @@ export default function CustomAlert({
   typeToConfirm,
   typeToConfirmMessage,
   destructive,
+  loading,
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
@@ -34,6 +36,7 @@ export default function CustomAlert({
   typeToConfirm?: boolean;
   typeToConfirmMessage?: string;
   destructive?: boolean;
+  loading?: boolean;
 }) {
   const [typeToConfirmValue, setTypeToConfirmValue] = useState("");
   const disabled = typeToConfirm && typeToConfirmValue !== typeToConfirmMessage;
@@ -48,7 +51,7 @@ export default function CustomAlert({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title ?? "Are you sure?"}</AlertDialogTitle>
-          <AlertDialogDescription>
+          <AlertDialogDescription className="py-2">
             {message ?? "This action cannot be undone."}
           </AlertDialogDescription>
           {typeToConfirm && typeToConfirmMessage && (
@@ -72,14 +75,14 @@ export default function CustomAlert({
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction asChild>
-            <Button
+            <CustomButton
               variant={destructive ? "destructive" : "default"}
-              className={destructive ? "text-white" : ""}
+              className={destructive ? "bg-destructive text-white" : ""}
               onClick={onConfirm}
               disabled={disabled}
-            >
-              Confirm
-            </Button>
+              loading={loading ?? false}
+              label="Confirm"
+            />
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -1,30 +1,63 @@
-import { api, components, internal } from "./_generated/api";
-import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
+import { components, internal } from "./_generated/api";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+  QueryCtx,
+} from "./_generated/server";
+import { v, ConvexError } from "convex/values";
 import { agent } from "./agent";
 import { paginationOptsValidator } from "convex/server";
 import { vStreamArgs } from "@convex-dev/agent/validators";
 import { authorizeThreadAccess } from "./auth";
+import { convexCategoryEnum } from "@/features/prompts/types/prompt-types";
+import { getCurrentUsage } from "./usage";
+import { messageSendRateLimit } from "./limiter";
+
+// get thread metadata from table separate from agent component. this
+// is where all custom info related to thread state is located
+const getThreadMetadata = async (ctx: QueryCtx, threadId: string) => {
+  const metadata = await ctx.db
+    .query("threadMetadata")
+    .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
+    .first();
+  if (!metadata) {
+    throw new Error("Metadata not found");
+  }
+  return metadata;
+};
 
 export const getThreadList = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    paginationOpts: paginationOptsValidator,
+    search: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // auth check
     const userId = await ctx.auth.getUserIdentity();
     if (!userId) {
-      return [];
+      throw new Error("Unauthorized");
     }
-    const { page: threads } = await ctx.runQuery(
-      components.agent.threads.listThreadsByUserId,
-      {
-        userId: userId.subject,
-        order: "desc",
-        // paginationOpts: {
-        //   cursor: null,
-        //   numItems: 100,
-        // },
-      },
-    );
-    return threads;
+    const { paginationOpts, search } = args;
+    if (search.trim().length > 0) {
+      // filter threads by search term
+      const threads = await ctx.db
+        .query("threadMetadata")
+        .withSearchIndex("search_title", (q) =>
+          q.search("title", search).eq("userId", userId.subject),
+        )
+        .paginate(paginationOpts);
+      return threads;
+    } else {
+      // get all threads for user
+      const threads = await ctx.db
+        .query("threadMetadata")
+        .withIndex("by_user_time", (q) => q.eq("userId", userId.subject))
+        .order("desc")
+        .paginate(paginationOpts);
+      return threads;
+    }
   },
 });
 
@@ -36,18 +69,21 @@ export const getThreadMessages = query({
   },
   handler: async (ctx, args) => {
     const { threadId, paginationOpts, streamArgs } = args;
-    if (threadId === "skip" || threadId === "") {
-      throw new Error("Thread ID is required");
+    if (threadId.trim().length === 0) {
+      throw new Error("Empty thread ID");
     }
+    // auth check is done here
     await authorizeThreadAccess(ctx, threadId);
-    const streams = await agent.syncStreams(ctx, {
-      threadId,
-      streamArgs,
-    });
-    const paginated = await agent.listMessages(ctx, {
-      threadId,
-      paginationOpts,
-    });
+    const [streams, paginated] = await Promise.all([
+      agent.syncStreams(ctx, {
+        threadId,
+        streamArgs,
+      }),
+      agent.listMessages(ctx, {
+        threadId,
+        paginationOpts,
+      }),
+    ]);
     return {
       ...paginated,
       streams,
@@ -58,51 +94,58 @@ export const getThreadMessages = query({
 export const requestNewThreadCreation = mutation({
   args: {
     message: v.string(),
-    modelId: v.string(),
-    key: v.optional(v.string()),
-    userId: v.optional(v.string()),
-    useSearch: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    let uid;
-    if (args.key && args.userId) {
-      if (args.key !== process.env.CONVEX_INTERNAL_API_KEY) {
-        throw new Error("Unauthorized");
-      }
-      uid = args.userId;
-    } else {
-      const userId = await ctx.auth.getUserIdentity();
-      if (!userId) {
-        throw new Error("Unauthorized");
-      }
-      uid = userId.subject;
-      const isUserSubscribed = await ctx.runQuery(api.auth.isUserSubscribed);
-      if (!isUserSubscribed) {
-        throw new Error("User is not subscribed");
-      }
+    if (args.message.length > 20000) {
+      throw new ConvexError(
+        "Message is too long. Please shorten your message.",
+      );
     }
-    const { message, modelId, useSearch } = args;
+    // auth check
+    const userId = await ctx.auth.getUserIdentity();
+    if (!userId) {
+      throw new ConvexError("Unauthorized");
+    }
+    // check usage and rate limiting
+    const [usage] = await Promise.all([
+      getCurrentUsage(ctx, userId.subject),
+      messageSendRateLimit(ctx, userId.subject),
+    ]);
+    if (usage.limitHit) {
+      throw new ConvexError("User has reached usage limit");
+    }
+    // create new thread in agent component table, as well as
+    // new document in separate threadMetadata table
     const { threadId } = await agent.createThread(ctx, {
-      userId: uid,
+      userId: userId.subject,
       title: "New Chat",
     });
-    const { messageId } = await agent.saveMessage(ctx, {
-      threadId,
-      prompt: message,
-      skipEmbeddings: true,
-    });
-    await Promise.all([
-      ctx.scheduler.runAfter(0, internal.actions.generateTitle, {
-        threadId: threadId,
-        message: message,
+    // create metadata doc for thread and store first message
+    const [{ messageId }] = await Promise.all([
+      agent.saveMessage(ctx, {
+        threadId,
+        prompt: args.message,
+        skipEmbeddings: true,
       }),
-      ctx.scheduler.runAfter(0, internal.actions.continueThread, {
+      ctx.db.insert("threadMetadata", {
+        userId: userId.subject,
+        title: "New Chat",
         threadId: threadId,
-        promptMessageId: messageId,
-        modelId: modelId,
-        useSearch: useSearch,
+        updatedAt: Date.now(),
+        state: "waiting",
       }),
     ]);
+    // generate title for new thread, and start response
+    ctx.scheduler.runAfter(0, internal.generation.generateTitle, {
+      threadId: threadId,
+      message: args.message,
+    });
+    ctx.scheduler.runAfter(0, internal.generation.continueThread, {
+      threadId: threadId,
+      promptMessageId: messageId,
+      prompt: args.message,
+      userId: userId.subject,
+    });
     return threadId;
   },
 });
@@ -111,35 +154,52 @@ export const newThreadMessage = mutation({
   args: {
     threadId: v.string(),
     prompt: v.string(),
-    modelId: v.string(),
-    useSearch: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { threadId, prompt, modelId, useSearch } = args;
-    await authorizeThreadAccess(ctx, threadId);
-    const isUserSubscribed = await ctx.runQuery(api.auth.isUserSubscribed);
-    if (!isUserSubscribed) {
-      throw new Error("User is not subscribed");
+    const { threadId, prompt } = args;
+    if (prompt.length > 20000) {
+      throw new ConvexError(
+        "Message is too long. Please shorten your message.",
+      );
     }
-    const isThreadStreaming = await ctx.runQuery(
-      api.threads.isThreadStreaming,
-      {
+    // auth check
+    const userId = await ctx.auth.getUserIdentity();
+    if (!userId) {
+      throw new ConvexError("Unauthorized");
+    }
+    // check usage and rate limiting
+    const [usage] = await Promise.all([
+      getCurrentUsage(ctx, userId.subject),
+      messageSendRateLimit(ctx, userId.subject),
+    ]);
+    if (usage.limitHit) {
+      throw new ConvexError("User has reached usage limit");
+    }
+    // get thread metadata
+    const metadata = await getThreadMetadata(ctx, threadId);
+    if (metadata.userId !== userId.subject) {
+      throw new ConvexError("Unauthorized");
+    }
+    if (metadata.state !== "idle") {
+      throw new ConvexError("Thread is not idle");
+    }
+    // save new message, schedule response action
+    const [{ messageId }] = await Promise.all([
+      agent.saveMessage(ctx, {
         threadId,
-      },
-    );
-    if (isThreadStreaming) {
-      return;
-    }
-    const { messageId } = await agent.saveMessage(ctx, {
-      threadId,
-      prompt: prompt,
-      skipEmbeddings: true,
-    });
-    ctx.scheduler.runAfter(0, internal.actions.continueThread, {
+        prompt: prompt,
+        skipEmbeddings: true,
+      }),
+      ctx.db.patch(metadata._id, {
+        state: "waiting",
+        updatedAt: Date.now(),
+      }),
+    ]);
+    ctx.scheduler.runAfter(0, internal.generation.continueThread, {
       threadId: args.threadId,
       promptMessageId: messageId,
-      modelId: modelId,
-      useSearch: useSearch,
+      prompt: prompt,
+      userId: userId.subject,
     });
   },
 });
@@ -149,8 +209,22 @@ export const deleteThread = mutation({
     threadId: v.string(),
   },
   handler: async (ctx, args) => {
+    // auth check
+    const userId = await ctx.auth.getUserIdentity();
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+    // get thread metadata
     const { threadId } = args;
-    await authorizeThreadAccess(ctx, threadId);
+    const metadata = await getThreadMetadata(ctx, threadId);
+    if (metadata.userId !== userId.subject) {
+      throw new Error("Unauthorized");
+    }
+    if (metadata.state !== "idle") {
+      throw new Error("Thread is not idle");
+    }
+    // delete metadata and thread
+    await ctx.db.delete(metadata._id);
     ctx.scheduler.runAfter(
       0,
       components.agent.threads.deleteAllForThreadIdAsync,
@@ -161,19 +235,98 @@ export const deleteThread = mutation({
   },
 });
 
-export const isThreadStreaming = query({
+export const getThreadTitle = query({
+  args: {
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await ctx.auth.getUserIdentity();
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+    const { threadId } = args;
+    const metadata = await getThreadMetadata(ctx, threadId);
+    if (metadata.userId !== userId.subject) {
+      throw new Error("Unauthorized");
+    }
+    return metadata?.title;
+  },
+});
+
+export const updateThreadTitle = internalMutation({
+  args: {
+    title: v.string(),
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { title, threadId } = args;
+    const metadata = await getThreadMetadata(ctx, threadId);
+    await ctx.db.patch(metadata._id, {
+      title: title,
+    });
+  },
+});
+
+export const updateThreadState = internalMutation({
+  args: {
+    threadId: v.string(),
+    state: v.union(
+      v.literal("idle"),
+      v.literal("waiting"),
+      v.literal("streaming"),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const { threadId, state } = args;
+    const metadata = await getThreadMetadata(ctx, threadId);
+    await ctx.db.patch(metadata._id, {
+      state: state,
+    });
+  },
+});
+
+export const getThreadState = query({
+  args: {
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (args.threadId.trim().length === 0) {
+      return "idle";
+    }
+    const userId = await ctx.auth.getUserIdentity();
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+    const { threadId } = args;
+    const metadata = await getThreadMetadata(ctx, threadId);
+    if (metadata.userId !== userId.subject) {
+      throw new Error("Unauthorized");
+    }
+    return metadata.state;
+  },
+});
+
+export const updateThreadCategory = internalMutation({
+  args: {
+    threadId: v.string(),
+    category: convexCategoryEnum,
+  },
+  handler: async (ctx, args) => {
+    const { threadId, category } = args;
+    const metadata = await getThreadMetadata(ctx, threadId);
+    await ctx.db.patch(metadata._id, {
+      category: category,
+    });
+  },
+});
+
+export const getThreadCategory = internalQuery({
   args: {
     threadId: v.string(),
   },
   handler: async (ctx, args) => {
     const { threadId } = args;
-    if (threadId === "skip" || threadId === "" || threadId === "xr") {
-      return false;
-    }
-    await authorizeThreadAccess(ctx, threadId);
-    const streamingMessages = await ctx.runQuery(agent.component.streams.list, {
-      threadId,
-    });
-    return streamingMessages.length > 0;
+    const metadata = await getThreadMetadata(ctx, threadId);
+    return metadata?.category;
   },
 });

@@ -2,29 +2,32 @@
 
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Brain, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, memo } from "react";
+import useThreadStore from "@/features/thread/store";
+import { Doc } from "@/convex/_generated/dataModel";
 
 interface ThreadListItemProps {
   title: string;
   id: string;
-  handleDelete: () => void;
+  active: boolean;
+  status: Doc<"threadMetadata">["state"];
 }
 
-export default function ThreadListItem({
-  title,
-  id,
-  handleDelete,
-}: ThreadListItemProps) {
-  const pathname = usePathname();
-  const { toggleSidebar } = useSidebar();
+function ThreadListItem({ title, id, active, status }: ThreadListItemProps) {
   const isMobile = useIsMobile();
+  const { toggleSidebar } = useSidebar();
   const [isHovering, setIsHovering] = useState(false);
+
+  const setDeleteModalOpen = useThreadStore(
+    (state) => state.setDeleteModalOpen,
+  );
+  const setSelectedThread = useThreadStore((state) => state.setSelectedThread);
+
   return (
     <SidebarMenuItem
       key={id}
@@ -50,16 +53,17 @@ export default function ThreadListItem({
           prefetch={true}
           className={cn(
             "font-medium whitespace-nowrap",
-            pathname.endsWith(id) && "bg-primary/10",
+            active && "bg-primary/10",
           )}
         >
-          {title === "New Chat" ? (
+          {
             <div className="flex items-center gap-2">
-              <Brain className="text-primary h-4 w-4 animate-pulse" />
+              {(status === "streaming" || status === "waiting") && (
+                <Brain className="text-muted-foreground h-4 w-4 animate-pulse" />
+              )}
+              {title !== "New Chat" && title}
             </div>
-          ) : (
-            title
-          )}
+          }
         </Link>
       </SidebarMenuButton>
       {isHovering && !isMobile && (
@@ -71,7 +75,14 @@ export default function ThreadListItem({
             maskImage: "linear-gradient(to left, black 75%, transparent)",
           }}
         >
-          <Button variant="destructive" size="icon" onClick={handleDelete}>
+          <Button
+            variant="destructive"
+            size="icon"
+            onClick={() => {
+              setSelectedThread(id);
+              setDeleteModalOpen(true);
+            }}
+          >
             <Trash className="h-4 w-4" />
           </Button>
         </div>
@@ -79,3 +90,5 @@ export default function ThreadListItem({
     </SidebarMenuItem>
   );
 }
+
+export default memo(ThreadListItem);

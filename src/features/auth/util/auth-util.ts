@@ -1,5 +1,5 @@
-import { auth } from '@clerk/nextjs/server';
-import { SessionClaims } from '@/features/auth/types/auth-types';
+import { auth } from "@clerk/nextjs/server";
+import { SessionClaims } from "@/features/auth/types/auth-types";
 
 export const getSessionData = async () => {
   const session = await auth();
@@ -11,3 +11,7 @@ export const getSessionData = async () => {
     ...metadata,
   };
 };
+
+export async function getAuthToken() {
+  return (await (await auth()).getToken({ template: "convex" })) ?? undefined;
+}
