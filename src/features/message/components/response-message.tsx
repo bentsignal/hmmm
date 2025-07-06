@@ -29,7 +29,7 @@ export default function ResponseMessage({
   const createdAt = getDateTimeString(new Date(message.createdAt ?? 0));
 
   return (
-    <div className="flex flex-col items-start gap-2">
+    <div className="flex w-full flex-col items-start gap-2">
       <MemoizedReasoningMessage message={message} streaming={streaming} />
       <div className="relative w-full">
         <div className="prose dark:prose-invert relative w-full max-w-full">
@@ -40,21 +40,19 @@ export default function ResponseMessage({
           >
             {text}
           </ReactMarkdown>
-          {text.trim().length > 0 && (
+          {!streaming && message.createdAt && message.content.length > 0 && (
             <div className="absolute -bottom-10 left-0 mt-2 flex justify-start gap-2 sm:-bottom-12">
-              {message.createdAt && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="h-4 w-4" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{createdAt}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-              <CopyButton getContent={() => text} />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{createdAt}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <CopyButton getContent={() => message.content} />
             </div>
           )}
         </div>

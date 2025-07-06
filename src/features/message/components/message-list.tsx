@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import useThreadStore from "@/features/thread/store/thread-store";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
 
 export default function MessageList({ threadId }: { threadId: string }) {
   // handle auto scroll & scroll to bottom
@@ -42,6 +43,7 @@ export default function MessageList({ threadId }: { threadId: string }) {
           <div className="mx-4 mb-8 flex h-full w-full max-w-4xl flex-col gap-16 px-4">
             <Messages threadId={threadId} />
             <StreamingMessage threadId={threadId} />
+            <UsageChatCallout />
             <div ref={messagesEndRef} />
           </div>
         </div>
