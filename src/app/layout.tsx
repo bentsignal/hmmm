@@ -3,7 +3,7 @@ import { Inter, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "@/providers";
 import { Toaster } from "sonner";
-import ReactScan from "@/components/react-scan";
+// import ReactScan from "@/components/react-scan";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -28,9 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <ReactScan />
-      </head>
+      <head>{/* <ReactScan /> */}</head>
       <body
         className={`${inter.variable} ${robotoMono.variable} font-main antialiased`}
       >
