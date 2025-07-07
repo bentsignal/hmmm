@@ -1,20 +1,20 @@
 "use client";
 
-import { Separator } from "@/components/ui/separator";
-import { MoveLeft, LogOut } from "lucide-react";
+import { Fragment } from "react";
+import { SignOutButton } from "@clerk/nextjs";
+import { LogOut, MoveLeft } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
   SidebarContent,
-  SidebarMenuItem,
-  SidebarMenuButton,
   SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { settingsTabs } from "@/features/settings/data";
-import { Fragment } from "react";
-import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { SignOutButton } from "@clerk/nextjs";
+import { settingsTabs } from "@/features/settings/data";
 
 export default function SettingsDesktop() {
   const pathname = usePathname();
