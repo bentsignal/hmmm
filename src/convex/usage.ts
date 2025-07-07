@@ -1,19 +1,18 @@
+import { TableAggregate } from "@convex-dev/aggregate";
+import {
+  customCtx,
+  customMutation,
+} from "convex-helpers/server/customFunctions";
+import { Triggers } from "convex-helpers/server/triggers";
+import { components } from "./_generated/api";
+import { DataModel } from "./_generated/dataModel";
 import {
   internalMutation,
   mutation,
   query,
   QueryCtx,
 } from "./_generated/server";
-import { DataModel } from "./_generated/dataModel";
-import { components } from "./_generated/api";
-import { TableAggregate } from "@convex-dev/aggregate";
-import { Triggers } from "convex-helpers/server/triggers";
-import {
-  customMutation,
-  customCtx,
-} from "convex-helpers/server/customFunctions";
 import { getUserPlanHelper } from "./polar";
-
 import * as timeHelpers from "./time";
 
 // free tier can incur 1 cent of cost per day
@@ -75,11 +74,14 @@ export const getCurrentUsage = async (ctx: QueryCtx, userId: string) => {
     },
   });
 
+  const unlimited = plan?.name === "Unlimited";
+
   return {
     endOfPeriod: end.toISOString(),
     percentageUsed: Math.min((totalUsage / limit) * 100, 100),
-    limitHit: totalUsage >= limit,
+    limitHit: !unlimited && totalUsage >= limit,
     range,
+    unlimited,
   };
 };
 
@@ -90,7 +92,6 @@ export const getUsage = query({
     if (!userId) {
       throw new Error("Unauthorized");
     }
-
     const usage = await getCurrentUsage(ctx, userId.subject);
     return usage;
   },

@@ -1,13 +1,14 @@
 import { Polar } from "@convex-dev/polar";
-import { components, api, internal } from "./_generated/api";
+import { v } from "convex/values";
+import { api, components, internal } from "./_generated/api";
 import {
   internalAction,
+  internalQuery,
   mutation,
   query,
   QueryCtx,
-  internalQuery,
 } from "./_generated/server";
-import { v } from "convex/values";
+import { hasAccess } from "./users";
 
 // highest tier plan
 const MAX_PLAN_NAME = "Ultra";
@@ -54,22 +55,41 @@ export const getPlanTier = internalQuery({
         ? 0
         : plan?.name === "Premium"
           ? 1
-          : plan?.name === "Ultra"
+          : plan?.name === "Ultra" || plan?.name === "Unlimited"
             ? 2
             : 0;
     return tier;
   },
 });
 
-export const getUserPlanHelper = async (ctx: QueryCtx, userId: string) => {
-  const subscription = await polar.getCurrentSubscription(ctx, {
-    userId,
-  });
+type Plan = {
+  name: "Light" | "Premium" | "Ultra" | "Unlimited";
+  price: number;
+  max: boolean;
+};
+
+export const getUserPlanHelper = async (
+  ctx: QueryCtx,
+  userId: string,
+): Promise<Plan | null> => {
+  const [subscription, access] = await Promise.all([
+    polar.getCurrentSubscription(ctx, {
+      userId,
+    }),
+    hasAccess(ctx, userId),
+  ]);
+  if (access) {
+    return {
+      name: "Unlimited",
+      price: 0,
+      max: true,
+    };
+  }
   if (!subscription) {
     return null;
   }
   return {
-    name: subscription.product.name,
+    name: subscription.product.name as Plan["name"],
     price: subscription.product.prices[0]?.priceAmount ?? 0,
     max: subscription.product.name === MAX_PLAN_NAME,
   };

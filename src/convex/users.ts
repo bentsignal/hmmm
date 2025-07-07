@@ -1,12 +1,12 @@
 import { v } from "convex/values";
+import { components, internal } from "./_generated/api";
 import {
+  internalMutation,
+  internalQuery,
   mutation,
   query,
-  internalQuery,
   QueryCtx,
-  internalMutation,
 } from "./_generated/server";
-import { components, internal } from "./_generated/api";
 
 export const createUser = internalMutation({
   args: {
@@ -23,6 +23,14 @@ export const createUser = internalMutation({
     });
   },
 });
+
+export const hasAccess = async (ctx: QueryCtx, userId: string) => {
+  const user = await getUserByUserId(ctx, userId);
+  if (!user) {
+    return false;
+  }
+  return user.access;
+};
 
 export const getUser = internalQuery({
   args: {},
