@@ -1,5 +1,4 @@
 import Link from "next/link";
-
 import { Button } from "./ui/button";
 
 export default function NotFoundMessage() {
@@ -10,7 +9,7 @@ export default function NotFoundMessage() {
         We had some trouble finding that page. If you think this is an error,
         please{" "}
         <span className="text-primary font-bold">
-          <Link href="/contact">contact support.</Link>
+          <Link href="/settings/support">contact support.</Link>
         </span>
       </span>
       <Link href="/">

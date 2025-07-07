@@ -1,15 +1,22 @@
 "use client";
 
 import {
-  Loading,
+  Link as ClerkLink,
   Connection,
   Field,
-  Input,
   FieldError,
-  Link as ClerkLink,
+  Input,
   Label,
+  Loading,
 } from "@clerk/elements/common";
-import { Root, Step, Action, Captcha, Strategy } from "@clerk/elements/sign-up";
+import { Action, Captcha, Root, Step, Strategy } from "@clerk/elements/sign-up";
+import { Loader } from "lucide-react";
+import { useTheme } from "next-themes";
+import Link from "next/link";
+// import { Label as UILabel } from "@/components/ui/label";
+import DefaultLoading from "@/components/default-loading";
+import { SimpleIcon } from "@/components/simple-icon";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -18,13 +25,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { SimpleIcon } from "@/components/simple-icon";
-import { useTheme } from "next-themes";
-import { Loader } from "lucide-react";
 import { Input as UIInput } from "@/components/ui/input";
-// import { Label as UILabel } from "@/components/ui/label";
-import DefaultLoading from "@/components/default-loading";
 
 export default function SignUpComponent() {
   const { theme } = useTheme();
@@ -109,66 +110,21 @@ export default function SignUpComponent() {
                           Already have an account? Sign in
                         </ClerkLink>
                       </Button>
+                      <span className="text-xs text-muted-foreground text-center mt-4">
+                        By continuing, you agree to our{" "}
+                        <span className="text-primary font-bold underline">
+                          <Link href="/policy/terms">Terms of Service</Link>
+                        </span>
+                        , and acknowledge that you have read our{" "}
+                        <span className="text-primary font-bold underline">
+                          <Link href="/policy/privacy">Privacy Policy</Link>
+                        </span>
+                        .
+                      </span>
                     </div>
                   </CardFooter>
                 </Card>
               </Step>
-
-              {/* <Step name="continue">
-                <Card className="w-full sm:w-96">
-                  <CardHeader className="text-center">
-                    <CardTitle>Create your account</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Field name="username" className="space-y-2">
-                      <Label>
-                        <UILabel className="mb-2">Username</UILabel>
-                      </Label>
-                      <Input type="text" required asChild>
-                        <UIInput placeholder="Chose a username" />
-                      </Input>
-                      <FieldError className="text-destructive block text-sm" />
-                    </Field>
-                  </CardContent>
-                  <CardContent className="flex flex-row gap-x-2">
-                    <Field name="firstName" className="space-y-2">
-                      <Label>
-                        <UILabel className="mb-2">First Name</UILabel>
-                      </Label>
-                      <Input type="text" required asChild>
-                        <UIInput placeholder="First Name" />
-                      </Input>
-                      <FieldError className="text-destructive block text-sm" />
-                    </Field>
-                    <Field name="lastName" className="space-y-2">
-                      <Label>
-                        <UILabel className="mb-2">Last Name</UILabel>
-                      </Label>
-                      <Input type="text" required asChild>
-                        <UIInput placeholder="Last Name" />
-                      </Input>
-                      <FieldError className="text-destructive block text-sm" />
-                    </Field>
-                  </CardContent>
-                  <CardFooter>
-                    <div className="mt-2 grid w-full gap-y-4">
-                      <Action submit asChild>
-                        <Button disabled={isGlobalLoading}>
-                          <Loading>
-                            {(isLoading) => {
-                              return isLoading ? (
-                                <Loader className="size-4 animate-spin" />
-                              ) : (
-                                "Continue"
-                              );
-                            }}
-                          </Loading>
-                        </Button>
-                      </Action>
-                    </div>
-                  </CardFooter>
-                </Card>
-              </Step> */}
 
               <Step name="verifications">
                 <Strategy name="email_code">

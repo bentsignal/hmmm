@@ -1,4 +1,4 @@
-import { Cog, CreditCard, ChartNoAxesColumn, Mail, User } from "lucide-react";
+import { ChartNoAxesColumn, Cog, CreditCard, Mail, User } from "lucide-react";
 
 export const settingsTabs = [
   [
@@ -27,8 +27,8 @@ export const settingsTabs = [
   ],
   [
     {
-      label: "Contact",
-      href: "/settings/contact",
+      label: "Support",
+      href: "/settings/support",
       icon: Mail,
     },
   ],

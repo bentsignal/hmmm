@@ -1,11 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
-import { getAuthToken } from "@/features/auth/util/auth-util";
 import { PageFallback } from "@/components/error-boundary";
+import { Card, CardContent } from "@/components/ui/card";
 import { tryCatch } from "@/lib/utils";
+import { getAuthToken } from "@/features/auth/util/auth-util";
 import DeleteAccount from "@/features/settings/components/delete-accont";
 
 export default async function Account() {
