@@ -1,9 +1,9 @@
-import { Button } from "@/components/ui/button";
 import { Box } from "lucide-react";
 import Link from "next/link";
-import Composer from "@/features/composer/components";
 import ErrorBoundary from "@/components/error-boundary";
+import { Button } from "@/components/ui/button";
 import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
+import Composer from "@/features/composer/components";
 
 export default async function Home() {
   return (
@@ -20,8 +20,8 @@ export default async function Home() {
         </ErrorBoundary>
       </div>
       <UsageChatCallout />
-      <Button asChild variant="outline">
-        <Link href="/xr">
+      <Button variant="outline" disabled={true}>
+        <Link href="/xr" className="flex items-center gap-2">
           <Box className="h-4 w-4" />
           Enter XR
         </Link>
