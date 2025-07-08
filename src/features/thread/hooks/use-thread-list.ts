@@ -1,14 +1,16 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useConvexAuth, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import useDebouncedInput from "@/hooks/use-debounced-input";
 
 const PAGE_SIZE = 50;
 
 export default function useThreadList() {
   // thread pagination
-  const [search, setSearch] = useState("");
+  const { setValue: setSearch, debouncedValue: debouncedSearch } =
+    useDebouncedInput();
   const { isAuthenticated } = useConvexAuth();
-  const args = isAuthenticated ? { search } : "skip";
+  const args = isAuthenticated ? { search: debouncedSearch } : "skip";
   const {
     results: threads,
     status,
