@@ -1,15 +1,11 @@
 "use client";
 
-import { useConvexAuth, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import useUsage from "../hooks/use-usage";
 import UsageCountdown from "./usage-countdown";
 import UsageUpgradeCallout from "./usage-upgrade-callout";
 
 export default function UsageChatCallout() {
-  const { isAuthenticated } = useConvexAuth();
-  const args = isAuthenticated ? {} : "skip";
-
-  const usage = useQuery(api.usage.getUsage, args);
+  const { usage } = useUsage();
 
   if (!usage) return null;
   if (!usage.limitHit) return null;
