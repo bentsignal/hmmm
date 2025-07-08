@@ -1,6 +1,6 @@
 import { defaultModel } from "@/features/models";
-import { PromptCategory, PromptDifficulty } from "@/features/prompts/types";
 import { models } from "@/features/models/models";
+import { PromptCategory, PromptDifficulty } from "@/features/prompts/types";
 
 // determine the model based on user plan, prompt difficulty, and prompt category
 export const getResponseModel = (
@@ -28,7 +28,7 @@ export const getResponseModel = (
           return tier > 0 ? models["google/gemini-2.5-flash"] : defaultModel;
         case "hard":
           return tier > 1
-            ? models["openai/o3-2025-04-16"]
+            ? models["google/gemini-2.5-pro"]
             : tier > 0
               ? models["google/gemini-2.5-flash"]
               : defaultModel;
@@ -58,7 +58,7 @@ export const getResponseModel = (
           return tier > 0 ? models["x-ai/grok-3-mini"] : defaultModel;
         case "hard":
           return tier > 1
-            ? models["openai/o4-mini-high"]
+            ? models["google/gemini-2.5-pro"]
             : tier > 0
               ? models["x-ai/grok-3-mini"]
               : defaultModel;
