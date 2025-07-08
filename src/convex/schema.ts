@@ -11,6 +11,7 @@ export default defineSchema({
     email: v.string(),
     access: v.optional(v.boolean()),
     waitlist: v.optional(v.boolean()),
+    admin: v.optional(v.boolean()),
   }).index("by_user_id", ["userId"]),
   threadMetadata: defineTable({
     title: v.string(),

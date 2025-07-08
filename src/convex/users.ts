@@ -32,6 +32,14 @@ export const hasAccess = async (ctx: QueryCtx, userId: string) => {
   return user.access;
 };
 
+export const isAdmin = async (ctx: QueryCtx, userId: string) => {
+  const user = await getUserByUserId(ctx, userId);
+  if (!user) {
+    return false;
+  }
+  return user.admin;
+};
+
 export const getUser = internalQuery({
   args: {},
   handler: async (ctx) => {

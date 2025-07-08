@@ -9,7 +9,6 @@
  */
 
 import type * as agent from "../agent.js";
-import type * as auth from "../auth.js";
 import type * as clerk from "../clerk.js";
 import type * as clerk_webhook from "../clerk_webhook.js";
 import type * as generation from "../generation.js";
@@ -41,7 +40,6 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   agent: typeof agent;
-  auth: typeof auth;
   clerk: typeof clerk;
   clerk_webhook: typeof clerk_webhook;
   generation: typeof generation;

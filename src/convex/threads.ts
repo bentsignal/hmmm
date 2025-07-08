@@ -1,29 +1,56 @@
+import { vStreamArgs } from "@convex-dev/agent/validators";
+import { paginationOptsValidator } from "convex/server";
+import { ConvexError, v } from "convex/values";
 import { components, internal } from "./_generated/api";
 import {
   internalMutation,
   internalQuery,
   mutation,
+  MutationCtx,
   query,
   QueryCtx,
 } from "./_generated/server";
-import { v, ConvexError } from "convex/values";
 import { agent } from "./agent";
-import { paginationOptsValidator } from "convex/server";
-import { vStreamArgs } from "@convex-dev/agent/validators";
-import { authorizeThreadAccess } from "./auth";
-import { convexCategoryEnum } from "@/features/prompts/types/prompt-types";
-import { getCurrentUsage } from "./usage";
 import { messageSendRateLimit } from "./limiter";
+import { getCurrentUsage } from "./usage";
+import { isAdmin } from "./users";
+import { convexCategoryEnum } from "@/features/prompts/types/prompt-types";
 
 // get thread metadata from table separate from agent component. this
 // is where all custom info related to thread state is located
-const getThreadMetadata = async (ctx: QueryCtx, threadId: string) => {
+export const getThreadMetadata = async (ctx: QueryCtx, threadId: string) => {
   const metadata = await ctx.db
     .query("threadMetadata")
     .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
     .first();
   if (!metadata) {
     throw new Error("Metadata not found");
+  }
+  return metadata;
+};
+
+// verify that a user is allowed to access a thread. If they are,
+// return the thread metadata. Admin's can access any thread
+const authorizeThreadAccess = async (
+  ctx: QueryCtx | MutationCtx,
+  threadId: string,
+) => {
+  const userId = await ctx.auth.getUserIdentity();
+  if (!userId) {
+    throw new Error("Unauthorized");
+  }
+  const [metadata, isAdminUser] = await Promise.all([
+    getThreadMetadata(ctx, threadId),
+    isAdmin(ctx, userId.subject),
+  ]);
+  if (!metadata) {
+    throw new Error("Thread not found");
+  }
+  if (isAdminUser) {
+    return metadata;
+  }
+  if (metadata.userId !== userId.subject) {
+    throw new Error("Unauthorized");
   }
   return metadata;
 };
@@ -240,16 +267,8 @@ export const getThreadTitle = query({
     threadId: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await ctx.auth.getUserIdentity();
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
-    const { threadId } = args;
-    const metadata = await getThreadMetadata(ctx, threadId);
-    if (metadata.userId !== userId.subject) {
-      throw new Error("Unauthorized");
-    }
-    return metadata?.title;
+    const metadata = await authorizeThreadAccess(ctx, args.threadId);
+    return metadata.title;
   },
 });
 
@@ -290,18 +309,11 @@ export const getThreadState = query({
     threadId: v.string(),
   },
   handler: async (ctx, args) => {
-    if (args.threadId.trim().length === 0) {
+    const { threadId } = args;
+    if (threadId.trim().length === 0) {
       return "idle";
     }
-    const userId = await ctx.auth.getUserIdentity();
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
-    const { threadId } = args;
-    const metadata = await getThreadMetadata(ctx, threadId);
-    if (metadata.userId !== userId.subject) {
-      throw new Error("Unauthorized");
-    }
+    const metadata = await authorizeThreadAccess(ctx, threadId);
     return metadata.state;
   },
 });
