@@ -1,18 +1,18 @@
 "use node";
 
-import { generateText, generateObject } from "ai";
+import { generateObject, generateText } from "ai";
 import z from "zod";
 import { v } from "convex/values";
 import { components, internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 import { agent } from "./agent";
 import { classifierModel, titleGeneratorModel } from "@/features/models";
+import { getResponseModel } from "@/features/models/util/model-utils";
 import { getClassifierPrompt, titleGeneratorPrompt } from "@/features/prompts";
 import {
   promptCategoryEnum,
   promptDifficultyEnum,
 } from "@/features/prompts/types/prompt-types";
-import { getResponseModel } from "@/features/models/util/model-utils";
 
 // generate title for thread based off of initial prompt
 export const generateTitle = internalAction({
@@ -85,6 +85,7 @@ export const continueThread = internalAction({
       {
         promptMessageId,
         model: chosenModel.model,
+        maxTokens: 10000,
         providerOptions: {
           openrouter: {
             reasoning: {
