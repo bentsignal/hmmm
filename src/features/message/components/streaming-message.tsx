@@ -1,7 +1,7 @@
-import { MemoizedResponse } from "./response-message";
-import useStreamingMessage from "../hooks/use-streaming-message";
-import useThreadStatus from "@/features/thread/hooks/use-thread-status";
 import { Loader2 } from "lucide-react";
+import useStreamingMessage from "../hooks/use-streaming-message";
+import { MemoizedResponse } from "./response-message";
+import useThreadStatus from "@/features/thread/hooks/use-thread-status";
 
 interface StreamingMessageProps {
   threadId: string;
@@ -9,19 +9,19 @@ interface StreamingMessageProps {
 
 export default function StreamingMessage({ threadId }: StreamingMessageProps) {
   const { isThreadIdle } = useThreadStatus({ threadId });
-  const { streamingMessage, messageLength } = useStreamingMessage({
+  const { streamingMessage, waiting } = useStreamingMessage({
     threadId,
   });
 
-  if (streamingMessage) {
-    return (
-      <MemoizedResponse message={streamingMessage} streaming={!isThreadIdle} />
-    );
-  } else if (messageLength > 0) {
+  if (waiting) {
     return (
       <div className="flex items-center justify-start">
         <Loader2 className="h-4 w-4 animate-spin" />
       </div>
+    );
+  } else if (streamingMessage) {
+    return (
+      <MemoizedResponse message={streamingMessage} streaming={!isThreadIdle} />
     );
   }
   return null;

@@ -1,8 +1,4 @@
-import {
-  toUIMessages,
-  UIMessage,
-  useThreadMessages,
-} from "@convex-dev/agent/react";
+import { toUIMessages, useThreadMessages } from "@convex-dev/agent/react";
 import { useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { INITIAL_PAGE_SIZE } from "@/features/message/config";
@@ -12,7 +8,7 @@ export default function useMessages({ threadId }: { threadId: string }) {
   const { isAuthenticated } = useConvexAuth();
   const args = isAuthenticated ? { threadId } : "skip";
   const {
-    results: unfilteredMessages,
+    results: messages,
     loadMore,
     isLoading,
     status,
@@ -21,23 +17,12 @@ export default function useMessages({ threadId }: { threadId: string }) {
     stream: false,
   });
 
-  // don't include most recent message if it's a response, that
-  // is shown by the streaming message component
-  const uiMessages = toUIMessages(unfilteredMessages);
-  let messages: UIMessage[] = [];
-  if (uiMessages.length > 0) {
-    const lastMessage = uiMessages[uiMessages.length - 1];
-    if (lastMessage.role === "user") {
-      messages = uiMessages;
-    } else {
-      messages = uiMessages.slice(0, -1);
-    }
-  }
+  const uiMessages = toUIMessages(messages);
 
   return {
     isAuthenticated,
-    messages,
-    totalCount: unfilteredMessages.length,
+    messages: uiMessages,
+    totalCount: messages.length,
     loadMore,
     isLoading,
     status,

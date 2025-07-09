@@ -1,10 +1,10 @@
-import { useConvexAuth } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import {
   toUIMessages,
   UIMessage,
   useThreadMessages,
 } from "@convex-dev/agent/react";
+import { useConvexAuth } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import useMessages from "./use-messages";
 
 export default function useStreamingMessage({
@@ -39,6 +39,13 @@ export default function useStreamingMessage({
     streamingMessage = uiMessages[1];
   }
 
+  // if the last message is a user message and there is no streaming message,
+  // then the user is waiting for a response
+  const waiting =
+    messages.length > 0 &&
+    messages[messages.length - 1].role === "user" &&
+    !streamingMessage;
+
   // dedupe
   if (messages.find((message) => message.id === streamingMessage?.id)) {
     streamingMessage = null;
@@ -47,5 +54,6 @@ export default function useStreamingMessage({
   return {
     streamingMessage,
     messageLength: messages.length,
+    waiting,
   };
 }
