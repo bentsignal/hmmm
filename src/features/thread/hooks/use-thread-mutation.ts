@@ -1,9 +1,9 @@
-import { api } from "@/convex/_generated/api";
 import { optimisticallySendMessage } from "@convex-dev/agent/react";
-import { useMutation } from "convex/react";
 import { useConvexMutation } from "@convex-dev/react-query";
 import { useMutation as useTanstackMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 export default function useThreadMutation() {
   const createThread = useMutation(api.threads.requestNewThreadCreation);

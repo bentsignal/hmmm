@@ -1,3 +1,4 @@
+import type { SyncStreamsReturnValue } from "@convex-dev/agent";
 import { vStreamArgs } from "@convex-dev/agent/validators";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
@@ -24,7 +25,8 @@ export const getThreadMetadata = async (ctx: QueryCtx, threadId: string) => {
     .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
     .first();
   if (!metadata) {
-    throw new Error("Metadata not found");
+    // metadata not found
+    return null;
   }
   return metadata;
 };
@@ -44,7 +46,8 @@ const authorizeThreadAccess = async (
     isAdmin(ctx, userId.subject),
   ]);
   if (!metadata) {
-    throw new Error("Thread not found");
+    // thread not found
+    return null;
   }
   if (isAdminUser) {
     return metadata;
@@ -108,7 +111,21 @@ export const getThreadMessages = query({
       throw new Error("Empty thread ID");
     }
     // auth check is done here
-    await authorizeThreadAccess(ctx, threadId);
+    const metadata = await authorizeThreadAccess(ctx, threadId);
+    if (!metadata) {
+      const streamsFallback: SyncStreamsReturnValue =
+        !streamArgs || streamArgs.kind === "list"
+          ? { kind: "list", messages: [] }
+          : { kind: "deltas", deltas: [] };
+      return {
+        continueCursor: "",
+        isDone: true,
+        page: [],
+        pageStatus: null,
+        splitCursor: null,
+        streams: streamsFallback,
+      };
+    }
     const [streams, paginated] = await Promise.all([
       agent.syncStreams(ctx, {
         threadId,
@@ -212,6 +229,9 @@ export const newThreadMessage = mutation({
     }
     // get thread metadata
     const metadata = await getThreadMetadata(ctx, threadId);
+    if (!metadata) {
+      throw new ConvexError("Thread not found");
+    }
     if (metadata.userId !== userId.subject) {
       throw new ConvexError("Unauthorized");
     }
@@ -252,6 +272,9 @@ export const deleteThread = mutation({
     // get thread metadata
     const { threadId } = args;
     const metadata = await getThreadMetadata(ctx, threadId);
+    if (!metadata) {
+      throw new ConvexError("Thread not found");
+    }
     if (metadata.userId !== userId.subject) {
       throw new Error("Unauthorized");
     }
@@ -270,15 +293,11 @@ export const deleteThread = mutation({
   },
 });
 
-export const getThreadTitle = query({
-  args: {
-    threadId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const metadata = await authorizeThreadAccess(ctx, args.threadId);
-    return metadata.title;
-  },
-});
+/*
+
+  Title of thread (shown in sidebar)
+
+*/
 
 export const updateThreadTitle = internalMutation({
   args: {
@@ -288,11 +307,30 @@ export const updateThreadTitle = internalMutation({
   handler: async (ctx, args) => {
     const { title, threadId } = args;
     const metadata = await getThreadMetadata(ctx, threadId);
+    if (!metadata) {
+      throw new ConvexError("Thread not found");
+    }
     await ctx.db.patch(metadata._id, {
       title: title,
     });
   },
 });
+
+export const getThreadTitle = query({
+  args: {
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const metadata = await authorizeThreadAccess(ctx, args.threadId);
+    return metadata?.title;
+  },
+});
+
+/*
+
+  Current state of thread
+
+*/
 
 export const updateThreadState = internalMutation({
   args: {
@@ -306,6 +344,9 @@ export const updateThreadState = internalMutation({
   handler: async (ctx, args) => {
     const { threadId, state } = args;
     const metadata = await getThreadMetadata(ctx, threadId);
+    if (!metadata) {
+      throw new ConvexError("Thread not found");
+    }
     await ctx.db.patch(metadata._id, {
       state: state,
     });
@@ -322,9 +363,15 @@ export const getThreadState = query({
       return "idle";
     }
     const metadata = await authorizeThreadAccess(ctx, threadId);
-    return metadata.state;
+    return metadata?.state;
   },
 });
+
+/*
+
+  Thread categories
+
+*/
 
 export const updateThreadCategory = internalMutation({
   args: {
@@ -334,6 +381,9 @@ export const updateThreadCategory = internalMutation({
   handler: async (ctx, args) => {
     const { threadId, category } = args;
     const metadata = await getThreadMetadata(ctx, threadId);
+    if (!metadata) {
+      throw new ConvexError("Thread not found");
+    }
     await ctx.db.patch(metadata._id, {
       category: category,
     });

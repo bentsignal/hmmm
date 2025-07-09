@@ -1,12 +1,12 @@
-import { toast } from "sonner";
-import useComposerStore from "../store";
-import useThreadStore from "@/features/thread/store/thread-store";
-import useThreadMutation from "@/features/thread/hooks/use-thread-mutation";
 import { useRouter } from "next/navigation";
-import useThreadStatus from "@/features/thread/hooks/use-thread-status";
-import useUsage from "@/features/billing/hooks/use-usage";
-import { tryCatch } from "@/lib/utils";
+import { toast } from "sonner";
 import { ConvexError } from "convex/values";
+import useComposerStore from "../store";
+import { tryCatch } from "@/lib/utils";
+import useUsage from "@/features/billing/hooks/use-usage";
+import useThreadMutation from "@/features/thread/hooks/use-thread-mutation";
+import useThreadStatus from "@/features/thread/hooks/use-thread-status";
+import useThreadStore from "@/features/thread/store/thread-store";
 
 export default function useSendMessage() {
   const router = useRouter();
@@ -41,9 +41,10 @@ export default function useSendMessage() {
       return;
     }
     const prompt = useComposerStore.getState().prompt;
-    setPrompt("");
     const activeThread = useThreadStore.getState().activeThread;
+    setPrompt("");
     if (activeThread === null) {
+      router.push("/loading");
       const { data: threadId, error: threadCreationError } = await tryCatch(
         createThread({
           message: prompt,

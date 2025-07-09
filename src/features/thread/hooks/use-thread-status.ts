@@ -6,5 +6,5 @@ export default function useThreadStatus({ threadId }: { threadId: string }) {
   const args = isAuthenticated ? { threadId } : "skip";
   const threadState = useQuery(api.threads.getThreadState, args);
   const isThreadIdle = threadState === "idle";
-  return { threadState, isThreadIdle };
+  return { isThreadIdle };
 }

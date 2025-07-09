@@ -1,6 +1,6 @@
-import CustomAlert from "@/components/alert";
-import useThreadMutation from "../hooks/use-thread-mutation";
 import { usePathname, useRouter } from "next/navigation";
+import useThreadMutation from "../hooks/use-thread-mutation";
+import CustomAlert from "@/components/alert";
 import useThreadStore from "@/features/thread/store";
 
 export default function ThreadDeleteModal() {
@@ -25,10 +25,8 @@ export default function ThreadDeleteModal() {
         if (pathname.includes(selectedThread)) {
           router.push("/");
         }
-        setTimeout(() => {
-          deleteThread({ threadId: selectedThread });
-          setSelectedThread(null);
-        }, 500);
+        deleteThread({ threadId: selectedThread });
+        setSelectedThread(null);
       }}
       title="Delete Thread"
       message="Are you sure you want to delete this thread?"
