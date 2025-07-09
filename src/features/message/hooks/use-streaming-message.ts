@@ -39,6 +39,11 @@ export default function useStreamingMessage({
     streamingMessage = uiMessages[1];
   }
 
+  // dedupe
+  if (messages.find((message) => message.id === streamingMessage?.id)) {
+    streamingMessage = null;
+  }
+
   // if the last message is a user message and there is no streaming message,
   // then the user is waiting for a response
   const waiting =
@@ -46,9 +51,17 @@ export default function useStreamingMessage({
     messages[messages.length - 1].role === "user" &&
     !streamingMessage;
 
-  // dedupe
-  if (messages.find((message) => message.id === streamingMessage?.id)) {
-    streamingMessage = null;
+  // if the message starts with the string "undefined", remove it. Not sure why
+  // this happens. Likely a bug with one either the ai sdk or open router
+  if (
+    streamingMessage &&
+    typeof streamingMessage.content === "string" &&
+    streamingMessage.content.startsWith("undefined")
+  ) {
+    streamingMessage = {
+      ...streamingMessage,
+      content: streamingMessage.content.slice("undefined".length),
+    };
   }
 
   return {
