@@ -138,6 +138,12 @@ export const getThreadMessages = query({
     ]);
     return {
       ...paginated,
+      page: paginated.page.map((message) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { userId, model, provider, usage, ...messageWithoutUserId } =
+          message;
+        return messageWithoutUserId;
+      }),
       streams,
     };
   },
