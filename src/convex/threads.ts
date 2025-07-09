@@ -67,24 +67,32 @@ export const getThreadList = query({
       throw new Error("Unauthorized");
     }
     const { paginationOpts, search } = args;
+    let threads;
     if (search.trim().length > 0) {
       // filter threads by search term
-      const threads = await ctx.db
+      threads = await ctx.db
         .query("threadMetadata")
         .withSearchIndex("search_title", (q) =>
           q.search("title", search).eq("userId", userId.subject),
         )
         .paginate(paginationOpts);
-      return threads;
     } else {
       // get all threads for user
-      const threads = await ctx.db
+      threads = await ctx.db
         .query("threadMetadata")
         .withIndex("by_user_time", (q) => q.eq("userId", userId.subject))
         .order("desc")
         .paginate(paginationOpts);
-      return threads;
     }
+    return {
+      ...threads,
+      page: threads.page.map((thread) => ({
+        id: thread.threadId,
+        updatedAt: thread.updatedAt,
+        title: thread.title,
+        state: thread.state,
+      })),
+    };
   },
 });
 

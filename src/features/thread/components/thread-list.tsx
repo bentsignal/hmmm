@@ -1,22 +1,22 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { usePathname } from "next/navigation";
+import useThreadList from "../hooks/use-thread-list";
+import NewThreadButton from "./new-thread-button";
+import ThreadDeleteModal from "./thread-delete-modal";
+import ThreadListItem from "./thread-list-item";
+import PageLoader from "@/components/page-loader";
+import { Input } from "@/components/ui/input";
 import {
   Sidebar,
+  SidebarContent,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarContent,
 } from "@/components/ui/sidebar";
-import ThreadListItem from "./thread-list-item";
-import { useEffect, useState } from "react";
-import NewThreadButton from "./new-thread-button";
-import { Input } from "@/components/ui/input";
-import useThreadList from "../hooks/use-thread-list";
-import ThreadDeleteModal from "./thread-delete-modal";
-import PageLoader from "@/components/page-loader";
-import { usePathname } from "next/navigation";
-import { Loader2 } from "lucide-react";
 
 export default function ThreadList() {
   const pathname = usePathname();
@@ -61,11 +61,11 @@ export default function ThreadList() {
                   <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
                   {group.threads.map((item) => (
                     <ThreadListItem
-                      key={item._id}
+                      key={item.id}
                       title={item.title ?? ""}
-                      id={item.threadId ?? ""}
+                      id={item.id ?? ""}
                       status={item.state}
-                      active={pathname.includes(item.threadId)}
+                      active={pathname.includes(item.id ?? "")}
                     />
                   ))}
                 </SidebarGroup>
