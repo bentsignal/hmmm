@@ -51,13 +51,11 @@ export const getPlanTier = internalQuery({
   handler: async (ctx, args) => {
     const plan = await getUserPlanHelper(ctx, args.userId);
     const tier =
-      plan?.name === "Light"
-        ? 0
+      plan?.name === "Ultra" || plan?.name === "Unlimited"
+        ? 2
         : plan?.name === "Premium"
           ? 1
-          : plan?.name === "Ultra" || plan?.name === "Unlimited"
-            ? 2
-            : 0;
+          : 0;
     return tier;
   },
 });

@@ -1,5 +1,5 @@
-import { UIMessage } from "ai";
 import { Info } from "lucide-react";
+import type { SystemErrorCode } from "../types/message-types";
 import {
   Tooltip,
   TooltipContent,
@@ -8,15 +8,12 @@ import {
 } from "@/components/ui/tooltip";
 
 export default function ErrorMessage({
-  message,
+  code,
   dateTime,
 }: {
-  message: UIMessage;
+  code: SystemErrorCode;
   dateTime: string;
 }) {
-  const noLabel = message.content.replace("--SYSTEM_ERROR--", "");
-  const code = noLabel.slice(0, noLabel.indexOf("-"));
-  const messageText = noLabel.slice(noLabel.indexOf("-") + 1);
   return (
     <div className="flex w-full items-center gap-1">
       <div className="flex justify-start gap-2">
@@ -33,8 +30,8 @@ export default function ErrorMessage({
         </TooltipProvider>
       </div>
       <span className="text-sm text-muted-foreground">
-        <span className="font-bold text-destructive">System Error:</span>{" "}
-        {messageText}
+        <span className="font-bold text-destructive">System Error:</span> Ran
+        into an issue while generating your response.
       </span>
     </div>
   );

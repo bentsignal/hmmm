@@ -5,9 +5,11 @@ import { Info } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
+import { isErrorMessage, isNoticeMessage } from "../util/message-util";
 import { CopyButton } from "./copy-button";
 import ErrorMessage from "./error-message";
 import { markdownComponents } from "./markdown-components";
+import NoticeMessage from "./notice-message";
 import { MemoizedReasoningMessage } from "./reasoning-message";
 import {
   Tooltip,
@@ -29,8 +31,14 @@ export default function ResponseMessage({
   const [text] = useSmoothText(message.content, { charsPerSec: 2000 });
   const createdAt = getDateTimeString(new Date(message.createdAt ?? 0));
 
-  if (text.startsWith("--SYSTEM_ERROR--")) {
-    return <ErrorMessage message={message} dateTime={createdAt} />;
+  const errorCode = isErrorMessage(text);
+  if (errorCode) {
+    return <ErrorMessage code={errorCode} dateTime={createdAt} />;
+  }
+
+  const noticeCode = isNoticeMessage(text);
+  if (noticeCode) {
+    return <NoticeMessage code={noticeCode} />;
   }
 
   return (

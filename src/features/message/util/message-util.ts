@@ -1,5 +1,11 @@
 import { ReactNode } from "react";
 import { UIMessage } from "ai";
+import {
+  SystemErrorCode,
+  SystemErrorLabel,
+  SystemNoticeCode,
+  SystemNoticeLabel,
+} from "../types/message-types";
 
 export function extractTextFromChildren(children: ReactNode): string {
   if (typeof children === "string") {
@@ -32,4 +38,24 @@ export function extractReasoningFromMessage(message: UIMessage) {
 export function getLatestPartType(message: UIMessage) {
   if (message.parts.length === 0) return null;
   return message.parts[message.parts.length - 1].type;
+}
+
+export function formatError(code: SystemErrorCode) {
+  return `${SystemErrorLabel}${code}`;
+}
+
+export function formatNotice(code: SystemNoticeCode) {
+  return `${SystemNoticeLabel}${code}`;
+}
+
+export function isErrorMessage(message: string): SystemErrorCode | null {
+  if (!message.startsWith(SystemErrorLabel)) return null;
+  const code = message.replace(SystemErrorLabel, "") as SystemErrorCode;
+  return code;
+}
+
+export function isNoticeMessage(message: string): SystemNoticeCode | null {
+  if (!message.startsWith(SystemNoticeLabel)) return null;
+  const code = message.replace(SystemNoticeLabel, "") as SystemNoticeCode;
+  return code;
 }
