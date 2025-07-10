@@ -44,7 +44,6 @@ export default function useSendMessage() {
     const activeThread = useThreadStore.getState().activeThread;
     setPrompt("");
     if (activeThread === null) {
-      router.push("/loading");
       const { data: threadId, error: threadCreationError } = await tryCatch(
         createThread({
           message: prompt,

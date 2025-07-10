@@ -1,13 +1,20 @@
-import { Button } from "@/components/ui/button";
 import { Loader2, Send } from "lucide-react";
 import useSendMessage from "../hooks/use-send-message";
+import { Button } from "@/components/ui/button";
 
-export default function ComposerSend() {
+export default function ComposerSend({
+  showInstantLoad,
+}: {
+  showInstantLoad?: () => void;
+}) {
   const { sendMessage, blockSend, isLoading } = useSendMessage();
 
   return (
     <Button
-      onClick={sendMessage}
+      onClick={() => {
+        showInstantLoad?.();
+        sendMessage();
+      }}
       disabled={blockSend || isLoading}
       size="icon"
       className="shrink-0"

@@ -1,11 +1,15 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import ComposerSpeech from "@/features/speech/components/composer-speech";
 import ComposerInput from "./composer-input";
 import ComposerSend from "./composer-send";
+import { cn } from "@/lib/utils";
+import ComposerSpeech from "@/features/speech/components/composer-speech";
 
-export default function Composer() {
+export default function Composer({
+  showInstantLoad,
+}: {
+  showInstantLoad?: () => void;
+}) {
   return (
     <div className="mx-auto w-full max-w-2xl p-4">
       <div
@@ -15,12 +19,12 @@ export default function Composer() {
         )}
       >
         <div className="flex flex-col items-end gap-3 p-4 sm:flex-row">
-          <ComposerInput />
+          <ComposerInput showInstantLoad={showInstantLoad} />
           <div className="flex w-full flex-1 items-center justify-between gap-2">
             <div className="flex flex-1 items-center justify-start gap-2">
               <ComposerSpeech />
             </div>
-            <ComposerSend />
+            <ComposerSend showInstantLoad={showInstantLoad} />
           </div>
         </div>
       </div>

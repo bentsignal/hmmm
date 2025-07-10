@@ -1,8 +1,12 @@
-import { useRef, useEffect } from "react";
-import useSendMessage from "../hooks/use-send-message";
+import { useEffect, useRef } from "react";
 import useComposerInput from "../hooks/use-composer-input";
+import useSendMessage from "../hooks/use-send-message";
 
-export default function ComposerInput() {
+export default function ComposerInput({
+  showInstantLoad,
+}: {
+  showInstantLoad?: () => void;
+}) {
   const { value, setPrompt, disabled } = useComposerInput();
   const { sendMessage } = useSendMessage();
 
@@ -20,6 +24,7 @@ export default function ComposerInput() {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
+      showInstantLoad?.();
       sendMessage();
     }
   };
