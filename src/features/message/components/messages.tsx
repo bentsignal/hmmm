@@ -4,13 +4,13 @@ import { MemoizedPrompt } from "./prompt-message";
 import { MemoizedResponse } from "./response-message";
 import "@/features/message/styles/github-dark.min.css";
 import "@/features/message/styles/message-styles.css";
-import useMessages from "@/features/message/hooks/use-messages";
+import { UIMessage } from "ai";
 import PageLoader from "@/components/page-loader";
 import {
-  PAGE_SIZE,
   INVISIBLE_PAGE_LOADER_INDEX,
+  PAGE_SIZE,
 } from "@/features/message/config";
-import { UIMessage } from "ai";
+import useMessages from "@/features/message/hooks/use-messages";
 
 export default function Messages({ threadId }: { threadId: string }) {
   const { messages, loadMore, status } = useMessages({

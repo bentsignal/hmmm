@@ -51,8 +51,8 @@ export default function useStreamingMessage({
     messages[messages.length - 1].role === "user" &&
     !streamingMessage;
 
-  // if the message starts with the string "undefined", remove it. Not sure why
-  // this happens. Likely a bug with one either the ai sdk or open router
+  // if the message begins with the substring "undefined", remove it from the
+  // message. Not sure why this happens, seems to be a bug in a dep
   if (
     streamingMessage &&
     typeof streamingMessage.content === "string" &&

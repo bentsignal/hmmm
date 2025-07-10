@@ -1,20 +1,21 @@
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
-import { markdownComponents } from "./markdown-components";
+import { memo } from "react";
 import { useSmoothText } from "@convex-dev/agent/react";
+import { UIMessage } from "ai";
+import { Info } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
+import remarkGfm from "remark-gfm";
 import { CopyButton } from "./copy-button";
+import ErrorMessage from "./error-message";
+import { markdownComponents } from "./markdown-components";
+import { MemoizedReasoningMessage } from "./reasoning-message";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Info } from "lucide-react";
 import { getDateTimeString } from "@/features/date-time/util/date-time-util";
-import { UIMessage } from "ai";
-import { memo } from "react";
-import { MemoizedReasoningMessage } from "./reasoning-message";
 
 interface ResponseMessageProps {
   message: UIMessage;
@@ -27,6 +28,10 @@ export default function ResponseMessage({
 }: ResponseMessageProps) {
   const [text] = useSmoothText(message.content, { charsPerSec: 2000 });
   const createdAt = getDateTimeString(new Date(message.createdAt ?? 0));
+
+  if (text.startsWith("--SYSTEM_ERROR--")) {
+    return <ErrorMessage message={message} dateTime={createdAt} />;
+  }
 
   return (
     <div className="flex w-full flex-col items-start gap-2">

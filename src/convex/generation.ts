@@ -4,8 +4,9 @@ import { generateObject, generateText } from "ai";
 import z from "zod";
 import { v } from "convex/values";
 import { components, internal } from "./_generated/api";
-import { internalAction } from "./_generated/server";
+import { ActionCtx, internalAction } from "./_generated/server";
 import { agent } from "./agent";
+import { tryCatch } from "@/lib/utils";
 import { classifierModel, titleGeneratorModel } from "@/features/models";
 import { getResponseModel } from "@/features/models/util/model-utils";
 import { getClassifierPrompt, titleGeneratorPrompt } from "@/features/prompts";
@@ -41,6 +42,21 @@ export const generateTitle = internalAction({
   },
 });
 
+const logSystemError = async (
+  ctx: ActionCtx,
+  threadId: string,
+  message: string,
+  code: string,
+) => {
+  await agent.saveMessage(ctx, {
+    threadId: threadId,
+    message: {
+      role: "assistant",
+      content: `--SYSTEM_ERROR--${code}-${message}`,
+    },
+  });
+};
+
 // generate reponse to users prompt in new or existing thread
 export const continueThread = internalAction({
   args: {
@@ -61,19 +77,36 @@ export const continueThread = internalAction({
       }),
     ]);
     // classify the user's prompt by category and difficulty, get their current plan
-    const [{ object, usage: classificationUsage }, tier] = await Promise.all([
-      generateObject({
-        model: classifierModel.model,
-        schema: z.object({
-          promptDifficulty: promptDifficultyEnum,
-          promptCategory: promptCategoryEnum,
+    const classificationResult = await tryCatch(
+      Promise.all([
+        generateObject({
+          model: classifierModel.model,
+          schema: z.object({
+            promptDifficulty: promptDifficultyEnum,
+            promptCategory: promptCategoryEnum,
+          }),
+          prompt: getClassifierPrompt(prompt, category),
         }),
-        prompt: getClassifierPrompt(prompt, category),
-      }),
-      ctx.runQuery(internal.polar.getPlanTier, {
-        userId: userId,
-      }),
-    ]);
+        ctx.runQuery(internal.polar.getPlanTier, {
+          userId: userId,
+        }),
+      ]),
+    );
+    if (classificationResult.error) {
+      logSystemError(
+        ctx,
+        threadId,
+        "Ran into an issue while generating your response.",
+        "GEN_003",
+      );
+      await ctx.runMutation(internal.threads.updateThreadState, {
+        threadId: threadId,
+        state: "idle",
+      });
+      return;
+    }
+    const [{ object, usage: classificationUsage }, tier] =
+      classificationResult.data;
     // determine which model to use based on the prompt classification
     const chosenModel = getResponseModel(
       object.promptCategory,
@@ -81,29 +114,58 @@ export const continueThread = internalAction({
       tier,
     );
     // initiate response
-    const result = await thread.streamText(
-      {
-        promptMessageId,
-        model: chosenModel.model,
-        maxTokens: 10000,
-        providerOptions: {
-          openrouter: {
-            reasoning: {
-              max_tokens: 2000,
+    const { data: result, error: streamInitError } = await tryCatch(
+      thread.streamText(
+        {
+          promptMessageId,
+          model: chosenModel.model,
+          maxTokens: 10000,
+          providerOptions: {
+            openrouter: {
+              reasoning: {
+                max_tokens: 2000,
+              },
             },
           },
         },
-      },
-      { saveStreamDeltas: true },
+        { saveStreamDeltas: true },
+      ),
     );
-    // stream response back to user
-    await Promise.all([
-      ctx.runMutation(internal.threads.updateThreadState, {
+    if (streamInitError) {
+      logSystemError(
+        ctx,
+        threadId,
+        "Ran into an issue while generating your response.",
+        "GEN_001",
+      );
+      await ctx.runMutation(internal.threads.updateThreadState, {
         threadId: threadId,
-        state: "streaming",
-      }),
-      result.consumeStream(),
-    ]);
+        state: "idle",
+      });
+      return;
+    }
+    // stream response back to user
+    const { error: streamError } = await tryCatch(
+      Promise.all([
+        ctx.runMutation(internal.threads.updateThreadState, {
+          threadId: threadId,
+          state: "streaming",
+        }),
+        result.consumeStream(),
+      ]),
+    );
+    if (streamError) {
+      logSystemError(
+        ctx,
+        threadId,
+        "Ran into an issue while generating your response.",
+        "GEN_002",
+      );
+      await ctx.runMutation(internal.threads.updateThreadState, {
+        threadId: threadId,
+        state: "idle",
+      });
+    }
     // stream has completed, set back to idle and store category
     await Promise.all([
       ctx.runMutation(internal.threads.updateThreadState, {
