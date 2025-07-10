@@ -1,10 +1,10 @@
+import { auth } from "@clerk/nextjs/server";
 import TopRightNav from "@/components/top-right-nav";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { auth } from "@clerk/nextjs/server";
 import ThreadList from "@/features/thread/components/thread-list";
 
 export default async function ChatLayout({
@@ -25,10 +25,8 @@ export default async function ChatLayout({
             </div>
           </>
         )}
-        <div className="h-full">
-          <div className="flex h-full w-full flex-1 flex-col items-center justify-start">
-            {children}
-          </div>
+        <div className="flex h-full w-full flex-1 flex-col items-center justify-start">
+          {children}
         </div>
       </SidebarInset>
     </SidebarProvider>
