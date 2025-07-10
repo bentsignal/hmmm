@@ -1,18 +1,18 @@
 "use client";
 
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import useMessageListScroll from "../hooks/use-message-list-scroll";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import "@/features/message/styles/github-dark.min.css";
 import "@/features/message/styles/message-styles.css";
-import Messages from "./messages";
-import StreamingMessage from "./streaming-message";
 import { useEffect } from "react";
-import useThreadStore from "@/features/thread/store/thread-store";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import Messages from "./messages";
+import StreamingMessage from "./streaming-message";
 import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
+import useThreadStore from "@/features/thread/store/thread-store";
 
 export default function MessageList({ threadId }: { threadId: string }) {
   // handle auto scroll & scroll to bottom
@@ -37,21 +37,22 @@ export default function MessageList({ threadId }: { threadId: string }) {
   }
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative h-full w-full flex flex-1 flex-col items-center justify-start">
       <ScrollArea ref={scrollAreaRef} className="h-full w-full">
-        <div className="flex w-full justify-center pt-20 pb-20">
-          <div className="mx-4 mb-8 flex h-full w-full max-w-4xl flex-col gap-16 px-4">
-            <Messages threadId={threadId} />
-            <StreamingMessage threadId={threadId} />
-            <UsageChatCallout />
-            <div ref={messagesEndRef} />
-          </div>
+        <div
+          className="flex h-full w-full max-w-4xl 
+          place-self-center flex-col gap-16 py-24 px-8 mb-8 sm:mb-0"
+        >
+          <Messages threadId={threadId} />
+          <StreamingMessage threadId={threadId} />
+          <UsageChatCallout />
+          <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
       {!isAtBottom && (
         <div
-          className="absolute right-0 bottom-36 z-10 flex w-full items-center justify-center 
-          rounded-full p-0 sm:bottom-24"
+          className="absolute right-0 bottom-36 z-10 flex w-full
+          items-center justify-center rounded-full p-0 sm:bottom-24"
         >
           <Button
             onClick={scrollToBottom}

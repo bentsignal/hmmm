@@ -25,9 +25,7 @@ export default async function ChatLayout({
             </div>
           </>
         )}
-        <div className="flex h-full w-full flex-1 flex-col items-center justify-start">
-          {children}
-        </div>
+        {children}
       </SidebarInset>
     </SidebarProvider>
   );
