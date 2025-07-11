@@ -43,7 +43,7 @@ export const getResponseModel = (
           return tier > 0 ? models["google/gemini-2.5-flash"] : defaultModel;
         case "hard":
           return tier > 1
-            ? models["anthropic/claude-4-sonnet-20250522"]
+            ? models["google/gemini-2.5-pro"]
             : tier > 0
               ? models["google/gemini-2.5-flash"]
               : defaultModel;
@@ -55,12 +55,12 @@ export const getResponseModel = (
         case "easy":
           return defaultModel;
         case "medium":
-          return tier > 0 ? models["x-ai/grok-3-mini"] : defaultModel;
+          return tier > 0 ? models["google/gemini-2.5-flash"] : defaultModel;
         case "hard":
           return tier > 1
             ? models["google/gemini-2.5-pro"]
             : tier > 0
-              ? models["x-ai/grok-3-mini"]
+              ? models["google/gemini-2.5-flash"]
               : defaultModel;
         default:
           return defaultModel;
