@@ -11,7 +11,7 @@ export default function useMessageListScroll({
   const isInitialLoadRef = useRef(true);
   const previousMessageCountRef = useRef(0);
   const [isAtBottom, setIsAtBottom] = useState(true);
-  const { totalCount } = useMessages({ threadId });
+  const { messages } = useMessages({ threadId });
 
   const checkIfAtBottom = () => {
     const scrollElement = scrollAreaRef.current?.querySelector(
@@ -55,16 +55,22 @@ export default function useMessageListScroll({
       "[data-radix-scroll-area-viewport]",
     );
 
-    if (scrollElement && totalCount > 0) {
+    // only auto scroll in chat when new messages are
+    // sent, not when repsonses are received
+    if (messages.length > 0 && messages[messages.length - 1].role !== "user") {
+      return;
+    }
+
+    if (scrollElement && messages.length > 0) {
       if (isInitialLoadRef.current) {
         scrollElement.scrollTo({
           top: scrollElement.scrollHeight,
           behavior: "auto",
         });
         isInitialLoadRef.current = false;
-        previousMessageCountRef.current = totalCount;
+        previousMessageCountRef.current = messages.length;
         setIsAtBottom(true);
-      } else if (totalCount > previousMessageCountRef.current) {
+      } else if (messages.length > previousMessageCountRef.current) {
         const lastMessage = messagesEndRef.current?.previousElementSibling;
         if (lastMessage) {
           const scrollTop =
@@ -76,11 +82,11 @@ export default function useMessageListScroll({
             behavior: "smooth",
           });
         }
-        previousMessageCountRef.current = totalCount;
+        previousMessageCountRef.current = messages.length;
         checkIfAtBottom();
       }
     }
-  }, [totalCount]);
+  }, [messages.length]);
 
   return {
     scrollAreaRef,
