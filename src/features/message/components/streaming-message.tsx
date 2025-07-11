@@ -13,16 +13,22 @@ export default function StreamingMessage({ threadId }: StreamingMessageProps) {
     threadId,
   });
 
-  if (waiting) {
-    return (
-      <div className="flex items-center justify-start">
-        <Loader2 className="h-4 w-4 animate-spin" />
-      </div>
-    );
-  } else if (streamingMessage) {
-    return (
-      <MemoizedResponse message={streamingMessage} streaming={!isThreadIdle} />
-    );
+  if (!waiting && !streamingMessage) {
+    return null;
   }
-  return null;
+
+  return (
+    <div className="w-full flex justify-start items-start max-w-full min-h-[calc(100vh-20rem)]">
+      {waiting ? (
+        <div className="flex justify-start items-start min-h-[30vh]">
+          <Loader2 className="h-4 w-4 animate-spin" />
+        </div>
+      ) : streamingMessage ? (
+        <MemoizedResponse
+          message={streamingMessage}
+          streaming={!isThreadIdle}
+        />
+      ) : null}
+    </div>
+  );
 }

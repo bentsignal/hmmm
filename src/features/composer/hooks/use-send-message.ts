@@ -4,6 +4,7 @@ import { ConvexError } from "convex/values";
 import useComposerStore from "../store";
 import { tryCatch } from "@/lib/utils";
 import useUsage from "@/features/billing/hooks/use-usage";
+import useMessageStore from "@/features/message/store";
 import useThreadMutation from "@/features/thread/hooks/use-thread-mutation";
 import useThreadStatus from "@/features/thread/hooks/use-thread-status";
 import useThreadStore from "@/features/thread/store/thread-store";
@@ -36,6 +37,12 @@ export default function useSendMessage() {
   // show loading spinner on send button
   const isLoading = !isThreadIdle || storeIsTranscribing;
 
+  // set total number of messages sent per session, will be used to
+  // increment by one after each message is sent
+  const setNumMessagesSent = useMessageStore(
+    (state) => state.setNumMessagesSent,
+  );
+
   const sendMessage = async () => {
     if (blockSend) {
       return;
@@ -43,6 +50,7 @@ export default function useSendMessage() {
     const prompt = useComposerStore.getState().prompt;
     const activeThread = useThreadStore.getState().activeThread;
     setPrompt("");
+    setNumMessagesSent(useMessageStore.getState().numMessagesSent + 1);
     if (activeThread === null) {
       const { data: threadId, error: threadCreationError } = await tryCatch(
         createThread({
