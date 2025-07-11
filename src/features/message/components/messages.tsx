@@ -60,7 +60,7 @@ const Message = ({
     <div
       className={cn(
         "w-full max-w-full",
-        lastAndNew && message.role !== "user" && "min-h-[calc(100vh-20rem)]",
+        lastAndNew && message.role !== "user" && "min-h-[calc(100vh-30rem)]",
       )}
     >
       {message.role === "user" ? (

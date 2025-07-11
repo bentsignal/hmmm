@@ -18,7 +18,7 @@ export default function StreamingMessage({ threadId }: StreamingMessageProps) {
   }
 
   return (
-    <div className="w-full flex justify-start items-start max-w-full min-h-[calc(100vh-20rem)]">
+    <div className="w-full flex justify-start items-start max-w-full min-h-[calc(100vh-30rem)]">
       {waiting ? (
         <div className="flex justify-start items-start min-h-[30vh]">
           <Loader2 className="h-4 w-4 animate-spin" />
