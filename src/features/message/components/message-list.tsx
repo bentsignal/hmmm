@@ -40,7 +40,7 @@ export default function MessageList({ threadId }: { threadId: string }) {
     <div className="relative h-full w-full flex flex-1 flex-col items-center justify-start">
       <ScrollArea ref={scrollAreaRef} className="h-full w-full">
         <div
-          className="flex h-full w-full max-w-4xl place-self-center 
+          className="flex h-full w-full max-w-4xl place-self-center mx-auto
           flex-col gap-16 py-24 px-8 mb-8 sm:mb-0"
         >
           <Messages threadId={threadId} />
