@@ -3,15 +3,15 @@
 import { WebhookEvent } from "@clerk/nextjs/server";
 import { Webhook } from "svix";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
-import { internalAction } from "./_generated/server";
+import { internal } from "../_generated/api";
+import { internalAction } from "../_generated/server";
 
 const CLERK_WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 if (!CLERK_WEBHOOK_SECRET) {
   throw new Error("CLERK_WEBHOOK_SECRET is not set");
 }
 
-export const handleClerkWebhook = internalAction({
+export const webhookProcessor = internalAction({
   args: {
     body: v.string(),
     svixId: v.string(),

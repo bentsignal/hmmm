@@ -9,8 +9,8 @@
  */
 
 import type * as agent from "../agent.js";
-import type * as clerk from "../clerk.js";
-import type * as clerk_webhook from "../clerk_webhook.js";
+import type * as clerk_clerk_actions from "../clerk/clerk_actions.js";
+import type * as clerk_clerk_http_actions from "../clerk/clerk_http_actions.js";
 import type * as http from "../http.js";
 import type * as limiter from "../limiter.js";
 import type * as messages from "../messages.js";
@@ -44,8 +44,8 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   agent: typeof agent;
-  clerk: typeof clerk;
-  clerk_webhook: typeof clerk_webhook;
+  "clerk/clerk_actions": typeof clerk_clerk_actions;
+  "clerk/clerk_http_actions": typeof clerk_clerk_http_actions;
   http: typeof http;
   limiter: typeof limiter;
   messages: typeof messages;
