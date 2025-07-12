@@ -55,12 +55,6 @@ export default function useMessageListScroll({
       "[data-radix-scroll-area-viewport]",
     );
 
-    // only auto scroll in chat when new messages are
-    // sent, not when repsonses are received
-    if (messages.length > 0 && messages[messages.length - 1].role !== "user") {
-      return;
-    }
-
     if (scrollElement && messages.length > 0) {
       if (isInitialLoadRef.current) {
         scrollElement.scrollTo({
@@ -70,7 +64,10 @@ export default function useMessageListScroll({
         isInitialLoadRef.current = false;
         previousMessageCountRef.current = messages.length;
         setIsAtBottom(true);
-      } else if (messages.length > previousMessageCountRef.current) {
+      } else if (
+        messages.length > previousMessageCountRef.current &&
+        messages[messages.length - 1].role === "user"
+      ) {
         const lastMessage = messagesEndRef.current?.previousElementSibling;
         if (lastMessage) {
           const scrollTop =
