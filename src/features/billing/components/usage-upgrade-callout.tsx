@@ -1,11 +1,11 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
-import { useQuery } from "convex/react";
 import Link from "next/link";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 export default function UsageUpgradeCallout() {
-  const plan = useQuery(api.polar.getUserPlan, {});
+  const plan = useQuery(api.sub.sub_queries.getUserPlan, {});
   if (plan?.max) return null;
   return (
     <span className="text-muted-foreground text-sm">

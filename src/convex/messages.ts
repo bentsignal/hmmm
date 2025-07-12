@@ -1,14 +1,14 @@
+import { Infer, v } from "convex/values";
+import { MutationCtx } from "./_generated/server";
+import { getUsageHelper } from "./sub/sub_helpers";
+import {
+  usageTriggerInternalMutation,
+  usageTriggerMutation,
+} from "./sub/usage";
 import {
   convexCategoryEnum,
   convexDifficultyEnum,
 } from "@/features/prompts/types/prompt-types";
-import { v, Infer } from "convex/values";
-import {
-  getCurrentUsage,
-  usageTriggerInternalMutation,
-  usageTriggerMutation,
-} from "./usage";
-import { MutationCtx } from "./_generated/server";
 
 const params = v.object({
   messageId: v.string(),
@@ -50,7 +50,7 @@ export const logTranscriptionUsage = usageTriggerMutation({
       throw new Error("Unauthorized");
     }
     // usage check
-    const usage = await getCurrentUsage(ctx, userId.subject);
+    const usage = await getUsageHelper(ctx, userId.subject);
     if (usage.limitHit) {
       throw new Error("User has reached usage limit");
     }

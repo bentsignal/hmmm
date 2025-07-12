@@ -1,7 +1,7 @@
-import { RateLimiter, MINUTE } from "@convex-dev/rate-limiter";
+import { MINUTE, RateLimiter } from "@convex-dev/rate-limiter";
+import { ConvexError } from "convex/values";
 import { components } from "./_generated/api";
-import { ConvexError, v } from "convex/values";
-import { MutationCtx, mutation } from "./_generated/server";
+import { mutation, MutationCtx } from "./_generated/server";
 
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
   messageSend: { kind: "token bucket", rate: 20, period: MINUTE, capacity: 5 },
@@ -27,13 +27,13 @@ export const messageSendRateLimit = async (
 };
 
 export const transcriptionRateLimit = mutation({
-  args: {
-    userId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { userId } = args;
+  handler: async (ctx) => {
+    const userId = await ctx.auth.getUserIdentity();
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
     const { ok } = await rateLimiter.limit(ctx, "transcription", {
-      key: userId,
+      key: userId.subject,
     });
     return ok;
   },

@@ -3,7 +3,7 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { v } from "convex/values";
 import { internalAction } from "@/convex/_generated/server";
-import { polar } from "@/convex/polar";
+import { polar } from "@/convex/sub/polar";
 
 export const deleteUser = internalAction({
   args: {

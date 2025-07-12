@@ -9,7 +9,7 @@ export default function useCurrentPlan() {
     data: plan,
     isPending: planLoading,
     error: planError,
-  } = useQuery(convexQuery(api.polar.getUserPlan, args));
+  } = useQuery(convexQuery(api.sub.sub_queries.getUserPlan, args));
 
   return { plan, planLoading, planError };
 }

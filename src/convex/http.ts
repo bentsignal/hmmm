@@ -1,6 +1,6 @@
 import { httpRouter } from "convex/server";
 import { webhookHandler } from "./clerk/clerk_http_actions";
-import { polar } from "./polar";
+import { polar } from "./sub/polar";
 
 const http = httpRouter();
 

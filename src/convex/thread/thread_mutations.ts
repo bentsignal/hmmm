@@ -3,7 +3,7 @@ import { components, internal } from "@/convex/_generated/api";
 import { internalMutation, mutation } from "@/convex/_generated/server";
 import { agent } from "@/convex/agent";
 import { messageSendRateLimit } from "@/convex/limiter";
-import { getCurrentUsage } from "@/convex/usage";
+import { getUsageHelper } from "@/convex/sub/sub_helpers";
 import { getThreadMetadata } from "./thread_helpers";
 import { convexCategoryEnum } from "@/features/prompts/types/prompt-types";
 
@@ -24,7 +24,7 @@ export const requestNewThread = mutation({
     }
     // check usage and rate limiting
     const [usage] = await Promise.all([
-      getCurrentUsage(ctx, userId.subject),
+      getUsageHelper(ctx, userId.subject),
       messageSendRateLimit(ctx, userId.subject),
     ]);
     if (usage.limitHit) {
@@ -85,7 +85,7 @@ export const newThreadMessage = mutation({
     }
     // check usage and rate limiting
     const [usage] = await Promise.all([
-      getCurrentUsage(ctx, userId.subject),
+      getUsageHelper(ctx, userId.subject),
       messageSendRateLimit(ctx, userId.subject),
     ]);
     if (usage.limitHit) {

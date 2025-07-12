@@ -73,7 +73,7 @@ export const generateResponse = internalAction({
           }),
           prompt: getClassifierPrompt(prompt, category),
         }),
-        ctx.runQuery(internal.polar.getPlanTier, {
+        ctx.runQuery(internal.sub.sub_queries.getPlanTier, {
           userId: userId,
         }),
       ]),

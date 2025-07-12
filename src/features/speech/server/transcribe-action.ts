@@ -20,7 +20,11 @@ export async function transcribeAudio(audio: ArrayBuffer) {
 
   // usage check
   const authToken = await getAuthToken();
-  const usage = await fetchQuery(api.usage.getUsage, {}, { token: authToken });
+  const usage = await fetchQuery(
+    api.sub.sub_queries.getUsage,
+    {},
+    { token: authToken },
+  );
   if (usage.limitHit) {
     throw new Error("User has reached usage limit");
   }
@@ -28,7 +32,7 @@ export async function transcribeAudio(audio: ArrayBuffer) {
   // rate limit
   const rateLimit = await fetchMutation(
     api.limiter.transcriptionRateLimit,
-    { userId },
+    {},
     { token: authToken },
   );
   if (!rateLimit) {
