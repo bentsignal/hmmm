@@ -12,7 +12,7 @@ export default async function Plans() {
   }
 
   // strip plan data for client side
-  const plans = await fetchQuery(api.polar.listAllProducts, {});
+  const plans = await fetchQuery(api.sub.sub_queries.listAllProducts, {});
   const publicPlans = plans
     .filter((plan) => plan.isArchived === false)
     .map((plan) => ({

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalQuery, query } from "@/convex/_generated/server";
+import { polar } from "./polar";
 import { getUsageHelper, getUserPlanHelper } from "./sub_helpers";
 
 export const getUserPlan = query({
@@ -39,3 +40,5 @@ export const getUsage = query({
     return usage;
   },
 });
+
+export const { listAllProducts } = polar.api();

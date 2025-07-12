@@ -1,9 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
-import UserBillingInfo from "@/features/billing/components/user-billing-info";
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
+import { Card, CardContent } from "@/components/ui/card";
+import UserBillingInfo from "@/features/billing/components/user-billing-info";
 
 export default async function Billing() {
   const { userId } = await auth();
@@ -12,7 +12,7 @@ export default async function Billing() {
   }
 
   // strip plan data for client side
-  const plans = await fetchQuery(api.polar.listAllProducts, {});
+  const plans = await fetchQuery(api.sub.sub_queries.listAllProducts, {});
   const publicPlans = plans
     .filter((plan) => plan.isArchived === false)
     .map((plan) => ({
