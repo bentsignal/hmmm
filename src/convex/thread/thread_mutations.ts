@@ -1,155 +1,13 @@
-import type { SyncStreamsReturnValue } from "@convex-dev/agent";
-import { vStreamArgs } from "@convex-dev/agent/validators";
-import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { isAdmin } from "@/convex/user/user_helpers";
-import { components, internal } from "./_generated/api";
-import {
-  internalMutation,
-  internalQuery,
-  mutation,
-  MutationCtx,
-  query,
-  QueryCtx,
-} from "./_generated/server";
-import { agent } from "./agent";
-import { messageSendRateLimit } from "./limiter";
-import { getCurrentUsage } from "./usage";
+import { components, internal } from "@/convex/_generated/api";
+import { internalMutation, mutation } from "@/convex/_generated/server";
+import { agent } from "@/convex/agent";
+import { messageSendRateLimit } from "@/convex/limiter";
+import { getCurrentUsage } from "@/convex/usage";
+import { getThreadMetadata } from "./thread_helpers";
 import { convexCategoryEnum } from "@/features/prompts/types/prompt-types";
 
-// get thread metadata from table separate from agent component. this
-// is where all custom info related to thread state is located
-export const getThreadMetadata = async (ctx: QueryCtx, threadId: string) => {
-  const metadata = await ctx.db
-    .query("threadMetadata")
-    .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
-    .first();
-  if (!metadata) {
-    // metadata not found
-    return null;
-  }
-  return metadata;
-};
-
-// verify that a user is allowed to access a thread. If they are,
-// return the thread metadata. Admin's can access any thread
-const authorizeThreadAccess = async (
-  ctx: QueryCtx | MutationCtx,
-  threadId: string,
-) => {
-  const userId = await ctx.auth.getUserIdentity();
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
-  const [metadata, isAdminUser] = await Promise.all([
-    getThreadMetadata(ctx, threadId),
-    isAdmin(ctx, userId.subject),
-  ]);
-  if (!metadata) {
-    // thread not found
-    return null;
-  }
-  if (isAdminUser) {
-    return metadata;
-  }
-  if (metadata.userId !== userId.subject) {
-    throw new Error("Unauthorized");
-  }
-  return metadata;
-};
-
-export const getThreadList = query({
-  args: {
-    paginationOpts: paginationOptsValidator,
-    search: v.string(),
-  },
-  handler: async (ctx, args) => {
-    // auth check
-    const userId = await ctx.auth.getUserIdentity();
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
-    const { paginationOpts, search } = args;
-    let threads;
-    if (search.trim().length > 0) {
-      // filter threads by search term
-      threads = await ctx.db
-        .query("threadMetadata")
-        .withSearchIndex("search_title", (q) =>
-          q.search("title", search).eq("userId", userId.subject),
-        )
-        .paginate(paginationOpts);
-    } else {
-      // get all threads for user
-      threads = await ctx.db
-        .query("threadMetadata")
-        .withIndex("by_user_time", (q) => q.eq("userId", userId.subject))
-        .order("desc")
-        .paginate(paginationOpts);
-    }
-    return {
-      ...threads,
-      page: threads.page.map((thread) => ({
-        id: thread.threadId,
-        updatedAt: thread.updatedAt,
-        title: thread.title,
-        state: thread.state,
-      })),
-    };
-  },
-});
-
-export const getThreadMessages = query({
-  args: {
-    threadId: v.string(),
-    paginationOpts: paginationOptsValidator,
-    streamArgs: vStreamArgs,
-  },
-  handler: async (ctx, args) => {
-    const { threadId, paginationOpts, streamArgs } = args;
-    if (threadId.trim().length === 0) {
-      throw new Error("Empty thread ID");
-    }
-    // auth check is done here
-    const metadata = await authorizeThreadAccess(ctx, threadId);
-    if (!metadata) {
-      const streamsFallback: SyncStreamsReturnValue =
-        !streamArgs || streamArgs.kind === "list"
-          ? { kind: "list", messages: [] }
-          : { kind: "deltas", deltas: [] };
-      return {
-        continueCursor: "",
-        isDone: true,
-        page: [],
-        pageStatus: null,
-        splitCursor: null,
-        streams: streamsFallback,
-      };
-    }
-    const [streams, paginated] = await Promise.all([
-      agent.syncStreams(ctx, {
-        threadId,
-        streamArgs,
-      }),
-      agent.listMessages(ctx, {
-        threadId,
-        paginationOpts,
-      }),
-    ]);
-    return {
-      ...paginated,
-      page: paginated.page.map((message) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { userId, model, provider, usage, ...messageWithoutUserId } =
-          message;
-        return messageWithoutUserId;
-      }),
-      streams,
-    };
-  },
-});
-
-export const requestNewThreadCreation = mutation({
+export const requestNewThread = mutation({
   args: {
     message: v.string(),
   },
@@ -194,11 +52,11 @@ export const requestNewThreadCreation = mutation({
       }),
     ]);
     // generate title for new thread, and start response
-    ctx.scheduler.runAfter(0, internal.generation.generateTitle, {
+    ctx.scheduler.runAfter(0, internal.thread.thread_actions.generateTitle, {
       threadId: threadId,
       message: args.message,
     });
-    ctx.scheduler.runAfter(0, internal.generation.continueThread, {
+    ctx.scheduler.runAfter(0, internal.thread.thread_actions.generateResponse, {
       threadId: threadId,
       promptMessageId: messageId,
       prompt: args.message,
@@ -256,7 +114,7 @@ export const newThreadMessage = mutation({
         updatedAt: Date.now(),
       }),
     ]);
-    ctx.scheduler.runAfter(0, internal.generation.continueThread, {
+    ctx.scheduler.runAfter(0, internal.thread.thread_actions.generateResponse, {
       threadId: args.threadId,
       promptMessageId: messageId,
       prompt: prompt,
@@ -299,12 +157,6 @@ export const deleteThread = mutation({
   },
 });
 
-/*
-
-  Title of thread (shown in sidebar)
-
-*/
-
 export const updateThreadTitle = internalMutation({
   args: {
     title: v.string(),
@@ -321,22 +173,6 @@ export const updateThreadTitle = internalMutation({
     });
   },
 });
-
-export const getThreadTitle = query({
-  args: {
-    threadId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const metadata = await authorizeThreadAccess(ctx, args.threadId);
-    return metadata?.title;
-  },
-});
-
-/*
-
-  Current state of thread
-
-*/
 
 export const updateThreadState = internalMutation({
   args: {
@@ -359,26 +195,6 @@ export const updateThreadState = internalMutation({
   },
 });
 
-export const getThreadState = query({
-  args: {
-    threadId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { threadId } = args;
-    if (threadId.trim().length === 0) {
-      return "idle";
-    }
-    const metadata = await authorizeThreadAccess(ctx, threadId);
-    return metadata?.state;
-  },
-});
-
-/*
-
-  Thread categories
-
-*/
-
 export const updateThreadCategory = internalMutation({
   args: {
     threadId: v.string(),
@@ -393,16 +209,5 @@ export const updateThreadCategory = internalMutation({
     await ctx.db.patch(metadata._id, {
       category: category,
     });
-  },
-});
-
-export const getThreadCategory = internalQuery({
-  args: {
-    threadId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { threadId } = args;
-    const metadata = await getThreadMetadata(ctx, threadId);
-    return metadata?.category;
   },
 });

@@ -31,7 +31,7 @@ export default function MessageList({ threadId }: { threadId: string }) {
   // set tab label in browser to thread title
   const { isAuthenticated } = useConvexAuth();
   const args = isAuthenticated ? { threadId } : "skip";
-  const title = useQuery(api.threads.getThreadTitle, args);
+  const title = useQuery(api.thread.thread_queries.getThreadTitle, args);
   if (title) {
     document.title = title;
   }

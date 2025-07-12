@@ -1,9 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
-import { fetchMutation } from "convex/nextjs";
 import { redirect } from "next/navigation";
+import { fetchMutation } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
-import { getAuthToken } from "@/features/auth/util/auth-util";
 import { tryCatch } from "@/lib/utils";
+import { getAuthToken } from "@/features/auth/util/auth-util";
 
 export default async function NewPage({
   searchParams,
@@ -30,7 +30,7 @@ export default async function NewPage({
   const authToken = await getAuthToken();
   const { data: threadId, error } = await tryCatch(
     fetchMutation(
-      api.threads.requestNewThreadCreation,
+      api.thread.thread_mutations.requestNewThread,
       {
         message: parsedQuery,
       },

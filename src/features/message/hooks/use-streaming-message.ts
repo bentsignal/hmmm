@@ -17,7 +17,7 @@ export default function useStreamingMessage({
   const args = isAuthenticated ? { threadId } : "skip";
   const { messages } = useMessages({ threadId });
   const streamedMessages = useThreadMessages(
-    api.threads.getThreadMessages,
+    api.thread.thread_queries.getThreadMessages,
     args,
     {
       initialNumItems: 1,

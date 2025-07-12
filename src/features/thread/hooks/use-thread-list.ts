@@ -15,7 +15,7 @@ export default function useThreadList() {
     results: threads,
     status,
     loadMore,
-  } = usePaginatedQuery(api.threads.getThreadList, args, {
+  } = usePaginatedQuery(api.thread.thread_queries.getThreadList, args, {
     initialNumItems: PAGE_SIZE,
   });
   const loadMoreThreads = () => loadMore(PAGE_SIZE);

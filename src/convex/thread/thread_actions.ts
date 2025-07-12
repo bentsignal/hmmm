@@ -3,18 +3,11 @@
 import { generateObject, generateText } from "ai";
 import z from "zod";
 import { v } from "convex/values";
-import { components, internal } from "./_generated/api";
-import { ActionCtx, internalAction } from "./_generated/server";
-import { agent } from "./agent";
+import { components, internal } from "@/convex/_generated/api";
+import { internalAction } from "@/convex/_generated/server";
+import { agent } from "@/convex/agent";
+import { logSystemError, logSystemNotice } from "./thread_helpers";
 import { tryCatch } from "@/lib/utils";
-import {
-  SystemErrorCode,
-  SystemNoticeCode,
-} from "@/features/message/types/message-types";
-import {
-  formatError,
-  formatNotice,
-} from "@/features/message/util/message-util";
 import { classifierModel, titleGeneratorModel } from "@/features/models";
 import { getResponseModel } from "@/features/models/util/model-utils";
 import { getClassifierPrompt, titleGeneratorPrompt } from "@/features/prompts";
@@ -22,41 +15,6 @@ import {
   promptCategoryEnum,
   promptDifficultyEnum,
 } from "@/features/prompts/types/prompt-types";
-
-const logSystemError = async (
-  ctx: ActionCtx,
-  threadId: string,
-  code: SystemErrorCode,
-  message: string,
-) => {
-  console.log(
-    "System Error during generation. Error code:",
-    code,
-    "Error message:",
-    message,
-  );
-  await agent.saveMessage(ctx, {
-    threadId: threadId,
-    message: {
-      role: "assistant",
-      content: formatError(code),
-    },
-  });
-};
-
-export const logSystemNotice = async (
-  ctx: ActionCtx,
-  threadId: string,
-  code: SystemNoticeCode,
-) => {
-  await agent.saveMessage(ctx, {
-    threadId: threadId,
-    message: {
-      role: "assistant",
-      content: formatNotice(code),
-    },
-  });
-};
 
 // generate title for thread based off of initial prompt
 export const generateTitle = internalAction({
@@ -71,7 +29,7 @@ export const generateTitle = internalAction({
       system: titleGeneratorPrompt,
     });
     await Promise.all([
-      ctx.runMutation(internal.threads.updateThreadTitle, {
+      ctx.runMutation(internal.thread.thread_mutations.updateThreadTitle, {
         threadId: args.threadId,
         title: response.text.trim(),
       }),
@@ -86,7 +44,7 @@ export const generateTitle = internalAction({
 });
 
 // generate reponse to users prompt in new or existing thread
-export const continueThread = internalAction({
+export const generateResponse = internalAction({
   args: {
     threadId: v.string(),
     promptMessageId: v.string(),
@@ -97,7 +55,7 @@ export const continueThread = internalAction({
     const { threadId, promptMessageId, prompt, userId } = args;
     // get thread info & previous category classification
     const [category, { thread }] = await Promise.all([
-      ctx.runQuery(internal.threads.getThreadCategory, {
+      ctx.runQuery(internal.thread.thread_queries.getThreadCategory, {
         threadId: threadId,
       }),
       agent.continueThread(ctx, {
@@ -122,10 +80,13 @@ export const continueThread = internalAction({
     );
     if (classificationResult.error) {
       logSystemError(ctx, threadId, "G3", "Failed to classify user's prompt.");
-      await ctx.runMutation(internal.threads.updateThreadState, {
-        threadId: threadId,
-        state: "idle",
-      });
+      await ctx.runMutation(
+        internal.thread.thread_mutations.updateThreadState,
+        {
+          threadId: threadId,
+          state: "idle",
+        },
+      );
       return;
     }
     const [{ object, usage: classificationUsage }, tier] =
@@ -134,10 +95,13 @@ export const continueThread = internalAction({
     // that they need to upgrade to perform web searches
     if (tier === 0 && object.promptCategory === "search") {
       await logSystemNotice(ctx, threadId, "N1");
-      await ctx.runMutation(internal.threads.updateThreadState, {
-        threadId: threadId,
-        state: "idle",
-      });
+      await ctx.runMutation(
+        internal.thread.thread_mutations.updateThreadState,
+        {
+          threadId: threadId,
+          state: "idle",
+        },
+      );
       return;
     }
     // determine which model to use based on the prompt classification
@@ -171,16 +135,19 @@ export const continueThread = internalAction({
         "G1",
         "Failed to initialize stream generation.",
       );
-      await ctx.runMutation(internal.threads.updateThreadState, {
-        threadId: threadId,
-        state: "idle",
-      });
+      await ctx.runMutation(
+        internal.thread.thread_mutations.updateThreadState,
+        {
+          threadId: threadId,
+          state: "idle",
+        },
+      );
       return;
     }
     // stream response back to user
     const { error: streamError } = await tryCatch(
       Promise.all([
-        ctx.runMutation(internal.threads.updateThreadState, {
+        ctx.runMutation(internal.thread.thread_mutations.updateThreadState, {
           threadId: threadId,
           state: "streaming",
         }),
@@ -197,11 +164,11 @@ export const continueThread = internalAction({
     }
     // stream has completed, set back to idle and store category
     await Promise.all([
-      ctx.runMutation(internal.threads.updateThreadState, {
+      ctx.runMutation(internal.thread.thread_mutations.updateThreadState, {
         threadId: threadId,
         state: "idle",
       }),
-      ctx.runMutation(internal.threads.updateThreadCategory, {
+      ctx.runMutation(internal.thread.thread_mutations.updateThreadCategory, {
         threadId: threadId,
         category: object.promptCategory,
       }),

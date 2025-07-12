@@ -14,7 +14,7 @@ export default function useMessages({ threadId }: { threadId: string }) {
     loadMore,
     isLoading,
     status,
-  } = useThreadMessages(api.threads.getThreadMessages, args, {
+  } = useThreadMessages(api.thread.thread_queries.getThreadMessages, args, {
     initialNumItems: INITIAL_PAGE_SIZE,
     stream: false,
   });
