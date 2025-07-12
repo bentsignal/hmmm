@@ -1,5 +1,6 @@
 import { Polar } from "@convex-dev/polar";
 import { v } from "convex/values";
+import { hasAccess } from "@/convex/user/user_helpers";
 import { api, components, internal } from "./_generated/api";
 import {
   internalAction,
@@ -8,7 +9,6 @@ import {
   query,
   QueryCtx,
 } from "./_generated/server";
-import { hasAccess } from "./users";
 
 // highest tier plan
 const MAX_PLAN_NAME = "Ultra";

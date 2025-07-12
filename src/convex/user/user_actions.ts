@@ -1,11 +1,11 @@
 "use node";
 
-import { internalAction } from "./_generated/server";
 import { clerkClient } from "@clerk/nextjs/server";
-import { polar } from "./polar";
 import { v } from "convex/values";
+import { internalAction } from "@/convex/_generated/server";
+import { polar } from "@/convex/polar";
 
-export const deleteUserAction = internalAction({
+export const deleteUser = internalAction({
   args: {
     userId: v.string(),
   },

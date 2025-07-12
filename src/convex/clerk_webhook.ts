@@ -1,10 +1,10 @@
 "use node";
 
-import { v } from "convex/values";
-import { internalAction } from "./_generated/server";
-import { Webhook } from "svix";
-import { internal } from "./_generated/api";
 import { WebhookEvent } from "@clerk/nextjs/server";
+import { Webhook } from "svix";
+import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { internalAction } from "./_generated/server";
 
 const CLERK_WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 if (!CLERK_WEBHOOK_SECRET) {
@@ -41,7 +41,7 @@ export const handleClerkWebhook = internalAction({
       if (!email) {
         throw new Error("Missing required data");
       }
-      await ctx.runMutation(internal.users.createUser, {
+      await ctx.runMutation(internal.user.user_mutations.createUser, {
         userId: id,
         email,
       });

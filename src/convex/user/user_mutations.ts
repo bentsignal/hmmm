@@ -1,12 +1,7 @@
 import { v } from "convex/values";
-import { components, internal } from "./_generated/api";
-import {
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
-  QueryCtx,
-} from "./_generated/server";
+import { components, internal } from "@/convex/_generated/api";
+import { internalMutation, mutation } from "@/convex/_generated/server";
+import { getUserByUserId } from "./user_helpers";
 
 export const createUser = internalMutation({
   args: {
@@ -21,56 +16,6 @@ export const createUser = internalMutation({
       access: false,
       waitlist: false,
     });
-  },
-});
-
-export const hasAccess = async (ctx: QueryCtx, userId: string) => {
-  const user = await getUserByUserId(ctx, userId);
-  if (!user) {
-    return false;
-  }
-  return user.access;
-};
-
-export const isAdmin = async (ctx: QueryCtx, userId: string) => {
-  const user = await getUserByUserId(ctx, userId);
-  if (!user) {
-    return false;
-  }
-  return user.admin;
-};
-
-export const getUser = internalQuery({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await ctx.auth.getUserIdentity();
-    if (!userId) {
-      return null;
-    }
-    return await getUserByUserId(ctx, userId.subject);
-  },
-});
-
-export const getUserByUserId = async (ctx: QueryCtx, userId: string) => {
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_user_id", (q) => q.eq("userId", userId))
-    .unique();
-  return user;
-};
-
-export const getUserEmail = query({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await ctx.auth.getUserIdentity();
-    if (!userId) {
-      return null;
-    }
-    const user = await getUserByUserId(ctx, userId.subject);
-    if (!user) {
-      return null;
-    }
-    return user.email;
   },
 });
 
@@ -116,7 +61,7 @@ export const requestDeleteUser = mutation({
     await ctx.db.delete(user._id);
 
     // delete user from clerk & customer from polar
-    await ctx.scheduler.runAfter(0, internal.user_actions.deleteUserAction, {
+    await ctx.scheduler.runAfter(0, internal.user.user_actions.deleteUser, {
       userId: userId.subject,
     });
   },

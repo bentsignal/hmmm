@@ -1,5 +1,5 @@
+import { getUserByUserId } from "@/convex/user/user_helpers";
 import { mutation, query } from "./_generated/server";
-import { getUserByUserId } from "./users";
 
 export const isOnWaitlist = query({
   args: {},

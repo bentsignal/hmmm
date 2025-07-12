@@ -1,20 +1,20 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import CustomAlert from "@/components/alert";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { useConvexMutation } from "@convex-dev/react-query";
-import { api } from "@/convex/_generated/api";
-import { toast } from "sonner";
+import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { api } from "@/convex/_generated/api";
+import CustomAlert from "@/components/alert";
+import { Button } from "@/components/ui/button";
 
 export default function DeleteAccount() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
   const { mutate: deleteAccount, isPending } = useMutation({
-    mutationFn: useConvexMutation(api.users.requestDeleteUser),
+    mutationFn: useConvexMutation(api.user.user_mutations.requestDeleteUser),
     onSuccess: () => {
       router.push("/goodbye");
     },

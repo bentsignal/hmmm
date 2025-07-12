@@ -2,6 +2,7 @@ import type { SyncStreamsReturnValue } from "@convex-dev/agent";
 import { vStreamArgs } from "@convex-dev/agent/validators";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
+import { isAdmin } from "@/convex/user/user_helpers";
 import { components, internal } from "./_generated/api";
 import {
   internalMutation,
@@ -14,7 +15,6 @@ import {
 import { agent } from "./agent";
 import { messageSendRateLimit } from "./limiter";
 import { getCurrentUsage } from "./usage";
-import { isAdmin } from "./users";
 import { convexCategoryEnum } from "@/features/prompts/types/prompt-types";
 
 // get thread metadata from table separate from agent component. this

@@ -20,8 +20,10 @@ import type * as polar from "../polar.js";
 import type * as threads from "../threads.js";
 import type * as time from "../time.js";
 import type * as usage from "../usage.js";
-import type * as user_actions from "../user_actions.js";
-import type * as users from "../users.js";
+import type * as user_user_actions from "../user/user_actions.js";
+import type * as user_user_helpers from "../user/user_helpers.js";
+import type * as user_user_mutations from "../user/user_mutations.js";
+import type * as user_user_queries from "../user/user_queries.js";
 import type * as waitlist from "../waitlist.js";
 
 import type {
@@ -51,8 +53,10 @@ declare const fullApi: ApiFromModules<{
   threads: typeof threads;
   time: typeof time;
   usage: typeof usage;
-  user_actions: typeof user_actions;
-  users: typeof users;
+  "user/user_actions": typeof user_user_actions;
+  "user/user_helpers": typeof user_user_helpers;
+  "user/user_mutations": typeof user_user_mutations;
+  "user/user_queries": typeof user_user_queries;
   waitlist: typeof waitlist;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
