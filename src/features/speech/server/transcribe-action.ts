@@ -1,16 +1,15 @@
 "use server";
 
-import { experimental_transcribe as transcribe } from "ai";
-import { auth } from "@clerk/nextjs/server";
-import { api } from "@/convex/_generated/api";
-import { tryCatch } from "@/lib/utils";
-import { transcriptionModel } from "@/features/models/models";
-import { getAuthToken } from "@/features/auth/util/auth-util";
-import { fetchQuery } from "convex/nextjs";
-import { getAudioDurationFromBuffer } from "../util/audio-duration";
-import { MAX_AUDIO_FILE_SIZE, MAX_RECORDING_DURATION } from "../config";
-import { fetchMutation } from "convex/nextjs";
 import { env } from "@/env";
+import { auth } from "@clerk/nextjs/server";
+import { experimental_transcribe as transcribe } from "ai";
+import { fetchMutation, fetchQuery } from "convex/nextjs";
+import { api } from "@/convex/_generated/api";
+import { MAX_AUDIO_FILE_SIZE, MAX_RECORDING_DURATION } from "../config";
+import { getAudioDurationFromBuffer } from "../util/audio-duration";
+import { tryCatch } from "@/lib/utils";
+import { getAuthToken } from "@/features/auth/util/auth-util";
+import { transcriptionModel } from "@/features/models/models";
 
 export async function transcribeAudio(audio: ArrayBuffer) {
   // auth check
@@ -78,7 +77,7 @@ export async function transcribeAudio(audio: ArrayBuffer) {
   }
 
   // log usage, billed per minute
-  const cost = (transcriptionModel.cost.other * duration) / 60;
+  const cost = (transcriptionModel.cost.other * Math.ceil(duration)) / 60;
   await fetchMutation(
     api.messages.logTranscriptionUsage,
     {
