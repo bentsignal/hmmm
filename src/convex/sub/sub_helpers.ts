@@ -1,8 +1,13 @@
-import { QueryCtx } from "@/convex/_generated/server";
+import { Infer, v } from "convex/values";
+import { MutationCtx, QueryCtx } from "@/convex/_generated/server";
 import { hasAccess } from "@/convex/user/user_helpers";
 import { polar } from "./polar";
 import { usage } from "./usage";
 import * as timeHelpers from "@/features/date-time/util";
+import {
+  convexCategoryEnum,
+  convexDifficultyEnum,
+} from "@/features/prompts/types";
 
 // user can use up to 75% of their plan's price. Hopefully
 // can be increased in the future, just need to see how all
@@ -89,4 +94,53 @@ export const getUsageHelper = async (ctx: QueryCtx, userId: string) => {
     range,
     unlimited,
   };
+};
+
+export const usageSchema = v.object({
+  messageId: v.string(),
+  threadId: v.string(),
+  userId: v.string(),
+  category: convexCategoryEnum,
+  difficulty: convexDifficultyEnum,
+  model: v.string(),
+  inputTokens: v.number(),
+  outputTokens: v.number(),
+  inputCost: v.number(),
+  outputCost: v.number(),
+  otherCost: v.number(),
+  totalCost: v.number(),
+});
+
+export const logUsageHelper = async (
+  ctx: MutationCtx,
+  args: Infer<typeof usageSchema>,
+) => {
+  const {
+    messageId,
+    threadId,
+    userId,
+    category,
+    difficulty,
+    model,
+    inputTokens,
+    outputTokens,
+    inputCost,
+    outputCost,
+    otherCost,
+    totalCost,
+  } = args;
+  await ctx.db.insert("messageMetadata", {
+    messageId,
+    threadId,
+    userId,
+    category,
+    model,
+    difficulty,
+    inputTokens,
+    outputTokens,
+    inputCost,
+    outputCost,
+    otherCost,
+    totalCost,
+  });
 };

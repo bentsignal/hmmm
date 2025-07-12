@@ -83,7 +83,7 @@ export async function transcribeAudio(audio: ArrayBuffer) {
   // log usage, billed per minute
   const cost = (transcriptionModel.cost.other * Math.ceil(duration)) / 60;
   await fetchMutation(
-    api.messages.logTranscriptionUsage,
+    api.sub.usage.logTranscriptionUsage,
     {
       model: transcriptionModel.id,
       cost: transcriptionModel.cost.other,

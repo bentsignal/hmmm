@@ -13,7 +13,6 @@ import type * as clerk_clerk_actions from "../clerk/clerk_actions.js";
 import type * as clerk_clerk_http_actions from "../clerk/clerk_http_actions.js";
 import type * as http from "../http.js";
 import type * as limiter from "../limiter.js";
-import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
 import type * as sub_polar from "../sub/polar.js";
 import type * as sub_sub_actions from "../sub/sub_actions.js";
@@ -50,7 +49,6 @@ declare const fullApi: ApiFromModules<{
   "clerk/clerk_http_actions": typeof clerk_clerk_http_actions;
   http: typeof http;
   limiter: typeof limiter;
-  messages: typeof messages;
   migrations: typeof migrations;
   "sub/polar": typeof sub_polar;
   "sub/sub_actions": typeof sub_sub_actions;

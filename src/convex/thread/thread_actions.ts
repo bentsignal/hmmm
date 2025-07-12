@@ -188,7 +188,7 @@ export const generateResponse = internalAction({
     // cost of other operations (currently just the flat search rate for perplexity)
     const otherCost = chosenModel.cost.other;
     const totalCost = inputCost + outputCost + classificationCost + otherCost;
-    await ctx.runMutation(internal.messages.insertMessageMetadata, {
+    await ctx.runMutation(internal.sub.usage.insertMessageMetadata, {
       messageId: promptMessageId,
       threadId: threadId,
       userId: userId,
