@@ -25,7 +25,6 @@ import type * as thread_thread_actions from "../thread/thread_actions.js";
 import type * as thread_thread_helpers from "../thread/thread_helpers.js";
 import type * as thread_thread_mutations from "../thread/thread_mutations.js";
 import type * as thread_thread_queries from "../thread/thread_queries.js";
-import type * as time from "../time.js";
 import type * as user_user_actions from "../user/user_actions.js";
 import type * as user_user_helpers from "../user/user_helpers.js";
 import type * as user_user_mutations from "../user/user_mutations.js";
@@ -64,7 +63,6 @@ declare const fullApi: ApiFromModules<{
   "thread/thread_helpers": typeof thread_thread_helpers;
   "thread/thread_mutations": typeof thread_thread_mutations;
   "thread/thread_queries": typeof thread_thread_queries;
-  time: typeof time;
   "user/user_actions": typeof user_user_actions;
   "user/user_helpers": typeof user_user_helpers;
   "user/user_mutations": typeof user_user_mutations;

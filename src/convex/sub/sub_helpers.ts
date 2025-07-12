@@ -1,8 +1,8 @@
 import { QueryCtx } from "@/convex/_generated/server";
-import * as timeHelpers from "@/convex/time";
 import { hasAccess } from "@/convex/user/user_helpers";
 import { polar } from "./polar";
 import { usage } from "./usage";
+import * as timeHelpers from "@/features/date-time/util";
 
 // user can use up to 75% of their plan's price. Hopefully
 // can be increased in the future, just need to see how all
