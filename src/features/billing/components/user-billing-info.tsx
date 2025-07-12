@@ -1,11 +1,11 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
 import { CheckoutLink, CustomerPortalLink } from "@convex-dev/polar/react";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import SettingsLoading from "@/features/settings/components/settings-loading";
+import { api } from "@/convex/_generated/api";
+import { Button } from "@/components/ui/button";
 import useCurrentPlan from "@/features/billing/hooks/use-current-plan";
+import SettingsLoading from "@/features/settings/components/settings-loading";
 
 export default function UserBillingInfo({
   plans,
@@ -41,7 +41,7 @@ export default function UserBillingInfo({
         {!plan ? (
           <CheckoutLink
             polarApi={{
-              generateCheckoutLink: api.polar.generateCheckoutLink,
+              generateCheckoutLink: api.sub.sub_actions.generateCheckoutLink,
             }}
             productIds={plans?.map((product) => product.id) ?? []}
             embed={false}
@@ -51,7 +51,8 @@ export default function UserBillingInfo({
         ) : (
           <CustomerPortalLink
             polarApi={{
-              generateCustomerPortalUrl: api.polar.generateCustomerPortalUrl,
+              generateCustomerPortalUrl:
+                api.sub.sub_actions.generateCustomerPortalUrl,
             }}
           >
             <Button className="animate-in fade-in duration-300">

@@ -1,16 +1,16 @@
 "use client";
 
-import * as Card from "@/components/ui/card";
-import ReactMarkdown from "react-markdown";
-import { markdownComponents } from "@/features/message/components/markdown-components";
-import { cn } from "@/lib/utils";
 import { CheckoutLink, CustomerPortalLink } from "@convex-dev/polar/react";
-import { api } from "@/convex/_generated/api";
-import { Button } from "@/components/ui/button";
-import useCurrentPlan from "@/features/billing/hooks/use-current-plan";
-import DefaultLoading from "@/components/default-loading";
-import Link from "next/link";
 import { X } from "lucide-react";
+import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import { api } from "@/convex/_generated/api";
+import DefaultLoading from "@/components/default-loading";
+import { Button } from "@/components/ui/button";
+import * as Card from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import useCurrentPlan from "@/features/billing/hooks/use-current-plan";
+import { markdownComponents } from "@/features/message/components/markdown-components";
 
 interface Product {
   name: string;
@@ -47,7 +47,8 @@ export default function PricingCards({ products }: { products: Product[] }) {
           </span>
           <CustomerPortalLink
             polarApi={{
-              generateCustomerPortalUrl: api.polar.generateCustomerPortalUrl,
+              generateCustomerPortalUrl:
+                api.sub.sub_actions.generateCustomerPortalUrl,
             }}
           >
             <Button className="animate-in fade-in duration-300">
@@ -99,7 +100,8 @@ export default function PricingCards({ products }: { products: Product[] }) {
                 {product.price !== 0 && !plan && (
                   <CheckoutLink
                     polarApi={{
-                      generateCheckoutLink: api.polar.generateCheckoutLink,
+                      generateCheckoutLink:
+                        api.sub.sub_actions.generateCheckoutLink,
                     }}
                     productIds={[product.id]}
                     embed={false}
