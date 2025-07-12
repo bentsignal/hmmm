@@ -3,7 +3,7 @@ import { vStreamArgs } from "@convex-dev/agent/validators";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internalQuery, query } from "@/convex/_generated/server";
-import { agent } from "@/convex/agent";
+import { agent } from "@/convex/agents";
 import { authorizeThreadAccess, getThreadMetadata } from "./thread_helpers";
 
 export const getThreadTitle = query({

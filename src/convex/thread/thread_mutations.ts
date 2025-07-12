@@ -1,11 +1,11 @@
 import { ConvexError, v } from "convex/values";
 import { components, internal } from "@/convex/_generated/api";
 import { internalMutation, mutation } from "@/convex/_generated/server";
-import { agent } from "@/convex/agent";
+import { agent } from "@/convex/agents";
+import { convexCategoryEnum } from "@/convex/agents/prompts/types";
 import { messageSendRateLimit } from "@/convex/limiter";
 import { getUsageHelper } from "@/convex/sub/sub_helpers";
 import { getThreadMetadata } from "./thread_helpers";
-import { convexCategoryEnum } from "@/features/prompts/types/prompt-types";
 
 export const requestNewThread = mutation({
   args: {

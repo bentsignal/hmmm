@@ -17,7 +17,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getDateTimeString } from "@/features/date-time/util";
+import { getDateTimeString } from "@/lib/date-time-utils";
 
 interface ResponseMessageProps {
   message: UIMessage;

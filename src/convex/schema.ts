@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import {
   convexCategoryEnum,
   convexDifficultyEnum,
-} from "@/features/prompts/types/prompt-types";
+} from "@/convex/agents/prompts/types";
 
 export default defineSchema({
   users: defineTable({

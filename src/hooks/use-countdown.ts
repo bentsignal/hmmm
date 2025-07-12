@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getTimeRemaining } from "../util/date-time-util";
+import { getTimeRemaining } from "@/lib/date-time-utils";
 
 interface UseCountdownProps {
   target: Date;

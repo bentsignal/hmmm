@@ -5,11 +5,11 @@ import { auth } from "@clerk/nextjs/server";
 import { experimental_transcribe as transcribe } from "ai";
 import { fetchMutation, fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
+import { transcriptionModel } from "@/convex/agents/models";
 import { MAX_AUDIO_FILE_SIZE, MAX_RECORDING_DURATION } from "../config";
 import { getAudioDurationFromBuffer } from "../util/audio-duration";
 import { tryCatch } from "@/lib/utils";
 import { getAuthToken } from "@/features/auth/util/auth-util";
-import { transcriptionModel } from "@/features/models/models";
 
 export async function transcribeAudio(audio: ArrayBuffer) {
   // auth check

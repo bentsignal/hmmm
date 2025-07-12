@@ -5,16 +5,19 @@ import z from "zod";
 import { v } from "convex/values";
 import { components, internal } from "@/convex/_generated/api";
 import { internalAction } from "@/convex/_generated/server";
-import { agent } from "@/convex/agent";
-import { logSystemError, logSystemNotice } from "./thread_helpers";
-import { tryCatch } from "@/lib/utils";
-import { classifierModel, titleGeneratorModel } from "@/features/models";
-import { getResponseModel } from "@/features/models/util/model-utils";
-import { getClassifierPrompt, titleGeneratorPrompt } from "@/features/prompts";
+import { agent } from "@/convex/agents/agent";
+import { classifierModel, titleGeneratorModel } from "@/convex/agents/models";
+import { getResponseModel } from "@/convex/agents/models/util";
+import {
+  getClassifierPrompt,
+  titleGeneratorPrompt,
+} from "@/convex/agents/prompts";
 import {
   promptCategoryEnum,
   promptDifficultyEnum,
-} from "@/features/prompts/types/prompt-types";
+} from "@/convex/agents/prompts/types";
+import { logSystemError, logSystemNotice } from "./thread_helpers";
+import { tryCatch } from "@/lib/utils";
 
 // generate title for thread based off of initial prompt
 export const generateTitle = internalAction({

@@ -1,5 +1,5 @@
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { openai } from "@ai-sdk/openai";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
 const OPEN_ROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 if (!OPEN_ROUTER_API_KEY) {
@@ -203,14 +203,3 @@ export const models = {
     pronunciations: ["sonar reasoning pro", "sonar reasoning", "sonar pro"],
   },
 };
-
-export const defaultModel = models["google/gemini-2.0-flash-001"];
-
-export const classifierModel =
-  models["google/gemini-2.5-flash-lite-preview-06-17"];
-
-export const titleGeneratorModel = models["google/gemini-2.0-flash-001"];
-
-export const transcriptionModel = models["whisper-1"];
-
-export const searchModel = models["perplexity/sonar"];

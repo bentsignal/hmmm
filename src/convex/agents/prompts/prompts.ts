@@ -1,4 +1,4 @@
-import { PromptCategory } from "./types/prompt-types";
+import { PromptCategory } from "./types/prompt_types";
 
 export const titleGeneratorPrompt = `You are a helpful assistant for an AI chatbot. Generate
 a short, concise title for a thread started by the following prompt. Pick a title that

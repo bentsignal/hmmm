@@ -1,5 +1,5 @@
 import { ActionCtx, MutationCtx, QueryCtx } from "@/convex/_generated/server";
-import { agent } from "@/convex/agent";
+import { agent } from "@/convex/agents";
 import { isAdmin } from "@/convex/user/user_helpers";
 import {
   SystemErrorCode,

@@ -1,6 +1,8 @@
-import { defaultModel } from "@/features/models";
-import { models } from "@/features/models/models";
-import { PromptCategory, PromptDifficulty } from "@/features/prompts/types";
+import { defaultModel, models } from "@/convex/agents/models";
+import {
+  PromptCategory,
+  PromptDifficulty,
+} from "@/convex/agents/prompts/types";
 
 // determine the model based on user plan, prompt difficulty, and prompt category
 export const getResponseModel = (
