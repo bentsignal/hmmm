@@ -14,7 +14,6 @@ export const createUser = internalMutation({
       userId,
       email,
       access: false,
-      waitlist: false,
     });
   },
 });

@@ -29,7 +29,6 @@ import type * as user_user_actions from "../user/user_actions.js";
 import type * as user_user_helpers from "../user/user_helpers.js";
 import type * as user_user_mutations from "../user/user_mutations.js";
 import type * as user_user_queries from "../user/user_queries.js";
-import type * as waitlist from "../waitlist.js";
 
 import type {
   ApiFromModules,
@@ -67,7 +66,6 @@ declare const fullApi: ApiFromModules<{
   "user/user_helpers": typeof user_user_helpers;
   "user/user_mutations": typeof user_user_mutations;
   "user/user_queries": typeof user_user_queries;
-  waitlist: typeof waitlist;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 
