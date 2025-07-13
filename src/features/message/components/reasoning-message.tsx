@@ -1,16 +1,16 @@
-import { Brain, ChevronDown, ChevronRight } from "lucide-react";
 import { memo, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
-import { markdownComponents } from "./markdown-components";
 import { useSmoothText } from "@convex-dev/agent/react";
-import { cn } from "@/lib/utils";
 import { UIMessage } from "ai";
+import { Brain, ChevronDown, ChevronRight } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
+import remarkGfm from "remark-gfm";
 import {
   extractReasoningFromMessage,
   getLatestPartType,
 } from "../util/message-util";
+import { markdownComponents } from "./markdown-components";
+import { cn } from "@/lib/utils";
 
 interface ReasoningMessageProps {
   message: UIMessage;
@@ -23,8 +23,7 @@ export default function ReasoningMessage({
 }: ReasoningMessageProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  // if message is being streamed and the latest part is of type "reasoning",
-  // then the model is currently in a reasoning state
+  // animate the reasoning label when the model is thinking
   const isReasoning = streaming && getLatestPartType(message) === "reasoning";
 
   // extract text from reasoning parts & smooth

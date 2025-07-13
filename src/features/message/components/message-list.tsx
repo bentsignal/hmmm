@@ -9,15 +9,19 @@ import "@/features/message/styles/message-styles.css";
 import { useEffect } from "react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import useMessages from "../hooks/use-messages";
 import Messages from "./messages";
-import StreamingMessage from "./streaming-message";
+import StreamingMessages from "./streaming-messages";
 import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
 import useThreadStore from "@/features/thread/store/thread-store";
 
 export default function MessageList({ threadId }: { threadId: string }) {
-  // handle auto scroll & scroll to bottom
+  const { messages, loadMore, status } = useMessages({
+    threadId,
+  });
+  // auto scroll when new messages are sent, show/hide/handle scroll to bottom button
   const { scrollAreaRef, messagesEndRef, isAtBottom, scrollToBottom } =
-    useMessageListScroll({ threadId });
+    useMessageListScroll({ messages });
 
   // set active thread when component mounts
   const setActiveThread = useThreadStore((state) => state.setActiveThread);
@@ -43,8 +47,8 @@ export default function MessageList({ threadId }: { threadId: string }) {
           className="flex h-full w-full max-w-4xl place-self-center mx-auto
           flex-col gap-16 py-24 px-8 mb-8 sm:mb-0"
         >
-          <Messages threadId={threadId} />
-          <StreamingMessage threadId={threadId} />
+          <Messages messages={messages} loadMore={loadMore} status={status} />
+          <StreamingMessages threadId={threadId} messages={messages} />
           <UsageChatCallout />
           <div ref={messagesEndRef} />
         </div>
@@ -55,7 +59,7 @@ export default function MessageList({ threadId }: { threadId: string }) {
           items-center justify-center rounded-full p-0 sm:bottom-24"
         >
           <Button
-            onClick={scrollToBottom}
+            onClick={() => scrollToBottom()}
             className="font-semibold shadow-lg"
             variant="default"
           >

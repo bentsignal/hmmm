@@ -31,15 +31,21 @@ export default function ResponseMessage({
   const [text] = useSmoothText(message.content, { charsPerSec: 2000 });
   const createdAt = getDateTimeString(new Date(message.createdAt ?? 0));
 
+  // error occured during repsonse generation, inform user
   const errorCode = isErrorMessage(text);
   if (errorCode) {
     return <ErrorMessage code={errorCode} dateTime={createdAt} />;
   }
 
+  // notice from the server to the user
   const noticeCode = isNoticeMessage(text);
   if (noticeCode) {
     return <NoticeMessage code={noticeCode} />;
   }
+
+  // if the message begins with the substring "undefined", remove it from the
+  // message. Not sure why this happens, seems to be a bug in a dependency
+  const cleanedText = text.replace(/^undefined/, "");
 
   return (
     <div className="flex w-full flex-col items-start gap-2">
@@ -51,7 +57,7 @@ export default function ResponseMessage({
             rehypePlugins={[rehypeHighlight]}
             components={markdownComponents}
           >
-            {text}
+            {cleanedText}
           </ReactMarkdown>
           {!streaming && message.createdAt && message.content.length > 0 && (
             <div className="absolute -bottom-10 left-0 mt-2 flex justify-start gap-2 sm:-bottom-12">

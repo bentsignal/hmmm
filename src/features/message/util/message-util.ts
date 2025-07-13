@@ -37,7 +37,7 @@ export function extractReasoningFromMessage(message: UIMessage) {
 
 export function getLatestPartType(message: UIMessage) {
   if (message.parts.length === 0) return null;
-  return message.parts[message.parts.length - 1].type;
+  return message.parts[0].type;
 }
 
 export function formatError(code: SystemErrorCode) {

@@ -1,8 +1,6 @@
-import { useState } from "react";
 import { toUIMessages, useThreadMessages } from "@convex-dev/agent/react";
 import { useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import useMessageStore from "../store";
 import { INITIAL_PAGE_SIZE } from "@/features/message/config";
 
 export default function useMessages({ threadId }: { threadId: string }) {
@@ -21,17 +19,10 @@ export default function useMessages({ threadId }: { threadId: string }) {
 
   const uiMessages = toUIMessages(messages);
 
-  // determine if new messages have been sent since thread has been loaded
-  // this is used to move new messages sent to the top of the screen
-  const numMessagesSent = useMessageStore((state) => state.numMessagesSent);
-  const [initialLength] = useState(() => numMessagesSent);
-  const hasNewMessages = numMessagesSent != initialLength;
-
   return {
     isAuthenticated,
     messages: uiMessages,
     totalCount: messages.length,
-    hasNewMessages,
     loadMore,
     isLoading,
     status,

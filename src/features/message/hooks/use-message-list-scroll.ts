@@ -1,24 +1,28 @@
 import { useEffect, useRef, useState } from "react";
-import useMessages from "./use-messages";
+import { UIMessage } from "ai";
+import useMessageStore from "../store/message-store";
 
 export default function useMessageListScroll({
-  threadId,
+  messages,
 }: {
-  threadId: string;
+  messages: UIMessage[];
 }) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isInitialLoadRef = useRef(true);
-  const previousMessageCountRef = useRef(0);
   const [isAtBottom, setIsAtBottom] = useState(true);
-  const { messages } = useMessages({ threadId });
+  const numMessagesSent = useMessageStore((state) => state.numMessagesSent);
 
-  const checkIfAtBottom = () => {
-    const scrollElement = scrollAreaRef.current?.querySelector(
+  const getScrollElement = () => {
+    return scrollAreaRef.current?.querySelector(
       "[data-radix-scroll-area-viewport]",
     );
+  };
+
+  const checkIfAtBottom = () => {
+    const scrollElement = getScrollElement();
     if (scrollElement) {
-      const threshold = 100;
+      const threshold = 800;
       const isNearBottom =
         scrollElement.scrollTop + scrollElement.clientHeight >=
         scrollElement.scrollHeight - threshold;
@@ -26,64 +30,39 @@ export default function useMessageListScroll({
     }
   };
 
-  const scrollToBottom = () => {
-    const scrollElement = scrollAreaRef.current?.querySelector(
-      "[data-radix-scroll-area-viewport]",
-    );
+  const scrollToBottom = (animate: boolean = false) => {
+    const scrollElement = getScrollElement();
     if (scrollElement) {
       scrollElement.scrollTo({
         top: scrollElement.scrollHeight,
-        behavior: "auto",
+        behavior: animate ? "smooth" : "auto",
       });
       setIsAtBottom(true);
     }
   };
 
   useEffect(() => {
-    const scrollElement = scrollAreaRef.current?.querySelector(
-      "[data-radix-scroll-area-viewport]",
-    );
-
+    const scrollElement = getScrollElement();
     if (scrollElement) {
       scrollElement.addEventListener("scroll", checkIfAtBottom);
       return () => scrollElement.removeEventListener("scroll", checkIfAtBottom);
     }
   }, []);
 
+  // scroll to the bottom on page load
   useEffect(() => {
-    const scrollElement = scrollAreaRef.current?.querySelector(
-      "[data-radix-scroll-area-viewport]",
-    );
-
-    if (scrollElement && messages.length > 0) {
-      if (isInitialLoadRef.current) {
-        scrollElement.scrollTo({
-          top: scrollElement.scrollHeight,
-          behavior: "auto",
-        });
-        isInitialLoadRef.current = false;
-        previousMessageCountRef.current = messages.length;
-        setIsAtBottom(true);
-      } else if (
-        messages.length > previousMessageCountRef.current &&
-        messages[messages.length - 1].role === "user"
-      ) {
-        const lastMessage = messagesEndRef.current?.previousElementSibling;
-        if (lastMessage) {
-          const scrollTop =
-            lastMessage.getBoundingClientRect().top -
-            scrollElement.getBoundingClientRect().top +
-            scrollElement.scrollTop;
-          scrollElement.scrollTo({
-            top: scrollTop,
-            behavior: "smooth",
-          });
-        }
-        previousMessageCountRef.current = messages.length;
-        checkIfAtBottom();
-      }
+    if (isInitialLoadRef.current && messages.length > 0) {
+      scrollToBottom();
+      isInitialLoadRef.current = false;
     }
-  }, [messages.length]);
+  }, [messages]);
+
+  // when a new message is sent, scroll to the bottom of the page
+  useEffect(() => {
+    if (numMessagesSent > 0) {
+      scrollToBottom(true);
+    }
+  }, [numMessagesSent]);
 
   return {
     scrollAreaRef,
