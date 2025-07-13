@@ -6,20 +6,13 @@ import {
 } from "@/convex/agents/prompts/types";
 import { hasAccess } from "@/convex/user/user_helpers";
 import { polar } from "./polar";
+import {
+  ALLOWED_USAGE_PERCENTAGE,
+  FREE_TIER_MAX_USAGE,
+  HIGHEST_TIER_PUBLIC_PLAN,
+} from "./sub_config";
 import { usage } from "./usage";
 import * as timeHelpers from "@/lib/date-time-utils";
-
-// user can use up to 75% of their plan's price. Hopefully
-// can be increased in the future, just need to see how all
-// of the other recurring costs stack up
-export const ALLOWED_USAGE_PERCENTAGE = 0.75;
-
-// free tier can incur 1 cent of cost per day
-export const FREE_TIER_MAX_USAGE = 0.01;
-
-// ultra is the highest tier a user can purchase, unlimited
-// must be manually granted to a user
-const HIGHEST_TIER_PUBLIC_PLAN = "Ultra";
 
 type Plan = {
   name: "Light" | "Premium" | "Ultra" | "Unlimited";

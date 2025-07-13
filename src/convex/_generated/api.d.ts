@@ -26,6 +26,7 @@ import type * as limiter from "../limiter.js";
 import type * as migrations from "../migrations.js";
 import type * as sub_polar from "../sub/polar.js";
 import type * as sub_sub_actions from "../sub/sub_actions.js";
+import type * as sub_sub_config from "../sub/sub_config.js";
 import type * as sub_sub_helpers from "../sub/sub_helpers.js";
 import type * as sub_sub_mutations from "../sub/sub_mutations.js";
 import type * as sub_sub_queries from "../sub/sub_queries.js";
@@ -72,6 +73,7 @@ declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
   "sub/polar": typeof sub_polar;
   "sub/sub_actions": typeof sub_sub_actions;
+  "sub/sub_config": typeof sub_sub_config;
   "sub/sub_helpers": typeof sub_sub_helpers;
   "sub/sub_mutations": typeof sub_sub_mutations;
   "sub/sub_queries": typeof sub_sub_queries;
