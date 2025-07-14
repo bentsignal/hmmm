@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { transcribeAudio } from "../server/transcribe-action";
-import { MAX_RECORDING_DURATION } from "../config";
 import { toast } from "sonner";
+import { MAX_RECORDING_DURATION } from "../config";
+import { transcribeAudio } from "../server/transcribe-action";
 import { tryCatch } from "@/lib/utils";
 
 export default function useSpeechRecording() {
