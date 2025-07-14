@@ -43,7 +43,7 @@ export default function useSendMessage() {
     (state) => state.setNumMessagesSent,
   );
 
-  const sendMessage = async () => {
+  const sendMessage = async (redirect: boolean = true) => {
     if (blockSend) {
       return;
     }
@@ -65,7 +65,10 @@ export default function useSendMessage() {
         toast.error("An internal error occurred. Please try again.");
         return;
       }
-      router.push(`/chat/${threadId}`);
+      if (redirect) {
+        router.push(`/chat/${threadId}`);
+      }
+      return threadId;
     } else {
       const { error: newThreadMessageError } = await tryCatch(
         newThreadMessage({
