@@ -5,6 +5,22 @@ import useDebouncedInput from "@/hooks/use-debounced-input";
 
 const PAGE_SIZE = 50;
 
+// Cache date boundaries outside component to avoid recalculation
+const getDateBoundaries = () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const lastWeek = new Date(today);
+  lastWeek.setDate(today.getDate() - 7);
+  const lastMonth = new Date(today);
+  lastMonth.setMonth(today.getMonth() - 1);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+
+  return { today, yesterday, lastWeek, lastMonth, tomorrow };
+};
+
 export default function useThreadList() {
   // thread pagination
   const { setValue: setSearch, debouncedValue: debouncedSearch } =
@@ -28,37 +44,32 @@ export default function useThreadList() {
     lastMonthThreads,
     oldThreads,
   } = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    const lastWeek = new Date(today);
-    lastWeek.setDate(today.getDate() - 7);
-    const lastMonth = new Date(today);
-    lastMonth.setMonth(today.getMonth() - 1);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    // filter threads by date range
-    const todaysThreads = threads.filter((item) => {
+    const { today, yesterday, lastWeek, lastMonth, tomorrow } =
+      getDateBoundaries();
+
+    const todaysThreads = [];
+    const yesterdayThreads = [];
+    const lastWeekThreads = [];
+    const lastMonthThreads = [];
+    const oldThreads = [];
+
+    // Single pass through threads array
+    for (const item of threads) {
       const itemDate = new Date(item.updatedAt);
-      return itemDate >= today && itemDate < tomorrow;
-    });
-    const yesterdayThreads = threads.filter((item) => {
-      const itemDate = new Date(item.updatedAt);
-      return itemDate >= yesterday && itemDate < today;
-    });
-    const lastWeekThreads = threads.filter((item) => {
-      const itemDate = new Date(item.updatedAt);
-      return itemDate >= lastWeek && itemDate < yesterday;
-    });
-    const lastMonthThreads = threads.filter((item) => {
-      const itemDate = new Date(item.updatedAt);
-      return itemDate >= lastMonth && itemDate < lastWeek;
-    });
-    const oldThreads = threads.filter((item) => {
-      const itemDate = new Date(item.updatedAt);
-      return itemDate < lastMonth;
-    });
+
+      if (itemDate >= today && itemDate < tomorrow) {
+        todaysThreads.push(item);
+      } else if (itemDate >= yesterday && itemDate < today) {
+        yesterdayThreads.push(item);
+      } else if (itemDate >= lastWeek && itemDate < yesterday) {
+        lastWeekThreads.push(item);
+      } else if (itemDate >= lastMonth && itemDate < lastWeek) {
+        lastMonthThreads.push(item);
+      } else {
+        oldThreads.push(item);
+      }
+    }
+
     return {
       todaysThreads,
       yesterdayThreads,

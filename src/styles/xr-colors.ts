@@ -10,6 +10,7 @@ const COLORS = {
   primary: "oklch(0.95 0 0)",
   primaryForeground: "oklch(0.2 0 0)",
   borderInput: "oklch(0.5 0 0)",
+  accent: "oklch(0.3 0 0)",
 };
 
 export const XR_COLORS = Object.fromEntries(

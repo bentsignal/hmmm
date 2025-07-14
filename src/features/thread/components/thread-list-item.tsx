@@ -1,22 +1,18 @@
 "use client";
 
-import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { useSidebar } from "@/components/ui/sidebar";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { memo, useState } from "react";
 import { Brain, Trash } from "lucide-react";
+import Link from "next/link";
+import { ThreadListItemProps } from "../types";
 import { Button } from "@/components/ui/button";
-import { useState, memo } from "react";
+import {
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import useThreadStore from "@/features/thread/store";
-import { Doc } from "@/convex/_generated/dataModel";
-
-interface ThreadListItemProps {
-  title: string;
-  id: string;
-  active: boolean;
-  status: Doc<"threadMetadata">["state"];
-}
 
 function ThreadListItem({ title, id, active, status }: ThreadListItemProps) {
   const isMobile = useIsMobile();
