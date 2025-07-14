@@ -7,7 +7,7 @@ export default function ComposerInput({
 }: {
   showInstantLoad?: () => void;
 }) {
-  const { value, setPrompt, disabled } = useComposerInput();
+  const { value, setPrompt, disabled, placeholder } = useComposerInput();
   const { sendMessage } = useSendMessage();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -35,7 +35,7 @@ export default function ComposerInput({
       value={value}
       onChange={(e) => setPrompt(e.target.value)}
       onKeyDown={handleKeyPress}
-      placeholder="Type your message..."
+      placeholder={placeholder}
       disabled={disabled}
       rows={1}
       maxLength={20000}

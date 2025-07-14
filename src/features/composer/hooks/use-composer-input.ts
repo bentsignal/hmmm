@@ -12,6 +12,7 @@ export default function useComposerInput() {
       state.storeIsListening ||
       usage?.limitHit,
   );
+  const placeholder = "Type your message...";
   // show placeholder value only when not using web speech api
   const value = useComposerStore((state) =>
     state.storeIsRecording
@@ -26,5 +27,6 @@ export default function useComposerInput() {
     value,
     setPrompt,
     disabled,
+    placeholder,
   };
 }

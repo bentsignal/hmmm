@@ -1,13 +1,12 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { createXRStore, XR } from "@react-three/xr";
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { createXRStore, PointerEvents, XR } from "@react-three/xr";
 import { Box } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { PointerEvents } from "@react-three/xr";
-import XRComposer from "@/features/composer/components/xr-composer";
+import XRComposer from "@/features/composer/components/xr/xr-composer";
 
 const store = createXRStore();
 
@@ -19,9 +18,6 @@ export default function XRPage() {
       <div className="mx-2 my-2 flex flex-col gap-2 text-center">
         <span className="text-muted-foreground text-lg font-semibold">
           Stay on this page while using the XR app.
-        </span>
-        <span className="text-muted-foreground text-lg font-semibold">
-          To view threads, open a new tab.
         </span>
       </div>
       <div className="flex w-full items-center justify-center gap-2">

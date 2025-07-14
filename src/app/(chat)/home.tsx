@@ -34,7 +34,7 @@ export default function Home() {
         </ErrorBoundary>
       </div>
       <UsageChatCallout />
-      <Button variant="outline" disabled={true}>
+      <Button variant="outline">
         <Link href="/xr" className="flex items-center gap-2">
           <Box className="h-4 w-4" />
           Enter XR
