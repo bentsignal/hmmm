@@ -1,10 +1,29 @@
-import { XR_COLORS } from "@/styles/xr-colors";
+import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
 import { Handle, HandleTarget } from "@react-three/handle";
 import { Container, Root, Text } from "@react-three/uikit";
+import { Button } from "@react-three/uikit-default";
+import { SquarePen } from "@react-three/uikit-lucide";
 import { ThreadListItem } from ".";
 import useThreadList from "../../hooks/use-thread-list";
 import useThreadStore from "../../store/thread-store";
 import XRHandle from "@/components/xr/xr-handle";
+
+const NewThreadButton = () => {
+  const setActiveThread = useThreadStore((state) => state.setActiveThread);
+  return (
+    <Button
+      padding={10}
+      borderRadius={XR_STYLES.radiusLg}
+      flexDirection="row"
+      alignItems="center"
+      gap={10}
+      onClick={() => setActiveThread(null)}
+    >
+      <SquarePen width={16} height={16} />
+      <Text>New Thread</Text>
+    </Button>
+  );
+};
 
 export default function XRThreadList() {
   const { threads, threadGroups, status } = useThreadList();
@@ -16,11 +35,12 @@ export default function XRThreadList() {
       <HandleTarget>
         <Handle>
           <Root flexDirection="column" pixelSize={0.001} gap={10}>
+            <NewThreadButton />
             <Container
               backgroundColor={XR_COLORS.card}
               flexDirection="column"
               padding={28}
-              borderRadius={20}
+              borderRadius={XR_STYLES.radiusLg}
               castShadow
               width={370}
               height={500}

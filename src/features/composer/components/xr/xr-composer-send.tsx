@@ -1,4 +1,4 @@
-import { XR_COLORS } from "@/styles/xr-colors";
+import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
 import { Button } from "@react-three/uikit-default";
 import { Send } from "@react-three/uikit-lucide";
 import useSendMessage from "@/features/composer/hooks/use-send-message";
@@ -22,6 +22,7 @@ export default function XRComposerSend() {
       backgroundColor={XR_COLORS.primary}
       width={40}
       height={32}
+      borderRadius={XR_STYLES.radiusSm}
     >
       <Send width={16} height={16} color={XR_COLORS.primaryForeground} />
     </Button>

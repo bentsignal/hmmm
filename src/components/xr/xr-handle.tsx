@@ -1,4 +1,4 @@
-import { XR_COLORS } from "@/styles/xr-colors";
+import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
 import { Container } from "@react-three/uikit";
 
 export default function XRHandle({
@@ -19,7 +19,7 @@ export default function XRHandle({
         backgroundColor={XR_COLORS.foreground}
         width={width}
         height={8}
-        borderRadius={10}
+        borderRadius={XR_STYLES.radiusSm}
         backgroundOpacity={show ? 1 : 0}
       />
     </Container>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { XR_COLORS } from "@/styles/xr-colors";
+import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
 import { Container, Text } from "@react-three/uikit";
 import { Brain } from "@react-three/uikit-lucide";
 import { ThreadListItemProps } from "../../types";
@@ -21,7 +21,7 @@ export default function XRThreadListItem({
       backgroundColor={backgroundColor}
       paddingY={10}
       paddingX={10}
-      borderRadius={10}
+      borderRadius={XR_STYLES.radiusSm}
       castShadow
       alignItems="center"
       gap={10}

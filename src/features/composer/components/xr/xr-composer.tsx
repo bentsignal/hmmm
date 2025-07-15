@@ -1,6 +1,6 @@
 "use client";
 
-import { XR_COLORS } from "@/styles/xr-colors";
+import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
 import { Handle, HandleTarget } from "@react-three/handle";
 import { Container, Root } from "@react-three/uikit";
 import ComposerInput from "./xr-composer-input";
@@ -20,7 +20,7 @@ export default function XRComposer() {
               padding={28}
               alignItems="center"
               justifyContent="space-between"
-              borderRadius={20}
+              borderRadius={XR_STYLES.radiusLg}
               castShadow
               width={370}
               gap={10}

@@ -1,4 +1,4 @@
-import { XR_COLORS } from "@/styles/xr-colors";
+import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
 import { Button } from "@react-three/uikit-default";
 import { Mic } from "@react-three/uikit-lucide";
 import useSpeech from "@/features/speech/hooks/use-speech";
@@ -16,6 +16,7 @@ const XRComposerSpeech = () => {
       height={32}
       borderColor={XR_COLORS.borderInput}
       borderWidth={0.5}
+      borderRadius={XR_STYLES.radiusSm}
     >
       <Mic
         width={16}

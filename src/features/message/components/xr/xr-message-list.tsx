@@ -1,4 +1,4 @@
-import { XR_COLORS } from "@/styles/xr-colors";
+import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
 import { Handle, HandleTarget } from "@react-three/handle";
 import { Container, Root, Text } from "@react-three/uikit";
 import useMessages from "../../hooks/use-messages";
@@ -19,7 +19,7 @@ export default function XRMessageList({ threadId }: { threadId: string }) {
               padding={28}
               alignItems="center"
               justifyContent="flex-start"
-              borderRadius={20}
+              borderRadius={XR_STYLES.radiusLg}
               castShadow
               width={370}
               gap={40}
@@ -36,7 +36,9 @@ export default function XRMessageList({ threadId }: { threadId: string }) {
                     message.role === "user" ? XR_COLORS.accent : XR_COLORS.card
                   }
                   padding={message.role === "user" ? 10 : 0}
-                  borderRadius={message.role === "user" ? 10 : 0}
+                  borderRadius={
+                    message.role === "user" ? XR_STYLES.radiusSm : 0
+                  }
                 >
                   {message.content}
                 </Text>
