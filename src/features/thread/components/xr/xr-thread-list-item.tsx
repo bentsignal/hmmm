@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { XR_COLORS } from "@/styles/xr-colors";
 import { Container, Text } from "@react-three/uikit";
 import { Brain } from "@react-three/uikit-lucide";
@@ -9,9 +10,15 @@ export default function XRThreadListItem({
   status,
   onClick,
 }: ThreadListItemProps & { onClick: () => void }) {
+  const [isHovering, setIsHovering] = useState(false);
+  const backgroundColor = isHovering
+    ? XR_COLORS.accent
+    : active
+      ? XR_COLORS.accent
+      : XR_COLORS.card;
   return (
     <Container
-      backgroundColor={active ? XR_COLORS.accent : XR_COLORS.card}
+      backgroundColor={backgroundColor}
       paddingY={10}
       paddingX={10}
       borderRadius={10}
@@ -19,6 +26,8 @@ export default function XRThreadListItem({
       alignItems="center"
       gap={10}
       onClick={onClick}
+      onPointerOver={() => setIsHovering(true)}
+      onPointerOut={() => setIsHovering(false)}
     >
       {(status === "streaming" || status === "waiting") && (
         <Brain width={16} height={16} color={XR_COLORS.foreground} />

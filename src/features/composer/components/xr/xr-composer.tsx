@@ -5,6 +5,7 @@ import { Handle, HandleTarget } from "@react-three/handle";
 import { Container, Root } from "@react-three/uikit";
 import ComposerInput from "./xr-composer-input";
 import ComposerSend from "./xr-composer-send";
+import XRHandle from "@/components/xr/xr-handle";
 import { ComposerSpeech } from "@/features/speech/components/xr-composer-speech";
 
 export default function XRComposer() {
@@ -13,7 +14,6 @@ export default function XRComposer() {
       <HandleTarget>
         <Handle>
           <Root flexDirection="column" pixelSize={0.001} gap={10}>
-            <Handle />
             <Container
               backgroundColor={XR_COLORS.card}
               flexDirection="row"
@@ -29,6 +29,7 @@ export default function XRComposer() {
               <ComposerSpeech />
               <ComposerSend />
             </Container>
+            <XRHandle show={true} />
           </Root>
         </Handle>
       </HandleTarget>

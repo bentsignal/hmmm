@@ -2,12 +2,12 @@ import { XR_COLORS } from "@/styles/xr-colors";
 import { Handle, HandleTarget } from "@react-three/handle";
 import { Container, Root, Text } from "@react-three/uikit";
 import useMessages from "../../hooks/use-messages";
+import XRHandle from "@/components/xr/xr-handle";
 
 export default function XRMessageList({ threadId }: { threadId: string }) {
   const { messages } = useMessages({
     threadId,
   });
-
   return (
     <group position={[0, 0.3, 0]}>
       <HandleTarget>
@@ -42,6 +42,7 @@ export default function XRMessageList({ threadId }: { threadId: string }) {
                 </Text>
               ))}
             </Container>
+            <XRHandle show={true} />
           </Root>
         </Handle>
       </HandleTarget>

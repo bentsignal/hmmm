@@ -4,6 +4,7 @@ import { Container, Root, Text } from "@react-three/uikit";
 import { ThreadListItem } from ".";
 import useThreadList from "../../hooks/use-thread-list";
 import useThreadStore from "../../store/thread-store";
+import XRHandle from "@/components/xr/xr-handle";
 
 export default function XRThreadList() {
   const { threads, threadGroups, status } = useThreadList();
@@ -25,7 +26,6 @@ export default function XRThreadList() {
               height={500}
               overflow="scroll"
               gap={10}
-              marginBottom={40}
             >
               {threads.length === 0 && status !== "LoadingFirstPage" && (
                 <Container flexShrink={0}>
@@ -65,6 +65,7 @@ export default function XRThreadList() {
                   ),
               )}
             </Container>
+            <XRHandle show={true} />
           </Root>
         </Handle>
       </HandleTarget>
