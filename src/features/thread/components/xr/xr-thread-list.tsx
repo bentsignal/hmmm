@@ -26,7 +26,7 @@ const NewThreadButton = () => {
 };
 
 export default function XRThreadList() {
-  const { threads, threadGroups, status } = useThreadList();
+  const { threads, threadGroups, status, loadMoreThreads } = useThreadList();
   const setActiveThread = useThreadStore((state) => state.setActiveThread);
   const activeThread = useThreadStore((state) => state.activeThread);
 
@@ -83,6 +83,11 @@ export default function XRThreadList() {
                       ))}
                     </Container>
                   ),
+              )}
+              {status !== "Exhausted" && status !== "LoadingFirstPage" && (
+                <Button onClick={loadMoreThreads}>
+                  <Text>Load More</Text>
+                </Button>
               )}
             </Container>
             <XRHandle show={true} />
