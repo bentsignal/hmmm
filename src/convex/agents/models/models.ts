@@ -202,4 +202,40 @@ export const models = {
     },
     pronunciations: ["sonar reasoning pro", "sonar reasoning", "sonar pro"],
   },
+  /*
+
+    Switchpoint
+
+  */
+  "switchpoint/router": {
+    provider: "Switchpoint",
+    name: "Router",
+    id: "switchpoint/router",
+    label: "Router",
+    model: openRouter.chat("switchpoint/router"),
+    cost: {
+      in: 0.85,
+      out: 3.4,
+      other: 0,
+    },
+    pronunciations: ["router", "switchpoint router", "switchpoint"],
+  },
+  /*
+
+    Moonshot
+
+  */
+  "kimi-k2": {
+    provider: "Moonshot",
+    name: "Kimi K2",
+    id: "kimi-k2",
+    label: "Kimi K2",
+    model: openRouter.chat("@preset/kimi-k2"),
+    cost: {
+      in: 1,
+      out: 3,
+      other: 0,
+    },
+    pronunciations: ["kimi k2", "k2"],
+  },
 };

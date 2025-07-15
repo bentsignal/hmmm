@@ -19,6 +19,7 @@ import type * as agents_prompts_prompts from "../agents/prompts/prompts.js";
 import type * as agents_prompts_types_index from "../agents/prompts/types/index.js";
 import type * as agents_prompts_types_prompt_types from "../agents/prompts/types/prompt_types.js";
 import type * as agents_tools_date_time_tool from "../agents/tools/date_time_tool.js";
+import type * as agents_tools_index from "../agents/tools/index.js";
 import type * as clerk_clerk_actions from "../clerk/clerk_actions.js";
 import type * as clerk_clerk_http_actions from "../clerk/clerk_http_actions.js";
 import type * as http from "../http.js";
@@ -66,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   "agents/prompts/types/index": typeof agents_prompts_types_index;
   "agents/prompts/types/prompt_types": typeof agents_prompts_types_prompt_types;
   "agents/tools/date_time_tool": typeof agents_tools_date_time_tool;
+  "agents/tools/index": typeof agents_tools_index;
   "clerk/clerk_actions": typeof clerk_clerk_actions;
   "clerk/clerk_http_actions": typeof clerk_clerk_http_actions;
   http: typeof http;
