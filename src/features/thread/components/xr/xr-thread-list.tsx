@@ -11,7 +11,7 @@ export default function XRThreadList() {
   const activeThread = useThreadStore((state) => state.activeThread);
 
   return (
-    <group rotation={[0, 0.4, 0]} position={[-0.4, 1.3, -0.65]}>
+    <group rotation={[0, 0.4, 0]} position={[-0.4, 0.28, 0.08]}>
       <HandleTarget>
         <Handle>
           <Root flexDirection="column" pixelSize={0.001} gap={10}>

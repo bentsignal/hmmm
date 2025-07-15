@@ -9,7 +9,7 @@ export default function XRMessageList({ threadId }: { threadId: string }) {
   });
 
   return (
-    <group position={[0, 1.3, -0.7]}>
+    <group position={[0, 0.3, 0]}>
       <HandleTarget>
         <Handle>
           <Root flexDirection="column" pixelSize={0.001} gap={10}>

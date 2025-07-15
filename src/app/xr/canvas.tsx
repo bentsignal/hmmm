@@ -20,9 +20,11 @@ export default function XRCanvas({ store }: { store: XRStore }) {
     >
       <PointerEvents />
       <XR store={store}>
-        <ThreadList />
-        <Composer />
-        <MessageListWrapper />
+        <group position={[0, 1, -0.7]}>
+          <ThreadList />
+          <Composer />
+          <MessageListWrapper />
+        </group>
       </XR>
     </Canvas>
   );
