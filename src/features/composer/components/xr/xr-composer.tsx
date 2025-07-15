@@ -10,7 +10,7 @@ import { ComposerSpeech } from "@/features/speech/components/xr-composer-speech"
 
 export default function XRComposer() {
   return (
-    <group rotation={[-0.4, 0, 0]} position={[0, -0.03, 0.05]}>
+    <group rotation={[-0.3, 0.3, 0.1]} position={[-0.175, -0.13, 0.2]}>
       <HandleTarget>
         <Handle>
           <Root flexDirection="column" pixelSize={0.001} gap={10}>
@@ -25,7 +25,13 @@ export default function XRComposer() {
               width={370}
               gap={10}
             >
-              <ComposerInput />
+              <Container
+                maxHeight={200}
+                overflow="scroll"
+                alignItems="flex-end"
+              >
+                <ComposerInput />
+              </Container>
               <ComposerSpeech />
               <ComposerSend />
             </Container>
