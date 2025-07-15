@@ -1,21 +1,15 @@
 "use client";
 
-import { Canvas } from "@react-three/fiber";
-import { createXRStore, PointerEvents, XR } from "@react-three/xr";
+import { createXRStore } from "@react-three/xr";
 import { Box } from "lucide-react";
 import { useRouter } from "next/navigation";
+import XRCanvas from "./canvas";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import XRComposer from "@/features/composer/components/xr/xr-composer";
-import { ThreadList } from "@/features/thread/components/xr";
-import useThreadStore from "@/features/thread/store/thread-store";
 
 const store = createXRStore();
 
-export default function XRPage() {
+export default function XRWrapper() {
   const router = useRouter();
-  const hideCanvas = true;
-  const activeThread = useThreadStore((state) => state.activeThread);
   return (
     <>
       <div className="mx-2 my-2 flex flex-col gap-2 text-center">
@@ -36,20 +30,7 @@ export default function XRPage() {
           Enter XR
         </Button>
       </div>
-      <Canvas
-        className={cn(
-          "!absolute inset-0 top-0",
-          hideCanvas ? "-z-50 opacity-0" : "",
-        )}
-        style={{ height: "100dvh", touchAction: "none" }}
-        gl={{ localClippingEnabled: true }}
-      >
-        <PointerEvents />
-        <XR store={store}>
-          <ThreadList activeThread={activeThread} />
-          <XRComposer />
-        </XR>
-      </Canvas>
+      <XRCanvas store={store} />
     </>
   );
 }

@@ -5,16 +5,13 @@ import { ThreadListItem } from ".";
 import useThreadList from "../../hooks/use-thread-list";
 import useThreadStore from "../../store/thread-store";
 
-export default function XRThreadList({
-  activeThread,
-}: {
-  activeThread: string | null;
-}) {
+export default function XRThreadList() {
   const { threads, threadGroups, status } = useThreadList();
   const setActiveThread = useThreadStore((state) => state.setActiveThread);
+  const activeThread = useThreadStore((state) => state.activeThread);
 
   return (
-    <group rotation={[0, 0.4, 0]} position={[-0.4, 1.3, -0.45]}>
+    <group rotation={[0, 0.4, 0]} position={[-0.4, 1.3, -0.65]}>
       <HandleTarget>
         <Handle>
           <Root flexDirection="column" pixelSize={0.001} gap={10}>

@@ -3,7 +3,7 @@ import { Button } from "@react-three/uikit-default";
 import { Mic } from "@react-three/uikit-lucide";
 import useSpeech from "@/features/speech/hooks/use-speech";
 
-export default function XRComposerSpeech() {
+const XRComposerSpeech = () => {
   const { startSpeech, stopSpeech, inProgress, disabled } = useSpeech();
 
   return (
@@ -24,4 +24,6 @@ export default function XRComposerSpeech() {
       />
     </Button>
   );
-}
+};
+
+export { XRComposerSpeech as ComposerSpeech };
