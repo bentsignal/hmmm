@@ -171,6 +171,19 @@ export const models = {
       "rock 3 mini",
     ],
   },
+  "x-ai/grok-4": {
+    provider: "xAI",
+    name: "Grok 4",
+    id: "x-ai/grok-4",
+    label: "Grok 4",
+    model: openRouter.chat("x-ai/grok-4"),
+    cost: {
+      in: 3,
+      out: 15,
+      other: 0,
+    },
+    pronunciations: ["grok 4", "grok 4"],
+  },
   /*
 
     Perplexity
