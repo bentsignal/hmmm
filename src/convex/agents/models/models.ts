@@ -251,4 +251,22 @@ export const models = {
     },
     pronunciations: ["kimi k2", "k2"],
   },
+  /*
+
+    Inception
+
+  */
+  "inception/mercury-coder": {
+    provider: "Inception",
+    name: "Mercury Coder",
+    id: "inception/mercury-coder",
+    label: "Mercury Coder",
+    model: openRouter.chat("inception/mercury-coder"),
+    cost: {
+      in: 0.25,
+      out: 1,
+      other: 0,
+    },
+    pronunciations: ["mercury coder", "mercury"],
+  },
 };
