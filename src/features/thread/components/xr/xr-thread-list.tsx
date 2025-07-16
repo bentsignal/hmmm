@@ -28,7 +28,6 @@ const NewThreadButton = () => {
 export default function XRThreadList() {
   const { threads, threadGroups, status, loadMoreThreads } = useThreadList();
   const setActiveThread = useThreadStore((state) => state.setActiveThread);
-  const activeThread = useThreadStore((state) => state.activeThread);
 
   return (
     <group rotation={[0, 0.4, 0]} position={[-0.4, 0.28, 0.08]}>
@@ -46,6 +45,7 @@ export default function XRThreadList() {
               height={500}
               overflow="scroll"
               gap={10}
+              scrollbarBorderRadius={XR_STYLES.radiusXs}
             >
               {threads.length === 0 && status !== "LoadingFirstPage" && (
                 <Container flexShrink={0}>
@@ -77,7 +77,7 @@ export default function XRThreadList() {
                           title={item.title}
                           id={item.id}
                           status={item.state}
-                          active={activeThread === item.id}
+                          active={false}
                           onClick={() => setActiveThread(item.id)}
                         />
                       ))}

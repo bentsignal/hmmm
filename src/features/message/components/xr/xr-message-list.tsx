@@ -25,6 +25,7 @@ export default function XRMessageList({ threadId }: { threadId: string }) {
               gap={40}
               height={500}
               overflow="scroll"
+              scrollbarBorderRadius={XR_STYLES.radiusXs}
             >
               {messages.map((message) => (
                 <Text

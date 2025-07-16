@@ -20,4 +20,5 @@ export const XR_COLORS = Object.fromEntries(
 export const XR_STYLES = {
   radiusLg: 20,
   radiusSm: 10,
+  radiusXs: 5,
 };
