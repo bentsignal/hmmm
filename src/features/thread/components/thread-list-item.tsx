@@ -1,10 +1,9 @@
 "use client";
 
-import { memo, useState } from "react";
-import { Brain, Trash } from "lucide-react";
+import { memo } from "react";
+import { Brain } from "lucide-react";
 import Link from "next/link";
 import { ThreadListItemProps } from "../types";
-import { Button } from "@/components/ui/button";
 import {
   SidebarMenuButton,
   SidebarMenuItem,
@@ -17,19 +16,13 @@ import useThreadStore from "@/features/thread/store";
 function ThreadListItem({ title, id, active, status }: ThreadListItemProps) {
   const isMobile = useIsMobile();
   const { toggleSidebar } = useSidebar();
-  const [isHovering, setIsHovering] = useState(false);
-
-  const setDeleteModalOpen = useThreadStore(
-    (state) => state.setDeleteModalOpen,
-  );
-  const setSelectedThread = useThreadStore((state) => state.setSelectedThread);
+  const setHoveredThread = useThreadStore((state) => state.setHoveredThread);
 
   return (
     <SidebarMenuItem
       key={id}
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
-      className="hover:bg-primary/10 rounded-md"
+      onMouseEnter={() => setHoveredThread(id)}
+      className="hover:bg-primary/10 rounded-md transition-background-color duration-100"
     >
       <SidebarMenuButton
         asChild
@@ -62,27 +55,6 @@ function ThreadListItem({ title, id, active, status }: ThreadListItemProps) {
           }
         </Link>
       </SidebarMenuButton>
-      {isHovering && !isMobile && (
-        <div
-          className="bg-sidebar absolute top-0 right-0 flex h-full items-center
-          justify-end pl-6"
-          style={{
-            WebkitMaskImage: "linear-gradient(to left, black 75%, transparent)",
-            maskImage: "linear-gradient(to left, black 75%, transparent)",
-          }}
-        >
-          <Button
-            variant="destructive"
-            size="icon"
-            onClick={() => {
-              setSelectedThread(id);
-              setDeleteModalOpen(true);
-            }}
-          >
-            <Trash className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
     </SidebarMenuItem>
   );
 }

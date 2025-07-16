@@ -7,7 +7,7 @@ export default function ThreadDeleteModal() {
   const pathname = usePathname();
   const router = useRouter();
   const { deleteThread } = useThreadMutation();
-  const setSelectedThread = useThreadStore((state) => state.setSelectedThread);
+  const setHoveredThread = useThreadStore((state) => state.setHoveredThread);
   const deleteModalOpen = useThreadStore((state) => state.deleteModalOpen);
   const setDeleteModalOpen = useThreadStore(
     (state) => state.setDeleteModalOpen,
@@ -17,16 +17,16 @@ export default function ThreadDeleteModal() {
       open={deleteModalOpen}
       setOpen={setDeleteModalOpen}
       onCancel={() => {
-        setSelectedThread(null);
+        setHoveredThread(null);
       }}
       onConfirm={() => {
-        const selectedThread = useThreadStore.getState().selectedThread;
+        const selectedThread = useThreadStore.getState().hoveredThread;
         if (!selectedThread) return;
         if (pathname.includes(selectedThread)) {
           router.push("/");
         }
         deleteThread({ threadId: selectedThread });
-        setSelectedThread(null);
+        setHoveredThread(null);
       }}
       title="Delete Thread"
       message="Are you sure you want to delete this thread?"
