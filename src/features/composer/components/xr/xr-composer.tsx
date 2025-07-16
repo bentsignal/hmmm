@@ -5,7 +5,7 @@ import { Handle, HandleTarget } from "@react-three/handle";
 import { Container, Root } from "@react-three/uikit";
 import ComposerInput from "./xr-composer-input";
 import ComposerSend from "./xr-composer-send";
-import XRHandle from "@/components/xr/xr-handle";
+import XRHandle from "@/components/xr";
 import { ComposerSpeech } from "@/features/speech/components/xr-composer-speech";
 
 export default function XRComposer() {

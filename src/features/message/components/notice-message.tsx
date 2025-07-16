@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NOTICE_MESSAGES } from "../data/notice-messages";
 import type { SystemNoticeCode } from "../types/message-types";
 
 export default function NoticeMessage({ code }: { code: SystemNoticeCode }) {
@@ -7,13 +8,10 @@ export default function NoticeMessage({ code }: { code: SystemNoticeCode }) {
       <div className="flex justify-start gap-2">
         {code === "N1" && (
           <span className="text-muted-foreground">
-            Unfortunately, I was unable to obtain the information needed to
-            answer your question. To gain access to real time information from
-            the web,{" "}
+            {NOTICE_MESSAGES[code]}{" "}
             <Link href="/pricing" className="underline text-premium">
-              upgrade
-            </Link>{" "}
-            to a premium plan.
+              View Plans.
+            </Link>
           </span>
         )}
       </div>

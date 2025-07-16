@@ -6,7 +6,7 @@ import { SquarePen } from "@react-three/uikit-lucide";
 import { ThreadListItem } from ".";
 import useThreadList from "../../hooks/use-thread-list";
 import useThreadStore from "../../store/thread-store";
-import XRHandle from "@/components/xr/xr-handle";
+import XRHandle from "@/components/xr";
 
 const NewThreadButton = () => {
   const setActiveThread = useThreadStore((state) => state.setActiveThread);

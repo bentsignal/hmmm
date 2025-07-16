@@ -11,6 +11,7 @@ const COLORS = {
   primaryForeground: "oklch(0.2 0 0)",
   borderInput: "oklch(0.5 0 0)",
   accent: "oklch(0.3 0 0)",
+  destructive: "oklch(0.704 0.191 22.216)",
 };
 
 export const XR_COLORS = Object.fromEntries(
