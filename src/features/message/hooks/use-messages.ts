@@ -3,7 +3,13 @@ import { useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { INITIAL_PAGE_SIZE } from "@/features/message/config";
 
-export default function useMessages({ threadId }: { threadId: string }) {
+export default function useMessages({
+  threadId,
+  streaming = false,
+}: {
+  threadId: string;
+  streaming?: boolean;
+}) {
   // don't get messages if the auth session data hasn't loaded yet
   const { isAuthenticated } = useConvexAuth();
   const args = isAuthenticated ? { threadId } : "skip";
@@ -14,7 +20,7 @@ export default function useMessages({ threadId }: { threadId: string }) {
     status,
   } = useThreadMessages(api.thread.thread_queries.getThreadMessages, args, {
     initialNumItems: INITIAL_PAGE_SIZE,
-    stream: false,
+    stream: streaming,
   });
 
   const uiMessages = toUIMessages(messages);
