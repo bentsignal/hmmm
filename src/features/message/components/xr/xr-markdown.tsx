@@ -53,7 +53,9 @@ const markdownComponents: Partial<Components> = {
   ul: ({ children }) => <List>{children}</List>,
   ol: ({ children }) => <List>{children}</List>,
   li: ({ children }) => <TextElement>- {children}</TextElement>,
-  strong: ({ children }) => <TextElement weight="bold">{children}</TextElement>,
+  strong: ({ children }) => (
+    <TextElement fontWeight="bold">{children}</TextElement>
+  ),
   h1: ({ children }) => <Heading size={24}>{children}</Heading>,
   h2: ({ children }) => <Heading size={20}>{children}</Heading>,
   h3: ({ children }) => <Heading size={16}>{children}</Heading>,
