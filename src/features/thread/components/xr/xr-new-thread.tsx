@@ -3,6 +3,7 @@ import { Container } from "@react-three/uikit";
 import {
   CustomContainer,
   Grabbable,
+  H2,
   TextElement,
   XRHandle,
 } from "@/components/xr";
@@ -21,13 +22,7 @@ export default function XRNewThread() {
             justifyContent="center"
             alignItems="center"
           >
-            <TextElement
-              textAlign="center"
-              fontSize={XR_STYLES.textXl}
-              fontWeight="bold"
-            >
-              Welcome back
-            </TextElement>
+            <H2 textAlign="center">Welcome back</H2>
             <TextElement textAlign="center">
               How can I help you today?
             </TextElement>

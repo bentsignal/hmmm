@@ -9,7 +9,6 @@ export const TextElement = ({
   ...props
 }: {
   children: ReactNode;
-  color?: string;
 } & TextProperties) => (
   <Text color={color} width="100%" flexShrink={0} flexWrap="wrap" {...props}>
     {extractTextFromChildren(children)}
@@ -19,35 +18,66 @@ export const TextElement = ({
 export const Heading = ({
   children,
   size,
+  ...props
 }: {
   children: ReactNode;
   size: number;
-}) => (
-  <TextElement fontSize={size} fontWeight="bold">
+} & TextProperties) => (
+  <TextElement fontSize={size} fontWeight="bold" {...props}>
     {children}
   </TextElement>
 );
 
-export const H1 = ({ children }: { children: ReactNode }) => (
-  <Heading size={XR_STYLES.text2xl}>{children}</Heading>
+export const H1 = ({
+  children,
+  ...props
+}: { children: ReactNode } & TextProperties) => (
+  <Heading size={XR_STYLES.text2xl} {...props}>
+    {children}
+  </Heading>
 );
 
-export const H2 = ({ children }: { children: ReactNode }) => (
-  <Heading size={XR_STYLES.textXl}>{children}</Heading>
+export const H2 = ({
+  children,
+  ...props
+}: { children: ReactNode } & TextProperties) => (
+  <Heading size={XR_STYLES.textXl} {...props}>
+    {children}
+  </Heading>
 );
 
-export const H3 = ({ children }: { children: ReactNode }) => (
-  <Heading size={XR_STYLES.textMd}>{children}</Heading>
+export const H3 = ({
+  children,
+  ...props
+}: { children: ReactNode } & TextProperties) => (
+  <Heading size={XR_STYLES.textMd} {...props}>
+    {children}
+  </Heading>
 );
 
-export const H4 = ({ children }: { children: ReactNode }) => (
-  <Heading size={XR_STYLES.textSm}>{children}</Heading>
+export const H4 = ({
+  children,
+  ...props
+}: { children: ReactNode } & TextProperties) => (
+  <Heading size={XR_STYLES.textSm} {...props}>
+    {children}
+  </Heading>
 );
 
-export const H5 = ({ children }: { children: ReactNode }) => (
-  <Heading size={XR_STYLES.textXs}>{children}</Heading>
+export const H5 = ({
+  children,
+  ...props
+}: { children: ReactNode } & TextProperties) => (
+  <Heading size={XR_STYLES.textXs} {...props}>
+    {children}
+  </Heading>
 );
 
-export const H6 = ({ children }: { children: ReactNode }) => (
-  <Heading size={XR_STYLES.textXs - 2}>{children}</Heading>
+export const H6 = ({
+  children,
+  ...props
+}: { children: ReactNode } & TextProperties) => (
+  <Heading size={XR_STYLES.textXs - 2} {...props}>
+    {children}
+  </Heading>
 );
