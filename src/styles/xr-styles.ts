@@ -68,4 +68,11 @@ export const XR_STYLES = {
   radiusMd: rem(0.5),
   /** 16 * 1.25 = 20 */
   radiusLg: rem(1.25),
+
+  /** 16 * 16 = 256 */
+  containerSm: rem(16),
+  /** 16 * 24 = 384 */
+  containerMd: rem(24),
+  /** 16 * 32 = 512 */
+  containerLg: rem(32),
 };

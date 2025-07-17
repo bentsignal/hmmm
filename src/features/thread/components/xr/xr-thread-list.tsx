@@ -1,12 +1,15 @@
 import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
-import { Handle, HandleTarget } from "@react-three/handle";
-import { Container, Root, Text } from "@react-three/uikit";
+import { Container, Text } from "@react-three/uikit";
 import { Button } from "@react-three/uikit-default";
 import { SquarePen } from "@react-three/uikit-lucide";
 import { ThreadListItem } from ".";
 import useThreadList from "../../hooks/use-thread-list";
 import useThreadStore from "../../store/thread-store";
-import XRHandle, { CustomContainer, TextElement } from "@/components/xr";
+import XRHandle, {
+  CustomContainer,
+  Grabbable,
+  TextElement,
+} from "@/components/xr";
 
 const NewThreadButton = () => {
   const setActiveThread = useThreadStore((state) => state.setActiveThread);
@@ -35,67 +38,56 @@ export default function XRThreadList() {
 
   return (
     <group rotation={[0, 0.4, 0]} position={[-0.4, 0.28, 0.08]}>
-      <HandleTarget>
-        <Handle>
-          <Root
-            flexDirection="column"
-            pixelSize={0.001}
-            gap={XR_STYLES.spacingMd}
-          >
-            <NewThreadButton />
-            <CustomContainer>
-              {threads.length === 0 && status !== "LoadingFirstPage" && (
-                <Container flexShrink={0}>
-                  <Text color={XR_COLORS.foreground}>No threads found</Text>
-                </Container>
-              )}
-              {threadGroups.map(
-                (group) =>
-                  group.threads.length > 0 && (
-                    <Container
-                      key={group.label}
-                      marginBottom={XR_STYLES.spacingLg}
-                      flexDirection="column"
-                      flexShrink={0}
-                      gap={XR_STYLES.spacingSm}
-                    >
-                      <Text
-                        color={XR_COLORS.foreground}
-                        fontWeight="bold"
-                        fontSize={XR_STYLES.textMd - 2}
-                        paddingX={XR_STYLES.spacingMd}
-                        marginBottom={XR_STYLES.spacingSm}
-                      >
-                        {group.label}
-                      </Text>
-                      {group.threads.map((item) => (
-                        <ThreadListItem
-                          key={item.id}
-                          title={item.title}
-                          id={item.id}
-                          status={item.state}
-                          active={false}
-                          onClick={() => setActiveThread(item.id)}
-                        />
-                      ))}
-                    </Container>
-                  ),
-              )}
-              {status !== "Exhausted" && status !== "LoadingFirstPage" && (
-                <Button
-                  onClick={loadMoreThreads}
-                  borderRadius={XR_STYLES.radiusLg}
+      <Grabbable>
+        <NewThreadButton />
+        <CustomContainer>
+          {threads.length === 0 && status !== "LoadingFirstPage" && (
+            <Container flexShrink={0}>
+              <Text color={XR_COLORS.foreground}>No threads found</Text>
+            </Container>
+          )}
+          {threadGroups.map(
+            (group) =>
+              group.threads.length > 0 && (
+                <Container
+                  key={group.label}
+                  marginBottom={XR_STYLES.spacingLg}
+                  flexDirection="column"
+                  flexShrink={0}
+                  gap={XR_STYLES.spacingSm}
                 >
-                  <TextElement color={XR_COLORS.card} textAlign="center">
-                    Load More
-                  </TextElement>
-                </Button>
-              )}
-            </CustomContainer>
-            <XRHandle show={true} />
-          </Root>
-        </Handle>
-      </HandleTarget>
+                  <Text
+                    color={XR_COLORS.foreground}
+                    fontWeight="bold"
+                    fontSize={XR_STYLES.textMd - 2}
+                    paddingX={XR_STYLES.spacingMd}
+                    marginBottom={XR_STYLES.spacingSm}
+                  >
+                    {group.label}
+                  </Text>
+                  {group.threads.map((item) => (
+                    <ThreadListItem
+                      key={item.id}
+                      title={item.title}
+                      id={item.id}
+                      status={item.state}
+                      active={false}
+                      onClick={() => setActiveThread(item.id)}
+                    />
+                  ))}
+                </Container>
+              ),
+          )}
+          {status !== "Exhausted" && status !== "LoadingFirstPage" && (
+            <Button onClick={loadMoreThreads} borderRadius={XR_STYLES.radiusLg}>
+              <TextElement color={XR_COLORS.card} textAlign="center">
+                Load More
+              </TextElement>
+            </Button>
+          )}
+        </CustomContainer>
+        <XRHandle show={true} />
+      </Grabbable>
     </group>
   );
 }
