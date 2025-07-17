@@ -17,11 +17,10 @@ export default function XRComposerInput() {
       multiline
       color={disabled ? XR_COLORS.borderInput : XR_COLORS.foreground}
       onFocusChange={(focus) => {
-        if (focus && value === "") {
-          setIsFocused(true);
+        setIsFocused(focus);
+        if (focus && (value === "" || value === placeholder)) {
           setPrompt("");
         } else if (!focus && value === "") {
-          setIsFocused(false);
           setPrompt(placeholder);
         }
       }}
