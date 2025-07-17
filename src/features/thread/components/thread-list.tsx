@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Trash } from "lucide-react";
+import { Loader2, Pencil, Trash } from "lucide-react";
 import { usePathname } from "next/navigation";
 import useThreadList from "../hooks/use-thread-list";
 import useThreadStore from "../store";
 import NewThreadButton from "./new-thread-button";
 import ThreadDeleteModal from "./thread-delete-modal";
 import ThreadListItem from "./thread-list-item";
+import ThreadRenameModal from "./thread-rename-modal";
 import PageLoader from "@/components/page-loader";
 import * as ContextMenu from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
@@ -36,7 +37,9 @@ export default function ThreadList() {
   const triggerDeleteModal = useThreadStore(
     (state) => state.triggerDeleteModal,
   );
-
+  const triggerRenameModal = useThreadStore(
+    (state) => state.triggerRenameModal,
+  );
   return (
     <Sidebar variant="floating" className="py-4 pr-0 pl-4">
       <SidebarHeader className="md:px-auto flex flex-col items-center justify-between px-4 pt-4 md:pt-4">
@@ -81,6 +84,10 @@ export default function ThreadList() {
                 )}
               </ContextMenu.ContextMenuTrigger>
               <ContextMenu.ContextMenuContent>
+                <ContextMenu.ContextMenuItem onClick={triggerRenameModal}>
+                  <Pencil className="h-4 w-4" />
+                  Rename
+                </ContextMenu.ContextMenuItem>
                 <ContextMenu.ContextMenuItem onClick={triggerDeleteModal}>
                   <Trash className="h-4 w-4 text-destructive" />
                   Delete
@@ -95,6 +102,7 @@ export default function ThreadList() {
           )}
         </PageLoader>
         <ThreadDeleteModal />
+        <ThreadRenameModal />
       </SidebarContent>
     </Sidebar>
   );

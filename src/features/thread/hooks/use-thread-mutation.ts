@@ -21,9 +21,17 @@ export default function useThreadMutation() {
       toast.error("Failed to delete thread");
     },
   });
+  const { mutate: renameThread } = useTanstackMutation({
+    mutationFn: useConvexMutation(api.thread.thread_mutations.renameThread),
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to rename thread");
+    },
+  });
   return {
     createThread,
     newThreadMessage,
     deleteThread,
+    renameThread,
   };
 }

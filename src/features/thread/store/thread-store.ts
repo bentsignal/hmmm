@@ -11,6 +11,10 @@ interface ThreadStore {
   deleteModalOpen: boolean;
   setDeleteModalOpen: (open: boolean) => void;
   triggerDeleteModal: () => void;
+  // modal open for renaming a thread
+  renameModalOpen: boolean;
+  setRenameModalOpen: (open: boolean) => void;
+  triggerRenameModal: () => void;
 }
 
 const useThreadStore = create<ThreadStore>((set) => ({
@@ -21,6 +25,9 @@ const useThreadStore = create<ThreadStore>((set) => ({
   deleteModalOpen: false,
   setDeleteModalOpen: (open) => set({ deleteModalOpen: open }),
   triggerDeleteModal: () => set({ deleteModalOpen: true }),
+  renameModalOpen: false,
+  setRenameModalOpen: (open) => set({ renameModalOpen: open }),
+  triggerRenameModal: () => set({ renameModalOpen: true }),
 }));
 
 export default useThreadStore;

@@ -211,3 +211,30 @@ export const updateThreadCategory = internalMutation({
     });
   },
 });
+
+export const renameThread = mutation({
+  args: {
+    threadId: v.string(),
+    newTitle: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // auth check
+    const userId = await ctx.auth.getUserIdentity();
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+    // get thread metadata
+    const { threadId, newTitle } = args;
+    const metadata = await getThreadMetadata(ctx, threadId);
+    if (!metadata) {
+      throw new ConvexError("Thread not found");
+    }
+    if (metadata.userId !== userId.subject) {
+      throw new Error("Unauthorized");
+    }
+    // update thread title
+    await ctx.db.patch(metadata._id, {
+      title: newTitle,
+    });
+  },
+});
