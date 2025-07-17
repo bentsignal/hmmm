@@ -10,11 +10,13 @@ export default function XRCustomContainer({
   children,
   scrollRef,
   gap,
+  header,
   ...props
 }: {
   children: React.ReactNode;
   scrollRef?: Ref<ContainerRef>;
   gap?: number;
+  header?: React.ReactNode;
 } & ContainerProperties) {
   return (
     <Container
@@ -25,11 +27,12 @@ export default function XRCustomContainer({
       castShadow
       width={XR_STYLES.containerMd}
       height={500}
+      gap={header ? XR_STYLES.spacingLg : 0}
       {...props}
     >
+      {header}
       <Container
         width="100%"
-        height="100%"
         flexDirection="column"
         gap={gap || XR_STYLES.spacingMd}
         overflow="scroll"

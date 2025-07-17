@@ -40,8 +40,7 @@ export default function XRThreadList() {
   return (
     <group rotation={[0, 0.4, 0]} position={[-0.4, 0.28, 0.08]}>
       <Grabbable>
-        <NewThreadButton />
-        <CustomContainer>
+        <CustomContainer header={<NewThreadButton />}>
           {threads.length === 0 && status !== "LoadingFirstPage" && (
             <Container flexShrink={0}>
               <Text color={XR_COLORS.foreground}>No threads found</Text>
