@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { XR_COLORS } from "@/styles/xr-styles";
 import { Input } from "@react-three/uikit";
 import useComposerInput from "@/features/composer/hooks/use-composer-input";
 
@@ -14,7 +15,7 @@ export default function XRComposerInput() {
       width={"100%"}
       height={"100%"}
       multiline
-      color={disabled ? "gray" : "white"}
+      color={disabled ? XR_COLORS.borderInput : XR_COLORS.foreground}
       onFocusChange={(focus) => {
         if (focus && value === "") {
           setIsFocused(true);

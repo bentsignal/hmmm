@@ -16,8 +16,8 @@ export default function XRMessages({ threadId }: { threadId: string }) {
         flexShrink={0}
         width="100%"
         backgroundColor={XR_COLORS.accent}
-        padding={10}
-        borderRadius={XR_STYLES.radiusSm}
+        padding={XR_STYLES.spacingLg}
+        borderRadius={XR_STYLES.radiusLg}
       >
         {message.content}
       </Text>

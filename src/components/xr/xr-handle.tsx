@@ -13,12 +13,12 @@ export default function XRHandle({
       display="flex"
       justifyContent="center"
       alignItems="center"
-      marginBottom={40}
+      marginBottom={XR_STYLES.spacing3xl}
     >
       <Container
         backgroundColor={XR_COLORS.foreground}
         width={width}
-        height={8}
+        height={XR_STYLES.sizeSm}
         borderRadius={XR_STYLES.radiusSm}
         backgroundOpacity={show ? 1 : 0}
       />

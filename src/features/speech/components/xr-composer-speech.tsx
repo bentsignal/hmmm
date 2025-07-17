@@ -16,11 +16,11 @@ const XRComposerSpeech = () => {
       height={32}
       borderColor={XR_COLORS.borderInput}
       borderWidth={0.5}
-      borderRadius={XR_STYLES.radiusSm}
+      borderRadius={XR_STYLES.radiusMd}
     >
       <Mic
-        width={16}
-        height={16}
+        width={XR_STYLES.textSm}
+        height={XR_STYLES.textSm}
         color={inProgress ? "lightcoral" : XR_COLORS.foreground}
       />
     </Button>

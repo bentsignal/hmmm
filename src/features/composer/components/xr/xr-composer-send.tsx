@@ -22,9 +22,13 @@ export default function XRComposerSend() {
       backgroundColor={XR_COLORS.primary}
       width={40}
       height={32}
-      borderRadius={XR_STYLES.radiusSm}
+      borderRadius={XR_STYLES.radiusMd}
     >
-      <Send width={16} height={16} color={XR_COLORS.primaryForeground} />
+      <Send
+        width={XR_STYLES.textSm}
+        height={XR_STYLES.textSm}
+        color={XR_COLORS.primaryForeground}
+      />
     </Button>
   );
 }

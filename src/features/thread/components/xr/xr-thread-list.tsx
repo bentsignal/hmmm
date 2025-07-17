@@ -6,21 +6,25 @@ import { SquarePen } from "@react-three/uikit-lucide";
 import { ThreadListItem } from ".";
 import useThreadList from "../../hooks/use-thread-list";
 import useThreadStore from "../../store/thread-store";
-import XRHandle from "@/components/xr";
+import XRHandle, { CustomContainer, TextElement } from "@/components/xr";
 
 const NewThreadButton = () => {
   const setActiveThread = useThreadStore((state) => state.setActiveThread);
   return (
     <Button
-      padding={10}
+      padding={XR_STYLES.spacingMd}
       borderRadius={XR_STYLES.radiusLg}
       flexDirection="row"
       alignItems="center"
-      gap={10}
+      gap={XR_STYLES.spacingMd}
       onClick={() => setActiveThread(null)}
     >
-      <SquarePen width={16} height={16} />
-      <Text>New Thread</Text>
+      <SquarePen
+        width={XR_STYLES.textMd}
+        height={XR_STYLES.textMd}
+        color={XR_COLORS.card}
+      />
+      <Text color={XR_COLORS.card}>New Thread</Text>
     </Button>
   );
 };
@@ -33,20 +37,13 @@ export default function XRThreadList() {
     <group rotation={[0, 0.4, 0]} position={[-0.4, 0.28, 0.08]}>
       <HandleTarget>
         <Handle>
-          <Root flexDirection="column" pixelSize={0.001} gap={10}>
+          <Root
+            flexDirection="column"
+            pixelSize={0.001}
+            gap={XR_STYLES.spacingMd}
+          >
             <NewThreadButton />
-            <Container
-              backgroundColor={XR_COLORS.card}
-              flexDirection="column"
-              padding={28}
-              borderRadius={XR_STYLES.radiusLg}
-              castShadow
-              width={370}
-              height={500}
-              overflow="scroll"
-              gap={10}
-              scrollbarBorderRadius={XR_STYLES.radiusXs}
-            >
+            <CustomContainer>
               {threads.length === 0 && status !== "LoadingFirstPage" && (
                 <Container flexShrink={0}>
                   <Text color={XR_COLORS.foreground}>No threads found</Text>
@@ -57,17 +54,17 @@ export default function XRThreadList() {
                   group.threads.length > 0 && (
                     <Container
                       key={group.label}
-                      marginBottom={20}
+                      marginBottom={XR_STYLES.spacingLg}
                       flexDirection="column"
                       flexShrink={0}
-                      gap={5}
+                      gap={XR_STYLES.spacingSm}
                     >
                       <Text
                         color={XR_COLORS.foreground}
                         fontWeight="bold"
-                        fontSize={14}
-                        paddingX={10}
-                        marginBottom={5}
+                        fontSize={XR_STYLES.textMd - 2}
+                        paddingX={XR_STYLES.spacingMd}
+                        marginBottom={XR_STYLES.spacingSm}
                       >
                         {group.label}
                       </Text>
@@ -85,11 +82,16 @@ export default function XRThreadList() {
                   ),
               )}
               {status !== "Exhausted" && status !== "LoadingFirstPage" && (
-                <Button onClick={loadMoreThreads}>
-                  <Text>Load More</Text>
+                <Button
+                  onClick={loadMoreThreads}
+                  borderRadius={XR_STYLES.radiusLg}
+                >
+                  <TextElement color={XR_COLORS.card} textAlign="center">
+                    Load More
+                  </TextElement>
                 </Button>
               )}
-            </Container>
+            </CustomContainer>
             <XRHandle show={true} />
           </Root>
         </Handle>

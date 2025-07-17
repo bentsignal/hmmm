@@ -13,17 +13,21 @@ export default function XRComposer() {
     <group rotation={[-0.3, 0.3, 0.1]} position={[-0.175, -0.13, 0.2]}>
       <HandleTarget>
         <Handle>
-          <Root flexDirection="column" pixelSize={0.001} gap={10}>
+          <Root
+            flexDirection="column"
+            pixelSize={0.001}
+            gap={XR_STYLES.spacingMd}
+          >
             <Container
               backgroundColor={XR_COLORS.card}
               flexDirection="row"
-              padding={28}
+              padding={XR_STYLES.spacingXl}
               alignItems="center"
               justifyContent="space-between"
               borderRadius={XR_STYLES.radiusLg}
               castShadow
               width={370}
-              gap={10}
+              gap={XR_STYLES.spacingMd}
             >
               <Container
                 maxHeight={200}

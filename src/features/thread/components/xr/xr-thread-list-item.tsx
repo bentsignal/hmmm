@@ -1,7 +1,8 @@
 import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
-import { Container, Text } from "@react-three/uikit";
+import { Container } from "@react-three/uikit";
 import { Brain } from "@react-three/uikit-lucide";
 import { ThreadListItemProps } from "../../types";
+import { TextElement } from "@/components/xr";
 
 export default function XRThreadListItem({
   title,
@@ -11,23 +12,27 @@ export default function XRThreadListItem({
   return (
     <Container
       backgroundColor={XR_COLORS.card}
-      paddingY={10}
-      paddingX={10}
-      borderRadius={XR_STYLES.radiusSm}
+      paddingY={XR_STYLES.spacingMd}
+      paddingX={XR_STYLES.spacingMd}
+      borderRadius={XR_STYLES.radiusMd}
       castShadow
       alignItems="center"
-      gap={10}
+      gap={XR_STYLES.spacingMd}
       onClick={onClick}
       hover={{
         backgroundColor: XR_COLORS.accent,
       }}
     >
       {(status === "streaming" || status === "waiting") && (
-        <Brain width={16} height={16} color={XR_COLORS.foreground} />
+        <Brain
+          width={XR_STYLES.textMd}
+          height={XR_STYLES.textMd}
+          color={XR_COLORS.foreground}
+        />
       )}
-      <Text color={XR_COLORS.foreground}>
+      <TextElement color={XR_COLORS.foreground}>
         {title === "New Chat" ? "" : title}
-      </Text>
+      </TextElement>
     </Container>
   );
 }

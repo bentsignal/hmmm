@@ -1,13 +1,18 @@
-import { XR_COLORS } from "@/styles/xr-styles";
+import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
 import { Container } from "@react-three/uikit";
 import type { Schema } from "hast-util-sanitize";
 import ReactMarkdown, { Components } from "react-markdown";
 import rehypeSanitize from "rehype-sanitize";
-import { Heading, TextElement } from "@/components/xr";
+import { H1, H2, H3, H4, H5, H6, TextElement } from "@/components/xr";
 
 export default function XRMarkdown({ content }: { content: string }) {
   return (
-    <Container flexDirection="column" flexShrink={0} width="100%" gap={20}>
+    <Container
+      flexDirection="column"
+      flexShrink={0}
+      width="100%"
+      gap={XR_STYLES.spacingLg}
+    >
       <ReactMarkdown
         rehypePlugins={[[rehypeSanitize, sanitizeSchema]]}
         components={markdownComponents}
@@ -41,8 +46,8 @@ const List = ({ children }: { children: React.ReactNode }) => (
     flexDirection="column"
     flexShrink={0}
     width="100%"
-    gap={10}
-    paddingLeft={20}
+    gap={XR_STYLES.spacingMd}
+    paddingLeft={XR_STYLES.spacingMd}
   >
     {children}
   </Container>
@@ -56,12 +61,12 @@ const markdownComponents: Partial<Components> = {
   strong: ({ children }) => (
     <TextElement fontWeight="bold">{children}</TextElement>
   ),
-  h1: ({ children }) => <Heading size={24}>{children}</Heading>,
-  h2: ({ children }) => <Heading size={20}>{children}</Heading>,
-  h3: ({ children }) => <Heading size={16}>{children}</Heading>,
-  h4: ({ children }) => <Heading size={14}>{children}</Heading>,
-  h5: ({ children }) => <Heading size={12}>{children}</Heading>,
-  h6: ({ children }) => <Heading size={10}>{children}</Heading>,
+  h1: ({ children }) => <H1>{children}</H1>,
+  h2: ({ children }) => <H2>{children}</H2>,
+  h3: ({ children }) => <H3>{children}</H3>,
+  h4: ({ children }) => <H4>{children}</H4>,
+  h5: ({ children }) => <H5>{children}</H5>,
+  h6: ({ children }) => <H6>{children}</H6>,
   code: () => (
     <TextElement color={XR_COLORS.destructive}>
       Currently unable to render code. Please view in the browser.

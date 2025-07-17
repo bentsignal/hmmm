@@ -1,5 +1,9 @@
 import { oklchStringToHex } from "@/lib/color-utils";
 
+const base = 16;
+
+export const rem = (px: number) => base * px;
+
 const COLORS = {
   background: "oklch(0.2 0 0)",
   foreground: "oklch(0.95 0 0)",
@@ -19,7 +23,49 @@ export const XR_COLORS = Object.fromEntries(
 );
 
 export const XR_STYLES = {
-  radiusLg: 20,
-  radiusSm: 10,
-  radiusXs: 5,
+  /** 16 * 0.25 = 4 */
+  spacingSm: rem(0.25),
+  /** 16 * 0.5 = 8 */
+  spacingMd: rem(0.5),
+  /** 16 * 1.25 = 20 */
+  spacingLg: rem(1.25),
+  /** 16 * 1.5 = 24 */
+  spacingXl: rem(1.5),
+  /** 16 * 2 = 32 */
+  spacing2xl: rem(2),
+  /** 16 * 2.5 = 40 */
+  spacing3xl: rem(2.5),
+
+  /** 16 * 0.5 = 8 */
+  sizeSm: rem(0.5),
+  /** 16 * 1 = 16 */
+  sizeMd: rem(1),
+  /** 16 * 1.25 = 20 */
+  sizeLg: rem(1.25),
+  /** 16 * 1.5 = 24 */
+  sizeXl: rem(1.5),
+  /** 16 * 2 = 32 */
+  size2xl: rem(2),
+  /** 16 * 2.5 = 40 */
+  size3xl: rem(2.5),
+
+  /** 16 * 0.75 = 12 */
+  textXs: rem(0.75),
+  /** 16 * 0.875 = 14 */
+  textSm: rem(0.875),
+  /** 16 * 1 = 16 */
+  textMd: rem(1),
+  /** 16 * 1.125 = 18 */
+  textLg: rem(1.125),
+  /** 16 * 1.25 = 20 */
+  textXl: rem(1.25),
+  /** 16 * 1.5 = 24 */
+  text2xl: rem(1.5),
+
+  /** 16 * 0.25 = 4 */
+  radiusSm: rem(0.25),
+  /** 16 * 0.5 = 8 */
+  radiusMd: rem(0.5),
+  /** 16 * 1.25 = 20 */
+  radiusLg: rem(1.25),
 };
