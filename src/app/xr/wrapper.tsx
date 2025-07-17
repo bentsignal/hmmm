@@ -14,7 +14,7 @@ export default function XRWrapper() {
     <>
       <div className="mx-2 my-2 flex flex-col gap-2 text-center">
         <span className="text-muted-foreground text-lg font-semibold">
-          Stay on this page while using the XR app.
+          Stay on this page while using the XR app
         </span>
       </div>
       <div className="flex w-full items-center justify-center gap-2">

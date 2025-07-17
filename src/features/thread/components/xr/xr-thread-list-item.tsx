@@ -1,8 +1,7 @@
 import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
-import { Container } from "@react-three/uikit";
+import { Container, Text } from "@react-three/uikit";
 import { Brain } from "@react-three/uikit-lucide";
 import { ThreadListItemProps } from "../../types";
-import { TextElement } from "@/components/xr";
 
 export default function XRThreadListItem({
   title,
@@ -30,9 +29,9 @@ export default function XRThreadListItem({
           color={XR_COLORS.foreground}
         />
       )}
-      <TextElement color={XR_COLORS.foreground}>
+      <Text color={XR_COLORS.foreground}>
         {title === "New Chat" ? "" : title}
-      </TextElement>
+      </Text>
     </Container>
   );
 }
