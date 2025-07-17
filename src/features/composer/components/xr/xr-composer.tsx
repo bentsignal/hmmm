@@ -4,7 +4,7 @@ import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
 import { Container } from "@react-three/uikit";
 import ComposerInput from "./xr-composer-input";
 import ComposerSend from "./xr-composer-send";
-import XRHandle, { Grabbable } from "@/components/xr";
+import { Grabbable, XRHandle } from "@/components/xr";
 import { ComposerSpeech } from "@/features/speech/components/xr-composer-speech";
 
 export default function XRComposer() {

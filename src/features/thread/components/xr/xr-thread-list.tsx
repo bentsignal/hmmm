@@ -5,10 +5,11 @@ import { SquarePen } from "@react-three/uikit-lucide";
 import { ThreadListItem } from ".";
 import useThreadList from "../../hooks/use-thread-list";
 import useThreadStore from "../../store/thread-store";
-import XRHandle, {
+import {
   CustomContainer,
   Grabbable,
   TextElement,
+  XRHandle,
 } from "@/components/xr";
 
 const NewThreadButton = () => {
