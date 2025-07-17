@@ -21,7 +21,9 @@ export default function useXRMessageListScroll({
   // scroll to the bottom when a new message is sent
   useEffect(() => {
     if (numMessagesSent > 0) {
-      scrollToBottom();
+      setTimeout(() => {
+        scrollToBottom();
+      }, 200);
     }
   }, [numMessagesSent]);
 

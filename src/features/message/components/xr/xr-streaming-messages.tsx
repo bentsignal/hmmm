@@ -18,7 +18,7 @@ export default function XRStreamingMessages({
   });
 
   return (
-    <Container minHeight={hasNewMessages ? XR_STYLES.containerXs : 0}>
+    <Container minHeight={hasNewMessages ? XR_STYLES.containerXs / 2 : 0}>
       {streamingMessages.map((message) =>
         message.role === "user" ? (
           <PromptMessage key={message.id} message={message} />
