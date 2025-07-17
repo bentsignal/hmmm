@@ -4,7 +4,7 @@ import { Canvas } from "@react-three/fiber";
 import { PointerEvents, XR, XRStore } from "@react-three/xr";
 import { cn } from "@/lib/utils";
 import { Composer } from "@/features/composer/components/xr";
-import { MessageListWrapper } from "@/features/message/components/xr";
+import { MessagesWrapper } from "@/features/message/components/xr";
 import { ThreadList } from "@/features/thread/components/xr";
 
 export default function XRCanvas({ store }: { store: XRStore }) {
@@ -23,7 +23,7 @@ export default function XRCanvas({ store }: { store: XRStore }) {
         <group position={[0, 1, -0.7]}>
           <ThreadList />
           <Composer />
-          <MessageListWrapper />
+          <MessagesWrapper />
         </group>
       </XR>
     </Canvas>

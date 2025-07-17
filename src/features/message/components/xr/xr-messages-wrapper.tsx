@@ -6,7 +6,7 @@ import XRNewMessageView from "./xr-new-message-view";
 import XRHandle from "@/components/xr";
 import useThreadStore from "@/features/thread/store/thread-store";
 
-export default function XRMessageListWrapper() {
+export default function XRMessagesWrapper() {
   const threadId = useThreadStore((state) => state.activeThread);
   return (
     <group position={[0, 0.3, 0]}>
