@@ -121,11 +121,7 @@ export const generateResponse = internalAction({
           model: chosenModel.model,
           maxTokens: 10000,
           providerOptions: {
-            openrouter: {
-              reasoning: {
-                max_tokens: 2000,
-              },
-            },
+            openrouter: chosenModel.openrouterProviderOptions || {},
           },
         },
         { saveStreamDeltas: true },

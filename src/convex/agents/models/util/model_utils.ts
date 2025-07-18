@@ -1,4 +1,8 @@
-import { defaultModel, models } from "@/convex/agents/models";
+import {
+  defaultModel,
+  languageModels as models,
+  type LanguageModel,
+} from "@/convex/agents/models";
 import {
   PromptCategory,
   PromptDifficulty,
@@ -9,16 +13,16 @@ export const getResponseModel = (
   promptCategory: PromptCategory,
   promptDifficulty: PromptDifficulty,
   tier: 0 | 1 | 2,
-) => {
+): LanguageModel => {
   switch (promptCategory) {
     case "general":
       switch (promptDifficulty) {
         case "easy":
           return defaultModel;
         case "medium":
-          return tier > 0 ? models["google/gemini-2.5-flash"] : defaultModel;
+          return tier > 0 ? models["gemini-2.5-flash"] : defaultModel;
         case "hard":
-          return tier > 0 ? models["google/gemini-2.5-flash"] : defaultModel;
+          return tier > 0 ? models["gemini-2.5-flash"] : defaultModel;
         default:
           return defaultModel;
       }
@@ -27,12 +31,12 @@ export const getResponseModel = (
         case "easy":
           return defaultModel;
         case "medium":
-          return tier > 0 ? models["google/gemini-2.5-flash"] : defaultModel;
+          return tier > 0 ? models["gemini-2.5-flash"] : defaultModel;
         case "hard":
           return tier > 1
-            ? models["google/gemini-2.5-pro"]
+            ? models["gemini-2.5-pro"]
             : tier > 0
-              ? models["google/gemini-2.5-flash"]
+              ? models["gemini-2.5-flash"]
               : defaultModel;
         default:
           return defaultModel;
@@ -42,12 +46,12 @@ export const getResponseModel = (
         case "easy":
           return defaultModel;
         case "medium":
-          return tier > 0 ? models["google/gemini-2.5-flash"] : defaultModel;
+          return tier > 0 ? models["gemini-2.5-flash"] : defaultModel;
         case "hard":
           return tier > 1
-            ? models["google/gemini-2.5-pro"]
+            ? models["gemini-2.5-pro"]
             : tier > 0
-              ? models["google/gemini-2.5-flash"]
+              ? models["gemini-2.5-flash"]
               : defaultModel;
         default:
           return defaultModel;
@@ -57,12 +61,12 @@ export const getResponseModel = (
         case "easy":
           return defaultModel;
         case "medium":
-          return tier > 0 ? models["google/gemini-2.5-flash"] : defaultModel;
+          return tier > 0 ? models["gemini-2.5-flash"] : defaultModel;
         case "hard":
           return tier > 1
-            ? models["google/gemini-2.5-pro"]
+            ? models["gemini-2.5-pro"]
             : tier > 0
-              ? models["google/gemini-2.5-flash"]
+              ? models["gemini-2.5-flash"]
               : defaultModel;
         default:
           return defaultModel;
@@ -70,14 +74,14 @@ export const getResponseModel = (
     case "search":
       switch (promptDifficulty) {
         case "easy":
-          return tier > 0 ? models["perplexity/sonar"] : defaultModel;
+          return tier > 0 ? models["sonar"] : defaultModel;
         case "medium":
-          return tier > 0 ? models["perplexity/sonar"] : defaultModel;
+          return tier > 0 ? models["sonar"] : defaultModel;
         case "hard":
           return tier > 1
-            ? models["perplexity/sonar-reasoning-pro"]
+            ? models["sonar-reasoning-pro"]
             : tier > 0
-              ? models["perplexity/sonar"]
+              ? models["sonar"]
               : defaultModel;
         default:
           return defaultModel;
