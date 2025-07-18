@@ -72,6 +72,7 @@ export default function XRThreadList() {
                       id={item.id}
                       status={item.state}
                       active={false}
+                      pinned={item.pinned ?? false}
                       onClick={() => setActiveThread(item.id)}
                     />
                   ))}

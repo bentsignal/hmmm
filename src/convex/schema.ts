@@ -24,6 +24,7 @@ export default defineSchema({
       v.literal("streaming"),
     ),
     category: v.optional(convexCategoryEnum),
+    pinned: v.optional(v.boolean()),
   })
     .index("by_user_time", ["userId", "updatedAt"])
     .index("by_thread_id", ["threadId"])

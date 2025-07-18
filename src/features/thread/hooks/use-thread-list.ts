@@ -38,6 +38,7 @@ export default function useThreadList() {
 
   // group threads by creation date
   const {
+    pinnedThreads,
     todaysThreads,
     yesterdayThreads,
     lastWeekThreads,
@@ -47,6 +48,7 @@ export default function useThreadList() {
     const { today, yesterday, lastWeek, lastMonth, tomorrow } =
       getDateBoundaries();
 
+    const pinnedThreads = [];
     const todaysThreads = [];
     const yesterdayThreads = [];
     const lastWeekThreads = [];
@@ -57,20 +59,25 @@ export default function useThreadList() {
     for (const item of threads) {
       const itemDate = new Date(item.updatedAt);
 
-      if (itemDate >= today && itemDate < tomorrow) {
-        todaysThreads.push(item);
-      } else if (itemDate >= yesterday && itemDate < today) {
-        yesterdayThreads.push(item);
-      } else if (itemDate >= lastWeek && itemDate < yesterday) {
-        lastWeekThreads.push(item);
-      } else if (itemDate >= lastMonth && itemDate < lastWeek) {
-        lastMonthThreads.push(item);
+      if (item.pinned) {
+        pinnedThreads.push(item);
       } else {
-        oldThreads.push(item);
+        if (itemDate >= today && itemDate < tomorrow) {
+          todaysThreads.push(item);
+        } else if (itemDate >= yesterday && itemDate < today) {
+          yesterdayThreads.push(item);
+        } else if (itemDate >= lastWeek && itemDate < yesterday) {
+          lastWeekThreads.push(item);
+        } else if (itemDate >= lastMonth && itemDate < lastWeek) {
+          lastMonthThreads.push(item);
+        } else {
+          oldThreads.push(item);
+        }
       }
     }
 
     return {
+      pinnedThreads,
       todaysThreads,
       yesterdayThreads,
       lastWeekThreads,
@@ -82,6 +89,10 @@ export default function useThreadList() {
   // pack grouped threads into one array
   const threadGroups = useMemo(
     () => [
+      {
+        label: "Pinned",
+        threads: pinnedThreads,
+      },
       {
         label: "Today",
         threads: todaysThreads,
@@ -104,6 +115,7 @@ export default function useThreadList() {
       },
     ],
     [
+      pinnedThreads,
       todaysThreads,
       yesterdayThreads,
       lastWeekThreads,
@@ -113,6 +125,7 @@ export default function useThreadList() {
   );
 
   return {
+    pinnedThreads,
     status,
     loadMoreThreads,
     threads,

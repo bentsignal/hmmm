@@ -43,6 +43,7 @@ export default function ThreadRenameModal() {
             ref={inputRef}
             value={newThreadName}
             onChange={(e) => setNewThreadName(e.target.value)}
+            placeholder={`${hoveredThread?.title ?? "Enter a new name..."}`}
           />
         </Alert.AlertDialogDescription>
         <Alert.AlertDialogFooter>
@@ -51,7 +52,7 @@ export default function ThreadRenameModal() {
             onClick={() => {
               if (!hoveredThread) return;
               renameThread({
-                threadId: hoveredThread,
+                threadId: hoveredThread.id,
                 newTitle: newThreadName,
               });
               setRenameModalOpen(false);

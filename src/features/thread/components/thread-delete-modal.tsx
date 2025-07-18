@@ -22,10 +22,10 @@ export default function ThreadDeleteModal() {
       onConfirm={() => {
         const selectedThread = useThreadStore.getState().hoveredThread;
         if (!selectedThread) return;
-        if (pathname.includes(selectedThread)) {
+        if (pathname.includes(selectedThread.id)) {
           router.push("/");
         }
-        deleteThread({ threadId: selectedThread });
+        deleteThread({ threadId: selectedThread.id });
         setHoveredThread(null);
       }}
       title="Delete Thread"

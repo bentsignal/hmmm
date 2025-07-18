@@ -1,9 +1,10 @@
 import { create } from "zustand";
+import { Thread } from "../types";
 
 interface ThreadStore {
   // thread being hovered over in thread list
-  hoveredThread: string | null;
-  setHoveredThread: (thread: string | null) => void;
+  hoveredThread: Thread | null;
+  setHoveredThread: (thread: Thread | null) => void;
   // thread currently open
   activeThread: string | null;
   setActiveThread: (thread: string | null) => void;

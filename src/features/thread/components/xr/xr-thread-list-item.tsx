@@ -1,13 +1,13 @@
 import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
 import { Container, Text } from "@react-three/uikit";
 import { Brain } from "@react-three/uikit-lucide";
-import { ThreadListItemProps } from "../../types";
+import { Thread } from "../../types";
 
 export default function XRThreadListItem({
   title,
   status,
   onClick,
-}: ThreadListItemProps & { onClick: () => void }) {
+}: Thread & { onClick: () => void }) {
   return (
     <Container
       backgroundColor={XR_COLORS.card}

@@ -77,6 +77,7 @@ export const getThreadList = query({
         updatedAt: thread.updatedAt,
         title: thread.title,
         state: thread.state,
+        pinned: thread.pinned,
       })),
     };
   },

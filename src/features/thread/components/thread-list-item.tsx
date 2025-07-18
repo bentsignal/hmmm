@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { Brain } from "lucide-react";
 import Link from "next/link";
-import { ThreadListItemProps } from "../types";
+import { Thread } from "../types";
 import {
   SidebarMenuButton,
   SidebarMenuItem,
@@ -13,15 +13,15 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import useThreadStore from "@/features/thread/store";
 
-function ThreadListItem({ title, id, active, status }: ThreadListItemProps) {
+function ThreadListItem({ thread }: { thread: Thread }) {
   const isMobile = useIsMobile();
   const { toggleSidebar } = useSidebar();
   const setHoveredThread = useThreadStore((state) => state.setHoveredThread);
 
   return (
     <SidebarMenuItem
-      key={id}
-      onMouseEnter={() => setHoveredThread(id)}
+      key={thread.id}
+      onMouseEnter={() => setHoveredThread(thread)}
       className="hover:bg-primary/10 rounded-md transition-background-color duration-100"
     >
       <SidebarMenuButton
@@ -38,19 +38,20 @@ function ThreadListItem({ title, id, active, status }: ThreadListItemProps) {
         }}
       >
         <Link
-          href={`/chat/${id}`}
+          href={`/chat/${thread.id}`}
           prefetch={true}
           className={cn(
             "font-medium whitespace-nowrap",
-            active && "bg-primary/10",
+            thread.active && "bg-primary/10",
           )}
         >
           {
             <div className="flex items-center gap-2">
-              {(status === "streaming" || status === "waiting") && (
+              {(thread.status === "streaming" ||
+                thread.status === "waiting") && (
                 <Brain className="text-muted-foreground h-4 w-4 animate-pulse" />
               )}
-              {title !== "New Chat" && title}
+              {thread.title !== "New Chat" && thread.title}
             </div>
           }
         </Link>

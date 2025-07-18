@@ -28,10 +28,18 @@ export default function useThreadMutation() {
       toast.error("Failed to rename thread");
     },
   });
+  const { mutate: toggleThreadPin } = useTanstackMutation({
+    mutationFn: useConvexMutation(api.thread.thread_mutations.toggleThreadPin),
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to toggle thread pin");
+    },
+  });
   return {
     createThread,
     newThreadMessage,
     deleteThread,
     renameThread,
+    toggleThreadPin,
   };
 }
