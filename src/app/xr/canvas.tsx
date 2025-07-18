@@ -4,7 +4,11 @@ import { Canvas } from "@react-three/fiber";
 import { PointerEvents, XR, XRStore } from "@react-three/xr";
 import { cn } from "@/lib/utils";
 import { Composer } from "@/features/composer/components/xr";
-import { MainThreadViewer, ThreadList } from "@/features/thread/components/xr";
+import {
+  MainThreadViewer,
+  ThreadList,
+  Threads,
+} from "@/features/thread/components/xr";
 
 export default function XRCanvas({ store }: { store: XRStore }) {
   const hideCanvas = true;
@@ -23,6 +27,7 @@ export default function XRCanvas({ store }: { store: XRStore }) {
           <ThreadList />
           <Composer />
           <MainThreadViewer />
+          <Threads />
         </group>
       </XR>
     </Canvas>

@@ -3,7 +3,7 @@ import XRThread from "./xr-thread";
 import useThreadStore from "@/features/thread/store/thread-store";
 
 export default function XRMainThreadViewer() {
-  const threadId = useThreadStore((state) => state.activeThread);
-  if (!threadId) return <XRNewThread />;
-  return <XRThread threadId={threadId} />;
+  const mainThread = useThreadStore((state) => state.mainThread);
+  if (!mainThread) return <XRNewThread />;
+  return <XRThread threadId={mainThread.id} />;
 }

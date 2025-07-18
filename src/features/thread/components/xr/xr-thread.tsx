@@ -1,6 +1,7 @@
 import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
 import { Container } from "@react-three/uikit";
 import { Button } from "@react-three/uikit-default";
+import useThreadStore from "../../store";
 import {
   CustomContainer,
   Grabbable,
@@ -16,19 +17,33 @@ import { PAGE_SIZE } from "@/features/message/config";
 import useMessages from "@/features/message/hooks/use-messages";
 import useXRMessageListScroll from "@/features/message/hooks/use-xr-message-list-scroll";
 
-export default function XRThread({ threadId }: { threadId: string }) {
+export default function XRThread({
+  threadId,
+  offset,
+}: {
+  threadId: string;
+  offset?: number;
+}) {
   const { ref } = useXRMessageListScroll({ threadId });
   const { messages, loadMore, status } = useMessages({
     threadId,
   });
+  const isActiveThread = useThreadStore(
+    (state) => state.activeThread && state.activeThread === threadId,
+  );
+  const setActiveThread = useThreadStore((state) => state.setActiveThread);
   return (
-    <group position={[0, 0.3, 0]}>
+    <group position={[0, 0.3, offset ?? 0]}>
       <Grabbable>
         <CustomContainer
           alignItems="center"
           justifyContent="flex-start"
           gap={XR_STYLES.spacing3xl}
           scrollRef={ref}
+          backgroundColor={XR_COLORS.card}
+          borderColor={isActiveThread ? XR_COLORS.primary : XR_COLORS.card}
+          borderWidth={2}
+          onClick={() => setActiveThread(threadId)}
         >
           {status !== "Exhausted" && status !== "LoadingFirstPage" && (
             <Button

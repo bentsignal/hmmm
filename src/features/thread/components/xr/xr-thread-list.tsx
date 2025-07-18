@@ -14,6 +14,7 @@ import {
 
 const NewThreadButton = () => {
   const setActiveThread = useThreadStore((state) => state.setActiveThread);
+  const setMainThread = useThreadStore((state) => state.setMainThread);
   return (
     <Button
       padding={XR_STYLES.spacingMd}
@@ -21,7 +22,10 @@ const NewThreadButton = () => {
       flexDirection="row"
       alignItems="center"
       gap={XR_STYLES.spacingMd}
-      onClick={() => setActiveThread(null)}
+      onClick={() => {
+        setActiveThread(null);
+        setMainThread(null);
+      }}
     >
       <SquarePen
         width={XR_STYLES.textMd}
@@ -35,8 +39,6 @@ const NewThreadButton = () => {
 
 export default function XRThreadList() {
   const { threads, threadGroups, status, loadMoreThreads } = useThreadList();
-  const setActiveThread = useThreadStore((state) => state.setActiveThread);
-
   return (
     <group rotation={[0, 0.4, 0]} position={[-0.4, 0.3, 0.08]}>
       <Grabbable>
@@ -68,12 +70,12 @@ export default function XRThreadList() {
                   {group.threads.map((item) => (
                     <ThreadListItem
                       key={item.id}
-                      title={item.title}
-                      id={item.id}
-                      status={item.state}
-                      active={false}
-                      pinned={item.pinned ?? false}
-                      onClick={() => setActiveThread(item.id)}
+                      thread={{
+                        ...item,
+                        active: false,
+                        pinned: item.pinned ?? false,
+                        status: item.state,
+                      }}
                     />
                   ))}
                 </Container>
