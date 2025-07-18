@@ -1,4 +1,5 @@
 import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
+import { Container } from "@react-three/uikit";
 import { Button } from "@react-three/uikit-default";
 import {
   CustomContainer,
@@ -47,6 +48,7 @@ export default function XRThread({ threadId }: { threadId: string }) {
             ),
           )}
           <StreamingMessages threadId={threadId} messages={messages} />
+          <Container width="100%" height={50} />
         </CustomContainer>
         <XRHandle show={true} />
       </Grabbable>

@@ -1,4 +1,3 @@
-import { XR_STYLES } from "@/styles/xr-styles";
 import { Container } from "@react-three/uikit";
 import { UIMessage } from "ai";
 import { PromptMessage, ResponseMessage } from ".";
@@ -12,13 +11,13 @@ export default function XRStreamingMessages({
   threadId: string;
   messages: UIMessage[];
 }) {
-  const { streamingMessages, waiting, hasNewMessages } = useStreamingMessages({
+  const { streamingMessages, waiting } = useStreamingMessages({
     threadId,
     messages,
   });
 
   return (
-    <Container minHeight={hasNewMessages ? XR_STYLES.containerXs / 2 : 0}>
+    <Container>
       {streamingMessages.map((message) =>
         message.role === "user" ? (
           <PromptMessage key={message.id} message={message} />
