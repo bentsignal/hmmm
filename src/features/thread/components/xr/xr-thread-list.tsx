@@ -38,7 +38,7 @@ export default function XRThreadList() {
   const setActiveThread = useThreadStore((state) => state.setActiveThread);
 
   return (
-    <group rotation={[0, 0.4, 0]} position={[-0.4, 0.28, 0.08]}>
+    <group rotation={[0, 0.4, 0]} position={[-0.4, 0.3, 0.08]}>
       <Grabbable>
         <CustomContainer header={<NewThreadButton />}>
           {threads.length === 0 && status !== "LoadingFirstPage" && (
