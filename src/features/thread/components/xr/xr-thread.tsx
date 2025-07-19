@@ -38,8 +38,15 @@ export default function XRThread({
   const setActiveThread = useThreadStore((state) => state.setActiveThread);
   const [expanded, setExpanded] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   return (
-    <group position={[isMainThread && expanded ? 0.1 : 0, 0.31, offset ?? 0]}>
+    <group
+      position={[
+        isMainThread && expanded ? 0.1 : !isMainThread && expanded ? 0.05 : 0,
+        0.31,
+        offset ?? 0,
+      ]}
+    >
       <Grabbable>
         <Container
           flexDirection="column"
@@ -49,15 +56,20 @@ export default function XRThread({
           <ThreadControls
             threadId={threadId}
             expanded={expanded}
-            toggleExpanded={() => setExpanded(!expanded)}
+            toggleExpanded={() => {
+              setIsTransitioning(true);
+              setExpanded(!expanded);
+              setTimeout(() => setIsTransitioning(false), 100);
+            }}
             isHovering={isHovering}
             isMainThread={isMainThread}
           />
           <CustomContainer
+            key={`${threadId}-${expanded}`}
             alignItems="center"
             justifyContent="flex-start"
             gap={XR_STYLES.spacing3xl}
-            scrollRef={ref}
+            scrollRef={isTransitioning ? undefined : ref}
             backgroundColor={XR_COLORS.card}
             width={expanded ? XR_STYLES.containerLg : XR_STYLES.containerMd}
             height={expanded ? XR_STYLES.container2xl : XR_STYLES.containerLg}
@@ -107,7 +119,7 @@ const ThreadControls = ({
   isMainThread?: boolean;
 }) => {
   const removeXrThread = useThreadStore((state) => state.removeXrThread);
-  const styleProps = {
+  const iconStyles = {
     width: XR_STYLES.textMd,
     height: XR_STYLES.textMd,
     color: XR_COLORS.primary,
@@ -125,12 +137,12 @@ const ThreadControls = ({
       gap={XR_STYLES.spacingSm}
     >
       {expanded ? (
-        <Minimize2 {...styleProps} onClick={toggleExpanded} />
+        <Minimize2 {...iconStyles} onClick={toggleExpanded} />
       ) : (
-        <Maximize2 {...styleProps} onClick={toggleExpanded} />
+        <Maximize2 {...iconStyles} onClick={toggleExpanded} />
       )}
       {!isMainThread && (
-        <X {...styleProps} onClick={() => removeXrThread(threadId)} />
+        <X {...iconStyles} onClick={() => removeXrThread(threadId)} />
       )}
     </Container>
   );
