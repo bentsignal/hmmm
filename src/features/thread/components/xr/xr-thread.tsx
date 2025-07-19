@@ -32,21 +32,17 @@ export default function XRThread({
   const { messages, loadMore, status } = useMessages({
     threadId,
   });
+
   const isActiveThread = useThreadStore(
     (state) => state.activeThread && state.activeThread === threadId,
   );
   const setActiveThread = useThreadStore((state) => state.setActiveThread);
+
   const [expanded, setExpanded] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+
   return (
-    <group
-      position={[
-        isMainThread && expanded ? 0.1 : !isMainThread && expanded ? 0.05 : 0,
-        0.31,
-        offset ?? 0,
-      ]}
-    >
+    <group position={[isMainThread && expanded ? 0.1 : 0, 0.31, offset ?? 0]}>
       <Grabbable>
         <Container
           flexDirection="column"
@@ -56,11 +52,7 @@ export default function XRThread({
           <ThreadControls
             threadId={threadId}
             expanded={expanded}
-            toggleExpanded={() => {
-              setIsTransitioning(true);
-              setExpanded(!expanded);
-              setTimeout(() => setIsTransitioning(false), 100);
-            }}
+            toggleExpanded={() => setExpanded(!expanded)}
             isHovering={isHovering}
             isMainThread={isMainThread}
           />
@@ -69,7 +61,7 @@ export default function XRThread({
             alignItems="center"
             justifyContent="flex-start"
             gap={XR_STYLES.spacing3xl}
-            scrollRef={isTransitioning ? undefined : ref}
+            scrollRef={ref}
             backgroundColor={XR_COLORS.card}
             width={expanded ? XR_STYLES.containerLg : XR_STYLES.containerMd}
             height={expanded ? XR_STYLES.container2xl : XR_STYLES.containerLg}

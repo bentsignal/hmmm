@@ -1,4 +1,4 @@
-import { XR_STYLES } from "@/styles/xr-styles";
+import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
 import { Container } from "@react-three/uikit";
 import {
   CustomContainer,
@@ -7,12 +7,20 @@ import {
   TextElement,
   XRHandle,
 } from "@/components/xr";
+import useThreadStore from "@/features/thread/store";
 
 export default function XRNewThread() {
+  const activeThread = useThreadStore((state) => state.activeThread);
   return (
     <group position={[0, 0.3, 0]}>
       <Grabbable>
-        <CustomContainer alignItems="center">
+        <CustomContainer
+          alignItems="center"
+          borderColor={
+            activeThread === null ? XR_COLORS.primary : XR_COLORS.card
+          }
+          borderWidth={2}
+        >
           <Container
             flexDirection="column"
             flexShrink={0}
