@@ -19,7 +19,7 @@ interface ThreadStore {
   // threads open in xr
   xrThreads: Thread[];
   addXrThread: (thread: Thread) => void;
-  removeXrThread: (thread: Thread) => void;
+  removeXrThread: (threadId: string) => void;
   // main thread in xr
   mainThread: Thread | null;
   setMainThread: (thread: Thread | null) => void;
@@ -44,9 +44,9 @@ const useThreadStore = create<ThreadStore>((set, get) => ({
       xrThreads: [...state.xrThreads, thread],
     }));
   },
-  removeXrThread: (thread: Thread) => {
+  removeXrThread: (threadId: string) => {
     set((state) => ({
-      xrThreads: state.xrThreads.filter((t) => t.id !== thread.id),
+      xrThreads: state.xrThreads.filter((t) => t.id !== threadId),
     }));
   },
   mainThread: null,

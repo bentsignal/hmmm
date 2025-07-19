@@ -77,4 +77,8 @@ export const XR_STYLES = {
   containerMd: rem(24),
   /** 16 * 32 = 512 */
   containerLg: rem(32),
+  /** 16 * 40 = 640 */
+  containerXl: rem(40),
+  /** 16 * 48 = 768 */
+  container2xl: rem(48),
 };
