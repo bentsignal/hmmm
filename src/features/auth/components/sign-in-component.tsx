@@ -1,22 +1,28 @@
 "use client";
 
 import {
-  Loading,
+  Link as ClerkLink,
   Connection,
   Field,
-  Input,
   FieldError,
-  Link as ClerkLink,
+  Input,
   Label,
+  Loading,
 } from "@clerk/elements/common";
 import {
-  Root,
-  Step,
   // Passkey,
   Action,
-  SupportedStrategy,
+  Root,
+  Step,
   Strategy,
+  SupportedStrategy,
 } from "@clerk/elements/sign-in";
+import { Loader } from "lucide-react";
+import { useTheme } from "next-themes";
+import DefaultLoading from "@/components/default-loading";
+import Logo from "@/components/logo";
+import { SimpleIcon } from "@/components/simple-icon";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -25,12 +31,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { SimpleIcon } from "@/components/simple-icon";
-import { useTheme } from "next-themes";
-import { Loader } from "lucide-react";
 import { Input as UIInput } from "@/components/ui/input";
-import DefaultLoading from "@/components/default-loading";
 
 export default function SignInComponent() {
   const { theme } = useTheme();
@@ -44,7 +45,7 @@ export default function SignInComponent() {
               <Step name="start">
                 <Card className="flex w-full flex-col items-center justify-center sm:w-96">
                   <CardHeader className="flex flex-col items-center justify-center">
-                    <span className="text-2xl font-bold">QBE</span>
+                    <Logo size={50} containerClass="mt-4 mb-2" />
                   </CardHeader>
                   <CardContent className="mt-2 flex w-[90%] flex-col gap-y-4 sm:w-[80%]">
                     <Connection name="google" asChild>

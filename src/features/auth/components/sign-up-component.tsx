@@ -15,6 +15,7 @@ import { useTheme } from "next-themes";
 import Link from "next/link";
 // import { Label as UILabel } from "@/components/ui/label";
 import DefaultLoading from "@/components/default-loading";
+import Logo from "@/components/logo";
 import { SimpleIcon } from "@/components/simple-icon";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,7 +41,7 @@ export default function SignUpComponent() {
                 <Card className="flex w-full flex-col items-center justify-center sm:w-96">
                   <CardHeader className="flex flex-col items-center justify-center">
                     <CardHeader className="flex flex-col items-center justify-center">
-                      <span className="text-2xl font-bold">QBE</span>
+                      <Logo size={50} containerClass="mt-4 mb-2" />
                     </CardHeader>
                   </CardHeader>
                   <CardContent className="mt-2 flex w-[90%] flex-col gap-y-4 sm:w-[80%]">
