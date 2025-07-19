@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import useMessageListScroll from "../hooks/use-message-list-scroll";
+import useThreadScroll from "../hooks/use-thread-scroll";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import "@/features/message/styles/github-dark.min.css";
@@ -9,10 +9,10 @@ import "@/features/message/styles/message-styles.css";
 import { useEffect } from "react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import useMessages from "../hooks/use-messages";
-import Messages from "./messages";
-import StreamingMessages from "./streaming-messages";
 import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
+import Messages from "@/features/message/components/messages";
+import StreamingMessages from "@/features/message/components/streaming-messages";
+import useMessages from "@/features/message/hooks/use-messages";
 import useThreadStore from "@/features/thread/store/thread-store";
 
 export default function MessageList({ threadId }: { threadId: string }) {
@@ -21,7 +21,7 @@ export default function MessageList({ threadId }: { threadId: string }) {
   });
   // auto scroll when new messages are sent, show/hide/handle scroll to bottom button
   const { scrollAreaRef, messagesEndRef, isAtBottom, scrollToBottom } =
-    useMessageListScroll({ messages });
+    useThreadScroll({ messages });
 
   // set active thread when component mounts
   const setActiveThread = useThreadStore((state) => state.setActiveThread);

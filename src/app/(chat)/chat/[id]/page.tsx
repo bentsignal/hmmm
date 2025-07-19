@@ -1,6 +1,6 @@
-import MessageList from "@/features/message/components/message-list";
 import ErrorBoundary, { PageError } from "@/components/error-boundary";
 import Composer from "@/features/composer/components";
+import Thread from "@/features/thread/components/thread";
 
 export default async function ChatPage({
   params,
@@ -10,7 +10,7 @@ export default async function ChatPage({
   const { id } = await params;
   return (
     <PageError>
-      <MessageList threadId={id} />
+      <Thread threadId={id} />
       <div className="absolute right-0 bottom-0 left-0 z-50">
         <ErrorBoundary>
           <Composer />

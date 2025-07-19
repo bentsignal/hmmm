@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { UIMessage } from "ai";
-import useMessageStore from "../store/message-store";
+import useMessageStore from "@/features/message/store";
 
-export default function useMessageListScroll({
+export default function useThreadScroll({
   messages,
 }: {
   messages: UIMessage[];

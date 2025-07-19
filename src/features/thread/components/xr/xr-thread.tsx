@@ -15,7 +15,7 @@ import {
 } from "@/features/message/components/xr";
 import { PAGE_SIZE } from "@/features/message/config";
 import useMessages from "@/features/message/hooks/use-messages";
-import useXRMessageListScroll from "@/features/message/hooks/use-xr-message-list-scroll";
+import useXRThreadScroll from "@/features/thread/hooks/use-xr-thread-scroll";
 
 export default function XRThread({
   threadId,
@@ -24,7 +24,7 @@ export default function XRThread({
   threadId: string;
   offset?: number;
 }) {
-  const { ref } = useXRMessageListScroll({ threadId });
+  const { ref } = useXRThreadScroll({ threadId });
   const { messages, loadMore, status } = useMessages({
     threadId,
   });

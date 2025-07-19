@@ -1,12 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ContainerRef } from "@react-three/uikit";
-import useMessageStore from "../store/message-store";
+import useMessageStore from "@/features/message/store";
 
-export default function useXRMessageListScroll({
-  threadId,
-}: {
-  threadId: string;
-}) {
+export default function useXRThreadScroll({ threadId }: { threadId: string }) {
   const ref = useRef<ContainerRef>(null);
   const [scrollCount, setScrollCount] = useState(0);
   const numMessagesSent = useMessageStore((state) => state.numMessagesSent);
