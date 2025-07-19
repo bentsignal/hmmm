@@ -47,6 +47,8 @@ export default function XRThreadListItem({ thread }: { thread: Thread }) {
         paddingY={XR_STYLES.spacingMd}
         paddingRight={XR_STYLES.spacingMd}
         borderRightRadius={XR_STYLES.radiusMd}
+        minWidth={XR_STYLES.textLg}
+        alignItems="center"
         onClick={() => {
           setActiveThread(thread.id);
           addXrThread(thread);
