@@ -7,7 +7,7 @@ export default async function Landing() {
     <div className="flex flex-1 flex-col items-center justify-center gap-2 mx-4">
       <Logo size={50} containerClass="my-6" faceClass="bg-background" />
       <span className="text-secondary-foreground text-lg font-semibold text-center">
-        Complex dimensions, Simple answers.
+        Answers in every dimension.
       </span>
       <Button asChild className="mt-2">
         <Link href="/sign-up" className="text-lg font-semibold">

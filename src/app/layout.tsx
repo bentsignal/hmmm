@@ -19,7 +19,7 @@ const robotoMono = Roboto_Mono({
 
 export const metadata: Metadata = {
   title: "QBE",
-  description: "Complex dimensions, Simple answers.",
+  description: "Answers in every dimension.",
 };
 
 export default function RootLayout({
