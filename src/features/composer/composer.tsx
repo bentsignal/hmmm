@@ -1,7 +1,7 @@
 "use client";
 
-import ComposerInput from "./composer-input";
-import ComposerSend from "./composer-send";
+import ComposerInput from "./components/composer-input";
+import ComposerSend from "./components/composer-send";
 import { cn } from "@/lib/utils";
 import ComposerSpeech from "@/features/speech/components/composer-speech";
 

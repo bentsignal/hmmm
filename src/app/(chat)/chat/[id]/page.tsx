@@ -1,5 +1,5 @@
 import ErrorBoundary, { PageError } from "@/components/error-boundary";
-import Composer from "@/features/composer/components";
+import Composer from "@/features/composer";
 import Thread from "@/features/thread";
 
 export default async function ChatPage({

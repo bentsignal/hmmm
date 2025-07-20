@@ -8,7 +8,6 @@ export default function ComposerSend({
   showInstantLoad?: () => void;
 }) {
   const { sendMessage, blockSend, isLoading } = useSendMessage();
-
   return (
     <Button
       onClick={() => {

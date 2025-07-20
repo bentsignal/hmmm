@@ -20,6 +20,7 @@ export default function useSendMessage() {
   const activeThread = useThreadStore((state) => state.activeThread);
   const { isThreadIdle } = useThreadStatus({ threadId: activeThread ?? "" });
 
+  // usage of user during their current billing period (period is dependent on sub tier)
   const { usage } = useUsage();
 
   // state of speech
@@ -30,27 +31,35 @@ export default function useSendMessage() {
     (state) => state.storeIsListening || state.storeIsRecording,
   );
 
-  // prevent user from sending messages
+  // prevent user from sending messages when in bad state
   const blockSend =
     !isThreadIdle || listening || promptEmpty || usage?.limitHit;
 
   // show loading spinner on send button
   const isLoading = !isThreadIdle || storeIsTranscribing;
 
-  // set total number of messages sent per session, will be used to
-  // increment by one after each message is sent
+  // set total number of messages sent per session, used to trigger
+  // auto scroll when new messages are sent
   const setNumMessagesSent = useMessageStore(
     (state) => state.setNumMessagesSent,
   );
 
   const sendMessage = async (redirect: boolean = true) => {
+    // prevent user from sending messages if they are in a bad state
     if (blockSend) {
       return;
     }
+
     const prompt = useComposerStore.getState().prompt;
     const activeThread = useThreadStore.getState().activeThread;
     setPrompt("");
+
+    // increment number of messages sent per session, this is used to
+    // manage auto scrolling when new messages are sent
     setNumMessagesSent(useMessageStore.getState().numMessagesSent + 1);
+
+    // if activeThread is null, create a new thread with the new message. if
+    // not, send the new message to the currrently active thread
     if (activeThread === null) {
       const { data: threadId, error: threadCreationError } = await tryCatch(
         createThread({

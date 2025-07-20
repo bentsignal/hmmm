@@ -6,7 +6,7 @@ import Link from "next/link";
 import ErrorBoundary from "@/components/error-boundary";
 import { Button } from "@/components/ui/button";
 import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
-import Composer from "@/features/composer/components";
+import Composer from "@/features/composer";
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
