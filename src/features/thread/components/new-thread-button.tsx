@@ -1,10 +1,8 @@
-"use client";
-
+import { SquarePen } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useRouter } from "next/navigation";
-import { SquarePen } from "lucide-react";
 
 export default function NewThreadButton() {
   const { toggleSidebar } = useSidebar();

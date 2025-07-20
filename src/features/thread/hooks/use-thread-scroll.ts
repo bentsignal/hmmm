@@ -10,8 +10,8 @@ export default function useThreadScroll({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isInitialLoadRef = useRef(true);
-  const [isAtBottom, setIsAtBottom] = useState(true);
   const numMessagesSent = useMessageStore((state) => state.numMessagesSent);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
   const getScrollElement = () => {
     return scrollAreaRef.current?.querySelector(

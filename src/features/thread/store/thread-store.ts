@@ -2,25 +2,25 @@ import { create } from "zustand";
 import { Thread } from "../types";
 
 interface ThreadStore {
-  // thread being hovered over in thread list
+  /** thread being hovered over in thread list */
   hoveredThread: Thread | null;
   setHoveredThread: (thread: Thread | null) => void;
-  // thread currently open
+  /** thread currently open */
   activeThread: string | null;
   setActiveThread: (thread: string | null) => void;
-  // modal open for deleting a thread
+  /** modal open for deleting a thread */
   deleteModalOpen: boolean;
   setDeleteModalOpen: (open: boolean) => void;
   triggerDeleteModal: () => void;
-  // modal open for renaming a thread
+  /** modal open for renaming a thread */
   renameModalOpen: boolean;
   setRenameModalOpen: (open: boolean) => void;
   triggerRenameModal: () => void;
-  // threads open in xr
+  /** threads open in xr */
   xrThreads: Thread[];
   addXrThread: (thread: Thread) => void;
   removeXrThread: (threadId: string) => void;
-  // main thread in xr
+  /**  main thread in xr, shows up to the right of the thread list */
   mainThread: Thread | null;
   setMainThread: (thread: Thread | null) => void;
 }

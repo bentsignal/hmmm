@@ -22,9 +22,9 @@ const getDateBoundaries = () => {
 };
 
 export default function useThreadList() {
-  // thread pagination
   const { setValue: setSearch, debouncedValue: debouncedSearch } =
     useDebouncedInput();
+
   const { isAuthenticated } = useConvexAuth();
   const args = isAuthenticated ? { search: debouncedSearch } : "skip";
   const {
@@ -34,9 +34,10 @@ export default function useThreadList() {
   } = usePaginatedQuery(api.thread.thread_queries.getThreadList, args, {
     initialNumItems: PAGE_SIZE,
   });
+
   const loadMoreThreads = () => loadMore(PAGE_SIZE);
 
-  // group threads by creation date
+  // group threads by pin status & creation date
   const {
     pinnedThreads,
     todaysThreads,
@@ -55,7 +56,6 @@ export default function useThreadList() {
     const lastMonthThreads = [];
     const oldThreads = [];
 
-    // Single pass through threads array
     for (const item of threads) {
       const itemDate = new Date(item.updatedAt);
 

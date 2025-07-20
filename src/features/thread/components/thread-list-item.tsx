@@ -1,5 +1,3 @@
-"use client";
-
 import { memo } from "react";
 import { Brain } from "lucide-react";
 import Link from "next/link";

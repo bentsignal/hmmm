@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import useThreadScroll from "../hooks/use-thread-scroll";
+import useThreadScroll from "./hooks/use-thread-scroll";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import "@/features/message/styles/github-dark.min.css";
@@ -13,12 +13,15 @@ import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
 import Messages from "@/features/message/components/messages";
 import StreamingMessages from "@/features/message/components/streaming-messages";
 import useMessages from "@/features/message/hooks/use-messages";
-import useThreadStore from "@/features/thread/store/thread-store";
+import useThreadStore from "@/features/thread/store";
 
-export default function MessageList({ threadId }: { threadId: string }) {
+export default function Thread({ threadId }: { threadId: string }) {
+  // non streaming messages, used to render the majority of a thread's messages, as
+  // well as to dedupe streaming messages
   const { messages, loadMore, status } = useMessages({
     threadId,
   });
+
   // auto scroll when new messages are sent, show/hide/handle scroll to bottom button
   const { scrollAreaRef, messagesEndRef, isAtBottom, scrollToBottom } =
     useThreadScroll({ messages });
@@ -32,7 +35,7 @@ export default function MessageList({ threadId }: { threadId: string }) {
     };
   }, [threadId, setActiveThread]);
 
-  // set tab label in browser to thread title
+  // set tab label in browser to title of thread
   const { isAuthenticated } = useConvexAuth();
   const args = isAuthenticated ? { threadId } : "skip";
   const title = useQuery(api.thread.thread_queries.getThreadTitle, args);
