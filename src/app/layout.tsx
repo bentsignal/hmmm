@@ -3,6 +3,7 @@ import { Inter, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "@/providers";
 import { Toaster } from "sonner";
+
 // import ReactScan from "@/components/react-scan";
 
 const inter = Inter({
@@ -18,7 +19,7 @@ const robotoMono = Roboto_Mono({
 
 export const metadata: Metadata = {
   title: "QBE",
-  description: "AI in every dimension",
+  description: "Complex dimensions, Simple answers.",
 };
 
 export default function RootLayout({

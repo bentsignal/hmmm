@@ -1,12 +1,18 @@
 import { cn } from "@/lib/utils";
+import "@/styles/logo-anim.css";
 
 export default function Logo({
   size = 50,
   containerClass,
+  faceClass,
+  spin = false,
 }: {
   size?: number;
   containerClass?: string;
+  faceClass?: string;
+  spin?: boolean;
 }) {
+  console.log(faceClass);
   const faces = [
     {
       face: "front",
@@ -15,12 +21,12 @@ export default function Logo({
     },
     {
       face: "right",
-      label: "",
+      label: "B",
       transform: `rotateY(90deg) translateZ(${size / 2}px)`,
     },
     {
       face: "back",
-      label: "",
+      label: "E",
       transform: `rotateY(180deg) translateZ(${size / 2}px)`,
     },
     {
@@ -31,36 +37,38 @@ export default function Logo({
     {
       face: "top",
       label: "Q",
-      transform: `rotateX(90deg) translateZ(${size / 2}px)`,
+      transform: `rotateX(90deg) rotateZ(90deg) translateZ(${size / 2}px)`,
     },
     {
       face: "bottom",
-      label: "",
+      label: "Q",
       transform: `rotateX(-90deg) translateZ(${size / 2}px)`,
     },
   ];
   return (
     <div
-      className={cn("perspective-midrange", containerClass)}
+      className={cn("perspective-near select-none", containerClass)}
       style={{
         width: size,
         height: size,
       }}
     >
       <div
-        className="relative transform-3d"
+        className={cn("relative transform-3d", spin && "cube-spin")}
         style={{
           width: size,
           height: size,
-          transform: "rotateX(-45deg) rotateY(45deg)",
+          transform: !spin
+            ? "rotateX(-40deg) rotateY(45deg) rotateZ(0deg)"
+            : undefined,
         }}
       >
         {faces.map((face) => (
           <CubeFace
-            key={face.label}
+            key={face.face}
             size={size}
             transform={face.transform}
-            face={face.face}
+            className={faceClass}
           >
             {face.label}
           </CubeFace>
@@ -74,25 +82,25 @@ const CubeFace = ({
   size,
   children,
   transform,
-  face,
+  className,
 }: {
   size: number;
   children?: React.ReactNode;
   transform: string;
-  face: string;
+  className?: string;
 }) => {
   return (
     <div
-      className="border-2 border-foreground absolute text-foreground
-      font-bold flex items-center justify-center text-xl"
+      className={cn(
+        `border-2 border-foreground absolute text-foreground
+      font-bold flex items-center justify-center text-xl`,
+        className,
+      )}
       style={{
         width: size,
         height: size,
         textAlign: "center",
         transform,
-        border: ["front", "left", "top"].includes(face)
-          ? "2px solid var(--foreground)"
-          : "none",
       }}
     >
       {children}
