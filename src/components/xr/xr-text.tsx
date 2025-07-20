@@ -15,7 +15,7 @@ export const TextElement = ({
   </Text>
 );
 
-export const Heading = ({
+const Heading = ({
   children,
   size,
   ...props
