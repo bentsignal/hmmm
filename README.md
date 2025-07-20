@@ -16,7 +16,7 @@
 <br />
 <div align="center">
 
-This project was my entry for a [hackathon](https://cloneathon.t3.chat/) hosted by [Theo](https://www.x.com/theo). The goal was to see who could build the best AI chat app in under 10 days, which is how long it took him to build the initial version of [t3.chat](https://t3.chat)
+This was my entry for a hackathon hosted by [Theo](https://www.x.com/theo). The goal was to build an AI chat app in under 10 days, which is how long it took him to build the initial version of [t3.chat](https://t3.chat)
 
 This project is fully open source, licensed under [BSD-3](./LICENSE).
 
