@@ -554,6 +554,24 @@ export declare const components: {
         { messageId: string },
         null
       >;
+      deleteByIds: FunctionReference<
+        "mutation",
+        "internal",
+        { messageIds: Array<string> },
+        Array<string>
+      >;
+      deleteByOrder: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          endOrder: number;
+          endStepOrder?: number;
+          startOrder: number;
+          startStepOrder?: number;
+          threadId: string;
+        },
+        { isDone: boolean; lastOrder?: number; lastStepOrder?: number }
+      >;
       getMessagesByIds: FunctionReference<
         "query",
         "internal",
@@ -1074,13 +1092,13 @@ export declare const components: {
         "internal",
         {
           beforeMessageId?: string;
+          embedding?: Array<number>;
+          embeddingModel?: string;
           limit: number;
           messageRange?: { after: number; before: number };
           searchAllMessagesForUserId?: string;
           text?: string;
           threadId?: string;
-          vector?: Array<number>;
-          vectorModel?: string;
           vectorScoreThreshold?: number;
         },
         Array<{
@@ -1376,6 +1394,7 @@ export declare const components: {
           messageId: string;
           patch: {
             error?: string;
+            fileIds?: Array<string>;
             message?:
               | {
                   content:
@@ -1630,6 +1649,18 @@ export declare const components: {
       >;
     };
     streams: {
+      abort: FunctionReference<
+        "mutation",
+        "internal",
+        { reason: string; streamId: string },
+        boolean
+      >;
+      abortByOrder: FunctionReference<
+        "mutation",
+        "internal",
+        { order: number; reason: string; threadId: string },
+        boolean
+      >;
       addDelta: FunctionReference<
         "mutation",
         "internal",
@@ -1785,13 +1816,18 @@ export declare const components: {
       list: FunctionReference<
         "query",
         "internal",
-        { threadId: string },
+        {
+          startOrder?: number;
+          statuses?: Array<"streaming" | "finished" | "aborted">;
+          threadId: string;
+        },
         Array<{
           agentName?: string;
           model?: string;
           order: number;
           provider?: string;
           providerOptions?: Record<string, Record<string, any>>;
+          status: "streaming" | "finished" | "aborted";
           stepOrder: number;
           streamId: string;
           userId?: string;
@@ -1942,32 +1978,15 @@ export declare const components: {
       searchThreadTitles: FunctionReference<
         "query",
         "internal",
-        {
-          paginationOpts?: {
-            cursor: string | null;
-            endCursor?: string | null;
-            id?: number;
-            maximumBytesRead?: number;
-            maximumRowsRead?: number;
-            numItems: number;
-          };
-          query: string;
-          userId?: string | null;
-        },
-        {
-          continueCursor: string;
-          isDone: boolean;
-          page: Array<{
-            _creationTime: number;
-            _id: string;
-            status: "active" | "archived";
-            summary?: string;
-            title?: string;
-            userId?: string;
-          }>;
-          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-          splitCursor?: string | null;
-        }
+        { limit: number; query: string; userId?: string | null },
+        Array<{
+          _creationTime: number;
+          _id: string;
+          status: "active" | "archived";
+          summary?: string;
+          title?: string;
+          userId?: string;
+        }>
       >;
       updateThread: FunctionReference<
         "mutation",
