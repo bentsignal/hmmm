@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import * as Card from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import useCurrentPlan from "@/features/billing/hooks/use-current-plan";
-import { markdownComponents } from "@/features/message/components/markdown-components";
+import { markdownComponents } from "@/features/messages/components/markdown-components";
 
 interface Product {
   name: string;

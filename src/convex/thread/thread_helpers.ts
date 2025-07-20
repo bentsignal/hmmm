@@ -4,11 +4,11 @@ import { isAdmin } from "@/convex/user/user_helpers";
 import {
   SystemErrorCode,
   SystemNoticeCode,
-} from "@/features/message/types/message-types";
+} from "@/features/messages/types/message-types";
 import {
   formatError,
   formatNotice,
-} from "@/features/message/util/message-util";
+} from "@/features/messages/util/message-util";
 
 /**
  * Gets thread metadata from table separate from agent component. this

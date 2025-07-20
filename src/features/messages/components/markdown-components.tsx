@@ -1,5 +1,5 @@
 import { Components } from "react-markdown";
-import { Code } from "@/features/message/components/code";
+import { Code } from "@/features/messages/components/code";
 
 export const markdownComponents: Partial<Components> = {
   code: Code as Components["code"],

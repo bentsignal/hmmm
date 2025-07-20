@@ -14,9 +14,9 @@ import {
   PromptMessage,
   ResponseMessage,
   StreamingMessages,
-} from "@/features/message/components/xr";
-import { PAGE_SIZE } from "@/features/message/config";
-import useMessages from "@/features/message/hooks/use-messages";
+} from "@/features/messages/components/xr";
+import { PAGE_SIZE } from "@/features/messages/config";
+import useMessages from "@/features/messages/hooks/use-messages";
 import useXRThreadScroll from "@/features/thread/hooks/use-xr-thread-scroll";
 
 export default function XRThread({

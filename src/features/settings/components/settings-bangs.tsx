@@ -3,7 +3,7 @@
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
-import { markdownComponents } from "@/features/message/components/markdown-components";
+import { markdownComponents } from "@/features/messages/components/markdown-components";
 
 export default function SettingsBangs() {
   const bang = "```bash\nhttps://www.qbe.sh/new?q=%s\n```";

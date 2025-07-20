@@ -4,15 +4,15 @@ import { ChevronDown } from "lucide-react";
 import useThreadScroll from "./hooks/use-thread-scroll";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import "@/features/message/styles/github-dark.min.css";
-import "@/features/message/styles/message-styles.css";
+import "@/features/messages/styles/github-dark.min.css";
+import "@/features/messages/styles/message-styles.css";
 import { useEffect } from "react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
-import Messages from "@/features/message/components/messages";
-import StreamingMessages from "@/features/message/components/streaming-messages";
-import useMessages from "@/features/message/hooks/use-messages";
+import Messages from "@/features/messages/components/messages";
+import StreamingMessages from "@/features/messages/components/streaming-messages";
+import useMessages from "@/features/messages/hooks/use-messages";
 import useThreadStore from "@/features/thread/store";
 
 export default function Thread({ threadId }: { threadId: string }) {

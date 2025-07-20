@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ContainerRef } from "@react-three/uikit";
-import useMessageStore from "@/features/message/store";
+import useMessageStore from "@/features/messages/store";
 
 export default function useXRThreadScroll({ threadId }: { threadId: string }) {
   const ref = useRef<ContainerRef>(null);

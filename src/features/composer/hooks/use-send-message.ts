@@ -4,7 +4,7 @@ import { ConvexError } from "convex/values";
 import useComposerStore from "../store";
 import { tryCatch } from "@/lib/utils";
 import useUsage from "@/features/billing/hooks/use-usage";
-import useMessageStore from "@/features/message/store";
+import useMessageStore from "@/features/messages/store";
 import useThreadMutation from "@/features/thread/hooks/use-thread-mutation";
 import useThreadStatus from "@/features/thread/hooks/use-thread-status";
 import useThreadStore from "@/features/thread/store/thread-store";

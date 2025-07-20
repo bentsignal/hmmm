@@ -2,14 +2,14 @@
 
 import { MemoizedPrompt } from "./prompt-message";
 import { MemoizedResponse } from "./response-message";
-import "@/features/message/styles/github-dark.min.css";
-import "@/features/message/styles/message-styles.css";
+import "@/features/messages/styles/github-dark.min.css";
+import "@/features/messages/styles/message-styles.css";
 import { UIMessage } from "ai";
 import PageLoader from "@/components/page-loader";
 import {
   INVISIBLE_PAGE_LOADER_INDEX,
   PAGE_SIZE,
-} from "@/features/message/config";
+} from "@/features/messages/config";
 
 export default function Messages({
   messages,

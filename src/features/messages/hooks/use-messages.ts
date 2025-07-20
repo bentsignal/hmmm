@@ -1,7 +1,7 @@
 import { toUIMessages, useThreadMessages } from "@convex-dev/agent/react";
 import { useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { INITIAL_PAGE_SIZE } from "@/features/message/config";
+import { INITIAL_PAGE_SIZE } from "@/features/messages/config";
 
 export default function useMessages({
   threadId,

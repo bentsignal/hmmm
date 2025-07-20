@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { xrColors, xrStyles } from "@/styles/xr-styles";
 import { Text, TextProperties } from "@react-three/uikit";
-import { extractTextFromChildren } from "@/features/message/util/message-util";
+import { extractTextFromChildren } from "@/features/messages/util/message-util";
 
 export const TextElement = ({
   children,
