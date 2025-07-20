@@ -1,7 +1,6 @@
 "use client";
 
-import { MemoizedPrompt } from "./prompt-message";
-import { MemoizedResponse } from "./response-message";
+import Message from "./components/message";
 import "@/features/messages/styles/github-dark.min.css";
 import "@/features/messages/styles/message-styles.css";
 import { UIMessage } from "ai";
@@ -38,21 +37,3 @@ export default function Messages({
     ),
   );
 }
-
-export const Message = ({
-  message,
-  streaming,
-}: {
-  message: UIMessage;
-  streaming: boolean;
-}) => {
-  return (
-    <div className="w-full max-w-full">
-      {message.role === "user" ? (
-        <MemoizedPrompt message={message} />
-      ) : message.role === "assistant" && message.parts.length > 0 ? (
-        <MemoizedResponse message={message} streaming={streaming} />
-      ) : null}
-    </div>
-  );
-};

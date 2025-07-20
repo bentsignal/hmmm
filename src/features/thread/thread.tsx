@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
-import Messages from "@/features/messages/components/messages";
+import Messages from "@/features/messages";
 import StreamingMessages from "@/features/messages/components/streaming-messages";
 import useMessages from "@/features/messages/hooks/use-messages";
 import useThreadStore from "@/features/thread/store";

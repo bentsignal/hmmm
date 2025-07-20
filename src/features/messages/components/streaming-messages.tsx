@@ -1,7 +1,7 @@
 import { UIMessage } from "ai";
 import { Loader2 } from "lucide-react";
 import useStreamingMessages from "../hooks/use-streaming-messages";
-import { Message } from "./messages";
+import Message from "./message";
 import { cn } from "@/lib/utils";
 
 interface StreamingMessagesProps {
