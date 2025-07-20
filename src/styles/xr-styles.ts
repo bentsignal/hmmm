@@ -4,7 +4,7 @@ const base = 16;
 
 export const rem = (px: number) => base * px;
 
-const COLORS = {
+const colors = {
   background: "oklch(0.2 0 0)",
   foreground: "oklch(0.95 0 0)",
   card: "oklch(0.25 0 0)",
@@ -18,11 +18,11 @@ const COLORS = {
   destructive: "oklch(0.704 0.191 22.216)",
 };
 
-export const XR_COLORS = Object.fromEntries(
-  Object.entries(COLORS).map(([key, value]) => [key, oklchStringToHex(value)]),
+export const xrColors = Object.fromEntries(
+  Object.entries(colors).map(([key, value]) => [key, oklchStringToHex(value)]),
 );
 
-export const XR_STYLES = {
+export const xrStyles = {
   /** 16 * 0.25 = 4 */
   spacingSm: rem(0.25),
   /** 16 * 0.5 = 8 */

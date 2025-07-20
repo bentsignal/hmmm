@@ -1,4 +1,4 @@
-import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
+import { xrColors, xrStyles } from "@/styles/xr-styles";
 import { UIMessage, useSmoothText } from "@convex-dev/agent/react";
 import { Container, Text } from "@react-three/uikit";
 import { Brain } from "@react-three/uikit-lucide";
@@ -39,13 +39,13 @@ export default function XRResponseMessage({
   const isReasoning = streaming && getLatestPartType(message) === "reasoning";
   if (isReasoning) {
     return (
-      <Container alignItems="center" gap={XR_STYLES.spacingMd}>
+      <Container alignItems="center" gap={xrStyles.spacingMd}>
         <Brain
-          width={XR_STYLES.textMd}
-          height={XR_STYLES.textMd}
-          color={XR_COLORS.foreground}
+          width={xrStyles.textMd}
+          height={xrStyles.textMd}
+          color={xrColors.foreground}
         />
-        <Text color={XR_COLORS.foreground}>Reasoning...</Text>
+        <Text color={xrColors.foreground}>Reasoning...</Text>
       </Container>
     );
   }
@@ -62,7 +62,7 @@ const NoticeMessage = ({ code }: { code: SystemNoticeCode }) => (
 );
 
 const ErrorMessage = ({ code }: { code: SystemErrorCode }) => (
-  <TextElement color={XR_COLORS.destructive}>
+  <TextElement color={xrColors.destructive}>
     CODE: {code} An error occured while generating a response. Please try again.
   </TextElement>
 );

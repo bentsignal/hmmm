@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
+import { xrColors, xrStyles } from "@/styles/xr-styles";
 import { Container } from "@react-three/uikit";
 import { Button } from "@react-three/uikit-default";
 import { Maximize2, Minimize2, X } from "@react-three/uikit-lucide";
@@ -46,7 +46,7 @@ export default function XRThread({
       <Grabbable>
         <Container
           flexDirection="column"
-          gap={XR_STYLES.spacingMd}
+          gap={xrStyles.spacingMd}
           onHoverChange={(hovering) => setIsHovering(hovering)}
         >
           <ThreadControls
@@ -60,12 +60,12 @@ export default function XRThread({
             key={`${threadId}-${expanded}`}
             alignItems="center"
             justifyContent="flex-start"
-            gap={XR_STYLES.spacing3xl}
+            gap={xrStyles.spacing3xl}
             scrollRef={ref}
-            backgroundColor={XR_COLORS.card}
-            width={expanded ? XR_STYLES.containerLg : XR_STYLES.containerMd}
-            height={expanded ? XR_STYLES.container2xl : XR_STYLES.containerLg}
-            borderColor={isActiveThread ? XR_COLORS.primary : XR_COLORS.card}
+            backgroundColor={xrColors.card}
+            width={expanded ? xrStyles.containerLg : xrStyles.containerMd}
+            height={expanded ? xrStyles.container2xl : xrStyles.containerLg}
+            borderColor={isActiveThread ? xrColors.primary : xrColors.card}
             borderWidth={2}
             onClick={() => setActiveThread(threadId)}
             positionType="relative"
@@ -73,9 +73,9 @@ export default function XRThread({
             {status !== "Exhausted" && status !== "LoadingFirstPage" && (
               <Button
                 onClick={() => loadMore(PAGE_SIZE)}
-                borderRadius={XR_STYLES.radiusLg}
+                borderRadius={xrStyles.radiusLg}
               >
-                <TextElement color={XR_COLORS.card} textAlign="center">
+                <TextElement color={xrColors.card} textAlign="center">
                   Load More
                 </TextElement>
               </Button>
@@ -112,21 +112,21 @@ const ThreadControls = ({
 }) => {
   const removeXrThread = useThreadStore((state) => state.removeXrThread);
   const iconStyles = {
-    width: XR_STYLES.textMd,
-    height: XR_STYLES.textMd,
-    color: XR_COLORS.primary,
-    padding: XR_STYLES.spacingSm,
-    borderRadius: XR_STYLES.radiusLg,
+    width: xrStyles.textMd,
+    height: xrStyles.textMd,
+    color: xrColors.primary,
+    padding: xrStyles.spacingSm,
+    borderRadius: xrStyles.radiusLg,
     opacity: isHovering ? 1 : 0,
     hover: {
-      backgroundColor: XR_COLORS.card,
+      backgroundColor: xrColors.card,
     },
   };
   return (
     <Container
       alignItems="center"
       justifyContent="flex-end"
-      gap={XR_STYLES.spacingSm}
+      gap={xrStyles.spacingSm}
     >
       {expanded ? (
         <Minimize2 {...iconStyles} onClick={toggleExpanded} />

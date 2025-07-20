@@ -1,11 +1,11 @@
 import { ReactNode } from "react";
-import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
+import { xrColors, xrStyles } from "@/styles/xr-styles";
 import { Text, TextProperties } from "@react-three/uikit";
 import { extractTextFromChildren } from "@/features/message/util/message-util";
 
 export const TextElement = ({
   children,
-  color = XR_COLORS.foreground,
+  color = xrColors.foreground,
   ...props
 }: {
   children: ReactNode;
@@ -32,7 +32,7 @@ export const H1 = ({
   children,
   ...props
 }: { children: ReactNode } & TextProperties) => (
-  <Heading size={XR_STYLES.text2xl} {...props}>
+  <Heading size={xrStyles.text2xl} {...props}>
     {children}
   </Heading>
 );
@@ -41,7 +41,7 @@ export const H2 = ({
   children,
   ...props
 }: { children: ReactNode } & TextProperties) => (
-  <Heading size={XR_STYLES.textXl} {...props}>
+  <Heading size={xrStyles.textXl} {...props}>
     {children}
   </Heading>
 );
@@ -50,7 +50,7 @@ export const H3 = ({
   children,
   ...props
 }: { children: ReactNode } & TextProperties) => (
-  <Heading size={XR_STYLES.textMd} {...props}>
+  <Heading size={xrStyles.textMd} {...props}>
     {children}
   </Heading>
 );
@@ -59,7 +59,7 @@ export const H4 = ({
   children,
   ...props
 }: { children: ReactNode } & TextProperties) => (
-  <Heading size={XR_STYLES.textSm} {...props}>
+  <Heading size={xrStyles.textSm} {...props}>
     {children}
   </Heading>
 );
@@ -68,7 +68,7 @@ export const H5 = ({
   children,
   ...props
 }: { children: ReactNode } & TextProperties) => (
-  <Heading size={XR_STYLES.textXs} {...props}>
+  <Heading size={xrStyles.textXs} {...props}>
     {children}
   </Heading>
 );
@@ -77,7 +77,7 @@ export const H6 = ({
   children,
   ...props
 }: { children: ReactNode } & TextProperties) => (
-  <Heading size={XR_STYLES.textXs - 2} {...props}>
+  <Heading size={xrStyles.textXs - 2} {...props}>
     {children}
   </Heading>
 );

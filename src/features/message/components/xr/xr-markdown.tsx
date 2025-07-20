@@ -1,4 +1,4 @@
-import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
+import { xrColors, xrStyles } from "@/styles/xr-styles";
 import { Container } from "@react-three/uikit";
 import type { Schema } from "hast-util-sanitize";
 import ReactMarkdown, { Components } from "react-markdown";
@@ -11,7 +11,7 @@ export default function XRMarkdown({ content }: { content: string }) {
       flexDirection="column"
       flexShrink={0}
       width="100%"
-      gap={XR_STYLES.spacingLg}
+      gap={xrStyles.spacingLg}
     >
       <ReactMarkdown
         rehypePlugins={[[rehypeSanitize, sanitizeSchema]]}
@@ -46,8 +46,8 @@ const List = ({ children }: { children: React.ReactNode }) => (
     flexDirection="column"
     flexShrink={0}
     width="100%"
-    gap={XR_STYLES.spacingMd}
-    paddingLeft={XR_STYLES.spacingMd}
+    gap={xrStyles.spacingMd}
+    paddingLeft={xrStyles.spacingMd}
   >
     {children}
   </Container>
@@ -68,12 +68,12 @@ const markdownComponents: Partial<Components> = {
   h5: ({ children }) => <H5>{children}</H5>,
   h6: ({ children }) => <H6>{children}</H6>,
   code: () => (
-    <TextElement color={XR_COLORS.destructive}>
+    <TextElement color={xrColors.destructive}>
       Currently unable to render code. Please view in the browser.
     </TextElement>
   ),
   table: () => (
-    <TextElement color={XR_COLORS.destructive}>
+    <TextElement color={xrColors.destructive}>
       Currently unable to render tables. Please view in the browser.
     </TextElement>
   ),

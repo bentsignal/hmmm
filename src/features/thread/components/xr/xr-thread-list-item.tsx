@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
+import { xrColors, xrStyles } from "@/styles/xr-styles";
 import { Container, Text } from "@react-three/uikit";
 import { Brain, ExternalLink } from "@react-three/uikit-lucide";
 import useThreadStore from "../../store";
@@ -21,11 +21,11 @@ export default function XRThreadListItem({ thread }: { thread: Thread }) {
         flexShrink={0}
         alignItems="center"
         justifyContent="flex-start"
-        gap={XR_STYLES.spacingMd}
-        paddingY={XR_STYLES.spacingMd}
-        paddingLeft={XR_STYLES.spacingMd}
-        borderLeftRadius={XR_STYLES.radiusMd}
-        backgroundColor={isHovered ? XR_COLORS.accent : XR_COLORS.card}
+        gap={xrStyles.spacingMd}
+        paddingY={xrStyles.spacingMd}
+        paddingLeft={xrStyles.spacingMd}
+        borderLeftRadius={xrStyles.radiusMd}
+        backgroundColor={isHovered ? xrColors.accent : xrColors.card}
         onClick={() => {
           setActiveThread(thread.id);
           setMainThread(thread);
@@ -33,21 +33,21 @@ export default function XRThreadListItem({ thread }: { thread: Thread }) {
       >
         {(thread.status === "streaming" || thread.status === "waiting") && (
           <Brain
-            width={XR_STYLES.textMd}
-            height={XR_STYLES.textMd}
-            color={XR_COLORS.foreground}
+            width={xrStyles.textMd}
+            height={xrStyles.textMd}
+            color={xrColors.foreground}
           />
         )}
-        <Text color={XR_COLORS.foreground}>
+        <Text color={xrColors.foreground}>
           {thread.title === "New Chat" ? "" : thread.title}
         </Text>
       </Container>
       <Container
-        backgroundColor={isHovered ? XR_COLORS.accent : XR_COLORS.card}
-        paddingY={XR_STYLES.spacingMd}
-        paddingRight={XR_STYLES.spacingMd}
-        borderRightRadius={XR_STYLES.radiusMd}
-        minWidth={XR_STYLES.textLg}
+        backgroundColor={isHovered ? xrColors.accent : xrColors.card}
+        paddingY={xrStyles.spacingMd}
+        paddingRight={xrStyles.spacingMd}
+        borderRightRadius={xrStyles.radiusMd}
+        minWidth={xrStyles.textLg}
         alignItems="center"
         onClick={() => {
           setActiveThread(thread.id);
@@ -56,9 +56,9 @@ export default function XRThreadListItem({ thread }: { thread: Thread }) {
         display={isHovered ? "flex" : "none"}
       >
         <ExternalLink
-          width={XR_STYLES.textLg}
-          height={XR_STYLES.textLg}
-          color={XR_COLORS.foreground}
+          width={xrStyles.textLg}
+          height={xrStyles.textLg}
+          color={xrColors.foreground}
         />
       </Container>
     </Container>

@@ -1,5 +1,5 @@
 import { Ref } from "react";
-import { XR_COLORS, XR_STYLES } from "@/styles/xr-styles";
+import { xrColors, xrStyles } from "@/styles/xr-styles";
 import {
   Container,
   ContainerProperties,
@@ -20,24 +20,24 @@ export default function XRCustomContainer({
 } & ContainerProperties) {
   return (
     <Container
-      backgroundColor={XR_COLORS.card}
+      backgroundColor={xrColors.card}
       flexDirection="column"
-      padding={XR_STYLES.spacingXl}
-      borderRadius={XR_STYLES.radiusLg}
+      padding={xrStyles.spacingXl}
+      borderRadius={xrStyles.radiusLg}
       castShadow
-      width={XR_STYLES.containerMd}
+      width={xrStyles.containerMd}
       height={500}
-      gap={header ? XR_STYLES.spacingLg : 0}
+      gap={header ? xrStyles.spacingLg : 0}
       {...props}
     >
       {header}
       <Container
         width="100%"
         flexDirection="column"
-        gap={gap || XR_STYLES.spacingMd}
+        gap={gap || xrStyles.spacingMd}
         overflow="scroll"
-        scrollbarBorderRadius={XR_STYLES.radiusSm}
-        paddingRight={XR_STYLES.radiusLg}
+        scrollbarBorderRadius={xrStyles.radiusSm}
+        paddingRight={xrStyles.radiusLg}
         ref={scrollRef}
       >
         {children}
