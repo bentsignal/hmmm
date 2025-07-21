@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useThreadMutation from "../hooks/use-thread-mutation";
 import useThreadStore from "../store";
 import * as Alert from "@/components/ui/alert-dialog";
@@ -15,6 +15,10 @@ export default function ThreadRenameModal() {
 
   const [newThreadName, setNewThreadName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setNewThreadName(hoveredThread?.title ?? "");
+  }, [hoveredThread?.title]);
 
   return (
     <Alert.AlertDialog
@@ -43,7 +47,7 @@ export default function ThreadRenameModal() {
             ref={inputRef}
             value={newThreadName}
             onChange={(e) => setNewThreadName(e.target.value)}
-            placeholder={`${hoveredThread?.title ?? "Enter a new name..."}`}
+            placeholder="Enter a new name..."
           />
         </Alert.AlertDialogDescription>
         <Alert.AlertDialogFooter>
