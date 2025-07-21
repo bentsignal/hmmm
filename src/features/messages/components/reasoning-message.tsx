@@ -6,6 +6,7 @@ import {
   getLatestPartType,
 } from "../util/message-util";
 import { markdownComponents } from "./markdown-components";
+import Abyss from "@/components/abyss";
 import {
   HoverCard,
   HoverCardContent,
@@ -36,8 +37,10 @@ export default function ReasoningMessage({
   // auto scroll to bottom when actively reasoning
   useEffect(() => {
     if (isReasoning && scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop =
-        scrollContainerRef.current.scrollHeight;
+      scrollContainerRef.current.scrollTo({
+        top: Math.max(scrollContainerRef.current.scrollHeight - 500, 0),
+        behavior: "smooth",
+      });
     }
   }, [text, isReasoning]);
 
@@ -53,22 +56,29 @@ export default function ReasoningMessage({
           </div>
         </HoverCardTrigger>
         <HoverCardContent
-          ref={scrollContainerRef}
           className={cn(
-            "bg-card prose dark:prose-invert scrollbar-thin",
-            "scrollbar-thumb-border scrollbar-track-transparent relative",
-            "mt-2 max-h-96 w-full max-w-72 overflow-y-auto rounded-md border",
-            "p-4 sm:max-w-2xl",
-            isReasoning && "overflow-y-hidden",
+            "bg-card prose dark:prose-invert relative",
+            "mt-2 max-h-96 w-full max-w-24 rounded-md border",
+            "p-0 sm:max-w-2xl rounded-4xl overflow-hidden",
           )}
           align="start"
         >
-          <Markdown
-            className="prose dark:prose-invert relative w-full max-w-full"
-            components={markdownComponents}
+          <Abyss bgColor="card" height={100} maskStart={20} maskEnd={80} />
+          <div
+            ref={scrollContainerRef}
+            className={cn(
+              "scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent",
+              "max-h-96 w-full overflow-y-auto px-8 py-12",
+              isReasoning && "overflow-y-hidden select-none",
+            )}
           >
-            {text}
-          </Markdown>
+            <Markdown
+              className="prose dark:prose-invert relative w-full max-w-full"
+              components={markdownComponents}
+            >
+              {text}
+            </Markdown>
+          </div>
         </HoverCardContent>
       </HoverCard>
     </div>

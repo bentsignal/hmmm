@@ -9,6 +9,7 @@ import "@/features/messages/styles/message-styles.css";
 import { useEffect } from "react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import Abyss from "@/components/abyss";
 import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
 import Messages from "@/features/messages";
 import StreamingMessages from "@/features/messages/components/streaming-messages";
@@ -45,6 +46,7 @@ export default function Thread({ threadId }: { threadId: string }) {
 
   return (
     <div className="relative h-full w-full flex flex-1 flex-col items-center justify-start">
+      <Abyss />
       <ScrollArea ref={scrollAreaRef} className="h-full w-full">
         <div
           className="flex h-full w-full max-w-4xl place-self-center mx-auto
