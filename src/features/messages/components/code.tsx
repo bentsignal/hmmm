@@ -10,7 +10,7 @@ interface CodeProps {
   children: ReactNode;
 }
 
-export function Code({ inline, className, children, ...props }: CodeProps) {
+export function Code({ inline, className, children }: CodeProps) {
   const { theme } = useTheme();
   const isBlock = !inline && (className?.includes("language-") || false);
 
@@ -23,7 +23,7 @@ export function Code({ inline, className, children, ...props }: CodeProps) {
         >
           <CopyButton getContent={() => extractTextFromChildren(children)} />
         </div>
-        <CodeBlock className="">
+        <CodeBlock className="p-6">
           <CodeBlockCode
             code={children?.toString() ?? ""}
             theme={theme === "dark" ? "github-dark" : "github-light"}
@@ -33,13 +33,14 @@ export function Code({ inline, className, children, ...props }: CodeProps) {
     );
   }
   return (
-    <pre className="not-prose inline-flex">
-      <code
-        className={`${className || ""} bg-card rounded-md border border-border p-2 my-0.5 font-mono text-sm font-bold whitespace-pre-wrap`}
-        {...props}
-      >
-        {children}
-      </code>
-    </pre>
+    <div className="not-prose inline-flex">
+      <CodeBlock className="px-2 py-1 rounded-md">
+        <CodeBlockCode
+          code={children?.toString() ?? ""}
+          theme={theme === "dark" ? "github-dark" : "github-light"}
+          className="text-sm"
+        />
+      </CodeBlock>
+    </div>
   );
 }
