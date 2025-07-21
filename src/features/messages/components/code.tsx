@@ -10,23 +10,36 @@ interface CodeProps {
   children: ReactNode;
 }
 
-export function Code({ children }: CodeProps) {
+export function Code({ inline, className, children, ...props }: CodeProps) {
   const { theme } = useTheme();
+  const isBlock = !inline && (className?.includes("language-") || false);
 
-  return (
-    <div className="not-prose w-full relative my-2 group">
-      <div
-        className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 
+  if (isBlock) {
+    return (
+      <div className="not-prose w-full relative my-2 group">
+        <div
+          className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 
         transition-opacity duration-300"
-      >
-        <CopyButton getContent={() => extractTextFromChildren(children)} />
+        >
+          <CopyButton getContent={() => extractTextFromChildren(children)} />
+        </div>
+        <CodeBlock>
+          <CodeBlockCode
+            code={children?.toString() ?? ""}
+            theme={theme === "dark" ? "github-dark" : "github-light"}
+          />
+        </CodeBlock>
       </div>
-      <CodeBlock>
-        <CodeBlockCode
-          code={children?.toString() ?? ""}
-          theme={theme === "dark" ? "github-dark" : "github-light"}
-        />
-      </CodeBlock>
-    </div>
+    );
+  }
+  return (
+    <pre className="not-prose inline-flex">
+      <code
+        className={`${className || ""} bg-card rounded-md p-2 font-mono text-sm font-bold whitespace-pre-wrap`}
+        {...props}
+      >
+        {children}
+      </code>
+    </pre>
   );
 }
