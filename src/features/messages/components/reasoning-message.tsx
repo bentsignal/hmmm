@@ -9,7 +9,13 @@ import {
   getLatestPartType,
 } from "../util/message-util";
 import { markdownComponents } from "./markdown-components";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { TextShimmer } from "@/components/ui/loader";
+import { Markdown } from "@/components/ui/markdown";
 import { cn } from "@/lib/utils";
 
 interface ReasoningMessageProps {
@@ -21,8 +27,6 @@ export default function ReasoningMessage({
   message,
   streaming,
 }: ReasoningMessageProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
   // animate the reasoning label when the model is thinking
   const isReasoning = streaming && getLatestPartType(message) === "reasoning";
 
@@ -34,29 +38,28 @@ export default function ReasoningMessage({
 
   return (
     <div className="my-4 flex w-full flex-col items-start gap-2">
-      <div
-        className={cn("flex items-center gap-2", "cursor-pointer")}
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <Brain className="h-4 w-4" />
-        <TextShimmer active={isReasoning} text="Reasoning" />
-      </div>
-      {isOpen && (
-        <div
+      <HoverCard openDelay={100} closeDelay={100}>
+        <HoverCardTrigger>
+          <div className={cn("flex items-center gap-2", "cursor-pointer")}>
+            <Brain className="h-4 w-4" />
+            <TextShimmer active={isReasoning} text="Reasoning" />
+          </div>
+        </HoverCardTrigger>
+        <HoverCardContent
           className="bg-card prose dark:prose-invert scrollbar-thin
           scrollbar-thumb-background scrollbar-track-transparent relative 
           mt-2 max-h-96 w-full max-w-72 overflow-y-auto rounded-md border 
-          p-4 sm:max-w-full"
+          p-4 sm:max-w-2xl"
+          align="start"
         >
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeHighlight]}
+          <Markdown
+            className="prose dark:prose-invert relative w-full max-w-full"
             components={markdownComponents}
           >
             {text}
-          </ReactMarkdown>
-        </div>
-      )}
+          </Markdown>
+        </HoverCardContent>
+      </HoverCard>
     </div>
   );
 }
