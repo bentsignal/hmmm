@@ -4,8 +4,6 @@ import "./globals.css";
 import Providers from "@/providers";
 import { Toaster } from "sonner";
 
-// import ReactScan from "@/components/react-scan";
-
 const inter = Inter({
   variable: "--font-inter",
   weight: "variable",
@@ -29,9 +27,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      {/* <head>
-        <ReactScan />
-      </head> */}
+      <head>
+        {/* REACT SCAN */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        {/* <script
+          crossOrigin="anonymous"
+          src="//unpkg.com/react-scan/dist/auto.global.js"
+        /> */}
+      </head>
       <body
         className={`${inter.variable} ${robotoMono.variable} font-main antialiased`}
       >
