@@ -47,7 +47,16 @@ function CodeBlockCode({
         return
       }
 
-      const html = await codeToHtml(code, { lang: language, theme })
+      const html = await codeToHtml(code, { lang: language, theme, transformers: [
+        {
+          pre(node) {
+              node.properties.style = undefined;
+          },
+          code(node) {
+            node.properties.style = undefined;
+          }
+        }
+      ] })
       setHighlightedHtml(html)
     }
     highlight()

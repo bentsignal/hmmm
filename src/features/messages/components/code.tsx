@@ -19,7 +19,7 @@ export function Code({ inline, className, children, ...props }: CodeProps) {
       <div className="not-prose w-full relative my-2 group">
         <div
           className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 
-        transition-opacity duration-300"
+          transition-opacity duration-300"
         >
           <CopyButton getContent={() => extractTextFromChildren(children)} />
         </div>
@@ -35,7 +35,7 @@ export function Code({ inline, className, children, ...props }: CodeProps) {
   return (
     <pre className="not-prose inline-flex">
       <code
-        className={`${className || ""} bg-card rounded-md p-2 my-0.5 font-mono text-sm font-bold whitespace-pre-wrap`}
+        className={`${className || ""} bg-card rounded-md border border-border p-2 my-0.5 font-mono text-sm font-bold whitespace-pre-wrap`}
         {...props}
       >
         {children}
