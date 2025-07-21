@@ -17,7 +17,6 @@ import {
   Strategy,
   SupportedStrategy,
 } from "@clerk/elements/sign-in";
-import { Loader } from "lucide-react";
 import { useTheme } from "next-themes";
 import DefaultLoading from "@/components/default-loading";
 import Logo from "@/components/logo";
@@ -32,6 +31,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input as UIInput } from "@/components/ui/input";
+import { Loader } from "@/components/ui/loader";
 
 export default function SignInComponent() {
   const { theme } = useTheme();
@@ -63,7 +63,7 @@ export default function SignInComponent() {
                         <Loading scope="provider:google">
                           {(isLoading) =>
                             isLoading ? (
-                              <Loader className="size-4 animate-spin" />
+                              <Loader variant="dots" size="sm" />
                             ) : (
                               <div className="flex items-center gap-x-2">
                                 <SimpleIcon
@@ -90,7 +90,7 @@ export default function SignInComponent() {
                         <Loading>
                           {(isLoading) => {
                             return isLoading ? (
-                              <Loader className="size-4 animate-spin" />
+                              <Loader variant="dots" size="sm" />
                             ) : (
                               <div className="flex items-center gap-x-2">
                                 <KeyRound className="size-4" />
@@ -118,7 +118,7 @@ export default function SignInComponent() {
                         <Loading>
                           {(isLoading) => {
                             return isLoading ? (
-                              <Loader className="size-4 animate-spin" />
+                              <Loader variant="dots" size="sm" />
                             ) : (
                               "Sign in"
                             );
@@ -177,7 +177,7 @@ export default function SignInComponent() {
                           <Loading>
                             {(isLoading) => {
                               return isLoading ? (
-                                <Loader className="size-4 animate-spin" />
+                                <Loader variant="dots" size="sm" />
                               ) : (
                                 <div className="flex items-center gap-x-2">
                                   <KeyRound className="size-4" />
@@ -260,7 +260,7 @@ export default function SignInComponent() {
                             <Loading>
                               {(isLoading) => {
                                 return isLoading ? (
-                                  <Loader className="size-4 animate-spin" />
+                                  <Loader variant="dots" size="sm" />
                                 ) : (
                                   "Continue"
                                 );

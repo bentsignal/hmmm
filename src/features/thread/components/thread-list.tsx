@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import useThreadList from "../hooks/use-thread-list";
 import NewThreadButton from "./new-thread-button";
@@ -12,6 +11,7 @@ import ThreadRenameModal from "./thread-rename-modal";
 import PageLoader from "@/components/page-loader";
 import * as ContextMenu from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
+import { Loader } from "@/components/ui/loader";
 import {
   Sidebar,
   SidebarContent,
@@ -87,7 +87,7 @@ export default function ThreadList() {
         </SidebarMenu>
         <PageLoader status={status} loadMore={loadMoreThreads}>
           {status !== "Exhausted" && status !== "LoadingFirstPage" && (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader variant="dots" size="sm" />
           )}
         </PageLoader>
         <ThreadDeleteModal />

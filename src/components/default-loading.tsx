@@ -1,9 +1,9 @@
-import { Loader } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 
 export default function DefaultLoading() {
   return (
     <div className="flex h-full w-full flex-col items-center justify-center">
-      <Loader className="h-6 w-6 animate-spin" />
+      <Loader variant="dots" size="sm" />
     </div>
   );
 }

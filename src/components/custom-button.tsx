@@ -1,5 +1,5 @@
-import { Loader } from "lucide-react";
 import { Button } from "./ui/button";
+import { Loader } from "./ui/loader";
 import { cn } from "@/lib/utils";
 
 export default function CustomButton({
@@ -30,11 +30,7 @@ export default function CustomButton({
       disabled={loading || disabled}
       onClick={onClick}
     >
-      {loading ? (
-        <Loader className="h-4 w-4 animate-spin" />
-      ) : (
-        (label ?? "Save")
-      )}
+      {loading ? <Loader variant="dots" size="sm" /> : (label ?? "Save")}
     </Button>
   );
 }

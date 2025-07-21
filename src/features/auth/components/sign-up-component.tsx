@@ -10,7 +10,6 @@ import {
   Loading,
 } from "@clerk/elements/common";
 import { Action, Captcha, Root, Step, Strategy } from "@clerk/elements/sign-up";
-import { Loader } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 // import { Label as UILabel } from "@/components/ui/label";
@@ -27,6 +26,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input as UIInput } from "@/components/ui/input";
+import { Loader } from "@/components/ui/loader";
 
 export default function SignUpComponent() {
   const { theme } = useTheme();
@@ -60,7 +60,7 @@ export default function SignUpComponent() {
                         <Loading scope="provider:google">
                           {(isLoading) =>
                             isLoading ? (
-                              <Loader className="size-4 animate-spin" />
+                              <Loader variant="dots" size="sm" />
                             ) : (
                               <div className="flex items-center gap-x-2">
                                 <SimpleIcon
@@ -94,7 +94,7 @@ export default function SignUpComponent() {
                         <Loading>
                           {(isLoading) => {
                             return isLoading ? (
-                              <Loader className="size-4 animate-spin" />
+                              <Loader variant="dots" size="sm" />
                             ) : (
                               "Sign up"
                             );
@@ -192,7 +192,7 @@ export default function SignUpComponent() {
                             <Loading>
                               {(isLoading) => {
                                 return isLoading ? (
-                                  <Loader className="size-4 animate-spin" />
+                                  <Loader variant="dots" size="sm" />
                                 ) : (
                                   "Continue"
                                 );

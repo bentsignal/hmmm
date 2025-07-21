@@ -1,6 +1,7 @@
-import { Loader2, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import useSendMessage from "../hooks/use-send-message";
 import { Button } from "@/components/ui/button";
+import { Loader } from "@/components/ui/loader";
 
 export default function ComposerSend({
   showInstantLoad,
@@ -19,7 +20,7 @@ export default function ComposerSend({
       className="shrink-0"
     >
       {isLoading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <Loader variant="dots" size="sm" />
       ) : (
         <Send className="h-4 w-4" />
       )}

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Box, Loader2 } from "lucide-react";
+import { Box } from "lucide-react";
 import Link from "next/link";
 import ErrorBoundary from "@/components/error-boundary";
 import { Button } from "@/components/ui/button";
+import { Loader } from "@/components/ui/loader";
 import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
 import Composer from "@/features/composer";
 
@@ -15,7 +16,7 @@ export default function Home() {
   if (isLoading) {
     return (
       <div className="flex h-full w-full items-center justify-center">
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <Loader variant="dots" size="sm" />
       </div>
     );
   }
