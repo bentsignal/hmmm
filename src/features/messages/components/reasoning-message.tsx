@@ -1,9 +1,6 @@
-import { memo, useState } from "react";
+import { memo, useEffect, useRef } from "react";
 import { UIMessage, useSmoothText } from "@convex-dev/agent/react";
 import { Brain } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import rehypeHighlight from "rehype-highlight";
-import remarkGfm from "remark-gfm";
 import {
   extractReasoningFromMessage,
   getLatestPartType,
@@ -34,11 +31,21 @@ export default function ReasoningMessage({
   const content = extractReasoningFromMessage(message);
   const [text] = useSmoothText(content);
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // auto scroll to bottom when actively reasoning
+  useEffect(() => {
+    if (isReasoning && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop =
+        scrollContainerRef.current.scrollHeight;
+    }
+  }, [text, isReasoning]);
+
   if (content.length === 0) return null;
 
   return (
     <div className="my-4 flex w-full flex-col items-start gap-2">
-      <HoverCard openDelay={100} closeDelay={100}>
+      <HoverCard openDelay={200} closeDelay={200}>
         <HoverCardTrigger>
           <div className={cn("flex items-center gap-2", "cursor-pointer")}>
             <Brain className="h-4 w-4" />
@@ -46,10 +53,14 @@ export default function ReasoningMessage({
           </div>
         </HoverCardTrigger>
         <HoverCardContent
-          className="bg-card prose dark:prose-invert scrollbar-thin
-          scrollbar-thumb-background scrollbar-track-transparent relative 
-          mt-2 max-h-96 w-full max-w-72 overflow-y-auto rounded-md border 
-          p-4 sm:max-w-2xl"
+          ref={scrollContainerRef}
+          className={cn(
+            "bg-card prose dark:prose-invert scrollbar-thin",
+            "scrollbar-thumb-background scrollbar-track-transparent relative",
+            "mt-2 max-h-96 w-full max-w-72 overflow-y-auto rounded-md border",
+            "p-4 sm:max-w-2xl",
+            isReasoning && "overflow-y-hidden",
+          )}
           align="start"
         >
           <Markdown
