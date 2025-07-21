@@ -18,12 +18,12 @@ export function Code({ inline, className, children, ...props }: CodeProps) {
     return (
       <div className="not-prose w-full relative my-2 group">
         <div
-          className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 
+          className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 
           transition-opacity duration-300"
         >
           <CopyButton getContent={() => extractTextFromChildren(children)} />
         </div>
-        <CodeBlock>
+        <CodeBlock className="">
           <CodeBlockCode
             code={children?.toString() ?? ""}
             theme={theme === "dark" ? "github-dark" : "github-light"}

@@ -56,7 +56,7 @@ export default function ReasoningMessage({
           ref={scrollContainerRef}
           className={cn(
             "bg-card prose dark:prose-invert scrollbar-thin",
-            "scrollbar-thumb-background scrollbar-track-transparent relative",
+            "scrollbar-thumb-border scrollbar-track-transparent relative",
             "mt-2 max-h-96 w-full max-w-72 overflow-y-auto rounded-md border",
             "p-4 sm:max-w-2xl",
             isReasoning && "overflow-y-hidden",
