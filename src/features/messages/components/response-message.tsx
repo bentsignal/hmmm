@@ -1,6 +1,5 @@
 import { memo } from "react";
-import { useSmoothText } from "@convex-dev/agent/react";
-import { UIMessage } from "ai";
+import { UIMessage, useSmoothText } from "@convex-dev/agent/react";
 import { Info } from "lucide-react";
 import { isErrorMessage, isNoticeMessage } from "../util/message-util";
 import { CopyButton } from "./copy-button";

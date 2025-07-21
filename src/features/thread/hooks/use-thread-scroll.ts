@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { UIMessage } from "ai";
+import { UIMessage } from "@convex-dev/agent/react";
 import useMessageStore from "@/features/messages/store";
 
 export default function useThreadScroll({

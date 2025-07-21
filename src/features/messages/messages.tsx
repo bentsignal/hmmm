@@ -3,7 +3,7 @@
 import Message from "./components/message";
 import "@/features/messages/styles/github-dark.min.css";
 import "@/features/messages/styles/message-styles.css";
-import { UIMessage } from "ai";
+import { UIMessage } from "@convex-dev/agent/react";
 import PageLoader from "@/components/page-loader";
 import {
   INVISIBLE_PAGE_LOADER_INDEX,

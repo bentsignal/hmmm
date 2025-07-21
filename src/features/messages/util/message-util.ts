@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { UIMessage } from "ai";
+import { UIMessage } from "@convex-dev/agent/react";
 import {
   SystemErrorCode,
   SystemErrorLabel,

@@ -1,6 +1,6 @@
 import { xrColors, xrStyles } from "@/styles/xr-styles";
+import { UIMessage } from "@convex-dev/agent/react";
 import { Text } from "@react-three/uikit";
-import { UIMessage } from "ai";
 
 export default function XRPromptMessage({ message }: { message: UIMessage }) {
   return (

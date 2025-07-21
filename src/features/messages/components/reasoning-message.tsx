@@ -1,6 +1,5 @@
 import { memo, useState } from "react";
-import { useSmoothText } from "@convex-dev/agent/react";
-import { UIMessage } from "ai";
+import { UIMessage, useSmoothText } from "@convex-dev/agent/react";
 import { Brain } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";

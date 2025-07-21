@@ -1,6 +1,9 @@
 import { useState } from "react";
-import { toUIMessages, useThreadMessages } from "@convex-dev/agent/react";
-import { UIMessage } from "ai";
+import {
+  toUIMessages,
+  UIMessage,
+  useThreadMessages,
+} from "@convex-dev/agent/react";
 import { useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import useMessageStore from "../store/message-store";

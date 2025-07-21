@@ -1,5 +1,5 @@
+import { UIMessage } from "@convex-dev/agent/react";
 import { Container } from "@react-three/uikit";
-import { UIMessage } from "ai";
 import { PromptMessage, ResponseMessage } from ".";
 import useStreamingMessages from "../../hooks/use-streaming-messages";
 import { TextElement } from "@/components/xr";

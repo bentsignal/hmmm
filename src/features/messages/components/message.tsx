@@ -1,4 +1,4 @@
-import { UIMessage } from "ai";
+import { UIMessage } from "@convex-dev/agent/react";
 import { MemoizedPrompt } from "./prompt-message";
 import { MemoizedResponse } from "./response-message";
 

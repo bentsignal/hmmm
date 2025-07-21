@@ -1,4 +1,4 @@
-import { UIMessage } from "ai";
+import { UIMessage } from "@convex-dev/agent/react";
 import useStreamingMessages from "../hooks/use-streaming-messages";
 import Message from "./message";
 import { Loader } from "@/components/ui/loader";
