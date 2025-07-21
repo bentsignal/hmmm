@@ -33,39 +33,39 @@ export const markdownComponents: Partial<Components> = {
       </a>
     );
   },
-  table: ({ children, ...props }) => {
-    return (
-      <div className="bg-card mt-6 mb-2 w-full overflow-hidden rounded-xl border">
-        <table className="!m-0 w-full rounded-xl" {...props}>
-          {children}
-        </table>
-      </div>
-    );
-  },
-  tr: ({ children, ...props }) => {
-    return (
-      <tr className="!border-0" {...props}>
-        {children}
-      </tr>
-    );
-  },
-  td: ({ children, ...props }) => {
-    return (
-      <td className="rounded-xl p-2 text-xs sm:p-4 sm:text-sm" {...props}>
-        {children}
-      </td>
-    );
-  },
-  th: ({ children, ...props }) => {
-    return (
-      <th
-        className="rounded-xl p-2 text-left text-sm font-bold sm:p-4 sm:text-lg"
-        {...props}
-      >
-        {children}
-      </th>
-    );
-  },
+  // table: ({ children, ...props }) => {
+  //   return (
+  //     <div className="bg-card mt-6 mb-2 w-full overflow-hidden rounded-xl border">
+  //       <table className="!m-0 w-full rounded-xl" {...props}>
+  //         {children}
+  //       </table>
+  //     </div>
+  //   );
+  // },
+  // tr: ({ children, ...props }) => {
+  //   return (
+  //     <tr className="!border-0" {...props}>
+  //       {children}
+  //     </tr>
+  //   );
+  // },
+  // td: ({ children, ...props }) => {
+  //   return (
+  //     <td className="rounded-xl p-2 text-xs sm:p-4 sm:text-sm" {...props}>
+  //       {children}
+  //     </td>
+  //   );
+  // },
+  // th: ({ children, ...props }) => {
+  //   return (
+  //     <th
+  //       className="rounded-xl p-2 text-left text-sm font-bold sm:p-4 sm:text-lg"
+  //       {...props}
+  //     >
+  //       {children}
+  //     </th>
+  //   );
+  // },
   h1: ({ children, ...props }) => {
     return (
       <h1 className="mt-6 mb-2 text-3xl font-semibold" {...props}>
