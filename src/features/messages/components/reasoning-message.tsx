@@ -1,7 +1,7 @@
 import { memo, useState } from "react";
 import { useSmoothText } from "@convex-dev/agent/react";
 import { UIMessage } from "ai";
-import { Brain, ChevronDown, ChevronRight } from "lucide-react";
+import { Brain } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
@@ -10,6 +10,7 @@ import {
   getLatestPartType,
 } from "../util/message-util";
 import { markdownComponents } from "./markdown-components";
+import { TextShimmer } from "@/components/ui/loader";
 import { cn } from "@/lib/utils";
 
 interface ReasoningMessageProps {
@@ -38,20 +39,8 @@ export default function ReasoningMessage({
         className={cn("flex items-center gap-2", "cursor-pointer")}
         onClick={() => setIsOpen(!isOpen)}
       >
-        {isOpen ? (
-          <ChevronDown className="h-4 w-4" />
-        ) : (
-          <ChevronRight className="h-4 w-4 " />
-        )}
-        <span
-          className={cn(
-            "mr-1 flex items-center gap-2 font-semibold",
-            isReasoning && "animate-pulse",
-          )}
-        >
-          <Brain className="h-4 w-4" />
-          Reasoning
-        </span>
+        <Brain className="h-4 w-4" />
+        <TextShimmer active={isReasoning} text="Reasoning" />
       </div>
       {isOpen && (
         <div
