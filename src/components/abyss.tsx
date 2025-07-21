@@ -50,7 +50,7 @@ export default function Abyss({
             base,
             gradient,
             blurClass,
-            "-bottom-1",
+            "bottom-0",
             "bg-linear-to-b",
             `mask-t-from-${maskStart}% mask-t-to-${maskEnd}%`,
           )}

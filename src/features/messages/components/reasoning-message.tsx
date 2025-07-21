@@ -68,7 +68,7 @@ export default function ReasoningMessage({
             ref={scrollContainerRef}
             className={cn(
               "scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent",
-              "max-h-96 w-full overflow-y-auto px-8 py-12",
+              "max-h-96 w-full overflow-y-auto p-12",
               isReasoning && "overflow-y-hidden select-none",
             )}
           >
