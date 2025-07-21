@@ -1,7 +1,7 @@
 import { UIMessage } from "ai";
-import { Loader2 } from "lucide-react";
 import useStreamingMessages from "../hooks/use-streaming-messages";
 import Message from "./message";
+import { Loader } from "@/components/ui/loader";
 import { cn } from "@/lib/utils";
 
 interface StreamingMessagesProps {
@@ -30,7 +30,7 @@ export default function StreamingMessages({
       ))}
       {waiting && (
         <div className="flex justify-start items-start min-h-[30vh]">
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader variant="typing" size="md" />
         </div>
       )}
     </div>
