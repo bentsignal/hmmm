@@ -35,7 +35,7 @@ export function Code({ inline, className, children, ...props }: CodeProps) {
   return (
     <pre className="not-prose inline-flex">
       <code
-        className={`${className || ""} bg-card rounded-md p-2 font-mono text-sm font-bold whitespace-pre-wrap`}
+        className={`${className || ""} bg-card rounded-md p-2 my-0.5 font-mono text-sm font-bold whitespace-pre-wrap`}
         {...props}
       >
         {children}
