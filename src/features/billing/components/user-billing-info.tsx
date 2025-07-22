@@ -28,12 +28,10 @@ export default function UserBillingInfo({
 
   return (
     <div className="flex flex-col gap-4">
-      <span className="font-bold">
-        Current plan:{" "}
-        <span className="text-muted-foreground font-normal">
-          {plan !== null && plan !== undefined ? plan.name : "Light"}
-        </span>
-      </span>
+      <div className="flex gap-1">
+        <span className="font-bold text-foreground">Current plan:</span>
+        <span>{plan !== null && plan !== undefined ? plan.name : "Light"}</span>
+      </div>
       <div className="flex gap-2">
         <Link href="/pricing">
           <Button variant="outline">View plans</Button>

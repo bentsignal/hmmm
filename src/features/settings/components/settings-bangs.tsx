@@ -8,7 +8,7 @@ export default function SettingsBangs() {
   const bang = `\`\n${bangURL}\n\`\n`;
   return (
     <>
-      <span className="text-sm text-muted-foreground">
+      <span>
         Add the following URL to your browser&apos;s search engine settings to
         create new chats directly from your browser&apos;s search bar.
       </span>

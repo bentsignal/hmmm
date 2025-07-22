@@ -18,12 +18,8 @@ const hotkeys = [
 const Hotkey = ({ name, shortcut }: { name: string; shortcut: string }) => {
   return (
     <div className="flex flex-row gap-2">
-      <span className="text-sm text-muted-foreground font-bold min-w-24">
-        {name}
-      </span>
-      <span className="text-sm text-muted-foreground font-mono">
-        {shortcut}
-      </span>
+      <span className="font-bold min-w-24">{name}</span>
+      <span className="font-mono">{shortcut}</span>
     </div>
   );
 };
