@@ -17,13 +17,13 @@ export default function useShortcut({
         if (
           e.key === hotkey.key &&
           // shift key active if required
-          ((e.shiftKey && hotkey.shift) || !hotkey.shift) &&
+          ((e.shiftKey && hotkey.shift) || (!hotkey.shift && !e.shiftKey)) &&
           // ctrl/cmd key active if required
           ((e.ctrlKey && hotkey.ctrlCmd) ||
             (e.metaKey && hotkey.ctrlCmd) ||
-            !hotkey.ctrlCmd) &&
+            (!hotkey.ctrlCmd && !e.ctrlKey && !e.metaKey)) &&
           // alt key active if required
-          ((e.altKey && hotkey.alt) || !hotkey.alt)
+          ((e.altKey && hotkey.alt) || (!hotkey.alt && !e.altKey))
         ) {
           e.preventDefault();
           e.stopPropagation();
