@@ -15,6 +15,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getDateTimeString } from "@/lib/date-time-utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ResponseMessageProps {
   message: UIMessage;
@@ -27,6 +28,7 @@ export default function ResponseMessage({
 }: ResponseMessageProps) {
   const [text] = useSmoothText(message.content, { charsPerSec: 2000 });
   const createdAt = getDateTimeString(new Date(message.createdAt ?? 0));
+  const isMobile = useIsMobile();
 
   // error occured during repsonse generation, inform user
   const errorCode = isErrorMessage(text);
@@ -54,24 +56,27 @@ export default function ResponseMessage({
         >
           {cleanedText}
         </Markdown>
-        {!streaming && message.createdAt && message.content.length > 0 && (
-          <div
-            className="absolute -bottom-10 left-0 mt-2 flex justify-start 
+        {!streaming &&
+          message.createdAt &&
+          message.content.length > 0 &&
+          !isMobile && (
+            <div
+              className="absolute -bottom-10 left-0 mt-2 flex justify-start 
               gap-2 sm:-bottom-12"
-          >
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <Info className="h-4 w-4" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{createdAt}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <CopyButton getContent={() => message.content} />
-          </div>
-        )}
+            >
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{createdAt}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <CopyButton getContent={() => message.content} />
+            </div>
+          )}
       </div>
     </div>
   );
