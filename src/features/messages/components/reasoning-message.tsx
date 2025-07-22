@@ -57,21 +57,27 @@ export default function ReasoningMessage({
         <HoverCardContent
           className={cn(
             "bg-card prose dark:prose-invert relative",
-            "mt-2 max-h-96 w-full max-w-24 rounded-md border",
-            "p-0 sm:max-w-2xl rounded-4xl overflow-hidden",
+            "mt-2 w-full max-w-24 rounded-md border",
+            "p-0 sm:max-w-xl rounded-4xl overflow-hidden",
           )}
           align="start"
         >
-          <Abyss bgColor="card" height={100} maskStart={20} maskEnd={80} />
+          <Abyss
+            bgColor="card"
+            height={50}
+            maskStart={20}
+            maskEnd={80}
+            blur="sm"
+          />
           <div
             ref={scrollContainerRef}
             className={cn(
               "scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent",
-              "max-h-96 w-full overflow-y-auto p-12",
+              "max-h-64 w-full overflow-y-auto p-6",
               isReasoning && "overflow-y-hidden select-none",
             )}
           >
-            <Markdown className="prose dark:prose-invert relative w-full max-w-full">
+            <Markdown className="prose dark:prose-invert relative w-full max-w-full text-sm">
               {text}
             </Markdown>
           </div>
