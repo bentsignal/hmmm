@@ -23,4 +23,17 @@ export const shortcuts = {
       ctrlCmd: true,
     },
   },
+  "next-thread": {
+    name: "Next Thread",
+    hotkey: {
+      key: "Tab",
+    },
+  },
+  "previous-thread": {
+    name: "Previous Thread",
+    hotkey: {
+      key: "Tab",
+      shift: true,
+    },
+  },
 } as const satisfies Record<string, Shortcut>;

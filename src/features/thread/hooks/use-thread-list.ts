@@ -124,11 +124,16 @@ export default function useThreadList() {
     ],
   );
 
+  const flattenedThreads = useMemo(
+    () => threadGroups.flatMap((group) => group.threads),
+    [threadGroups],
+  );
+
   return {
     pinnedThreads,
     status,
     loadMoreThreads,
-    threads,
+    threads: flattenedThreads,
     threadGroups,
     setSearch,
   };

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import useThreadList from "../hooks/use-thread-list";
+import useThreadSwitch from "../hooks/use-thread-switch";
 import NewThreadButton from "./new-thread-button";
 import ThreadDeleteModal from "./thread-delete-modal";
 import ThreadListContextItems from "./thread-list-context-items";
@@ -29,6 +30,11 @@ export default function ThreadList() {
 
   const { threads, threadGroups, setSearch, loadMoreThreads, status } =
     useThreadList();
+
+  // switch between threads with tab and shift tab
+  useThreadSwitch({
+    threads,
+  });
 
   // fade in on load
   const [opacity, setOpacity] = useState(0);
