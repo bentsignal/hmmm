@@ -25,37 +25,40 @@ export default function Abyss({
   maskEnd?: number;
 }) {
   const base = `w-full left-0 absolute z-50 pointer-events-none`;
-  const gradient = `from-transparent to-${bgColor}/80`;
-  const blurClass = `backdrop-blur-${blur}`;
+
+  const blurValues = {
+    sm: "4px",
+    md: "8px",
+    lg: "16px",
+    xl: "24px",
+    "2xl": "40px",
+  };
+
+  const getCSSColor = (color: string) => `hsl(var(--${color}) / 0.8)`;
+
   return (
     <>
       {top && (
         <div
-          className={cn(
-            base,
-            gradient,
-            blurClass,
-            "top-0",
-            "bg-linear-to-t",
-            `mask-b-from-${maskStart}% mask-b-to-${maskEnd}%`,
-          )}
+          className={cn(base, "top-0")}
           style={{
             height: `${height}px`,
+            background: `linear-gradient(to top, transparent, ${getCSSColor(bgColor)})`,
+            backdropFilter: `blur(${blurValues[blur]})`,
+            maskImage: `linear-gradient(to bottom, black ${maskStart}%, transparent ${maskEnd}%)`,
+            WebkitMaskImage: `linear-gradient(to bottom, black ${maskStart}%, transparent ${maskEnd}%)`,
           }}
         />
       )}
       {bottom && (
         <div
-          className={cn(
-            base,
-            gradient,
-            blurClass,
-            "bottom-0",
-            "bg-linear-to-b",
-            `mask-t-from-${maskStart}% mask-t-to-${maskEnd}%`,
-          )}
+          className={cn(base, "bottom-0")}
           style={{
             height: `${height}px`,
+            background: `linear-gradient(to bottom, transparent, ${getCSSColor(bgColor)})`,
+            backdropFilter: `blur(${blurValues[blur]})`,
+            maskImage: `linear-gradient(to top, black ${maskStart}%, transparent ${maskEnd}%)`,
+            WebkitMaskImage: `linear-gradient(to top, black ${maskStart}%, transparent ${maskEnd}%)`,
           }}
         />
       )}
