@@ -12,6 +12,7 @@ export default function ComposerInput({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // auto-resize the textarea based on the content
   useEffect(() => {
     if (value === "" && textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -21,6 +22,7 @@ export default function ComposerInput({
     }
   }, [value]);
 
+  // send message when user hits enter
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -28,6 +30,15 @@ export default function ComposerInput({
       sendMessage();
     }
   };
+
+  // auto focus on mount
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      const length = textareaRef.current.value.length;
+      textareaRef.current.setSelectionRange(length, length);
+    }
+  }, []);
 
   return (
     <textarea
