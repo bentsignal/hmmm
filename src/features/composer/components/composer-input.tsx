@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 import useComposerInput from "../hooks/use-composer-input";
 import useSendMessage from "../hooks/use-send-message";
-import useHotkey from "@/hooks/use-hotkey";
+import { shortcuts } from "@/features/shortcuts";
+import useHotkey from "@/features/shortcuts/hooks/use-shortcut";
 
 export default function ComposerInput({
   showInstantLoad,
@@ -46,10 +47,7 @@ export default function ComposerInput({
   }, []);
 
   useHotkey({
-    hotkey: {
-      key: ".",
-      ctrlCmd: true,
-    },
+    hotkey: shortcuts["focus-input"].hotkey,
     callback: focusInput,
   });
 

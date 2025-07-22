@@ -1,12 +1,7 @@
 import { useEffect } from "react";
+import { Hotkey } from "../types";
 
-interface Hotkey {
-  key: string;
-  shift?: boolean;
-  ctrlCmd?: boolean;
-}
-
-export default function useHotkey({
+export default function useShortcut({
   hotkey,
   callback,
 }: {
@@ -21,10 +16,14 @@ export default function useHotkey({
       (e: KeyboardEvent) => {
         if (
           e.key === hotkey.key &&
+          // shift key active if required
           ((e.shiftKey && hotkey.shift) || !hotkey.shift) &&
+          // ctrl/cmd key active if required
           ((e.ctrlKey && hotkey.ctrlCmd) ||
             (e.metaKey && hotkey.ctrlCmd) ||
-            !hotkey.ctrlCmd)
+            !hotkey.ctrlCmd) &&
+          // alt key active if required
+          ((e.altKey && hotkey.alt) || !hotkey.alt)
         ) {
           e.preventDefault();
           e.stopPropagation();

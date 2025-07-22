@@ -20,7 +20,8 @@ import {
   SidebarHeader,
   SidebarMenu,
 } from "@/components/ui/sidebar";
-import useHotkey from "@/hooks/use-hotkey";
+import { shortcuts } from "@/features/shortcuts";
+import useShortcut from "@/features/shortcuts/hooks/use-shortcut";
 
 export default function ThreadList() {
   const pathname = usePathname();
@@ -38,12 +39,8 @@ export default function ThreadList() {
   }, [threads]);
 
   // focus search on "ctrl/cmd + shift + ?"
-  useHotkey({
-    hotkey: {
-      key: "?",
-      shift: true,
-      ctrlCmd: true,
-    },
+  useShortcut({
+    hotkey: shortcuts["search"].hotkey,
     callback: () => {
       if (searchRef.current) {
         searchRef.current.focus();
