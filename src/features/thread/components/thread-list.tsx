@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import useThreadList from "../hooks/use-thread-list";
 import NewThreadButton from "./new-thread-button";
@@ -20,9 +20,11 @@ import {
   SidebarHeader,
   SidebarMenu,
 } from "@/components/ui/sidebar";
+import useHotkey from "@/hooks/use-hotkey";
 
 export default function ThreadList() {
   const pathname = usePathname();
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const { threads, threadGroups, setSearch, loadMoreThreads, status } =
     useThreadList();
@@ -35,6 +37,20 @@ export default function ThreadList() {
     }
   }, [threads]);
 
+  // focus search on "ctrl/cmd + shift + ?"
+  useHotkey({
+    hotkey: {
+      key: "?",
+      shift: true,
+      ctrlCmd: true,
+    },
+    callback: () => {
+      if (searchRef.current) {
+        searchRef.current.focus();
+      }
+    },
+  });
+
   return (
     <Sidebar variant="floating" className="py-4 pr-0 pl-4">
       <SidebarHeader className="md:px-auto flex flex-col items-center justify-between px-4 pt-4 md:pt-4">
@@ -43,6 +59,7 @@ export default function ThreadList() {
           placeholder="Search"
           className=" w-full"
           onChange={(e) => setSearch(e.target.value)}
+          ref={searchRef}
         />
       </SidebarHeader>
       <SidebarContent

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import useComposerInput from "../hooks/use-composer-input";
 import useSendMessage from "../hooks/use-send-message";
+import useHotkey from "@/hooks/use-hotkey";
 
 export default function ComposerInput({
   showInstantLoad,
@@ -31,14 +32,26 @@ export default function ComposerInput({
     }
   };
 
-  // auto focus on mount
-  useEffect(() => {
+  const focusInput = () => {
     if (textareaRef.current) {
       textareaRef.current.focus();
       const length = textareaRef.current.value.length;
       textareaRef.current.setSelectionRange(length, length);
     }
+  };
+
+  // auto focus on mount
+  useEffect(() => {
+    focusInput();
   }, []);
+
+  useHotkey({
+    hotkey: {
+      key: ".",
+      ctrlCmd: true,
+    },
+    callback: focusInput,
+  });
 
   return (
     <textarea

@@ -1,7 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
 import SettingsBangs from "@/features/settings/components/settings-bangs";
+import SettingsCard from "@/features/settings/components/settings-card";
+import SettingsHotkeys from "@/features/settings/components/settings-hotkeys";
 
 export default async function Settings() {
   const { userId } = await auth();
@@ -9,11 +10,13 @@ export default async function Settings() {
     redirect("/login");
   }
   return (
-    <Card className="w-full">
-      <CardContent className="flex flex-col gap-4">
-        <span className="text-xl font-bold">General</span>
+    <div className="flex flex-col gap-4">
+      <SettingsCard title="Search">
         <SettingsBangs />
-      </CardContent>
-    </Card>
+      </SettingsCard>
+      <SettingsCard title="Hotkeys">
+        <SettingsHotkeys />
+      </SettingsCard>
+    </div>
   );
 }

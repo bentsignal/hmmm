@@ -2,12 +2,25 @@ import { SquarePen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
+import useHotkey from "@/hooks/use-hotkey";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function NewThreadButton() {
   const { toggleSidebar } = useSidebar();
   const router = useRouter();
   const isMobile = useIsMobile();
+
+  // start new thread on "ctrl/cmd + /"
+  useHotkey({
+    hotkey: {
+      key: "/",
+      ctrlCmd: true,
+    },
+    callback: () => {
+      router.push("/");
+    },
+  });
+
   return (
     <Button
       className="w-full"

@@ -7,8 +7,7 @@ export default function SettingsBangs() {
   const bangURL = "https://www.qbe.sh/new?q=%s";
   const bang = `\`\n${bangURL}\n\`\n`;
   return (
-    <div className="flex flex-col gap-2">
-      <span className="text-md font-bold mb-2">Search</span>
+    <>
       <span className="text-sm text-muted-foreground">
         Add the following URL to your browser&apos;s search engine settings to
         create new chats directly from your browser&apos;s search bar.
@@ -20,6 +19,6 @@ export default function SettingsBangs() {
         <Markdown className="prose dark:prose-invert">{bang}</Markdown>
         <CopyButton getContent={() => bangURL} />
       </div>
-    </div>
+    </>
   );
 }
