@@ -5,7 +5,6 @@ import {
   extractReasoningFromMessage,
   getLatestPartType,
 } from "../util/message-util";
-import { markdownComponents } from "./markdown-components";
 import Abyss from "@/components/abyss";
 import {
   HoverCard,
@@ -72,10 +71,7 @@ export default function ReasoningMessage({
               isReasoning && "overflow-y-hidden select-none",
             )}
           >
-            <Markdown
-              className="prose dark:prose-invert relative w-full max-w-full"
-              components={markdownComponents}
-            >
+            <Markdown className="prose dark:prose-invert relative w-full max-w-full">
               {text}
             </Markdown>
           </div>

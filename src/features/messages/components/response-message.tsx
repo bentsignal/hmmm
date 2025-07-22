@@ -4,7 +4,6 @@ import { Info } from "lucide-react";
 import { isErrorMessage, isNoticeMessage } from "../util/message-util";
 import { CopyButton } from "./copy-button";
 import ErrorMessage from "./error-message";
-import { markdownComponents } from "./markdown-components";
 import NoticeMessage from "./notice-message";
 import { MemoizedReasoningMessage } from "./reasoning-message";
 import { Markdown } from "@/components/ui/markdown";
@@ -50,10 +49,7 @@ export default function ResponseMessage({
     <div className="flex w-full flex-col items-start gap-2">
       <MemoizedReasoningMessage message={message} streaming={streaming} />
       <div className="relative w-full max-w-full">
-        <Markdown
-          className="prose dark:prose-invert relative w-full max-w-full"
-          components={markdownComponents}
-        >
+        <Markdown className="prose dark:prose-invert relative w-full max-w-full">
           {cleanedText}
         </Markdown>
         {!streaming &&
