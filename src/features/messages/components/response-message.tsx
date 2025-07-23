@@ -25,7 +25,10 @@ export default function ResponseMessage({
   message,
   streaming,
 }: ResponseMessageProps) {
-  const [text] = useSmoothText(message.content, { charsPerSec: 2000 });
+  const [text] = useSmoothText(message.content, {
+    charsPerSec: 2000,
+    startStreaming: message.status === "streaming",
+  });
   const createdAt = getDateTimeString(new Date(message.createdAt ?? 0));
   const isMobile = useIsMobile();
 
