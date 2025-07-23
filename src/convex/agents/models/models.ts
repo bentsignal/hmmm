@@ -246,4 +246,20 @@ export const languageModels = {
       other: 0,
     },
   },
+  /*
+
+    Alibaba
+
+  */
+  "qwen-3-235b": {
+    provider: "Alibaba",
+    name: "Qwen 3 235B",
+    id: "alibaba/qwen-3-235b",
+    model: openrouter("@preset/qwen-cerebras"),
+    cost: {
+      in: 0.6,
+      out: 1.2,
+      other: 0,
+    },
+  },
 } as const satisfies Record<string, LanguageModel>;
