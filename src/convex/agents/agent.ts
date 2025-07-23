@@ -8,4 +8,5 @@ export const agent = new Agent(components.agent, {
   name: "QBE",
   instructions: systemPrompt,
   maxSteps: 10,
+  maxRetries: 3,
 });
