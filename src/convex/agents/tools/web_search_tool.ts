@@ -1,6 +1,13 @@
-// import { tool } from "ai";
+// import { createTool } from "@convex-dev/agent";
 // import { Exa } from "exa-js";
 // import { z } from "zod";
+
+// const searchConfig = {
+//   numResults: 5,
+//   text: {
+//     maxCharacters: 5000,
+//   },
+// };
 
 // const EXA_API_KEY = process.env.EXA_API_KEY;
 // if (!EXA_API_KEY) {
@@ -9,7 +16,7 @@
 
 // const exa = new Exa(EXA_API_KEY);
 
-// export const webSearch = tool({
+// export const webSearch = createTool({
 //   description: `
 
 //   This tool is used to search the web for information on a topic. It will return
@@ -26,16 +33,11 @@
 //   response to address the user's question directly.
 
 //   `,
-//   parameters: z.object({
+//   args: z.object({
 //     query: z.string().min(1).max(100).describe("The search query"),
 //   }),
-//   execute: async ({ query }) => {
-//     const response = await exa.searchAndContents(query, {
-//       numResults: 5,
-//       text: {
-//         maxCharacters: 1500,
-//       },
-//     });
+//   handler: async (ctx, args, options) => {
+//     const response = await exa.searchAndContents(args.query, searchConfig);
 //     return {
 //       sources: response.results.map((result) => ({
 //         url: result.url,

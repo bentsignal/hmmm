@@ -29,7 +29,7 @@ export interface TranscriptionModel extends Model {
 }
 
 export interface EmbeddingModel extends Model {
-  model: EmbeddingModelV1<"text-embedding-3-small">;
+  model: EmbeddingModelV1<string>;
 }
 
 export const transcriptionModels = {
@@ -102,6 +102,11 @@ export const languageModels = {
       in: 0.3,
       out: 2.5,
       other: 0,
+    },
+    openrouterProviderOptions: {
+      reasoning: {
+        max_tokens: 6000,
+      },
     },
   },
   "gemini-2.5-pro": {

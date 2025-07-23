@@ -11,6 +11,7 @@
 import type * as agents_agent from "../agents/agent.js";
 import type * as agents_index from "../agents/index.js";
 import type * as agents_models_index from "../agents/models/index.js";
+import type * as agents_models_model_presets from "../agents/models/model_presets.js";
 import type * as agents_models_models from "../agents/models/models.js";
 import type * as agents_models_util_index from "../agents/models/util/index.js";
 import type * as agents_models_util_model_utils from "../agents/models/util/model_utils.js";
@@ -18,8 +19,6 @@ import type * as agents_prompts_index from "../agents/prompts/index.js";
 import type * as agents_prompts_prompts from "../agents/prompts/prompts.js";
 import type * as agents_prompts_types_index from "../agents/prompts/types/index.js";
 import type * as agents_prompts_types_prompt_types from "../agents/prompts/types/prompt_types.js";
-import type * as agents_tools_date_time_tool from "../agents/tools/date_time_tool.js";
-import type * as agents_tools_index from "../agents/tools/index.js";
 import type * as clerk_clerk_actions from "../clerk/clerk_actions.js";
 import type * as clerk_clerk_http_actions from "../clerk/clerk_http_actions.js";
 import type * as http from "../http.js";
@@ -59,6 +58,7 @@ declare const fullApi: ApiFromModules<{
   "agents/agent": typeof agents_agent;
   "agents/index": typeof agents_index;
   "agents/models/index": typeof agents_models_index;
+  "agents/models/model_presets": typeof agents_models_model_presets;
   "agents/models/models": typeof agents_models_models;
   "agents/models/util/index": typeof agents_models_util_index;
   "agents/models/util/model_utils": typeof agents_models_util_model_utils;
@@ -66,8 +66,6 @@ declare const fullApi: ApiFromModules<{
   "agents/prompts/prompts": typeof agents_prompts_prompts;
   "agents/prompts/types/index": typeof agents_prompts_types_index;
   "agents/prompts/types/prompt_types": typeof agents_prompts_types_prompt_types;
-  "agents/tools/date_time_tool": typeof agents_tools_date_time_tool;
-  "agents/tools/index": typeof agents_tools_index;
   "clerk/clerk_actions": typeof clerk_clerk_actions;
   "clerk/clerk_http_actions": typeof clerk_clerk_http_actions;
   http: typeof http;
