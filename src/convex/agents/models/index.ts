@@ -1,13 +1,2 @@
-import { languageModels, transcriptionModels } from "./models";
-
 export * from "./models";
-
-export const defaultModel = languageModels["gemini-2.0-flash"];
-
-export const classifierModel = languageModels["gemini-2.5-flash-lite"];
-
-export const titleGeneratorModel = languageModels["gemini-2.0-flash"];
-
-export const transcriptionModel = transcriptionModels["whisper-1"];
-
-export const searchModel = languageModels["sonar"];
+export * from "./model_presets";

@@ -2,6 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import { openrouter } from "@openrouter/ai-sdk-provider";
 import type { OpenRouterProviderOptions } from "@openrouter/ai-sdk-provider";
 import type {
+  EmbeddingModel as EmbeddingModelV1,
   LanguageModelV1,
   TranscriptionModel as TranscriptionModelV1,
 } from "ai";
@@ -27,6 +28,10 @@ export interface TranscriptionModel extends Model {
   model: TranscriptionModelV1;
 }
 
+export interface EmbeddingModel extends Model {
+  model: EmbeddingModelV1<"text-embedding-3-small">;
+}
+
 export const transcriptionModels = {
   /*
 
@@ -45,6 +50,20 @@ export const transcriptionModels = {
     },
   },
 } as const satisfies Record<string, TranscriptionModel>;
+
+export const embeddingModels = {
+  "text-embedding-3-small": {
+    provider: "OpenAI",
+    name: "Text Embedding 3 Small",
+    id: "text-embedding-3-small",
+    model: openai.embedding("text-embedding-3-small"),
+    cost: {
+      in: 0.02,
+      out: 0,
+      other: 0,
+    },
+  },
+} as const satisfies Record<string, EmbeddingModel>;
 
 export const languageModels = {
   /*
