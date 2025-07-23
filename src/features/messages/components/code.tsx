@@ -14,7 +14,6 @@ interface CodeProps {
 export function Code({ inline, className, children }: CodeProps) {
   const { theme } = useTheme();
   const isBlock = !inline && (className?.includes("language-") || false);
-  console.log(className);
 
   if (isBlock) {
     return (
