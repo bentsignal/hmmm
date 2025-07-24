@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { UIMessage, useSmoothText } from "@convex-dev/agent/react";
+import { UIMessage } from "@convex-dev/agent/react";
 import { Info } from "lucide-react";
 import { isErrorMessage, isNoticeMessage } from "../util/message-util";
 import { CopyButton } from "./copy-button";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/tooltip";
 import { getDateTimeString } from "@/lib/date-time-utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTypewriter } from "@/hooks/use-typewriter";
 
 interface ResponseMessageProps {
   message: UIMessage;
@@ -25,9 +26,9 @@ export default function ResponseMessage({
   message,
   streaming,
 }: ResponseMessageProps) {
-  const [text] = useSmoothText(message.content, {
-    charsPerSec: 2000,
-    startStreaming: message.status === "streaming",
+  const { text } = useTypewriter({
+    text: message.content,
+    streaming: message.status === "streaming",
   });
   const createdAt = getDateTimeString(new Date(message.createdAt ?? 0));
   const isMobile = useIsMobile();
