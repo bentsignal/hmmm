@@ -19,10 +19,8 @@ export function useTypewriter({
         if (current.length < text.length) {
           const nextIndex = Math.min(current.length + 5, text.length);
           return text.slice(0, nextIndex);
-        } else {
-          clearInterval(interval);
-          return text;
         }
+        return text;
       });
     }, 10);
 
