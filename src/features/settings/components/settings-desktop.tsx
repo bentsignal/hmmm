@@ -5,6 +5,7 @@ import { SignOutButton } from "@clerk/nextjs";
 import { LogOut, MoveLeft } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Socials from "@/components/socials";
 import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
@@ -79,6 +80,8 @@ export default function SettingsDesktop() {
             </SignOutButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <Separator />
+        <Socials />
       </SidebarContent>
     </Sidebar>
   );
