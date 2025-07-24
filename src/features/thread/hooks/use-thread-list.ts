@@ -2,8 +2,11 @@ import { useMemo } from "react";
 import { useConvexAuth, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import useDebouncedInput from "@/hooks/use-debounced-input";
-
-const PAGE_SIZE = 50;
+import {
+  INITIAL_PAGE_SIZE,
+  INVISIBLE_PAGE_LOADER_INDEX,
+  PAGE_SIZE,
+} from "@/features/thread/config";
 
 // Cache date boundaries outside component to avoid recalculation
 const getDateBoundaries = () => {
@@ -32,7 +35,7 @@ export default function useThreadList() {
     status,
     loadMore,
   } = usePaginatedQuery(api.thread.thread_queries.getThreadList, args, {
-    initialNumItems: PAGE_SIZE,
+    initialNumItems: INITIAL_PAGE_SIZE,
   });
 
   const loadMoreThreads = () => loadMore(PAGE_SIZE);
@@ -129,6 +132,15 @@ export default function useThreadList() {
     [threadGroups],
   );
 
+  const loaderId = useMemo(() => {
+    if (flattenedThreads.length < INVISIBLE_PAGE_LOADER_INDEX) {
+      return null;
+    }
+    return flattenedThreads[
+      flattenedThreads.length - INVISIBLE_PAGE_LOADER_INDEX
+    ].id;
+  }, [flattenedThreads]);
+
   return {
     pinnedThreads,
     status,
@@ -136,5 +148,6 @@ export default function useThreadList() {
     threads: flattenedThreads,
     threadGroups,
     setSearch,
+    loaderId,
   };
 }

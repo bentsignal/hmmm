@@ -12,7 +12,6 @@ import ThreadRenameModal from "./thread-rename-modal";
 import PageLoader from "@/components/page-loader";
 import * as ContextMenu from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
-import { Loader } from "@/components/ui/loader";
 import {
   Sidebar,
   SidebarContent,
@@ -28,8 +27,14 @@ export default function ThreadList() {
   const pathname = usePathname();
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const { threads, threadGroups, setSearch, loadMoreThreads, status } =
-    useThreadList();
+  const {
+    threads,
+    threadGroups,
+    setSearch,
+    loadMoreThreads,
+    status,
+    loaderId,
+  } = useThreadList();
 
   // switch between threads with tab and shift tab
   useThreadSwitch({
@@ -85,18 +90,34 @@ export default function ThreadList() {
                     group.threads.length > 0 && (
                       <SidebarGroup key={group.label} className="gap-1">
                         <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-                        {group.threads.map((item) => (
-                          <ThreadListItem
-                            key={item.id}
-                            thread={{
-                              title: item.title,
-                              id: item.id,
-                              active: pathname.includes(item.id ?? ""),
-                              status: item.state,
-                              pinned: item.pinned === true,
-                            }}
-                          />
-                        ))}
+                        {group.threads.map((item) => {
+                          const thread = (
+                            <ThreadListItem
+                              key={item.id}
+                              thread={{
+                                title: item.title,
+                                id: item.id,
+                                active: pathname.includes(item.id ?? ""),
+                                status: item.state,
+                                pinned: item.pinned === true,
+                              }}
+                            />
+                          );
+                          // wrap item in invisible page loader
+                          if (loaderId === item.id) {
+                            return (
+                              <PageLoader
+                                key={item.id}
+                                status={status}
+                                loadMore={loadMoreThreads}
+                                singleUse={true}
+                              >
+                                {thread}
+                              </PageLoader>
+                            );
+                          }
+                          return thread;
+                        })}
                       </SidebarGroup>
                     ),
                 )}
@@ -105,11 +126,6 @@ export default function ThreadList() {
             </ContextMenu.ContextMenu>
           )}
         </SidebarMenu>
-        <PageLoader status={status} loadMore={loadMoreThreads}>
-          {status !== "Exhausted" && status !== "LoadingFirstPage" && (
-            <Loader variant="dots" size="sm" />
-          )}
-        </PageLoader>
         <ThreadDeleteModal />
         <ThreadRenameModal />
       </SidebarContent>
