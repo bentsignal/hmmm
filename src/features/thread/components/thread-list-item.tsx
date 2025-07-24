@@ -20,7 +20,7 @@ function ThreadListItem({ thread }: { thread: Thread }) {
     <SidebarMenuItem
       key={thread.id}
       onMouseEnter={() => setHoveredThread(thread)}
-      className="hover:bg-border rounded-md transition-background-color duration-100"
+      className="hover:bg-border rounded-md transition-background-color duration-100 w-full"
     >
       <SidebarMenuButton
         asChild
