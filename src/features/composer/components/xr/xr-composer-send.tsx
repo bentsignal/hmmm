@@ -2,6 +2,7 @@ import { xrColors, xrStyles } from "@/styles/xr-styles";
 import { Button } from "@react-three/uikit-default";
 import { Send } from "@react-three/uikit-lucide";
 import useSendMessage from "@/features/composer/hooks/use-send-message";
+import useComposerStore from "@/features/composer/store/composer-store";
 import useThreadStore from "@/features/thread/store/thread-store";
 
 export default function XRComposerSend() {
@@ -12,7 +13,8 @@ export default function XRComposerSend() {
   return (
     <Button
       onClick={async () => {
-        const threadId = await sendMessage(false);
+        const prompt = useComposerStore.getState().prompt;
+        const threadId = await sendMessage({ prompt, redirect: false });
         if (threadId) {
           setActiveThread(threadId);
         }

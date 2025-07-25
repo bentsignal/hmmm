@@ -1,5 +1,6 @@
 import { Loader2, Send } from "lucide-react";
 import useSendMessage from "../hooks/use-send-message";
+import useComposerStore from "../store/composer-store";
 import { Button } from "@/components/ui/button";
 
 export default function ComposerSend({
@@ -12,7 +13,8 @@ export default function ComposerSend({
     <Button
       onClick={() => {
         showInstantLoad?.();
-        sendMessage();
+        const prompt = useComposerStore.getState().prompt;
+        sendMessage({ prompt });
       }}
       disabled={blockSend || isLoading}
       size="icon"

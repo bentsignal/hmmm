@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import useComposerInput from "../hooks/use-composer-input";
 import useSendMessage from "../hooks/use-send-message";
+import useComposerStore from "../store/composer-store";
 import { shortcuts } from "@/features/shortcuts";
 import useHotkey from "@/features/shortcuts/hooks/use-shortcut";
 
@@ -29,7 +30,8 @@ export default function ComposerInput({
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       showInstantLoad?.();
-      sendMessage();
+      const prompt = useComposerStore.getState().prompt;
+      sendMessage({ prompt });
     }
   };
 

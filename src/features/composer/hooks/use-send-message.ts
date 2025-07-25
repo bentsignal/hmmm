@@ -12,7 +12,6 @@ import useThreadStore from "@/features/thread/store/thread-store";
 export default function useSendMessage() {
   const router = useRouter();
 
-  const promptEmpty = useComposerStore((state) => state.prompt.trim() === "");
   const setPrompt = useComposerStore((state) => state.setPrompt);
   const { createThread, newThreadMessage } = useThreadMutation();
 
@@ -32,8 +31,7 @@ export default function useSendMessage() {
   );
 
   // prevent user from sending messages when in bad state
-  const blockSend =
-    !isThreadIdle || listening || promptEmpty || usage?.limitHit;
+  const blockSend = !isThreadIdle || listening || usage?.limitHit;
 
   // show loading spinner on send button
   const isLoading = !isThreadIdle || storeIsTranscribing;
@@ -44,15 +42,25 @@ export default function useSendMessage() {
     (state) => state.setNumMessagesSent,
   );
 
-  const sendMessage = async (redirect: boolean = true) => {
+  const sendMessage = async ({
+    prompt,
+    redirect = true,
+  }: {
+    prompt: string;
+    redirect?: boolean;
+  }) => {
     // prevent user from sending messages if they are in a bad state
     if (blockSend) {
       return;
     }
 
-    const prompt = useComposerStore.getState().prompt;
-    const activeThread = useThreadStore.getState().activeThread;
+    // prompt can't be empty
+    if (prompt.trim() === "") {
+      return;
+    }
     setPrompt("");
+
+    const activeThread = useThreadStore.getState().activeThread;
 
     // increment number of messages sent per session, this is used to
     // manage auto scrolling when new messages are sent
