@@ -1,64 +1,61 @@
 import { cn } from "@/lib/utils";
 
+const blurValues = {
+  sm: "backdrop-blur-sm",
+  md: "backdrop-blur-md",
+  lg: "backdrop-blur-lg",
+  xl: "backdrop-blur-xl",
+};
+
+const colorValues = {
+  background: "to-background",
+  card: "to-card",
+};
+
 export default function Abyss({
   top = true,
   bottom = true,
   height = 100,
-  bgColor = "background",
-  blur = "lg",
-  maskStart = 30,
-  maskEnd = 100,
+  color = "background",
+  blur = "sm",
 }: {
-  /** whether to show the top gradient */
+  /** whether to show the top gradient. default: true */
   top?: boolean;
-  /** whether to show the bottom gradient */
+  /** whether to show the bottom gradient. default: true */
   bottom?: boolean;
-  /** height in px */
+  /** height in px. default: 100 */
   height?: number | string;
-  /** color that the gradient will fade to */
-  bgColor?: string;
-  /** blur amount */
-  blur?: "sm" | "md" | "lg" | "xl" | "2xl";
-  /** mask amount */
-  maskStart?: number;
-  /** mask amount */
-  maskEnd?: number;
+  /** color that the gradient will fade to: background, card. default: background */
+  color?: keyof typeof colorValues;
+  /** blur amount: sm, md, lg, xl. default: sm */
+  blur?: keyof typeof blurValues;
 }) {
-  const base = `w-full left-0 absolute z-50 pointer-events-none`;
-
-  const blurValues = {
-    sm: "4px",
-    md: "8px",
-    lg: "16px",
-    xl: "24px",
-    "2xl": "40px",
-  };
-
-  const getCSSColor = (color: string) => `hsl(var(--${color}) / 0.8)`;
-
+  const base = `w-full left-0 absolute z-50 pointer-events-none from-transparent`;
   return (
     <>
       {top && (
         <div
-          className={cn(base, "top-0")}
+          className={cn(
+            base,
+            blurValues[blur],
+            colorValues[color],
+            "top-0 bg-linear-to-t mask-b-from-30% mask-b-to-100%",
+          )}
           style={{
             height: `${height}px`,
-            background: `linear-gradient(to top, transparent, ${getCSSColor(bgColor)})`,
-            backdropFilter: `blur(${blurValues[blur]})`,
-            maskImage: `linear-gradient(to bottom, black ${maskStart}%, transparent ${maskEnd}%)`,
-            WebkitMaskImage: `linear-gradient(to bottom, black ${maskStart}%, transparent ${maskEnd}%)`,
           }}
         />
       )}
       {bottom && (
         <div
-          className={cn(base, "bottom-0")}
+          className={cn(
+            base,
+            blurValues[blur],
+            colorValues[color],
+            "bottom-0 bg-linear-to-b mask-t-from-30% mask-t-to-100%",
+          )}
           style={{
             height: `${height}px`,
-            background: `linear-gradient(to bottom, transparent, ${getCSSColor(bgColor)})`,
-            backdropFilter: `blur(${blurValues[blur]})`,
-            maskImage: `linear-gradient(to top, black ${maskStart}%, transparent ${maskEnd}%)`,
-            WebkitMaskImage: `linear-gradient(to top, black ${maskStart}%, transparent ${maskEnd}%)`,
           }}
         />
       )}
