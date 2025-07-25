@@ -146,7 +146,7 @@ This folder contains context providers that wrap the entire web app. If a new co
 
 ex:
 
-```
+```typescript
 export default function Providers({children}: {children: React.ReactNode}) {
   return (
     <ConvexProvider>
