@@ -1,4 +1,4 @@
-export type SystemErrorCode = "G1" | "G2" | "G3";
+export type SystemErrorCode = "G1" | "G2" | "G3" | "G4";
 
 export type SystemNoticeCode = "N1";
 

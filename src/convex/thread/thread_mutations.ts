@@ -5,7 +5,8 @@ import { agent } from "@/convex/agents";
 import { convexCategoryEnum } from "@/convex/agents/prompts/types";
 import { messageSendRateLimit } from "@/convex/limiter";
 import { getUsageHelper } from "@/convex/sub/sub_helpers";
-import { getThreadMetadata } from "./thread_helpers";
+import { getThreadMetadata, logSystemError } from "./thread_helpers";
+import { tryCatch } from "@/lib/utils";
 
 export const requestNewThread = mutation({
   args: {
@@ -52,16 +53,37 @@ export const requestNewThread = mutation({
       }),
     ]);
     // generate title for new thread, and start response
-    ctx.scheduler.runAfter(0, internal.thread.thread_actions.generateTitle, {
-      threadId: threadId,
-      message: args.message,
-    });
-    ctx.scheduler.runAfter(0, internal.thread.thread_actions.generateResponse, {
-      threadId: threadId,
-      promptMessageId: messageId,
-      prompt: args.message,
-      userId: userId.subject,
-    });
+    const { error } = await tryCatch(
+      Promise.all([
+        ctx.scheduler.runAfter(
+          0,
+          internal.thread.thread_actions.generateTitle,
+          {
+            threadId: threadId,
+            message: args.message,
+          },
+        ),
+        ctx.scheduler.runAfter(
+          0,
+          internal.thread.thread_actions.generateResponse,
+          {
+            threadId: threadId,
+            promptMessageId: messageId,
+            prompt: args.message,
+            userId: userId.subject,
+          },
+        ),
+      ]),
+    );
+    if (error) {
+      console.error(error);
+      logSystemError(
+        ctx,
+        threadId,
+        "G4",
+        "Failed to generate title or response",
+      );
+    }
     return threadId;
   },
 });
@@ -114,12 +136,22 @@ export const newThreadMessage = mutation({
         updatedAt: Date.now(),
       }),
     ]);
-    ctx.scheduler.runAfter(0, internal.thread.thread_actions.generateResponse, {
-      threadId: args.threadId,
-      promptMessageId: messageId,
-      prompt: prompt,
-      userId: userId.subject,
-    });
+    const { error } = await tryCatch(
+      ctx.scheduler.runAfter(
+        0,
+        internal.thread.thread_actions.generateResponse,
+        {
+          threadId: args.threadId,
+          promptMessageId: messageId,
+          prompt: prompt,
+          userId: userId.subject,
+        },
+      ),
+    );
+    if (error) {
+      console.error(error);
+      logSystemError(ctx, threadId, "G4", "Failed to generate response");
+    }
   },
 });
 

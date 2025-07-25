@@ -69,7 +69,7 @@ export const authorizeThreadAccess = async (
  * @param message
  */
 export const logSystemError = async (
-  ctx: ActionCtx,
+  ctx: ActionCtx | MutationCtx,
   threadId: string,
   code: SystemErrorCode,
   message: string,
