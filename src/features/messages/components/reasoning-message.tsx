@@ -62,13 +62,7 @@ export default function ReasoningMessage({
           )}
           align="start"
         >
-          <Abyss
-            bgColor="card"
-            height={50}
-            maskStart={20}
-            maskEnd={80}
-            blur="sm"
-          />
+          <Abyss color="card" height={50} blur="sm" />
           <div
             ref={scrollContainerRef}
             className={cn(
