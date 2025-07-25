@@ -1,0 +1,47 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+# Tooling
+
+## Package Manager
+
+This project uses pnpm as a package manager. Always use `pnpm` to install, remove or update packages. Use `pnpx` to execute commands from packages.
+
+ex: `pnpm add react@latest`
+ex: `pnpx convex dev`
+ex: `pnpm dlx shadcn@latest add accordion`
+
+## Next
+
+This project is built on Next JS 15 with React 19. It has the react compiler enabled, so keep that in mind when considering whether or not to use memoization.
+
+## Convex
+
+Paired with Next, the project also uses convex as a reactive backend. The convex backend runs in a completely separate enviornment from the Next JS back end. It is hosted by convex, and much of the code is executed in their special runtime optimized for database transactions. Because of this, all convex query, mutation, and action definitions must exist inside of `src/convex`. These can then be called by components elsewhere, but the definitions themselves must be made in the convex folder.
+
+## Routing
+
+This project uses the Next js App Router. Always follow the guidelines of the App Router, and NOT the pages router.
+
+## Styling
+
+This project uses tailwind for styling. When working with tailwind, always adhere to the rules of Tailwind v4. Never recommend or create a tailwind config file, they are no longer necessary and this project does not need one.
+
+## Components
+
+This project uses the ShadCN component library. ShadCN's reusable components can be found in `src/components/ui`. You should not need to modify these components ever, they should be used solely to compose UI for components and pages outside of this directory.
+
+## Icons
+
+For most cases, use lucide-react for icons. When you need an icon for a company, product, brand, or organization's logo, use simple-icons.
+
+## State
+
+This project uses a combination of React Query and Zustand to manage global application state. Most state can be handled using Reacy Query, but sometimes a zustand store is a better option.
+
+## AI inference
+
+This project uses the convex agent component to make calls for inference from LLM's. This convex component is built on v4 of Vercel's AI SDK. Use the `context-7` mcp server to get documentation for either of these packages whenever necessary.

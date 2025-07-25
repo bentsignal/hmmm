@@ -1,0 +1,66 @@
+---
+alwaysApply: true
+---
+
+## Naming
+
+### Capitalization
+
+Files and folders should always be lowercase. They should never contain uppercase characters.
+
+### Convex files
+
+Use snake case when naming any file that will be stored in the `src/convex` directory, or any of its sub directories.
+
+Examples:
+
+- `src/convex/user/user_actions.ts`
+- `src/convex/agent/models/model_presets.ts`
+
+### Hooks
+
+File names for hooks should be in kebab case, and always start with "use". While the file names should be kebab case, the name of the hook function should be camel case. For example:
+
+- `use-screen-size.ts` would contain a hook named _useScreenSize_
+- `use-countdown.ts` would contain the hook named _useCountdown_
+
+For hooks created specifically for either XR or native platforms, add the platform name to the hooks file name and function name with either `xr` or `native`. For example
+
+A feature named "composer" could have `src/features/composer/hooks/use-composer-input.ts` containing a hook for the web named _useComposerInput_. It could then have
+
+- An XR hook in `src/features/composer/hooks/xr/use-xr-composer-input.ts` containing a hook named _useXRComposerInput_
+- An native hook in `src/features/composer/hooks/native/use-native-composer-input.ts` containing a component named _useNativeComposerInput_
+
+**Important**: You do not always need to create an XR and native hook for every new hook created for the web. Only do so when specific platform dependent functionality is required in the hook. Sometimes, the hook that works on the web may also work for native and XR platforms without modification.
+
+### Components
+
+File names for components should be in kebab case. While the file names should be kebab case, the name of the functional component should be pascal case. For example:
+
+- `error-boundary.tsx` could contain a functional component named _ErrorBoundary_
+- `markdown-components.tsx` could contain functional components named _Markdown_ and _MarkdownBlock_
+
+For components created specifically for either XR or Native platforms, prepend the components file name and function name with either `xr` or `native`. For example
+
+A feature named "composer" could have `src/features/composer/components/composer.tsx` containing a component for the web named _Composer_. It could then have
+
+- An XR component in `src/features/composer/components/xr/xr-composer.tsx` containing a component named _XRComposer_
+- An Native component in `src/features/composer/components/native/native-composer.tsx` containing a component named _NativeComposer_
+
+**Important**: You do not always need to create an XR and Native component for every new web component created. Only do so when asked to. Not all components need to exist on each platform.
+
+## Index files
+
+This project uses `index.ts` and `index.tsx` files to keep top level imports cleaner. This practice should only be employed when the goal is to clean up the import. It is not always necessary. For example:
+
+The file `src/features/thread/thread.tsx` contains the _Thread_ component. By default, importing it would look something like this:
+
+`import Thread from "@src/features/thread/thread";`
+
+To avoid writing thread twice, I've created the following file: `src/features/thread/index.tsx`, which contains one line:
+
+- `export { default } from "./thread";`
+
+Now, the _Thread_ component can be imported as follows:
+
+`import Thread from "@src/features/thread";`

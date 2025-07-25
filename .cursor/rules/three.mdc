@@ -1,9 +1,0 @@
----
-description: 
-globs: src/features/xr/**
-alwaysApply: false
----
-This project offers certain features in AR/VR using `@react-three/fiber` and `@react-three/xr`. It uses `@react-three/uikit` and `@react-three/uikit-default` as a component library for the 3d scenes, and `@react-three/uikit-lucide` to get lucide icons in 3d scenes. 
-
-
-If you ever run into issues involving these packages, use the context-7 mcp to gather context from their documentation.

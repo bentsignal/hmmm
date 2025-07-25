@@ -1,0 +1,159 @@
+---
+alwaysApply: true
+---
+
+# Overview
+
+Most of the code for this project has been organized into one of the following three folders:
+
+1. `src/app`
+2. `src/convex`
+3. `src/features`
+
+The app directory is what drives the Next JS app router, and contains file based routing for the web app. The convex directory holds all of the code that runs in the convex deployment. The goal of the features directory is to group code tied heavily to one specific feature.
+
+There will be some exceptions, but this is the general plan to follow. More info on how to organize code within these folders will follow below.
+
+## App
+
+**Location**: `src/app`
+
+This is where all of the pages for the web app live. The app uses the Next JS app router, so adhere to the guidelines of working with the app router.
+
+When creating a new page, always create a `loading.tsx` file in the page's directly. By default, this should contain the line `export { default } from "@/components/default-loading";`. This will export a default loading component centered vertically and horizontally, so that the user will see a loading spinner immediately when attempting to navigate to a new page.
+
+Keep component definitions out of the page files for the most part, unless the component is incredibly small and completely specific to the page. Creating a `wrapper.tsx` file in the page directory is fine when necessary.
+
+## Convex
+
+**Location**: `src/convex`
+
+The convex backend runs in a completely separate enviornment from the Next JS back end. It is hosted by convex, and much of the code is executed in their special runtime optimized for database transactions. Because of this, all convex query, mutation, and action definitions must exist inside of `src/convex`.
+
+I have created feature folders inside of this directory that correspond to specific features that convex handles. Each feature folder separates its mutations, queries, and actions into separate files. A helper file is also conditionally created to store any utility functions related to a features. Only create these files when needed, but make sure to separate these concerns into appropriate files. For example:
+
+For threads, the following files exist:
+
+- `src/convex/thread/thread_queries.ts`
+- `src/convex/thread/thread_mutations.ts`
+- `src/convex/thread/thread_actions.ts`
+- `src/convex/thread/thread_helpers.ts`
+
+Smaller concerns don't need a dedicated folder to themselves and can have queries, mutations, and actions combined into one file. If the line count gets to be larger than 200, that is generally when I would go about separating them into their own files in a dedicated folder.
+
+Isolated components that are unlikely to grow in size can also exist as single files in the convex directory when appropriate. For example:
+
+- `src/convex/limiter.ts`. Contains the boilerplate for the rate limiting component. Not likely to grow much in size.
+
+### Agents
+
+The agents folder (found at `src/convex/agents`) is unique compared to the other sub folders in the convex directory. It contains all of the functionality related to the AI agents. It is largely split into the following sub There is a sub folder called models (found at `src/convex/models`) that contains files related to managing the variety of LLM's used by the agent.
+
+## Features
+
+**Location**: `src/features`
+
+This project strongly subscribes to the idea that it is best for the files strongly tied to a specific feature to live close together. Each of the sub folders in `src/features` is named after one of the main areas of the app.
+
+Files for each feature should then be separated into the following sub folders. The example below will use a theoretical feature named my-feature.
+
+**Important**: Each feature will not necessarily require all of these folders. They should be created as needed.
+
+### Components
+
+**Location**: `src/features/my-feature/components`
+
+This would contain all of the reusable components specific to a feature.
+
+### Hooks
+
+**Location**: `src/features/my-feature/hooks`
+
+This would contain all of the hooks specific to a feature.
+
+### Store
+
+**Location**: `src/features/my-feature/store`
+
+If a feature requires a zustand store, the store definition file should go in here. For my feature, the file would be: `src/features/my-feature/store/my-feature-store.ts`
+
+### Config
+
+**Location**: `src/features/my-feature/config`
+
+Config files for a specific feature. This is usually constants used across a feature. For example, the page size when using pagination.
+
+### Types
+
+**Location**: `src/features/my-feature/types`
+
+Type definitions related to a feature.
+
+### Util
+
+**Location**: `src/features/my-feature/util`
+
+Utility functions related to a feature
+
+### Styles
+
+**Location**: `src/features/my-feature/styles`
+
+Rarely needed since the project uses tailwind for styling. But if a css file is ever needed for a feature, it would go in here.
+
+### Data
+
+**Location**: `src/features/my-feature/data`
+
+Stores data related to a feature. For example, the speech feature could consume an object containing a list of commands, and metadata related to each command.
+
+## Other
+
+### Components
+
+General purpose components that are not tied to a specific feature and will likely be reused across the project should be stored in `src/components`. Below are some examples of components that would go in this folder:
+
+- _Logo_ `logo.tsx`: The logo for the product, reused across the auth components as well as the homepage
+- _CustomButton_ `custom-button.tsx`: A button component with custom behavior for loading states.
+
+**Important**: Do not ever create new files in `src/components/ui`, that folder is exclusively for components installed from registries.
+
+### Hooks
+
+Standalone hooks that are not tied to a specific feature should go in `src/hooks`. Some examples could be:
+
+- _useCountdown_ `use-countdown.tsx`: A component that shows how much time is remaining until a certain date is hit
+- _useDebouncedInputs_ `use-debounced-inputs`: A hook for debouncing text being entered into any input field.
+
+### Util
+
+Utility functions that are not heavily tied to a specific feature live here. Very general isolated functions can go in `src/lib/utils.ts`. For tighter groups of utility functions, create a new file to hold the functions. For example:
+
+- `date-time-utils.ts` holds all of the utility functions related to the date and time
+- `color-utils.ts` holds all of the utility functions related to color
+- `utils.ts` holds unique functions.
+
+### Styles
+
+Styling files not related to a specific feature go in `src/styles`. The styles folder contains a few css files for the web app, but most importantly it contains `xr-styles.ts`. This file is inspired by tailwind, and allows the use of tailwind like utility classes inside of XR components.
+
+### Providers
+
+This folder contains context providers that wrap the entire web app. If a new context provider is needed, the following steps should be taken:
+
+1. Create a new file in `src/providers` for the new context provider. Ex, the convex provider is a component named _ConvexProvider_, an is stored in `src/providers/convex-provider.tsx`.
+2. Add this component to the _Providers_ component in `src/providers.tsx`. This component wraps the entire web app. So if you add the new provider to the _Providers_ component, it will also wrap the entire app. Make sure to be concious about where in the hierarchy you add the new provider, as the hierarchy of context providers is important.
+
+ex:
+
+```
+export default function Providers({children}: {children: React.ReactNode}) {
+  return (
+    <ConvexProvider>
+      <ThemeProvider>
+        {children}
+      </ThemeProvider>
+    </ConvexProvider>
+  )
+}
+```

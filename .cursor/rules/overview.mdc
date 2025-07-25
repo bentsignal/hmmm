@@ -1,6 +1,7 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: true
 ---
-This project is an AI chat app, designed to let users write prompts for a variety of LLMs. 
+
+This project is a web app providing users with an interface to chat with LLM's.
