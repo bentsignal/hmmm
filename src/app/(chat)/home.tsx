@@ -22,7 +22,7 @@ export default function Home() {
   }
 
   const prompts = [
-    "Who was the most influential person in the 20th century?",
+    "Who was the first person to argue that the Earth revolves around the sun?",
     "Does my pet truly understand what I'm saying?",
     "Why haven't we been able to find a cure for cancer?",
   ];
