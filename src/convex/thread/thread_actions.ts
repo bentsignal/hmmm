@@ -6,9 +6,14 @@ import { v } from "convex/values";
 import { components, internal } from "@/convex/_generated/api";
 import { internalAction } from "@/convex/_generated/server";
 import { agent } from "@/convex/agents/agent";
-import { classifierModel, titleGeneratorModel } from "@/convex/agents/models";
+import {
+  classifierModel,
+  followUpModel,
+  titleGeneratorModel,
+} from "@/convex/agents/models";
 import { getResponseModel } from "@/convex/agents/models/util";
 import {
+  followUpGeneratorPrompt,
   getClassifierPrompt,
   titleGeneratorPrompt,
 } from "@/convex/agents/prompts";
@@ -161,45 +166,69 @@ export const generateResponse = internalAction({
         "Failed to stream response back to user.",
       );
     }
-    // stream has completed, set back to idle and store category
-    await Promise.all([
+    // stream has completed
+    await Promise.allSettled([
+      // set thread back to idle
       ctx.runMutation(internal.thread.thread_mutations.updateThreadState, {
         threadId: threadId,
         state: "idle",
       }),
+      // store new category
       ctx.runMutation(internal.thread.thread_mutations.updateThreadCategory, {
         threadId: threadId,
         category: object.promptCategory,
       }),
+      // generate follow up questions
+      (async () => {
+        const responseMessage = await result.text;
+        const { object: followUpQuestions } = await generateObject({
+          model: followUpModel.model,
+          prompt: followUpGeneratorPrompt(responseMessage),
+          schema: z.object({
+            questions: z.array(z.string()).max(3),
+          }),
+        });
+        await ctx.runMutation(
+          internal.thread.thread_mutations.saveFollowUpQuestions,
+          {
+            threadId: threadId,
+            followUpQuestions: followUpQuestions.questions,
+          },
+        );
+      })(),
+      // calculate usage
+      (async () => {
+        const million = 1000000;
+        const { promptTokens: inputTokens, completionTokens: outputTokens } =
+          await result.usage;
+        // cost of prompt & response
+        const inputCost = chosenModel.cost.in * (inputTokens / million);
+        const outputCost = chosenModel.cost.out * (outputTokens / million);
+        // cost to classify prompt category & difficulty
+        const classificationCost =
+          classifierModel.cost.in *
+            (classificationUsage.promptTokens / million) +
+          classifierModel.cost.out *
+            (classificationUsage.completionTokens / million);
+        // cost of other operations (currently just the flat search rate for perplexity)
+        const otherCost = chosenModel.cost.other;
+        const totalCost =
+          inputCost + outputCost + classificationCost + otherCost;
+        await ctx.runMutation(internal.sub.usage.insertMessageMetadata, {
+          messageId: promptMessageId,
+          threadId: threadId,
+          userId: userId,
+          category: object.promptCategory,
+          difficulty: object.promptDifficulty,
+          model: chosenModel.id,
+          inputTokens: inputTokens,
+          outputTokens: outputTokens,
+          inputCost: inputCost,
+          outputCost: outputCost,
+          otherCost: otherCost,
+          totalCost: totalCost,
+        });
+      })(),
     ]);
-    // calculate usage
-    const million = 1000000;
-    const { promptTokens: inputTokens, completionTokens: outputTokens } =
-      await result.usage;
-    // cost of prompt & response
-    const inputCost = chosenModel.cost.in * (inputTokens / million);
-    const outputCost = chosenModel.cost.out * (outputTokens / million);
-    // cost to classify prompt category & difficulty
-    const classificationCost =
-      classifierModel.cost.in * (classificationUsage.promptTokens / million) +
-      classifierModel.cost.out *
-        (classificationUsage.completionTokens / million);
-    // cost of other operations (currently just the flat search rate for perplexity)
-    const otherCost = chosenModel.cost.other;
-    const totalCost = inputCost + outputCost + classificationCost + otherCost;
-    await ctx.runMutation(internal.sub.usage.insertMessageMetadata, {
-      messageId: promptMessageId,
-      threadId: threadId,
-      userId: userId,
-      category: object.promptCategory,
-      difficulty: object.promptDifficulty,
-      model: chosenModel.id,
-      inputTokens: inputTokens,
-      outputTokens: outputTokens,
-      inputCost: inputCost,
-      outputCost: outputCost,
-      otherCost: otherCost,
-      totalCost: totalCost,
-    });
   },
 });

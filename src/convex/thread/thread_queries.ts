@@ -132,3 +132,17 @@ export const getThreadMessages = query({
     };
   },
 });
+
+export const getThreadFollowUpQuestions = query({
+  args: {
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { threadId } = args;
+    const metadata = await authorizeThreadAccess(ctx, threadId);
+    if (!metadata) {
+      return [];
+    }
+    return metadata.followUpQuestions ?? [];
+  },
+});

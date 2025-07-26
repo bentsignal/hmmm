@@ -124,7 +124,7 @@ export const newThreadMessage = mutation({
     if (metadata.state !== "idle") {
       throw new ConvexError("Thread is not idle");
     }
-    // save new message, schedule response action
+    // save new message to thread, update thread state, clear previous follow up questions
     const [{ messageId }] = await Promise.all([
       agent.saveMessage(ctx, {
         threadId,
@@ -135,7 +135,11 @@ export const newThreadMessage = mutation({
         state: "waiting",
         updatedAt: Date.now(),
       }),
+      ctx.db.patch(metadata._id, {
+        followUpQuestions: [],
+      }),
     ]);
+    // schedule response generation
     const { error } = await tryCatch(
       ctx.scheduler.runAfter(
         0,
@@ -293,6 +297,23 @@ export const toggleThreadPin = mutation({
     // toggle thread pin
     await ctx.db.patch(metadata._id, {
       pinned: !metadata.pinned,
+    });
+  },
+});
+
+export const saveFollowUpQuestions = internalMutation({
+  args: {
+    threadId: v.string(),
+    followUpQuestions: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { threadId, followUpQuestions } = args;
+    const metadata = await getThreadMetadata(ctx, threadId);
+    if (!metadata) {
+      throw new ConvexError("Thread not found");
+    }
+    await ctx.db.patch(metadata._id, {
+      followUpQuestions: followUpQuestions,
     });
   },
 });

@@ -3,6 +3,7 @@ import useStreamingMessages from "../hooks/use-streaming-messages";
 import Message from "./message";
 import { Loader } from "@/components/ui/loader";
 import { cn } from "@/lib/utils";
+import ThreadFollowUps from "@/features/thread/components/thread-follow-ups";
 
 interface StreamingMessagesProps {
   threadId: string;
@@ -32,6 +33,9 @@ export default function StreamingMessages({
         <div className="flex justify-start items-start min-h-[30vh]">
           <Loader variant="typing" size="md" />
         </div>
+      )}
+      {!waiting && streamingMessages.length === 0 && (
+        <ThreadFollowUps threadId={threadId} />
       )}
     </div>
   );

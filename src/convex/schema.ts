@@ -25,6 +25,7 @@ export default defineSchema({
     ),
     category: v.optional(convexCategoryEnum),
     pinned: v.optional(v.boolean()),
+    followUpQuestions: v.optional(v.array(v.string())),
   })
     .index("by_user_time", ["userId", "updatedAt"])
     .index("by_thread_id", ["threadId"])
