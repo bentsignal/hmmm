@@ -120,9 +120,9 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.55 0 0);
-  --premium: oklch(0.85 0.1 280);
-  --light: oklch(0.85 0.1 160);
-  --ultra: oklch(0.85 0.1 60);
+  --premium: oklch(0.95 0.1 280);
+  --light: oklch(0.95 0.1 160);
+  --ultra: oklch(0.95 0.1 60);
   --shimmer: oklch(0.75 0 0);
 }
 
