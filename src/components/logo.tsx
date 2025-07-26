@@ -4,7 +4,7 @@ import "@/styles/logo-anim.css";
 export default function Logo({
   size = 50,
   containerClass,
-  faceClass,
+  faceClass = "bg-background",
   spin = false,
 }: {
   size?: number;

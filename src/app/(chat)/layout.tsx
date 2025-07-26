@@ -14,7 +14,7 @@ export default async function ChatLayout({
 }) {
   const { userId } = await auth();
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       {userId && <ThreadList />}
       <SidebarInset className="relative h-screen">
         {userId && (
