@@ -15,19 +15,19 @@ export const usage = new TableAggregate<{
   Namespace: string;
   Key: number;
   DataModel: DataModel;
-  TableName: "messageMetadata";
+  TableName: "usage";
 }>(components.aggregateUsage, {
   namespace: (doc) => doc.userId,
   sortKey: (doc) => doc._creationTime,
-  sumValue: (doc) => doc.totalCost,
+  sumValue: (doc) => doc.cost,
 });
 
-// automatically update aggregate table whenever message metadata is updates
+// automatically update aggregate table whenever usage is logged
 const triggers = new Triggers<DataModel>();
-triggers.register("messageMetadata", usage.trigger());
+triggers.register("usage", usage.trigger());
 
-// use these mutation types when sending new messages, otherwise
-// the ussage aggregate won't be updated. Don't use them for
+// use these mutation types when logging usage, otherwise
+// the aggregate won't be updated. Don't use them for
 // deleting messages though, since we don't want to erase the
 // usage incurred by messages, even if they're deleted
 const usageTriggerInternalMutation = customMutation(
@@ -38,6 +38,20 @@ const usageTriggerMutation = customMutation(
   mutation,
   customCtx(triggers.wrapDB),
 );
+
+export const logMessageUsage = usageTriggerInternalMutation({
+  args: v.object({
+    userId: v.string(),
+    cost: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("usage", {
+      userId: args.userId,
+      cost: args.cost,
+      type: "message",
+    });
+  },
+});
 
 export const insertMessageMetadata = usageTriggerInternalMutation({
   args: usageSchema,
