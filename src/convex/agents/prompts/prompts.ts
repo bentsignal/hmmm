@@ -10,7 +10,7 @@ export const followUpGeneratorPrompt = (
 to analyze a message sent by a user, and generate a list of potential follow up prompts to keep 
 the conversation alive. The prompts should keep the user engaged, and provoke curiosity. The 
 prompts should be discrete options specific to the conversation. These prompts will be clicked
-on by the user, so they should be phrased in a way such that they are propossing the question 
+on by the user, so they should be phrased in a way such that they are proposing the question 
 or task to you.
 
 Here is the users prompt: ${message}`;
