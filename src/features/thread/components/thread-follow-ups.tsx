@@ -1,5 +1,6 @@
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import useUsage from "@/features/billing/hooks/use-usage";
 import useSendMessage from "@/features/composer/hooks/use-send-message";
 
 export default function ThreadFollowUps({ threadId }: { threadId: string }) {
@@ -12,6 +13,11 @@ export default function ThreadFollowUps({ threadId }: { threadId: string }) {
   const empty = !followUpQuestions || followUpQuestions.length === 0;
 
   const { sendMessage } = useSendMessage();
+  const { usage } = useUsage();
+
+  if (usage?.limitHit) {
+    return null;
+  }
 
   return (
     <div

@@ -30,6 +30,7 @@ import type * as sub_sub_config from "../sub/sub_config.js";
 import type * as sub_sub_helpers from "../sub/sub_helpers.js";
 import type * as sub_sub_mutations from "../sub/sub_mutations.js";
 import type * as sub_sub_queries from "../sub/sub_queries.js";
+import type * as sub_sub_types from "../sub/sub_types.js";
 import type * as sub_usage from "../sub/usage.js";
 import type * as thread_thread_actions from "../thread/thread_actions.js";
 import type * as thread_thread_helpers from "../thread/thread_helpers.js";
@@ -77,6 +78,7 @@ declare const fullApi: ApiFromModules<{
   "sub/sub_helpers": typeof sub_sub_helpers;
   "sub/sub_mutations": typeof sub_sub_mutations;
   "sub/sub_queries": typeof sub_sub_queries;
+  "sub/sub_types": typeof sub_sub_types;
   "sub/usage": typeof sub_usage;
   "thread/thread_actions": typeof thread_thread_actions;
   "thread/thread_helpers": typeof thread_thread_helpers;

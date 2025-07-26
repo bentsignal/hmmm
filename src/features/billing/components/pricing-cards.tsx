@@ -39,7 +39,7 @@ export default function PricingCards({ products }: { products: Product[] }) {
         </Link>
       </div>
       <span className="text-2xl font-bold">Pricing</span>
-      {plan ? (
+      {plan && plan.name !== "Free" ? (
         <div className="flex min-h-20 flex-col items-center gap-2">
           <span>
             Current plan:{" "}
@@ -97,7 +97,7 @@ export default function PricingCards({ products }: { products: Product[] }) {
                     {product.description}
                   </ReactMarkdown>
                 </div>
-                {product.price !== 0 && !plan && (
+                {product.price !== 0 && plan && plan.name === "Free" && (
                   <CheckoutLink
                     polarApi={{
                       generateCheckoutLink:

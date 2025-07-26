@@ -4,7 +4,7 @@ import {
   convexCategoryEnum,
   convexDifficultyEnum,
 } from "@/convex/agents/prompts/types";
-import { hasAccess } from "@/convex/user/user_helpers";
+import { hasUnlimitedAccess } from "@/convex/user/user_helpers";
 import { polar } from "./polar";
 import {
   ALLOWED_USAGE_PERCENTAGE,
@@ -15,7 +15,7 @@ import { usage } from "./usage";
 import * as timeHelpers from "@/lib/date-time-utils";
 
 type Plan = {
-  name: "Light" | "Premium" | "Ultra" | "Unlimited";
+  name: "Free" | "Light" | "Premium" | "Ultra" | "Unlimited";
   price: number;
   max: boolean;
 };
@@ -23,17 +23,15 @@ type Plan = {
 export const getUserPlanHelper = async (
   ctx: QueryCtx,
   userId: string,
-): Promise<Plan | null> => {
-  const [subscription, access] = await Promise.all([
+): Promise<Plan> => {
+  const [subscription, unlimited] = await Promise.all([
     polar.getCurrentSubscription(ctx, {
       userId,
     }),
-    hasAccess(ctx, userId),
+    hasUnlimitedAccess(ctx, userId),
   ]);
 
-  // if a user document has "access" set to true, then they get
-  // unlimited usage on the highest tier plan
-  if (access) {
+  if (unlimited) {
     return {
       name: "Unlimited",
       price: 0,
@@ -42,7 +40,11 @@ export const getUserPlanHelper = async (
   }
 
   if (!subscription) {
-    return null;
+    return {
+      name: "Free",
+      price: 0,
+      max: false,
+    };
   }
 
   return {
@@ -54,11 +56,13 @@ export const getUserPlanHelper = async (
 
 export const getUsageHelper = async (ctx: QueryCtx, userId: string) => {
   const plan = await getUserPlanHelper(ctx, userId);
+
+  // free tier gets set amount per day, paid users get % of their price per month
   const limit =
-    plan?.price && plan.price > 0
-      ? plan.price * ALLOWED_USAGE_PERCENTAGE
-      : FREE_TIER_MAX_USAGE;
-  const range = plan?.price && plan.price > 0 ? "monthly" : "daily";
+    plan.price === 0
+      ? FREE_TIER_MAX_USAGE
+      : plan.price * ALLOWED_USAGE_PERCENTAGE;
+  const range = plan.price === 0 ? "daily" : "monthly";
 
   // first and last day of the current month
   let start, end;
@@ -78,7 +82,7 @@ export const getUsageHelper = async (ctx: QueryCtx, userId: string) => {
     },
   });
 
-  const unlimited = plan?.name === "Unlimited";
+  const unlimited = plan.name === "Unlimited";
 
   return {
     endOfPeriod: end.toISOString(),

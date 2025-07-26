@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internalQuery, query } from "@/convex/_generated/server";
 import { polar } from "./polar";
 import { getUsageHelper, getUserPlanHelper } from "./sub_helpers";
+import { PlanTier } from "./sub_types";
 
 export const getUserPlan = query({
   args: {},
@@ -12,20 +13,26 @@ export const getUserPlan = query({
   },
 });
 
-// plan tier is rated from 0 to 2, with 2 being the highest tier
 export const getPlanTier = internalQuery({
   args: {
     userId: v.string(),
   },
   handler: async (ctx, args) => {
     const plan = await getUserPlanHelper(ctx, args.userId);
-    const tier =
-      plan?.name === "Ultra" || plan?.name === "Unlimited"
-        ? 2
-        : plan?.name === "Premium"
-          ? 1
-          : 0;
-    return tier;
+    switch (plan.name) {
+      case "Free":
+        return PlanTier.Free;
+      case "Light":
+        return PlanTier.Light;
+      case "Premium":
+        return PlanTier.Premium;
+      case "Ultra":
+        return PlanTier.Ultra;
+      case "Unlimited":
+        return PlanTier.Unlimited;
+      default:
+        return PlanTier.Free;
+    }
   },
 });
 

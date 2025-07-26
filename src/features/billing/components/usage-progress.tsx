@@ -1,7 +1,7 @@
 "use client";
 
-import { Progress } from "@/components/ui/progress";
 import useUsage from "../hooks/use-usage";
+import { Progress } from "@/components/ui/progress";
 
 export default function UsageProgress({
   initialRange,

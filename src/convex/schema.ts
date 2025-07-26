@@ -9,7 +9,7 @@ export default defineSchema({
   users: defineTable({
     userId: v.string(),
     email: v.string(),
-    access: v.optional(v.boolean()),
+    unlimited: v.optional(v.boolean()),
     waitlist: v.optional(v.boolean()),
     admin: v.optional(v.boolean()),
   }).index("by_user_id", ["userId"]),

@@ -21,6 +21,7 @@ import {
   promptCategoryEnum,
   promptDifficultyEnum,
 } from "@/convex/agents/prompts/types";
+import { PlanTier } from "@/convex/sub/sub_types";
 import { logSystemError, logSystemNotice } from "./thread_helpers";
 import { tryCatch } from "@/lib/utils";
 
@@ -99,9 +100,8 @@ export const generateResponse = internalAction({
     }
     const [{ object, usage: classificationUsage }, tier] =
       classificationResult.data;
-    // if category was search and user is not premium, log a message
-    // that they need to upgrade to perform web searches
-    if (tier === 0 && object.promptCategory === "search") {
+    // free tier users can't access web search, log notice in their thread
+    if (tier === PlanTier.Free && object.promptCategory === "search") {
       await logSystemNotice(ctx, threadId, "N1");
       await ctx.runMutation(
         internal.thread.thread_mutations.updateThreadState,

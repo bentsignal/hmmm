@@ -13,7 +13,6 @@ export const createUser = internalMutation({
     await ctx.db.insert("users", {
       userId,
       email,
-      access: false,
     });
   },
 });

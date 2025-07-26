@@ -53,8 +53,8 @@ export default function Thread({ threadId }: { threadId: string }) {
           flex-col gap-16 py-24 px-8 mb-8 sm:mb-0"
         >
           <Messages messages={messages} loadMore={loadMore} status={status} />
-          <StreamingMessages threadId={threadId} messages={messages} />
           <UsageChatCallout />
+          <StreamingMessages threadId={threadId} messages={messages} />
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>

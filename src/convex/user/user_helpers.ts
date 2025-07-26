@@ -6,12 +6,12 @@ import { QueryCtx } from "@/convex/_generated/server";
  * @param userId
  * @returns true / false / undefined depending on user access level
  */
-export const hasAccess = async (ctx: QueryCtx, userId: string) => {
+export const hasUnlimitedAccess = async (ctx: QueryCtx, userId: string) => {
   const user = await getUserByUserId(ctx, userId);
   if (!user) {
     return false;
   }
-  return user.access;
+  return user.unlimited;
 };
 
 export const isAdmin = async (ctx: QueryCtx, userId: string) => {

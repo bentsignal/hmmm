@@ -18,7 +18,7 @@ export default function UserBillingInfo({
     return <SettingsLoading />;
   }
 
-  if (planError) {
+  if (planError || !plan) {
     return (
       <span className="text-destructive">
         Failed to load billing info. Please try again later.
@@ -30,13 +30,13 @@ export default function UserBillingInfo({
     <div className="flex flex-col gap-4">
       <div className="flex gap-1">
         <span className="font-bold text-foreground">Current plan:</span>
-        <span>{plan !== null && plan !== undefined ? plan.name : "Light"}</span>
+        <span>{plan.name}</span>
       </div>
       <div className="flex gap-2">
         <Link href="/pricing">
           <Button variant="outline">View plans</Button>
         </Link>
-        {!plan ? (
+        {plan.name === "Free" ? (
           <CheckoutLink
             polarApi={{
               generateCheckoutLink: api.sub.sub_actions.generateCheckoutLink,
