@@ -8,7 +8,11 @@ import { v } from "convex/values";
 import { components } from "@/convex/_generated/api";
 import { DataModel } from "@/convex/_generated/dataModel";
 import { internalMutation, mutation } from "@/convex/_generated/server";
-import { getUsageHelper, logUsageHelper, usageSchema } from "./sub_helpers";
+import {
+  convexCategoryEnum,
+  convexDifficultyEnum,
+} from "../agents/prompts/types";
+import { getUsageHelper } from "./sub_helpers";
 
 // aggregate usage per user
 export const usage = new TableAggregate<{
@@ -41,22 +45,33 @@ const usageTriggerMutation = customMutation(
 
 export const logMessageUsage = usageTriggerInternalMutation({
   args: v.object({
+    messageId: v.string(),
+    threadId: v.string(),
     userId: v.string(),
+    category: convexCategoryEnum,
+    difficulty: convexDifficultyEnum,
+    model: v.string(),
+    inputTokens: v.number(),
+    outputTokens: v.number(),
     cost: v.number(),
   }),
   handler: async (ctx, args) => {
-    return await ctx.db.insert("usage", {
+    const usageId = await ctx.db.insert("usage", {
       userId: args.userId,
       cost: args.cost,
       type: "message",
     });
-  },
-});
-
-export const insertMessageMetadata = usageTriggerInternalMutation({
-  args: usageSchema,
-  handler: async (ctx, args) => {
-    await logUsageHelper(ctx, args);
+    await ctx.db.insert("messageMetadata", {
+      messageId: args.messageId,
+      threadId: args.threadId,
+      userId: args.userId,
+      usageId: usageId,
+      category: args.category,
+      difficulty: args.difficulty,
+      model: args.model,
+      inputTokens: args.inputTokens,
+      outputTokens: args.outputTokens,
+    });
   },
 });
 
@@ -82,20 +97,10 @@ export const logTranscriptionUsage = usageTriggerMutation({
     if (usage.limitHit) {
       throw new Error("User has reached usage limit");
     }
-    // insert metadata
-    await logUsageHelper(ctx, {
-      messageId: "",
-      threadId: "",
+    await ctx.db.insert("usage", {
       userId: userId.subject,
-      category: "general",
-      difficulty: "easy",
-      model: args.model,
-      inputTokens: 0,
-      outputTokens: 0,
-      inputCost: 0,
-      outputCost: 0,
-      otherCost: args.cost,
-      totalCost: args.totalCost,
+      cost: args.cost,
+      type: "transcription",
     });
   },
 });

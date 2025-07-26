@@ -22,6 +22,7 @@ import {
   promptDifficultyEnum,
 } from "@/convex/agents/prompts/types";
 import { PlanTier } from "@/convex/sub/sub_types";
+import { calculateModelCost } from "../sub/sub_helpers";
 import { logSystemError, logSystemNotice } from "./thread_helpers";
 import { tryCatch } from "@/lib/utils";
 
@@ -196,37 +197,25 @@ export const generateResponse = internalAction({
           },
         );
       })(),
-      // calculate usage
+      // log usage
       (async () => {
-        const million = 1000000;
-        const { promptTokens: inputTokens, completionTokens: outputTokens } =
-          await result.usage;
-        // cost of prompt & response
-        const inputCost = chosenModel.cost.in * (inputTokens / million);
-        const outputCost = chosenModel.cost.out * (outputTokens / million);
-        // cost to classify prompt category & difficulty
-        const classificationCost =
-          classifierModel.cost.in *
-            (classificationUsage.promptTokens / million) +
-          classifierModel.cost.out *
-            (classificationUsage.completionTokens / million);
-        // cost of other operations (currently just the flat search rate for perplexity)
-        const otherCost = chosenModel.cost.other;
-        const totalCost =
-          inputCost + outputCost + classificationCost + otherCost;
-        await ctx.runMutation(internal.sub.usage.insertMessageMetadata, {
+        const messageUsage = await result.usage;
+        const messageCost = calculateModelCost(chosenModel, messageUsage);
+        const classificationCost = calculateModelCost(
+          classifierModel,
+          classificationUsage,
+        );
+        const totalCost = messageCost + classificationCost;
+        await ctx.runMutation(internal.sub.usage.logMessageUsage, {
+          userId: userId,
           messageId: promptMessageId,
           threadId: threadId,
-          userId: userId,
           category: object.promptCategory,
           difficulty: object.promptDifficulty,
           model: chosenModel.id,
-          inputTokens: inputTokens,
-          outputTokens: outputTokens,
-          inputCost: inputCost,
-          outputCost: outputCost,
-          otherCost: otherCost,
-          totalCost: totalCost,
+          inputTokens: messageUsage.promptTokens,
+          outputTokens: messageUsage.completionTokens,
+          cost: totalCost,
         });
       })(),
     ]);

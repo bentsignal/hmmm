@@ -1,9 +1,6 @@
-import { Infer, v } from "convex/values";
-import { MutationCtx, QueryCtx } from "@/convex/_generated/server";
-import {
-  convexCategoryEnum,
-  convexDifficultyEnum,
-} from "@/convex/agents/prompts/types";
+import type { LanguageModelUsage } from "ai";
+import { QueryCtx } from "@/convex/_generated/server";
+import type { LanguageModel } from "@/convex/agents/models";
 import { hasUnlimitedAccess } from "@/convex/user/user_helpers";
 import { polar } from "./polar";
 import {
@@ -93,51 +90,13 @@ export const getUsageHelper = async (ctx: QueryCtx, userId: string) => {
   };
 };
 
-export const usageSchema = v.object({
-  messageId: v.string(),
-  threadId: v.string(),
-  userId: v.string(),
-  category: convexCategoryEnum,
-  difficulty: convexDifficultyEnum,
-  model: v.string(),
-  inputTokens: v.number(),
-  outputTokens: v.number(),
-  inputCost: v.number(),
-  outputCost: v.number(),
-  otherCost: v.number(),
-  totalCost: v.number(),
-});
-
-export const logUsageHelper = async (
-  ctx: MutationCtx,
-  args: Infer<typeof usageSchema>,
+export const calculateModelCost = (
+  model: LanguageModel,
+  usage: LanguageModelUsage,
 ) => {
-  const {
-    messageId,
-    threadId,
-    userId,
-    category,
-    difficulty,
-    model,
-    inputTokens,
-    outputTokens,
-    inputCost,
-    outputCost,
-    otherCost,
-    totalCost,
-  } = args;
-  await ctx.db.insert("messageMetadata", {
-    messageId,
-    threadId,
-    userId,
-    category,
-    model,
-    difficulty,
-    inputTokens,
-    outputTokens,
-    inputCost,
-    outputCost,
-    otherCost,
-    totalCost,
-  });
+  const million = 1000000;
+  const inputCost = model.cost.in * (usage.promptTokens / million);
+  const outputCost = model.cost.out * (usage.completionTokens / million);
+  const totalCost = inputCost + outputCost + model.cost.other;
+  return totalCost;
 };
