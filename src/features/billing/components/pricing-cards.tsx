@@ -68,8 +68,12 @@ export default function PricingCards({ products }: { products: Product[] }) {
               key={product.id}
               className={cn(
                 "w-full max-w-96 xl:w-96",
-                product.name === "Premium" && "border-premium",
-                product.name === "Ultra" && "border-ultra",
+                product.name === "Premium" &&
+                  "border-premium shadow-xl shadow-premium/10",
+                product.name === "Ultra" &&
+                  "border-ultra shadow-xl shadow-ultra/10",
+                product.name === "Light" &&
+                  "border-light shadow-xl shadow-light/10",
               )}
             >
               <Card.CardHeader className="sr-only">
@@ -82,6 +86,7 @@ export default function PricingCards({ products }: { products: Product[] }) {
                       "text-2xl font-bold",
                       product.name === "Premium" && "text-premium",
                       product.name === "Ultra" && "text-ultra",
+                      product.name === "Light" && "text-light",
                     )}
                   >
                     {product.name}
