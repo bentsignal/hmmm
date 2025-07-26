@@ -42,10 +42,6 @@ export default defineSchema({
     model: v.string(),
     inputTokens: v.number(),
     outputTokens: v.number(),
-    inputCost: v.optional(v.number()),
-    outputCost: v.optional(v.number()),
-    otherCost: v.optional(v.number()),
-    totalCost: v.optional(v.number()),
     usageId: v.optional(v.id("usage")),
   }).index("by_user_thread", ["userId", "threadId"]),
   usage: defineTable({
