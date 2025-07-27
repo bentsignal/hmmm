@@ -64,3 +64,46 @@ To avoid writing thread twice, I've created the following file: `src/features/th
 Now, the _Thread_ component can be imported as follows:
 
 `import Thread from "@src/features/thread";`
+
+## Nesting
+
+Use early returns when appropriate to avoid nesting.
+
+## Error Handling
+
+I have created a simple asynchronous utility function in `src/lib/utils.ts` called _tryCatch_. This function can be used to elegantly handle errors that may arise when calling promises.
+
+That function accepts a promise as an argument, and returns an object containing two fields: data, and error. If data is present, then error is null. If error is present, then data is null.
+
+The beauty of this is that you implement exception handling without the nesting hell that comes along with using try catch blocks, while also verifying that data was returned successfully from your promise. If you check for an error, handle it, and then return early, the typescript server will know that the code proceding that return is executed only in the case where data is not null. Below are some examples of how this can be used:
+
+```typescript
+  // get initial usage data
+  const { data: usage, error } = await tryCatch(
+    fetchQuery(api.sub.sub_queries.getUsage, undefined, { token }),
+  );
+
+  // get user's plan
+  if (error) {
+    console.error(error);
+    return <PageFallback />;
+  }
+
+  // now we know that usage is not null, and can safely access it
+```
+
+```typescript
+// request microphone access
+const { data: userStream, error } = await tryCatch(
+  navigator.mediaDevices.getUserMedia({
+    audio: true,
+  }),
+);
+if (error) {
+  toast.error("Failed to access microphone");
+  return;
+}
+
+// userStream is confirmed not null, init recorder
+setStream(userStream);
+```
