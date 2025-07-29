@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 
+const FPS = 100;
+const increment = 5;
+
 export function useTypewriter({
   text,
   streaming,
@@ -17,12 +20,12 @@ export function useTypewriter({
     const interval = setInterval(() => {
       setVisibleText((current) => {
         if (current.length < text.length) {
-          const nextIndex = Math.min(current.length + 5, text.length);
+          const nextIndex = Math.min(current.length + increment, text.length);
           return text.slice(0, nextIndex);
         }
         return text;
       });
-    }, 10);
+    }, 1000 / FPS);
 
     return () => clearInterval(interval);
   }, [streaming, text]);
