@@ -27,10 +27,8 @@ export const dateTime = createTool({
         "IANA timezone identifier (e.g., 'America/New_York', 'Europe/London', 'Asia/Tokyo')",
       ),
   }),
-
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   handler: async (ctx, args, options) => {
-    console.log(options);
-
     const date = new Date();
 
     // get time

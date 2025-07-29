@@ -1,5 +1,6 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
+import { tryCatch } from "@/lib/utils";
 
 const GOOGLE_WEATHER_API_KEY = process.env.GOOGLE_WEATHER_API_KEY;
 if (!GOOGLE_WEATHER_API_KEY) {
@@ -48,19 +49,22 @@ export const weather = createTool({
       temperature in Fahrenheit.`,
     ),
   }),
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   handler: async (ctx, args, options) => {
-    console.log(options);
-
     // get lat and long for location
-    const latLongResponse = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${args.location}&key=${GOOGLE_WEATHER_API_KEY}`,
+    const { data: coordinates, error: coordinatesError } = await tryCatch(
+      getCoordinates(args.location),
     );
-    const latLongData = await latLongResponse.json();
-    const { lat, lng } = latLongData.results[0].geometry.location;
-
+    if (coordinatesError) {
+      console.error(
+        "Error during weather tool call: Coordinates error",
+        coordinatesError,
+      );
+      return null;
+    }
+    // construct url for weather api
     const base = "https://weather.googleapis.com";
-    const shared = `key=${GOOGLE_WEATHER_API_KEY}&location.latitude=${lat}&location.longitude=${lng}&unitsSystem=${args.unitSystem}`;
-
+    const shared = `key=${GOOGLE_WEATHER_API_KEY}&location.latitude=${coordinates.lat}&location.longitude=${coordinates.lng}&unitsSystem=${args.unitSystem}`;
     let url;
     switch (args.queryType) {
       case "current-conditions":
@@ -75,17 +79,19 @@ export const weather = createTool({
       case "last-24-hours":
         url = `${base}/v1/history/hours:lookup?${shared}&hours=${24}&pageSize=${24}`;
         break;
-      default:
-        return null;
-        break;
     }
 
-    if (!url) {
+    // get weather data
+    const { data: weatherData, error: weatherError } = await tryCatch(
+      getWeather(url),
+    );
+    if (weatherError) {
+      console.error(
+        "Error during weather tool call: Weather data retrieval error",
+        weatherError,
+      );
       return null;
     }
-
-    const weatherResponse = await fetch(url);
-    const weatherData = await weatherResponse.json();
 
     // TODO: Log usage
     // await ctx.runMutation(api.sub.usage.loc);
@@ -93,3 +99,18 @@ export const weather = createTool({
     return weatherData;
   },
 });
+
+const getCoordinates = async (location: string) => {
+  const geocodingResponse = await fetch(
+    `https://maps.googleapis.com/maps/api/geocode/json?address=${location}&key=${GOOGLE_WEATHER_API_KEY}`,
+  );
+  const geocodingData = await geocodingResponse.json();
+  const { lat, lng } = geocodingData.results[0].geometry.location;
+  return { lat, lng };
+};
+
+const getWeather = async (url: string) => {
+  const weatherResponse = await fetch(url);
+  const weatherData = await weatherResponse.json();
+  return weatherData;
+};

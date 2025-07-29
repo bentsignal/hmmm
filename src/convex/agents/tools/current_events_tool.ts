@@ -1,6 +1,7 @@
 import { createTool } from "@convex-dev/agent";
 import { Exa } from "exa-js";
 import { z } from "zod";
+import { tryCatch } from "@/lib/utils";
 
 const EXA_API_KEY = process.env.EXA_API_KEY;
 if (!EXA_API_KEY) {
@@ -28,7 +29,6 @@ export const currentEvents = createTool({
   helpful response to address the user's question directly.
 
   `,
-
   args: z.object({
     query: z
       .string()
@@ -38,18 +38,22 @@ export const currentEvents = createTool({
         "A full sentence query describing the current events you want to know about",
       ),
   }),
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   handler: async (ctx, args, options) => {
-    console.log(options);
-
-    const searchConfig = {
-      numResults: 5,
-      text: {
-        maxCharacters: 5000,
-      },
-      // includeDomains: ["www.apnews.com"],
-      excludeDomains: ["www.youtube.com"],
-    };
-    const response = await exa.searchAndContents(args.query, searchConfig);
+    const { data: response, error: responseError } = await tryCatch(
+      exa.searchAndContents(args.query, {
+        numResults: 5,
+        text: {
+          maxCharacters: 5000,
+        },
+        excludeDomains: ["www.youtube.com"],
+      }),
+    );
+    if (responseError) {
+      console.error("Error during current events tool call", responseError);
+      return null;
+    }
+    // TODO: log usage
     return {
       sources: response.results.map((result) => ({
         url: result.url,
