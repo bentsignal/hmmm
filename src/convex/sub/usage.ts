@@ -67,6 +67,20 @@ export const logMessageUsage = usageTriggerInternalMutation({
   },
 });
 
+export const logToolCallUsage = usageTriggerInternalMutation({
+  args: v.object({
+    cost: v.number(),
+    userId: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    await ctx.db.insert("usage", {
+      userId: args.userId,
+      cost: args.cost,
+      type: "tool_call",
+    });
+  },
+});
+
 export const logTranscriptionUsage = usageTriggerMutation({
   args: v.object({
     cost: v.number(),

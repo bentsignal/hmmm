@@ -1,5 +1,6 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
+import { internal } from "@/convex/_generated/api";
 import { tryCatch } from "@/lib/utils";
 
 const GOOGLE_WEATHER_API_KEY = process.env.GOOGLE_WEATHER_API_KEY;
@@ -51,6 +52,13 @@ export const weather = createTool({
   }),
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   handler: async (ctx, args, options) => {
+    if (!ctx.userId) {
+      console.error("Error during weather tool call: No user ID");
+      return null;
+    }
+
+    // TODO: check cache
+
     // get lat and long for location
     const { data: coordinates, error: coordinatesError } = await tryCatch(
       getCoordinates(args.location),
@@ -93,8 +101,13 @@ export const weather = createTool({
       return null;
     }
 
-    // TODO: Log usage
-    // await ctx.runMutation(api.sub.usage.loc);
+    // TODO: write to cache
+
+    // log usage
+    await ctx.runMutation(internal.sub.usage.logToolCallUsage, {
+      userId: ctx.userId,
+      cost: 0.01,
+    });
 
     return weatherData;
   },
