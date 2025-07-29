@@ -22,6 +22,7 @@ import type * as agents_prompts_types_prompt_types from "../agents/prompts/types
 import type * as agents_tools_current_events_tool from "../agents/tools/current_events_tool.js";
 import type * as agents_tools_date_time_tool from "../agents/tools/date_time_tool.js";
 import type * as agents_tools_index from "../agents/tools/index.js";
+import type * as agents_tools_tool_helpers from "../agents/tools/tool_helpers.js";
 import type * as agents_tools_weather_tool from "../agents/tools/weather_tool.js";
 import type * as clerk_clerk_actions from "../clerk/clerk_actions.js";
 import type * as clerk_clerk_http_actions from "../clerk/clerk_http_actions.js";
@@ -74,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   "agents/tools/current_events_tool": typeof agents_tools_current_events_tool;
   "agents/tools/date_time_tool": typeof agents_tools_date_time_tool;
   "agents/tools/index": typeof agents_tools_index;
+  "agents/tools/tool_helpers": typeof agents_tools_tool_helpers;
   "agents/tools/weather_tool": typeof agents_tools_weather_tool;
   "clerk/clerk_actions": typeof clerk_clerk_actions;
   "clerk/clerk_http_actions": typeof clerk_clerk_http_actions;

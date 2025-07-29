@@ -1,15 +1,10 @@
 import { createTool } from "@convex-dev/agent";
-import { Exa } from "exa-js";
 import { z } from "zod";
-import { internal } from "@/convex/_generated/api";
+import { exa } from "./index";
+import { logSearchCost } from "./tool_helpers";
 import { tryCatch } from "@/lib/utils";
 
-const EXA_API_KEY = process.env.EXA_API_KEY;
-if (!EXA_API_KEY) {
-  throw new Error("EXA_API_KEY is not set");
-}
-
-const exa = new Exa(EXA_API_KEY);
+const NUM_RESULTS = 5;
 
 export const currentEvents = createTool({
   description: `
@@ -46,10 +41,12 @@ export const currentEvents = createTool({
       console.error("Error during current events tool call: No user ID");
       return null;
     }
+
     // TODO: check cache
+
     const { data: response, error: responseError } = await tryCatch(
       exa.searchAndContents(args.query, {
-        numResults: 5,
+        numResults: NUM_RESULTS,
         text: {
           maxCharacters: 5000,
         },
@@ -60,12 +57,10 @@ export const currentEvents = createTool({
       console.error("Error during current events tool call", responseError);
       return null;
     }
-    // TODO: write to cache
+
     // log usage
-    await ctx.runMutation(internal.sub.usage.logToolCallUsage, {
-      userId: ctx.userId,
-      cost: 0.005,
-    });
+    await logSearchCost(ctx, NUM_RESULTS, ctx.userId);
+
     return {
       sources: response.results.map((result) => ({
         url: result.url,
