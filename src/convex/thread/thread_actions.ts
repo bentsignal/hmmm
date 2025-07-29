@@ -125,6 +125,8 @@ export const generateResponse = internalAction({
           schema: z.object({
             questions: z.array(z.string()).max(3),
           }),
+          maxTokens: 1000,
+          maxRetries: 3,
         });
         await ctx.runMutation(
           internal.thread.thread_mutations.saveFollowUpQuestions,
