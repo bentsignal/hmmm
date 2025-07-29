@@ -1,73 +1,95 @@
 import { createTool } from "@convex-dev/agent";
-import { Exa } from "exa-js";
 import { z } from "zod";
 
-const EXA_API_KEY = process.env.EXA_API_KEY;
-if (!EXA_API_KEY) {
-  throw new Error("EXA_API_KEY is not set");
+const GOOGLE_WEATHER_API_KEY = process.env.GOOGLE_WEATHER_API_KEY;
+if (!GOOGLE_WEATHER_API_KEY) {
+  throw new Error("GOOGLE_WEATHER_API_KEY is not set");
 }
-
-const exa = new Exa(EXA_API_KEY);
 
 export const weather = createTool({
   description: `
 
   This tool is used to get the current weather for a given location. It can be 
-  used to get the current weather, or the upcoming forecast. It will not return
-  historical weather data. If you need historical weather data, you should use 
-  your own knowledge and reasoning to answer the user's question. If you do not 
-  possess the knowledge to answer the user's question, tell them that you do not 
-  have the knowledge to answer the question.
-  
-  It will return an array of source objects that are the results from the search 
-  query. The source objects will have the following fields:
+  used to gather the current weather conditions, the upcoming day by day 
+  forecast (up to 10 days), the upcoming hourly forecast (up to 1 day of 
+  hourly data), or the last 24 hours of weather data.
 
-  - url: the url of the source
-  - content: the page content of the source
-  - title: the title of the source
-  - favicon: the favicon of the source
-  - image: the image of the source
-
-  Use the **content** field of each object in the list to create an informed and 
-  helpful response to address the user's question directly.
+  Use the data returned to create an informed and helpful response to address the 
+  user's question directly. 
 
   `,
-
   args: z.object({
-    query: z
+    location: z
       .string()
       .min(1)
       .max(300)
       .describe(
-        "A full sentence query describing the weather you want to know about",
+        `The location to get the weather for. Specify as city name, state code (only 
+        for the US) and country code divided by comma. Please use ISO 3166 country 
+        codes.`,
       ),
+    queryType: z
+      .enum([
+        "current-conditions",
+        "daily-forecast",
+        "hourly-forecast",
+        "last-24-hours",
+      ])
+      .describe("The type of weather query to make"),
+    days: z
+      .number()
+      .min(1)
+      .max(10)
+      .default(1)
+      .describe("The number of days to get the weather for."),
+    unitSystem: z.enum(["METRIC", "IMPERIAL"]).describe(
+      `If the location for the weather uses the metric system, present the temperature 
+      in Celsius. If the location for the weather uses the imperial system, present the 
+      temperature in Fahrenheit.`,
+    ),
   }),
   handler: async (ctx, args, options) => {
     console.log(options);
-    const today = new Date().toISOString().slice(0, 10);
-    console.log(today);
 
-    const searchConfig = {
-      numResults: 3,
-      startPublishedDate: today,
-      includeDomains: [
-        "www.accuweather.com",
-        "www.weather.com",
-        "www.timeanddate.com",
-      ],
-      text: {
-        maxCharacters: 1000,
-      },
-    };
-    const response = await exa.searchAndContents(args.query, searchConfig);
-    return {
-      sources: response.results.map((result) => ({
-        url: result.url,
-        content: result.text,
-        title: result.title,
-        favicon: result.favicon,
-        image: result.image,
-      })),
-    };
+    // get lat and long for location
+    const latLongResponse = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${args.location}&key=${GOOGLE_WEATHER_API_KEY}`,
+    );
+    const latLongData = await latLongResponse.json();
+    const { lat, lng } = latLongData.results[0].geometry.location;
+
+    const base = "https://weather.googleapis.com";
+    const shared = `key=${GOOGLE_WEATHER_API_KEY}&location.latitude=${lat}&location.longitude=${lng}&unitsSystem=${args.unitSystem}`;
+
+    let url;
+    switch (args.queryType) {
+      case "current-conditions":
+        url = `${base}/v1/currentConditions:lookup?${shared}`;
+        break;
+      case "daily-forecast":
+        url = `${base}/v1/forecast/days:lookup?${shared}&days=${args.days}&pageSize=${args.days}`;
+        break;
+      case "hourly-forecast":
+        url = `${base}/v1/forecast/hours:lookup?${shared}&hours=24&pageSize=24`;
+        break;
+      case "last-24-hours":
+        url = `${base}/v1/history/hours:lookup?${shared}&hours=${24}&pageSize=${24}`;
+        break;
+      default:
+        return null;
+        break;
+    }
+
+    if (!url) {
+      return null;
+    }
+
+    const weatherResponse = await fetch(url);
+    const weatherData = await weatherResponse.json();
+
+    // TODO: Log usage
+    // await ctx.runMutation(api.sub.usage.loc);
+
+    return weatherData;
   },
 });
