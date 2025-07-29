@@ -52,7 +52,8 @@ and reasoning alone.** If so, proceed with that.
 actions that only a tool can perform, then identify and outline the tools you 
 will use and the order in which you will use them.**
 
-Once you have a comprehensive plan, outline it in a list.
+Once you have a comprehensive plan, outline it in a list. You do not need to
+inform the user of your plan, but you should keep it in mind as you execute it.
 
 Once you have outlined your plan, execute it. Do not stop until the plan has 
 been executed completely, and you have given a response to the user.
