@@ -1,6 +1,6 @@
 import { embeddingModels, languageModels, transcriptionModels } from "./models";
 
-export const defaultModel = languageModels["gemini-2.0-flash"];
+export const defaultModel = languageModels["gemini-2.5-flash"];
 export const classifierModel = languageModels["gemini-2.5-flash-lite"];
 export const followUpModel = languageModels["gemini-2.5-flash-lite"];
 export const titleGeneratorModel = languageModels["gemini-2.0-flash"];

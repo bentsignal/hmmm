@@ -160,12 +160,17 @@ export const languageModels = {
   "claude-4-sonnet": {
     provider: "Anthropic",
     name: "Claude 4 Sonnet",
-    id: "anthropic/claude-4-sonnet-20250522",
-    model: openrouter("anthropic/claude-4-sonnet-20250522"),
+    id: "anthropic/claude-sonnet-4",
+    model: openrouter("anthropic/claude-sonnet-4"),
     cost: {
       in: 3,
       out: 15,
       other: 0,
+    },
+    openrouterProviderOptions: {
+      reasoning: {
+        max_tokens: 16000,
+      },
     },
   },
   /*
@@ -284,6 +289,27 @@ export const languageModels = {
       in: 0.6,
       out: 1.2,
       other: 0,
+    },
+  },
+  /*
+
+    z-ai
+
+  */
+  "glm-4.5": {
+    provider: "z-ai",
+    name: "GLM 4.5",
+    id: "z-ai/glm-4.5",
+    model: openrouter("z-ai/glm-4.5"),
+    cost: {
+      in: 0.6,
+      out: 2.2,
+      other: 0,
+    },
+    openrouterProviderOptions: {
+      reasoning: {
+        max_tokens: 6000,
+      },
     },
   },
 } as const satisfies Record<string, LanguageModel>;
