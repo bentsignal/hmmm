@@ -9,12 +9,14 @@ if (!EXA_API_KEY) {
 
 const exa = new Exa(EXA_API_KEY);
 
-export const webSearch = createTool({
+export const currentEvents = createTool({
   description: `
 
-  This tool is used to search the web for information on a topic. It will return
-  an array of source objects that are the results from the search query. The source
-  objects will have the following fields:
+  This tool is used to get information about current events happening around the 
+  world.
+  
+  It will return an array of source objects that are the results from the search 
+  query. The source objects will have the following fields:
 
   - url: the url of the source
   - content: the page content of the source
@@ -22,31 +24,30 @@ export const webSearch = createTool({
   - favicon: the favicon of the source
   - image: the image of the source
 
-  Use the **content** field of each object in the list to create an informed and helpful
-  response to address the user's question directly.
+  Use the **content** field of each object in the list to create an informed and 
+  helpful response to address the user's question directly.
 
   `,
+
   args: z.object({
-    query: z.string().min(1).max(100).describe("The search query"),
-    difficulty: z
-      .enum(["easy", "medium", "hard"])
-      .optional()
-      .describe("The difficulty of the search query"),
+    query: z
+      .string()
+      .min(1)
+      .max(300)
+      .describe(
+        "A full sentence query describing the current events you want to know about",
+      ),
   }),
   handler: async (ctx, args, options) => {
     console.log(options);
 
     const searchConfig = {
-      numResults:
-        args.difficulty === "easy" ? 1 : args.difficulty === "medium" ? 5 : 10,
+      numResults: 5,
       text: {
-        maxCharacters:
-          args.difficulty === "easy"
-            ? 1000
-            : args.difficulty === "medium"
-              ? 5000
-              : 8000,
+        maxCharacters: 5000,
       },
+      // includeDomains: ["www.apnews.com"],
+      excludeDomains: ["www.youtube.com"],
     };
     const response = await exa.searchAndContents(args.query, searchConfig);
     return {
