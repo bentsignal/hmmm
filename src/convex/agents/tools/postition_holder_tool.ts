@@ -4,13 +4,13 @@ import { exa } from "./index";
 import { logSearchCost } from "./tool_helpers";
 import { tryCatch } from "@/lib/utils";
 
-const NUM_RESULTS = 5;
+const NUM_RESULTS = 3;
 
-export const currentEvents = createTool({
+export const positionHolder = createTool({
   description: `
 
-  This tool is used to get information about current events happening around the 
-  world.
+  This tool is used to determine who currently holds a position that is subject
+  to change, such as the president of the United States or the CEO of a company.
   
   It will return an array of source objects that are the results from the search 
   query. The source objects will have the following fields:
@@ -31,7 +31,7 @@ export const currentEvents = createTool({
       .min(1)
       .max(300)
       .describe(
-        "A full sentence query describing the current events you want to know about",
+        "A full sentence query describing the position you want to know about",
       ),
   }),
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -48,9 +48,8 @@ export const currentEvents = createTool({
       exa.searchAndContents(args.query, {
         numResults: NUM_RESULTS,
         text: {
-          maxCharacters: 5000,
+          maxCharacters: 1000,
         },
-        excludeDomains: ["www.youtube.com"],
       }),
     );
     if (responseError) {
