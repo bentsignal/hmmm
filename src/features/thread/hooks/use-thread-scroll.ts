@@ -43,18 +43,8 @@ export default function useThreadScroll({
   useEffect(() => {
     const scrollElement = getScrollElement();
     if (scrollElement) {
-      let ticking = false;
-      const onScroll = () => {
-        if (!ticking) {
-          ticking = true;
-          requestAnimationFrame(() => {
-            checkIfAtBottom();
-            ticking = false;
-          });
-        }
-      };
-      scrollElement.addEventListener("scroll", onScroll);
-      return () => scrollElement.removeEventListener("scroll", onScroll);
+      scrollElement.addEventListener("scroll", checkIfAtBottom);
+      return () => scrollElement.removeEventListener("scroll", checkIfAtBottom);
     }
   }, []);
 
