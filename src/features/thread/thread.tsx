@@ -34,7 +34,7 @@ export default function Thread({ threadId }: { threadId: string }) {
 
   return (
     <div className="relative h-full w-full flex flex-1 flex-col items-center justify-start">
-      <ThreadTitleUpdater threadId={threadId} />;
+      <ThreadTitleUpdater threadId={threadId} />
       <Abyss />
       <ScrollArea ref={scrollAreaRef} className="h-full w-full">
         <div
@@ -78,6 +78,8 @@ const MessageAreaWrapper = ({
     streaming: true,
   });
   const { isThreadIdle } = useThreadStatus({ threadId });
+
+  console.log(messages.length);
 
   // when messages have arrived, inform parent component so that scroll
   // component can auto scroll to the bottom
