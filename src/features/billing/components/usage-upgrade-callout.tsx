@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 export default function UsageUpgradeCallout() {
-  const plan = useQuery(api.sub.sub_queries.getUserPlan, {});
+  const { isAuthenticated } = useConvexAuth();
+  const plan = useQuery(
+    api.sub.sub_queries.getUserPlan,
+    isAuthenticated ? {} : "skip",
+  );
   if (plan?.max) return null;
   return (
     <span className="text-muted-foreground text-sm">
