@@ -8,7 +8,7 @@ export const agent = new Agent(components.agent, {
   chat: languageModels["gemini-2.5-flash"].model,
   name: "QBE",
   instructions: systemPrompt,
-  maxSteps: 10,
+  maxSteps: 20,
   maxRetries: 3,
   tools: {
     dateTime,
