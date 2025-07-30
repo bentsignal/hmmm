@@ -4,7 +4,7 @@
 export const ALLOWED_USAGE_PERCENTAGE = 0.75;
 
 // free tier can incur 1 cent of cost per day
-export const FREE_TIER_MAX_USAGE = 0.01;
+export const FREE_TIER_MAX_USAGE = 0.03;
 
 // ultra is the highest tier a user can purchase, unlimited
 // must be manually granted to a user
