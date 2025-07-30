@@ -12,8 +12,10 @@ export default function ComposerSend({
   return (
     <Button
       onClick={() => {
-        showInstantLoad?.();
         const prompt = useComposerStore.getState().prompt;
+        if (prompt.trim() !== "") {
+          showInstantLoad?.();
+        }
         sendMessage({ prompt });
       }}
       disabled={blockSend || isLoading}

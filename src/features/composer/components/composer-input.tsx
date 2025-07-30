@@ -29,8 +29,10 @@ export default function ComposerInput({
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      showInstantLoad?.();
       const prompt = useComposerStore.getState().prompt;
+      if (prompt.trim() !== "") {
+        showInstantLoad?.();
+      }
       sendMessage({ prompt });
     }
   };
