@@ -79,8 +79,6 @@ const MessageAreaWrapper = ({
   });
   const { isThreadIdle } = useThreadStatus({ threadId });
 
-  console.log(messages.length);
-
   // when messages have arrived, inform parent component so that scroll
   // component can auto scroll to the bottom
   useEffect(() => {
