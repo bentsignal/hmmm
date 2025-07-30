@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import "@/features/messages/styles/github-dark.min.css";
 import "@/features/messages/styles/message-styles.css";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import useThreadStatus from "./hooks/use-thread-status";
@@ -18,18 +18,11 @@ import useMessages from "@/features/messages/hooks/use-messages";
 import useThreadStore from "@/features/thread/store";
 
 export default function Thread({ threadId }: { threadId: string }) {
-  // non streaming messages, used to render the majority of a thread's messages, as
-  // well as to dedupe streaming messages
-  const { messages, loadMore, status } = useMessages({
-    threadId,
-    streaming: true,
-  });
-
-  const { isThreadIdle } = useThreadStatus({ threadId });
+  const [messagesLoaded, setMessagesLoaded] = useState(false);
 
   // auto scroll when new messages are sent, show/hide/handle scroll to bottom button
   const { scrollAreaRef, messagesEndRef, isAtBottom, scrollToBottom } =
-    useThreadScroll({ messages });
+    useThreadScroll({ messagesLoaded });
 
   // set active thread when component mounts
   const setActiveThread = useThreadStore((state) => state.setActiveThread);
@@ -56,14 +49,10 @@ export default function Thread({ threadId }: { threadId: string }) {
           className="flex h-full w-full max-w-4xl place-self-center mx-auto
           flex-col gap-16 py-24 px-8 mb-8 sm:mb-0"
         >
-          <Messages
-            messages={messages}
-            loadMore={loadMore}
-            loadingStatus={status}
-            isIdle={isThreadIdle}
+          <MessageAreaWrapper
+            threadId={threadId}
+            triggerMessagesLoaded={() => setMessagesLoaded(true)}
           />
-          <UsageChatCallout />
-          <StreamingMessages threadId={threadId} messages={messages} />
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
@@ -84,3 +73,38 @@ export default function Thread({ threadId }: { threadId: string }) {
     </div>
   );
 }
+
+const MessageAreaWrapper = ({
+  threadId,
+  triggerMessagesLoaded,
+}: {
+  threadId: string;
+  triggerMessagesLoaded: () => void;
+}) => {
+  const { messages, loadMore, status } = useMessages({
+    threadId,
+    streaming: true,
+  });
+  const { isThreadIdle } = useThreadStatus({ threadId });
+
+  // when messages have arrived, inform parent component so that scroll
+  // component can auto scroll to the bottom
+  useEffect(() => {
+    if (messages.length > 0) {
+      triggerMessagesLoaded();
+    }
+  }, [messages, triggerMessagesLoaded]);
+
+  return (
+    <>
+      <Messages
+        messages={messages}
+        loadMore={loadMore}
+        loadingStatus={status}
+        isIdle={isThreadIdle}
+      />
+      <StreamingMessages threadId={threadId} messages={messages} />
+      <UsageChatCallout />
+    </>
+  );
+};
