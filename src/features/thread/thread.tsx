@@ -7,8 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import "@/features/messages/styles/github-dark.min.css";
 import "@/features/messages/styles/message-styles.css";
 import { useEffect, useState } from "react";
-import { useConvexAuth, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import ThreadTitleUpdater from "./components/thread-title-updater";
 import useThreadStatus from "./hooks/use-thread-status";
 import Abyss from "@/components/abyss";
 import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
@@ -33,16 +32,9 @@ export default function Thread({ threadId }: { threadId: string }) {
     };
   }, [threadId, setActiveThread]);
 
-  // set tab label in browser to title of thread
-  const { isAuthenticated } = useConvexAuth();
-  const args = isAuthenticated ? { threadId } : "skip";
-  const title = useQuery(api.thread.thread_queries.getThreadTitle, args);
-  if (title) {
-    document.title = title;
-  }
-
   return (
     <div className="relative h-full w-full flex flex-1 flex-col items-center justify-start">
+      <ThreadTitleUpdater threadId={threadId} />;
       <Abyss />
       <ScrollArea ref={scrollAreaRef} className="h-full w-full">
         <div
