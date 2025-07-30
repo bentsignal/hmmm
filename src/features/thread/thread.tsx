@@ -9,6 +9,7 @@ import "@/features/messages/styles/message-styles.css";
 import { useEffect } from "react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import useThreadStatus from "./hooks/use-thread-status";
 import Abyss from "@/components/abyss";
 import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
 import Messages from "@/features/messages";
@@ -21,7 +22,10 @@ export default function Thread({ threadId }: { threadId: string }) {
   // well as to dedupe streaming messages
   const { messages, loadMore, status } = useMessages({
     threadId,
+    streaming: true,
   });
+
+  const { isThreadIdle } = useThreadStatus({ threadId });
 
   // auto scroll when new messages are sent, show/hide/handle scroll to bottom button
   const { scrollAreaRef, messagesEndRef, isAtBottom, scrollToBottom } =
@@ -52,7 +56,12 @@ export default function Thread({ threadId }: { threadId: string }) {
           className="flex h-full w-full max-w-4xl place-self-center mx-auto
           flex-col gap-16 py-24 px-8 mb-8 sm:mb-0"
         >
-          <Messages messages={messages} loadMore={loadMore} status={status} />
+          <Messages
+            messages={messages}
+            loadMore={loadMore}
+            loadingStatus={status}
+            isIdle={isThreadIdle}
+          />
           <UsageChatCallout />
           <StreamingMessages threadId={threadId} messages={messages} />
           <div ref={messagesEndRef} />

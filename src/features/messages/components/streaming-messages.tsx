@@ -27,7 +27,7 @@ export default function StreamingMessages({
       )}
     >
       {streamingMessages.map((message) => (
-        <Message key={message.id} message={message} streaming={true} />
+        <Message key={message.id} message={message} isActive={true} />
       ))}
       {waiting && (
         <div className="flex justify-start items-start min-h-[30vh]">

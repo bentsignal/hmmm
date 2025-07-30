@@ -1,11 +1,10 @@
-import { memo } from "react";
 import { UIMessage } from "@convex-dev/agent/react";
 import { Info } from "lucide-react";
 import { isErrorMessage, isNoticeMessage } from "../util/message-util";
 import { CopyButton } from "./copy-button";
 import ErrorMessage from "./error-message";
+import MessageStatus from "./message-status";
 import NoticeMessage from "./notice-message";
-import { MemoizedReasoningMessage } from "./reasoning-message";
 import { Markdown } from "@/components/ui/markdown";
 import {
   Tooltip,
@@ -17,15 +16,13 @@ import { getDateTimeString } from "@/lib/date-time-utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTypewriter } from "@/hooks/use-typewriter";
 
-interface ResponseMessageProps {
-  message: UIMessage;
-  streaming: boolean;
-}
-
 export default function ResponseMessage({
   message,
-  streaming,
-}: ResponseMessageProps) {
+  isActive,
+}: {
+  message: UIMessage;
+  isActive: boolean;
+}) {
   const { text } = useTypewriter({
     text: message.content,
     streaming: message.status === "streaming",
@@ -51,12 +48,12 @@ export default function ResponseMessage({
 
   return (
     <div className="flex w-full flex-col items-start gap-2">
-      <MemoizedReasoningMessage message={message} streaming={streaming} />
+      <MessageStatus message={message} isActive={isActive} />
       <div className="relative w-full max-w-full">
         <Markdown className="prose dark:prose-invert relative w-full max-w-full">
           {cleanedText}
         </Markdown>
-        {!streaming &&
+        {!isActive &&
           message.createdAt &&
           message.content.length > 0 &&
           !isMobile && (
@@ -81,5 +78,3 @@ export default function ResponseMessage({
     </div>
   );
 }
-
-export const MemoizedResponse = memo(ResponseMessage);

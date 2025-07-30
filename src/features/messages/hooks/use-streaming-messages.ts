@@ -36,7 +36,7 @@ export default function useStreamingMessages({
   // dedupe
   const uiMessages = toUIMessages(results);
   const streamingMessages = uiMessages.filter(
-    (msg) => !messages.some((m) => m.id === msg.id),
+    (msg) => !messages.some((m) => m.id === msg.id || msg.role !== "user"),
   );
 
   // when the user submits a prompt, show a loading spinner while waiting for a response

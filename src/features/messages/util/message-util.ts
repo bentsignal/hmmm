@@ -5,6 +5,7 @@ import {
   SystemErrorLabel,
   SystemNoticeCode,
   SystemNoticeLabel,
+  ToolInvocationUIPart,
 } from "../types/message-types";
 
 export function extractTextFromChildren(children: ReactNode): string {
@@ -37,7 +38,31 @@ export function extractReasoningFromMessage(message: UIMessage) {
 
 export function getLatestPartType(message: UIMessage) {
   if (message.parts.length === 0) return null;
-  return message.parts[0].type;
+  return message.parts[message.parts.length - 1].type;
+}
+
+export function getStatusLabel(message: UIMessage) {
+  const latestPartType = getLatestPartType(message);
+  switch (latestPartType) {
+    default:
+      return "Reasoning";
+    case "reasoning":
+      return "Reasoning";
+    case "tool-invocation":
+      const toolName = (
+        message.parts[message.parts.length - 1] as ToolInvocationUIPart
+      ).toolInvocation.toolName;
+      switch (toolName) {
+        case "dateTime":
+          return "Checking the time";
+        case "weather":
+          return "Checking the weather";
+        case "currentEvents":
+          return "Checking the news";
+        default:
+          return "Searching for information";
+      }
+  }
 }
 
 export function formatError(code: SystemErrorCode) {
