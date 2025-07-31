@@ -1,8 +1,10 @@
 "use client";
 
+import { memo } from "react";
 import "@/features/messages/styles/github-dark.min.css";
 import "@/features/messages/styles/message-styles.css";
 import { UIMessage } from "@convex-dev/agent/react";
+import equal from "fast-deep-equal";
 import PromptMessage from "./components/prompt-message";
 import ResponseMessage from "./components/response-message";
 import PageLoader from "@/components/page-loader";
@@ -52,7 +54,7 @@ export default function Messages({
   );
 }
 
-const Message = ({
+const PureMessage = ({
   message,
   isActive,
 }: {
@@ -69,3 +71,7 @@ const Message = ({
     </div>
   );
 };
+
+const Message = memo(PureMessage, (prev, next) => {
+  return prev.isActive === next.isActive && equal(prev.message, next.message);
+});
