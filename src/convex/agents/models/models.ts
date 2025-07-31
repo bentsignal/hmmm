@@ -312,4 +312,25 @@ export const languageModels = {
       },
     },
   },
+  /*
+
+    Open router
+
+  */
+  "horizon-alpha": {
+    provider: "Open Router",
+    name: "Horizon Alpha",
+    id: "openrouter/horizon-alpha",
+    model: openrouter("openrouter/horizon-alpha"),
+    cost: {
+      in: 0,
+      out: 0,
+      other: 0,
+    },
+    openrouterProviderOptions: {
+      reasoning: {
+        max_tokens: 6000,
+      },
+    },
+  },
 } as const satisfies Record<string, LanguageModel>;
