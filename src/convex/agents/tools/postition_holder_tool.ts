@@ -24,6 +24,10 @@ export const positionHolder = createTool({
   Use the **content** field of each object in the list to create an informed and 
   helpful response to address the user's question directly.
 
+  **IMPORTANT**: Before using this tool, you must always use the _dateTime_ tool
+  first. That way, you can ensure that the information you get back from this
+  tool is up to date.
+
   `,
   args: z.object({
     query: z
