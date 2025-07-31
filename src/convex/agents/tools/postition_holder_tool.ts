@@ -5,7 +5,8 @@ import { exa } from "./index";
 import { formatCacheKey, logSearchCost } from "./tool_helpers";
 import { tryCatch } from "@/lib/utils";
 
-const NUM_RESULTS = 3;
+const NUM_RESULTS = 5;
+const MAX_CHARACTERS = 3000;
 
 export const positionHolder = createTool({
   description: `
@@ -73,7 +74,7 @@ export const positionHolder = createTool({
       exa.searchAndContents(args.query, {
         numResults: NUM_RESULTS,
         text: {
-          maxCharacters: 1000,
+          maxCharacters: MAX_CHARACTERS,
         },
       }),
     );
