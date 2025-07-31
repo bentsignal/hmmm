@@ -1,4 +1,5 @@
 import { memo } from "react";
+import equal from "fast-deep-equal";
 import { Brain } from "lucide-react";
 import Link from "next/link";
 import { Thread } from "../types";
@@ -54,4 +55,6 @@ function ThreadListItem({ thread }: { thread: Thread }) {
   );
 }
 
-export default memo(ThreadListItem);
+export default memo(ThreadListItem, (prev, next) => {
+  return equal(prev.thread, next.thread);
+});
