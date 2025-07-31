@@ -13,7 +13,7 @@ import {
 import {
   PromptMessage,
   ResponseMessage,
-  StreamingMessages,
+  ThreadFooter,
 } from "@/features/messages/components/xr";
 import { PAGE_SIZE } from "@/features/messages/config";
 import useMessages from "@/features/messages/hooks/use-messages";
@@ -87,7 +87,7 @@ export default function XRThread({
                 <ResponseMessage key={message.id} message={message} />
               ),
             )}
-            <StreamingMessages threadId={threadId} messages={messages} />
+            <ThreadFooter threadId={threadId} messages={messages} />
             <Container width="100%" height={50} />
           </CustomContainer>
           <XRHandle show={true} />

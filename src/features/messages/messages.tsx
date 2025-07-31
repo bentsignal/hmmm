@@ -1,9 +1,10 @@
 "use client";
 
-import Message from "./components/message";
 import "@/features/messages/styles/github-dark.min.css";
 import "@/features/messages/styles/message-styles.css";
 import { UIMessage } from "@convex-dev/agent/react";
+import PromptMessage from "./components/prompt-message";
+import ResponseMessage from "./components/response-message";
 import PageLoader from "@/components/page-loader";
 import {
   INVISIBLE_PAGE_LOADER_INDEX,
@@ -50,3 +51,21 @@ export default function Messages({
     ),
   );
 }
+
+const Message = ({
+  message,
+  isActive,
+}: {
+  message: UIMessage;
+  isActive: boolean;
+}) => {
+  return (
+    <div className="w-full max-w-full">
+      {message.role === "user" ? (
+        <PromptMessage message={message} />
+      ) : message.role === "assistant" && message.parts.length > 0 ? (
+        <ResponseMessage message={message} isActive={isActive} />
+      ) : null}
+    </div>
+  );
+};

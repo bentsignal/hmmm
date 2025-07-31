@@ -12,8 +12,8 @@ import useThreadStatus from "./hooks/use-thread-status";
 import Abyss from "@/components/abyss";
 import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
 import Messages from "@/features/messages";
-import StreamingMessages from "@/features/messages/components/streaming-messages";
 import useMessages from "@/features/messages/hooks/use-messages";
+import ThreadFooter from "@/features/thread/components/thread-footer";
 import useThreadStore from "@/features/thread/store";
 
 export default function Thread({ threadId }: { threadId: string }) {
@@ -45,6 +45,7 @@ export default function Thread({ threadId }: { threadId: string }) {
             threadId={threadId}
             triggerMessagesLoaded={() => setMessagesLoaded(true)}
           />
+          <UsageChatCallout />
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
@@ -79,13 +80,12 @@ const MessageAreaWrapper = ({
   });
   const { isThreadIdle } = useThreadStatus({ threadId });
 
-  // when messages have arrived, inform parent component so that scroll
-  // component can auto scroll to the bottom
+  // when messages have loaded, parent component will auto scroll to bottom of page
   useEffect(() => {
     if (messages.length > 0) {
       triggerMessagesLoaded();
     }
-  }, [messages, triggerMessagesLoaded]);
+  }, [messages.length, triggerMessagesLoaded]);
 
   return (
     <>
@@ -95,8 +95,7 @@ const MessageAreaWrapper = ({
         loadingStatus={status}
         isIdle={isThreadIdle}
       />
-      <StreamingMessages threadId={threadId} messages={messages} />
-      <UsageChatCallout />
+      <ThreadFooter threadId={threadId} messages={messages} />
     </>
   );
 };

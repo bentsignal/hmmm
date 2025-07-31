@@ -8,7 +8,7 @@ import { useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import useMessageStore from "../store/message-store";
 
-export default function useStreamingMessages({
+export default function useMostRecentMessage({
   threadId,
   messages,
 }: {
@@ -33,9 +33,9 @@ export default function useStreamingMessages({
   const [initialLength] = useState(() => numMessagesSent);
   const hasNewMessages = numMessagesSent != initialLength;
 
-  // dedupe
+  // get the most recent prompt message
   const uiMessages = toUIMessages(results);
-  const streamingMessages = uiMessages.filter(
+  const optimisticPromptMessage = uiMessages.find(
     (msg) => !messages.some((m) => m.id === msg.id || msg.role !== "user"),
   );
 
@@ -44,8 +44,7 @@ export default function useStreamingMessages({
     uiMessages.length > 0 && uiMessages[uiMessages.length - 1].role === "user";
 
   return {
-    streamingMessages,
-    messageLength: messages.length,
+    optimisticPromptMessage,
     waiting,
     hasNewMessages,
   };
