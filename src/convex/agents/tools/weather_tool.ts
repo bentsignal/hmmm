@@ -1,6 +1,8 @@
+import kv from "@/kv";
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 import { internal } from "@/convex/_generated/api";
+import { formatCacheKey } from "./tool_helpers";
 import { tryCatch } from "@/lib/utils";
 
 const GOOGLE_WEATHER_API_KEY = process.env.GOOGLE_WEATHER_API_KEY;
@@ -57,7 +59,17 @@ export const weather = createTool({
       return null;
     }
 
-    // TODO: check cache
+    // check cache
+    const cacheKey = formatCacheKey("weather", [
+      args.location,
+      args.queryType,
+      args.days.toString(),
+      args.unitSystem,
+    ]);
+    const cachedWeather = await kv.get(cacheKey);
+    if (cachedWeather) {
+      return cachedWeather;
+    }
 
     // get lat and long for location
     const { data: coordinates, error: coordinatesError } = await tryCatch(
@@ -101,7 +113,23 @@ export const weather = createTool({
       return null;
     }
 
-    // TODO: write to cache
+    // write to cache
+    let ttl;
+    switch (args.queryType) {
+      case "current-conditions":
+        ttl = 60 * 10; // 10 minutes
+        break;
+      case "daily-forecast":
+        ttl = 60 * 60; // 1 hour
+        break;
+      case "hourly-forecast":
+        ttl = 60 * 10; // 10 minutes
+        break;
+      case "last-24-hours":
+        ttl = 60 * 10; // 10 minutes
+        break;
+    }
+    await kv.set(cacheKey, weatherData, { ex: ttl });
 
     // log usage
     await ctx.runMutation(internal.sub.usage.logToolCallUsage, {

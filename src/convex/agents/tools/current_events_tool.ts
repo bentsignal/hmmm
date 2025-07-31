@@ -1,7 +1,8 @@
+import kv from "@/kv";
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 import { exa } from "./index";
-import { logSearchCost } from "./tool_helpers";
+import { formatCacheKey, logSearchCost } from "./tool_helpers";
 import { tryCatch } from "@/lib/utils";
 
 const NUM_RESULTS = 5;
@@ -42,7 +43,12 @@ export const currentEvents = createTool({
       return null;
     }
 
-    // TODO: check cache
+    // check cache
+    const cacheKey = formatCacheKey("current-events", [args.query]);
+    const cachedSources = await kv.get(cacheKey);
+    if (cachedSources) {
+      return cachedSources;
+    }
 
     const { data: response, error: responseError } = await tryCatch(
       exa.searchAndContents(args.query, {
@@ -61,16 +67,19 @@ export const currentEvents = createTool({
     // log usage
     await logSearchCost(ctx, NUM_RESULTS, ctx.userId);
 
-    // TODO: write to cache
+    const sources = response.results.map((result) => ({
+      url: result.url,
+      content: result.text,
+      title: result.title,
+      favicon: result.favicon,
+      image: result.image,
+    }));
 
-    return {
-      sources: response.results.map((result) => ({
-        url: result.url,
-        content: result.text,
-        title: result.title,
-        favicon: result.favicon,
-        image: result.image,
-      })),
-    };
+    // write to cache
+    await kv.set(cacheKey, sources, {
+      ex: 60 * 10, // 10 minutes
+    });
+
+    return sources;
   },
 });

@@ -1,7 +1,8 @@
+import kv from "@/kv";
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 import { exa } from "./index";
-import { logSearchCost } from "./tool_helpers";
+import { formatCacheKey, logSearchCost } from "./tool_helpers";
 import { tryCatch } from "@/lib/utils";
 
 const NUM_RESULTS = 3;
@@ -37,6 +38,18 @@ export const positionHolder = createTool({
       .describe(
         "A full sentence query describing the position you want to know about",
       ),
+    position: z
+      .string()
+      .min(1)
+      .max(100)
+      .describe("The position you want to know about"),
+    group: z
+      .string()
+      .min(1)
+      .max(100)
+      .describe(
+        "The name of the group, company, or organization you want to know about",
+      ),
   }),
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   handler: async (ctx, args, options) => {
@@ -46,7 +59,15 @@ export const positionHolder = createTool({
       return null;
     }
 
-    // TODO: check cache
+    // check cache
+    const cacheKey = formatCacheKey("position-holder", [
+      args.position,
+      args.group,
+    ]);
+    const cachedResult = await kv.get(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
+    }
 
     const { data: response, error: responseError } = await tryCatch(
       exa.searchAndContents(args.query, {
@@ -64,16 +85,23 @@ export const positionHolder = createTool({
     // log usage
     await logSearchCost(ctx, NUM_RESULTS, ctx.userId);
 
-    // TODO: write to cache
+    const sources = response.results.map((result) => ({
+      url: result.url,
+      content: result.text,
+      title: result.title,
+      favicon: result.favicon,
+      image: result.image,
+    }));
 
-    return {
-      sources: response.results.map((result) => ({
-        url: result.url,
-        content: result.text,
-        title: result.title,
-        favicon: result.favicon,
-        image: result.image,
-      })),
-    };
+    // write to cache
+    await kv.set(
+      cacheKey,
+      {
+        sources,
+      },
+      { ex: 60 * 60 }, // 1 hour
+    );
+
+    return sources;
   },
 });
