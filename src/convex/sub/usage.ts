@@ -8,10 +8,6 @@ import { v } from "convex/values";
 import { components } from "@/convex/_generated/api";
 import { DataModel } from "@/convex/_generated/dataModel";
 import { internalMutation, mutation } from "@/convex/_generated/server";
-import {
-  convexCategoryEnum,
-  convexDifficultyEnum,
-} from "../agents/prompts/types";
 import { getUsageHelper } from "./sub_helpers";
 
 // aggregate usage per user
@@ -45,11 +41,9 @@ const usageTriggerMutation = customMutation(
 
 export const logMessageUsage = usageTriggerInternalMutation({
   args: v.object({
+    userId: v.string(),
     messageId: v.string(),
     threadId: v.string(),
-    userId: v.string(),
-    category: convexCategoryEnum,
-    difficulty: convexDifficultyEnum,
     model: v.string(),
     inputTokens: v.number(),
     outputTokens: v.number(),
@@ -66,11 +60,23 @@ export const logMessageUsage = usageTriggerInternalMutation({
       threadId: args.threadId,
       userId: args.userId,
       usageId: usageId,
-      category: args.category,
-      difficulty: args.difficulty,
       model: args.model,
       inputTokens: args.inputTokens,
       outputTokens: args.outputTokens,
+    });
+  },
+});
+
+export const logToolCallUsage = usageTriggerInternalMutation({
+  args: v.object({
+    cost: v.number(),
+    userId: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    await ctx.db.insert("usage", {
+      userId: args.userId,
+      cost: args.cost,
+      type: "tool_call",
     });
   },
 });

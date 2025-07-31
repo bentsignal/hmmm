@@ -13,11 +13,17 @@ import {
 export default function Messages({
   messages,
   loadMore,
-  status,
+  loadingStatus,
+  isIdle,
 }: {
   messages: UIMessage[];
   loadMore: (numItems: number) => void;
-  status: "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
+  loadingStatus:
+    | "LoadingFirstPage"
+    | "CanLoadMore"
+    | "LoadingMore"
+    | "Exhausted";
+  isIdle: boolean;
 }) {
   return messages.map((item, index) =>
     index === INVISIBLE_PAGE_LOADER_INDEX ? (
@@ -25,15 +31,22 @@ export default function Messages({
       // the next page of messages. As long as the user doesn't scroll too
       // fast, they shouldn't notice pagination.
       <PageLoader
-        status={status}
+        status={loadingStatus}
         loadMore={() => loadMore(PAGE_SIZE)}
         singleUse={true}
         key={item.id}
       >
-        <Message message={item} streaming={false} />
+        <Message
+          message={item}
+          isActive={index === messages.length - 1 && !isIdle}
+        />
       </PageLoader>
     ) : (
-      <Message key={item.id} message={item} streaming={false} />
+      <Message
+        key={item.id}
+        message={item}
+        isActive={index === messages.length - 1 && !isIdle}
+      />
     ),
   );
 }

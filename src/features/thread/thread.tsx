@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import "@/features/messages/styles/github-dark.min.css";
 import "@/features/messages/styles/message-styles.css";
-import { useEffect } from "react";
-import { useConvexAuth, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { useEffect, useState } from "react";
+import ThreadTitleUpdater from "./components/thread-title-updater";
+import useThreadStatus from "./hooks/use-thread-status";
 import Abyss from "@/components/abyss";
 import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
 import Messages from "@/features/messages";
@@ -17,15 +17,11 @@ import useMessages from "@/features/messages/hooks/use-messages";
 import useThreadStore from "@/features/thread/store";
 
 export default function Thread({ threadId }: { threadId: string }) {
-  // non streaming messages, used to render the majority of a thread's messages, as
-  // well as to dedupe streaming messages
-  const { messages, loadMore, status } = useMessages({
-    threadId,
-  });
+  const [messagesLoaded, setMessagesLoaded] = useState(false);
 
   // auto scroll when new messages are sent, show/hide/handle scroll to bottom button
   const { scrollAreaRef, messagesEndRef, isAtBottom, scrollToBottom } =
-    useThreadScroll({ messages });
+    useThreadScroll({ messagesLoaded });
 
   // set active thread when component mounts
   const setActiveThread = useThreadStore((state) => state.setActiveThread);
@@ -36,25 +32,19 @@ export default function Thread({ threadId }: { threadId: string }) {
     };
   }, [threadId, setActiveThread]);
 
-  // set tab label in browser to title of thread
-  const { isAuthenticated } = useConvexAuth();
-  const args = isAuthenticated ? { threadId } : "skip";
-  const title = useQuery(api.thread.thread_queries.getThreadTitle, args);
-  if (title) {
-    document.title = title;
-  }
-
   return (
     <div className="relative h-full w-full flex flex-1 flex-col items-center justify-start">
+      <ThreadTitleUpdater threadId={threadId} />
       <Abyss />
       <ScrollArea ref={scrollAreaRef} className="h-full w-full">
         <div
           className="flex h-full w-full max-w-4xl place-self-center mx-auto
           flex-col gap-16 py-24 px-8 mb-8 sm:mb-0"
         >
-          <Messages messages={messages} loadMore={loadMore} status={status} />
-          <UsageChatCallout />
-          <StreamingMessages threadId={threadId} messages={messages} />
+          <MessageAreaWrapper
+            threadId={threadId}
+            triggerMessagesLoaded={() => setMessagesLoaded(true)}
+          />
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
@@ -75,3 +65,38 @@ export default function Thread({ threadId }: { threadId: string }) {
     </div>
   );
 }
+
+const MessageAreaWrapper = ({
+  threadId,
+  triggerMessagesLoaded,
+}: {
+  threadId: string;
+  triggerMessagesLoaded: () => void;
+}) => {
+  const { messages, loadMore, status } = useMessages({
+    threadId,
+    streaming: true,
+  });
+  const { isThreadIdle } = useThreadStatus({ threadId });
+
+  // when messages have arrived, inform parent component so that scroll
+  // component can auto scroll to the bottom
+  useEffect(() => {
+    if (messages.length > 0) {
+      triggerMessagesLoaded();
+    }
+  }, [messages, triggerMessagesLoaded]);
+
+  return (
+    <>
+      <Messages
+        messages={messages}
+        loadMore={loadMore}
+        loadingStatus={status}
+        isIdle={isThreadIdle}
+      />
+      <StreamingMessages threadId={threadId} messages={messages} />
+      <UsageChatCallout />
+    </>
+  );
+};

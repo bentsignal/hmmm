@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { useState } from "react";
 import { UIMessage } from "@convex-dev/agent/react";
 import { CopyButton } from "./copy-button";
 import { Markdown } from "@/components/ui/markdown";
@@ -30,5 +30,3 @@ export default function PromptMessage({ message }: { message: UIMessage }) {
     </div>
   );
 }
-
-export const MemoizedPrompt = memo(PromptMessage);

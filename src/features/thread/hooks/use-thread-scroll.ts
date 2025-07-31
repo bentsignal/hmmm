@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { UIMessage } from "@convex-dev/agent/react";
 import useMessageStore from "@/features/messages/store";
 
 export default function useThreadScroll({
-  messages,
+  messagesLoaded,
 }: {
-  messages: UIMessage[];
+  messagesLoaded: boolean;
 }) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -51,11 +50,11 @@ export default function useThreadScroll({
 
   // scroll to the bottom on page load
   useEffect(() => {
-    if (isInitialLoadRef.current && messages.length > 0) {
+    if (isInitialLoadRef.current && messagesLoaded) {
       scrollToBottom();
       isInitialLoadRef.current = false;
     }
-  }, [messages]);
+  }, [messagesLoaded]);
 
   // when a new message is sent, scroll to the bottom of the page
   useEffect(() => {

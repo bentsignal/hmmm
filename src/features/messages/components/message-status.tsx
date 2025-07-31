@@ -1,9 +1,9 @@
-import { memo, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { UIMessage, useSmoothText } from "@convex-dev/agent/react";
 import { Brain } from "lucide-react";
 import {
   extractReasoningFromMessage,
-  getLatestPartType,
+  getStatusLabel,
 } from "../util/message-util";
 import Abyss from "@/components/abyss";
 import {
@@ -15,33 +15,29 @@ import { TextShimmer } from "@/components/ui/loader";
 import { Markdown } from "@/components/ui/markdown";
 import { cn } from "@/lib/utils";
 
-interface ReasoningMessageProps {
-  message: UIMessage;
-  streaming: boolean;
-}
-
-export default function ReasoningMessage({
+export default function MessageStatus({
   message,
-  streaming,
-}: ReasoningMessageProps) {
-  // animate the reasoning label when the model is thinking
-  const isReasoning = streaming && getLatestPartType(message) === "reasoning";
-
+  isActive,
+}: {
+  message: UIMessage;
+  isActive: boolean;
+}) {
   // extract text from reasoning parts & smooth
   const content = extractReasoningFromMessage(message);
   const [text] = useSmoothText(content);
+  const statusLabel = getStatusLabel(message);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // auto scroll to bottom when actively reasoning
   useEffect(() => {
-    if (isReasoning && scrollContainerRef.current) {
+    if (isActive && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({
         top: Math.max(scrollContainerRef.current.scrollHeight - 500, 0),
         behavior: "smooth",
       });
     }
-  }, [text, isReasoning]);
+  }, [text, isActive]);
 
   if (content.length === 0) return null;
 
@@ -51,7 +47,7 @@ export default function ReasoningMessage({
         <HoverCardTrigger>
           <div className={cn("flex items-center gap-2", "cursor-pointer")}>
             <Brain className="h-4 w-4" />
-            <TextShimmer active={isReasoning} text="Reasoning" />
+            <TextShimmer active={isActive} text={statusLabel} />
           </div>
         </HoverCardTrigger>
         <HoverCardContent
@@ -68,7 +64,7 @@ export default function ReasoningMessage({
             className={cn(
               "scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent",
               "h-64 w-full overflow-y-auto p-6",
-              isReasoning && "overflow-y-hidden select-none",
+              isActive && "overflow-y-hidden select-none",
             )}
           >
             <Markdown className="prose dark:prose-invert relative w-full max-w-full text-sm">
@@ -80,5 +76,3 @@ export default function ReasoningMessage({
     </div>
   );
 }
-
-export const MemoizedReasoningMessage = memo(ReasoningMessage);

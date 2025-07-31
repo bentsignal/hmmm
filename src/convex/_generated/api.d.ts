@@ -19,6 +19,12 @@ import type * as agents_prompts_index from "../agents/prompts/index.js";
 import type * as agents_prompts_prompts from "../agents/prompts/prompts.js";
 import type * as agents_prompts_types_index from "../agents/prompts/types/index.js";
 import type * as agents_prompts_types_prompt_types from "../agents/prompts/types/prompt_types.js";
+import type * as agents_tools_current_events_tool from "../agents/tools/current_events_tool.js";
+import type * as agents_tools_date_time_tool from "../agents/tools/date_time_tool.js";
+import type * as agents_tools_index from "../agents/tools/index.js";
+import type * as agents_tools_postition_holder_tool from "../agents/tools/postition_holder_tool.js";
+import type * as agents_tools_tool_helpers from "../agents/tools/tool_helpers.js";
+import type * as agents_tools_weather_tool from "../agents/tools/weather_tool.js";
 import type * as clerk_clerk_actions from "../clerk/clerk_actions.js";
 import type * as clerk_clerk_http_actions from "../clerk/clerk_http_actions.js";
 import type * as http from "../http.js";
@@ -67,6 +73,12 @@ declare const fullApi: ApiFromModules<{
   "agents/prompts/prompts": typeof agents_prompts_prompts;
   "agents/prompts/types/index": typeof agents_prompts_types_index;
   "agents/prompts/types/prompt_types": typeof agents_prompts_types_prompt_types;
+  "agents/tools/current_events_tool": typeof agents_tools_current_events_tool;
+  "agents/tools/date_time_tool": typeof agents_tools_date_time_tool;
+  "agents/tools/index": typeof agents_tools_index;
+  "agents/tools/postition_holder_tool": typeof agents_tools_postition_holder_tool;
+  "agents/tools/tool_helpers": typeof agents_tools_tool_helpers;
+  "agents/tools/weather_tool": typeof agents_tools_weather_tool;
   "clerk/clerk_actions": typeof clerk_clerk_actions;
   "clerk/clerk_http_actions": typeof clerk_clerk_http_actions;
   http: typeof http;
@@ -714,188 +726,11 @@ export declare const components: {
           >;
         }>
       >;
-      getThreadMessages: FunctionReference<
-        "query",
-        "internal",
-        { deprecated: "Use listMessagesByThreadId instead" },
-        {
-          continueCursor: string;
-          isDone: boolean;
-          page: Array<{
-            _creationTime: number;
-            _id: string;
-            agentName?: string;
-            embeddingId?: string;
-            error?: string;
-            fileIds?: Array<string>;
-            finishReason?:
-              | "stop"
-              | "length"
-              | "content-filter"
-              | "tool-calls"
-              | "error"
-              | "other"
-              | "unknown";
-            id?: string;
-            message?:
-              | {
-                  content:
-                    | string
-                    | Array<
-                        | {
-                            providerOptions?: Record<
-                              string,
-                              Record<string, any>
-                            >;
-                            text: string;
-                            type: "text";
-                          }
-                        | {
-                            image: string | ArrayBuffer;
-                            mimeType?: string;
-                            providerOptions?: Record<
-                              string,
-                              Record<string, any>
-                            >;
-                            type: "image";
-                          }
-                        | {
-                            data: string | ArrayBuffer;
-                            filename?: string;
-                            mimeType: string;
-                            providerOptions?: Record<
-                              string,
-                              Record<string, any>
-                            >;
-                            type: "file";
-                          }
-                      >;
-                  providerOptions?: Record<string, Record<string, any>>;
-                  role: "user";
-                }
-              | {
-                  content:
-                    | string
-                    | Array<
-                        | {
-                            providerOptions?: Record<
-                              string,
-                              Record<string, any>
-                            >;
-                            text: string;
-                            type: "text";
-                          }
-                        | {
-                            data: string | ArrayBuffer;
-                            filename?: string;
-                            mimeType: string;
-                            providerOptions?: Record<
-                              string,
-                              Record<string, any>
-                            >;
-                            type: "file";
-                          }
-                        | {
-                            providerOptions?: Record<
-                              string,
-                              Record<string, any>
-                            >;
-                            signature?: string;
-                            text: string;
-                            type: "reasoning";
-                          }
-                        | {
-                            data: string;
-                            providerOptions?: Record<
-                              string,
-                              Record<string, any>
-                            >;
-                            type: "redacted-reasoning";
-                          }
-                        | {
-                            args: any;
-                            providerOptions?: Record<
-                              string,
-                              Record<string, any>
-                            >;
-                            toolCallId: string;
-                            toolName: string;
-                            type: "tool-call";
-                          }
-                      >;
-                  providerOptions?: Record<string, Record<string, any>>;
-                  role: "assistant";
-                }
-              | {
-                  content: Array<{
-                    args?: any;
-                    experimental_content?: Array<
-                      | { text: string; type: "text" }
-                      | { data: string; mimeType?: string; type: "image" }
-                    >;
-                    isError?: boolean;
-                    providerOptions?: Record<string, Record<string, any>>;
-                    result: any;
-                    toolCallId: string;
-                    toolName: string;
-                    type: "tool-result";
-                  }>;
-                  providerOptions?: Record<string, Record<string, any>>;
-                  role: "tool";
-                }
-              | {
-                  content: string;
-                  providerOptions?: Record<string, Record<string, any>>;
-                  role: "system";
-                };
-            model?: string;
-            order: number;
-            provider?: string;
-            providerMetadata?: Record<string, Record<string, any>>;
-            providerOptions?: Record<string, Record<string, any>>;
-            reasoning?: string;
-            reasoningDetails?: Array<
-              | { signature?: string; text: string; type: "text" }
-              | { data: string; type: "redacted" }
-            >;
-            sources?: Array<{
-              id: string;
-              providerOptions?: Record<string, Record<string, any>>;
-              sourceType: "url";
-              title?: string;
-              url: string;
-            }>;
-            status: "pending" | "success" | "failed";
-            stepOrder: number;
-            text?: string;
-            threadId: string;
-            tool: boolean;
-            usage?: {
-              completionTokens: number;
-              promptTokens: number;
-              totalTokens: number;
-            };
-            userId?: string;
-            warnings?: Array<
-              | {
-                  details?: string;
-                  setting: string;
-                  type: "unsupported-setting";
-                }
-              | { details?: string; tool: any; type: "unsupported-tool" }
-              | { message: string; type: "other" }
-            >;
-          }>;
-          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-          splitCursor?: string | null;
-        }
-      >;
       listMessagesByThreadId: FunctionReference<
         "query",
         "internal",
         {
           excludeToolMessages?: boolean;
-          isTool?: "use excludeToolMessages instead of this";
           order: "asc" | "desc";
           paginationOpts?: {
             cursor: string | null;

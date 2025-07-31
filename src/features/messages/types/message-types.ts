@@ -4,3 +4,10 @@ export type SystemNoticeCode = "N1";
 
 export const SystemErrorLabel = "--SYSTEM_ERROR--";
 export const SystemNoticeLabel = "--SYSTEM_NOTICE--";
+
+export interface ToolInvocationUIPart {
+  type: "tool-invocation";
+  toolInvocation: {
+    toolName: string;
+  };
+}

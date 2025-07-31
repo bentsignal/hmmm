@@ -37,8 +37,8 @@ export default defineSchema({
     messageId: v.string(),
     threadId: v.string(),
     userId: v.string(),
-    category: convexCategoryEnum,
-    difficulty: convexDifficultyEnum,
+    category: v.optional(convexCategoryEnum),
+    difficulty: v.optional(convexDifficultyEnum),
     model: v.string(),
     inputTokens: v.number(),
     outputTokens: v.number(),
@@ -46,7 +46,11 @@ export default defineSchema({
   }).index("by_user_thread", ["userId", "threadId"]),
   usage: defineTable({
     userId: v.string(),
-    type: v.union(v.literal("message"), v.literal("transcription")),
+    type: v.union(
+      v.literal("message"),
+      v.literal("transcription"),
+      v.literal("tool_call"),
+    ),
     cost: v.number(),
   }).index("by_user_type", ["userId", "type"]),
 });
