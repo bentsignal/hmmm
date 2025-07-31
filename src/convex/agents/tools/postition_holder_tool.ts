@@ -28,7 +28,8 @@ export const positionHolder = createTool({
 
   **IMPORTANT**: Before using this tool, you must always use the _dateTime_ tool
   first. That way, you can ensure that the information you get back from this
-  tool is up to date.
+  tool is up to date. You should prioritize the most recent information returned 
+  from this tool.
 
   `,
   args: z.object({
