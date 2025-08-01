@@ -49,31 +49,33 @@ export default function ResponseMessage({
   return (
     <div className="flex w-full flex-col items-start gap-2">
       <MessageStatus message={message} isActive={isActive} />
-      <div className="relative w-full max-w-full">
+      <div className="relative w-full max-w-full flex flex-col gap-2">
         <Markdown className="prose dark:prose-invert relative w-full max-w-full">
           {cleanedText}
         </Markdown>
-        {!isActive &&
-          message.createdAt &&
-          message.content.length > 0 &&
-          !isMobile && (
-            <div
-              className="absolute -bottom-10 left-0 mt-2 flex justify-start 
-              gap-2 sm:-bottom-12"
-            >
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-4 w-4" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{createdAt}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <CopyButton getContent={() => message.content} />
-            </div>
-          )}
+        {!isMobile && (
+          <div
+            className="flex justify-start gap-2 mt-2 transition-opacity duration-1000"
+            style={{
+              opacity:
+                !isActive && message.createdAt && message.content.length > 0
+                  ? 1
+                  : 0,
+            }}
+          >
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Info className="h-4 w-4" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{createdAt}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <CopyButton getContent={() => message.content} />
+          </div>
+        )}
       </div>
     </div>
   );

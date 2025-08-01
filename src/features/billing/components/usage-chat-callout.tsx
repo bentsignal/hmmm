@@ -11,7 +11,7 @@ export default function UsageChatCallout() {
   if (!usage.limitHit) return null;
 
   return (
-    <div className="mb-4 flex flex-col items-center gap-2 text-center">
+    <div className="flex flex-col items-center gap-2 text-center">
       <span className="text-lg font-bold text-red-400">
         You&apos;ve reached your usage limit.
       </span>

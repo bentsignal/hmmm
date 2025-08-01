@@ -7,13 +7,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import "@/features/messages/styles/github-dark.min.css";
 import "@/features/messages/styles/message-styles.css";
 import { useEffect, useState } from "react";
+import useMessageStore from "../messages/store/message-store";
 import ThreadTitleUpdater from "./components/thread-title-updater";
-import useThreadStatus from "./hooks/use-thread-status";
 import Abyss from "@/components/abyss";
 import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
 import Messages from "@/features/messages";
-import useMessages from "@/features/messages/hooks/use-messages";
-import ThreadFooter from "@/features/thread/components/thread-footer";
 import useThreadStore from "@/features/thread/store";
 
 export default function Thread({ threadId }: { threadId: string }) {
@@ -39,13 +37,14 @@ export default function Thread({ threadId }: { threadId: string }) {
       <ScrollArea ref={scrollAreaRef} className="h-full w-full">
         <div
           className="flex h-full w-full max-w-4xl place-self-center mx-auto
-          flex-col gap-16 py-24 px-8 mb-8 sm:mb-0"
+          flex-col py-24 px-8 mb-8 sm:mb-0 gap-4"
         >
-          <MessageAreaWrapper
+          <Messages
             threadId={threadId}
             triggerMessagesLoaded={() => setMessagesLoaded(true)}
           />
           <UsageChatCallout />
+          <Bumper />
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
@@ -67,35 +66,13 @@ export default function Thread({ threadId }: { threadId: string }) {
   );
 }
 
-const MessageAreaWrapper = ({
-  threadId,
-  triggerMessagesLoaded,
-}: {
-  threadId: string;
-  triggerMessagesLoaded: () => void;
-}) => {
-  const { messages, loadMore, status } = useMessages({
-    threadId,
-    streaming: true,
-  });
-  const { isThreadIdle } = useThreadStatus({ threadId });
-
-  // when messages have loaded, parent component will auto scroll to bottom of page
-  useEffect(() => {
-    if (messages.length > 0) {
-      triggerMessagesLoaded();
-    }
-  }, [messages.length, triggerMessagesLoaded]);
-
-  return (
-    <>
-      <Messages
-        messages={messages}
-        loadMore={loadMore}
-        loadingStatus={status}
-        isIdle={isThreadIdle}
-      />
-      <ThreadFooter threadId={threadId} messages={messages} />
-    </>
-  );
+// if a new message has been sent since the thread has been opened, add whitespace to
+// the bottom of the page. that way when a new message is sent, we can autoscroll up
+// the page a bit, and have more of the response shown when it arrives
+const Bumper = () => {
+  const numMessagesSent = useMessageStore((state) => state.numMessagesSent);
+  const [initialLength] = useState(() => numMessagesSent);
+  const hasNewMessages = numMessagesSent != initialLength;
+  if (!hasNewMessages) return null;
+  return <div className="w-full max-w-full min-h-[50vh]" />;
 };
