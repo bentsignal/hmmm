@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { xrColors, xrStyles } from "@/styles/xr-styles";
 import { Container, Text } from "@react-three/uikit";
 import { Brain, ExternalLink } from "@react-three/uikit-lucide";
+import equal from "fast-deep-equal";
 import useThreadStore from "../../store";
 import { Thread } from "../../types";
 
-export default function XRThreadListItem({ thread }: { thread: Thread }) {
+const XRThreadListItem = ({ thread }: { thread: Thread }) => {
   const setActiveThread = useThreadStore((state) => state.setActiveThread);
   const addXrThread = useThreadStore((state) => state.addXrThread);
   const setMainThread = useThreadStore((state) => state.setMainThread);
@@ -63,4 +64,8 @@ export default function XRThreadListItem({ thread }: { thread: Thread }) {
       </Container>
     </Container>
   );
-}
+};
+
+export default memo(XRThreadListItem, (prev, next) => {
+  return equal(prev.thread, next.thread);
+});

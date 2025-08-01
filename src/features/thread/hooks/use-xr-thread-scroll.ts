@@ -2,26 +2,23 @@ import { useEffect, useRef, useState } from "react";
 import { ContainerRef } from "@react-three/uikit";
 import useMessageStore from "@/features/messages/store";
 
-export default function useXRThreadScroll({ threadId }: { threadId: string }) {
+export default function useXRThreadScroll({
+  messagesLoaded,
+}: {
+  messagesLoaded: boolean;
+}) {
   const ref = useRef<ContainerRef>(null);
   const [scrollCount, setScrollCount] = useState(0);
   const numMessagesSent = useMessageStore((state) => state.numMessagesSent);
 
-  // scroll to the bottom when opening a new thread
+  // scroll to the bottom when a new message is sent and when messages initially load
   useEffect(() => {
-    setTimeout(() => {
-      scrollToBottom();
-    }, 200);
-  }, [threadId]);
-
-  // scroll to the bottom when a new message is sent
-  useEffect(() => {
-    if (numMessagesSent > 0) {
+    if (numMessagesSent > 0 || messagesLoaded) {
       setTimeout(() => {
         scrollToBottom();
       }, 200);
     }
-  }, [numMessagesSent]);
+  }, [numMessagesSent, messagesLoaded]);
 
   const scrollToBottom = () => {
     if (

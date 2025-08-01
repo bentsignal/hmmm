@@ -1,22 +1,11 @@
 import { useState } from "react";
 import { xrColors, xrStyles } from "@/styles/xr-styles";
 import { Container } from "@react-three/uikit";
-import { Button } from "@react-three/uikit-default";
 import { Maximize2, Minimize2, X } from "@react-three/uikit-lucide";
 import useThreadStore from "../../store";
-import {
-  CustomContainer,
-  Grabbable,
-  TextElement,
-  XRHandle,
-} from "@/components/xr";
-import {
-  PromptMessage,
-  ResponseMessage,
-  ThreadFooter,
-} from "@/features/messages/components/xr";
-import { PAGE_SIZE } from "@/features/messages/config";
-import useMessages from "@/features/messages/hooks/use-messages";
+import { CustomContainer, Grabbable, XRHandle } from "@/components/xr";
+import { Messages } from "@/features/messages/components/xr";
+import useMessageStore from "@/features/messages/store";
 import useXRThreadScroll from "@/features/thread/hooks/use-xr-thread-scroll";
 
 export default function XRThread({
@@ -28,10 +17,8 @@ export default function XRThread({
   offset?: number;
   isMainThread?: boolean;
 }) {
-  const { ref } = useXRThreadScroll({ threadId });
-  const { messages, loadMore, status } = useMessages({
-    threadId,
-  });
+  const [messagesLoaded, setMessagesLoaded] = useState(false);
+  const { ref } = useXRThreadScroll({ messagesLoaded });
 
   const isActiveThread = useThreadStore(
     (state) => state.activeThread && state.activeThread === threadId,
@@ -68,27 +55,12 @@ export default function XRThread({
             borderColor={isActiveThread ? xrColors.primary : xrColors.card}
             borderWidth={2}
             onClick={() => setActiveThread(threadId)}
-            positionType="relative"
           >
-            {status !== "Exhausted" && status !== "LoadingFirstPage" && (
-              <Button
-                onClick={() => loadMore(PAGE_SIZE)}
-                borderRadius={xrStyles.radiusLg}
-              >
-                <TextElement color={xrColors.card} textAlign="center">
-                  Load More
-                </TextElement>
-              </Button>
-            )}
-            {messages.map((message) =>
-              message.role === "user" ? (
-                <PromptMessage key={message.id} message={message} />
-              ) : (
-                <ResponseMessage key={message.id} message={message} />
-              ),
-            )}
-            <ThreadFooter threadId={threadId} messages={messages} />
-            <Container width="100%" height={50} />
+            <Messages
+              threadId={threadId}
+              triggerMessagesLoaded={() => setMessagesLoaded(true)}
+            />
+            <Bumper />
           </CustomContainer>
           <XRHandle show={true} />
         </Container>
@@ -96,6 +68,13 @@ export default function XRThread({
     </group>
   );
 }
+
+const Bumper = () => {
+  const numMessagesSent = useMessageStore((state) => state.numMessagesSent);
+  const [initialLength] = useState(() => numMessagesSent);
+  const hasNewMessages = numMessagesSent != initialLength;
+  return <Container width="100%" height={hasNewMessages ? 100 : 30} />;
+};
 
 const ThreadControls = ({
   threadId,

@@ -1,28 +1,26 @@
 import { xrColors, xrStyles } from "@/styles/xr-styles";
-import { UIMessage, useSmoothText } from "@convex-dev/agent/react";
+import { UIMessage } from "@convex-dev/agent/react";
 import { Container, Text } from "@react-three/uikit";
-import { Brain } from "@react-three/uikit-lucide";
+import { Brain, Clock, Globe, Newspaper, Sun } from "@react-three/uikit-lucide";
 import { NOTICE_MESSAGES } from "../../data/notice-messages";
 import type {
   SystemErrorCode,
   SystemNoticeCode,
 } from "../../types/message-types";
 import {
-  getLatestPartType,
+  getStatusLabel,
   isErrorMessage,
   isNoticeMessage,
 } from "../../util/message-util";
 import XRMarkdown from "./xr-markdown";
 import { TextElement } from "@/components/xr";
+import { useTypewriter } from "@/hooks/use-typewriter";
 
-export default function XRResponseMessage({
-  message,
-  streaming,
-}: {
-  message: UIMessage;
-  streaming?: boolean;
-}) {
-  const [text] = useSmoothText(message.content, { charsPerSec: 2000 });
+export default function XRResponseMessage({ message }: { message: UIMessage }) {
+  const { text } = useTypewriter({
+    text: message.content,
+    streaming: message.status === "streaming",
+  });
 
   // error occured during repsonse generation, inform user
   const errorCode = isErrorMessage(text);
@@ -36,26 +34,49 @@ export default function XRResponseMessage({
     return <NoticeMessage code={noticeCode} />;
   }
 
-  const isReasoning = streaming && getLatestPartType(message) === "reasoning";
-  if (isReasoning) {
-    return (
-      <Container alignItems="center" gap={xrStyles.spacingMd}>
-        <Brain
-          width={xrStyles.textMd}
-          height={xrStyles.textMd}
-          color={xrColors.foreground}
-        />
-        <Text color={xrColors.foreground}>Reasoning...</Text>
-      </Container>
-    );
-  }
-
   // if the message begins with the substring "undefined", remove it from the
   // message. Not sure why this happens, seems to be a bug in a dependency
   const cleanedText = text.replace(/^undefined/, "");
 
-  return <XRMarkdown content={cleanedText} />;
+  return (
+    <Container
+      flexDirection="column"
+      gap={xrStyles.spacingLg}
+      flexShrink={0}
+      flexWrap="wrap"
+    >
+      <MessageStatus message={message} />
+      <XRMarkdown content={cleanedText} />
+    </Container>
+  );
 }
+
+const MessageStatus = ({ message }: { message: UIMessage }) => {
+  const statusLabel = getStatusLabel(message);
+  const iconStyles = {
+    width: xrStyles.textMd,
+    height: xrStyles.textMd,
+    color: xrColors.foreground,
+  };
+  return (
+    <Container alignItems="center" gap={xrStyles.spacingMd}>
+      {statusLabel === "Checking the time" ? (
+        <Clock {...iconStyles} />
+      ) : statusLabel === "Reasoning" ? (
+        <Brain {...iconStyles} />
+      ) : statusLabel === "Searching for information" ? (
+        <Globe {...iconStyles} />
+      ) : statusLabel === "Checking the news" ? (
+        <Newspaper {...iconStyles} />
+      ) : statusLabel === "Checking the weather" ? (
+        <Sun {...iconStyles} />
+      ) : (
+        <Brain {...iconStyles} />
+      )}
+      <Text color={xrColors.foreground}>{statusLabel}</Text>
+    </Container>
+  );
+};
 
 const NoticeMessage = ({ code }: { code: SystemNoticeCode }) => (
   <TextElement>{NOTICE_MESSAGES[code]}</TextElement>
