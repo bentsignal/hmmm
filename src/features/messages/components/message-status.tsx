@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { UIMessage, useSmoothText } from "@convex-dev/agent/react";
-import { Brain } from "lucide-react";
+import { Brain, Clock, Globe, Newspaper, Sun } from "lucide-react";
 import {
   extractReasoningFromMessage,
   getStatusLabel,
@@ -46,7 +46,17 @@ export default function MessageStatus({
       <HoverCard openDelay={200} closeDelay={200}>
         <HoverCardTrigger>
           <div className={cn("flex items-center gap-2", "cursor-pointer")}>
-            <Brain className="h-4 w-4" />
+            {statusLabel === "Checking the time" ? (
+              <Clock className="h-4 w-4" />
+            ) : statusLabel === "Searching for information" ? (
+              <Globe className="h-4 w-4" />
+            ) : statusLabel === "Checking the news" ? (
+              <Newspaper className="h-4 w-4" />
+            ) : statusLabel === "Checking the weather" ? (
+              <Sun className="h-4 w-4" />
+            ) : (
+              <Brain className="h-4 w-4" />
+            )}
             <TextShimmer active={isActive} text={statusLabel} />
           </div>
         </HoverCardTrigger>
