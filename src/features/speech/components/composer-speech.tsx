@@ -1,4 +1,5 @@
 import { Mic } from "lucide-react";
+import { useConvexAuth } from "convex/react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -9,8 +10,14 @@ import { cn } from "@/lib/utils";
 import useSpeech from "@/features/speech/hooks/use-speech";
 
 export default function ComposerSpeech() {
+  const { isAuthenticated } = useConvexAuth();
+
   const { startSpeech, stopSpeech, inProgress, processing, disabled } =
     useSpeech();
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <Tooltip>

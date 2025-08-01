@@ -1,4 +1,6 @@
 import { useEffect, useRef } from "react";
+import { redirect } from "next/navigation";
+import { useConvexAuth } from "convex/react";
 import useComposerInput from "../hooks/use-composer-input";
 import useSendMessage from "../hooks/use-send-message";
 import useComposerStore from "../store/composer-store";
@@ -10,6 +12,7 @@ export default function ComposerInput({
 }: {
   showInstantLoad?: () => void;
 }) {
+  const { isAuthenticated } = useConvexAuth();
   const { value, setPrompt, disabled, placeholder } = useComposerInput();
   const { sendMessage } = useSendMessage();
 
@@ -29,6 +32,9 @@ export default function ComposerInput({
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
+      if (!isAuthenticated) {
+        redirect("/sign-up");
+      }
       const prompt = useComposerStore.getState().prompt;
       if (prompt.trim() !== "") {
         showInstantLoad?.();
@@ -62,7 +68,7 @@ export default function ComposerInput({
       onChange={(e) => setPrompt(e.target.value)}
       onKeyDown={handleKeyPress}
       placeholder={placeholder}
-      disabled={disabled}
+      disabled={isAuthenticated && disabled}
       rows={1}
       maxLength={20000}
       className={`file:text-foreground placeholder:text-muted-foreground selection:bg-primary 

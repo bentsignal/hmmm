@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "convex/react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { Preloaded, useConvexAuth, usePreloadedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Abyss from "@/components/abyss";
 import ErrorBoundary from "@/components/error-boundary";
 import Logo from "@/components/logo";
+import { Button } from "@/components/ui/button";
 import { Loader } from "@/components/ui/loader";
 import { cn } from "@/lib/utils";
 import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
@@ -13,7 +16,13 @@ import useUsage from "@/features/billing/hooks/use-usage";
 import Composer from "@/features/composer";
 import useSendMessage from "@/features/composer/hooks/use-send-message";
 
-export default function Home() {
+export default function Home({
+  preloadedSuggestions,
+}: {
+  preloadedSuggestions: Preloaded<
+    typeof api.agents.prompts.prompt_queries.getSuggestions
+  >;
+}) {
   const [isLoading, setIsLoading] = useState(false);
 
   // when user sends prompt, instantly show loading spinner
@@ -42,16 +51,33 @@ export default function Home() {
         </ErrorBoundary>
       </div>
       <UsageChatCallout />
-      <HomePrompts triggerLoading={() => setIsLoading(true)} />
+      <HomePrompts
+        triggerLoading={() => setIsLoading(true)}
+        preloadedSuggestions={preloadedSuggestions}
+      />
+      <Button asChild className="mt-2">
+        <Link href="/sign-up" className="text-lg font-semibold">
+          Get Started
+        </Link>
+      </Button>
     </div>
   );
 }
 
-const HomePrompts = ({ triggerLoading }: { triggerLoading: () => void }) => {
+const HomePrompts = ({
+  triggerLoading,
+  preloadedSuggestions,
+}: {
+  triggerLoading: () => void;
+  preloadedSuggestions: Preloaded<
+    typeof api.agents.prompts.prompt_queries.getSuggestions
+  >;
+}) => {
+  const { isAuthenticated } = useConvexAuth();
   const { usage } = useUsage();
   const { sendMessage } = useSendMessage();
 
-  const prompts = useQuery(api.agents.prompts.prompt_queries.getSuggestions);
+  const prompts = usePreloadedQuery(preloadedSuggestions);
 
   if (usage?.limitHit) {
     return null;
@@ -65,7 +91,7 @@ const HomePrompts = ({ triggerLoading }: { triggerLoading: () => void }) => {
           "flex px-4 pb-12 flex-col gap-2 text-sm w-full items-start",
           "animate-in fade-in duration-1000 min-h-[300px] max-h-[300px] overflow-y-auto",
           "scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent",
-          "transition-opacity duration-1000 delay-500",
+          "transition-opacity duration-1000 delay-200",
         )}
         style={{ opacity: prompts?.length ? 1 : 0 }}
       >
@@ -75,6 +101,9 @@ const HomePrompts = ({ triggerLoading }: { triggerLoading: () => void }) => {
             className={`p-4 bg-card/50 text-card-foreground rounded-lg shadow-md w-full 
             hover:bg-accent hover:cursor-pointer transition-all duration-300`}
             onClick={() => {
+              if (!isAuthenticated) {
+                redirect("/sign-up");
+              }
               triggerLoading();
               sendMessage({ prompt: prompt.prompt });
             }}
