@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Abyss from "@/components/abyss";
 import ErrorBoundary from "@/components/error-boundary";
 import Logo from "@/components/logo";
 import { Loader } from "@/components/ui/loader";
+import { cn } from "@/lib/utils";
 import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
 import useUsage from "@/features/billing/hooks/use-usage";
 import Composer from "@/features/composer";
@@ -58,20 +60,29 @@ const HomePrompts = ({ triggerLoading }: { triggerLoading: () => void }) => {
   }
 
   return (
-    <div className="flex px-4 flex-col gap-2 text-sm w-full items-start max-w-2xl animate-in fade-in duration-1000">
-      {prompts.map((prompt) => (
-        <span
-          key={prompt}
-          className={`p-4 bg-card/50 text-card-foreground rounded-lg shadow-md w-full 
+    <div className="relative w-full max-w-2xl mx-auto">
+      <Abyss height={50} top={false} />
+      <div
+        className={cn(
+          "flex px-4 pb-12 flex-col gap-2 text-sm w-full items-start",
+          "animate-in fade-in duration-1000 max-h-[300px] overflow-y-auto",
+          "scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent",
+        )}
+      >
+        {prompts.map((prompt) => (
+          <span
+            key={prompt}
+            className={`p-4 bg-card/50 text-card-foreground rounded-lg shadow-md w-full 
             hover:bg-accent hover:cursor-pointer transition-all duration-300`}
-          onClick={() => {
-            triggerLoading();
-            sendMessage({ prompt });
-          }}
-        >
-          {prompt}
-        </span>
-      ))}
+            onClick={() => {
+              triggerLoading();
+              sendMessage({ prompt });
+            }}
+          >
+            {prompt}
+          </span>
+        ))}
+      </div>
     </div>
   );
 };
