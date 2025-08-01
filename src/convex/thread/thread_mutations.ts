@@ -2,7 +2,6 @@ import { ConvexError, v } from "convex/values";
 import { components, internal } from "@/convex/_generated/api";
 import { internalMutation, mutation } from "@/convex/_generated/server";
 import { agent } from "@/convex/agents";
-import { convexCategoryEnum } from "@/convex/agents/prompts/types";
 import { messageSendRateLimit } from "@/convex/limiter";
 import { getUsageHelper } from "@/convex/sub/sub_helpers";
 import { getThreadMetadata, logSystemError } from "./thread_helpers";
@@ -227,23 +226,6 @@ export const updateThreadState = internalMutation({
     }
     await ctx.db.patch(metadata._id, {
       state: state,
-    });
-  },
-});
-
-export const updateThreadCategory = internalMutation({
-  args: {
-    threadId: v.string(),
-    category: convexCategoryEnum,
-  },
-  handler: async (ctx, args) => {
-    const { threadId, category } = args;
-    const metadata = await getThreadMetadata(ctx, threadId);
-    if (!metadata) {
-      throw new ConvexError("Thread not found");
-    }
-    await ctx.db.patch(metadata._id, {
-      category: category,
     });
   },
 });

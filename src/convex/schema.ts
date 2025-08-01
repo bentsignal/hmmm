@@ -1,9 +1,5 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import {
-  convexCategoryEnum,
-  convexDifficultyEnum,
-} from "@/convex/agents/prompts/types";
 
 export default defineSchema({
   users: defineTable({
@@ -23,7 +19,6 @@ export default defineSchema({
       v.literal("waiting"),
       v.literal("streaming"),
     ),
-    category: v.optional(convexCategoryEnum),
     pinned: v.optional(v.boolean()),
     followUpQuestions: v.optional(v.array(v.string())),
   })
@@ -37,8 +32,6 @@ export default defineSchema({
     messageId: v.string(),
     threadId: v.string(),
     userId: v.string(),
-    category: v.optional(convexCategoryEnum),
-    difficulty: v.optional(convexDifficultyEnum),
     model: v.string(),
     inputTokens: v.number(),
     outputTokens: v.number(),

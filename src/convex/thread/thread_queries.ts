@@ -2,9 +2,9 @@ import type { SyncStreamsReturnValue } from "@convex-dev/agent";
 import { vStreamArgs } from "@convex-dev/agent/validators";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
-import { internalQuery, query } from "@/convex/_generated/server";
+import { query } from "@/convex/_generated/server";
 import { agent } from "@/convex/agents";
-import { authorizeThreadAccess, getThreadMetadata } from "./thread_helpers";
+import { authorizeThreadAccess } from "./thread_helpers";
 
 export const getThreadTitle = query({
   args: {
@@ -27,17 +27,6 @@ export const getThreadState = query({
     }
     const metadata = await authorizeThreadAccess(ctx, threadId);
     return metadata?.state;
-  },
-});
-
-export const getThreadCategory = internalQuery({
-  args: {
-    threadId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { threadId } = args;
-    const metadata = await getThreadMetadata(ctx, threadId);
-    return metadata?.category;
   },
 });
 
