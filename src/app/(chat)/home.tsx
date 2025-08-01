@@ -89,11 +89,9 @@ const HomePrompts = ({
       <div
         className={cn(
           "flex px-4 pb-12 flex-col gap-2 text-sm w-full items-start",
-          "animate-in fade-in duration-1000 min-h-[300px] max-h-[300px] overflow-y-auto",
+          "min-h-[300px] max-h-[300px] overflow-y-auto",
           "scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent",
-          "transition-opacity duration-1000 delay-200",
         )}
-        style={{ opacity: prompts?.length ? 1 : 0 }}
       >
         {prompts?.map((prompt) => (
           <span
