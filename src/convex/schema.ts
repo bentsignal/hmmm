@@ -46,4 +46,7 @@ export default defineSchema({
     ),
     cost: v.number(),
   }).index("by_user_type", ["userId", "type"]),
+  suggestions: defineTable({
+    prompt: v.string(),
+  }),
 });

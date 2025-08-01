@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import Abyss from "@/components/abyss";
 import ErrorBoundary from "@/components/error-boundary";
 import Logo from "@/components/logo";
@@ -49,11 +51,7 @@ const HomePrompts = ({ triggerLoading }: { triggerLoading: () => void }) => {
   const { usage } = useUsage();
   const { sendMessage } = useSendMessage();
 
-  const prompts = [
-    "Who was the first person to argue that the Earth revolves around the sun?",
-    "Does my pet truly understand what I'm saying?",
-    "Why haven't we been able to find a cure for cancer?",
-  ];
+  const prompts = useQuery(api.agents.prompts.prompt_queries.getSuggestions);
 
   if (usage?.limitHit) {
     return null;
@@ -65,21 +63,23 @@ const HomePrompts = ({ triggerLoading }: { triggerLoading: () => void }) => {
       <div
         className={cn(
           "flex px-4 pb-12 flex-col gap-2 text-sm w-full items-start",
-          "animate-in fade-in duration-1000 max-h-[300px] overflow-y-auto",
+          "animate-in fade-in duration-1000 min-h-[300px] max-h-[300px] overflow-y-auto",
           "scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent",
+          "transition-opacity duration-1000 delay-500",
         )}
+        style={{ opacity: prompts?.length ? 1 : 0 }}
       >
-        {prompts.map((prompt) => (
+        {prompts?.map((prompt) => (
           <span
-            key={prompt}
+            key={prompt._id}
             className={`p-4 bg-card/50 text-card-foreground rounded-lg shadow-md w-full 
             hover:bg-accent hover:cursor-pointer transition-all duration-300`}
             onClick={() => {
               triggerLoading();
-              sendMessage({ prompt });
+              sendMessage({ prompt: prompt.prompt });
             }}
           >
-            {prompt}
+            {prompt.prompt}
           </span>
         ))}
       </div>

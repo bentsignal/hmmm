@@ -16,6 +16,9 @@ import type * as agents_models_models from "../agents/models/models.js";
 import type * as agents_models_util_index from "../agents/models/util/index.js";
 import type * as agents_models_util_model_utils from "../agents/models/util/model_utils.js";
 import type * as agents_prompts_index from "../agents/prompts/index.js";
+import type * as agents_prompts_prompt_actions from "../agents/prompts/prompt_actions.js";
+import type * as agents_prompts_prompt_mutations from "../agents/prompts/prompt_mutations.js";
+import type * as agents_prompts_prompt_queries from "../agents/prompts/prompt_queries.js";
 import type * as agents_prompts_prompts from "../agents/prompts/prompts.js";
 import type * as agents_prompts_types_index from "../agents/prompts/types/index.js";
 import type * as agents_prompts_types_prompt_types from "../agents/prompts/types/prompt_types.js";
@@ -27,6 +30,7 @@ import type * as agents_tools_tool_helpers from "../agents/tools/tool_helpers.js
 import type * as agents_tools_weather_tool from "../agents/tools/weather_tool.js";
 import type * as clerk_clerk_actions from "../clerk/clerk_actions.js";
 import type * as clerk_clerk_http_actions from "../clerk/clerk_http_actions.js";
+import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as limiter from "../limiter.js";
 import type * as migrations from "../migrations.js";
@@ -70,6 +74,9 @@ declare const fullApi: ApiFromModules<{
   "agents/models/util/index": typeof agents_models_util_index;
   "agents/models/util/model_utils": typeof agents_models_util_model_utils;
   "agents/prompts/index": typeof agents_prompts_index;
+  "agents/prompts/prompt_actions": typeof agents_prompts_prompt_actions;
+  "agents/prompts/prompt_mutations": typeof agents_prompts_prompt_mutations;
+  "agents/prompts/prompt_queries": typeof agents_prompts_prompt_queries;
   "agents/prompts/prompts": typeof agents_prompts_prompts;
   "agents/prompts/types/index": typeof agents_prompts_types_index;
   "agents/prompts/types/prompt_types": typeof agents_prompts_types_prompt_types;
@@ -81,6 +88,7 @@ declare const fullApi: ApiFromModules<{
   "agents/tools/weather_tool": typeof agents_tools_weather_tool;
   "clerk/clerk_actions": typeof clerk_clerk_actions;
   "clerk/clerk_http_actions": typeof clerk_clerk_http_actions;
+  crons: typeof crons;
   http: typeof http;
   limiter: typeof limiter;
   migrations: typeof migrations;
