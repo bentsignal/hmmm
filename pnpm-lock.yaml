@@ -44,6 +44,9 @@ importers:
       '@convex-dev/react-query':
         specifier: 0.0.0-alpha.11
         version: 0.0.0-alpha.11(@standard-schema/spec@1.0.0)(@tanstack/react-query@5.81.5(react@19.1.0))(convex@1.25.4(@clerk/clerk-react@5.35.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.56)
+      '@convex-dev/sharded-counter':
+        specifier: ^0.1.8
+        version: 0.1.8(convex@1.25.4(@clerk/clerk-react@5.35.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0))
       '@openrouter/ai-sdk-provider':
         specifier: 0.7.2
         version: 0.7.2(ai@4.3.19(react@19.1.0)(zod@3.25.56))(zod@3.25.56)
@@ -681,6 +684,11 @@ packages:
     peerDependencies:
       '@tanstack/react-query': ^5.0.0
       convex: ^1.24.8
+
+  '@convex-dev/sharded-counter@0.1.8':
+    resolution: {integrity: sha512-kcv9BAvqrtBAvtzBsqLVz5Elzf0xe7sio3QX5eXvk+ZVIJb+rIeF9h4ZI6qH2RuW/qQvwY5stNZghDbGzLIvDw==}
+    peerDependencies:
+      convex: ~1.16.5 || >=1.17.0 <1.35.0
 
   '@dimforge/rapier3d-compat@0.12.0':
     resolution: {integrity: sha512-uekIGetywIgopfD97oDL5PfeezkFpNhwlzlaEYNOA0N6ghdsOvh/HYjSMek5Q2O1PYvRSDFcqFVJl4r4ZBwOow==}
@@ -6347,6 +6355,10 @@ snapshots:
       - react
       - typescript
       - zod
+
+  '@convex-dev/sharded-counter@0.1.8(convex@1.25.4(@clerk/clerk-react@5.35.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0))':
+    dependencies:
+      convex: 1.25.4(@clerk/clerk-react@5.35.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)
 
   '@dimforge/rapier3d-compat@0.12.0': {}
 

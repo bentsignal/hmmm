@@ -3,9 +3,15 @@ import { ConvexError } from "convex/values";
 import { components } from "./_generated/api";
 import { mutation, MutationCtx } from "./_generated/server";
 
-export const rateLimiter = new RateLimiter(components.rateLimiter, {
+export const limiter = new RateLimiter(components.rateLimiter, {
   messageSend: { kind: "token bucket", rate: 20, period: MINUTE, capacity: 5 },
   transcription: {
+    kind: "token bucket",
+    rate: 20,
+    period: MINUTE,
+    capacity: 5,
+  },
+  suggestion: {
     kind: "token bucket",
     rate: 20,
     period: MINUTE,
@@ -17,7 +23,7 @@ export const messageSendRateLimit = async (
   ctx: MutationCtx,
   userId: string,
 ) => {
-  const { ok } = await rateLimiter.limit(ctx, "messageSend", {
+  const { ok } = await limiter.limit(ctx, "messageSend", {
     key: userId,
   });
   if (!ok)
@@ -32,7 +38,7 @@ export const transcriptionRateLimit = mutation({
     if (!userId) {
       throw new Error("Unauthorized");
     }
-    const { ok } = await rateLimiter.limit(ctx, "transcription", {
+    const { ok } = await limiter.limit(ctx, "transcription", {
       key: userId.subject,
     });
     return ok;

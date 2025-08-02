@@ -3,7 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Preloaded, useConvexAuth, usePreloadedQuery } from "convex/react";
+import {
+  Preloaded,
+  useConvexAuth,
+  useMutation,
+  usePreloadedQuery,
+} from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Abyss from "@/components/abyss";
 import ErrorBoundary from "@/components/error-boundary";
@@ -82,6 +87,9 @@ const HomePrompts = ({
   const { sendMessage } = useSendMessage();
 
   const prompts = usePreloadedQuery(preloadedSuggestions);
+  const incrementSuggestion = useMutation(
+    api.agents.prompts.prompt_mutations.incrementSuggestion,
+  );
 
   if (usage?.limitHit) {
     return null;
@@ -107,6 +115,7 @@ const HomePrompts = ({
                 redirect("/sign-up");
               }
               triggerLoading();
+              incrementSuggestion({ id: prompt._id });
               sendMessage({ prompt: prompt.prompt });
             }}
           >

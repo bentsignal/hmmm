@@ -30,6 +30,7 @@ import type * as agents_tools_tool_helpers from "../agents/tools/tool_helpers.js
 import type * as agents_tools_weather_tool from "../agents/tools/weather_tool.js";
 import type * as clerk_clerk_actions from "../clerk/clerk_actions.js";
 import type * as clerk_clerk_http_actions from "../clerk/clerk_http_actions.js";
+import type * as counter from "../counter.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as limiter from "../limiter.js";
@@ -88,6 +89,7 @@ declare const fullApi: ApiFromModules<{
   "agents/tools/weather_tool": typeof agents_tools_weather_tool;
   "clerk/clerk_actions": typeof clerk_clerk_actions;
   "clerk/clerk_http_actions": typeof clerk_clerk_http_actions;
+  counter: typeof counter;
   crons: typeof crons;
   http: typeof http;
   limiter: typeof limiter;
@@ -2769,6 +2771,30 @@ export declare const components: {
     };
     time: {
       getServerTime: FunctionReference<"mutation", "internal", {}, number>;
+    };
+  };
+  shardedCounter: {
+    public: {
+      add: FunctionReference<
+        "mutation",
+        "internal",
+        { count: number; name: string; shard?: number; shards?: number },
+        number
+      >;
+      count: FunctionReference<"query", "internal", { name: string }, number>;
+      estimateCount: FunctionReference<
+        "query",
+        "internal",
+        { name: string; readFromShards?: number; shards?: number },
+        any
+      >;
+      rebalance: FunctionReference<
+        "mutation",
+        "internal",
+        { name: string; shards?: number },
+        any
+      >;
+      reset: FunctionReference<"mutation", "internal", { name: string }, any>;
     };
   };
   aggregateUsage: {
