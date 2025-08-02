@@ -38,7 +38,10 @@ task to you.
 export const formatSuggestions = (prompts: string) => `
 
 You are a helpful assistant for an AI chatbot. Your goal is
-to format a list of prompts into a list of objects.
+to format a list of prompts into a list of objects. The prompts 
+may have citations in them. These will be brackets with a number 
+in them. You should remove the brackets and the number, and return 
+the prompt without the brackets and number.
 
 Here is the list of prompts: ${prompts}
 
