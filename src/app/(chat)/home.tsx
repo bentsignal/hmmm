@@ -18,13 +18,14 @@ import useSendMessage from "@/features/composer/hooks/use-send-message";
 
 export default function Home({
   preloadedSuggestions,
+  authed,
 }: {
   preloadedSuggestions: Preloaded<
     typeof api.agents.prompts.prompt_queries.getSuggestions
   >;
+  authed: boolean;
 }) {
   const [isLoading, setIsLoading] = useState(false);
-  const { isAuthenticated } = useConvexAuth();
 
   // when user sends prompt, instantly show loading spinner
   if (isLoading) {
@@ -56,7 +57,7 @@ export default function Home({
         triggerLoading={() => setIsLoading(true)}
         preloadedSuggestions={preloadedSuggestions}
       />
-      {!isAuthenticated && (
+      {!authed && (
         <Button asChild className="mt-2">
           <Link href="/sign-up" className="text-lg font-semibold">
             Get Started
