@@ -24,6 +24,7 @@ export default function Home({
   >;
 }) {
   const [isLoading, setIsLoading] = useState(false);
+  const { isAuthenticated } = useConvexAuth();
 
   // when user sends prompt, instantly show loading spinner
   if (isLoading) {
@@ -55,11 +56,13 @@ export default function Home({
         triggerLoading={() => setIsLoading(true)}
         preloadedSuggestions={preloadedSuggestions}
       />
-      <Button asChild className="mt-2">
-        <Link href="/sign-up" className="text-lg font-semibold">
-          Get Started
-        </Link>
-      </Button>
+      {!isAuthenticated && (
+        <Button asChild className="mt-2">
+          <Link href="/sign-up" className="text-lg font-semibold">
+            Get Started
+          </Link>
+        </Button>
+      )}
     </div>
   );
 }
