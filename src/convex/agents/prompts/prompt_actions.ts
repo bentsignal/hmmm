@@ -1,5 +1,3 @@
-"use node";
-
 import { generateObject, generateText } from "ai";
 import { z } from "zod";
 import { internal } from "@/convex/_generated/api";

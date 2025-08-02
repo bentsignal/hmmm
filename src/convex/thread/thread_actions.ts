@@ -1,5 +1,3 @@
-"use node";
-
 import { generateObject, generateText } from "ai";
 import z from "zod";
 import { v } from "convex/values";
