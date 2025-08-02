@@ -1,7 +1,7 @@
 import { internalQuery, query } from "@/convex/_generated/server";
 import { getUserByUserId } from "./user_helpers";
 
-export const getUserIdentity = query({
+export const getUserIdentity = internalQuery({
   args: {},
   handler: async (ctx) => {
     const user = await ctx.auth.getUserIdentity();
