@@ -1,7 +1,7 @@
 import { generateObject, generateText } from "ai";
 import z from "zod";
 import { v } from "convex/values";
-import { components, internal } from "@/convex/_generated/api";
+import { internal } from "@/convex/_generated/api";
 import { internalAction } from "@/convex/_generated/server";
 import { agent } from "@/convex/agents/agent";
 import {
@@ -29,18 +29,10 @@ export const generateTitle = internalAction({
       prompt: args.message,
       system: titleGeneratorPrompt,
     });
-    await Promise.all([
-      ctx.runMutation(internal.thread.thread_mutations.updateThreadTitle, {
-        threadId: args.threadId,
-        title: response.text.trim(),
-      }),
-      ctx.runMutation(components.agent.threads.updateThread, {
-        threadId: args.threadId,
-        patch: {
-          title: response.text.trim(),
-        },
-      }),
-    ]);
+    await ctx.runMutation(internal.thread.thread_mutations.updateThreadTitle, {
+      threadId: args.threadId,
+      title: response.text.trim(),
+    });
   },
 });
 

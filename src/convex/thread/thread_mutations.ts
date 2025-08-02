@@ -206,6 +206,12 @@ export const updateThreadTitle = internalMutation({
     await ctx.db.patch(metadata._id, {
       title: title,
     });
+    await agent.updateThreadMetadata(ctx, {
+      threadId: threadId,
+      patch: {
+        title: title,
+      },
+    });
   },
 });
 
