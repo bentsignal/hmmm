@@ -45,7 +45,7 @@ export default defineSchema({
       v.literal("tool_call"),
     ),
     cost: v.number(),
-  }).index("by_user_type", ["userId", "type"]),
+  }),
   suggestions: defineTable({
     prompt: v.string(),
   }),
