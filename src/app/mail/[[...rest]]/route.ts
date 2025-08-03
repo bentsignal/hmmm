@@ -12,7 +12,7 @@ const handler = async (request: NextRequest) => {
     return NextResponse.redirect("https://qbe.sh", 302);
   }
   const { error } = await tryCatch(
-    fetchMutation(api.mail.mail_mutations.updateNewsletter, {
+    fetchMutation(api.mail.mail_mutations.updateNewsletterPreferenceForUser, {
       email,
       status: status === "true",
       key: env.NEXT_CONVEX_INTERNAL_KEY,
