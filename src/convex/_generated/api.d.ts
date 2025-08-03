@@ -34,7 +34,10 @@ import type * as counter from "../counter.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as limiter from "../limiter.js";
+import type * as mail_mail_actions from "../mail/mail_actions.js";
+import type * as mail_mail_mutations from "../mail/mail_mutations.js";
 import type * as migrations from "../migrations.js";
+import type * as resend from "../resend.js";
 import type * as sub_polar from "../sub/polar.js";
 import type * as sub_sub_actions from "../sub/sub_actions.js";
 import type * as sub_sub_config from "../sub/sub_config.js";
@@ -93,7 +96,10 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   http: typeof http;
   limiter: typeof limiter;
+  "mail/mail_actions": typeof mail_mail_actions;
+  "mail/mail_mutations": typeof mail_mail_mutations;
   migrations: typeof migrations;
+  resend: typeof resend;
   "sub/polar": typeof sub_polar;
   "sub/sub_actions": typeof sub_sub_actions;
   "sub/sub_config": typeof sub_sub_config;
@@ -2795,6 +2801,104 @@ export declare const components: {
         any
       >;
       reset: FunctionReference<"mutation", "internal", { name: string }, any>;
+    };
+  };
+  resend: {
+    lib: {
+      cancelEmail: FunctionReference<
+        "mutation",
+        "internal",
+        { emailId: string },
+        null
+      >;
+      cleanupAbandonedEmails: FunctionReference<
+        "mutation",
+        "internal",
+        { olderThan?: number },
+        null
+      >;
+      cleanupOldEmails: FunctionReference<
+        "mutation",
+        "internal",
+        { olderThan?: number },
+        null
+      >;
+      get: FunctionReference<
+        "query",
+        "internal",
+        { emailId: string },
+        {
+          complained: boolean;
+          createdAt: number;
+          errorMessage?: string;
+          finalizedAt: number;
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          html?: string;
+          opened: boolean;
+          replyTo: Array<string>;
+          resendId?: string;
+          segment: number;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+          subject: string;
+          text?: string;
+          to: string;
+        } | null
+      >;
+      getStatus: FunctionReference<
+        "query",
+        "internal",
+        { emailId: string },
+        {
+          complained: boolean;
+          errorMessage: string | null;
+          opened: boolean;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+        } | null
+      >;
+      handleEmailEvent: FunctionReference<
+        "mutation",
+        "internal",
+        { event: any },
+        null
+      >;
+      sendEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          html?: string;
+          options: {
+            apiKey: string;
+            initialBackoffMs: number;
+            onEmailEvent?: { fnHandle: string };
+            retryAttempts: number;
+            testMode: boolean;
+          };
+          replyTo?: Array<string>;
+          subject: string;
+          text?: string;
+          to: string;
+        },
+        string
+      >;
     };
   };
   aggregateUsage: {

@@ -7,8 +7,11 @@ export default defineSchema({
     email: v.string(),
     unlimited: v.optional(v.boolean()),
     waitlist: v.optional(v.boolean()),
+    newsletter: v.optional(v.boolean()),
     admin: v.optional(v.boolean()),
-  }).index("by_user_id", ["userId"]),
+  })
+    .index("by_user_id", ["userId"])
+    .index("by_email", ["email"]),
   threadMetadata: defineTable({
     title: v.string(),
     threadId: v.string(),
