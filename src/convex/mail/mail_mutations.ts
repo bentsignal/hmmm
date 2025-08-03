@@ -3,7 +3,7 @@ import { mutation } from "../_generated/server";
 
 export const updateNewsletterPreferenceForUser = mutation({
   args: {
-    email: v.string(),
+    userId: v.string(),
     status: v.boolean(),
     key: v.string(),
   },
@@ -16,7 +16,7 @@ export const updateNewsletterPreferenceForUser = mutation({
     }
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("by_user_id", (q) => q.eq("userId", args.userId))
       .first();
     if (!user) {
       throw new Error("User not found");

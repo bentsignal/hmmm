@@ -6,21 +6,22 @@ import { tryCatch } from "@/lib/utils";
 
 const handler = async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);
-  const email = searchParams.get("email");
+  const userId = searchParams.get("userId");
   const status = searchParams.get("status");
-  if (!email) {
-    return NextResponse.redirect("https://qbe.sh", 302);
+  if (!userId) {
+    console.error("No email provided");
+    return NextResponse.redirect(env.NEXT_PUBLIC_BASE_URL, 302);
   }
   const { error } = await tryCatch(
     fetchMutation(api.mail.mail_mutations.updateNewsletterPreferenceForUser, {
-      email,
+      userId,
       status: status === "true",
       key: env.NEXT_CONVEX_INTERNAL_KEY,
     }),
   );
   if (error) {
     console.error(error);
-    throw new Error(`Failed to update newsletter status for user: ${email}`);
+    throw new Error(`Failed to update newsletter status for user: ${userId}`);
   }
 };
 
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
       { status: 500 },
     );
   }
-  return NextResponse.redirect("https://qbe.sh", 302);
+  return NextResponse.redirect(env.NEXT_PUBLIC_BASE_URL, 302);
 }
 
 export async function POST(request: NextRequest) {

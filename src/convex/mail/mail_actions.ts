@@ -67,11 +67,9 @@ export const sendNewsletter = internalAction({
     ]);
     const cleanSubject = subject.replace(/[\r\n]+/g, " ").trim();
     const cleanTitle = title.replace(/[\r\n]+/g, " ").trim();
-    const html = await getNewsletterHtml({
-      title: cleanTitle,
-      stories: previews,
-    });
-    const recipients = ["me@bentsignal.com"];
+    const recipients = await ctx.runQuery(
+      internal.user.user_queries.getNewsletterRecipients,
+    );
     // send message to each recipient
     const siteUrl = "https://qbe.sh";
     const endpoint = "mail";
@@ -79,10 +77,15 @@ export const sendNewsletter = internalAction({
     const unsubscribe = "unsubscribe@qbe.sh";
     await Promise.all(
       recipients.map(async (recipient) => {
-        const url = `${siteUrl}/${endpoint}?email=${encodeURIComponent(recipient)}`;
+        const url = `${siteUrl}/${endpoint}?userId=${encodeURIComponent(recipient.userId)}`;
+        const html = await getNewsletterHtml({
+          title: cleanTitle,
+          stories: previews,
+          userId: recipient.userId,
+        });
         await resend.sendEmail(ctx, {
           from: "QBE <newsletter@mail.qbe.sh>",
-          to: recipient,
+          to: recipient.email,
           subject: `📰 ${cleanSubject}`,
           headers: [
             {

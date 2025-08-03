@@ -39,8 +39,6 @@ export const getNewsletterRecipients = internalQuery({
   args: {},
   handler: async (ctx) => {
     const users = await ctx.db.query("users").collect();
-    const newsletterRecipients = users.filter((user) => user.newsletter);
-    const emails = newsletterRecipients.map((user) => user.email);
-    return emails;
+    return users.filter((user) => user.newsletter);
   },
 });

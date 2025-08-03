@@ -18,9 +18,10 @@ interface NewsletterProps {
     prompt: string;
     response: string;
   }[];
+  userId: string;
 }
 
-const Newsletter = ({ title, stories }: NewsletterProps) => {
+const Newsletter = ({ title, stories, userId }: NewsletterProps) => {
   return (
     <Html>
       <Tailwind
@@ -61,7 +62,7 @@ const Newsletter = ({ title, stories }: NewsletterProps) => {
             </Section>
             <Section>
               <Link
-                href="https://qbe.sh/mail/unsubscribe"
+                href={`https://qbe.sh/mail?userId=${userId}&status=false`}
                 className="text-sm text-red-500 no-underline"
               >
                 Unsubscribe
@@ -77,6 +78,11 @@ const Newsletter = ({ title, stories }: NewsletterProps) => {
 export default async function getNewsletterHtml({
   title,
   stories,
+  userId,
 }: NewsletterProps) {
-  return pretty(await render(<Newsletter title={title} stories={stories} />));
+  return pretty(
+    await render(
+      <Newsletter title={title} stories={stories} userId={userId} />,
+    ),
+  );
 }

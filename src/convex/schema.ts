@@ -9,9 +9,7 @@ export default defineSchema({
     waitlist: v.optional(v.boolean()),
     newsletter: v.optional(v.boolean()),
     admin: v.optional(v.boolean()),
-  })
-    .index("by_user_id", ["userId"])
-    .index("by_email", ["email"]),
+  }).index("by_user_id", ["userId"]),
   threadMetadata: defineTable({
     title: v.string(),
     threadId: v.string(),
