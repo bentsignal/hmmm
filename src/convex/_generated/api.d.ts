@@ -37,6 +37,7 @@ import type * as http from "../http.js";
 import type * as limiter from "../limiter.js";
 import type * as mail_mail_actions from "../mail/mail_actions.js";
 import type * as mail_mail_mutations from "../mail/mail_mutations.js";
+import type * as mail_newsletter from "../mail/newsletter.js";
 import type * as migrations from "../migrations.js";
 import type * as resend from "../resend.js";
 import type * as sub_polar from "../sub/polar.js";
@@ -100,6 +101,7 @@ declare const fullApi: ApiFromModules<{
   limiter: typeof limiter;
   "mail/mail_actions": typeof mail_mail_actions;
   "mail/mail_mutations": typeof mail_mail_mutations;
+  "mail/newsletter": typeof mail_newsletter;
   migrations: typeof migrations;
   resend: typeof resend;
   "sub/polar": typeof sub_polar;
