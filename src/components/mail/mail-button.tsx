@@ -1,4 +1,4 @@
-import { hexColors } from "@/styles";
+import { hexColors, mailStyles } from "@/styles";
 import { Button, ButtonProps } from "@react-email/components";
 
 export default function MailButton({
@@ -15,11 +15,15 @@ export default function MailButton({
       style={{
         backgroundColor: hexColors.primary,
         color: hexColors.primaryForeground,
-        borderRadius: "12px",
-        padding: "12px 24px",
-        fontSize: "16px",
+        borderRadius: mailStyles.radiusLg,
+        paddingLeft: mailStyles.spacingLg,
+        paddingRight: mailStyles.spacingLg,
+        paddingTop: mailStyles.spacingMd,
+        paddingBottom: mailStyles.spacingMd,
+        fontSize: mailStyles.textMd,
         fontWeight: "bold",
         textDecoration: "none",
+        border: `1px solid ${hexColors.borderInput}`,
       }}
       href={href}
       {...props}

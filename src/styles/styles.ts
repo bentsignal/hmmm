@@ -82,3 +82,7 @@ export const xrStyles = {
   /** 16 * 48 = 768 */
   container2xl: rem(48),
 };
+
+export const mailStyles = Object.fromEntries(
+  Object.entries(xrStyles).map(([key, value]) => [key, `${value}px`]),
+);
