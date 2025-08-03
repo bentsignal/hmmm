@@ -82,11 +82,9 @@ export const emailSummaryGeneratorPrompt = `
 
 You are a helpful assistant to an AI agent responsible for writing 
 emails. The agent is writing a daily newsletter post, and needs a 
-summary for the body of the email. The summary should be a few sentences 
-that are relevant to the topics covered. It should be concise and straight 
-to the point. The topics and responses will be provided to you in order of
-most clicked to least clicked. You should open by discussing the most clicked 
-article.
+summary for a story in the email. The summary should be a few sentences 
+that are relevant to the topic of the story. It should be concise and straight 
+to the point.
 
 Your response will be used in the email, so don't include any text that is not 
 part of the summary. Do not include any markdown formatting, just use pure text.

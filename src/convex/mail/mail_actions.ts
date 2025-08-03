@@ -4,7 +4,7 @@ import { generateText } from "ai";
 import { internalAction } from "@/convex/_generated/server";
 import { resend } from "@/convex/resend";
 import { internal } from "../_generated/api";
-import { generateResponse } from "../agents/agent_helpers";
+import { generateAgentResponse } from "../agents/agent_helpers";
 import { languageModels } from "../agents/models";
 import {
   emailSubjectGeneratorPrompt,
@@ -21,57 +21,57 @@ export const sendNewsletter = internalAction({
       { numResults: 5 },
     );
     // generate responses for the top 10 prompts
-    const promptsAndResponses = await Promise.all(
+    const withFullResponses = await Promise.all(
       suggestions.map(async (suggestion) => ({
         prompt: suggestion.prompt,
-        response: await generateResponse(
+        response: await generateAgentResponse(
           ctx,
           suggestion.prompt,
           "Suggestion Response",
         ),
       })),
     );
+    // summarize the responses from those 10 prompts into 2 sentence bits
+    const previews = await Promise.all(
+      withFullResponses.map(async (response) => {
+        const { text } = await generateText({
+          model: languageModels["gemini-2.0-flash"].model,
+          system: emailSummaryGeneratorPrompt,
+          prompt: response.response,
+        });
+        return {
+          prompt: response.prompt,
+          response: text,
+        };
+      }),
+    );
     // concatenate the top 3 prompts and responses
-    const topThreeConcat = promptsAndResponses
+    const topThreeConcat = previews
       .slice(0, 3)
       .map((response, index) => {
         return `${index + 1}. ${suggestions[index].prompt}\n${response.response}`;
       })
       .join("\n");
     // generate the subject, title, summary, and body of the message
-    const [{ text: subject }, { text: title }, { text: summary }] =
-      await Promise.all([
-        generateText({
-          model: languageModels["gemini-2.0-flash"].model,
-          system: emailSubjectGeneratorPrompt,
-          prompt:
-            promptsAndResponses[0].prompt +
-            "\n" +
-            promptsAndResponses[0].response,
-        }),
-        generateText({
-          model: languageModels["gemini-2.0-flash"].model,
-          system: emailTitleGeneratorPrompt,
-          prompt: topThreeConcat,
-        }),
-        generateText({
-          model: languageModels["gemini-2.0-flash"].model,
-          system: emailSummaryGeneratorPrompt,
-          prompt: topThreeConcat,
-        }),
-      ]);
+    const [{ text: subject }, { text: title }] = await Promise.all([
+      generateText({
+        model: languageModels["gemini-2.0-flash"].model,
+        system: emailSubjectGeneratorPrompt,
+        prompt: previews[0].prompt + "\n" + previews[0].response,
+      }),
+      generateText({
+        model: languageModels["gemini-2.0-flash"].model,
+        system: emailTitleGeneratorPrompt,
+        prompt: topThreeConcat,
+      }),
+    ]);
     const cleanSubject = subject.replace(/[\r\n]+/g, " ").trim();
     const cleanTitle = title.replace(/[\r\n]+/g, " ").trim();
     const html = await getNewsletterHtml({
-      cleanTitle,
-      summary,
-      suggestions,
-      promptsAndResponses,
+      title: cleanTitle,
+      stories: previews,
     });
-    // get email addresses of all newsletter recipients
-    const recipients = await ctx.runQuery(
-      internal.user.user_queries.getNewsletterRecipients,
-    );
+    const recipients = ["me@bentsignal.com"];
     // send message to each recipient
     const siteUrl = "https://qbe.sh";
     const endpoint = "mail";

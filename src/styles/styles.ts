@@ -20,7 +20,7 @@ const colors = {
 
 export const hexColors = Object.fromEntries(
   Object.entries(colors).map(([key, value]) => [key, oklchStringToHex(value)]),
-);
+) as Record<keyof typeof colors, string>;
 
 export const xrStyles = {
   /** 16 * 0.25 = 4 */
@@ -82,7 +82,3 @@ export const xrStyles = {
   /** 16 * 48 = 768 */
   container2xl: rem(48),
 };
-
-export const mailStyles = Object.fromEntries(
-  Object.entries(xrStyles).map(([key, value]) => [key, `${value}px`]),
-);

@@ -1,7 +1,7 @@
 import { ActionCtx } from "../_generated/server";
 import { agent } from "../agents/agent";
 
-export const generateResponse = async (
+export const generateAgentResponse = async (
   ctx: ActionCtx,
   prompt: string,
   title?: string,
