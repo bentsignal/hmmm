@@ -112,7 +112,8 @@ export const generateResponse = internalAction({
         const responseMessage = await result.text;
         const { object: followUpQuestions } = await generateObject({
           model: followUpModel.model,
-          prompt: followUpGeneratorPrompt(responseMessage),
+          prompt: responseMessage,
+          system: followUpGeneratorPrompt,
           schema: z.object({
             questions: z.array(z.string()).max(3),
           }),

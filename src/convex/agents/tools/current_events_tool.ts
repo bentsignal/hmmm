@@ -37,12 +37,6 @@ export const currentEvents = createTool({
   }),
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   handler: async (ctx, args, options) => {
-    // auth check
-    if (!ctx.userId) {
-      console.error("Error during current events tool call: No user ID");
-      return null;
-    }
-
     // check cache
     const cacheKey = formatCacheKey("current-events", [args.query]);
     const cachedSources = await kv.get(cacheKey);
@@ -65,7 +59,9 @@ export const currentEvents = createTool({
     }
 
     // log usage
-    await logSearchCost(ctx, NUM_RESULTS, ctx.userId);
+    if (ctx.userId) {
+      await logSearchCost(ctx, NUM_RESULTS, ctx.userId);
+    }
 
     const sources = response.results.map((result) => ({
       url: result.url,

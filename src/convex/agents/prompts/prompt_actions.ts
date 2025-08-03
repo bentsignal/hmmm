@@ -16,7 +16,8 @@ export const generateSuggestions = internalAction({
     // parse text into array of prompts
     const { object: prompts } = await generateObject({
       model: languageModels["gemini-2.0-flash"].model,
-      prompt: formatSuggestions(rawPrompts),
+      prompt: rawPrompts,
+      system: formatSuggestions,
       schema: z.object({
         prompts: z.array(z.string()).max(10),
       }),

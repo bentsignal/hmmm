@@ -1,3 +1,4 @@
+import { v } from "convex/values";
 import { internalQuery, query } from "@/convex/_generated/server";
 import { counter } from "@/convex/counter";
 
@@ -8,12 +9,24 @@ export const getSuggestions = query({
   },
 });
 
-export const getTopSuggestions = internalQuery({
-  handler: async (ctx) => {
+export const getTodaysSuggestions = internalQuery({
+  args: {
+    numResults: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    // get all suggestions generated today
+    const now = new Date();
+    const startOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    ).getTime();
     const suggestions = await ctx.db
       .query("suggestions")
+      .withIndex("by_creation_time", (q) => q.gte("_creationTime", startOfDay))
       .order("desc")
-      .take(30);
+      .collect();
+    // count how many times each suggestion has been clicked
     const counts = await Promise.all(
       suggestions.map(async (suggestion) => {
         const count = await counter.count(ctx, suggestion._id);
@@ -24,6 +37,9 @@ export const getTopSuggestions = internalQuery({
         };
       }),
     );
-    return counts.sort((a, b) => b.count - a.count).slice(0, 5);
+    // sort by count and return the top clicked results
+    return counts
+      .sort((a, b) => b.count - a.count)
+      .slice(0, args.numResults ?? counts.length);
   },
 });

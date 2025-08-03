@@ -54,11 +54,6 @@ export const weather = createTool({
   }),
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   handler: async (ctx, args, options) => {
-    if (!ctx.userId) {
-      console.error("Error during weather tool call: No user ID");
-      return null;
-    }
-
     // check cache
     const cacheKey = formatCacheKey("weather", [
       args.location,
@@ -132,10 +127,12 @@ export const weather = createTool({
     await kv.set(cacheKey, weatherData, { ex: ttl });
 
     // log usage
-    await ctx.runMutation(internal.sub.usage.logToolCallUsage, {
-      userId: ctx.userId,
-      cost: 0.01,
-    });
+    if (ctx.userId) {
+      await ctx.runMutation(internal.sub.usage.logToolCallUsage, {
+        userId: ctx.userId,
+        cost: 0.01,
+      });
+    }
 
     return weatherData;
   },
