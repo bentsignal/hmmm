@@ -10,6 +10,12 @@ crons.cron(
   internal.agents.prompts.prompt_actions.generateSuggestions,
 );
 
+crons.daily(
+  "send-newsletter",
+  { hourUTC: 0, minuteUTC: 0 },
+  internal.mail.mail_actions.sendNewsletter,
+);
+
 crons.interval(
   "Remove old emails from the resend component",
   { hours: 12 },
