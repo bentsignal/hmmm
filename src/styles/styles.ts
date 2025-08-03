@@ -18,7 +18,7 @@ const colors = {
   destructive: "oklch(0.704 0.191 22.216)",
 };
 
-export const xrColors = Object.fromEntries(
+export const hexColors = Object.fromEntries(
   Object.entries(colors).map(([key, value]) => [key, oklchStringToHex(value)]),
 );
 

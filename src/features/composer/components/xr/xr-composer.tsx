@@ -1,6 +1,6 @@
 "use client";
 
-import { xrColors, xrStyles } from "@/styles/xr-styles";
+import { hexColors, xrStyles } from "@/styles";
 import { Container } from "@react-three/uikit";
 import ComposerInput from "./xr-composer-input";
 import ComposerSend from "./xr-composer-send";
@@ -12,7 +12,7 @@ export default function XRComposer() {
     <group rotation={[-0.3, 0.3, 0.1]} position={[-0.175, -0.13, 0.2]}>
       <Grabbable>
         <Container
-          backgroundColor={xrColors.card}
+          backgroundColor={hexColors.card}
           flexDirection="row"
           padding={xrStyles.spacingXl}
           alignItems="center"

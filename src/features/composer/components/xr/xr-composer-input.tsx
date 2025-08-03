@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { xrColors } from "@/styles/xr-styles";
+import { hexColors } from "@/styles";
 import { Input } from "@react-three/uikit";
 import useComposerInput from "@/features/composer/hooks/use-composer-input";
 
@@ -15,7 +15,7 @@ export default function XRComposerInput() {
       width={"100%"}
       height={"100%"}
       multiline
-      color={disabled ? xrColors.borderInput : xrColors.foreground}
+      color={disabled ? hexColors.borderInput : hexColors.foreground}
       onFocusChange={(focus) => {
         setIsFocused(focus);
         if (focus && (value === "" || value === placeholder)) {

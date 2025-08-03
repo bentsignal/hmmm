@@ -1,5 +1,5 @@
 import { Ref } from "react";
-import { xrColors, xrStyles } from "@/styles/xr-styles";
+import { hexColors, xrStyles } from "@/styles";
 import {
   Container,
   ContainerProperties,
@@ -20,7 +20,7 @@ export default function XRCustomContainer({
 } & ContainerProperties) {
   return (
     <Container
-      backgroundColor={xrColors.card}
+      backgroundColor={hexColors.card}
       flexDirection="column"
       padding={xrStyles.spacingXl}
       borderRadius={xrStyles.radiusLg}

@@ -1,4 +1,4 @@
-import { xrColors, xrStyles } from "@/styles/xr-styles";
+import { hexColors, xrStyles } from "@/styles";
 import { UIMessage } from "@convex-dev/agent/react";
 import { Text } from "@react-three/uikit";
 
@@ -6,12 +6,12 @@ export default function XRPromptMessage({ message }: { message: UIMessage }) {
   return (
     <Text
       key={message.id}
-      color={xrColors.foreground}
+      color={hexColors.foreground}
       flexShrink={0}
       width="100%"
       maxWidth={xrStyles.containerSm}
       marginLeft="auto"
-      backgroundColor={xrColors.accent}
+      backgroundColor={hexColors.accent}
       padding={xrStyles.spacingLg}
       borderRadius={xrStyles.radiusLg}
     >

@@ -1,4 +1,4 @@
-import { xrColors, xrStyles } from "@/styles/xr-styles";
+import { hexColors, xrStyles } from "@/styles";
 import { Container } from "@react-three/uikit";
 import {
   CustomContainer,
@@ -16,7 +16,9 @@ export default function XRNewThread() {
       <Grabbable>
         <CustomContainer
           alignItems="center"
-          borderColor={activeThread === null ? xrColors.primary : xrColors.card}
+          borderColor={
+            activeThread === null ? hexColors.primary : hexColors.card
+          }
           borderWidth={2}
         >
           <Container

@@ -1,4 +1,4 @@
-import { xrColors, xrStyles } from "@/styles/xr-styles";
+import { hexColors, xrStyles } from "@/styles";
 import { Button } from "@react-three/uikit-default";
 import { Send } from "@react-three/uikit-lucide";
 import useSendMessage from "@/features/composer/hooks/use-send-message";
@@ -21,7 +21,7 @@ export default function XRComposerSend() {
       }}
       disabled={blockSend || isLoading}
       size="icon"
-      backgroundColor={xrColors.primary}
+      backgroundColor={hexColors.primary}
       width={40}
       height={32}
       borderRadius={xrStyles.radiusMd}
@@ -29,7 +29,7 @@ export default function XRComposerSend() {
       <Send
         width={xrStyles.textSm}
         height={xrStyles.textSm}
-        color={xrColors.primaryForeground}
+        color={hexColors.primaryForeground}
       />
     </Button>
   );

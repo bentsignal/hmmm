@@ -1,4 +1,4 @@
-import { xrColors, xrStyles } from "@/styles/xr-styles";
+import { hexColors, xrStyles } from "@/styles";
 import { Container, Text } from "@react-three/uikit";
 import { Button } from "@react-three/uikit-default";
 import { SquarePen } from "@react-three/uikit-lucide";
@@ -30,9 +30,9 @@ const NewThreadButton = () => {
       <SquarePen
         width={xrStyles.textMd}
         height={xrStyles.textMd}
-        color={xrColors.card}
+        color={hexColors.card}
       />
-      <Text color={xrColors.card}>New Thread</Text>
+      <Text color={hexColors.card}>New Thread</Text>
     </Button>
   );
 };
@@ -45,7 +45,7 @@ export default function XRThreadList() {
         <CustomContainer header={<NewThreadButton />}>
           {threads.length === 0 && status !== "LoadingFirstPage" && (
             <Container flexShrink={0}>
-              <Text color={xrColors.foreground}>No threads found</Text>
+              <Text color={hexColors.foreground}>No threads found</Text>
             </Container>
           )}
           {threadGroups.map(
@@ -59,7 +59,7 @@ export default function XRThreadList() {
                   gap={xrStyles.spacingSm}
                 >
                   <Text
-                    color={xrColors.foreground}
+                    color={hexColors.foreground}
                     fontWeight="bold"
                     fontSize={xrStyles.textMd - 2}
                     paddingX={xrStyles.spacingMd}
@@ -83,7 +83,7 @@ export default function XRThreadList() {
           )}
           {status !== "Exhausted" && status !== "LoadingFirstPage" && (
             <Button onClick={loadMoreThreads} borderRadius={xrStyles.radiusLg}>
-              <TextElement color={xrColors.card} textAlign="center">
+              <TextElement color={hexColors.card} textAlign="center">
                 Load More
               </TextElement>
             </Button>

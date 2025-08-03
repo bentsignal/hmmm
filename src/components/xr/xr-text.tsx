@@ -1,11 +1,11 @@
 import { ReactNode } from "react";
-import { xrColors, xrStyles } from "@/styles/xr-styles";
+import { hexColors, xrStyles } from "@/styles";
 import { Text, TextProperties } from "@react-three/uikit";
 import { extractTextFromChildren } from "@/features/messages/util/message-util";
 
 export const TextElement = ({
   children,
-  color = xrColors.foreground,
+  color = hexColors.foreground,
   ...props
 }: {
   children: ReactNode;

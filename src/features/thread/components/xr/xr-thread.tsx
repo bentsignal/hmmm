@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { xrColors, xrStyles } from "@/styles/xr-styles";
+import { hexColors, xrStyles } from "@/styles";
 import { Container } from "@react-three/uikit";
 import { Maximize2, Minimize2, X } from "@react-three/uikit-lucide";
 import useThreadStore from "../../store";
@@ -49,10 +49,10 @@ export default function XRThread({
             justifyContent="flex-start"
             gap={xrStyles.spacing3xl}
             scrollRef={ref}
-            backgroundColor={xrColors.card}
+            backgroundColor={hexColors.card}
             width={expanded ? xrStyles.containerLg : xrStyles.containerMd}
             height={expanded ? xrStyles.container2xl : xrStyles.containerLg}
-            borderColor={isActiveThread ? xrColors.primary : xrColors.card}
+            borderColor={isActiveThread ? hexColors.primary : hexColors.card}
             borderWidth={2}
             onClick={() => setActiveThread(threadId)}
           >
@@ -93,12 +93,12 @@ const ThreadControls = ({
   const iconStyles = {
     width: xrStyles.textMd,
     height: xrStyles.textMd,
-    color: xrColors.primary,
+    color: hexColors.primary,
     padding: xrStyles.spacingSm,
     borderRadius: xrStyles.radiusLg,
     opacity: isHovering ? 1 : 0,
     hover: {
-      backgroundColor: xrColors.card,
+      backgroundColor: hexColors.card,
     },
   };
   return (

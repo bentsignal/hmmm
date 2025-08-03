@@ -1,5 +1,5 @@
 import { memo, useEffect } from "react";
-import { xrColors, xrStyles } from "@/styles/xr-styles";
+import { hexColors, xrStyles } from "@/styles";
 import { UIMessage } from "@convex-dev/agent/react";
 import { Button } from "@react-three/uikit-default";
 import equal from "fast-deep-equal";
@@ -41,7 +41,7 @@ export default function XRMessages({
           onClick={() => loadMore(PAGE_SIZE)}
           borderRadius={xrStyles.radiusLg}
         >
-          <TextElement color={xrColors.card} textAlign="center">
+          <TextElement color={hexColors.card} textAlign="center">
             Load More
           </TextElement>
         </Button>

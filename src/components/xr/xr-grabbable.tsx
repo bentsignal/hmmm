@@ -1,4 +1,4 @@
-import { xrStyles } from "@/styles/xr-styles";
+import { xrStyles } from "@/styles";
 import { Handle, HandleTarget } from "@react-three/handle";
 import { Root } from "@react-three/uikit";
 

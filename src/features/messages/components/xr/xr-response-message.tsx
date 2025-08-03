@@ -1,4 +1,4 @@
-import { xrColors, xrStyles } from "@/styles/xr-styles";
+import { hexColors, xrStyles } from "@/styles";
 import { UIMessage } from "@convex-dev/agent/react";
 import { Container, Text } from "@react-three/uikit";
 import { Brain, Clock, Globe, Newspaper, Sun } from "@react-three/uikit-lucide";
@@ -50,7 +50,7 @@ const MessageStatus = ({ message }: { message: UIMessage }) => {
   const iconStyles = {
     width: xrStyles.textMd,
     height: xrStyles.textMd,
-    color: xrColors.foreground,
+    color: hexColors.foreground,
   };
   return (
     <Container alignItems="center" gap={xrStyles.spacingMd}>
@@ -67,7 +67,7 @@ const MessageStatus = ({ message }: { message: UIMessage }) => {
       ) : (
         <Brain {...iconStyles} />
       )}
-      <Text color={xrColors.foreground}>{statusLabel}</Text>
+      <Text color={hexColors.foreground}>{statusLabel}</Text>
     </Container>
   );
 };
@@ -77,7 +77,7 @@ const NoticeMessage = ({ code }: { code: SystemNoticeCode }) => (
 );
 
 const ErrorMessage = ({ code }: { code: SystemErrorCode }) => (
-  <TextElement color={xrColors.destructive}>
+  <TextElement color={hexColors.destructive}>
     CODE: {code} An error occured while generating a response. Please try again.
   </TextElement>
 );

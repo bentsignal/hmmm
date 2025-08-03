@@ -1,4 +1,4 @@
-import { xrColors, xrStyles } from "@/styles/xr-styles";
+import { hexColors, xrStyles } from "@/styles";
 import { Container } from "@react-three/uikit";
 import type { Schema } from "hast-util-sanitize";
 import ReactMarkdown, { Components } from "react-markdown";
@@ -68,12 +68,12 @@ const markdownComponents: Partial<Components> = {
   h5: ({ children }) => <H5>{children}</H5>,
   h6: ({ children }) => <H6>{children}</H6>,
   code: () => (
-    <TextElement color={xrColors.destructive}>
+    <TextElement color={hexColors.destructive}>
       Currently unable to render code. Please view in the browser.
     </TextElement>
   ),
   table: () => (
-    <TextElement color={xrColors.destructive}>
+    <TextElement color={hexColors.destructive}>
       Currently unable to render tables. Please view in the browser.
     </TextElement>
   ),

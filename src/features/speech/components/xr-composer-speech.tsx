@@ -1,4 +1,4 @@
-import { xrColors, xrStyles } from "@/styles/xr-styles";
+import { hexColors, xrStyles } from "@/styles";
 import { Button } from "@react-three/uikit-default";
 import { Mic } from "@react-three/uikit-lucide";
 import useSpeech from "@/features/speech/hooks/use-speech";
@@ -10,18 +10,18 @@ const XRComposerSpeech = () => {
     <Button
       onClick={inProgress ? stopSpeech : startSpeech}
       disabled={disabled}
-      backgroundColor={xrColors.card}
+      backgroundColor={hexColors.card}
       size="icon"
       width={40}
       height={32}
-      borderColor={xrColors.borderInput}
+      borderColor={hexColors.borderInput}
       borderWidth={0.5}
       borderRadius={xrStyles.radiusMd}
     >
       <Mic
         width={xrStyles.textSm}
         height={xrStyles.textSm}
-        color={inProgress ? "lightcoral" : xrColors.foreground}
+        color={inProgress ? "lightcoral" : hexColors.foreground}
       />
     </Button>
   );
