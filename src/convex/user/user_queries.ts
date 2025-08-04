@@ -1,3 +1,4 @@
+import { v } from "convex/values";
 import { internalQuery, query } from "@/convex/_generated/server";
 import { getUserByUserId } from "./user_helpers";
 
@@ -40,5 +41,21 @@ export const getNewsletterRecipients = internalQuery({
   handler: async (ctx) => {
     const users = await ctx.db.query("users").collect();
     return users.filter((user) => user.newsletter);
+  },
+});
+
+export const getNewsletterPreference = query({
+  args: {},
+  returns: v.union(v.boolean(), v.null()),
+  handler: async (ctx) => {
+    const userIdentity = await ctx.auth.getUserIdentity();
+    if (!userIdentity) {
+      return null;
+    }
+    const user = await getUserByUserId(ctx, userIdentity.subject);
+    if (!user) {
+      return null;
+    }
+    return user.newsletter === true;
   },
 });
