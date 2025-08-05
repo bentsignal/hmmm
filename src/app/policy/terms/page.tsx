@@ -5,7 +5,7 @@ import { tos } from "./tos";
 
 export default function Terms() {
   return (
-    <div className="prose dark:prose-invert relative w-full max-w-full my-4">
+    <div className="prose dark:prose-invert relative my-4 w-full max-w-full">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}

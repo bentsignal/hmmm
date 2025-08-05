@@ -64,7 +64,7 @@ export default function MessageStatus({
           className={cn(
             "bg-card prose dark:prose-invert relative",
             "mt-2 w-lg rounded-md border",
-            "p-0 rounded-4xl overflow-hidden",
+            "overflow-hidden rounded-4xl p-0",
           )}
           align="start"
         >

@@ -29,7 +29,7 @@ export default function UserBillingInfo({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-1">
-        <span className="font-bold text-foreground">Current plan:</span>
+        <span className="text-foreground font-bold">Current plan:</span>
         <span>{plan.name}</span>
       </div>
       <div className="flex gap-2">

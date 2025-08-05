@@ -21,11 +21,11 @@ function ThreadListItem({ thread }: { thread: Thread }) {
     <SidebarMenuItem
       key={thread.id}
       onMouseEnter={() => setHoveredThread(thread)}
-      className="hover:bg-border rounded-md transition-background-color duration-100 w-full"
+      className="hover:bg-border transition-background-color w-full rounded-md duration-100"
     >
       <SidebarMenuButton
         asChild
-        className="py-5 mask-r-from-75%"
+        className="mask-r-from-75% py-5"
         onClick={() => {
           if (isMobile) {
             toggleSidebar();

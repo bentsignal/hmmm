@@ -30,7 +30,7 @@ const socials = [
 
 export default function Socials() {
   return (
-    <div className="flex items-center gap-2 w-full justify-center">
+    <div className="flex w-full items-center justify-center gap-2">
       {socials.map((social) => (
         <Link
           key={social.label}

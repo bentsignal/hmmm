@@ -30,7 +30,7 @@ const Newsletter = ({ title, stories, userId }: NewsletterProps) => {
         }}
       >
         <Head />
-        <Body className="flex flex-col mx-auto max-w-xl px-4 pt-2 pb-8">
+        <Body className="mx-auto flex max-w-xl flex-col px-4 pt-2 pb-8">
           <Text className="text-2xl font-bold">{title}</Text>
           {stories.map((story) => {
             const prompt = encodeURIComponent(story.prompt);
@@ -38,10 +38,10 @@ const Newsletter = ({ title, stories, userId }: NewsletterProps) => {
               <Section key={story.prompt}>
                 <Text className="text-lg font-bold">{story.prompt}</Text>
                 <Text className="text-sm">{story.response}</Text>
-                <Section className="flex justify-center items-center">
+                <Section className="flex items-center justify-center">
                   <Link
                     href={`https://qbe.sh/new?q=${prompt}`}
-                    className="text-sm font-bold no-underline w-full text-center"
+                    className="w-full text-center text-sm font-bold no-underline"
                   >
                     Read More
                   </Link>
@@ -50,12 +50,12 @@ const Newsletter = ({ title, stories, userId }: NewsletterProps) => {
               </Section>
             );
           })}
-          <Section className="text-center mt-4">
+          <Section className="mt-4 text-center">
             <Section className="mb-4">
               <Button
                 href="https://qbe.sh/settings/general"
-                className="bg-blue-200 text-black rounded-lg py-2 px-4 
-                          text-sm font-bold no-underline"
+                className="rounded-lg bg-blue-200 px-4 py-2 text-sm 
+                          font-bold text-black no-underline"
               >
                 Update your preferences
               </Button>

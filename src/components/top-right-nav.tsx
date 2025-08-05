@@ -1,9 +1,9 @@
 "use client";
 
-import { Moon, Cog, Sun } from "lucide-react";
-import { Button } from "./ui/button";
-import { useRouter } from "next/navigation";
+import { Cog, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
+import { Button } from "./ui/button";
 
 export default function TopRightNav() {
   const router = useRouter();

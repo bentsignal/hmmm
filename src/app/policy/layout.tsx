@@ -7,7 +7,7 @@ export default function PrivacyPage({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 max-w-[800px] mx-auto px-4 my-8 sm:my-24">
+    <div className="mx-auto my-8 flex max-w-[800px] flex-col gap-4 px-4 sm:my-24">
       <Link href="/" className="flex items-center gap-2">
         <MoveLeft className="h-4 w-4" />
         Return to home

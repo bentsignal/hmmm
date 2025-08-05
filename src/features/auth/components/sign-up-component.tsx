@@ -115,7 +115,7 @@ export default function SignUpComponent() {
                           Already have an account? Sign in
                         </ClerkLink>
                       </Button>
-                      <span className="text-xs text-muted-foreground text-center mt-4">
+                      <span className="text-muted-foreground mt-4 text-center text-xs">
                         By continuing, you agree to our{" "}
                         <span className="text-primary font-bold underline">
                           <Link href="/policy/terms">Terms of Service</Link>

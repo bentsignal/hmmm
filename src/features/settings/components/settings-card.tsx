@@ -11,7 +11,7 @@ export default function SettingsCard({
     <Card className="w-full">
       <CardContent className="flex flex-col gap-4">
         <span className="text-md font-bold">{title}</span>
-        <div className="text-sm text-muted-foreground flex flex-col gap-4">
+        <div className="text-muted-foreground flex flex-col gap-4 text-sm">
           {children}
         </div>
       </CardContent>

@@ -20,7 +20,7 @@ export default function ErrorMessage({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger>
-              <Info className="h-4 w-4 text-destructive" />
+              <Info className="text-destructive h-4 w-4" />
             </TooltipTrigger>
             <TooltipContent>
               <p>{dateTime}</p>
@@ -29,8 +29,8 @@ export default function ErrorMessage({
           </Tooltip>
         </TooltipProvider>
       </div>
-      <span className="text-sm text-muted-foreground">
-        <span className="font-bold text-destructive">System Error:</span> Ran
+      <span className="text-muted-foreground text-sm">
+        <span className="text-destructive font-bold">System Error:</span> Ran
         into an issue while generating your response.
       </span>
     </div>

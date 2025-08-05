@@ -1,10 +1,10 @@
+import { useEffect } from "react";
 import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
 import useSpeechRecording from "./use-speech-recording";
-import useComposerStore from "@/features/composer/store";
-import { useEffect } from "react";
 import useUsage from "@/features/billing/hooks/use-usage";
+import useComposerStore from "@/features/composer/store";
 
 export default function useSpeech() {
   const setPrompt = useComposerStore((state) => state.setPrompt);

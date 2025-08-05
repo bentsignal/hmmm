@@ -13,8 +13,8 @@ export default function SettingsBangs() {
         create new chats directly from your browser&apos;s search bar.
       </span>
       <div
-        className="prose dark:prose-invert relative w-full max-w-full 
-        flex flex-row items-center justify-start gap-2"
+        className="prose dark:prose-invert relative flex w-full 
+        max-w-full flex-row items-center justify-start gap-2"
       >
         <Markdown className="prose dark:prose-invert">{bang}</Markdown>
         <CopyButton getContent={() => bangURL} />

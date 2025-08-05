@@ -9,7 +9,7 @@ export default function NoticeMessage({ code }: { code: SystemNoticeCode }) {
         {code === "N1" && (
           <span className="text-muted-foreground">
             {NOTICE_MESSAGES[code]}{" "}
-            <Link href="/pricing" className="underline text-premium">
+            <Link href="/pricing" className="text-premium underline">
               View Plans.
             </Link>
           </span>

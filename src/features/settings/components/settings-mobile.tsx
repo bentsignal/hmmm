@@ -1,19 +1,19 @@
 "use client";
 
+import { Fragment, useState } from "react";
+import { SignOutButton } from "@clerk/nextjs";
+import { LogOut, MoveLeft } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
-  SelectSeparator,
 } from "@/components/ui/select";
 import { settingsTabs } from "@/features/settings/data";
-import { MoveLeft, LogOut } from "lucide-react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { Fragment, useState } from "react";
-import { SignOutButton } from "@clerk/nextjs";
 
 export default function SettingsMobile() {
   const pathname = usePathname();

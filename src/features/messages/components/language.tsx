@@ -8,7 +8,7 @@ export const Language = ({ className }: { className?: string }) => {
     return (
       <div className="flex items-center gap-2">
         {icon}
-        <span className="text-sm text-muted-foreground font-semibold">
+        <span className="text-muted-foreground text-sm font-semibold">
           {label}
         </span>
       </div>

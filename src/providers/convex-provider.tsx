@@ -1,12 +1,12 @@
 "use client";
 
 import { ReactNode } from "react";
+import { env } from "@/env";
+import { useAuth } from "@clerk/nextjs";
+import { ConvexQueryClient } from "@convex-dev/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
-import { useAuth } from "@clerk/nextjs";
-import { env } from "@/env";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ConvexQueryClient } from "@convex-dev/react-query";
 
 const convex = new ConvexReactClient(env.NEXT_PUBLIC_CONVEX_URL);
 const convexQueryClient = new ConvexQueryClient(convex);

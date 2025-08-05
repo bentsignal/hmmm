@@ -44,7 +44,7 @@ export default function Home({
   return (
     <div className="flex w-full flex-1 flex-col items-center justify-center gap-2">
       <Logo size={50} containerClass="my-6" />
-      <div className="flex flex-col gap-2 my-2 items-center">
+      <div className="my-2 flex flex-col items-center gap-2">
         <div className="flex items-center gap-2">
           <span className="text-2xl font-bold">Welcome back</span>
         </div>
@@ -96,20 +96,20 @@ const HomePrompts = ({
   }
 
   return (
-    <div className="relative w-full max-w-2xl mx-auto">
+    <div className="relative mx-auto w-full max-w-2xl">
       <Abyss height={50} top={false} />
       <div
         className={cn(
-          "flex px-4 pb-12 flex-col gap-2 text-sm w-full items-start",
-          "min-h-[300px] max-h-[300px] overflow-y-auto",
+          "flex w-full flex-col items-start gap-2 px-4 pb-12 text-sm",
+          "max-h-[300px] min-h-[300px] overflow-y-auto",
           "scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent",
         )}
       >
         {prompts?.map((prompt) => (
           <span
             key={prompt._id}
-            className={`p-4 bg-card/50 text-card-foreground rounded-lg shadow-md w-full 
-            hover:bg-accent hover:cursor-pointer transition-all duration-300`}
+            className={`bg-card/50 text-card-foreground hover:bg-accent w-full rounded-lg p-4 
+            shadow-md transition-all duration-300 hover:cursor-pointer`}
             onClick={() => {
               if (!isAuthenticated) {
                 redirect("/sign-up");

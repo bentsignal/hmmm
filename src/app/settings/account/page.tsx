@@ -29,7 +29,7 @@ export default async function Account() {
     <div className="flex w-full flex-col gap-4">
       <SettingsCard title="Information">
         <div className="flex gap-1">
-          <span className="font-bold text-foreground">Email:</span>
+          <span className="text-foreground font-bold">Email:</span>
           <span className="">{email}</span>
         </div>
       </SettingsCard>

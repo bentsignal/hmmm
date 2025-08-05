@@ -47,7 +47,7 @@ export default function Logo({
   ];
   return (
     <div
-      className={cn("perspective-near select-none", containerClass)}
+      className={cn("select-none perspective-near", containerClass)}
       style={{
         width: size,
         height: size,
@@ -92,8 +92,8 @@ const CubeFace = ({
   return (
     <div
       className={cn(
-        `border-2 border-foreground absolute text-foreground
-      font-bold flex items-center justify-center text-xl`,
+        `border-foreground text-foreground absolute flex
+      items-center justify-center border-2 text-xl font-bold`,
         className,
       )}
       style={{

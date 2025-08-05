@@ -71,7 +71,7 @@ export default function Messages({
           ),
         )}
         {waiting && (
-          <div className="flex justify-start items-start">
+          <div className="flex items-start justify-start">
             <Loader variant="typing" size="md" />
           </div>
         )}

@@ -49,13 +49,13 @@ export default function ResponseMessage({
   return (
     <div className="flex w-full flex-col items-start gap-2">
       <MessageStatus message={message} isActive={isActive} />
-      <div className="relative w-full max-w-full flex flex-col gap-2">
+      <div className="relative flex w-full max-w-full flex-col gap-2">
         <Markdown className="prose dark:prose-invert relative w-full max-w-full">
           {cleanedText}
         </Markdown>
         {!isMobile && (
           <div
-            className="flex justify-start gap-2 mt-2 transition-opacity duration-1000"
+            className="mt-2 flex justify-start gap-2 transition-opacity duration-1000"
             style={{
               opacity:
                 !isActive && message.createdAt && message.content.length > 0

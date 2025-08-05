@@ -1,3 +1,7 @@
+import { useState } from "react";
+import { Trash } from "lucide-react";
+import CustomButton from "./custom-button";
+import { Input } from "./ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,11 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "./ui/input";
-import { useState } from "react";
-import CustomButton from "./custom-button";
 
 export default function CustomAlert({
   open,

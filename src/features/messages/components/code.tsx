@@ -18,10 +18,10 @@ export function Code({ inline, className, children }: CodeProps) {
   if (isBlock) {
     return (
       <div
-        className="not-prose w-full relative my-2 group bg-card border-border 
-        border-1 rounded-xl overflow-hidden"
+        className="not-prose group bg-card border-border relative my-2 w-full 
+        overflow-hidden rounded-xl border-1"
       >
-        <div className="bg-border w-full h-14 flex items-center justify-between px-4">
+        <div className="bg-border flex h-14 w-full items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <Language className={className} />
           </div>
@@ -29,7 +29,7 @@ export function Code({ inline, className, children }: CodeProps) {
             <CopyButton getContent={() => extractTextFromChildren(children)} />
           </div>
         </div>
-        <CodeBlock className="p-6 bg-transparent border-none">
+        <CodeBlock className="border-none bg-transparent p-6">
           <CodeBlockCode
             code={children?.toString() ?? ""}
             theme={theme === "dark" ? "github-dark" : "github-light"}
@@ -40,7 +40,7 @@ export function Code({ inline, className, children }: CodeProps) {
   }
   return (
     <div className="not-prose inline-flex">
-      <CodeBlock className="px-2 py-1 rounded-md">
+      <CodeBlock className="rounded-md px-2 py-1">
         <CodeBlockCode
           code={children?.toString() ?? ""}
           theme={theme === "dark" ? "github-dark" : "github-light"}

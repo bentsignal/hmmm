@@ -28,7 +28,7 @@ export default function ThreadListContextItems() {
         Rename
       </ContextMenu.ContextMenuItem>
       <ContextMenu.ContextMenuItem onClick={triggerDeleteModal}>
-        <Trash className="h-4 w-4 text-destructive" />
+        <Trash className="text-destructive h-4 w-4" />
         Delete
       </ContextMenu.ContextMenuItem>
     </ContextMenu.ContextMenuContent>

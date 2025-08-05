@@ -21,7 +21,7 @@ export default function ThreadFollowUps({ threadId }: { threadId: string }) {
 
   return (
     <div
-      className="flex flex-col gap-4 transition-opacity duration-1000 mt-4 max-w-[500px]"
+      className="mt-4 flex max-w-[500px] flex-col gap-4 transition-opacity duration-1000"
       style={{
         opacity: empty ? 0 : 1,
       }}
@@ -29,9 +29,9 @@ export default function ThreadFollowUps({ threadId }: { threadId: string }) {
       {followUpQuestions?.map((question) => (
         <div
           key={question}
-          className="text-sm text-secondary-foreground bg-secondary  
-          rounded-md p-4 hover:bg-accent hover:cursor-pointer
-          shadow-md transition-all duration-300"
+          className="text-secondary-foreground bg-secondary hover:bg-accent  
+          rounded-md p-4 text-sm shadow-md
+          transition-all duration-300 hover:cursor-pointer"
           onClick={() => {
             sendMessage({ prompt: question, redirect: false });
           }}

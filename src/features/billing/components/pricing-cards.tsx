@@ -69,11 +69,11 @@ export default function PricingCards({ products }: { products: Product[] }) {
               className={cn(
                 "w-full max-w-96 xl:w-96",
                 product.name === "Premium" &&
-                  "border-premium shadow-xl shadow-premium/10",
+                  "border-premium shadow-premium/10 shadow-xl",
                 product.name === "Ultra" &&
-                  "border-ultra shadow-xl shadow-ultra/10",
+                  "border-ultra shadow-ultra/10 shadow-xl",
                 product.name === "Light" &&
-                  "border-light shadow-xl shadow-light/10",
+                  "border-light shadow-light/10 shadow-xl",
               )}
             >
               <Card.CardHeader className="sr-only">

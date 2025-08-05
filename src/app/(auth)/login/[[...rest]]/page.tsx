@@ -1,7 +1,7 @@
 // import { SignedOut, SignIn } from "@clerk/nextjs";
-import SignInComponent from "@/features/auth/components/sign-in-component";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import SignInComponent from "@/features/auth/components/sign-in-component";
 
 export default async function Login() {
   const { userId } = await auth();

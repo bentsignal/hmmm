@@ -35,7 +35,7 @@ export default async function Usage() {
         <h1 className="text-2xl font-bold">Usage</h1>
         {usage.unlimited ? (
           <div className="flex flex-col items-center gap-2">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               You have unlimited usage.
             </p>
           </div>

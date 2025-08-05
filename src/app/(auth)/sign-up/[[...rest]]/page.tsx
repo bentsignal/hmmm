@@ -1,6 +1,6 @@
 // import { SignUp, SignedOut } from "@clerk/nextjs";
-import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import SignUpComponent from "@/features/auth/components/sign-up-component";
 
 export default async function SignUpPage() {

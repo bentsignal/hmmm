@@ -31,13 +31,13 @@ export default function Thread({ threadId }: { threadId: string }) {
   }, [threadId, setActiveThread]);
 
   return (
-    <div className="relative h-full w-full flex flex-1 flex-col items-center justify-start">
+    <div className="relative flex h-full w-full flex-1 flex-col items-center justify-start">
       <ThreadTitleUpdater threadId={threadId} />
       <Abyss />
       <ScrollArea ref={scrollAreaRef} className="h-full w-full">
         <div
-          className="flex h-full w-full max-w-4xl place-self-center mx-auto
-          flex-col py-24 px-8 mb-8 sm:mb-0 gap-4"
+          className="mx-auto mb-8 flex h-full w-full max-w-4xl
+          flex-col gap-4 place-self-center px-8 py-24 sm:mb-0"
         >
           <Messages
             threadId={threadId}
@@ -74,5 +74,5 @@ const Bumper = () => {
   const [initialLength] = useState(() => numMessagesSent);
   const hasNewMessages = numMessagesSent != initialLength;
   if (!hasNewMessages) return null;
-  return <div className="w-full max-w-full min-h-[50vh]" />;
+  return <div className="min-h-[50vh] w-full max-w-full" />;
 };
