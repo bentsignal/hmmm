@@ -152,6 +152,28 @@ export const languageModels = {
       other: 0,
     },
   },
+  "oss-120b": {
+    provider: "OpenAI",
+    name: "GPT-OSS 120b",
+    id: "openai/gpt-oss-120b",
+    model: openrouter("openai/gpt-oss-120b"),
+    cost: {
+      in: 0.15,
+      out: 0.6,
+      other: 0,
+    },
+  },
+  "oss-20b": {
+    provider: "OpenAI",
+    name: "GPT-OSS 20b",
+    id: "openai/gpt-oss-20b",
+    model: openrouter("openai/gpt-oss-20b"),
+    cost: {
+      in: 0.05,
+      out: 0.2,
+      other: 0,
+    },
+  },
   /*
 
     Anthropic
