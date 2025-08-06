@@ -43,9 +43,10 @@ export default function MessageStatus({
 
   return (
     <div className="my-4 flex w-full flex-col items-start gap-2">
-      <HoverCard openDelay={200} closeDelay={200}>
+      <HoverCard openDelay={200} closeDelay={200} open={false}>
         <HoverCardTrigger>
-          <div className={cn("flex items-center gap-2", "cursor-pointer")}>
+          <div className={cn("flex items-center gap-2 select-none")}>
+            {/* , "cursor-pointer")}> */}
             {statusLabel === "Checking the time" ? (
               <Clock className="h-4 w-4" />
             ) : statusLabel === "Searching for information" ? (

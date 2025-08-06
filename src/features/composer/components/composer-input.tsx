@@ -67,8 +67,8 @@ export default function ComposerInput({
               aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 scrollbar-thin 
               scrollbar-thumb-secondary scrollbar-track-transparent flex h-auto max-h-32 min-h-[36px] w-full 
               min-w-0 resize-none overflow-y-auto py-2 text-base transition-[color,box-shadow] outline-none 
-              focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed 
-              disabled:opacity-50 sm:px-3 md:text-sm`}
+              select-none focus-visible:ring-[3px] disabled:pointer-events-none 
+              disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 md:text-sm`}
     />
   );
 }

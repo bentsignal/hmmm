@@ -29,9 +29,7 @@ export default function ThreadFollowUps({ threadId }: { threadId: string }) {
       {followUpQuestions?.map((question) => (
         <div
           key={question}
-          className="text-secondary-foreground bg-secondary hover:bg-accent  
-          rounded-md p-4 text-sm shadow-md
-          transition-all duration-300 hover:cursor-pointer"
+          className="text-secondary-foreground bg-secondary hover:bg-accent rounded-md p-4 text-sm shadow-md transition-all duration-300 select-none hover:cursor-pointer"
           onClick={() => {
             sendMessage({ customPrompt: question, navigateToNewThread: false });
           }}
