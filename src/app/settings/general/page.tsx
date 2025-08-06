@@ -25,7 +25,7 @@ export default async function Settings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsCard title="Preferences">
+      <SettingsCard title="Notifications">
         <NewsletterToggle preference={newsletterStatus ?? true} />
       </SettingsCard>
       <SettingsCard title="Shortcuts">
