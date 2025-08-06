@@ -2,9 +2,11 @@ import { ConvexError, v } from "convex/values";
 import { components, internal } from "@/convex/_generated/api";
 import { internalMutation, mutation } from "@/convex/_generated/server";
 import { agent } from "@/convex/agents";
-import { messageSendRateLimit } from "@/convex/limiter";
-import { getUsageHelper } from "@/convex/sub/sub_helpers";
-import { getThreadMetadata, logSystemError } from "./thread_helpers";
+import {
+  getThreadMetadata,
+  logSystemError,
+  threadMessageCheck,
+} from "./thread_helpers";
 import { tryCatch } from "@/lib/utils";
 
 export const requestNewThread = mutation({
@@ -12,24 +14,8 @@ export const requestNewThread = mutation({
     message: v.string(),
   },
   handler: async (ctx, args) => {
-    if (args.message.length > 20000) {
-      throw new ConvexError(
-        "Message is too long. Please shorten your message.",
-      );
-    }
-    // auth check
-    const userId = await ctx.auth.getUserIdentity();
-    if (!userId) {
-      throw new ConvexError("Unauthorized");
-    }
-    // check usage and rate limiting
-    const [usage] = await Promise.all([
-      getUsageHelper(ctx, userId.subject),
-      messageSendRateLimit(ctx, userId.subject),
-    ]);
-    if (usage.limitHit) {
-      throw new ConvexError("User has reached usage limit");
-    }
+    // auth, usage, input val, rate limit
+    const userId = await threadMessageCheck(ctx, args.message);
     // create new thread in agent component table, as well as
     // new document in separate threadMetadata table
     const { threadId } = await agent.createThread(ctx, {
@@ -94,24 +80,7 @@ export const newThreadMessage = mutation({
   },
   handler: async (ctx, args) => {
     const { threadId, prompt } = args;
-    if (prompt.length > 20000) {
-      throw new ConvexError(
-        "Message is too long. Please shorten your message.",
-      );
-    }
-    // auth check
-    const userId = await ctx.auth.getUserIdentity();
-    if (!userId) {
-      throw new ConvexError("Unauthorized");
-    }
-    // check usage and rate limiting
-    const [usage] = await Promise.all([
-      getUsageHelper(ctx, userId.subject),
-      messageSendRateLimit(ctx, userId.subject),
-    ]);
-    if (usage.limitHit) {
-      throw new ConvexError("User has reached usage limit");
-    }
+    const userId = await threadMessageCheck(ctx, prompt);
     // get thread metadata
     const metadata = await getThreadMetadata(ctx, threadId);
     if (!metadata) {

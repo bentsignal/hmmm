@@ -1,6 +1,9 @@
+import { ConvexError } from "convex/values";
 import { ActionCtx, MutationCtx, QueryCtx } from "@/convex/_generated/server";
 import { agent } from "@/convex/agents";
 import { isAdmin } from "@/convex/user/user_helpers";
+import { messageSendRateLimit } from "../limiter";
+import { getUsageHelper } from "../sub/sub_helpers";
 import {
   SystemErrorCode,
   SystemNoticeCode,
@@ -107,4 +110,24 @@ export const logSystemNotice = async (
       content: formatNotice(code),
     },
   });
+};
+
+export const threadMessageCheck = async (ctx: MutationCtx, message: string) => {
+  if (message.length > 20000) {
+    throw new ConvexError("Message is too long. Please shorten your message.");
+  }
+  // auth check
+  const userId = await ctx.auth.getUserIdentity();
+  if (!userId) {
+    throw new ConvexError("Unauthorized");
+  }
+  // check usage and rate limiting
+  const [usage] = await Promise.all([
+    getUsageHelper(ctx, userId.subject),
+    messageSendRateLimit(ctx, userId.subject),
+  ]);
+  if (usage.limitHit) {
+    throw new ConvexError("User has reached usage limit");
+  }
+  return userId;
 };
