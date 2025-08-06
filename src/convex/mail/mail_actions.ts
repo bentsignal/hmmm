@@ -86,15 +86,10 @@ export const sendNewsletter = internalAction({
     ]);
     const cleanSubject = subject.replace(/[\r\n]+/g, " ").trim();
     const cleanTitle = title.replace(/[\r\n]+/g, " ").trim();
-    const recipients = [
-      {
-        email: "shawnrodgers266@gmail.com",
-        userId: "user_2yIHhJQWSgvH9oBifCZoJtAZMbk",
-      },
-    ];
-    // const recipients = await ctx.runQuery(
-    //   internal.user.user_queries.getNewsletterRecipients,
-    // );
+    const recipients = await ctx.runQuery(
+      internal.user.user_queries.getNewsletterRecipients,
+    );
+    console.log(`Sending newsletter to ${recipients.length} recipients`);
     // send message to each recipient
     const siteUrl = "https://qbe.sh";
     const endpoint = "mail";

@@ -12,7 +12,7 @@ crons.cron(
 
 crons.daily(
   "send-newsletter",
-  { hourUTC: 13, minuteUTC: 45 },
+  { hourUTC: 20, minuteUTC: 0 },
   internal.mail.mail_actions.sendNewsletter,
 );
 
