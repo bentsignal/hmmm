@@ -33,6 +33,8 @@ export default function ThreadFollowUps({ threadId }: { threadId: string }) {
           onClick={() => {
             sendMessage({ customPrompt: question, navigateToNewThread: false });
           }}
+          role="button"
+          aria-label={`Follow up question: ${question}`}
         >
           {question}
         </div>

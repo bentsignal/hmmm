@@ -51,11 +51,11 @@ export default function Home({
           <Composer showInstantLoad={() => setIsLoading(true)} />
         </ErrorBoundary>
       </div>
-      <UsageChatCallout />
       <HomePrompts
         showInstantLoad={() => setIsLoading(true)}
         preloadedSuggestions={preloadedSuggestions}
       />
+      <UsageChatCallout />
       {!authed && (
         <Button asChild className="mt-2">
           <Link href="/sign-up" className="text-lg font-semibold">
@@ -84,10 +84,6 @@ const HomePrompts = ({
     api.agents.prompts.prompt_mutations.incrementSuggestion,
   );
 
-  if (usage?.limitHit) {
-    return null;
-  }
-
   return (
     <div className="relative mx-auto w-full max-w-2xl">
       <Abyss height={50} top={false} />
@@ -101,8 +97,14 @@ const HomePrompts = ({
         {prompts?.map((prompt) => (
           <span
             key={prompt._id}
-            className={`bg-card/50 text-card-foreground hover:bg-accent w-full rounded-lg p-4 
-            shadow-md transition-all duration-300 hover:cursor-pointer`}
+            className={cn(
+              "bg-card/50 text-card-foreground hover:bg-accent w-full rounded-lg p-4 shadow-md transition-all duration-300 select-none",
+              usage?.limitHit
+                ? "hover:cursor-not-allowed"
+                : "hover:cursor-pointer",
+            )}
+            role="button"
+            aria-label={`Suggested homepage prompt: ${prompt.prompt}`}
             onClick={() => {
               incrementSuggestion({ id: prompt._id });
               sendMessage({
