@@ -19,6 +19,8 @@ export const dateTime = createTool({
 
   Use the data returned to generate an effective response to the user's question.
 
+  If the return variable hour12 is true, include AM/PM in the response.
+
   `,
   args: z.object({
     timezone: z
@@ -26,6 +28,11 @@ export const dateTime = createTool({
       .describe(
         "IANA timezone identifier (e.g., 'America/New_York', 'Europe/London', 'Asia/Tokyo')",
       ),
+    format: z.enum(["24-hour", "12-hour"]).describe(
+      `The format of the time to return. 24-hour is the default and will return the time in 
+      24 hour format. 12-hour will return the time in 12 hour format with AM/PM. Use the timezone
+      to determine the correct format, or use the format specified by the user if mentioned.`,
+    ),
   }),
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   handler: async (ctx, args, options) => {
@@ -61,6 +68,7 @@ export const dateTime = createTool({
       month: string;
       day: string;
       year: string;
+      hour12: boolean;
     } = {
       hours,
       minutes,
@@ -68,6 +76,7 @@ export const dateTime = createTool({
       month,
       day,
       year,
+      hour12: args.format === "12-hour",
     };
 
     return result;
