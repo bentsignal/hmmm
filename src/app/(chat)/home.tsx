@@ -2,13 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import {
-  Preloaded,
-  useConvexAuth,
-  useMutation,
-  usePreloadedQuery,
-} from "convex/react";
+import { Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Abyss from "@/components/abyss";
 import ErrorBoundary from "@/components/error-boundary";
@@ -59,7 +53,7 @@ export default function Home({
       </div>
       <UsageChatCallout />
       <HomePrompts
-        triggerLoading={() => setIsLoading(true)}
+        showInstantLoad={() => setIsLoading(true)}
         preloadedSuggestions={preloadedSuggestions}
       />
       {!authed && (
@@ -74,15 +68,14 @@ export default function Home({
 }
 
 const HomePrompts = ({
-  triggerLoading,
+  showInstantLoad,
   preloadedSuggestions,
 }: {
-  triggerLoading: () => void;
+  showInstantLoad: () => void;
   preloadedSuggestions: Preloaded<
     typeof api.agents.prompts.prompt_queries.getSuggestions
   >;
 }) => {
-  const { isAuthenticated } = useConvexAuth();
   const { usage } = useUsage();
   const { sendMessage } = useSendMessage();
 
@@ -111,12 +104,11 @@ const HomePrompts = ({
             className={`bg-card/50 text-card-foreground hover:bg-accent w-full rounded-lg p-4 
             shadow-md transition-all duration-300 hover:cursor-pointer`}
             onClick={() => {
-              if (!isAuthenticated) {
-                redirect("/sign-up");
-              }
-              triggerLoading();
               incrementSuggestion({ id: prompt._id });
-              sendMessage({ prompt: prompt.prompt });
+              sendMessage({
+                customPrompt: prompt.prompt,
+                showInstantLoad,
+              });
             }}
           >
             {prompt.prompt}

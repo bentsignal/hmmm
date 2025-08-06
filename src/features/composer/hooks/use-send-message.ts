@@ -1,5 +1,6 @@
-import { useRouter } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useConvexAuth } from "convex/react";
 import { ConvexError } from "convex/values";
 import useComposerStore from "../store";
 import { tryCatch } from "@/lib/utils";
@@ -10,6 +11,7 @@ import useThreadStatus from "@/features/thread/hooks/use-thread-status";
 import useThreadStore from "@/features/thread/store/thread-store";
 
 export default function useSendMessage() {
+  const { isAuthenticated } = useConvexAuth();
   const router = useRouter();
 
   const setPrompt = useComposerStore((state) => state.setPrompt);
@@ -43,12 +45,26 @@ export default function useSendMessage() {
   );
 
   const sendMessage = async ({
-    prompt,
-    redirect = true,
+    customPrompt,
+    navigateToNewThread = true,
+    showInstantLoad,
   }: {
-    prompt: string;
-    redirect?: boolean;
+    customPrompt?: string;
+    navigateToNewThread?: boolean;
+    showInstantLoad?: () => void;
   }) => {
+    // if customPrompt is provided, use it, otherwise use the prompt from the store
+    const prompt = customPrompt ?? useComposerStore.getState().prompt;
+
+    // if user is not authenticated, redirect to sign-up page. create thread after
+    // they have signed in
+    if (!isAuthenticated) {
+      const redirectParams = new URLSearchParams();
+      redirectParams.set("q", prompt);
+      const url = "/sign-up?redirect_url=/new?" + redirectParams.toString();
+      redirect(url);
+    }
+
     // prevent user from sending messages if they are in a bad state
     if (blockSend) {
       return;
@@ -59,6 +75,7 @@ export default function useSendMessage() {
       return;
     }
     setPrompt("");
+    showInstantLoad?.();
 
     const activeThread = useThreadStore.getState().activeThread;
 
@@ -82,7 +99,7 @@ export default function useSendMessage() {
         toast.error("An internal error occurred. Please try again.");
         return;
       }
-      if (redirect) {
+      if (navigateToNewThread) {
         router.push(`/chat/${threadId}`);
       }
       return threadId;

@@ -33,7 +33,7 @@ export default function ThreadFollowUps({ threadId }: { threadId: string }) {
           rounded-md p-4 text-sm shadow-md
           transition-all duration-300 hover:cursor-pointer"
           onClick={() => {
-            sendMessage({ prompt: question, redirect: false });
+            sendMessage({ customPrompt: question, navigateToNewThread: false });
           }}
         >
           {question}

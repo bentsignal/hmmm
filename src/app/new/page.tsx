@@ -10,12 +10,6 @@ export default async function NewPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  // auth check
-  const { userId } = await auth();
-  if (!userId) {
-    redirect("/login");
-  }
-
   // parse query
   const params = await searchParams;
   const query = params.q as string;
@@ -24,6 +18,15 @@ export default async function NewPage({
     : "";
   if (parsedQuery.length === 0) {
     redirect("/");
+  }
+
+  // auth check
+  const { userId } = await auth();
+  if (!userId) {
+    const redirectParams = new URLSearchParams();
+    redirectParams.set("q", parsedQuery);
+    const url = "/login?redirect_url=/new?" + redirectParams.toString();
+    redirect(url);
   }
 
   // create new thread

@@ -14,7 +14,10 @@ export default function XRComposerSend() {
     <Button
       onClick={async () => {
         const prompt = useComposerStore.getState().prompt;
-        const threadId = await sendMessage({ prompt, redirect: false });
+        const threadId = await sendMessage({
+          customPrompt: prompt,
+          navigateToNewThread: false,
+        });
         if (threadId) {
           setActiveThread(threadId);
         }
