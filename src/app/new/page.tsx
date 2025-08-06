@@ -13,9 +13,16 @@ export default async function NewPage({
   // parse query
   const params = await searchParams;
   const query = params.q as string;
-  const parsedQuery = query
-    ? decodeURIComponent(query.replace(/\+/g, " "))
-    : "";
+
+  let parsedQuery = "";
+  if (query) {
+    try {
+      parsedQuery = decodeURIComponent(query.replace(/\+/g, " "));
+    } catch {
+      parsedQuery = query.replace(/\+/g, " ");
+    }
+  }
+
   if (parsedQuery.length === 0) {
     redirect("/");
   }
