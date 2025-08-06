@@ -3,6 +3,7 @@ import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 import { exa } from "./index";
 import { formatCacheKey, logSearchCost } from "./tool_helpers";
+import { getCurrentDateTime } from "@/lib/date-time-utils";
 import { tryCatch } from "@/lib/utils";
 
 const NUM_RESULTS = 5;
@@ -26,10 +27,8 @@ export const positionHolder = createTool({
   Use the **content** field of each object in the list to create an informed and 
   helpful response to address the user's question directly.
 
-  **IMPORTANT**: Before using this tool, you must always use the _dateTime_ tool
-  first. That way, you can ensure that the information you get back from this
-  tool is up to date. You should prioritize the most recent information returned 
-  from this tool.
+  It will also return the current date and time, which can be used to determine
+  how current the information returned from the sources is.
 
   `,
   args: z.object({
@@ -100,6 +99,16 @@ export const positionHolder = createTool({
       { ex: 60 * 60 }, // 1 hour
     );
 
-    return sources;
+    const dateTime = getCurrentDateTime({
+      timezone: "America/New_York",
+    });
+
+    return {
+      sources,
+      currentDateTime: {
+        timezone: "America/New_York",
+        dateTime,
+      },
+    };
   },
 });

@@ -3,6 +3,7 @@ import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 import { exa } from "./index";
 import { formatCacheKey, logSearchCost } from "./tool_helpers";
+import { getCurrentDateTime } from "@/lib/date-time-utils";
 import { tryCatch } from "@/lib/utils";
 
 const NUM_RESULTS = 5;
@@ -24,6 +25,9 @@ export const currentEvents = createTool({
 
   Use the **content** field of each object in the list to create an informed and 
   helpful response to address the user's question directly.
+
+  It will also return the current date and time, which can be used to determine
+  how current the information returned from the sources is.
 
   `,
   args: z.object({
@@ -76,6 +80,16 @@ export const currentEvents = createTool({
       ex: 60 * 10, // 10 minutes
     });
 
-    return sources;
+    const dateTime = getCurrentDateTime({
+      timezone: "America/New_York",
+    });
+
+    return {
+      sources,
+      currentDateTime: {
+        timezone: "America/New_York",
+        dateTime,
+      },
+    };
   },
 });
