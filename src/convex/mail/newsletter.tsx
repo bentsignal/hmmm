@@ -30,7 +30,7 @@ const Newsletter = ({ title, stories, userId }: NewsletterProps) => {
         }}
       >
         <Head />
-        <Body className="mx-auto flex max-w-xl flex-col px-4 pt-2 pb-8">
+        <Body className="mx-auto max-w-xl px-4 pt-2 pb-8">
           <Text className="text-2xl font-bold">{title}</Text>
           {stories.map((story) => {
             const prompt = encodeURIComponent(story.prompt);
@@ -38,10 +38,10 @@ const Newsletter = ({ title, stories, userId }: NewsletterProps) => {
               <Section key={story.prompt}>
                 <Text className="text-lg font-bold">{story.prompt}</Text>
                 <Text className="text-sm">{story.response}</Text>
-                <Section className="flex items-center justify-center">
+                <Section className="mx-auto flex items-center justify-center text-center">
                   <Link
                     href={`https://qbe.sh/new?q=${prompt}`}
-                    className="w-full text-center text-sm font-bold no-underline"
+                    className="mx-auto w-full text-center text-sm font-bold no-underline"
                   >
                     Read More
                   </Link>
