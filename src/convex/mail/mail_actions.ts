@@ -13,13 +13,19 @@ import {
 } from "../agents/prompts";
 import getNewsletterHtml from "./newsletter";
 
+// the number of stories to include in the newsletter
+const STORY_COUNT = 5;
+
+// the number of stories that will be fed back in to generate title
+const MAX_FOR_SUMMARY = 3;
+
 export const sendNewsletter = internalAction({
   handler: async (ctx) => {
     console.log("Sending newsletter");
     // get the top 10 most clicked suggestions from today
     const suggestions = await ctx.runQuery(
       internal.agents.prompts.prompt_queries.getTodaysSuggestions,
-      { numResults: 5 },
+      { numResults: STORY_COUNT },
     );
     console.log(`Retrieved ${suggestions.length} suggestions`);
     // generate responses for the top 10 prompts
@@ -50,22 +56,21 @@ export const sendNewsletter = internalAction({
         };
       }),
     );
-    console.log(`Generated ${previews.length} previews`);
-    // concatenate the top 3 prompts and responses
-    const max = 3;
-    const topThreeConcat = previews
-      .slice(0, Math.min(max, previews.length))
-      .map((response, index) => {
-        return `${index + 1}. ${suggestions[index].prompt}\n${response.response}`;
-      })
-      .join("\n");
-    console.log(
-      `Concatenated the top ${topThreeConcat.length} responses to generate a summary`,
-    );
     if (previews.length < 1) {
       console.log("No previews were generated, aborting");
       return;
     }
+    const useForSummary = Math.min(MAX_FOR_SUMMARY, previews.length);
+    console.log(
+      `Generated ${previews.length} previews, using ${useForSummary} for summary`,
+    );
+    // concatenate the top 3 prompts and responses
+    const topThreeConcat = previews
+      .slice(0, useForSummary)
+      .map((response, index) => {
+        return `${index + 1}. ${suggestions[index].prompt}\n${response.response}`;
+      })
+      .join("\n");
     // generate the subject, title, summary, and body of the message
     const [{ text: subject }, { text: title }] = await Promise.all([
       generateText({
@@ -81,9 +86,15 @@ export const sendNewsletter = internalAction({
     ]);
     const cleanSubject = subject.replace(/[\r\n]+/g, " ").trim();
     const cleanTitle = title.replace(/[\r\n]+/g, " ").trim();
-    const recipients = await ctx.runQuery(
-      internal.user.user_queries.getNewsletterRecipients,
-    );
+    const recipients = [
+      {
+        email: "shawnrodgers266@gmail.com",
+        userId: "user_2yIHhJQWSgvH9oBifCZoJtAZMbk",
+      },
+    ];
+    // const recipients = await ctx.runQuery(
+    //   internal.user.user_queries.getNewsletterRecipients,
+    // );
     // send message to each recipient
     const siteUrl = "https://qbe.sh";
     const endpoint = "mail";
