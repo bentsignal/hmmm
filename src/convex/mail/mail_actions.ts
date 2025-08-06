@@ -15,11 +15,13 @@ import getNewsletterHtml from "./newsletter";
 
 export const sendNewsletter = internalAction({
   handler: async (ctx) => {
+    console.log("Sending newsletter");
     // get the top 10 most clicked suggestions from today
     const suggestions = await ctx.runQuery(
       internal.agents.prompts.prompt_queries.getTodaysSuggestions,
       { numResults: 5 },
     );
+    console.log(`Retrieved ${suggestions.length} suggestions`);
     // generate responses for the top 10 prompts
     const withFullResponses = await Promise.all(
       suggestions.map(async (suggestion) => ({
@@ -30,6 +32,9 @@ export const sendNewsletter = internalAction({
           "Suggestion Response",
         ),
       })),
+    );
+    console.log(
+      `Generated ${withFullResponses.length} full responses via agent`,
     );
     // summarize the responses from those 10 prompts into 2 sentence bits
     const previews = await Promise.all(
@@ -45,13 +50,22 @@ export const sendNewsletter = internalAction({
         };
       }),
     );
+    console.log(`Generated ${previews.length} previews`);
     // concatenate the top 3 prompts and responses
+    const max = 3;
     const topThreeConcat = previews
-      .slice(0, 3)
+      .slice(0, Math.min(max, previews.length))
       .map((response, index) => {
         return `${index + 1}. ${suggestions[index].prompt}\n${response.response}`;
       })
       .join("\n");
+    console.log(
+      `Concatenated the top ${topThreeConcat.length} responses to generate a summary`,
+    );
+    if (previews.length < 1) {
+      console.log("No previews were generated, aborting");
+      return;
+    }
     // generate the subject, title, summary, and body of the message
     const [{ text: subject }, { text: title }] = await Promise.all([
       generateText({
