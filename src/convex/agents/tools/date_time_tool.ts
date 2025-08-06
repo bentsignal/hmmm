@@ -1,5 +1,6 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
+import { getCurrentDateTime } from "@/lib/date-time-utils";
 
 export const dateTime = createTool({
   description: `
@@ -19,7 +20,8 @@ export const dateTime = createTool({
 
   Use the data returned to generate an effective response to the user's question.
 
-  If the return variable hour12 is true, include AM/PM in the response.
+  Include AM/PM in the response if the user asks for the time, unless they specify
+  they would like the time in 24 hour format.
 
   `,
   args: z.object({
@@ -28,57 +30,11 @@ export const dateTime = createTool({
       .describe(
         "IANA timezone identifier (e.g., 'America/New_York', 'Europe/London', 'Asia/Tokyo')",
       ),
-    format: z.enum(["24-hour", "12-hour"]).describe(
-      `The format of the time to return. 24-hour is the default and will return the time in 
-      24 hour format. 12-hour will return the time in 12 hour format with AM/PM. Use the timezone
-      to determine the correct format, or use the format specified by the user if mentioned.`,
-    ),
   }),
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   handler: async (ctx, args, options) => {
-    const date = new Date();
-
-    // get time
-    const timeString = date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-      timeZone: args.timezone,
-    });
-    const [hours, minutes] = timeString.split(":").map(Number);
-
-    // get date
-    const month = date.toLocaleString("en-US", {
-      month: "long",
-      timeZone: args.timezone,
-    });
-    const day = date.toLocaleString("en-US", {
-      day: "numeric",
-      timeZone: args.timezone,
-    });
-    const year = date.toLocaleString("en-US", {
-      year: "numeric",
-      timeZone: args.timezone,
-    });
-
-    const result: {
-      hours: number;
-      minutes: number;
-      timezone: string;
-      month: string;
-      day: string;
-      year: string;
-      hour12: boolean;
-    } = {
-      hours,
-      minutes,
+    return getCurrentDateTime({
       timezone: args.timezone,
-      month,
-      day,
-      year,
-      hour12: args.format === "12-hour",
-    };
-
-    return result;
+    });
   },
 });

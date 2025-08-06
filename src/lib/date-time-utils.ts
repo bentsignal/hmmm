@@ -113,3 +113,38 @@ export const convertToUTC = (date: Date) => {
   const offset = now.getTime() - estNow.getTime();
   return new Date(date.getTime() + offset);
 };
+
+export const getCurrentDateTime = ({ timezone }: { timezone: string }) => {
+  const date = new Date();
+
+  // get time
+  const timeString = date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: timezone,
+  });
+  const [hours, minutes] = timeString.split(":").map(Number);
+
+  // get date
+  const month = date.toLocaleString("en-US", {
+    month: "long",
+    timeZone: timezone,
+  });
+  const day = date.toLocaleString("en-US", {
+    day: "numeric",
+    timeZone: timezone,
+  });
+  const year = date.toLocaleString("en-US", {
+    year: "numeric",
+    timeZone: timezone,
+  });
+
+  return {
+    hours,
+    minutes,
+    month,
+    day,
+    year,
+  };
+};
