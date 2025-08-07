@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack -H 0.0.0.0",
     "dev:convex": "convex dev",
+    "count": "cloc ./src",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
