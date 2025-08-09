@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
+import ChatSidebar from "./chat-sidebar";
 import TopRightNav from "@/components/top-right-nav";
 import {
   SidebarInset,
@@ -7,7 +8,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { SIDEBAR_COOKIE_NAME } from "@/lib/cookies";
-import ThreadList from "@/features/thread/components/thread-list";
 
 export default async function ChatLayout({
   children,
@@ -20,7 +20,7 @@ export default async function ChatLayout({
   const defaultOpen = sidebarState?.value === "true";
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
-      {userId && <ThreadList />}
+      {userId && <ChatSidebar />}
       <SidebarInset className="relative h-screen">
         {userId && (
           <>

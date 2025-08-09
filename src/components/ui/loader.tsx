@@ -428,7 +428,6 @@ export function TextShimmer({
     <div
       className={cn(
         "bg-[linear-gradient(to_right,var(--foreground)_40%,var(--shimmer)_60%,var(--foreground)_80%)]",
-        "dark:bg-[linear-gradient(to_right,var(--foreground)_40%,var(--shimmer)_60%,var(--foreground)_80%)]",
         "bg-size-[200%_auto] bg-clip-text",
         active && "animate-[shimmer_4s_infinite_linear]",
         textSizes[size],
