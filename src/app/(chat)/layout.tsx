@@ -1,10 +1,12 @@
 import { auth } from "@clerk/nextjs/server";
+import { cookies } from "next/headers";
 import TopRightNav from "@/components/top-right-nav";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { SIDEBAR_COOKIE_NAME } from "@/lib/cookies";
 import ThreadList from "@/features/thread/components/thread-list";
 
 export default async function ChatLayout({
@@ -13,8 +15,11 @@ export default async function ChatLayout({
   children: React.ReactNode;
 }) {
   const { userId } = await auth();
+  const cookieStore = await cookies();
+  const sidebarState = cookieStore.get(SIDEBAR_COOKIE_NAME);
+  const defaultOpen = sidebarState?.value === "true";
   return (
-    <SidebarProvider defaultOpen={false}>
+    <SidebarProvider defaultOpen={defaultOpen}>
       {userId && <ThreadList />}
       <SidebarInset className="relative h-screen">
         {userId && (
