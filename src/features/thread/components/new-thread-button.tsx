@@ -30,7 +30,7 @@ export default function NewThreadButton() {
       }}
     >
       <SquarePen className="h-4 w-4" />
-      <span className="text-sm font-semibold">New Chat</span>
+      <span className="text-sm font-semibold">New chat</span>
     </Button>
   );
 }
