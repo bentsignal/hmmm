@@ -59,7 +59,7 @@ const PureMessageSources = ({ sources }: { sources: Source[] }) => {
         </div>
       </SheetTrigger>
       <SheetContent className="z-150 w-2xl max-w-screen overflow-y-auto md:max-w-xl">
-        <div className="flex flex-col gap-4 py-8">
+        <div className="flex flex-col gap-4 py-12">
           {sources.map((source, index) => {
             const hostname = (() => {
               try {
@@ -74,15 +74,13 @@ const PureMessageSources = ({ sources }: { sources: Source[] }) => {
                 href={source.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex w-full flex-col gap-4 rounded-xl p-4 transition-colors"
+                className="group flex w-full flex-col gap-4 rounded-xl px-4 transition-colors"
               >
                 {source.image ? (
                   <div className="shrink-0">
                     <img
                       src={source.image}
                       alt={source.title ?? hostname}
-                      width={160}
-                      height={120}
                       className="w-full rounded-lg object-cover"
                     />
                   </div>
@@ -106,9 +104,6 @@ const PureMessageSources = ({ sources }: { sources: Source[] }) => {
                     </h3>
                     <ExternalLink className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
                   </div>
-                  <p className="text-muted-foreground mt-2 max-h-24 overflow-hidden text-sm">
-                    {source.content}
-                  </p>
                 </div>
               </a>
             );
