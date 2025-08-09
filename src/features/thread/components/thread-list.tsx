@@ -36,7 +36,7 @@ export default function ThreadList({
 
   if (status === "LoadingFirstPage") {
     return (
-      <SidebarGroup className="gap-1">
+      <SidebarGroup className="gap-2">
         {Array.from({ length: 50 }).map((_, index) => (
           <ThreadListSkeleton key={index} />
         ))}
