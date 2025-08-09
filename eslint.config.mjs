@@ -19,6 +19,7 @@ const eslintConfig = [
     rules: {
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "off",
+      "@next/next/no-img-element": "off",
     },
   },
 ];

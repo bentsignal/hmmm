@@ -1,7 +1,6 @@
 import { memo } from "react";
 import equal from "fast-deep-equal";
 import { ExternalLink } from "lucide-react";
-import Image from "next/image";
 import { Source } from "../types/message-types";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -19,12 +18,11 @@ const PureMessageSources = ({ sources }: { sources: Source[] }) => {
 
   return (
     <Sheet>
-      <SheetTrigger>
+      <SheetTrigger asChild>
         <div className="mb-2 flex w-full flex-col gap-4 select-none hover:cursor-pointer">
           <div className="relative flex h-48 w-full flex-col gap-2">
             {images.map((source, index) => (
               <div key={source}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={source ?? ""}
                   alt={source ?? ""}
@@ -46,7 +44,6 @@ const PureMessageSources = ({ sources }: { sources: Source[] }) => {
             <div className="flex gap-2">
               {favicons.map((favicon) => (
                 <div key={favicon}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={favicon ?? ""}
                     alt={favicon ?? ""}
@@ -61,8 +58,8 @@ const PureMessageSources = ({ sources }: { sources: Source[] }) => {
           </div>
         </div>
       </SheetTrigger>
-      <SheetContent className="z-150 w-2xl max-w-screen">
-        <div className="flex flex-col gap-4 overflow-y-auto">
+      <SheetContent className="z-150 w-2xl max-w-screen overflow-y-auto md:max-w-xl">
+        <div className="flex flex-col gap-4 py-8">
           {sources.map((source, index) => {
             const hostname = (() => {
               try {
@@ -77,17 +74,16 @@ const PureMessageSources = ({ sources }: { sources: Source[] }) => {
                 href={source.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex w-full gap-4 rounded-xl p-4 transition-colors"
+                className="group flex w-full flex-col gap-4 rounded-xl p-4 transition-colors"
               >
                 {source.image ? (
                   <div className="shrink-0">
-                    <Image
+                    <img
                       src={source.image}
                       alt={source.title ?? hostname}
                       width={160}
                       height={120}
-                      unoptimized
-                      className="h-24 w-40 rounded-lg object-cover"
+                      className="w-full rounded-lg object-cover"
                     />
                   </div>
                 ) : null}
@@ -95,12 +91,9 @@ const PureMessageSources = ({ sources }: { sources: Source[] }) => {
                   <div className="mb-1 flex items-start gap-2">
                     <div className="text-muted-foreground flex items-center gap-2 text-sm">
                       {source.favicon ? (
-                        <Image
+                        <img
                           src={source.favicon}
                           alt={hostname}
-                          width={16}
-                          height={16}
-                          unoptimized
                           className="h-4 w-4 rounded"
                         />
                       ) : null}
