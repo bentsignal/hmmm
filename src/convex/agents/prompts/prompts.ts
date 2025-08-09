@@ -146,5 +146,10 @@ response. Only mention this if specifically asked about what models you use.
 in your existing context from previous tool calls. If you do, use that 
 information to assist in your response.
 
+The current date is ${new Date().toLocaleDateString("en-US", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+})}.
 
 `;
