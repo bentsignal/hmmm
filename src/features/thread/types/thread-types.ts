@@ -8,7 +8,7 @@ export interface Thread {
   pinned: boolean;
 }
 
-export interface RawThread {
+export interface PureThread {
   id: Doc<"threadMetadata">["threadId"];
   title: Doc<"threadMetadata">["title"];
   updatedAt: Doc<"threadMetadata">["updatedAt"];
@@ -18,5 +18,5 @@ export interface RawThread {
 
 export interface ThreadGroup {
   label: string;
-  threads: RawThread[];
+  threads: PureThread[];
 }

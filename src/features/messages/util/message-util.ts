@@ -1,10 +1,13 @@
 import { ReactNode } from "react";
 import { UIMessage } from "@convex-dev/agent/react";
 import {
+  ResultSchema,
+  Source,
   SystemErrorCode,
   SystemErrorLabel,
   SystemNoticeCode,
   SystemNoticeLabel,
+  ToolInvocationPartWithResult,
   ToolInvocationUIPart,
 } from "../types/message-types";
 
@@ -83,4 +86,21 @@ export function isNoticeMessage(message: string): SystemNoticeCode | null {
   if (!message.startsWith(SystemNoticeLabel)) return null;
   const code = message.replace(SystemNoticeLabel, "") as SystemNoticeCode;
   return code;
+}
+
+export function extractSourcesFromMessage(message: UIMessage) {
+  const collected: Array<Source> = [];
+  for (const part of message.parts) {
+    if (part.type !== "tool-invocation") continue;
+    const withResult = part as ToolInvocationPartWithResult;
+    if (!("toolInvocation" in withResult)) continue;
+    const parsed = ResultSchema.safeParse(withResult.toolInvocation.result);
+    if (!parsed.success) continue;
+    if (Array.isArray(parsed.data)) {
+      collected.push(...parsed.data);
+    } else {
+      collected.push(...parsed.data.sources);
+    }
+  }
+  return collected;
 }
