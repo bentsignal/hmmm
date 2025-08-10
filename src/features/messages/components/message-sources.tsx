@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import equal from "fast-deep-equal";
 import { ExternalLink } from "lucide-react";
 import { Source } from "../types/message-types";
@@ -61,14 +61,6 @@ const PreviewSources = ({
   const [allLoaded, setAllLoaded] = useState(() =>
     loadedSignatures.has(signature),
   );
-  useEffect(() => {
-    if (loadedSignatures.has(signature)) {
-      setAllLoaded(true);
-    } else {
-      setAllLoaded(false);
-      loadedCount.current = 0;
-    }
-  }, [signature]);
 
   const handleLoadOrError = () => {
     loadedCount.current += 1;
