@@ -1,3 +1,5 @@
+"use client";
+
 import { memo, useRef, useState } from "react";
 import equal from "fast-deep-equal";
 import { ExternalLink } from "lucide-react";
@@ -55,7 +57,8 @@ const PreviewSources = ({
 
   // store signature of image and favicons outside scope of component. this is to
   // prevent the fade animation from replaying when the component remounts. not in
-  // love with this, but it works.
+  // love with this, but it works. shouldn't have severe performance or memory
+  // implications.
   const loadedCount = useRef(0);
   const signature = `${threadId}|${images.join("|")}|${favicons.join("|")}`;
   const [allLoaded, setAllLoaded] = useState(() =>
