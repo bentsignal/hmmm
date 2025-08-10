@@ -122,7 +122,7 @@ const ExpandedSources = ({ sources }: { sources: Source[] }) => {
                 <img
                   src={source.image}
                   alt={source.title ?? hostname}
-                  className="w-full rounded-lg object-cover"
+                  className="max-h-96 w-full rounded-lg object-cover"
                 />
               </div>
             ) : null}
