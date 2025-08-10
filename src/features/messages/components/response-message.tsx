@@ -30,21 +30,21 @@ export default function ResponseMessage({
   isActive: boolean;
   threadId: string;
 }) {
-  const { text } = useTypewriter({
-    text: message.content,
+  const { animatedText } = useTypewriter({
+    inputText: message.content,
     streaming: message.status === "streaming",
   });
   const createdAt = getDateTimeString(new Date(message.createdAt ?? 0));
   const isMobile = useIsMobile();
 
   // error occured during repsonse generation, inform user
-  const errorCode = isErrorMessage(text);
+  const errorCode = isErrorMessage(animatedText);
   if (errorCode) {
     return <ErrorMessage code={errorCode} dateTime={createdAt} />;
   }
 
   // notice from the server to the user
-  const noticeCode = isNoticeMessage(text);
+  const noticeCode = isNoticeMessage(animatedText);
   if (noticeCode) {
     return <NoticeMessage code={noticeCode} />;
   }
@@ -54,7 +54,7 @@ export default function ResponseMessage({
 
   // if the message begins with the substring "undefined", remove it from the
   // message. Not sure why this happens, seems to be a bug in a dependency
-  const cleanedText = text.replace(/^undefined/, "");
+  const cleanedText = animatedText.replace(/^undefined/, "");
 
   return (
     <div className="flex w-full flex-col items-start gap-2">
