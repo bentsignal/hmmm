@@ -63,6 +63,8 @@ export function getStatusLabel(message: UIMessage) {
           return "Checking the weather";
         case "currentEvents":
           return "Checking the news";
+        case "fileAnalysis":
+          return "Analyzing file";
         default:
           return "Searching for information";
       }

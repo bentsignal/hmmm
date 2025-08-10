@@ -25,6 +25,7 @@ import type * as agents_prompts_types_index from "../agents/prompts/types/index.
 import type * as agents_prompts_types_prompt_types from "../agents/prompts/types/prompt_types.js";
 import type * as agents_tools_current_events_tool from "../agents/tools/current_events_tool.js";
 import type * as agents_tools_date_time_tool from "../agents/tools/date_time_tool.js";
+import type * as agents_tools_file_analysis_tool from "../agents/tools/file_analysis_tool.js";
 import type * as agents_tools_index from "../agents/tools/index.js";
 import type * as agents_tools_postition_holder_tool from "../agents/tools/postition_holder_tool.js";
 import type * as agents_tools_tool_helpers from "../agents/tools/tool_helpers.js";
@@ -89,6 +90,7 @@ declare const fullApi: ApiFromModules<{
   "agents/prompts/types/prompt_types": typeof agents_prompts_types_prompt_types;
   "agents/tools/current_events_tool": typeof agents_tools_current_events_tool;
   "agents/tools/date_time_tool": typeof agents_tools_date_time_tool;
+  "agents/tools/file_analysis_tool": typeof agents_tools_file_analysis_tool;
   "agents/tools/index": typeof agents_tools_index;
   "agents/tools/postition_holder_tool": typeof agents_tools_postition_holder_tool;
   "agents/tools/tool_helpers": typeof agents_tools_tool_helpers;
