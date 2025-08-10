@@ -24,9 +24,11 @@ import { useTypewriter } from "@/hooks/use-typewriter";
 export default function ResponseMessage({
   message,
   isActive,
+  threadId,
 }: {
   message: UIMessage;
   isActive: boolean;
+  threadId: string;
 }) {
   const { text } = useTypewriter({
     text: message.content,
@@ -57,7 +59,7 @@ export default function ResponseMessage({
   return (
     <div className="flex w-full flex-col items-start gap-2">
       <MessageStatus message={message} isActive={isActive} />
-      <MessageSources sources={sources} />
+      <MessageSources threadId={threadId} sources={sources} />
       <div className="relative flex w-full max-w-full flex-col gap-2">
         <Markdown className="prose dark:prose-invert relative w-full max-w-full">
           {cleanedText}

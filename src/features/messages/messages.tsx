@@ -63,6 +63,7 @@ export default function Messages({
                 key={stableKey}
               >
                 <Message
+                  threadId={threadId}
                   message={item}
                   isActive={index === messages.length - 1 && !isThreadIdle}
                 />
@@ -70,7 +71,12 @@ export default function Messages({
             );
           }
           return (
-            <Message key={stableKey} message={item} isActive={isStreaming} />
+            <Message
+              key={stableKey}
+              threadId={threadId}
+              message={item}
+              isActive={isStreaming}
+            />
           );
         })}
         {waiting && (
@@ -87,16 +93,22 @@ export default function Messages({
 const PureMessage = ({
   message,
   isActive,
+  threadId,
 }: {
   message: UIMessage;
   isActive: boolean;
+  threadId: string;
 }) => {
   return (
     <div className="w-full max-w-full">
       {message.role === "user" ? (
         <PromptMessage message={message} />
       ) : message.role === "assistant" && message.parts.length > 0 ? (
-        <ResponseMessage message={message} isActive={isActive} />
+        <ResponseMessage
+          threadId={threadId}
+          message={message}
+          isActive={isActive}
+        />
       ) : null}
     </div>
   );

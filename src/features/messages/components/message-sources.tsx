@@ -1,16 +1,24 @@
-import { memo, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import equal from "fast-deep-equal";
 import { ExternalLink } from "lucide-react";
 import { Source } from "../types/message-types";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-const PureMessageSources = ({ sources }: { sources: Source[] }) => {
+const loadedSignatures = new Set<string>();
+
+const PureMessageSources = ({
+  threadId,
+  sources,
+}: {
+  threadId: string;
+  sources: Source[];
+}) => {
   if (sources.length === 0) return null;
 
   return (
     <Sheet>
       <SheetTrigger className="w-full">
-        <PreviewSources sources={sources} />
+        <PreviewSources threadId={threadId} sources={sources} />
       </SheetTrigger>
       <SheetContent className="z-150 w-2xl max-w-screen overflow-y-auto md:max-w-xl">
         <ExpandedSources sources={sources} />
@@ -23,7 +31,13 @@ export const MessageSources = memo(PureMessageSources, (prev, next) => {
   return equal(prev, next);
 });
 
-const PreviewSources = ({ sources }: { sources: Source[] }) => {
+const PreviewSources = ({
+  threadId,
+  sources,
+}: {
+  threadId: string;
+  sources: Source[];
+}) => {
   const images = sources
     .map((source) => source.image)
     .filter(
@@ -39,13 +53,28 @@ const PreviewSources = ({ sources }: { sources: Source[] }) => {
     )
     .slice(0, 5);
 
-  const [allLoaded, setAllLoaded] = useState(false);
+  // store signature of image and favicons outside scope of component. this is to
+  // prevent the fade animation from replaying when the component remounts. not in
+  // love with this, but it works.
   const loadedCount = useRef(0);
+  const signature = `${threadId}|${images.join("|")}|${favicons.join("|")}`;
+  const [allLoaded, setAllLoaded] = useState(() =>
+    loadedSignatures.has(signature),
+  );
+  useEffect(() => {
+    if (loadedSignatures.has(signature)) {
+      setAllLoaded(true);
+    } else {
+      setAllLoaded(false);
+      loadedCount.current = 0;
+    }
+  }, [signature]);
 
   const handleLoadOrError = () => {
     loadedCount.current += 1;
     if (loadedCount.current >= images.length + favicons.length) {
       setAllLoaded(true);
+      loadedSignatures.add(signature);
     }
   };
 
@@ -100,7 +129,7 @@ const PreviewSources = ({ sources }: { sources: Source[] }) => {
 
 const ExpandedSources = ({ sources }: { sources: Source[] }) => {
   return (
-    <div className="flex flex-col gap-4 py-12">
+    <div className="flex flex-col gap-8 px-8 py-12">
       {sources.map((source, index) => {
         const hostname = (() => {
           try {
@@ -140,7 +169,7 @@ const ExpandedSources = ({ sources }: { sources: Source[] }) => {
                 </div>
               </div>
               <div className="flex items-start justify-between gap-2">
-                <h3 className="line-clamp-2 text-base leading-tight font-semibold">
+                <h3 className="line-clamp-1 text-base leading-tight font-semibold">
                   {source.title ?? hostname}
                 </h3>
                 <ExternalLink className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
