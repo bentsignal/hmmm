@@ -41,44 +41,46 @@ export default function Messages({
 
   // show a loading spinner when the user has sent a prompt and is waiting for a response
   const waiting =
-    messages.length > 0 && messages[messages.length - 1].role === "user";
+    messages.length > 0 && messages[messages.length - 1].role !== "assistant";
 
   return (
     <>
       <div className="flex flex-col gap-16">
-        {messages.map((item, index) => {
-          // message id can change while a message is streaming, so we need a stable
-          // key to prevent the message from re-rendering.
-          const isLast = index === messages.length - 1;
-          const isStreaming = isLast && !isThreadIdle;
-          const stableKey = isStreaming ? "last-streaming-message" : item.id;
-          // add invisible wrapper 5th message down from the top of the page. When this
-          // message comes into view, the next page of messages will be fetched.
-          if (index === INVISIBLE_PAGE_LOADER_INDEX) {
+        {messages
+          .filter((item) => item.role !== "system")
+          .map((item, index) => {
+            // message id can change while a message is streaming, so we need a stable
+            // key to prevent the message from re-rendering.
+            const isLast = index === messages.length - 1;
+            const isStreaming = isLast && !isThreadIdle;
+            const stableKey = isStreaming ? "last-streaming-message" : item.id;
+            // add invisible wrapper 5th message down from the top of the page. When this
+            // message comes into view, the next page of messages will be fetched.
+            if (index === INVISIBLE_PAGE_LOADER_INDEX) {
+              return (
+                <PageLoader
+                  status={status}
+                  loadMore={() => loadMore(PAGE_SIZE)}
+                  singleUse={true}
+                  key={stableKey}
+                >
+                  <Message
+                    threadId={threadId}
+                    message={item}
+                    isActive={index === messages.length - 1 && !isThreadIdle}
+                  />
+                </PageLoader>
+              );
+            }
             return (
-              <PageLoader
-                status={status}
-                loadMore={() => loadMore(PAGE_SIZE)}
-                singleUse={true}
+              <Message
                 key={stableKey}
-              >
-                <Message
-                  threadId={threadId}
-                  message={item}
-                  isActive={index === messages.length - 1 && !isThreadIdle}
-                />
-              </PageLoader>
+                threadId={threadId}
+                message={item}
+                isActive={isStreaming}
+              />
             );
-          }
-          return (
-            <Message
-              key={stableKey}
-              threadId={threadId}
-              message={item}
-              isActive={isStreaming}
-            />
-          );
-        })}
+          })}
         {waiting && (
           <div className="flex items-start justify-start">
             <Loader variant="typing" size="md" />
