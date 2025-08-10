@@ -72,7 +72,7 @@ const PreviewSources = ({
 
   return (
     <div
-      className="mb-2 flex w-full flex-col gap-4 transition-opacity duration-500 select-none hover:cursor-pointer"
+      className="mb-3 flex w-full flex-col gap-4 transition-opacity duration-500 select-none hover:cursor-pointer"
       style={{ opacity: allLoaded ? 1 : 0 }}
     >
       <div className="relative flex h-48 w-full flex-col gap-2">
