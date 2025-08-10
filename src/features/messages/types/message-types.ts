@@ -14,8 +14,13 @@ export interface ToolInvocationUIPart {
   };
 }
 
-// TODO: fix once upgraded to v5
-const SourceSchema = z.object({
+export type ToolInvocationPartWithResult = ToolInvocationUIPart & {
+  toolInvocation: {
+    result?: unknown;
+  };
+};
+
+export const SourceSchema = z.object({
   url: z.string(),
   content: z.string(),
   title: z.string().optional().nullable(),
@@ -23,13 +28,3 @@ const SourceSchema = z.object({
   image: z.string().optional().nullable(),
 });
 export type Source = z.infer<typeof SourceSchema>;
-
-export const ResultSchema = z.object({
-  sources: z.array(SourceSchema),
-});
-
-export type ToolInvocationPartWithResult = ToolInvocationUIPart & {
-  toolInvocation: {
-    result?: unknown;
-  };
-};

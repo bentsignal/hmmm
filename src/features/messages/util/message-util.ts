@@ -1,8 +1,9 @@
 import { ReactNode } from "react";
 import { UIMessage } from "@convex-dev/agent/react";
+import { z } from "zod";
 import {
-  ResultSchema,
   Source,
+  SourceSchema,
   SystemErrorCode,
   SystemErrorLabel,
   SystemNoticeCode,
@@ -90,11 +91,22 @@ export function isNoticeMessage(message: string): SystemNoticeCode | null {
 
 export function extractSourcesFromMessage(message: UIMessage) {
   const collected: Array<Source> = [];
+  // if only one tool call is made, then the result will just be an
+  // array of sources. If multiple are made, then sources will just be
+  // one of fields in the result object.
+  const ArrayOrObjectResultSchema = z.union([
+    z.array(SourceSchema),
+    z.object({ sources: z.array(SourceSchema) }),
+  ]);
   for (const part of message.parts) {
     if (part.type !== "tool-invocation") continue;
+    // working around lack of type safety in v4
+    // TODO: adjust once upgraded to v5
     const withResult = part as ToolInvocationPartWithResult;
     if (!("toolInvocation" in withResult)) continue;
-    const parsed = ResultSchema.safeParse(withResult.toolInvocation.result);
+    const parsed = ArrayOrObjectResultSchema.safeParse(
+      withResult.toolInvocation.result,
+    );
     if (!parsed.success) continue;
     if (Array.isArray(parsed.data)) {
       collected.push(...parsed.data);
