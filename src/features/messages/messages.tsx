@@ -46,30 +46,33 @@ export default function Messages({
   return (
     <>
       <div className="flex flex-col gap-16">
-        {messages.map((item, index) =>
-          index === INVISIBLE_PAGE_LOADER_INDEX ? (
-            // add invisible component 5 messages before the top of the page to fetch
-            // the next page of messages. As long as the user doesn't scroll too
-            // fast, they shouldn't notice pagination.
-            <PageLoader
-              status={status}
-              loadMore={() => loadMore(PAGE_SIZE)}
-              singleUse={true}
-              key={item.id}
-            >
-              <Message
-                message={item}
-                isActive={index === messages.length - 1 && !isThreadIdle}
-              />
-            </PageLoader>
-          ) : (
-            <Message
-              key={item.id}
-              message={item}
-              isActive={index === messages.length - 1 && !isThreadIdle}
-            />
-          ),
-        )}
+        {messages.map((item, index) => {
+          // message id can change while a message is streaming, so we need a stable
+          // key to prevent the message from re-rendering.
+          const isLast = index === messages.length - 1;
+          const isStreaming = isLast && !isThreadIdle;
+          const stableKey = isStreaming ? "last-streaming-message" : item.id;
+          // add invisible wrapper 5th message down from the top of the page. When this
+          // message comes into view, the next page of messages will be fetched.
+          if (index === INVISIBLE_PAGE_LOADER_INDEX) {
+            return (
+              <PageLoader
+                status={status}
+                loadMore={() => loadMore(PAGE_SIZE)}
+                singleUse={true}
+                key={stableKey}
+              >
+                <Message
+                  message={item}
+                  isActive={index === messages.length - 1 && !isThreadIdle}
+                />
+              </PageLoader>
+            );
+          }
+          return (
+            <Message key={stableKey} message={item} isActive={isStreaming} />
+          );
+        })}
         {waiting && (
           <div className="flex items-start justify-start">
             <Loader variant="typing" size="md" />
