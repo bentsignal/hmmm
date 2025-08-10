@@ -8,6 +8,7 @@ import {
   SidebarHeader,
   SidebarMenu,
 } from "@/components/ui/sidebar";
+import { LibraryButton } from "@/features/library";
 import { shortcuts } from "@/features/shortcuts";
 import useShortcut from "@/features/shortcuts/hooks/use-shortcut";
 import NewThreadButton from "@/features/thread/components/new-thread-button";
@@ -49,14 +50,15 @@ export default function ChatSidebar() {
 
   return (
     <Sidebar variant="floating" className="py-4 pr-0 pl-4 select-none">
-      <SidebarHeader className="md:px-auto flex flex-col items-center justify-between px-4 pt-4 md:pt-4">
-        <NewThreadButton />
+      <SidebarHeader className="md:px-auto flex flex-row items-center justify-between px-4 pt-4 md:pt-4">
         <Input
           placeholder="Search"
           className=" w-full"
           onChange={(e) => setSearch(e.target.value)}
           ref={searchRef}
         />
+        <LibraryButton />
+        <NewThreadButton />
       </SidebarHeader>
       <SidebarContent
         className="scrollbar-thin scrollbar-thumb-secondary 
