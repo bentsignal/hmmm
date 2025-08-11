@@ -265,7 +265,7 @@ export function WaveLoader({
         <div
           key={i}
           className={cn(
-            "bg-primary animate-[wave_1s_ease-in-out_infinite] rounded-full",
+            "bg-primary animate-[wave-bars_1s_ease-in-out_infinite] rounded-full",
             barWidths[size]
           )}
           style={{

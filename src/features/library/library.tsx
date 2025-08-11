@@ -1,7 +1,13 @@
 import { useState } from "react";
-import { Library as LibraryIcon } from "lucide-react";
-import { shortcuts } from "../shortcuts";
-import useShortcut from "../shortcuts/hooks/use-shortcut";
+import {
+  File as FileIcon,
+  Image as ImageIcon,
+  Library as LibraryIcon,
+} from "lucide-react";
+import { LibraryFileList } from "./components/library-file-list";
+import { LibraryToolbar } from "./components/library-toolbar";
+import { LibraryUpload } from "./components/library-upload";
+import { LibrarySort, LibrarySortDirection, LibraryView } from "./types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,11 +16,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import useDebouncedInput from "@/hooks/use-debounced-input";
+
+const tabs = [
+  {
+    label: "All Files",
+    value: "all",
+    icon: LibraryIcon,
+  },
+  {
+    label: "Images",
+    value: "images",
+    icon: ImageIcon,
+  },
+  {
+    label: "Documents",
+    value: "documents",
+    icon: FileIcon,
+  },
+];
 
 export default function Library({
   open,
@@ -23,47 +44,66 @@ export default function Library({
   open: boolean;
   setOpen: (open: boolean) => void;
 }) {
+  const [activeTab, setActiveTab] = useState(tabs[0]);
+  const [view, setView] = useState<LibraryView>("grid");
+  const [sort, setSort] = useState<LibrarySort>("date");
+  const [sortDirection, setSortDirection] =
+    useState<LibrarySortDirection>("desc");
+  const { setValue: setSearch, debouncedValue: searchTerm } =
+    useDebouncedInput(500);
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent>
+      <DialogContent
+        showCloseButton={false}
+        className="h-full max-h-[600px] border-none bg-transparent md:max-w-[700px] xl:max-w-[900px]"
+      >
         <DialogHeader className="sr-only">
           <DialogTitle>Library</DialogTitle>
           <DialogDescription>
             Your library of files and documents.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <h2 className="text-lg font-semibold">Files</h2>
-            <p className="text-muted-foreground text-sm">
-              Your files and documents.
-            </p>
+        <div className="flex">
+          <div className="bg-card supports-[backdrop-filter]:bg-card/60 flex h-full w-fit flex-col justify-between rounded-xl rounded-r-none border border-r-0 backdrop-blur">
+            <div className="flex flex-col gap-2 p-4">
+              {tabs.map((tab) => (
+                <Button
+                  key={tab.label}
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start gap-2",
+                    activeTab.label === tab.label && "bg-card text-primary",
+                  )}
+                  onClick={() => setActiveTab(tab)}
+                >
+                  <tab.icon className="h-5 w-5" />
+                  <span className="text-md font-semibold">{tab.label}</span>
+                </Button>
+              ))}
+            </div>
+            <LibraryUpload />
+          </div>
+          <div className="bg-background flex h-full flex-1 flex-col gap-4 rounded-xl rounded-l-none border border-l-0 p-4">
+            <LibraryToolbar
+              view={view}
+              setView={setView}
+              setSort={setSort}
+              setSortDirection={setSortDirection}
+              setSearchTerm={setSearch}
+            />
+            <div className="flex-1 overflow-y-auto">
+              <LibraryFileList
+                view={view}
+                sort={sort}
+                sortDirection={sortDirection}
+                searchTerm={searchTerm}
+                tab={activeTab}
+              />
+            </div>
           </div>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
-
-export const LibraryButton = () => {
-  const [open, setOpen] = useState(false);
-  useShortcut({
-    hotkey: shortcuts.library.hotkey,
-    callback: () => setOpen(true),
-  });
-  return (
-    <>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="outline" size="icon" onClick={() => setOpen(true)}>
-            <LibraryIcon className="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Library</p>
-        </TooltipContent>
-      </Tooltip>
-      <Library open={open} setOpen={setOpen} />
-    </>
-  );
-};

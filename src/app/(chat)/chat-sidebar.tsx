@@ -8,7 +8,7 @@ import {
   SidebarHeader,
   SidebarMenu,
 } from "@/components/ui/sidebar";
-import { LibraryButton } from "@/features/library";
+import { LibraryButton } from "@/features/library/components/library-trigger-button";
 import { shortcuts } from "@/features/shortcuts";
 import useShortcut from "@/features/shortcuts/hooks/use-shortcut";
 import NewThreadButton from "@/features/thread/components/new-thread-button";

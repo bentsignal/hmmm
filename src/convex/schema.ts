@@ -10,6 +10,17 @@ export default defineSchema({
     newsletter: v.optional(v.boolean()),
     admin: v.optional(v.boolean()),
   }).index("by_user_id", ["userId"]),
+  files: defineTable({
+    userId: v.string(),
+    fileName: v.optional(v.string()),
+    key: v.string(),
+  }).index("by_user", ["userId"]),
+  // .index("by_user_file_name", ["userId", "fileName"])
+  // .index("by_user_file_type", ["userId", "fileType"])
+  // .searchIndex("search_file_name", {
+  //   searchField: "fileName",
+  //   filterFields: ["userId"],
+  // }),
   threadMetadata: defineTable({
     title: v.string(),
     threadId: v.string(),
