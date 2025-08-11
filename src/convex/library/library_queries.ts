@@ -19,20 +19,29 @@ export const listUserFiles = query({
     const files = await Promise.all(
       paginated.page.map(async (file) => {
         const metadata = await r2.getMetadata(ctx, file.key);
+        const url = await r2.getUrl(file.key);
         return {
           ...file,
-          metadata,
+          metadata: {
+            ...metadata,
+            url,
+          },
         };
       }),
     );
     return {
       ...paginated,
-      page: files.map((file) => ({
-        url: file.metadata?.url,
-        fileName: file.fileName,
-        fileType: file.metadata?.contentType,
-        size: file.metadata?.size,
-      })),
+      page: files.map((file) => {
+        if (!file.metadata) {
+          return null;
+        }
+        return {
+          url: file.metadata.url,
+          fileName: file.fileName,
+          fileType: file.metadata.contentType,
+          size: file.metadata.size,
+        };
+      }),
     };
   },
 });
