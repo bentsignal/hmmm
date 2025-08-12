@@ -3,7 +3,7 @@ import {
   List as ListIcon,
   ArrowDownWideNarrow as SortIcon,
 } from "lucide-react";
-import { LibrarySort, LibrarySortDirection, LibraryView } from "../types";
+import { LibrarySort, LibraryView } from "../types";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -34,7 +34,7 @@ export const LibraryToolbar = ({
   view: LibraryView;
   setView: (value: LibraryView) => void;
   setSort: (value: LibrarySort) => void;
-  setSortDirection: (value: LibrarySortDirection) => void;
+  setSortDirection: (value: "asc" | "desc") => void;
   setSearchTerm: (value: string) => void;
 }) => {
   return (

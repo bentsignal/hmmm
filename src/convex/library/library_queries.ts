@@ -1,10 +1,12 @@
 import { paginationOptsValidator } from "convex/server";
+import { v } from "convex/values";
 import { query } from "@/convex/_generated/server";
 import { r2 } from "../r2";
 
 export const listUserFiles = query({
   args: {
     paginationOpts: paginationOptsValidator,
+    direction: v.union(v.literal("asc"), v.literal("desc")),
   },
   handler: async (ctx, args) => {
     const userIdentity = await ctx.auth.getUserIdentity();
@@ -14,7 +16,7 @@ export const listUserFiles = query({
     const paginated = await ctx.db
       .query("files")
       .withIndex("by_user", (q) => q.eq("userId", userIdentity.subject))
-      .order("desc")
+      .order(args.direction)
       .paginate(args.paginationOpts);
     const files = await Promise.all(
       paginated.page.map(async (file) => {

@@ -7,7 +7,7 @@ import {
 import { LibraryFileList } from "./components/library-file-list";
 import { LibraryToolbar } from "./components/library-toolbar";
 import { LibraryUpload } from "./components/library-upload";
-import { LibrarySort, LibrarySortDirection, LibraryView } from "./types";
+import { LibrarySort, LibraryView } from "./types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -47,8 +47,7 @@ export default function Library({
   const [activeTab, setActiveTab] = useState(tabs[0]);
   const [view, setView] = useState<LibraryView>("grid");
   const [sort, setSort] = useState<LibrarySort>("date");
-  const [sortDirection, setSortDirection] =
-    useState<LibrarySortDirection>("desc");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const { setValue: setSearch, debouncedValue: searchTerm } =
     useDebouncedInput(500);
 
@@ -92,7 +91,7 @@ export default function Library({
               setSortDirection={setSortDirection}
               setSearchTerm={setSearch}
             />
-            <div className="flex-1">
+            <div className="max-h-[500px] min-h-[500px] flex-1">
               <LibraryFileList
                 view={view}
                 sort={sort}
