@@ -86,7 +86,6 @@ export const LibraryFileList = ({
           <Button onClick={() => loadMore(100)}>Load more</Button>
         </div>
       )}
-      ˝
     </>
   );
 };
