@@ -14,7 +14,9 @@ export default defineSchema({
     userId: v.string(),
     fileName: v.optional(v.string()),
     key: v.string(),
-  }).index("by_user_key", ["userId", "key"]),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_key", ["userId", "key"]),
   // .index("by_user_file_name", ["userId", "fileName"])
   // .index("by_user_file_type", ["userId", "fileType"])
   // .searchIndex("search_file_name", {

@@ -13,7 +13,7 @@ export const listUserFiles = query({
     }
     const paginated = await ctx.db
       .query("files")
-      .withIndex("by_user_key", (q) => q.eq("userId", userIdentity.subject))
+      .withIndex("by_user", (q) => q.eq("userId", userIdentity.subject))
       .order("desc")
       .paginate(args.paginationOpts);
     const files = await Promise.all(
