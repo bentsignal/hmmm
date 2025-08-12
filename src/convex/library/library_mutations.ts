@@ -7,6 +7,7 @@ export const uploadFileMetadata = mutation({
       url: v.string(),
       name: v.string(),
       type: v.string(),
+      size: v.number(),
     }),
     userId: v.string(),
     key: v.string(),
@@ -27,6 +28,7 @@ export const uploadFileMetadata = mutation({
       fileName: file.name,
       fileType: file.type,
       url: file.url,
+      size: file.size,
     });
   },
 });

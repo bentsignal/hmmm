@@ -1,20 +1,14 @@
 import { memo } from "react";
-import { getFileSize, getFileType } from "../lib";
+import { getFileType } from "../lib";
 import { LibraryFileIcon } from "./library-file-icon";
 
 interface LibraryFileProps {
   url: string;
   fileName?: string;
   fileType?: string;
-  size?: number;
 }
 
-const PureLibraryGridFile = ({
-  url,
-  fileName,
-  fileType,
-  size,
-}: LibraryFileProps) => {
+const PureLibraryGridFile = ({ url, fileName, fileType }: LibraryFileProps) => {
   const type = getFileType(fileType);
   return (
     <div
@@ -35,23 +29,15 @@ const PureLibraryGridFile = ({
         )}
       </div>
       <div className="flex w-full flex-col items-center justify-center gap-1">
-        <span className="line-clamp-1 text-center text-sm font-medium">
+        <span className="line-clamp-2 w-[80%] text-center text-sm font-medium">
           {fileName ?? "unnamed file"}
-        </span>
-        <span className="text-muted-foreground hidden text-sm">
-          {getFileSize(size)}
         </span>
       </div>
     </div>
   );
 };
 
-const PureLibraryListFile = ({
-  url,
-  fileName,
-  fileType,
-  size,
-}: LibraryFileProps) => {
+const PureLibraryListFile = ({ url, fileName, fileType }: LibraryFileProps) => {
   const type = getFileType(fileType);
   return (
     <div
@@ -75,9 +61,6 @@ const PureLibraryListFile = ({
         <span className="line-clamp-1 text-sm font-medium">
           {fileName ?? "unnamed file"}
         </span>
-        <span className="text-muted-foreground hidden text-sm">
-          {getFileSize(size)}
-        </span>
       </div>
     </div>
   );
@@ -87,8 +70,7 @@ export const LibraryGridFile = memo(PureLibraryGridFile, (prev, next) => {
   return (
     prev.url === next.url &&
     prev.fileName === next.fileName &&
-    prev.fileType === next.fileType &&
-    prev.size === next.size
+    prev.fileType === next.fileType
   );
 });
 
@@ -96,7 +78,6 @@ export const LibraryListFile = memo(PureLibraryListFile, (prev, next) => {
   return (
     prev.url === next.url &&
     prev.fileName === next.fileName &&
-    prev.fileType === next.fileType &&
-    prev.size === next.size
+    prev.fileType === next.fileType
   );
 });

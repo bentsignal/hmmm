@@ -44,6 +44,7 @@ export const listUserFiles = query({
           url: file.url,
           fileName: file.fileName,
           fileType: file.fileType,
+          size: file.size,
         };
       }),
     };

@@ -51,6 +51,7 @@ export const ourFileRouter = {
           url: file.ufsUrl,
           name: file.name,
           type: file.type,
+          size: file.size,
         },
         userId,
         key: env.NEXT_CONVEX_INTERNAL_KEY,
