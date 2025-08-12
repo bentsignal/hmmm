@@ -35,6 +35,7 @@ import type * as clerk_clerk_http_actions from "../clerk/clerk_http_actions.js";
 import type * as counter from "../counter.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
+import type * as library_library_mutations from "../library/library_mutations.js";
 import type * as library_library_queries from "../library/library_queries.js";
 import type * as limiter from "../limiter.js";
 import type * as mail_mail_actions from "../mail/mail_actions.js";
@@ -102,6 +103,7 @@ declare const fullApi: ApiFromModules<{
   counter: typeof counter;
   crons: typeof crons;
   http: typeof http;
+  "library/library_mutations": typeof library_library_mutations;
   "library/library_queries": typeof library_library_queries;
   limiter: typeof limiter;
   "mail/mail_actions": typeof mail_mail_actions;

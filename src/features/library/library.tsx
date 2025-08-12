@@ -92,7 +92,7 @@ export default function Library({
               setSortDirection={setSortDirection}
               setSearchTerm={setSearch}
             />
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1">
               <LibraryFileList
                 view={view}
                 sort={sort}

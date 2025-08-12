@@ -51,14 +51,16 @@ export const LibraryToolbar = ({
               size="icon"
               onClick={() => setView(view === "grid" ? "list" : "grid")}
             >
-              {view === "grid" ? (
+              {view === "list" ? (
                 <GridIcon className="h-4 w-4" />
               ) : (
                 <ListIcon className="h-4 w-4" />
               )}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>View</TooltipContent>
+          <TooltipContent>
+            {view === "list" ? "Switch to grid view" : "Switch to list view"}
+          </TooltipContent>
         </Tooltip>
         <DropdownMenu>
           <Tooltip>
