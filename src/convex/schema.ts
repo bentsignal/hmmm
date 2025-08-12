@@ -12,12 +12,10 @@ export default defineSchema({
   }).index("by_user_id", ["userId"]),
   files: defineTable({
     userId: v.string(),
-    fileName: v.optional(v.string()),
-    fileType: v.optional(v.string()),
-    key: v.string(),
-  })
-    .index("by_user", ["userId"])
-    .index("by_user_key", ["userId", "key"]),
+    fileName: v.string(),
+    fileType: v.string(),
+    url: v.string(),
+  }).index("by_user", ["userId"]),
   threadMetadata: defineTable({
     title: v.string(),
     threadId: v.string(),

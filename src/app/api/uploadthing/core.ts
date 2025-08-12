@@ -1,6 +1,9 @@
+import { env } from "@/env";
 import { auth } from "@clerk/nextjs/server";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError } from "uploadthing/server";
+import { fetchMutation } from "convex/nextjs";
+import { api } from "@/convex/_generated/api";
 
 const f = createUploadthing();
 
@@ -37,10 +40,21 @@ export const ourFileRouter = {
       return { userId: user.userId };
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      // This code RUNS ON YOUR SERVER after upload
-      console.log("Upload complete for userId:", metadata.userId);
+      const userId = metadata.userId;
+      if (!userId) {
+        throw new UploadThingError("User ID not found");
+      }
 
-      console.log("file url", file.ufsUrl);
+      // This code RUNS ON YOUR SERVER after upload
+      await fetchMutation(api.library.library_mutations.uploadFileMetadata, {
+        file: {
+          url: file.ufsUrl,
+          name: file.name,
+          type: file.type,
+        },
+        userId,
+        key: env.NEXT_CONVEX_INTERNAL_KEY,
+      });
 
       // !!! Whatever is returned here is sent to the clientside `onClientUploadComplete` callback
       return { uploadedBy: metadata.userId };
