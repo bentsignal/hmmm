@@ -2,6 +2,7 @@ import { useConvexAuth, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { LibrarySort, LibraryTab, LibraryView } from "../types";
 import { LibraryGridFile, LibraryListFile } from "./library-file";
+import { Button } from "@/components/ui/button";
 import { WaveLoader } from "@/components/ui/loader";
 
 export const LibraryFileList = ({
@@ -22,6 +23,8 @@ export const LibraryFileList = ({
     ? {
         direction: sortDirection,
         tab,
+        sort,
+        searchTerm,
       }
     : "skip";
   const {
@@ -29,7 +32,7 @@ export const LibraryFileList = ({
     status,
     loadMore,
   } = usePaginatedQuery(api.library.library_queries.listUserFiles, args, {
-    initialNumItems: 100,
+    initialNumItems: 3,
   });
 
   if (status === "LoadingFirstPage" || status === "LoadingMore") {
@@ -50,25 +53,40 @@ export const LibraryFileList = ({
 
   if (view === "grid") {
     return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 xl:grid-cols-4">
-        {files.map((file) => {
-          if (!file) {
-            return null;
-          }
-          return <LibraryGridFile key={file.url} {...file} />;
-        })}
-      </div>
+      <>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+          {files.map((file) => {
+            if (!file) {
+              return null;
+            }
+            return <LibraryGridFile key={file.url} {...file} />;
+          })}
+        </div>
+        {status === "CanLoadMore" && (
+          <div className="flex justify-center py-4">
+            <Button onClick={() => loadMore(100)}>Load more</Button>
+          </div>
+        )}
+      </>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {files.map((file) => {
-        if (!file) {
-          return null;
-        }
-        return <LibraryListFile key={file.url} {...file} />;
-      })}
-    </div>
+    <>
+      <div className="flex flex-col gap-4">
+        {files.map((file) => {
+          if (!file) {
+            return null;
+          }
+          return <LibraryListFile key={file.url} {...file} />;
+        })}
+      </div>
+      {status === "CanLoadMore" && (
+        <div className="flex justify-center py-4">
+          <Button onClick={() => loadMore(100)}>Load more</Button>
+        </div>
+      )}
+      å
+    </>
   );
 };

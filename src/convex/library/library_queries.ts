@@ -8,8 +8,11 @@ export const listUserFiles = query({
     paginationOpts: paginationOptsValidator,
     direction: v.union(v.literal("asc"), v.literal("desc")),
     tab: v.union(v.literal("all"), v.literal("images"), v.literal("documents")),
+    sort: v.union(v.literal("date")),
+    searchTerm: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { paginationOpts, direction, tab } = args;
     const userIdentity = await ctx.auth.getUserIdentity();
     if (!userIdentity) {
       throw new Error("Unauthorized");
@@ -18,20 +21,20 @@ export const listUserFiles = query({
       .query("files")
       .withIndex("by_user", (q) => q.eq("userId", userIdentity.subject))
       .filter((q) => {
-        if (args.tab === "images") {
+        if (tab === "images") {
           return q.or(
             q.eq(q.field("fileType"), "image/jpeg"),
             q.eq(q.field("fileType"), "image/png"),
             q.eq(q.field("fileType"), "image/webp"),
           );
-        } else if (args.tab === "documents") {
+        } else if (tab === "documents") {
           return q.eq(q.field("fileType"), "application/pdf");
         } else {
           return q.neq(q.field("fileType"), undefined);
         }
       })
-      .order(args.direction)
-      .paginate(args.paginationOpts);
+      .order(direction)
+      .paginate(paginationOpts);
     const files = await Promise.all(
       paginated.page.map(async (file) => {
         const metadata = await r2.getMetadata(ctx, file.key);

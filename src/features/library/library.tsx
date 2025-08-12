@@ -3,11 +3,12 @@ import {
   File as FileIcon,
   Image as ImageIcon,
   Library as LibraryIcon,
+  LucideIcon,
 } from "lucide-react";
 import { LibraryFileList } from "./components/library-file-list";
 import { LibraryToolbar } from "./components/library-toolbar";
 import { LibraryUpload } from "./components/library-upload";
-import { LibrarySort, LibraryView } from "./types";
+import { LibrarySort, LibraryTab, LibraryView } from "./types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,7 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import useDebouncedInput from "@/hooks/use-debounced-input";
 
-const tabs = [
+const tabs: { label: string; value: LibraryTab; icon: LucideIcon }[] = [
   {
     label: "All Files",
     value: "all",
@@ -44,7 +45,7 @@ export default function Library({
   open: boolean;
   setOpen: (open: boolean) => void;
 }) {
-  const [activeTab, setActiveTab] = useState(tabs[0]);
+  const [activeTab, setActiveTab] = useState<LibraryTab>(tabs[0].value);
   const [view, setView] = useState<LibraryView>("grid");
   const [sort, setSort] = useState<LibrarySort>("date");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -72,9 +73,9 @@ export default function Library({
                   variant="ghost"
                   className={cn(
                     "w-full justify-start gap-2",
-                    activeTab.label === tab.label && "bg-card text-primary",
+                    activeTab === tab.value && "bg-card text-primary",
                   )}
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => setActiveTab(tab.value)}
                 >
                   <tab.icon className="h-5 w-5" />
                   <span className="text-md font-semibold">{tab.label}</span>
@@ -83,7 +84,7 @@ export default function Library({
             </div>
             <LibraryUpload />
           </div>
-          <div className="bg-background flex h-full flex-1 flex-col gap-4 rounded-xl rounded-l-none border border-l-0 p-4">
+          <div className="bg-background flex h-full flex-1 flex-col rounded-xl rounded-l-none border border-l-0">
             <LibraryToolbar
               view={view}
               setView={setView}
@@ -91,7 +92,7 @@ export default function Library({
               setSortDirection={setSortDirection}
               setSearchTerm={setSearch}
             />
-            <div className="max-h-[500px] min-h-[500px] flex-1">
+            <div className="max-h-[500px] min-h-[500px] flex-1 overflow-y-auto px-4 pb-4">
               <LibraryFileList
                 view={view}
                 sort={sort}
