@@ -32,7 +32,7 @@ export const LibraryFileList = ({
     status,
     loadMore,
   } = usePaginatedQuery(api.library.library_queries.listUserFiles, args, {
-    initialNumItems: 3,
+    initialNumItems: 10,
   });
 
   if (status === "LoadingFirstPage" || status === "LoadingMore") {
@@ -86,7 +86,7 @@ export const LibraryFileList = ({
           <Button onClick={() => loadMore(100)}>Load more</Button>
         </div>
       )}
-      å
+      ˝
     </>
   );
 };
