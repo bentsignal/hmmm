@@ -1,35 +1,37 @@
-import { Loader2, Upload as UploadIcon } from "lucide-react";
-import { MAX_FILE_UPLOADS } from "../config";
-import { useUpload } from "../hooks/use-upload";
-import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { WaveLoader } from "@/components/ui/loader";
+import { UploadButton } from "@/lib/uploadthing";
 
 export const LibraryUpload = () => {
-  const { fileInputRef, isUploading, handleUpload } = useUpload();
-
   return (
     <div className="m-4">
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        onChange={handleUpload}
-        className="hidden"
-        accept="image/jpeg,image/png,image/webp,application/pdf"
-        max={MAX_FILE_UPLOADS}
+      <UploadButton
+        endpoint="uploadRoute"
+        content={{
+          button({ ready, isUploading }) {
+            if (isUploading) {
+              return (
+                <WaveLoader
+                  className=" h-5 w-5"
+                  bgColor="bg-primary-foreground"
+                />
+              );
+            }
+            if (ready) {
+              return <span className="">Upload</span>;
+            }
+          },
+          allowedContent: " ",
+        }}
+        appearance={{
+          button:
+            "bg-primary text-primary-foreground! hover:bg-primary/90 w-full text-sm font-bold",
+        }}
+        onUploadError={(error: Error) => {
+          console.error(error);
+          toast.error("Error uploading files");
+        }}
       />
-      <Button
-        onClick={() => fileInputRef.current?.click()}
-        className="w-full items-center gap-2"
-      >
-        {isUploading ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
-        ) : (
-          <>
-            <UploadIcon className="h-5 w-5" />
-            <span className="text-md font-semibold">Upload</span>
-          </>
-        )}
-      </Button>
     </div>
   );
 };
