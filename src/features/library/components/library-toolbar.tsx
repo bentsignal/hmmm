@@ -38,7 +38,7 @@ export const LibraryToolbar = ({
   setSearchTerm: (value: string) => void;
 }) => {
   return (
-    <div className="flex w-full justify-between gap-2">
+    <div className="flex w-full justify-between gap-2 p-4">
       <Input
         placeholder="Search"
         onChange={(e) => setSearchTerm(e.target.value)}
@@ -122,14 +122,6 @@ export const LibraryToolbar = ({
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>
-            <DropdownMenuItem
-              onClick={() => {
-                setSort("type");
-                setSortDirection("desc");
-              }}
-            >
-              Type
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

@@ -8,6 +8,7 @@ export const uploadFileMetadata = mutation({
       v.object({
         key: v.string(),
         name: v.string(),
+        type: v.string(),
       }),
     ),
   },
@@ -40,6 +41,7 @@ export const uploadFileMetadata = mutation({
         if (existingFile) {
           await ctx.db.patch(existingFile._id, {
             fileName: file.name,
+            fileType: file.type,
           });
         }
       }),

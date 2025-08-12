@@ -13,6 +13,7 @@ export default defineSchema({
   files: defineTable({
     userId: v.string(),
     fileName: v.optional(v.string()),
+    fileType: v.optional(v.string()),
     key: v.string(),
   })
     .index("by_user", ["userId"])

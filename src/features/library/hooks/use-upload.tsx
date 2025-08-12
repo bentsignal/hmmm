@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { MAX_FILE_UPLOADS } from "../config";
 import { tryCatch } from "@/lib/utils";
 
-export const useLibraryUpload = () => {
+export const useUpload = () => {
   const uploadFile = useUploadFile(api.r2);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -25,12 +25,16 @@ export const useLibraryUpload = () => {
     }
 
     // upload metadata
-    const fileNames = files.map((file) => file.name);
+    const metadata = files.map((file) => ({
+      name: file.name,
+      type: file.type,
+    }));
     const keysAndNames =
-      keys && fileNames
+      keys && metadata
         ? keys.map((key, idx) => ({
             key,
-            name: fileNames[idx],
+            name: metadata[idx].name,
+            type: metadata[idx].type,
           }))
         : [];
     const { error: metadataUploadError } = await tryCatch(

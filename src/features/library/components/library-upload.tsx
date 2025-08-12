@@ -1,9 +1,10 @@
 import { Loader2, Upload as UploadIcon } from "lucide-react";
-import { useLibraryUpload } from "../hooks/use-library-upload";
+import { MAX_FILE_UPLOADS } from "../config";
+import { useUpload } from "../hooks/use-upload";
 import { Button } from "@/components/ui/button";
 
 export const LibraryUpload = () => {
-  const { fileInputRef, isUploading, handleUpload } = useLibraryUpload();
+  const { fileInputRef, isUploading, handleUpload } = useUpload();
 
   return (
     <div className="m-4">
@@ -13,6 +14,8 @@ export const LibraryUpload = () => {
         multiple
         onChange={handleUpload}
         className="hidden"
+        accept="image/jpeg,image/png,image/webp,application/pdf"
+        max={MAX_FILE_UPLOADS}
       />
       <Button
         onClick={() => fileInputRef.current?.click()}

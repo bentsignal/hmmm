@@ -1,6 +1,6 @@
 import { useConvexAuth, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { LibrarySort, LibraryView } from "../types";
+import { LibrarySort, LibraryTab, LibraryView } from "../types";
 import { LibraryGridFile, LibraryListFile } from "./library-file";
 import { WaveLoader } from "@/components/ui/loader";
 
@@ -15,16 +15,13 @@ export const LibraryFileList = ({
   sort: LibrarySort;
   sortDirection: "asc" | "desc";
   searchTerm: string;
-  tab: {
-    label: string;
-    value: string;
-    icon: React.ElementType;
-  };
+  tab: LibraryTab;
 }) => {
   const isAuthenticated = useConvexAuth();
   const args = isAuthenticated
     ? {
         direction: sortDirection,
+        tab,
       }
     : "skip";
   const {
@@ -53,7 +50,7 @@ export const LibraryFileList = ({
 
   if (view === "grid") {
     return (
-      <div className="grid h-full grid-cols-1 gap-4 overflow-y-auto sm:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 xl:grid-cols-4">
         {files.map((file) => {
           if (!file) {
             return null;
@@ -65,7 +62,7 @@ export const LibraryFileList = ({
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto">
+    <div className="flex flex-col gap-4">
       {files.map((file) => {
         if (!file) {
           return null;

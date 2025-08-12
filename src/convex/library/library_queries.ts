@@ -7,6 +7,7 @@ export const listUserFiles = query({
   args: {
     paginationOpts: paginationOptsValidator,
     direction: v.union(v.literal("asc"), v.literal("desc")),
+    tab: v.union(v.literal("all"), v.literal("images"), v.literal("documents")),
   },
   handler: async (ctx, args) => {
     const userIdentity = await ctx.auth.getUserIdentity();
@@ -16,6 +17,19 @@ export const listUserFiles = query({
     const paginated = await ctx.db
       .query("files")
       .withIndex("by_user", (q) => q.eq("userId", userIdentity.subject))
+      .filter((q) => {
+        if (args.tab === "images") {
+          return q.or(
+            q.eq(q.field("fileType"), "image/jpeg"),
+            q.eq(q.field("fileType"), "image/png"),
+            q.eq(q.field("fileType"), "image/webp"),
+          );
+        } else if (args.tab === "documents") {
+          return q.eq(q.field("fileType"), "application/pdf");
+        } else {
+          return q.neq(q.field("fileType"), undefined);
+        }
+      })
       .order(args.direction)
       .paginate(args.paginationOpts);
     const files = await Promise.all(
