@@ -11,7 +11,7 @@ import {
 import { usage } from "./usage";
 import * as timeHelpers from "@/lib/date-time-utils";
 
-type Plan = {
+export type Plan = {
   name: "Free" | "Light" | "Premium" | "Ultra" | "Unlimited";
   price: number;
   max: boolean;
@@ -71,12 +71,16 @@ export const getUsageHelper = async (ctx: QueryCtx, userId: string) => {
   }
 
   // get the total usage for the period
-  const totalUsage = await usage.sum(ctx, {
+  const bounds: {
+    lower: { key: number; inclusive: boolean };
+    upper: { key: number; inclusive: boolean };
+  } = {
+    lower: { key: start.getTime(), inclusive: true },
+    upper: { key: end.getTime(), inclusive: true },
+  };
+  const totalUsage: number = await usage.sum(ctx, {
     namespace: userId,
-    bounds: {
-      lower: { key: start.getTime(), inclusive: true },
-      upper: { key: end.getTime(), inclusive: true },
-    },
+    bounds,
   });
 
   const unlimited = plan.name === "Unlimited";

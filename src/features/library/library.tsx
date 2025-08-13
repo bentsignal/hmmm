@@ -4,6 +4,7 @@ import {
   Image as ImageIcon,
   Library as LibraryIcon,
   LucideIcon,
+  // Settings,
 } from "lucide-react";
 import { LibraryFileList } from "./components/library-file-list";
 import { LibraryToolbar } from "./components/library-toolbar";
@@ -82,7 +83,13 @@ export default function Library({
                 </Button>
               ))}
             </div>
-            <LibraryUpload />
+            <div className="m-4 flex flex-col gap-2">
+              {/* <Button variant="outline" className="w-full">
+                <Settings className="h-5 w-5" />
+                <span className="text-md font-semibold">Settings</span>
+              </Button> */}
+              <LibraryUpload />
+            </div>
           </div>
           <div className="bg-background flex h-full flex-1 flex-col rounded-xl rounded-l-none border border-l-0">
             <LibraryToolbar

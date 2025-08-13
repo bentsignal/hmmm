@@ -17,15 +17,15 @@ export const ourFileRouter = {
        * @see https://docs.uploadthing.com/file-routes#route-config
        */
       maxFileSize: "4MB",
-      maxFileCount: 1,
+      maxFileCount: 10,
     },
     pdf: {
       maxFileSize: "4MB",
-      maxFileCount: 1,
+      maxFileCount: 10,
     },
     text: {
       maxFileSize: "4MB",
-      maxFileCount: 1,
+      maxFileCount: 10,
     },
   })
     // Set permissions and file types for this FileRoute
@@ -34,7 +34,20 @@ export const ourFileRouter = {
       const user = await auth();
 
       // If you throw, the user will not be able to upload
-      if (!user) throw new UploadThingError("Unauthorized");
+      if (!user?.userId) throw new UploadThingError("Unauthorized");
+
+      // storage and rate limit check
+      const { allow, reason } = await fetchMutation(
+        api.library.library_mutations.verifyUpload,
+        {
+          userId: user.userId,
+          key: env.NEXT_CONVEX_INTERNAL_KEY,
+        },
+      );
+
+      if (!allow) {
+        throw new UploadThingError(reason);
+      }
 
       // Whatever is returned here is accessible in onUploadComplete as `metadata`
       return { userId: user.userId };
