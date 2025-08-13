@@ -1,6 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { query } from "@/convex/_generated/server";
+import { getStorageHelper } from "./library_helpers";
 
 export const listUserFiles = query({
   args: {
@@ -47,6 +48,23 @@ export const listUserFiles = query({
           size: file.size,
         };
       }),
+    };
+  },
+});
+
+export const getStorageStatus = query({
+  handler: async (ctx) => {
+    const userIdentity = await ctx.auth.getUserIdentity();
+    if (!userIdentity) {
+      throw new Error("Unauthorized");
+    }
+    const { storageUsed, storageLimit } = await getStorageHelper(
+      ctx,
+      userIdentity.subject,
+    );
+    return {
+      storageUsed,
+      storageLimit,
     };
   },
 });

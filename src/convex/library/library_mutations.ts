@@ -6,11 +6,10 @@ import {
 import { Triggers } from "convex-helpers/server/triggers";
 import { ConvexError, v } from "convex/values";
 import { mutation } from "@/convex/_generated/server";
-import { getUserPlanHelper } from "@/convex/sub/sub_helpers";
 import { components } from "../_generated/api";
 import { DataModel } from "../_generated/dataModel";
 import { limiter } from "../limiter";
-import { storageLimits } from "./library_config";
+import { getStorageHelper } from "./library_helpers";
 
 export const storage = new TableAggregate<{
   Namespace: string;
@@ -70,6 +69,8 @@ export const verifyUpload = mutation({
   },
   handler: async (ctx, args) => {
     const { userId, key } = args;
+
+    // make sure request is internal, and not from client
     if (!process.env.NEXT_CONVEX_INTERNAL_KEY) {
       throw new ConvexError("Internal key not set");
     }
@@ -77,7 +78,7 @@ export const verifyUpload = mutation({
       throw new ConvexError("Invalid key");
     }
 
-    // time based rate limit
+    // make sure user is not uploading too fast
     const { ok } = await limiter.limit(ctx, "upload", {
       key: userId,
     });
@@ -88,21 +89,9 @@ export const verifyUpload = mutation({
       };
     }
 
-    // storage limit
-    const bounds: {
-      lower: { key: number; inclusive: boolean };
-      upper: { key: number; inclusive: boolean };
-    } = {
-      lower: { key: 0, inclusive: true },
-      upper: { key: Date.now(), inclusive: true },
-    };
-    const totalStorage = await storage.sum(ctx, {
-      namespace: userId,
-      bounds,
-    });
-    const plan = await getUserPlanHelper(ctx, userId);
-    const storageLimit = storageLimits[plan.name];
-    if (totalStorage >= storageLimit) {
+    // make sure user is not exceeding their storage limit
+    const { storageUsed, storageLimit } = await getStorageHelper(ctx, userId);
+    if (storageUsed >= storageLimit) {
       return {
         allow: false,
         reason: "Storage limit exceeded",

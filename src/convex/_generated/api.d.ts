@@ -36,6 +36,7 @@ import type * as counter from "../counter.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as library_library_config from "../library/library_config.js";
+import type * as library_library_helpers from "../library/library_helpers.js";
 import type * as library_library_mutations from "../library/library_mutations.js";
 import type * as library_library_queries from "../library/library_queries.js";
 import type * as limiter from "../limiter.js";
@@ -104,6 +105,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   http: typeof http;
   "library/library_config": typeof library_library_config;
+  "library/library_helpers": typeof library_library_helpers;
   "library/library_mutations": typeof library_library_mutations;
   "library/library_queries": typeof library_library_queries;
   limiter: typeof limiter;
