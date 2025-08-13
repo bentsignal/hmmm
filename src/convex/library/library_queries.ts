@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { query } from "@/convex/_generated/server";
-import { getStorageHelper } from "./library_helpers";
+import { getFileUrl, getStorageHelper } from "./library_helpers";
 
 export const listUserFiles = query({
   args: {
@@ -28,7 +28,11 @@ export const listUserFiles = query({
             q.eq(q.field("fileType"), "image/webp"),
           );
         } else if (tab === "documents") {
-          return q.eq(q.field("fileType"), "application/pdf");
+          return q.or(
+            q.eq(q.field("fileType"), "application/pdf"),
+            q.eq(q.field("fileType"), "text/plain"),
+            q.eq(q.field("fileType"), "text/markdown"),
+          );
         } else {
           return q.neq(q.field("fileType"), undefined);
         }
@@ -42,7 +46,8 @@ export const listUserFiles = query({
           return null;
         }
         return {
-          url: file.url,
+          id: file._id,
+          url: getFileUrl(file.key),
           fileName: file.fileName,
           fileType: file.fileType,
           size: file.size,

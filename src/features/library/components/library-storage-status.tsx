@@ -18,8 +18,10 @@ export const LibraryStorageStatus = () => {
   const usedGB = (storageStatus.storageUsed / 1024 / 1024 / 1024).toFixed(2);
   const limitGB = (storageStatus.storageLimit / 1024 / 1024 / 1024).toFixed(0);
 
-  const percentageUsed =
-    (storageStatus.storageUsed / storageStatus.storageLimit) * 100;
+  const percentageUsed = Math.min(
+    (storageStatus.storageUsed / storageStatus.storageLimit) * 100,
+    100,
+  );
   const textColor =
     percentageUsed >= 90
       ? "text-destructive"

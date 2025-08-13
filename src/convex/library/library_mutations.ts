@@ -6,10 +6,10 @@ import {
 import { Triggers } from "convex-helpers/server/triggers";
 import { ConvexError, v } from "convex/values";
 import { mutation } from "@/convex/_generated/server";
-import { components } from "../_generated/api";
+import { components, internal } from "../_generated/api";
 import { DataModel } from "../_generated/dataModel";
 import { limiter } from "../limiter";
-import { getStorageHelper } from "./library_helpers";
+import { getStorageHelper, verifyOwnership } from "./library_helpers";
 
 export const storage = new TableAggregate<{
   Namespace: string;
@@ -33,22 +33,22 @@ const storageTriggerMutation = customMutation(
 export const uploadFileMetadata = storageTriggerMutation({
   args: {
     file: v.object({
-      url: v.string(),
+      key: v.string(),
       name: v.string(),
       type: v.string(),
       size: v.number(),
     }),
     userId: v.string(),
-    key: v.string(),
+    secretKey: v.string(),
   },
   handler: async (ctx, args) => {
-    const { file, key, userId } = args;
+    const { file, secretKey, userId } = args;
 
     if (!process.env.NEXT_CONVEX_INTERNAL_KEY) {
       throw new ConvexError("Internal key not set");
     }
 
-    if (key !== process.env.NEXT_CONVEX_INTERNAL_KEY) {
+    if (secretKey !== process.env.NEXT_CONVEX_INTERNAL_KEY) {
       throw new ConvexError("Invalid key");
     }
 
@@ -56,7 +56,7 @@ export const uploadFileMetadata = storageTriggerMutation({
       userId,
       fileName: file.name,
       fileType: file.type,
-      url: file.url,
+      key: file.key,
       size: file.size,
     });
   },
@@ -65,16 +65,16 @@ export const uploadFileMetadata = storageTriggerMutation({
 export const verifyUpload = mutation({
   args: {
     userId: v.string(),
-    key: v.string(),
+    secretKey: v.string(),
   },
   handler: async (ctx, args) => {
-    const { userId, key } = args;
+    const { userId, secretKey } = args;
 
     // make sure request is internal, and not from client
     if (!process.env.NEXT_CONVEX_INTERNAL_KEY) {
       throw new ConvexError("Internal key not set");
     }
-    if (key !== process.env.NEXT_CONVEX_INTERNAL_KEY) {
+    if (secretKey !== process.env.NEXT_CONVEX_INTERNAL_KEY) {
       throw new ConvexError("Invalid key");
     }
 
@@ -105,27 +105,42 @@ export const verifyUpload = mutation({
   },
 });
 
-// export const deleteFile = storageTriggerMutation({
-//   args: {
-//     key: v.string(),
-//   },
-//   handler: async (ctx, args) => {
-//     const { key } = args;
-//     const userId = await ctx.auth.getUserIdentity();
-//     if (!userId) {
-//       throw new ConvexError("Unauthorized");
-//     }
+export const deleteFile = storageTriggerMutation({
+  args: {
+    id: v.id("files"),
+  },
+  handler: async (ctx, args) => {
+    const { id } = args;
 
-//     const file = await ctx.db.query("files").withIndex("by_user", (q) =>
-//       q.eq("userId", userId),
-//     ).first();
-//     if (!file) {
-//       throw new ConvexError("File not found");
-//     }
+    const file = await verifyOwnership(ctx, id);
 
-//     await ctx.db.delete("files", {
-//       userId,
-//       key,
-//     });
-//   },
-// });
+    // delete file from db
+    await ctx.db.delete(id);
+
+    // delete file from storage
+    await ctx.scheduler.runAfter(
+      0,
+      internal.library.library_actions.deleteFilesFromStorage,
+      {
+        keys: [file.key],
+      },
+    );
+  },
+});
+
+export const renameFile = mutation({
+  args: {
+    id: v.id("files"),
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { id, name } = args;
+
+    await verifyOwnership(ctx, id);
+
+    // update file name
+    await ctx.db.patch(id, {
+      fileName: name,
+    });
+  },
+});

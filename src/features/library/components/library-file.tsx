@@ -1,19 +1,31 @@
 import { memo } from "react";
+import { Doc } from "@/convex/_generated/dataModel";
 import { getFileType } from "../lib";
+import { useLibraryStore } from "../store/library-store";
 import { LibraryFileIcon } from "./library-file-icon";
 
 interface LibraryFileProps {
+  id: Doc<"files">["_id"];
   url: string;
   fileName?: string;
   fileType?: string;
 }
 
-const PureLibraryGridFile = ({ url, fileName, fileType }: LibraryFileProps) => {
+const PureLibraryGridFile = ({
+  id,
+  url,
+  fileName,
+  fileType,
+}: LibraryFileProps) => {
+  const { setSelectedFile } = useLibraryStore();
   const type = getFileType(fileType);
   return (
     <div
       onClick={() => {
         window.open(url, "_blank");
+      }}
+      onMouseEnter={() => {
+        setSelectedFile(id);
       }}
       className="bg-card hover:bg-card/80 flex h-fit flex-col items-center gap-4 rounded-lg p-4 shadow-sm transition-colors select-none hover:cursor-pointer"
     >
@@ -37,12 +49,21 @@ const PureLibraryGridFile = ({ url, fileName, fileType }: LibraryFileProps) => {
   );
 };
 
-const PureLibraryListFile = ({ url, fileName, fileType }: LibraryFileProps) => {
+const PureLibraryListFile = ({
+  id,
+  url,
+  fileName,
+  fileType,
+}: LibraryFileProps) => {
   const type = getFileType(fileType);
+  const { setSelectedFile } = useLibraryStore();
   return (
     <div
       onClick={() => {
         window.open(url, "_blank");
+      }}
+      onMouseEnter={() => {
+        setSelectedFile(id);
       }}
       className="bg-card hover:bg-card/80 row flex items-center gap-4 rounded-lg p-4 shadow-sm transition-colors select-none hover:cursor-pointer"
     >
@@ -68,6 +89,7 @@ const PureLibraryListFile = ({ url, fileName, fileType }: LibraryFileProps) => {
 
 export const LibraryGridFile = memo(PureLibraryGridFile, (prev, next) => {
   return (
+    prev.id === next.id &&
     prev.url === next.url &&
     prev.fileName === next.fileName &&
     prev.fileType === next.fileType
@@ -76,6 +98,7 @@ export const LibraryGridFile = memo(PureLibraryGridFile, (prev, next) => {
 
 export const LibraryListFile = memo(PureLibraryListFile, (prev, next) => {
   return (
+    prev.id === next.id &&
     prev.url === next.url &&
     prev.fileName === next.fileName &&
     prev.fileType === next.fileType

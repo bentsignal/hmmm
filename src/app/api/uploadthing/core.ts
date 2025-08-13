@@ -11,20 +11,32 @@ const f = createUploadthing();
 export const ourFileRouter = {
   // Define as many FileRoutes as you like, each with a unique routeSlug
   uploadRoute: f({
-    image: {
+    "image/jpeg": {
       /**
        * For full list of options and defaults, see the File Route API reference
        * @see https://docs.uploadthing.com/file-routes#route-config
        */
-      maxFileSize: "4MB",
+      maxFileSize: "8MB",
       maxFileCount: 10,
     },
-    pdf: {
-      maxFileSize: "4MB",
+    "image/png": {
+      maxFileSize: "8MB",
       maxFileCount: 10,
     },
-    text: {
-      maxFileSize: "4MB",
+    "image/webp": {
+      maxFileSize: "8MB",
+      maxFileCount: 10,
+    },
+    "application/pdf": {
+      maxFileSize: "8MB",
+      maxFileCount: 10,
+    },
+    "text/plain": {
+      maxFileSize: "8MB",
+      maxFileCount: 10,
+    },
+    "text/markdown": {
+      maxFileSize: "8MB",
       maxFileCount: 10,
     },
   })
@@ -41,7 +53,7 @@ export const ourFileRouter = {
         api.library.library_mutations.verifyUpload,
         {
           userId: user.userId,
-          key: env.NEXT_CONVEX_INTERNAL_KEY,
+          secretKey: env.NEXT_CONVEX_INTERNAL_KEY,
         },
       );
 
@@ -61,13 +73,13 @@ export const ourFileRouter = {
       // This code RUNS ON YOUR SERVER after upload
       await fetchMutation(api.library.library_mutations.uploadFileMetadata, {
         file: {
-          url: file.ufsUrl,
+          key: file.key,
           name: file.name,
           type: file.type,
           size: file.size,
         },
         userId,
-        key: env.NEXT_CONVEX_INTERNAL_KEY,
+        secretKey: env.NEXT_CONVEX_INTERNAL_KEY,
       });
 
       // !!! Whatever is returned here is sent to the clientside `onClientUploadComplete` callback

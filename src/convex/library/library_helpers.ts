@@ -1,3 +1,4 @@
+import { Doc } from "../_generated/dataModel";
 import { MutationCtx, QueryCtx } from "../_generated/server";
 import { getUserPlanHelper } from "../sub/sub_helpers";
 import { storageLimits } from "./library_config";
@@ -26,4 +27,32 @@ export const getStorageHelper = async (
     storageLimit,
     storageUsed,
   };
+};
+
+export const verifyOwnership = async (
+  ctx: QueryCtx | MutationCtx,
+  fileId: Doc<"files">["_id"],
+) => {
+  // auth check
+  const userId = await ctx.auth.getUserIdentity();
+  if (!userId) {
+    throw new Error("Unauthorized");
+  }
+
+  // make sure file exists, and belongs to user
+  const file = await ctx.db.get(fileId);
+  if (!file) {
+    throw new Error("File not found");
+  }
+  if (file.userId !== userId.subject) {
+    throw new Error("Unauthorized");
+  }
+  return file;
+};
+
+export const getFileUrl = (key: string) => {
+  if (!process.env.UPLOADTHING_ORG_ID) {
+    throw new Error("UPLOADTHING_ORG_ID not set");
+  }
+  return `https://${process.env.UPLOADTHING_ORG_ID}.ufs.sh/f/${key}`;
 };

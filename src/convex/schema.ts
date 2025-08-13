@@ -14,7 +14,7 @@ export default defineSchema({
     userId: v.string(),
     fileName: v.string(),
     fileType: v.string(),
-    url: v.string(),
+    key: v.string(),
     size: v.number(),
   }).index("by_user", ["userId"]),
   threadMetadata: defineTable({
