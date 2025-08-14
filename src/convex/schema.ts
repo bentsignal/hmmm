@@ -16,7 +16,12 @@ export default defineSchema({
     fileType: v.string(),
     key: v.string(),
     size: v.number(),
-  }).index("by_user", ["userId"]),
+  })
+    .index("by_user", ["userId"])
+    .searchIndex("search_file_name", {
+      searchField: "fileName",
+      filterFields: ["userId"],
+    }),
   threadMetadata: defineTable({
     title: v.string(),
     threadId: v.string(),

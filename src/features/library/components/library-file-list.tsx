@@ -26,7 +26,7 @@ export const LibraryFileList = ({
         direction: sortDirection,
         tab,
         sort,
-        searchTerm,
+        searchTerm: searchTerm.trim().length > 0 ? searchTerm : undefined,
       }
     : "skip";
   const {

@@ -10,7 +10,6 @@ import {
 import { LibraryDeleteModal } from "./components/library-delete-modal";
 import { LibraryFileList } from "./components/library-file-list";
 import { LibraryRenameModal } from "./components/library-rename-modal";
-import { LibraryStorageStatus } from "./components/library-storage-status";
 import { LibraryToolbar } from "./components/library-toolbar";
 import { LibraryUpload } from "./components/library-upload";
 import { useLibraryStore } from "./store/library-store";

@@ -12,33 +12,60 @@ export const listUserFiles = query({
     searchTerm: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { paginationOpts, direction, tab } = args;
+    const { paginationOpts, direction, tab, searchTerm } = args;
     const userIdentity = await ctx.auth.getUserIdentity();
     if (!userIdentity) {
       throw new Error("Unauthorized");
     }
-    const paginated = await ctx.db
-      .query("files")
-      .withIndex("by_user", (q) => q.eq("userId", userIdentity.subject))
-      .filter((q) => {
-        if (tab === "images") {
-          return q.or(
-            q.eq(q.field("fileType"), "image/jpeg"),
-            q.eq(q.field("fileType"), "image/png"),
-            q.eq(q.field("fileType"), "image/webp"),
-          );
-        } else if (tab === "documents") {
-          return q.or(
-            q.eq(q.field("fileType"), "application/pdf"),
-            q.eq(q.field("fileType"), "text/plain"),
-            q.eq(q.field("fileType"), "text/markdown"),
-          );
-        } else {
-          return q.neq(q.field("fileType"), undefined);
-        }
-      })
-      .order(direction)
-      .paginate(paginationOpts);
+    let paginated;
+    if (searchTerm) {
+      paginated = await ctx.db
+        .query("files")
+        .withSearchIndex("search_file_name", (q) =>
+          q.search("fileName", searchTerm).eq("userId", userIdentity.subject),
+        )
+        .filter((q) => {
+          if (tab === "images") {
+            return q.or(
+              q.eq(q.field("fileType"), "image/jpeg"),
+              q.eq(q.field("fileType"), "image/png"),
+              q.eq(q.field("fileType"), "image/webp"),
+            );
+          } else if (tab === "documents") {
+            return q.or(
+              q.eq(q.field("fileType"), "application/pdf"),
+              q.eq(q.field("fileType"), "text/plain"),
+              q.eq(q.field("fileType"), "text/markdown"),
+            );
+          } else {
+            return q.neq(q.field("fileType"), undefined);
+          }
+        })
+        .paginate(paginationOpts);
+    } else {
+      paginated = await ctx.db
+        .query("files")
+        .withIndex("by_user", (q) => q.eq("userId", userIdentity.subject))
+        .filter((q) => {
+          if (tab === "images") {
+            return q.or(
+              q.eq(q.field("fileType"), "image/jpeg"),
+              q.eq(q.field("fileType"), "image/png"),
+              q.eq(q.field("fileType"), "image/webp"),
+            );
+          } else if (tab === "documents") {
+            return q.or(
+              q.eq(q.field("fileType"), "application/pdf"),
+              q.eq(q.field("fileType"), "text/plain"),
+              q.eq(q.field("fileType"), "text/markdown"),
+            );
+          } else {
+            return q.neq(q.field("fileType"), undefined);
+          }
+        })
+        .order(direction)
+        .paginate(paginationOpts);
+    }
     return {
       ...paginated,
       page: paginated.page.map((file) => {
