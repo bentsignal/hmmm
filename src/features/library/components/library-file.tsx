@@ -27,7 +27,7 @@ const PureLibraryGridFile = ({
       onMouseEnter={() => {
         setSelectedFile(id);
       }}
-      className="bg-card hover:bg-card/80 flex h-fit flex-col items-center gap-4 rounded-lg p-4 shadow-sm transition-colors select-none hover:cursor-pointer"
+      className="bg-card hover:bg-card/80 flex flex-col items-center gap-4 rounded-lg p-4 shadow-sm transition-colors select-none hover:cursor-pointer"
     >
       <div className="relative flex h-40 w-full items-center justify-center sm:h-20">
         {type === "image" ? (
@@ -40,7 +40,7 @@ const PureLibraryGridFile = ({
           <LibraryFileIcon fileType={type} className="h-10 w-10" />
         )}
       </div>
-      <div className="flex w-full flex-col items-center justify-center gap-1">
+      <div className="flex w-full flex-1 flex-col items-center justify-center gap-1">
         <span className="line-clamp-2 w-[80%] text-center text-sm font-medium">
           {fileName ?? "unnamed file"}
         </span>
