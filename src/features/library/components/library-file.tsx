@@ -17,7 +17,7 @@ const PureLibraryGridFile = ({
   fileName,
   fileType,
 }: LibraryFileProps) => {
-  const { setSelectedFile } = useLibraryStore();
+  const setSelectedFile = useLibraryStore((state) => state.setSelectedFile);
   const type = getFileType(fileType);
   return (
     <div
