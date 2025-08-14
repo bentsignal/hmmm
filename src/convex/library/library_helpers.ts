@@ -3,6 +3,7 @@ import { MutationCtx, QueryCtx } from "../_generated/server";
 import { getUserPlanHelper } from "../sub/sub_helpers";
 import { storageLimits } from "./library_config";
 import { storage } from "./library_mutations";
+import { LibraryFile } from "@/features/library/types";
 
 export const getStorageHelper = async (
   ctx: QueryCtx | MutationCtx,
@@ -59,4 +60,14 @@ export const getFileUrl = (key: string) => {
     throw new Error("UPLOADTHING_ORG_ID not set");
   }
   return `https://${process.env.UPLOADTHING_ORG_ID}.ufs.sh/f/${key}`;
+};
+
+export const getPublicFile = (file: Doc<"files">): LibraryFile => {
+  return {
+    id: file._id,
+    url: getFileUrl(file.key),
+    fileName: file.fileName,
+    mimeType: file.fileType,
+    size: file.size,
+  };
 };

@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internalQuery, query } from "@/convex/_generated/server";
-import { getFileUrl, getStorageHelper } from "./library_helpers";
+import { getPublicFile, getStorageHelper } from "./library_helpers";
 
 export const listUserFiles = query({
   args: {
@@ -64,13 +64,7 @@ export const listUserFiles = query({
         if (!file) {
           return null;
         }
-        return {
-          id: file._id,
-          url: getFileUrl(file.key),
-          fileName: file.fileName,
-          mimeType: file.fileType,
-          size: file.size,
-        };
+        return getPublicFile(file);
       }),
     };
   },

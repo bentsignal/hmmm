@@ -2,6 +2,8 @@ import { ReactNode } from "react";
 import { UIMessage } from "@convex-dev/agent/react";
 import { z } from "zod";
 import {
+  FileAnalysisResultSchema,
+  FileResult,
   Source,
   SourceSchema,
   SystemErrorCode,
@@ -115,6 +117,24 @@ export function extractSourcesFromMessage(message: UIMessage) {
     } else {
       collected.push(...parsed.data.sources);
     }
+  }
+  return collected;
+}
+
+export function extractFilesFromMessage(message: UIMessage) {
+  const collected: Array<FileResult> = [];
+  for (const part of message.parts) {
+    if (part.type !== "tool-invocation") continue;
+  }
+  for (const part of message.parts) {
+    if (part.type !== "tool-invocation") continue;
+    const withResult = part as ToolInvocationPartWithResult;
+    if (!("toolInvocation" in withResult)) continue;
+    const parsed = FileAnalysisResultSchema.safeParse(
+      withResult.toolInvocation.result,
+    );
+    if (!parsed.success) continue;
+    collected.push(parsed.data.file);
   }
   return collected;
 }

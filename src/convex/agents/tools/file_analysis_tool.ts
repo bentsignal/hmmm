@@ -2,10 +2,16 @@ import { createTool } from "@convex-dev/agent";
 import { CoreUserMessage, generateText } from "ai";
 import { z } from "zod";
 import { internal } from "@/convex/_generated/api";
-import { getFileUrl } from "@/convex/library/library_helpers";
+import { getFileUrl, getPublicFile } from "@/convex/library/library_helpers";
 import { calculateModelCost } from "@/convex/sub/sub_helpers";
 import { languageModels } from "../models";
 import { getFileType } from "@/features/library/lib";
+import { LibraryFile } from "@/features/library/types";
+
+type FileAnalysisResponse = {
+  response: string;
+  file: LibraryFile | null;
+};
 
 export const fileAnalysis = createTool({
   description: `
@@ -15,11 +21,14 @@ export const fileAnalysis = createTool({
     fileName: z.string().describe("file name of the file to analyze."),
     prompt: z.string().describe("The prompt to use to analyze the file."),
   }),
-  handler: async (ctx, args): Promise<string> => {
+  handler: async (ctx, args): Promise<FileAnalysisResponse> => {
     const { fileName, prompt } = args;
 
     if (!ctx.userId) {
-      return "User not authenticated";
+      return {
+        response: "User not authenticated",
+        file: null,
+      };
     }
 
     const file = await ctx.runQuery(
@@ -30,7 +39,10 @@ export const fileAnalysis = createTool({
       },
     );
     if (!file) {
-      return "File not found";
+      return {
+        response: "File not found",
+        file: null,
+      };
     }
 
     const fileType = getFileType(file.fileType) === "image" ? "image" : "file";
@@ -75,6 +87,9 @@ export const fileAnalysis = createTool({
       });
     }
 
-    return result.text;
+    return {
+      response: result.text,
+      file: getPublicFile(file),
+    };
   },
 });
