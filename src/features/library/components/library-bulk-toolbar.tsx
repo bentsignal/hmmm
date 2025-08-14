@@ -7,6 +7,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useComposerStore } from "@/features/composer/store/composer-store";
 
 export const LibraryBulkToolbar = () => {
   const inSelectMode = useLibraryStore(
@@ -25,23 +26,37 @@ export const LibraryBulkToolbar = () => {
         disabled && "opacity-50",
       )}
     >
-      {/* <AttachButton disabled={disabled} /> */}
+      <AttachButton disabled={disabled} />
       <DeleteButton disabled={disabled} />
     </div>
   );
 };
 
 const AttachButton = ({ disabled }: { disabled: boolean }) => {
+  const setSelectedFiles = useLibraryStore((state) => state.setSelectedFiles);
+  const setLibraryMode = useLibraryStore((state) => state.setLibraryMode);
+  const setLibraryOpen = useLibraryStore((state) => state.setLibraryOpen);
+
   return (
-    <Button
-      variant="ghost"
-      disabled={disabled}
-      onClick={() => {
-        console.log("attach");
-      }}
-    >
-      <Plus className="h-4 w-4" />
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          disabled={disabled}
+          onClick={() => {
+            const selectedFiles = useLibraryStore.getState().selectedFiles;
+            const { addAttachments } = useComposerStore.getState();
+            addAttachments(selectedFiles);
+            setSelectedFiles([]);
+            setLibraryMode("default");
+            setLibraryOpen(false);
+          }}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>Attach files to current thread</TooltipContent>
+    </Tooltip>
   );
 };
 

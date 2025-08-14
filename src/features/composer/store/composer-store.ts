@@ -12,9 +12,13 @@ interface ComposerStore {
   setStoreIsTranscribing: (isTranscribing: boolean) => void;
   attachedFiles: LibraryFile[];
   setAttachedFiles: (files: LibraryFile[]) => void;
+  addAttachment: (file: LibraryFile) => void;
+  addAttachments: (files: LibraryFile[]) => void;
+  removeAttachment: (id: LibraryFile["id"]) => void;
+  clearAttachments: () => void;
 }
 
-export const useComposerStore = create<ComposerStore>((set) => ({
+export const useComposerStore = create<ComposerStore>((set, get) => ({
   prompt: "",
   setPrompt: (prompt) => set({ prompt }),
   storeIsListening: false,
@@ -25,6 +29,23 @@ export const useComposerStore = create<ComposerStore>((set) => ({
   setStoreIsTranscribing: (storeIsTranscribing) => set({ storeIsTranscribing }),
   attachedFiles: [],
   setAttachedFiles: (files) => set({ attachedFiles: files }),
+  addAttachment: (file) => {
+    const { attachedFiles } = get();
+    const dedupedFiles = attachedFiles.filter((f) => f.id !== file.id);
+    set({ attachedFiles: [...dedupedFiles, file] });
+  },
+  addAttachments: (files) => {
+    const { attachedFiles } = get();
+    const dedupedFiles = files.filter(
+      (file) => !attachedFiles.some((f) => f.id === file.id),
+    );
+    set({ attachedFiles: [...attachedFiles, ...dedupedFiles] });
+  },
+  removeAttachment: (id) => {
+    const { attachedFiles } = get();
+    set({ attachedFiles: attachedFiles.filter((f) => f.id !== id) });
+  },
+  clearAttachments: () => set({ attachedFiles: [] }),
 }));
 
 export default useComposerStore;
