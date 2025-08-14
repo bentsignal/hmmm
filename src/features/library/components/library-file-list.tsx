@@ -81,9 +81,9 @@ export const LibraryFileList = ({
                   >
                     <LibraryGridFile
                       key={file.url}
-                      {...file}
+                      file={file}
                       mode={libraryMode}
-                      selected={selectedFiles.includes(file.id)}
+                      selected={selectedFiles.some((f) => f.id === file.id)}
                     />
                   </PageLoader>
                 );
@@ -91,9 +91,9 @@ export const LibraryFileList = ({
               return (
                 <LibraryGridFile
                   key={file.url}
-                  {...file}
+                  file={file}
                   mode={libraryMode}
-                  selected={selectedFiles.includes(file.id)}
+                  selected={selectedFiles.some((f) => f.id === file.id)}
                 />
               );
             })}
@@ -118,9 +118,9 @@ export const LibraryFileList = ({
                   >
                     <LibraryListFile
                       key={file.url}
-                      {...file}
+                      file={file}
                       mode={libraryMode}
-                      selected={selectedFiles.includes(file.id)}
+                      selected={selectedFiles.some((f) => f.id === file.id)}
                     />
                   </PageLoader>
                 );
@@ -128,9 +128,9 @@ export const LibraryFileList = ({
               return (
                 <LibraryListFile
                   key={file.url}
-                  {...file}
+                  file={file}
                   mode={libraryMode}
-                  selected={selectedFiles.includes(file.id)}
+                  selected={selectedFiles.some((f) => f.id === file.id)}
                 />
               );
             })}

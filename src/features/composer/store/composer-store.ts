@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { LibraryFile } from "@/features/library/types/library-types";
 
 interface ComposerStore {
   prompt: string;
@@ -9,9 +10,11 @@ interface ComposerStore {
   setStoreIsRecording: (isRecording: boolean) => void;
   storeIsTranscribing: boolean;
   setStoreIsTranscribing: (isTranscribing: boolean) => void;
+  attachedFiles: LibraryFile[];
+  setAttachedFiles: (files: LibraryFile[]) => void;
 }
 
-const useComposerStore = create<ComposerStore>((set) => ({
+export const useComposerStore = create<ComposerStore>((set) => ({
   prompt: "",
   setPrompt: (prompt) => set({ prompt }),
   storeIsListening: false,
@@ -20,6 +23,8 @@ const useComposerStore = create<ComposerStore>((set) => ({
   setStoreIsRecording: (storeIsRecording) => set({ storeIsRecording }),
   storeIsTranscribing: false,
   setStoreIsTranscribing: (storeIsTranscribing) => set({ storeIsTranscribing }),
+  attachedFiles: [],
+  setAttachedFiles: (files) => set({ attachedFiles: files }),
 }));
 
 export default useComposerStore;

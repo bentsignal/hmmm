@@ -1,51 +1,26 @@
 import { memo } from "react";
-import { Doc } from "@/convex/_generated/dataModel";
+import equal from "fast-deep-equal";
+import { useFileInteraction } from "../hooks/use-file-interaction";
 import { getFileType } from "../lib";
-import { useLibraryStore } from "../store/library-store";
-import { LibraryMode } from "../types/library-types";
+import { LibraryFile, LibraryMode } from "../types/library-types";
 import { LibraryFileIcon } from "./library-file-icon";
 import { cn } from "@/lib/utils";
 
 interface LibraryFileProps {
-  id: Doc<"files">["_id"];
-  url: string;
-  fileName?: string;
-  fileType?: string;
+  file: LibraryFile;
   mode: LibraryMode;
   selected: boolean;
 }
 
-const PureLibraryGridFile = ({
-  id,
-  url,
-  fileName,
-  fileType,
-  mode,
-  selected,
-}: LibraryFileProps) => {
-  const setSelectedFile = useLibraryStore((state) => state.setSelectedFile);
-  const setSelectedFiles = useLibraryStore((state) => state.setSelectedFiles);
-  const type = getFileType(fileType);
+const PureLibraryGridFile = ({ file, mode, selected }: LibraryFileProps) => {
+  const fileType = getFileType(file.mimeType);
+
+  const { handleFileClick, handleFileHover } = useFileInteraction();
 
   return (
     <div
-      onClick={() => {
-        if (mode === "select") {
-          const selectedFiles = useLibraryStore.getState().selectedFiles;
-          if (selected) {
-            setSelectedFiles(selectedFiles.filter((file) => file !== id));
-          } else {
-            setSelectedFiles([...selectedFiles, id]);
-          }
-        } else {
-          window.open(url, "_blank");
-        }
-      }}
-      onMouseEnter={() => {
-        if (mode === "default") {
-          setSelectedFile(id);
-        }
-      }}
+      onClick={() => handleFileClick(file, mode, selected)}
+      onMouseEnter={() => handleFileHover(file, mode)}
       className={cn(
         "bg-card hover:bg-card/80 relative flex w-full flex-col items-center gap-4 rounded-lg p-4 shadow-sm transition-all select-none hover:cursor-pointer",
         mode === "select" && !selected && "opacity-50",
@@ -60,56 +35,34 @@ const PureLibraryGridFile = ({
         ></div>
       )}
       <div className="relative flex h-40 w-full items-center justify-center sm:h-20">
-        {type === "image" ? (
+        {fileType === "image" ? (
           <img
-            src={url}
-            alt={fileName ?? "unnamed file"}
+            src={file.url}
+            alt={file.fileName ?? "unnamed file"}
             className="h-full w-full rounded-xl object-cover"
           />
         ) : (
-          <LibraryFileIcon fileType={type} className="h-10 w-10" />
+          <LibraryFileIcon fileType={fileType} className="h-10 w-10" />
         )}
       </div>
       <div className="flex w-full flex-1 flex-col items-center justify-center gap-1">
         <span className="line-clamp-2 w-[80%] text-center text-sm font-medium">
-          {fileName ?? "unnamed file"}
+          {file.fileName ?? "unnamed file"}
         </span>
       </div>
     </div>
   );
 };
 
-const PureLibraryListFile = ({
-  id,
-  url,
-  fileName,
-  fileType,
-  mode,
-  selected,
-}: LibraryFileProps) => {
-  const type = getFileType(fileType);
-  const setSelectedFile = useLibraryStore((state) => state.setSelectedFile);
-  const setSelectedFiles = useLibraryStore((state) => state.setSelectedFiles);
+const PureLibraryListFile = ({ file, mode, selected }: LibraryFileProps) => {
+  const fileType = getFileType(file.mimeType);
+
+  const { handleFileClick, handleFileHover } = useFileInteraction();
 
   return (
     <div
-      onClick={() => {
-        if (mode === "select") {
-          const selectedFiles = useLibraryStore.getState().selectedFiles;
-          if (selected) {
-            setSelectedFiles(selectedFiles.filter((file) => file !== id));
-          } else {
-            setSelectedFiles([...selectedFiles, id]);
-          }
-        } else {
-          window.open(url, "_blank");
-        }
-      }}
-      onMouseEnter={() => {
-        if (mode === "default") {
-          setSelectedFile(id);
-        }
-      }}
+      onClick={() => handleFileClick(file, mode, selected)}
+      onMouseEnter={() => handleFileHover(file, mode)}
       className={cn(
         "bg-card hover:bg-card/80 row relative flex w-full items-center gap-4 rounded-lg p-4 shadow-sm transition-all select-none hover:cursor-pointer",
         mode === "select" && !selected && "opacity-50",
@@ -126,19 +79,19 @@ const PureLibraryListFile = ({
         </div>
       )}
       <div className="relative flex h-10 w-10 items-center justify-center">
-        {type === "image" ? (
+        {fileType === "image" ? (
           <img
-            src={url}
-            alt={fileName ?? "unnamed file"}
+            src={file.url}
+            alt={file.fileName ?? "unnamed file"}
             className="h-full w-full rounded-md object-cover"
           />
         ) : (
-          <LibraryFileIcon fileType={type} className="h-5 w-5" />
+          <LibraryFileIcon fileType={fileType} className="h-5 w-5" />
         )}
       </div>
       <div className="flex flex-col gap-1">
         <span className="line-clamp-1 text-sm font-medium">
-          {fileName ?? "unnamed file"}
+          {file.fileName ?? "unnamed file"}
         </span>
       </div>
     </div>
@@ -147,10 +100,7 @@ const PureLibraryListFile = ({
 
 export const LibraryGridFile = memo(PureLibraryGridFile, (prev, next) => {
   return (
-    prev.id === next.id &&
-    prev.url === next.url &&
-    prev.fileName === next.fileName &&
-    prev.fileType === next.fileType &&
+    equal(prev.file, next.file) &&
     prev.mode === next.mode &&
     prev.selected === next.selected
   );
@@ -158,10 +108,7 @@ export const LibraryGridFile = memo(PureLibraryGridFile, (prev, next) => {
 
 export const LibraryListFile = memo(PureLibraryListFile, (prev, next) => {
   return (
-    prev.id === next.id &&
-    prev.url === next.url &&
-    prev.fileName === next.fileName &&
-    prev.fileType === next.fileType &&
+    equal(prev.file, next.file) &&
     prev.mode === next.mode &&
     prev.selected === next.selected
   );

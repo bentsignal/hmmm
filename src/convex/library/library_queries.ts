@@ -76,7 +76,7 @@ export const listUserFiles = query({
           id: file._id,
           url: getFileUrl(file.key),
           fileName: file.fileName,
-          fileType: file.fileType,
+          mimeType: file.fileType,
           size: file.size,
         };
       }),

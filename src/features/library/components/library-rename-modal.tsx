@@ -58,7 +58,7 @@ export const LibraryRenameModal = () => {
           <AlertDialogAction
             onClick={() => {
               if (!selectedFile) return;
-              renameFile(selectedFile, newFileName);
+              renameFile(selectedFile.id, newFileName);
               setLibraryRenameModalOpen(false);
               setNewFileName("");
             }}

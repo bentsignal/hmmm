@@ -1,6 +1,5 @@
 import { create } from "zustand";
-import { Doc } from "@/convex/_generated/dataModel";
-import { LibraryMode } from "../types/library-types";
+import { LibraryFile, LibraryMode } from "../types/library-types";
 
 interface LibraryStore {
   libraryOpen: boolean;
@@ -9,12 +8,12 @@ interface LibraryStore {
   setLibraryDeleteModalOpen: (open: boolean) => void;
   libraryRenameModalOpen: boolean;
   setLibraryRenameModalOpen: (open: boolean) => void;
-  selectedFile: Doc<"files">["_id"] | null;
-  setSelectedFile: (file: Doc<"files">["_id"] | null) => void;
+  selectedFile: LibraryFile | null;
+  setSelectedFile: (file: LibraryFile | null) => void;
   libraryMode: LibraryMode;
   setLibraryMode: (mode: LibraryMode) => void;
-  selectedFiles: Doc<"files">["_id"][];
-  setSelectedFiles: (files: Doc<"files">["_id"][]) => void;
+  selectedFiles: LibraryFile[];
+  setSelectedFiles: (files: LibraryFile[]) => void;
 }
 
 export const useLibraryStore = create<LibraryStore>((set) => ({
