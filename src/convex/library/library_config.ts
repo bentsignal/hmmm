@@ -9,3 +9,9 @@ export const storageLimits: Record<Plan["name"], number> = {
   Ultra: 50 * GB,
   Unlimited: 100 * GB,
 };
+
+export const libraryPagination = {
+  initialSize: 12,
+  pageSize: 48,
+  loaderIndex: 24,
+};
