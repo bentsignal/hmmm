@@ -27,7 +27,7 @@ const PureLibraryGridFile = ({
       onMouseEnter={() => {
         setSelectedFile(id);
       }}
-      className="bg-card hover:bg-card/80 flex flex-col items-center gap-4 rounded-lg p-4 shadow-sm transition-colors select-none hover:cursor-pointer"
+      className="bg-card hover:bg-card/80 flex w-full flex-col items-center gap-4 rounded-lg p-4 shadow-sm transition-colors select-none hover:cursor-pointer"
     >
       <div className="relative flex h-40 w-full items-center justify-center sm:h-20">
         {type === "image" ? (
@@ -65,7 +65,7 @@ const PureLibraryListFile = ({
       onMouseEnter={() => {
         setSelectedFile(id);
       }}
-      className="bg-card hover:bg-card/80 row flex items-center gap-4 rounded-lg p-4 shadow-sm transition-colors select-none hover:cursor-pointer"
+      className="bg-card hover:bg-card/80 row flex w-full items-center gap-4 rounded-lg p-4 shadow-sm transition-colors select-none hover:cursor-pointer"
     >
       <div className="relative flex h-10 w-10 items-center justify-center">
         {type === "image" ? (
