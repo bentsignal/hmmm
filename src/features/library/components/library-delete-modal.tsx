@@ -10,9 +10,21 @@ export const LibraryDeleteModal = () => {
     (state) => state.setLibraryDeleteModalOpen,
   );
 
-  const setSelectedFile = useLibraryStore((state) => state.setSelectedFile);
+  const title = useLibraryStore((state) =>
+    state.libraryMode === "select" && state.selectedFiles.length > 1
+      ? "Delete files"
+      : "Delete file",
+  );
+  const message = useLibraryStore((state) =>
+    state.libraryMode === "select" && state.selectedFiles.length > 1
+      ? `Are you sure you want to delete these ${state.selectedFiles.length} files?`
+      : "Are you sure you want to delete this file?",
+  );
 
-  const { deleteFile } = useFileMutation();
+  const setSelectedFile = useLibraryStore((state) => state.setSelectedFile);
+  const setSelectedFiles = useLibraryStore((state) => state.setSelectedFiles);
+
+  const { deleteFile, deleteFiles } = useFileMutation();
 
   return (
     <CustomAlert
@@ -22,15 +34,25 @@ export const LibraryDeleteModal = () => {
         setSelectedFile(null);
       }}
       onConfirm={() => {
-        const selectedFile = useLibraryStore.getState().selectedFile;
-        if (selectedFile) {
-          deleteFile(selectedFile);
-          setSelectedFile(null);
-          setLibraryDeleteModalOpen(false);
+        const libraryMode = useLibraryStore.getState().libraryMode;
+        if (libraryMode === "select") {
+          const selectedFiles = useLibraryStore.getState().selectedFiles;
+          if (selectedFiles.length > 0) {
+            deleteFiles(selectedFiles);
+            setSelectedFiles([]);
+            setLibraryDeleteModalOpen(false);
+          }
+        } else {
+          const selectedFile = useLibraryStore.getState().selectedFile;
+          if (selectedFile) {
+            deleteFile(selectedFile);
+            setSelectedFile(null);
+            setLibraryDeleteModalOpen(false);
+          }
         }
       }}
-      title="Delete File"
-      message="Are you sure you want to delete this file?"
+      title={title}
+      message={message}
       destructive={true}
     />
   );

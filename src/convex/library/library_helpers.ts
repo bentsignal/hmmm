@@ -31,7 +31,7 @@ export const getStorageHelper = async (
 
 export const verifyOwnership = async (
   ctx: QueryCtx | MutationCtx,
-  fileId: Doc<"files">["_id"],
+  fileIds: Doc<"files">["_id"][],
 ) => {
   // auth check
   const userId = await ctx.auth.getUserIdentity();
@@ -40,14 +40,18 @@ export const verifyOwnership = async (
   }
 
   // make sure file exists, and belongs to user
-  const file = await ctx.db.get(fileId);
-  if (!file) {
-    throw new Error("File not found");
+  const files = [];
+  for (const fileId of fileIds) {
+    const file = await ctx.db.get(fileId);
+    if (!file) {
+      throw new Error("File not found");
+    }
+    if (file.userId !== userId.subject) {
+      throw new Error("Unauthorized");
+    }
+    files.push(file);
   }
-  if (file.userId !== userId.subject) {
-    throw new Error("Unauthorized");
-  }
-  return file;
+  return files;
 };
 
 export const getFileUrl = (key: string) => {

@@ -8,5 +8,7 @@ export const deleteFilesFromStorage = internalAction({
   args: {
     keys: v.array(v.string()),
   },
-  handler: async (ctx, args) => await utapi.deleteFiles(args.keys),
+  handler: async (ctx, args) => {
+    await utapi.deleteFiles(args.keys);
+  },
 });

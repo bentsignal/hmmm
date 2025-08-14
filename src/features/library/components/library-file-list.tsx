@@ -1,6 +1,7 @@
 import { useConvexAuth, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { libraryPagination } from "@/convex/library/library_config";
+import { useLibraryStore } from "../store/library-store";
 import { LibrarySort, LibraryTab, LibraryView } from "../types";
 import { LibraryGridFile, LibraryListFile } from "./library-file";
 import { LibraryFileContextItems } from "./library-file-context-items";
@@ -37,6 +38,9 @@ export const LibraryFileList = ({
   } = usePaginatedQuery(api.library.library_queries.listUserFiles, args, {
     initialNumItems: libraryPagination.initialSize,
   });
+
+  const libraryMode = useLibraryStore((state) => state.libraryMode);
+  const selectedFiles = useLibraryStore((state) => state.selectedFiles);
 
   if (status === "LoadingFirstPage") {
     return (
@@ -75,11 +79,23 @@ export const LibraryFileList = ({
                     singleUse={true}
                     key={file.url}
                   >
-                    <LibraryGridFile key={file.url} {...file} />
+                    <LibraryGridFile
+                      key={file.url}
+                      {...file}
+                      mode={libraryMode}
+                      selected={selectedFiles.includes(file.id)}
+                    />
                   </PageLoader>
                 );
               }
-              return <LibraryGridFile key={file.url} {...file} />;
+              return (
+                <LibraryGridFile
+                  key={file.url}
+                  {...file}
+                  mode={libraryMode}
+                  selected={selectedFiles.includes(file.id)}
+                />
+              );
             })}
           </div>
         ) : (
@@ -100,11 +116,23 @@ export const LibraryFileList = ({
                     singleUse={true}
                     key={file.url}
                   >
-                    <LibraryListFile key={file.url} {...file} />
+                    <LibraryListFile
+                      key={file.url}
+                      {...file}
+                      mode={libraryMode}
+                      selected={selectedFiles.includes(file.id)}
+                    />
                   </PageLoader>
                 );
               }
-              return <LibraryListFile key={file.url} {...file} />;
+              return (
+                <LibraryListFile
+                  key={file.url}
+                  {...file}
+                  mode={libraryMode}
+                  selected={selectedFiles.includes(file.id)}
+                />
+              );
             })}
           </div>
         )}

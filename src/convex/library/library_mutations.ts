@@ -105,24 +105,26 @@ export const verifyUpload = mutation({
   },
 });
 
-export const deleteFile = storageTriggerMutation({
+export const deleteFiles = storageTriggerMutation({
   args: {
-    id: v.id("files"),
+    ids: v.array(v.id("files")),
   },
   handler: async (ctx, args) => {
-    const { id } = args;
+    const { ids } = args;
 
-    const file = await verifyOwnership(ctx, id);
+    const files = await verifyOwnership(ctx, ids);
 
     // delete file from db
-    await ctx.db.delete(id);
+    for (const file of files) {
+      await ctx.db.delete(file._id);
+    }
 
     // delete file from storage
     await ctx.scheduler.runAfter(
       0,
       internal.library.library_actions.deleteFilesFromStorage,
       {
-        keys: [file.key],
+        keys: files.map((file) => file.key),
       },
     );
   },
@@ -136,7 +138,7 @@ export const renameFile = mutation({
   handler: async (ctx, args) => {
     const { id, name } = args;
 
-    await verifyOwnership(ctx, id);
+    await verifyOwnership(ctx, [id]);
 
     // update file name
     await ctx.db.patch(id, {

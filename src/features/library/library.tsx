@@ -7,6 +7,7 @@ import {
   Library as LibraryIcon,
   LucideIcon,
 } from "lucide-react";
+import { LibraryBulkToolbar } from "./components/library-bulk-toolbar";
 import { LibraryDeleteModal } from "./components/library-delete-modal";
 import { LibraryFileList } from "./components/library-file-list";
 import { LibraryRenameModal } from "./components/library-rename-modal";
@@ -46,6 +47,7 @@ const tabs: { label: string; value: LibraryTab; icon: LucideIcon }[] = [
 export default function Library() {
   const libraryOpen = useLibraryStore((state) => state.libraryOpen);
   const setLibraryOpen = useLibraryStore((state) => state.setLibraryOpen);
+  const setLibraryMode = useLibraryStore((state) => state.setLibraryMode);
 
   const [activeTab, setActiveTab] = useState<LibraryTab>(tabs[0].value);
   const [view, setView] = useState<LibraryView>("grid");
@@ -58,7 +60,15 @@ export default function Library() {
     <>
       <LibraryDeleteModal />
       <LibraryRenameModal />
-      <Dialog open={libraryOpen} onOpenChange={setLibraryOpen}>
+      <Dialog
+        open={libraryOpen}
+        onOpenChange={(open) => {
+          setLibraryOpen(open);
+          if (!open) {
+            setLibraryMode("default");
+          }
+        }}
+      >
         <DialogContent
           showCloseButton={false}
           className="h-full max-h-[600px] border-none bg-transparent md:max-w-[700px] xl:max-w-[900px]"
@@ -89,7 +99,7 @@ export default function Library() {
               </div>
               <LibraryUpload />
             </div>
-            <div className="bg-background flex h-full flex-1 flex-col rounded-xl rounded-l-none border border-l-0">
+            <div className="bg-background relative flex h-full flex-1 flex-col rounded-xl rounded-l-none border border-l-0">
               <LibraryToolbar
                 view={view}
                 setView={setView}
@@ -105,6 +115,9 @@ export default function Library() {
                   searchTerm={searchTerm}
                   tab={activeTab}
                 />
+              </div>
+              <div className="absolute right-0 bottom-0 left-0 flex w-full items-center justify-center">
+                <LibraryBulkToolbar />
               </div>
             </div>
           </div>
