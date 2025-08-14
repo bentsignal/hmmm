@@ -20,17 +20,18 @@ import { tryCatch } from "@/lib/utils";
 // generate title for thread based off of initial prompt
 export const generateTitle = internalAction({
   args: {
-    message: v.string(),
+    prompt: v.string(),
     threadId: v.string(),
   },
   handler: async (ctx, args) => {
+    const { prompt, threadId } = args;
     const response = await generateText({
       model: titleGeneratorModel.model,
-      prompt: args.message,
+      prompt: prompt,
       system: titleGeneratorPrompt,
     });
     await ctx.runMutation(internal.thread.thread_mutations.updateThreadTitle, {
-      threadId: args.threadId,
+      threadId: threadId,
       title: response.text.trim(),
     });
   },

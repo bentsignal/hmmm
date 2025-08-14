@@ -131,3 +131,25 @@ export const threadMessageCheck = async (ctx: MutationCtx, message: string) => {
   }
   return userId;
 };
+
+export const saveNewMessage = async (
+  ctx: MutationCtx,
+  threadId: string,
+  prompt: string,
+  attachments?: string[],
+) => {
+  const fileNames = attachments || [];
+  return await agent.saveMessages(ctx, {
+    threadId: threadId,
+    messages: [
+      {
+        role: "user",
+        content: prompt,
+      },
+      ...fileNames.map((fileName) => ({
+        role: "system" as const,
+        content: `User has attached a file with the following file name: ${fileName}`,
+      })),
+    ],
+  });
+};

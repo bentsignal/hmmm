@@ -1,6 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
-import { query } from "@/convex/_generated/server";
+import { internalQuery, query } from "@/convex/_generated/server";
 import { getFileUrl, getStorageHelper } from "./library_helpers";
 
 export const listUserFiles = query({
@@ -32,11 +32,7 @@ export const listUserFiles = query({
               q.eq(q.field("fileType"), "image/webp"),
             );
           } else if (tab === "documents") {
-            return q.or(
-              q.eq(q.field("fileType"), "application/pdf"),
-              q.eq(q.field("fileType"), "text/plain"),
-              q.eq(q.field("fileType"), "text/markdown"),
-            );
+            return q.or(q.eq(q.field("fileType"), "application/pdf"));
           } else {
             return q.neq(q.field("fileType"), undefined);
           }
@@ -54,11 +50,7 @@ export const listUserFiles = query({
               q.eq(q.field("fileType"), "image/webp"),
             );
           } else if (tab === "documents") {
-            return q.or(
-              q.eq(q.field("fileType"), "application/pdf"),
-              q.eq(q.field("fileType"), "text/plain"),
-              q.eq(q.field("fileType"), "text/markdown"),
-            );
+            return q.eq(q.field("fileType"), "application/pdf");
           } else {
             return q.neq(q.field("fileType"), undefined);
           }
@@ -98,5 +90,25 @@ export const getStorageStatus = query({
       storageUsed,
       storageLimit,
     };
+  },
+});
+
+export const getFileByName = internalQuery({
+  args: {
+    fileName: v.string(),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { fileName, userId } = args;
+    const file = await ctx.db
+      .query("files")
+      .withSearchIndex("search_file_name", (q) =>
+        q.search("fileName", fileName).eq("userId", userId),
+      )
+      .first();
+    if (!file) {
+      return null;
+    }
+    return file;
   },
 });

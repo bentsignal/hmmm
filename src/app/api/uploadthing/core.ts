@@ -31,14 +31,6 @@ export const ourFileRouter = {
       maxFileSize: "8MB",
       maxFileCount: 10,
     },
-    "text/plain": {
-      maxFileSize: "8MB",
-      maxFileCount: 10,
-    },
-    "text/markdown": {
-      maxFileSize: "8MB",
-      maxFileCount: 10,
-    },
   })
     // Set permissions and file types for this FileRoute
     .middleware(async () => {

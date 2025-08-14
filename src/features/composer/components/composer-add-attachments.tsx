@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -22,7 +22,7 @@ export const ComposerAddAttachments = () => {
             setLibraryMode("select");
           }}
         >
-          <Plus className="h-4 w-4" />
+          <Paperclip className="h-4 w-4" />
         </Button>
       </TooltipTrigger>
       <TooltipContent>Add attachments</TooltipContent>

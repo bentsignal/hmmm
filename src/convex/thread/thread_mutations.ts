@@ -5,17 +5,21 @@ import { agent } from "@/convex/agents";
 import {
   getThreadMetadata,
   logSystemError,
+  saveNewMessage,
   threadMessageCheck,
 } from "./thread_helpers";
 import { tryCatch } from "@/lib/utils";
 
 export const requestNewThread = mutation({
   args: {
-    message: v.string(),
+    prompt: v.string(),
+    // file names
+    attachments: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
+    const { prompt, attachments } = args;
     // auth, usage, input val, rate limit
-    const userId = await threadMessageCheck(ctx, args.message);
+    const userId = await threadMessageCheck(ctx, prompt);
     // create new thread in agent component table, as well as
     // new document in separate threadMetadata table
     const { threadId } = await agent.createThread(ctx, {
@@ -23,12 +27,8 @@ export const requestNewThread = mutation({
       title: "New Chat",
     });
     // create metadata doc for thread and store first message
-    const [{ messageId }] = await Promise.all([
-      agent.saveMessage(ctx, {
-        threadId,
-        prompt: args.message,
-        skipEmbeddings: true,
-      }),
+    const [{ lastMessageId }] = await Promise.all([
+      saveNewMessage(ctx, threadId, prompt, attachments),
       ctx.db.insert("threadMetadata", {
         userId: userId.subject,
         title: "New Chat",
@@ -45,7 +45,7 @@ export const requestNewThread = mutation({
           internal.thread.thread_actions.generateTitle,
           {
             threadId: threadId,
-            message: args.message,
+            prompt: prompt,
           },
         ),
         ctx.scheduler.runAfter(
@@ -53,8 +53,8 @@ export const requestNewThread = mutation({
           internal.thread.thread_actions.generateResponse,
           {
             threadId: threadId,
-            promptMessageId: messageId,
-            prompt: args.message,
+            promptMessageId: lastMessageId,
+            prompt: prompt,
             userId: userId.subject,
           },
         ),
@@ -77,9 +77,10 @@ export const newThreadMessage = mutation({
   args: {
     threadId: v.string(),
     prompt: v.string(),
+    attachments: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const { threadId, prompt } = args;
+    const { threadId, prompt, attachments } = args;
     const userId = await threadMessageCheck(ctx, prompt);
     // get thread metadata
     const metadata = await getThreadMetadata(ctx, threadId);
@@ -93,12 +94,8 @@ export const newThreadMessage = mutation({
       throw new ConvexError("Thread is not idle");
     }
     // save new message to thread, update thread state, clear previous follow up questions
-    const [{ messageId }] = await Promise.all([
-      agent.saveMessage(ctx, {
-        threadId,
-        prompt: prompt,
-        skipEmbeddings: true,
-      }),
+    const [{ lastMessageId }] = await Promise.all([
+      saveNewMessage(ctx, threadId, prompt, attachments),
       ctx.db.patch(metadata._id, {
         state: "waiting",
         updatedAt: Date.now(),
@@ -114,7 +111,7 @@ export const newThreadMessage = mutation({
         internal.thread.thread_actions.generateResponse,
         {
           threadId: args.threadId,
-          promptMessageId: messageId,
+          promptMessageId: lastMessageId,
           prompt: prompt,
           userId: userId.subject,
         },
