@@ -26,7 +26,7 @@ export default async function ChatLayout({
       <SidebarInset className="relative h-screen">
         {userId && (
           <>
-            <div className="absolute top-0 right-0 left-0 z-100 flex w-full items-center justify-between">
+            <div className="absolute top-0 right-0 left-0 z-20 flex w-full items-center justify-between">
               <SidebarTrigger className="m-4 border p-5 shadow-md" />
               <TopRightNav />
             </div>
