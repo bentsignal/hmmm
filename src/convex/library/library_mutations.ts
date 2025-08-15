@@ -65,10 +65,11 @@ export const uploadFileMetadata = storageTriggerMutation({
 export const verifyUpload = mutation({
   args: {
     userId: v.string(),
+    payloadSize: v.number(),
     secretKey: v.string(),
   },
   handler: async (ctx, args) => {
-    const { userId, secretKey } = args;
+    const { userId, secretKey, payloadSize } = args;
 
     // make sure request is internal, and not from client
     if (!process.env.NEXT_CONVEX_INTERNAL_KEY) {
@@ -91,10 +92,10 @@ export const verifyUpload = mutation({
 
     // make sure user is not exceeding their storage limit
     const { storageUsed, storageLimit } = await getStorageHelper(ctx, userId);
-    if (storageUsed >= storageLimit) {
+    if (storageUsed + payloadSize >= storageLimit) {
       return {
         allow: false,
-        reason: "Storage limit exceeded",
+        reason: "Not enough storage space for this upload",
       };
     }
 

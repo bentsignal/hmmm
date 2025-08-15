@@ -16,29 +16,32 @@ export const ourFileRouter = {
        * For full list of options and defaults, see the File Route API reference
        * @see https://docs.uploadthing.com/file-routes#route-config
        */
-      maxFileSize: "8MB",
-      maxFileCount: 10,
+      maxFileSize: "32MB",
+      maxFileCount: 50,
     },
     "image/png": {
-      maxFileSize: "8MB",
-      maxFileCount: 10,
+      maxFileSize: "32MB",
+      maxFileCount: 50,
     },
     "image/webp": {
-      maxFileSize: "8MB",
-      maxFileCount: 10,
+      maxFileSize: "32MB",
+      maxFileCount: 50,
     },
     "application/pdf": {
-      maxFileSize: "8MB",
-      maxFileCount: 10,
+      maxFileSize: "32MB",
+      maxFileCount: 50,
     },
   })
     // Set permissions and file types for this FileRoute
-    .middleware(async () => {
+    .middleware(async ({ files }) => {
       // This code runs on your server before upload
       const user = await auth();
 
       // If you throw, the user will not be able to upload
       if (!user?.userId) throw new UploadThingError("Unauthorized");
+
+      // calculate the total size of the files
+      const payloadSize = files.reduce((acc, file) => acc + file.size, 0);
 
       // storage and rate limit check
       const { allow, reason } = await fetchMutation(
@@ -46,6 +49,7 @@ export const ourFileRouter = {
         {
           userId: user.userId,
           secretKey: env.NEXT_CONVEX_INTERNAL_KEY,
+          payloadSize,
         },
       );
 
