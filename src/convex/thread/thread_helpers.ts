@@ -2,6 +2,7 @@ import { ConvexError } from "convex/values";
 import { ActionCtx, MutationCtx, QueryCtx } from "@/convex/_generated/server";
 import { agent } from "@/convex/agents";
 import { isAdmin } from "@/convex/user/user_helpers";
+import { MAX_ATTACHMENTS_PER_MESSAGE } from "../library/library_config";
 import { messageSendRateLimit } from "../limiter";
 import { getUsageHelper } from "../sub/sub_helpers";
 import {
@@ -112,7 +113,11 @@ export const logSystemNotice = async (
   });
 };
 
-export const threadMessageCheck = async (ctx: MutationCtx, message: string) => {
+export const threadMessageCheck = async (
+  ctx: MutationCtx,
+  message: string,
+  attachmentLength: number,
+) => {
   if (message.length > 20000) {
     throw new ConvexError("Message is too long. Please shorten your message.");
   }
@@ -129,5 +134,31 @@ export const threadMessageCheck = async (ctx: MutationCtx, message: string) => {
   if (usage.limitHit) {
     throw new ConvexError("User has reached usage limit");
   }
+  // max 20 files per message
+  if (attachmentLength > MAX_ATTACHMENTS_PER_MESSAGE) {
+    throw new ConvexError("You can only attach up to 20 files per message.");
+  }
   return userId;
+};
+
+export const saveNewMessage = async (
+  ctx: MutationCtx,
+  threadId: string,
+  prompt: string,
+  attachments?: string[],
+) => {
+  const fileNames = attachments || [];
+  return await agent.saveMessages(ctx, {
+    threadId: threadId,
+    messages: [
+      {
+        role: "user",
+        content: prompt,
+      },
+      ...fileNames.map((fileName) => ({
+        role: "system" as const,
+        content: `User has attached a file with the following file name: ${fileName}`,
+      })),
+    ],
+  });
 };

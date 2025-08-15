@@ -8,6 +8,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { SIDEBAR_COOKIE_NAME } from "@/lib/cookies";
+import Library from "@/features/library";
 
 export default async function ChatLayout({
   children,
@@ -21,6 +22,7 @@ export default async function ChatLayout({
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       {userId && <ChatSidebar />}
+      {userId && <Library />}
       <SidebarInset className="relative h-screen">
         {userId && (
           <>

@@ -27,8 +27,8 @@ export const requestDeleteUser = mutation({
       throw new Error("Unauthorized");
     }
 
-    // delete all thread & message, and usage
-    const [threadMetadata, messageMetadata] = await Promise.all([
+    // delete all threads, messages, and files
+    const [threadMetadata, messageMetadata, files] = await Promise.all([
       ctx.db
         .query("threadMetadata")
         .withIndex("by_user_time", (q) => q.eq("userId", userId.subject))
@@ -37,6 +37,10 @@ export const requestDeleteUser = mutation({
         .query("messageMetadata")
         .withIndex("by_user_thread", (q) => q.eq("userId", userId.subject))
         .collect(),
+      ctx.db
+        .query("files")
+        .withIndex("by_user", (q) => q.eq("userId", userId.subject))
+        .collect(),
     ]);
     await Promise.all([
       threadMetadata.map((metadata) => {
@@ -44,6 +48,9 @@ export const requestDeleteUser = mutation({
       }),
       messageMetadata.map((metadata) => {
         return ctx.db.delete(metadata._id);
+      }),
+      files.map((file) => {
+        return ctx.db.delete(file._id);
       }),
     ]);
 
@@ -63,5 +70,14 @@ export const requestDeleteUser = mutation({
     await ctx.scheduler.runAfter(0, internal.user.user_actions.deleteUser, {
       userId: userId.subject,
     });
+
+    // delete all files from storage
+    await ctx.scheduler.runAfter(
+      0,
+      internal.library.library_actions.deleteFilesFromStorage,
+      {
+        keys: files.map((file) => file.key),
+      },
+    );
   },
 });

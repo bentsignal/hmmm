@@ -2,7 +2,13 @@ import { Agent } from "@convex-dev/agent";
 import { components } from "@/convex/_generated/api";
 import { languageModels } from "@/convex/agents/models";
 import { agentPrompt } from "@/convex/agents/prompts";
-import { currentEvents, dateTime, positionHolder, weather } from "./tools";
+import {
+  currentEvents,
+  dateTime,
+  fileAnalysis,
+  positionHolder,
+  weather,
+} from "./tools";
 
 export const agent = new Agent(components.agent, {
   chat: languageModels["gemini-2.5-flash"].model,
@@ -15,6 +21,7 @@ export const agent = new Agent(components.agent, {
     currentEvents,
     weather,
     positionHolder,
+    fileAnalysis,
   },
   contextOptions: {
     excludeToolMessages: false,

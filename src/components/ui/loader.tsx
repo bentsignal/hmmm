@@ -231,9 +231,11 @@ export function TypingLoader({
 export function WaveLoader({
   className,
   size = "md",
+  bgColor = "bg-primary",
 }: {
   className?: string
   size?: "sm" | "md" | "lg"
+  bgColor?: string
 }) {
   const barWidths = {
     sm: "w-0.5",
@@ -265,7 +267,8 @@ export function WaveLoader({
         <div
           key={i}
           className={cn(
-            "bg-primary animate-[wave_1s_ease-in-out_infinite] rounded-full",
+            bgColor,
+            "animate-[wave-bars_1s_ease-in-out_infinite] rounded-full",
             barWidths[size]
           )}
           style={{

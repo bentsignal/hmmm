@@ -42,7 +42,7 @@ export default async function NewPage({
     fetchMutation(
       api.thread.thread_mutations.requestNewThread,
       {
-        message: parsedQuery,
+        prompt: parsedQuery,
       },
       { token: authToken },
     ),

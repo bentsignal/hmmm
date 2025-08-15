@@ -36,4 +36,12 @@ export const shortcuts = {
       shift: true,
     },
   },
+  library: {
+    name: "Library",
+    hotkey: {
+      key: "L",
+      shift: true,
+      ctrlCmd: true,
+    },
+  },
 } as const satisfies Record<string, Shortcut>;

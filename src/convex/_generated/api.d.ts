@@ -25,6 +25,7 @@ import type * as agents_prompts_types_index from "../agents/prompts/types/index.
 import type * as agents_prompts_types_prompt_types from "../agents/prompts/types/prompt_types.js";
 import type * as agents_tools_current_events_tool from "../agents/tools/current_events_tool.js";
 import type * as agents_tools_date_time_tool from "../agents/tools/date_time_tool.js";
+import type * as agents_tools_file_analysis_tool from "../agents/tools/file_analysis_tool.js";
 import type * as agents_tools_index from "../agents/tools/index.js";
 import type * as agents_tools_postition_holder_tool from "../agents/tools/postition_holder_tool.js";
 import type * as agents_tools_tool_helpers from "../agents/tools/tool_helpers.js";
@@ -34,6 +35,11 @@ import type * as clerk_clerk_http_actions from "../clerk/clerk_http_actions.js";
 import type * as counter from "../counter.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
+import type * as library_library_actions from "../library/library_actions.js";
+import type * as library_library_config from "../library/library_config.js";
+import type * as library_library_helpers from "../library/library_helpers.js";
+import type * as library_library_mutations from "../library/library_mutations.js";
+import type * as library_library_queries from "../library/library_queries.js";
 import type * as limiter from "../limiter.js";
 import type * as mail_mail_actions from "../mail/mail_actions.js";
 import type * as mail_mail_mutations from "../mail/mail_mutations.js";
@@ -89,6 +95,7 @@ declare const fullApi: ApiFromModules<{
   "agents/prompts/types/prompt_types": typeof agents_prompts_types_prompt_types;
   "agents/tools/current_events_tool": typeof agents_tools_current_events_tool;
   "agents/tools/date_time_tool": typeof agents_tools_date_time_tool;
+  "agents/tools/file_analysis_tool": typeof agents_tools_file_analysis_tool;
   "agents/tools/index": typeof agents_tools_index;
   "agents/tools/postition_holder_tool": typeof agents_tools_postition_holder_tool;
   "agents/tools/tool_helpers": typeof agents_tools_tool_helpers;
@@ -98,6 +105,11 @@ declare const fullApi: ApiFromModules<{
   counter: typeof counter;
   crons: typeof crons;
   http: typeof http;
+  "library/library_actions": typeof library_library_actions;
+  "library/library_config": typeof library_library_config;
+  "library/library_helpers": typeof library_library_helpers;
+  "library/library_mutations": typeof library_library_mutations;
+  "library/library_queries": typeof library_library_queries;
   limiter: typeof limiter;
   "mail/mail_actions": typeof mail_mail_actions;
   "mail/mail_mutations": typeof mail_mail_mutations;
@@ -2906,6 +2918,149 @@ export declare const components: {
     };
   };
   aggregateUsage: {
+    btree: {
+      aggregateBetween: FunctionReference<
+        "query",
+        "internal",
+        { k1?: any; k2?: any; namespace?: any },
+        { count: number; sum: number }
+      >;
+      atNegativeOffset: FunctionReference<
+        "query",
+        "internal",
+        { k1?: any; k2?: any; namespace?: any; offset: number },
+        { k: any; s: number; v: any }
+      >;
+      atOffset: FunctionReference<
+        "query",
+        "internal",
+        { k1?: any; k2?: any; namespace?: any; offset: number },
+        { k: any; s: number; v: any }
+      >;
+      get: FunctionReference<
+        "query",
+        "internal",
+        { key: any; namespace?: any },
+        null | { k: any; s: number; v: any }
+      >;
+      offset: FunctionReference<
+        "query",
+        "internal",
+        { k1?: any; key: any; namespace?: any },
+        number
+      >;
+      offsetUntil: FunctionReference<
+        "query",
+        "internal",
+        { k2?: any; key: any; namespace?: any },
+        number
+      >;
+      paginate: FunctionReference<
+        "query",
+        "internal",
+        {
+          cursor?: string;
+          k1?: any;
+          k2?: any;
+          limit: number;
+          namespace?: any;
+          order: "asc" | "desc";
+        },
+        {
+          cursor: string;
+          isDone: boolean;
+          page: Array<{ k: any; s: number; v: any }>;
+        }
+      >;
+      paginateNamespaces: FunctionReference<
+        "query",
+        "internal",
+        { cursor?: string; limit: number },
+        { cursor: string; isDone: boolean; page: Array<any> }
+      >;
+      validate: FunctionReference<
+        "query",
+        "internal",
+        { namespace?: any },
+        any
+      >;
+    };
+    inspect: {
+      display: FunctionReference<"query", "internal", { namespace?: any }, any>;
+      dump: FunctionReference<"query", "internal", { namespace?: any }, string>;
+      inspectNode: FunctionReference<
+        "query",
+        "internal",
+        { namespace?: any; node?: string },
+        null
+      >;
+    };
+    public: {
+      clear: FunctionReference<
+        "mutation",
+        "internal",
+        { maxNodeSize?: number; namespace?: any; rootLazy?: boolean },
+        null
+      >;
+      deleteIfExists: FunctionReference<
+        "mutation",
+        "internal",
+        { key: any; namespace?: any },
+        any
+      >;
+      delete_: FunctionReference<
+        "mutation",
+        "internal",
+        { key: any; namespace?: any },
+        null
+      >;
+      init: FunctionReference<
+        "mutation",
+        "internal",
+        { maxNodeSize?: number; namespace?: any; rootLazy?: boolean },
+        null
+      >;
+      insert: FunctionReference<
+        "mutation",
+        "internal",
+        { key: any; namespace?: any; summand?: number; value: any },
+        null
+      >;
+      makeRootLazy: FunctionReference<
+        "mutation",
+        "internal",
+        { namespace?: any },
+        null
+      >;
+      replace: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          currentKey: any;
+          namespace?: any;
+          newKey: any;
+          newNamespace?: any;
+          summand?: number;
+          value: any;
+        },
+        null
+      >;
+      replaceOrInsert: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          currentKey: any;
+          namespace?: any;
+          newKey: any;
+          newNamespace?: any;
+          summand?: number;
+          value: any;
+        },
+        any
+      >;
+    };
+  };
+  aggregateStorage: {
     btree: {
       aggregateBetween: FunctionReference<
         "query",

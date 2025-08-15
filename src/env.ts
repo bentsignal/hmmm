@@ -13,6 +13,8 @@ export const env = createEnv({
     OPENROUTER_API_KEY: z.string().min(1),
     // open ai
     OPENAI_API_KEY: z.string().min(1),
+    // uploadthing
+    UPLOADTHING_TOKEN: z.string().min(1),
   },
   client: {
     NEXT_PUBLIC_BASE_URL: z.string().min(1),
@@ -43,5 +45,7 @@ export const env = createEnv({
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
     // open ai
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    // uploadthing
+    UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
   },
 });

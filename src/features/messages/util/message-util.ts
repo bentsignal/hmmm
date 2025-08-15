@@ -2,6 +2,8 @@ import { ReactNode } from "react";
 import { UIMessage } from "@convex-dev/agent/react";
 import { z } from "zod";
 import {
+  FileAnalysisResultSchema,
+  FileResult,
   Source,
   SourceSchema,
   SystemErrorCode,
@@ -11,6 +13,7 @@ import {
   ToolInvocationPartWithResult,
   ToolInvocationUIPart,
 } from "../types/message-types";
+import { LibraryFile } from "@/features/library/types";
 
 export function extractTextFromChildren(children: ReactNode): string {
   if (typeof children === "string") {
@@ -63,6 +66,8 @@ export function getStatusLabel(message: UIMessage) {
           return "Checking the weather";
         case "currentEvents":
           return "Checking the news";
+        case "fileAnalysis":
+          return "Analyzing file";
         default:
           return "Searching for information";
       }
@@ -115,4 +120,22 @@ export function extractSourcesFromMessage(message: UIMessage) {
     }
   }
   return collected;
+}
+
+export function extractFilesFromMessage(message: UIMessage) {
+  const collected: Array<FileResult> = [];
+  for (const part of message.parts) {
+    if (part.type !== "tool-invocation") continue;
+  }
+  for (const part of message.parts) {
+    if (part.type !== "tool-invocation") continue;
+    const withResult = part as ToolInvocationPartWithResult;
+    if (!("toolInvocation" in withResult)) continue;
+    const parsed = FileAnalysisResultSchema.safeParse(
+      withResult.toolInvocation.result,
+    );
+    if (!parsed.success) continue;
+    collected.push(parsed.data.file);
+  }
+  return collected as Array<LibraryFile>;
 }

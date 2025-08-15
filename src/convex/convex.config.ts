@@ -17,5 +17,6 @@ app.use(shardedCounter);
 app.use(resend);
 
 app.use(aggregate, { name: "aggregateUsage" });
+app.use(aggregate, { name: "aggregateStorage" });
 
 export default app;

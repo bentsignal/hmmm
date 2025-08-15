@@ -28,3 +28,16 @@ export const SourceSchema = z.object({
   image: z.string().optional().nullable(),
 });
 export type Source = z.infer<typeof SourceSchema>;
+
+const fileSchema = z.object({
+  id: z.string(),
+  url: z.string(),
+  fileName: z.string(),
+  mimeType: z.string(),
+  size: z.number(),
+});
+export type FileResult = z.infer<typeof fileSchema>;
+export const FileAnalysisResultSchema = z.object({
+  file: fileSchema,
+  response: z.string(),
+});

@@ -24,10 +24,16 @@ export default function Messages({
   threadId: string;
   triggerMessagesLoaded: () => void;
 }) {
-  const { messages, loadMore, status } = useMessages({
+  const {
+    messages: pureMessages,
+    loadMore,
+    status,
+  } = useMessages({
     threadId,
     streaming: true,
   });
+
+  const messages = pureMessages.filter((item) => item.role !== "system");
 
   // thread is not idle if waiting for a response, or if a response is streaming in
   const { isThreadIdle } = useThreadStatus({ threadId });

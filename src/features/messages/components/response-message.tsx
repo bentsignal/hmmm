@@ -1,12 +1,14 @@
 import { UIMessage } from "@convex-dev/agent/react";
 import { Info } from "lucide-react";
 import {
+  extractFilesFromMessage,
   extractSourcesFromMessage,
   isErrorMessage,
   isNoticeMessage,
 } from "../util/message-util";
 import { CopyButton } from "./copy-button";
 import ErrorMessage from "./error-message";
+import { MessageFiles } from "./message-files";
 import { MessageSources } from "./message-sources";
 import MessageStatus from "./message-status";
 import NoticeMessage from "./notice-message";
@@ -52,6 +54,9 @@ export default function ResponseMessage({
   // get web sources from message if they exist
   const sources = extractSourcesFromMessage(message);
 
+  // files analyzed during response generation
+  const files = extractFilesFromMessage(message);
+
   // if the message begins with the substring "undefined", remove it from the
   // message. Not sure why this happens, seems to be a bug in a dependency
   const cleanedText = animatedText.replace(/^undefined/, "");
@@ -59,6 +64,7 @@ export default function ResponseMessage({
   return (
     <div className="flex w-full flex-col items-start gap-2">
       <MessageStatus message={message} isActive={isActive} />
+      <MessageFiles files={files} />
       <MessageSources threadId={threadId} sources={sources} />
       <div className="relative flex w-full max-w-full flex-col gap-2">
         <Markdown className="prose dark:prose-invert relative w-full max-w-full">
