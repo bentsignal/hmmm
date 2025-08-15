@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, FileIcon } from "lucide-react";
 import { FileResult } from "../types/message-types";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { LibraryFileIcon } from "@/features/library/components/library-file-icon";
@@ -22,8 +22,9 @@ export const MessageFiles = ({ files }: { files: FileResult[] }) => {
 
 const PreviewMessage = ({ files }: { files: FileResult[] }) => {
   return (
-    <div className="mb-3 flex w-full cursor-pointer flex-col gap-2 select-none">
-      <div className="bg-card flex w-fit items-center gap-3 rounded-full px-4 py-2">
+    <div className="mb-3 w-full cursor-pointer select-none">
+      <div className="bg-card flex w-fit items-center gap-2 rounded-full px-4 py-2">
+        <FileIcon className="h-4 w-4" />
         <span className="text-muted-foreground text-sm font-bold">
           Analyzed {files.length} file{files.length > 1 ? "s" : ""}
         </span>
