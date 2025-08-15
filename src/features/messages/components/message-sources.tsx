@@ -83,7 +83,7 @@ const PreviewSources = ({
           <div key={`image-${index}`}>
             <img
               src={source ?? ""}
-              alt={source ?? ""}
+              alt={" "}
               className="absolute top-0 rounded-lg object-cover"
               style={{
                 filter: `blur(${index + 0.5}px)`,
@@ -106,7 +106,7 @@ const PreviewSources = ({
             <div key={`favicon-${index}`}>
               <img
                 src={favicon ?? ""}
-                alt={favicon ?? ""}
+                alt={" "}
                 className="h-4 w-4 rounded-lg"
                 onLoad={handleLoadOrError}
                 onError={handleLoadOrError}
