@@ -39,44 +39,17 @@ const usageTriggerMutation = customMutation(
   customCtx(triggers.wrapDB),
 );
 
-export const logMessageUsage = usageTriggerInternalMutation({
-  args: v.object({
-    userId: v.string(),
-    messageId: v.string(),
-    threadId: v.string(),
-    model: v.string(),
-    inputTokens: v.number(),
-    outputTokens: v.number(),
-    cost: v.number(),
-  }),
-  handler: async (ctx, args) => {
-    const usageId = await ctx.db.insert("usage", {
-      userId: args.userId,
-      cost: args.cost,
-      type: "message",
-    });
-    await ctx.db.insert("messageMetadata", {
-      messageId: args.messageId,
-      threadId: args.threadId,
-      userId: args.userId,
-      usageId: usageId,
-      model: args.model,
-      inputTokens: args.inputTokens,
-      outputTokens: args.outputTokens,
-    });
-  },
-});
-
-export const logToolCallUsage = usageTriggerInternalMutation({
+export const logUsage = usageTriggerInternalMutation({
   args: v.object({
     cost: v.number(),
     userId: v.string(),
+    type: v.union(v.literal("message"), v.literal("tool_call")),
   }),
   handler: async (ctx, args) => {
     await ctx.db.insert("usage", {
       userId: args.userId,
       cost: args.cost,
-      type: "tool_call",
+      type: args.type,
     });
   },
 });

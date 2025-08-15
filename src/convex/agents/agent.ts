@@ -1,7 +1,8 @@
 import { Agent } from "@convex-dev/agent";
-import { components } from "@/convex/_generated/api";
-import { languageModels } from "@/convex/agents/models";
+import { components, internal } from "@/convex/_generated/api";
+import { defaultModel } from "@/convex/agents/models/model_presets";
 import { agentPrompt } from "@/convex/agents/prompts";
+import { calculateModelCost } from "@/convex/sub/sub_helpers";
 import {
   currentEvents,
   dateTime,
@@ -11,7 +12,7 @@ import {
 } from "./tools";
 
 export const agent = new Agent(components.agent, {
-  chat: languageModels["gemini-2.5-flash"].model,
+  chat: defaultModel.model,
   name: "QBE",
   instructions: agentPrompt,
   maxSteps: 20,
@@ -25,5 +26,13 @@ export const agent = new Agent(components.agent, {
   },
   contextOptions: {
     excludeToolMessages: false,
+  },
+  usageHandler: async (ctx, args) => {
+    const cost = calculateModelCost(defaultModel, args.usage);
+    await ctx.runMutation(internal.sub.usage.logUsage, {
+      userId: args.userId || "no-user",
+      type: "message",
+      cost: cost,
+    });
   },
 });

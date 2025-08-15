@@ -9,8 +9,9 @@ export const logSearchCost = async (
   const baseSearchCost = 0.005; // $5 / 1000 searches
   const contentsCost = numResults * 0.001; // $ 1 / 1000 pages retrieved
   const totalCost = baseSearchCost + contentsCost;
-  await ctx.runMutation(internal.sub.usage.logToolCallUsage, {
+  await ctx.runMutation(internal.sub.usage.logUsage, {
     userId: userId,
+    type: "tool_call",
     cost: totalCost,
   });
 };

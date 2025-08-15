@@ -4,16 +4,11 @@ import { v } from "convex/values";
 import { internal } from "@/convex/_generated/api";
 import { internalAction } from "@/convex/_generated/server";
 import { agent } from "@/convex/agents/agent";
-import {
-  defaultModel,
-  followUpModel,
-  titleGeneratorModel,
-} from "@/convex/agents/models";
+import { followUpModel, titleGeneratorModel } from "@/convex/agents/models";
 import {
   followUpGeneratorPrompt,
   titleGeneratorPrompt,
 } from "@/convex/agents/prompts";
-import { calculateModelCost } from "../sub/sub_helpers";
 import { logSystemError } from "./thread_helpers";
 import { tryCatch } from "@/lib/utils";
 
@@ -42,11 +37,9 @@ export const generateResponse = internalAction({
   args: {
     threadId: v.string(),
     promptMessageId: v.string(),
-    prompt: v.string(),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { threadId, promptMessageId, userId } = args;
+    const { threadId, promptMessageId } = args;
     const { thread } = await agent.continueThread(ctx, {
       threadId: threadId,
     });
@@ -128,20 +121,6 @@ export const generateResponse = internalAction({
             followUpQuestions: followUpQuestions.questions,
           },
         );
-      })(),
-      // log usage
-      (async () => {
-        const messageUsage = await result.usage;
-        const messageCost = calculateModelCost(defaultModel, messageUsage);
-        await ctx.runMutation(internal.sub.usage.logMessageUsage, {
-          userId: userId,
-          messageId: promptMessageId,
-          threadId: threadId,
-          model: defaultModel.id,
-          inputTokens: messageUsage.promptTokens,
-          outputTokens: messageUsage.completionTokens,
-          cost: messageCost,
-        });
       })(),
     ]);
   },

@@ -55,8 +55,6 @@ export const requestNewThread = mutation({
           {
             threadId: threadId,
             promptMessageId: lastMessageId,
-            prompt: prompt,
-            userId: userId.subject,
           },
         ),
       ]),
@@ -114,8 +112,6 @@ export const newThreadMessage = mutation({
         {
           threadId: args.threadId,
           promptMessageId: lastMessageId,
-          prompt: prompt,
-          userId: userId.subject,
         },
       ),
     );
