@@ -80,7 +80,7 @@ export default function Library() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex">
-            <div className="bg-card supports-[backdrop-filter]:bg-card/60 flex h-full w-fit max-w-50 flex-col justify-between rounded-xl rounded-r-none border border-r-0 backdrop-blur">
+            <div className="bg-card supports-[backdrop-filter]:bg-card/80 flex h-full w-fit max-w-50 flex-col justify-between rounded-xl rounded-r-none border border-r-0 backdrop-blur">
               <div className="flex flex-col gap-2 p-4">
                 {tabs.map((tab) => (
                   <Button
