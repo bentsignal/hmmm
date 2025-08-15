@@ -3,7 +3,6 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { fetchMutation } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
-import DefaultLoading from "@/components/default-loading";
 import { tryCatch } from "@/lib/utils";
 import { getAuthToken } from "@/features/auth/util/auth-util";
 
@@ -13,13 +12,7 @@ interface NewPageProps {
 
 export default async function NewPage({ searchParams }: NewPageProps) {
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-screen w-screen items-center justify-center">
-          <DefaultLoading />
-        </div>
-      }
-    >
+    <Suspense fallback={<></>}>
       <Redirector searchParams={searchParams} />
     </Suspense>
   );
