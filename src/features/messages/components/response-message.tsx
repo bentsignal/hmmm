@@ -64,8 +64,8 @@ export default function ResponseMessage({
   return (
     <div className="flex w-full flex-col items-start gap-2">
       <MessageStatus message={message} isActive={isActive} />
-      <MessageSources threadId={threadId} sources={sources} />
       <MessageFiles files={files} />
+      <MessageSources threadId={threadId} sources={sources} />
       <div className="relative flex w-full max-w-full flex-col gap-2">
         <Markdown className="prose dark:prose-invert relative w-full max-w-full">
           {cleanedText}
