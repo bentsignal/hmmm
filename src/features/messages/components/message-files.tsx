@@ -22,12 +22,7 @@ export const MessageFiles = ({ files }: { files: FileResult[] }) => {
 
 const PreviewMessage = ({ files }: { files: FileResult[] }) => {
   return (
-    <div
-      className="mb-3 flex w-full cursor-pointer flex-col gap-2 transition-opacity delay-200 duration-500 select-none"
-      style={{
-        opacity: files.length > 0 ? 1 : 0,
-      }}
-    >
+    <div className="mb-3 flex w-full cursor-pointer flex-col gap-2 select-none">
       <div className="bg-card flex w-fit items-center gap-3 rounded-full px-4 py-2">
         <span className="text-muted-foreground text-sm font-bold">
           Analyzed {files.length} file{files.length > 1 ? "s" : ""}
