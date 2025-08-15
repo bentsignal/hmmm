@@ -55,11 +55,11 @@ export const generateResponse = internalAction({
       thread.streamText(
         {
           promptMessageId,
-          maxTokens: 32000,
+          maxTokens: 64000,
           providerOptions: {
             openrouter: {
               reasoning: {
-                max_tokens: 16000,
+                max_tokens: 32000,
               },
             },
           },
