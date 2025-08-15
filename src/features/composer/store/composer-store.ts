@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { MAX_ATTACHMENTS_PER_MESSAGE } from "@/convex/library/library_config";
 import { LibraryFile } from "@/features/library/types/library-types";
 
 interface ComposerStore {
@@ -13,7 +14,7 @@ interface ComposerStore {
   attachedFiles: LibraryFile[];
   setAttachedFiles: (files: LibraryFile[]) => void;
   addAttachment: (file: LibraryFile) => void;
-  addAttachments: (files: LibraryFile[]) => void;
+  addAttachments: (files: LibraryFile[]) => { errors: string[] };
   removeAttachment: (id: LibraryFile["id"]) => void;
   clearAttachments: () => void;
 }
@@ -36,10 +37,27 @@ export const useComposerStore = create<ComposerStore>((set, get) => ({
   },
   addAttachments: (files) => {
     const { attachedFiles } = get();
+    const errors = [];
+    // remove duplicates
     const dedupedFiles = files.filter(
       (file) => !attachedFiles.some((f) => f.id === file.id),
     );
-    set({ attachedFiles: [...attachedFiles, ...dedupedFiles] });
+    // make sure user is not exceeding max attachments
+    let slicedFiles = dedupedFiles;
+    if (
+      attachedFiles.length + dedupedFiles.length >
+      MAX_ATTACHMENTS_PER_MESSAGE
+    ) {
+      errors.push(
+        `You can only attach up to ${MAX_ATTACHMENTS_PER_MESSAGE} files per message.`,
+      );
+      slicedFiles = dedupedFiles.slice(
+        0,
+        MAX_ATTACHMENTS_PER_MESSAGE - attachedFiles.length,
+      );
+    }
+    set({ attachedFiles: [...attachedFiles, ...slicedFiles] });
+    return { errors };
   },
   removeAttachment: (id) => {
     const { attachedFiles } = get();

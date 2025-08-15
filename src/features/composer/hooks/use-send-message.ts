@@ -100,6 +100,9 @@ export default function useSendMessage() {
           return;
         }
         toast.error("An internal error occurred. Please try again.");
+        if (navigateToNewThread) {
+          router.refresh();
+        }
         return;
       }
       clearAttachments();

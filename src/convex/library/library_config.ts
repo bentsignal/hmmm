@@ -15,3 +15,5 @@ export const libraryPagination = {
   pageSize: 48,
   loaderIndex: 24,
 };
+
+export const MAX_ATTACHMENTS_PER_MESSAGE = 10;

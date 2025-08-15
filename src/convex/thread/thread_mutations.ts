@@ -18,8 +18,9 @@ export const requestNewThread = mutation({
   },
   handler: async (ctx, args) => {
     const { prompt, attachments } = args;
+    const numAttachments = attachments?.length || 0;
     // auth, usage, input val, rate limit
-    const userId = await threadMessageCheck(ctx, prompt);
+    const userId = await threadMessageCheck(ctx, prompt, numAttachments);
     // create new thread in agent component table, as well as
     // new document in separate threadMetadata table
     const { threadId } = await agent.createThread(ctx, {
@@ -81,7 +82,8 @@ export const newThreadMessage = mutation({
   },
   handler: async (ctx, args) => {
     const { threadId, prompt, attachments } = args;
-    const userId = await threadMessageCheck(ctx, prompt);
+    const numAttachments = attachments?.length || 0;
+    const userId = await threadMessageCheck(ctx, prompt, numAttachments);
     // get thread metadata
     const metadata = await getThreadMetadata(ctx, threadId);
     if (!metadata) {
