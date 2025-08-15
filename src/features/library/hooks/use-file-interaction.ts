@@ -1,9 +1,12 @@
 import { useLibraryStore } from "../store/library-store";
 import { LibraryFile, LibraryMode } from "../types/library-types";
+import useComposerStore from "@/features/composer/store/composer-store";
 
 export const useFileInteraction = () => {
   const setSelectedFiles = useLibraryStore((state) => state.setSelectedFiles);
   const setSelectedFile = useLibraryStore((state) => state.setSelectedFile);
+  const addAttachment = useComposerStore((state) => state.addAttachment);
+  const setLibraryOpen = useLibraryStore((state) => state.setLibraryOpen);
 
   const handleFileClick = (
     file: LibraryFile,
@@ -29,5 +32,10 @@ export const useFileInteraction = () => {
     }
   };
 
-  return { handleFileClick, handleFileHover };
+  const handleAddAttachment = (file: LibraryFile) => {
+    addAttachment(file);
+    setLibraryOpen(false);
+  };
+
+  return { handleFileClick, handleFileHover, handleAddAttachment };
 };
