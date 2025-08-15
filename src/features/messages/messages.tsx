@@ -6,7 +6,6 @@ import "@/features/messages/styles/message-styles.css";
 import { UIMessage } from "@convex-dev/agent/react";
 import equal from "fast-deep-equal";
 import ThreadFollowUps from "../thread/components/thread-follow-ups";
-import useThreadStatus from "../thread/hooks/use-thread-status";
 import PromptMessage from "./components/prompt-message";
 import ResponseMessage from "./components/response-message";
 import useMessages from "./hooks/use-messages";
@@ -20,9 +19,11 @@ import {
 export default function Messages({
   threadId,
   triggerMessagesLoaded,
+  isThreadIdle,
 }: {
   threadId: string;
   triggerMessagesLoaded: () => void;
+  isThreadIdle: boolean;
 }) {
   const {
     messages: pureMessages,
@@ -34,9 +35,6 @@ export default function Messages({
   });
 
   const messages = pureMessages.filter((item) => item.role !== "system");
-
-  // thread is not idle if waiting for a response, or if a response is streaming in
-  const { isThreadIdle } = useThreadStatus({ threadId });
 
   // when messages have loaded, tell parent component to scroll to the bottom of the page
   useEffect(() => {
