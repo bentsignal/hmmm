@@ -13,6 +13,7 @@ import {
   ToolInvocationPartWithResult,
   ToolInvocationUIPart,
 } from "../types/message-types";
+import { LibraryFile } from "@/features/library/types";
 
 export function extractTextFromChildren(children: ReactNode): string {
   if (typeof children === "string") {
@@ -136,5 +137,5 @@ export function extractFilesFromMessage(message: UIMessage) {
     if (!parsed.success) continue;
     collected.push(parsed.data.file);
   }
-  return collected;
+  return collected as Array<LibraryFile>;
 }

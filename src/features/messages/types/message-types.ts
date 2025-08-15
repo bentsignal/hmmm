@@ -41,4 +41,3 @@ export const FileAnalysisResultSchema = z.object({
   file: fileSchema,
   response: z.string(),
 });
-export type FileAnalysisResult = z.infer<typeof FileAnalysisResultSchema>;
