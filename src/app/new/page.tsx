@@ -1,57 +1,85 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import { fetchMutation } from "convex/nextjs";
+"use client";
+
+import { useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import DefaultLoading from "@/components/default-loading";
 import { tryCatch } from "@/lib/utils";
-import { getAuthToken } from "@/features/auth/util/auth-util";
 
-export default async function NewPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  // parse query
-  const params = await searchParams;
-  const query = params.q as string;
+export default function NewPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  let parsedQuery = "";
-  if (query) {
-    try {
-      parsedQuery = decodeURIComponent(query.replace(/\+/g, " "));
-    } catch {
-      parsedQuery = query.replace(/\+/g, " ");
-    }
-  }
+  const { isSignedIn, isLoaded } = useUser();
 
-  if (parsedQuery.length === 0) {
-    redirect("/");
-  }
-
-  // auth check
-  const { userId } = await auth();
-  if (!userId) {
-    const redirectParams = new URLSearchParams();
-    redirectParams.set("q", parsedQuery);
-    const url = "/login?redirect_url=/new?" + redirectParams.toString();
-    redirect(url);
-  }
-
-  // create new thread
-  const authToken = await getAuthToken();
-  const { data: threadId, error } = await tryCatch(
-    fetchMutation(
-      api.thread.thread_mutations.requestNewThread,
-      {
-        prompt: parsedQuery,
-      },
-      { token: authToken },
-    ),
+  const createThread = useMutation(
+    api.thread.thread_mutations.requestNewThread,
   );
-  if (error || !threadId) {
-    console.error(error);
-    redirect("/");
-  }
 
-  // redirect to new thread;
-  redirect(`/chat/${threadId}`);
+  // if you are logged in, create a new thread and redirect to it
+  useEffect(() => {
+    const handleRedirect = async () => {
+      // wait for auth to load
+      if (!isLoaded) return;
+
+      // parse query
+      const query = searchParams.get("q");
+      let parsedQuery = "";
+      if (query) {
+        try {
+          parsedQuery = decodeURIComponent(query.replace(/\+/g, " "));
+        } catch {
+          parsedQuery = query.replace(/\+/g, " ");
+        }
+      }
+
+      if (parsedQuery.length === 0) {
+        router.push("/");
+        return;
+      }
+
+      // auth check
+      if (!isSignedIn) {
+        const redirectParams = new URLSearchParams();
+        redirectParams.set("q", parsedQuery);
+        const url = `/login?redirect_url=/new?${redirectParams.toString()}`;
+        router.push(url);
+        return;
+      }
+
+      // create new thread and redirect to it
+      const { data: threadId, error } = await tryCatch(
+        createThread({
+          prompt: parsedQuery,
+        }),
+      );
+
+      if (error) {
+        console.error(error);
+        router.push("/");
+        return;
+      }
+
+      router.push(`/chat/${threadId}`);
+    };
+
+    handleRedirect();
+  }, [isLoaded, isSignedIn, searchParams, router, createThread]);
+
+  // send you to home page after 10 seconds if you aren't redirected
+  useEffect(() => {
+    const forceRedirect = setTimeout(() => {
+      router.push("/");
+    }, 10000);
+
+    return () => clearTimeout(forceRedirect);
+  }, []);
+
+  return (
+    <div className="flex h-screen w-screen items-center justify-center">
+      <DefaultLoading />
+    </div>
+  );
 }
