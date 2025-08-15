@@ -9,7 +9,6 @@ import { useLibraryStore } from "@/features/library/store/library-store";
 
 export const ComposerAddAttachments = () => {
   const setLibraryOpen = useLibraryStore((state) => state.setLibraryOpen);
-  const setLibraryMode = useLibraryStore((state) => state.setLibraryMode);
 
   return (
     <Tooltip>
@@ -19,7 +18,6 @@ export const ComposerAddAttachments = () => {
           size="icon"
           onClick={() => {
             setLibraryOpen(true);
-            setLibraryMode("select");
           }}
         >
           <Paperclip className="h-4 w-4" />
