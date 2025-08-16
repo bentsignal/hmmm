@@ -10,11 +10,11 @@ crons.cron(
   internal.ai.suggestions.generateSuggestions,
 );
 
-crons.daily(
-  "send-newsletter",
-  { hourUTC: 20, minuteUTC: 0 },
-  internal.mail.mail_actions.sendNewsletter,
-);
+// crons.daily(
+//   "send-newsletter",
+//   { hourUTC: 20, minuteUTC: 0 },
+//   internal.mail.mail_actions.sendNewsletter,
+// );
 
 crons.interval(
   "Remove old emails from the resend component",
