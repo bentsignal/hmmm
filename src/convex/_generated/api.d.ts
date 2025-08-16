@@ -32,6 +32,7 @@ import type * as library_library_queries from "../library/library_queries.js";
 import type * as limiter from "../limiter.js";
 import type * as mail_actions from "../mail/actions.js";
 import type * as mail_newsletter from "../mail/newsletter.js";
+import type * as mail_templates from "../mail/templates.js";
 import type * as migrations from "../migrations.js";
 import type * as resend from "../resend.js";
 import type * as sub_polar from "../sub/polar.js";
@@ -86,6 +87,7 @@ declare const fullApi: ApiFromModules<{
   limiter: typeof limiter;
   "mail/actions": typeof mail_actions;
   "mail/newsletter": typeof mail_newsletter;
+  "mail/templates": typeof mail_templates;
   migrations: typeof migrations;
   resend: typeof resend;
   "sub/polar": typeof sub_polar;
