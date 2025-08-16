@@ -6,8 +6,8 @@ import { components, internal } from "@/convex/_generated/api";
 import { agentPrompt, followUpGeneratorPrompt } from "@/convex/ai/prompts";
 import { calculateModelCost } from "@/convex/sub/sub_helpers";
 import { ActionCtx, internalAction } from "../_generated/server";
-import { logSystemError } from "../thread/thread_helpers";
 import { modelPresets } from "./models";
+import { logSystemError } from "./thread";
 import {
   currentEvents,
   dateTime,
