@@ -1,6 +1,7 @@
 import { v } from "convex/values";
-import { MutationCtx } from "../_generated/server";
+import { internalQuery, MutationCtx, query } from "../_generated/server";
 import { apiMutation, authedMutation } from "../convex_helpers";
+import { getUserByUserId } from "../user/account";
 
 export const apiUpdatePreference = apiMutation({
   args: {
@@ -40,3 +41,27 @@ const setPreference = async (
   }
   await ctx.db.patch(user._id, { newsletter: status });
 };
+
+export const getRecipients = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    return users.filter((user) => user.newsletter);
+  },
+});
+
+export const getUserPreference = query({
+  args: {},
+  returns: v.union(v.boolean(), v.null()),
+  handler: async (ctx) => {
+    const userIdentity = await ctx.auth.getUserIdentity();
+    if (!userIdentity) {
+      return null;
+    }
+    const user = await getUserByUserId(ctx, userIdentity.subject);
+    if (!user) {
+      return null;
+    }
+    return user.newsletter === true;
+  },
+});

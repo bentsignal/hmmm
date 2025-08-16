@@ -8,14 +8,6 @@ import {
   QueryCtx,
 } from "@/convex/_generated/server";
 
-export const getUserIdentity = internalQuery({
-  args: {},
-  handler: async (ctx) => {
-    const user = await ctx.auth.getUserIdentity();
-    return user;
-  },
-});
-
 export const getUser = internalQuery({
   args: {},
   handler: async (ctx) => {
@@ -39,30 +31,6 @@ export const getUserEmail = query({
       return null;
     }
     return user.email;
-  },
-});
-
-export const getNewsletterRecipients = internalQuery({
-  args: {},
-  handler: async (ctx) => {
-    const users = await ctx.db.query("users").collect();
-    return users.filter((user) => user.newsletter);
-  },
-});
-
-export const getNewsletterPreference = query({
-  args: {},
-  returns: v.union(v.boolean(), v.null()),
-  handler: async (ctx) => {
-    const userIdentity = await ctx.auth.getUserIdentity();
-    if (!userIdentity) {
-      return null;
-    }
-    const user = await getUserByUserId(ctx, userIdentity.subject);
-    if (!user) {
-      return null;
-    }
-    return user.newsletter === true;
   },
 });
 

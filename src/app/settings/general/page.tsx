@@ -18,7 +18,7 @@ export default async function Settings() {
 
   // is user subbed to newsletter?
   const newsletterStatus = await fetchQuery(
-    api.user.user_queries.getNewsletterPreference,
+    api.mail.newsletter.getUserPreference,
     {},
     { token },
   );
