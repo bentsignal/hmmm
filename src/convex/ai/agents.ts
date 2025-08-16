@@ -104,19 +104,16 @@ export const streamResponse = internalAction({
         "G1",
         "Failed to initialize stream generation.",
       );
-      await ctx.runMutation(
-        internal.thread.thread_mutations.updateThreadState,
-        {
-          threadId: threadId,
-          state: "idle",
-        },
-      );
+      await ctx.runMutation(internal.ai.thread.updateThreadState, {
+        threadId: threadId,
+        state: "idle",
+      });
       return;
     }
     // stream response back to user
     const { error: streamError } = await tryCatch(
       Promise.all([
-        ctx.runMutation(internal.thread.thread_mutations.updateThreadState, {
+        ctx.runMutation(internal.ai.thread.updateThreadState, {
           threadId: threadId,
           state: "streaming",
         }),
@@ -134,7 +131,7 @@ export const streamResponse = internalAction({
     // stream has completed
     await Promise.allSettled([
       // set thread back to idle
-      ctx.runMutation(internal.thread.thread_mutations.updateThreadState, {
+      ctx.runMutation(internal.ai.thread.updateThreadState, {
         threadId: threadId,
         state: "idle",
       }),
@@ -151,13 +148,10 @@ export const streamResponse = internalAction({
           maxTokens: 1000,
           maxRetries: 3,
         });
-        await ctx.runMutation(
-          internal.thread.thread_mutations.saveFollowUpQuestions,
-          {
-            threadId: threadId,
-            followUpQuestions: followUpQuestions.questions,
-          },
-        );
+        await ctx.runMutation(internal.ai.thread.saveFollowUpQuestions, {
+          threadId: threadId,
+          followUpQuestions: followUpQuestions.questions,
+        });
       })(),
     ]);
   },
