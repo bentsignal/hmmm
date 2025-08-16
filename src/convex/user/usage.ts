@@ -13,7 +13,7 @@ import {
   mutation,
   QueryCtx,
 } from "@/convex/_generated/server";
-import { LanguageModel } from "../ai/models";
+import { LanguageModel, modelPresets } from "../ai/models";
 import { authedQuery, checkApiKey, checkAuth } from "../convex_helpers";
 import {
   ALLOWED_USAGE_PERCENTAGE,
@@ -76,19 +76,13 @@ export const logUsage = usageTriggerInternalMutation({
 
 export const logTranscriptionUsage = apiAuthedUsageTriggerMutation({
   args: v.object({
-    cost: v.number(),
-    totalCost: v.number(),
-    model: v.string(),
+    duration: v.number(),
   }),
   handler: async (ctx, args) => {
-    // usage check
-    const usage = await getUsageHelper(ctx, ctx.user.subject);
-    if (usage.limitHit) {
-      throw new Error("User has reached usage limit");
-    }
+    const cost = calculateTranscriptionCost(args.duration);
     await ctx.db.insert("usage", {
       userId: ctx.user.subject,
-      cost: args.cost,
+      cost,
       type: "transcription",
     });
   },
@@ -153,4 +147,9 @@ export const calculateModelCost = (
   const outputCost = model.cost.out * (usage.completionTokens / million);
   const totalCost = inputCost + outputCost + model.cost.other;
   return totalCost;
+};
+
+export const calculateTranscriptionCost = (duration: number) => {
+  const cost = modelPresets.transcription.cost.other * Math.ceil(duration / 60);
+  return cost;
 };
