@@ -1,5 +1,5 @@
 import { useFileMutation } from "../hooks/use-file-mutation";
-import { useLibraryStore } from "../store/library-store";
+import { useLibraryStore } from "../store";
 import CustomAlert from "@/components/alert";
 
 export const LibraryDeleteModal = () => {

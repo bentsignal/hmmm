@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { MAX_ATTACHMENTS_PER_MESSAGE } from "@/convex/library/library_config";
-import { LibraryFile } from "@/features/library/types/library-types";
+import { MAX_ATTACHMENTS_PER_MESSAGE } from "@/features/library/config";
+import { LibraryFile } from "@/features/library/types";
 
 interface ComposerStore {
   prompt: string;

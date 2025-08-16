@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { LibraryFile, LibraryMode } from "../types/library-types";
+import { LibraryFile, LibraryMode } from "../types";
 
 interface LibraryStore {
   libraryOpen: boolean;

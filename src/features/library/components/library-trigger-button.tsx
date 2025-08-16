@@ -1,5 +1,5 @@
 import { Library as LibraryIcon } from "lucide-react";
-import { useLibraryStore } from "../store/library-store";
+import { useLibraryStore } from "../store";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,

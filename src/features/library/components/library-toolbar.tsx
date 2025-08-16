@@ -4,7 +4,7 @@ import {
   List as ListIcon,
   ArrowDownWideNarrow as SortIcon,
 } from "lucide-react";
-import { useLibraryStore } from "../store/library-store";
+import { useLibraryStore } from "../store";
 import { LibrarySort, LibraryView } from "../types";
 import { Button } from "@/components/ui/button";
 import {

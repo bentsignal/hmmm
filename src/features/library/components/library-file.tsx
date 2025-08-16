@@ -3,7 +3,7 @@ import equal from "fast-deep-equal";
 import { Plus } from "lucide-react";
 import { useFileInteraction } from "../hooks/use-file-interaction";
 import { getFileType } from "../lib";
-import { LibraryFile, LibraryMode } from "../types/library-types";
+import { LibraryFile, LibraryMode } from "../types";
 import { LibraryFileIcon } from "./library-file-icon";
 import { Button } from "@/components/ui/button";
 import {

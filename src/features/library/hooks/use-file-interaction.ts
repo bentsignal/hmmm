@@ -1,7 +1,7 @@
 import { toast } from "sonner";
-import { useLibraryStore } from "../store/library-store";
-import { LibraryFile, LibraryMode } from "../types/library-types";
-import useComposerStore from "@/features/composer/store/composer-store";
+import { useLibraryStore } from "../store";
+import { LibraryFile, LibraryMode } from "../types";
+import useComposerStore from "@/features/composer/store";
 
 export const useFileInteraction = () => {
   const setSelectedFiles = useLibraryStore((state) => state.setSelectedFiles);

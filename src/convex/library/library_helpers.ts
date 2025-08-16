@@ -3,8 +3,8 @@ import { ConvexError } from "convex/values";
 import { Doc } from "../_generated/dataModel";
 import { MutationCtx, QueryCtx } from "../_generated/server";
 import { getUserPlanHelper } from "../sub/sub_helpers";
-import { storageLimits } from "./library_config";
 import { storage } from "./library_mutations";
+import { storageLimits } from "@/features/library/config";
 import { LibraryFile } from "@/features/library/types";
 
 export const getStorageHelper = async (

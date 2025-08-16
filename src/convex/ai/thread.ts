@@ -17,10 +17,10 @@ import { agent } from "@/convex/ai/agents";
 import { isAdmin } from "@/convex/user/user_helpers";
 import { modelPresets } from "../ai/models";
 import { titleGeneratorPrompt } from "../ai/prompts";
-import { MAX_ATTACHMENTS_PER_MESSAGE } from "../library/library_config";
 import { messageSendRateLimit } from "../limiter";
 import { getUsageHelper } from "../sub/sub_helpers";
 import { tryCatch } from "@/lib/utils";
+import { MAX_ATTACHMENTS_PER_MESSAGE } from "@/features/library/config";
 import {
   SystemErrorCode,
   SystemNoticeCode,

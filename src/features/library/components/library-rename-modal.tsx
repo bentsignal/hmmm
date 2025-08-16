@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useFileMutation } from "../hooks/use-file-mutation";
-import { useLibraryStore } from "../store/library-store";
+import { useLibraryStore } from "../store";
 import {
   AlertDialog,
   AlertDialogAction,

@@ -1,13 +1,13 @@
 import { useConvexAuth, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { libraryPagination } from "@/convex/library/library_config";
-import { useLibraryStore } from "../store/library-store";
+import { useLibraryStore } from "../store";
 import { LibrarySort, LibraryTab, LibraryView } from "../types";
 import { LibraryGridFile, LibraryListFile } from "./library-file";
 import { LibraryFileContextItems } from "./library-file-context-items";
 import PageLoader from "@/components/page-loader";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { WaveLoader } from "@/components/ui/loader";
+import { libraryPagination } from "@/features/library/config";
 
 export const LibraryFileList = ({
   view,

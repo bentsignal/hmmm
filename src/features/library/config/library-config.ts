@@ -1,4 +1,4 @@
-import type { Plan } from "../sub/sub_helpers";
+import type { Plan } from "@/convex/sub/sub_helpers";
 
 const GB = 1024 * 1024 * 1024;
 

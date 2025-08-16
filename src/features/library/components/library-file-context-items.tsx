@@ -1,5 +1,5 @@
 import { Pencil, Trash } from "lucide-react";
-import { useLibraryStore } from "../store/library-store";
+import { useLibraryStore } from "../store";
 import {
   ContextMenuContent,
   ContextMenuItem,

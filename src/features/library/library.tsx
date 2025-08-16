@@ -13,7 +13,7 @@ import { LibraryFileList } from "./components/library-file-list";
 import { LibraryRenameModal } from "./components/library-rename-modal";
 import { LibraryToolbar } from "./components/library-toolbar";
 import { LibraryUpload } from "./components/library-upload";
-import { useLibraryStore } from "./store/library-store";
+import { useLibraryStore } from "./store";
 import { LibrarySort, LibraryTab, LibraryView } from "./types";
 import { Button } from "@/components/ui/button";
 import {

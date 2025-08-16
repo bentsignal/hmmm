@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from "lucide-react";
-import { useLibraryStore } from "../store/library-store";
+import { useLibraryStore } from "../store";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -7,7 +7,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { useComposerStore } from "@/features/composer/store/composer-store";
+import useComposerStore from "@/features/composer/store";
 
 export const LibraryBulkToolbar = () => {
   const inSelectMode = useLibraryStore(
