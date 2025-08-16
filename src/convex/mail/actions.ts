@@ -4,6 +4,7 @@ import { generateText } from "ai";
 import { internalAction } from "@/convex/_generated/server";
 import { resend } from "@/convex/resend";
 import { internal } from "../_generated/api";
+import getNewsletterHtml from "../../features/mail/newsletter";
 import { generateResponse } from "../ai/agents";
 import { languageModels } from "../ai/models";
 import {
@@ -11,7 +12,6 @@ import {
   emailSummaryGeneratorPrompt,
   emailTitleGeneratorPrompt,
 } from "../ai/prompts";
-import getNewsletterHtml from "./newsletter";
 
 // the number of stories to include in the newsletter
 const STORY_COUNT = 5;

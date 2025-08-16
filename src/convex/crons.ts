@@ -13,7 +13,7 @@ crons.cron(
 // crons.daily(
 //   "send-newsletter",
 //   { hourUTC: 20, minuteUTC: 0 },
-//   internal.mail.mail_actions.sendNewsletter,
+//   internal.mail.newsletter.actions.sendNewsletter,
 // );
 
 crons.interval(

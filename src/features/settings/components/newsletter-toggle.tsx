@@ -10,9 +10,7 @@ export default function NewsletterToggle({
 }: {
   preference: boolean;
 }) {
-  const updatePref = useMutation(
-    api.mail.mail_mutations.updateNewsletterPreference,
-  );
+  const updatePref = useMutation(api.mail.newsletter.updatePreference);
   const [checked, setChecked] = useState(preference);
 
   return (
