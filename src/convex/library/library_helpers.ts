@@ -1,3 +1,5 @@
+import { UserIdentity } from "convex/server";
+import { ConvexError } from "convex/values";
 import { Doc } from "../_generated/dataModel";
 import { MutationCtx, QueryCtx } from "../_generated/server";
 import { getUserPlanHelper } from "../sub/sub_helpers";
@@ -32,23 +34,18 @@ export const getStorageHelper = async (
 
 export const verifyOwnership = async (
   ctx: QueryCtx | MutationCtx,
+  user: UserIdentity,
   fileIds: Doc<"files">["_id"][],
 ) => {
-  // auth check
-  const userId = await ctx.auth.getUserIdentity();
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
-
   // make sure file exists, and belongs to user
   const files = [];
   for (const fileId of fileIds) {
     const file = await ctx.db.get(fileId);
     if (!file) {
-      throw new Error("File not found");
+      throw new ConvexError("File not found");
     }
-    if (file.userId !== userId.subject) {
-      throw new Error("Unauthorized");
+    if (file.userId !== user.subject) {
+      throw new ConvexError("Unauthorized");
     }
     files.push(file);
   }
@@ -57,7 +54,7 @@ export const verifyOwnership = async (
 
 export const getFileUrl = (key: string) => {
   if (!process.env.UPLOADTHING_ORG_ID) {
-    throw new Error("UPLOADTHING_ORG_ID not set");
+    throw new ConvexError("UPLOADTHING_ORG_ID not set");
   }
   return `https://${process.env.UPLOADTHING_ORG_ID}.ufs.sh/f/${key}`;
 };

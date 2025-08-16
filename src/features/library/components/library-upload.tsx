@@ -31,6 +31,13 @@ export const LibraryUpload = () => {
       <UploadButton
         endpoint="uploadRoute"
         disabled={disabled}
+        onClientUploadComplete={(res) => {
+          const error = res[0]?.serverData.error;
+          if (error) {
+            toast.error(error);
+            return;
+          }
+        }}
         content={{
           button({ ready, isUploading }) {
             if (isUploading) {

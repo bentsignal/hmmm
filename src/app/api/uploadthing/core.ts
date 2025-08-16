@@ -1,9 +1,11 @@
 import { env } from "@/env";
+import { utapi } from "@/server/uploadthing";
 import { auth } from "@clerk/nextjs/server";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError } from "uploadthing/server";
 import { fetchMutation } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
+import { tryCatch } from "@/lib/utils";
 
 const f = createUploadthing();
 
@@ -44,42 +46,65 @@ export const ourFileRouter = {
       const payloadSize = files.reduce((acc, file) => acc + file.size, 0);
 
       // storage and rate limit check
-      const { allow, reason } = await fetchMutation(
-        api.library.library_mutations.verifyUpload,
-        {
+      const { data, error } = await tryCatch(
+        fetchMutation(api.library.library_mutations.verifyUpload, {
           userId: user.userId,
-          secretKey: env.NEXT_CONVEX_INTERNAL_KEY,
+          apiKey: env.NEXT_CONVEX_INTERNAL_KEY,
           payloadSize,
-        },
+        }),
       );
 
+      // unexpected error
+      if (error) {
+        console.error(error);
+        throw new UploadThingError(
+          "An error occurred while verifying upload, please try again later",
+        );
+      }
+
+      // expected error
+      const { allow, reason } = data;
       if (!allow) {
+        console.error("Upload not allowed", reason);
         throw new UploadThingError(reason);
       }
 
-      // Whatever is returned here is accessible in onUploadComplete as `metadata`
       return { userId: user.userId };
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      const userId = metadata.userId;
-      if (!userId) {
-        throw new UploadThingError("User ID not found");
+      // upload metadata to convex
+      const { error } = await tryCatch(
+        fetchMutation(api.library.library_mutations.uploadFileMetadata, {
+          file: {
+            key: file.key,
+            name: file.name,
+            type: file.type,
+            size: file.size,
+          },
+          userId: metadata.userId,
+          apiKey: env.NEXT_CONVEX_INTERNAL_KEY,
+        }),
+      );
+
+      // if there is an error uploading metadata to convex, delete the file from storage
+      if (error) {
+        console.error("Error uploading metadata to convex", error);
+        const { error: deleteError } = await tryCatch(
+          utapi.deleteFiles(file.key),
+        );
+        if (deleteError) {
+          console.error(
+            "Error deleting file from storage following metadata upload error",
+            deleteError,
+          );
+        }
+        return {
+          error:
+            "An error occurred while uploading file, please try again later",
+        };
       }
 
-      // This code RUNS ON YOUR SERVER after upload
-      await fetchMutation(api.library.library_mutations.uploadFileMetadata, {
-        file: {
-          key: file.key,
-          name: file.name,
-          type: file.type,
-          size: file.size,
-        },
-        userId,
-        secretKey: env.NEXT_CONVEX_INTERNAL_KEY,
-      });
-
-      // !!! Whatever is returned here is sent to the clientside `onClientUploadComplete` callback
-      return { uploadedBy: metadata.userId };
+      return { error: null };
     }),
 } satisfies FileRouter;
 

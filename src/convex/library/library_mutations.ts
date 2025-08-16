@@ -4,13 +4,20 @@ import {
   customMutation,
 } from "convex-helpers/server/customFunctions";
 import { Triggers } from "convex-helpers/server/triggers";
-import { ConvexError, v } from "convex/values";
-import { mutation } from "@/convex/_generated/server";
+import { v } from "convex/values";
+import {
+  apiMutation,
+  authedMutation,
+  checkApiKey,
+  checkAuth,
+} from "@/convex/convex_helpers";
 import { components, internal } from "../_generated/api";
 import { DataModel } from "../_generated/dataModel";
+import { mutation } from "../_generated/server";
 import { limiter } from "../limiter";
 import { getStorageHelper, verifyOwnership } from "./library_helpers";
 
+// this table stores the total storage used by each user
 export const storage = new TableAggregate<{
   Namespace: string;
   Key: number;
@@ -22,15 +29,40 @@ export const storage = new TableAggregate<{
   sumValue: (doc) => doc.size,
 });
 
+/*
+
+  These custom mutations cause the aggregate table above to be updated. 
+  The aggregate table will not be updated if a normal mutation is used.
+
+*/
 const triggers = new Triggers<DataModel>();
 triggers.register("files", storage.trigger());
 
-const storageTriggerMutation = customMutation(
-  mutation,
-  customCtx(triggers.wrapDB),
+const apiStorageTriggerMutation = customMutation(mutation, {
+  args: {
+    apiKey: v.string(),
+  },
+  input: async (ctx, args) => {
+    checkApiKey(args.apiKey);
+    const wrappedCtx = triggers.wrapDB(ctx);
+    return { ctx: wrappedCtx, args };
+  },
+});
+
+const authedStorageTriggerMutation = customMutation(
+  authedMutation,
+  customCtx(async (ctx) => {
+    const user = await checkAuth(ctx);
+    const wrappedCtx = triggers.wrapDB(ctx);
+    return { ...wrappedCtx, user };
+  }),
 );
 
-export const uploadFileMetadata = storageTriggerMutation({
+/**
+ * Called by uploadthing (core.ts) to store file metadata after the
+ * files have been uploaded to storage.
+ */
+export const uploadFileMetadata = apiStorageTriggerMutation({
   args: {
     file: v.object({
       key: v.string(),
@@ -39,19 +71,9 @@ export const uploadFileMetadata = storageTriggerMutation({
       size: v.number(),
     }),
     userId: v.string(),
-    secretKey: v.string(),
   },
   handler: async (ctx, args) => {
-    const { file, secretKey, userId } = args;
-
-    if (!process.env.NEXT_CONVEX_INTERNAL_KEY) {
-      throw new ConvexError("Internal key not set");
-    }
-
-    if (secretKey !== process.env.NEXT_CONVEX_INTERNAL_KEY) {
-      throw new ConvexError("Invalid key");
-    }
-
+    const { file, userId } = args;
     await ctx.db.insert("files", {
       userId,
       fileName: file.name,
@@ -62,22 +84,18 @@ export const uploadFileMetadata = storageTriggerMutation({
   },
 });
 
-export const verifyUpload = mutation({
+/**
+ * Called by uploadthing middleware (core.ts) to verify that the
+ * user is allowed to upload.
+ */
+export const verifyUpload = apiMutation({
   args: {
     userId: v.string(),
     payloadSize: v.number(),
-    secretKey: v.string(),
+    apiKey: v.string(),
   },
   handler: async (ctx, args) => {
-    const { userId, secretKey, payloadSize } = args;
-
-    // make sure request is internal, and not from client
-    if (!process.env.NEXT_CONVEX_INTERNAL_KEY) {
-      throw new ConvexError("Internal key not set");
-    }
-    if (secretKey !== process.env.NEXT_CONVEX_INTERNAL_KEY) {
-      throw new ConvexError("Invalid key");
-    }
+    const { userId, payloadSize } = args;
 
     // make sure user is not uploading too fast
     const { ok } = await limiter.limit(ctx, "upload", {
@@ -106,14 +124,13 @@ export const verifyUpload = mutation({
   },
 });
 
-export const deleteFiles = storageTriggerMutation({
+export const deleteFiles = authedStorageTriggerMutation({
   args: {
     ids: v.array(v.id("files")),
   },
   handler: async (ctx, args) => {
     const { ids } = args;
-
-    const files = await verifyOwnership(ctx, ids);
+    const files = await verifyOwnership(ctx, ctx.user, ids);
 
     // delete file from db
     for (const file of files) {
@@ -131,7 +148,7 @@ export const deleteFiles = storageTriggerMutation({
   },
 });
 
-export const renameFile = mutation({
+export const renameFile = authedMutation({
   args: {
     id: v.id("files"),
     name: v.string(),
@@ -139,7 +156,7 @@ export const renameFile = mutation({
   handler: async (ctx, args) => {
     const { id, name } = args;
 
-    await verifyOwnership(ctx, [id]);
+    await verifyOwnership(ctx, ctx.user, [id]);
 
     // update file name
     await ctx.db.patch(id, {
