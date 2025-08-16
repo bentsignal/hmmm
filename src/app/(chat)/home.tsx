@@ -19,9 +19,7 @@ export default function Home({
   preloadedSuggestions,
   authed,
 }: {
-  preloadedSuggestions: Preloaded<
-    typeof api.agents.prompts.prompt_queries.getSuggestions
-  >;
+  preloadedSuggestions: Preloaded<typeof api.ai.suggestions.getSuggestions>;
   authed: boolean;
 }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -72,16 +70,14 @@ const HomePrompts = ({
   preloadedSuggestions,
 }: {
   showInstantLoad: () => void;
-  preloadedSuggestions: Preloaded<
-    typeof api.agents.prompts.prompt_queries.getSuggestions
-  >;
+  preloadedSuggestions: Preloaded<typeof api.ai.suggestions.getSuggestions>;
 }) => {
   const { usage } = useUsage();
   const { sendMessage } = useSendMessage();
 
   const prompts = usePreloadedQuery(preloadedSuggestions);
   const incrementSuggestion = useMutation(
-    api.agents.prompts.prompt_mutations.incrementSuggestion,
+    api.ai.suggestions.incrementSuggestion,
   );
 
   return (

@@ -7,7 +7,7 @@ export default async function Chat() {
   const { userId } = await auth();
   const authed = userId !== null;
   const preloadedSuggestions = await preloadQuery(
-    api.agents.prompts.prompt_queries.getSuggestions,
+    api.ai.suggestions.getSuggestions,
   );
   return <Home preloadedSuggestions={preloadedSuggestions} authed={authed} />;
 }

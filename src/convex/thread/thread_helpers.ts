@@ -1,6 +1,6 @@
 import { ConvexError } from "convex/values";
 import { ActionCtx, MutationCtx, QueryCtx } from "@/convex/_generated/server";
-import { agent } from "@/convex/agents";
+import { agent } from "@/convex/ai/agents";
 import { isAdmin } from "@/convex/user/user_helpers";
 import { MAX_ATTACHMENTS_PER_MESSAGE } from "../library/library_config";
 import { messageSendRateLimit } from "../limiter";

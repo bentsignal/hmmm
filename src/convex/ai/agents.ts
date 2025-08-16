@@ -1,39 +1,76 @@
-import { generateObject, generateText } from "ai";
+import { Agent } from "@convex-dev/agent";
+import { generateObject } from "ai";
 import z from "zod";
 import { v } from "convex/values";
-import { internal } from "@/convex/_generated/api";
-import { internalAction } from "@/convex/_generated/server";
-import { agent } from "@/convex/agents/agent";
-import { followUpModel, titleGeneratorModel } from "@/convex/agents/models";
+import { components, internal } from "@/convex/_generated/api";
+import { agentPrompt, followUpGeneratorPrompt } from "@/convex/ai/prompts";
+import { calculateModelCost } from "@/convex/sub/sub_helpers";
+import { ActionCtx, internalAction } from "../_generated/server";
+import { logSystemError } from "../thread/thread_helpers";
+import { modelPresets } from "./models";
 import {
-  followUpGeneratorPrompt,
-  titleGeneratorPrompt,
-} from "@/convex/agents/prompts";
-import { logSystemError } from "./thread_helpers";
+  currentEvents,
+  dateTime,
+  fileAnalysis,
+  positionHolder,
+  weather,
+} from "./tools";
 import { tryCatch } from "@/lib/utils";
 
-// generate title for thread based off of initial prompt
-export const generateTitle = internalAction({
-  args: {
-    prompt: v.string(),
-    threadId: v.string(),
+export const agent = new Agent(components.agent, {
+  chat: modelPresets.default.model,
+  name: "QBE",
+  instructions: agentPrompt,
+  maxSteps: 20,
+  maxRetries: 3,
+  tools: {
+    dateTime,
+    currentEvents,
+    weather,
+    positionHolder,
+    fileAnalysis,
   },
-  handler: async (ctx, args) => {
-    const { prompt, threadId } = args;
-    const response = await generateText({
-      model: titleGeneratorModel.model,
-      prompt: prompt,
-      system: titleGeneratorPrompt,
-    });
-    await ctx.runMutation(internal.thread.thread_mutations.updateThreadTitle, {
-      threadId: threadId,
-      title: response.text.trim(),
+  contextOptions: {
+    excludeToolMessages: false,
+  },
+  usageHandler: async (ctx, args) => {
+    const cost = calculateModelCost(modelPresets.default, args.usage);
+    await ctx.runMutation(internal.sub.usage.logUsage, {
+      userId: args.userId || "no-user",
+      type: "message",
+      cost: cost,
     });
   },
 });
 
-// generate reponse to users prompt in new or existing thread
-export const generateResponse = internalAction({
+export const generateResponse = async (
+  ctx: ActionCtx,
+  prompt: string,
+  title?: string,
+  userId?: string,
+) => {
+  const { threadId } = await agent.createThread(ctx, {
+    title: title ?? "Response",
+    userId,
+  });
+  const { thread } = await agent.continueThread(ctx, {
+    threadId,
+  });
+  const result = await thread.generateText({
+    prompt,
+    maxTokens: 5000,
+    providerOptions: {
+      openrouter: {
+        reasoning: {
+          max_tokens: 16000,
+        },
+      },
+    },
+  });
+  return result.text;
+};
+
+export const streamResponse = internalAction({
   args: {
     threadId: v.string(),
     promptMessageId: v.string(),
@@ -105,7 +142,7 @@ export const generateResponse = internalAction({
       (async () => {
         const responseMessage = await result.text;
         const { object: followUpQuestions } = await generateObject({
-          model: followUpModel.model,
+          model: modelPresets.followUp.model,
           prompt: responseMessage,
           system: followUpGeneratorPrompt,
           schema: z.object({

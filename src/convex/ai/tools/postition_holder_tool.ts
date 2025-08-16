@@ -1,8 +1,7 @@
 import kv from "@/kv";
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
-import { exa } from "./index";
-import { formatCacheKey, logSearchCost } from "./tool_helpers";
+import { exa, formatCacheKey, logSearchCost } from "./tool_helpers";
 import { getCurrentDateTime } from "@/lib/date-time-utils";
 import { tryCatch } from "@/lib/utils";
 

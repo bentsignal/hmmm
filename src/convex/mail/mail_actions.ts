@@ -4,13 +4,13 @@ import { generateText } from "ai";
 import { internalAction } from "@/convex/_generated/server";
 import { resend } from "@/convex/resend";
 import { internal } from "../_generated/api";
-import { generateAgentResponse } from "../agents/agent_helpers";
-import { languageModels } from "../agents/models";
+import { generateResponse } from "../ai/agents";
+import { languageModels } from "../ai/models";
 import {
   emailSubjectGeneratorPrompt,
   emailSummaryGeneratorPrompt,
   emailTitleGeneratorPrompt,
-} from "../agents/prompts";
+} from "../ai/prompts";
 import getNewsletterHtml from "./newsletter";
 
 // the number of stories to include in the newsletter
@@ -24,7 +24,7 @@ export const sendNewsletter = internalAction({
     console.log("Sending newsletter");
     // get the top 10 most clicked suggestions from today
     const suggestions = await ctx.runQuery(
-      internal.agents.prompts.prompt_queries.getTodaysSuggestions,
+      internal.ai.suggestions.getTodaysSuggestions,
       { numResults: STORY_COUNT },
     );
     console.log(`Retrieved ${suggestions.length} suggestions`);
@@ -32,7 +32,7 @@ export const sendNewsletter = internalAction({
     const withFullResponses = await Promise.all(
       suggestions.map(async (suggestion) => ({
         prompt: suggestion.prompt,
-        response: await generateAgentResponse(
+        response: await generateResponse(
           ctx,
           suggestion.prompt,
           "Suggestion Response",

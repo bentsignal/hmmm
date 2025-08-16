@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { experimental_transcribe as transcribe } from "ai";
 import { fetchMutation, fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
-import { transcriptionModel } from "@/convex/agents/models";
+import { modelPresets } from "@/convex/ai/models";
 import { MAX_AUDIO_FILE_SIZE } from "../config";
 import { tryCatch } from "@/lib/utils";
 import { getAuthToken } from "@/features/auth/util/auth-util";
@@ -69,7 +69,7 @@ export async function transcribeAudio(audio: ArrayBuffer) {
   // transcribe audio
   const { data: transcription, error } = await tryCatch(
     transcribe({
-      model: transcriptionModel.model,
+      model: modelPresets.transcription.model,
       audio: audioBuffer,
     }),
   );

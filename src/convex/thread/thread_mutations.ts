@@ -1,7 +1,14 @@
+import { generateText } from "ai";
 import { ConvexError, v } from "convex/values";
 import { components, internal } from "@/convex/_generated/api";
-import { internalMutation, mutation } from "@/convex/_generated/server";
-import { agent } from "@/convex/agents";
+import {
+  internalAction,
+  internalMutation,
+  mutation,
+} from "@/convex/_generated/server";
+import { agent } from "@/convex/ai/agents";
+import { modelPresets } from "../ai/models";
+import { titleGeneratorPrompt } from "../ai/prompts";
 import {
   getThreadMetadata,
   logSystemError,
@@ -9,6 +16,25 @@ import {
   threadMessageCheck,
 } from "./thread_helpers";
 import { tryCatch } from "@/lib/utils";
+
+export const generateTitle = internalAction({
+  args: {
+    prompt: v.string(),
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { prompt, threadId } = args;
+    const response = await generateText({
+      model: modelPresets.titleGenerator.model,
+      prompt: prompt,
+      system: titleGeneratorPrompt,
+    });
+    await ctx.runMutation(internal.thread.thread_mutations.updateThreadTitle, {
+      threadId: threadId,
+      title: response.text.trim(),
+    });
+  },
+});
 
 export const requestNewThread = mutation({
   args: {
@@ -43,20 +69,16 @@ export const requestNewThread = mutation({
       Promise.all([
         ctx.scheduler.runAfter(
           0,
-          internal.thread.thread_actions.generateTitle,
+          internal.thread.thread_mutations.generateTitle,
           {
             threadId: threadId,
             prompt: prompt,
           },
         ),
-        ctx.scheduler.runAfter(
-          0,
-          internal.thread.thread_actions.generateResponse,
-          {
-            threadId: threadId,
-            promptMessageId: lastMessageId,
-          },
-        ),
+        ctx.scheduler.runAfter(0, internal.ai.agents.streamResponse, {
+          threadId: threadId,
+          promptMessageId: lastMessageId,
+        }),
       ]),
     );
     if (error) {
@@ -106,14 +128,10 @@ export const newThreadMessage = mutation({
     ]);
     // schedule response generation
     const { error } = await tryCatch(
-      ctx.scheduler.runAfter(
-        0,
-        internal.thread.thread_actions.generateResponse,
-        {
-          threadId: args.threadId,
-          promptMessageId: lastMessageId,
-        },
-      ),
+      ctx.scheduler.runAfter(0, internal.ai.agents.streamResponse, {
+        threadId: args.threadId,
+        promptMessageId: lastMessageId,
+      }),
     );
     if (error) {
       console.error(error);

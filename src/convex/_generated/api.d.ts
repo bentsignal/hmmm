@@ -8,28 +8,17 @@
  * @module
  */
 
-import type * as agents_agent from "../agents/agent.js";
-import type * as agents_agent_helpers from "../agents/agent_helpers.js";
-import type * as agents_index from "../agents/index.js";
-import type * as agents_models_index from "../agents/models/index.js";
-import type * as agents_models_model_presets from "../agents/models/model_presets.js";
-import type * as agents_models_models from "../agents/models/models.js";
-import type * as agents_models_util_index from "../agents/models/util/index.js";
-import type * as agents_models_util_model_utils from "../agents/models/util/model_utils.js";
-import type * as agents_prompts_index from "../agents/prompts/index.js";
-import type * as agents_prompts_prompt_actions from "../agents/prompts/prompt_actions.js";
-import type * as agents_prompts_prompt_mutations from "../agents/prompts/prompt_mutations.js";
-import type * as agents_prompts_prompt_queries from "../agents/prompts/prompt_queries.js";
-import type * as agents_prompts_prompts from "../agents/prompts/prompts.js";
-import type * as agents_prompts_types_index from "../agents/prompts/types/index.js";
-import type * as agents_prompts_types_prompt_types from "../agents/prompts/types/prompt_types.js";
-import type * as agents_tools_current_events_tool from "../agents/tools/current_events_tool.js";
-import type * as agents_tools_date_time_tool from "../agents/tools/date_time_tool.js";
-import type * as agents_tools_file_analysis_tool from "../agents/tools/file_analysis_tool.js";
-import type * as agents_tools_index from "../agents/tools/index.js";
-import type * as agents_tools_postition_holder_tool from "../agents/tools/postition_holder_tool.js";
-import type * as agents_tools_tool_helpers from "../agents/tools/tool_helpers.js";
-import type * as agents_tools_weather_tool from "../agents/tools/weather_tool.js";
+import type * as ai_agents from "../ai/agents.js";
+import type * as ai_models from "../ai/models.js";
+import type * as ai_prompts from "../ai/prompts.js";
+import type * as ai_suggestions from "../ai/suggestions.js";
+import type * as ai_tools_current_events_tool from "../ai/tools/current_events_tool.js";
+import type * as ai_tools_date_time_tool from "../ai/tools/date_time_tool.js";
+import type * as ai_tools_file_analysis_tool from "../ai/tools/file_analysis_tool.js";
+import type * as ai_tools_index from "../ai/tools/index.js";
+import type * as ai_tools_postition_holder_tool from "../ai/tools/postition_holder_tool.js";
+import type * as ai_tools_tool_helpers from "../ai/tools/tool_helpers.js";
+import type * as ai_tools_weather_tool from "../ai/tools/weather_tool.js";
 import type * as clerk_clerk_actions from "../clerk/clerk_actions.js";
 import type * as clerk_clerk_http_actions from "../clerk/clerk_http_actions.js";
 import type * as convex_helpers from "../convex_helpers.js";
@@ -55,7 +44,6 @@ import type * as sub_sub_mutations from "../sub/sub_mutations.js";
 import type * as sub_sub_queries from "../sub/sub_queries.js";
 import type * as sub_sub_types from "../sub/sub_types.js";
 import type * as sub_usage from "../sub/usage.js";
-import type * as thread_thread_actions from "../thread/thread_actions.js";
 import type * as thread_thread_helpers from "../thread/thread_helpers.js";
 import type * as thread_thread_mutations from "../thread/thread_mutations.js";
 import type * as thread_thread_queries from "../thread/thread_queries.js";
@@ -79,28 +67,17 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  "agents/agent": typeof agents_agent;
-  "agents/agent_helpers": typeof agents_agent_helpers;
-  "agents/index": typeof agents_index;
-  "agents/models/index": typeof agents_models_index;
-  "agents/models/model_presets": typeof agents_models_model_presets;
-  "agents/models/models": typeof agents_models_models;
-  "agents/models/util/index": typeof agents_models_util_index;
-  "agents/models/util/model_utils": typeof agents_models_util_model_utils;
-  "agents/prompts/index": typeof agents_prompts_index;
-  "agents/prompts/prompt_actions": typeof agents_prompts_prompt_actions;
-  "agents/prompts/prompt_mutations": typeof agents_prompts_prompt_mutations;
-  "agents/prompts/prompt_queries": typeof agents_prompts_prompt_queries;
-  "agents/prompts/prompts": typeof agents_prompts_prompts;
-  "agents/prompts/types/index": typeof agents_prompts_types_index;
-  "agents/prompts/types/prompt_types": typeof agents_prompts_types_prompt_types;
-  "agents/tools/current_events_tool": typeof agents_tools_current_events_tool;
-  "agents/tools/date_time_tool": typeof agents_tools_date_time_tool;
-  "agents/tools/file_analysis_tool": typeof agents_tools_file_analysis_tool;
-  "agents/tools/index": typeof agents_tools_index;
-  "agents/tools/postition_holder_tool": typeof agents_tools_postition_holder_tool;
-  "agents/tools/tool_helpers": typeof agents_tools_tool_helpers;
-  "agents/tools/weather_tool": typeof agents_tools_weather_tool;
+  "ai/agents": typeof ai_agents;
+  "ai/models": typeof ai_models;
+  "ai/prompts": typeof ai_prompts;
+  "ai/suggestions": typeof ai_suggestions;
+  "ai/tools/current_events_tool": typeof ai_tools_current_events_tool;
+  "ai/tools/date_time_tool": typeof ai_tools_date_time_tool;
+  "ai/tools/file_analysis_tool": typeof ai_tools_file_analysis_tool;
+  "ai/tools/index": typeof ai_tools_index;
+  "ai/tools/postition_holder_tool": typeof ai_tools_postition_holder_tool;
+  "ai/tools/tool_helpers": typeof ai_tools_tool_helpers;
+  "ai/tools/weather_tool": typeof ai_tools_weather_tool;
   "clerk/clerk_actions": typeof clerk_clerk_actions;
   "clerk/clerk_http_actions": typeof clerk_clerk_http_actions;
   convex_helpers: typeof convex_helpers;
@@ -126,7 +103,6 @@ declare const fullApi: ApiFromModules<{
   "sub/sub_queries": typeof sub_sub_queries;
   "sub/sub_types": typeof sub_sub_types;
   "sub/usage": typeof sub_usage;
-  "thread/thread_actions": typeof thread_thread_actions;
   "thread/thread_helpers": typeof thread_thread_helpers;
   "thread/thread_mutations": typeof thread_thread_mutations;
   "thread/thread_queries": typeof thread_thread_queries;
