@@ -7,7 +7,7 @@ export default function ThreadFollowUps({ threadId }: { threadId: string }) {
   const { isAuthenticated } = useConvexAuth();
   const args = isAuthenticated ? { threadId } : "skip";
   const followUpQuestions = useQuery(
-    api.thread.thread_queries.getThreadFollowUpQuestions,
+    api.ai.thread.getThreadFollowUpQuestions,
     args,
   );
   const empty = !followUpQuestions || followUpQuestions.length === 0;

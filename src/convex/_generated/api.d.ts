@@ -12,6 +12,7 @@ import type * as ai_agents from "../ai/agents.js";
 import type * as ai_models from "../ai/models.js";
 import type * as ai_prompts from "../ai/prompts.js";
 import type * as ai_suggestions from "../ai/suggestions.js";
+import type * as ai_thread from "../ai/thread.js";
 import type * as ai_tools_current_events_tool from "../ai/tools/current_events_tool.js";
 import type * as ai_tools_date_time_tool from "../ai/tools/date_time_tool.js";
 import type * as ai_tools_file_analysis_tool from "../ai/tools/file_analysis_tool.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   "ai/models": typeof ai_models;
   "ai/prompts": typeof ai_prompts;
   "ai/suggestions": typeof ai_suggestions;
+  "ai/thread": typeof ai_thread;
   "ai/tools/current_events_tool": typeof ai_tools_current_events_tool;
   "ai/tools/date_time_tool": typeof ai_tools_date_time_tool;
   "ai/tools/file_analysis_tool": typeof ai_tools_file_analysis_tool;
