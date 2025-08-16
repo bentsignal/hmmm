@@ -18,7 +18,7 @@ import { isAdmin } from "@/convex/user/account";
 import { modelPresets } from "../ai/models";
 import { titleGeneratorPrompt } from "../ai/prompts";
 import { messageSendRateLimit } from "../limiter";
-import { getUsageHelper } from "../sub/sub_helpers";
+import { getUsageHelper } from "../user/usage";
 import { tryCatch } from "@/lib/utils";
 import { MAX_ATTACHMENTS_PER_MESSAGE } from "@/features/library/config";
 import {

@@ -20,7 +20,7 @@ export default async function Usage() {
 
   // get initial usage data
   const { data: usage, error } = await tryCatch(
-    fetchQuery(api.sub.sub_queries.getUsage, undefined, { token }),
+    fetchQuery(api.user.usage.getUsage, undefined, { token }),
   );
 
   // get user's plan

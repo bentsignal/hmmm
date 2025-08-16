@@ -3,7 +3,7 @@ import { CoreUserMessage, generateText } from "ai";
 import { z } from "zod";
 import { internal } from "@/convex/_generated/api";
 import { getFileUrl, getPublicFile } from "@/convex/app/library";
-import { calculateModelCost } from "@/convex/sub/sub_helpers";
+import { calculateModelCost } from "@/convex/user/usage";
 import { languageModels } from "../models";
 import { getFileType } from "@/features/library/lib";
 import { LibraryFile } from "@/features/library/types";

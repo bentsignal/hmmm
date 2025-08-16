@@ -19,7 +19,7 @@ export async function transcribeAudio(audio: ArrayBuffer) {
   // usage check
   const authToken = await getAuthToken();
   const usage = await fetchQuery(
-    api.sub.sub_queries.getUsage,
+    api.user.usage.getUsage,
     {},
     { token: authToken },
   );

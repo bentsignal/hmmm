@@ -4,7 +4,7 @@ import z from "zod";
 import { v } from "convex/values";
 import { components, internal } from "@/convex/_generated/api";
 import { agentPrompt, followUpGeneratorPrompt } from "@/convex/ai/prompts";
-import { calculateModelCost } from "@/convex/sub/sub_helpers";
+import { calculateModelCost } from "@/convex/user/usage";
 import { ActionCtx, internalAction } from "../_generated/server";
 import { modelPresets } from "./models";
 import { logSystemError } from "./thread";

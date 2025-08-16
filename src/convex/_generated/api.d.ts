@@ -33,14 +33,9 @@ import type * as mail_templates from "../mail/templates.js";
 import type * as migrations from "../migrations.js";
 import type * as polar from "../polar.js";
 import type * as resend from "../resend.js";
-import type * as sub_sub_actions from "../sub/sub_actions.js";
-import type * as sub_sub_config from "../sub/sub_config.js";
-import type * as sub_sub_helpers from "../sub/sub_helpers.js";
-import type * as sub_sub_mutations from "../sub/sub_mutations.js";
-import type * as sub_sub_queries from "../sub/sub_queries.js";
-import type * as sub_sub_types from "../sub/sub_types.js";
 import type * as user_account from "../user/account.js";
 import type * as user_clerk from "../user/clerk.js";
+import type * as user_subscription from "../user/subscription.js";
 import type * as user_usage from "../user/usage.js";
 
 import type {
@@ -83,14 +78,9 @@ declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
   polar: typeof polar;
   resend: typeof resend;
-  "sub/sub_actions": typeof sub_sub_actions;
-  "sub/sub_config": typeof sub_sub_config;
-  "sub/sub_helpers": typeof sub_sub_helpers;
-  "sub/sub_mutations": typeof sub_sub_mutations;
-  "sub/sub_queries": typeof sub_sub_queries;
-  "sub/sub_types": typeof sub_sub_types;
   "user/account": typeof user_account;
   "user/clerk": typeof user_clerk;
+  "user/subscription": typeof user_subscription;
   "user/usage": typeof user_usage;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

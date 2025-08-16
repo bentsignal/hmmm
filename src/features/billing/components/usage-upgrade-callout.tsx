@@ -7,7 +7,7 @@ import { api } from "@/convex/_generated/api";
 export default function UsageUpgradeCallout() {
   const { isAuthenticated } = useConvexAuth();
   const plan = useQuery(
-    api.sub.sub_queries.getUserPlan,
+    api.user.subscription.getUserPlan,
     isAuthenticated ? {} : "skip",
   );
   if (plan?.max) return null;

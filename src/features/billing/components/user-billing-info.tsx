@@ -39,7 +39,7 @@ export default function UserBillingInfo({
         {plan.name === "Free" ? (
           <CheckoutLink
             polarApi={{
-              generateCheckoutLink: api.sub.sub_actions.generateCheckoutLink,
+              generateCheckoutLink: api.polar.generateCheckoutLink,
             }}
             productIds={plans?.map((product) => product.id) ?? []}
             embed={false}
@@ -49,8 +49,7 @@ export default function UserBillingInfo({
         ) : (
           <CustomerPortalLink
             polarApi={{
-              generateCustomerPortalUrl:
-                api.sub.sub_actions.generateCustomerPortalUrl,
+              generateCustomerPortalUrl: api.polar.generateCustomerPortalUrl,
             }}
           >
             <Button className="animate-in fade-in duration-300">

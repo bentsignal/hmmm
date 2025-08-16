@@ -17,7 +17,7 @@ import { components, internal } from "../_generated/api";
 import { DataModel, Doc } from "../_generated/dataModel";
 import { mutation, MutationCtx, QueryCtx } from "../_generated/server";
 import { limiter } from "../limiter";
-import { getUserPlanHelper } from "../sub/sub_helpers";
+import { getUserPlanHelper } from "../user/subscription";
 import { storageLimits } from "@/features/library/config";
 import { LibraryFile } from "@/features/library/types";
 

@@ -47,8 +47,7 @@ export default function PricingCards({ products }: { products: Product[] }) {
           </span>
           <CustomerPortalLink
             polarApi={{
-              generateCustomerPortalUrl:
-                api.sub.sub_actions.generateCustomerPortalUrl,
+              generateCustomerPortalUrl: api.polar.generateCustomerPortalUrl,
             }}
           >
             <Button className="animate-in fade-in duration-300">
@@ -105,8 +104,7 @@ export default function PricingCards({ products }: { products: Product[] }) {
                 {product.price !== 0 && plan && plan.name === "Free" && (
                   <CheckoutLink
                     polarApi={{
-                      generateCheckoutLink:
-                        api.sub.sub_actions.generateCheckoutLink,
+                      generateCheckoutLink: api.polar.generateCheckoutLink,
                     }}
                     productIds={[product.id]}
                     embed={false}
