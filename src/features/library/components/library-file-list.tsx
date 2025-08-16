@@ -35,7 +35,7 @@ export const LibraryFileList = ({
     results: files,
     status,
     loadMore,
-  } = usePaginatedQuery(api.library.library_queries.listUserFiles, args, {
+  } = usePaginatedQuery(api.app.library.listUserFiles, args, {
     initialNumItems: libraryPagination.initialSize,
   });
 

@@ -6,7 +6,7 @@ import { Doc } from "@/convex/_generated/dataModel";
 
 export const useFileMutation = () => {
   const deleteFilesMutation = useMutation({
-    mutationFn: useConvexMutation(api.library.library_mutations.deleteFiles),
+    mutationFn: useConvexMutation(api.app.library.deleteFiles),
     onError: (error) => {
       console.error(error);
       toast.error("Failed to delete file");
@@ -14,7 +14,7 @@ export const useFileMutation = () => {
   });
 
   const renameFileMutation = useMutation({
-    mutationFn: useConvexMutation(api.library.library_mutations.renameFile),
+    mutationFn: useConvexMutation(api.app.library.renameFile),
     onError: (error) => {
       console.error(error);
       toast.error("Failed to rename file");

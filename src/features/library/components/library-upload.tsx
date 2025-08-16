@@ -9,7 +9,7 @@ import { UploadButton } from "@/lib/uploadthing";
 export const LibraryUpload = () => {
   const isAuthenticated = useConvexAuth();
   const storageStatus = useQuery(
-    api.library.library_queries.getStorageStatus,
+    api.app.library.getStorageStatus,
     isAuthenticated ? {} : "skip",
   );
 

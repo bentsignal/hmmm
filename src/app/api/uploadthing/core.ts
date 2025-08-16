@@ -47,7 +47,7 @@ export const ourFileRouter = {
 
       // storage and rate limit check
       const { data, error } = await tryCatch(
-        fetchMutation(api.library.library_mutations.verifyUpload, {
+        fetchMutation(api.app.library.verifyUpload, {
           userId: user.userId,
           apiKey: env.NEXT_CONVEX_INTERNAL_KEY,
           payloadSize,
@@ -74,7 +74,7 @@ export const ourFileRouter = {
     .onUploadComplete(async ({ metadata, file }) => {
       // upload metadata to convex
       const { error } = await tryCatch(
-        fetchMutation(api.library.library_mutations.uploadFileMetadata, {
+        fetchMutation(api.app.library.uploadFileMetadata, {
           file: {
             key: file.key,
             name: file.name,

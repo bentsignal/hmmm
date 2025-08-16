@@ -2,7 +2,7 @@ import { createTool } from "@convex-dev/agent";
 import { CoreUserMessage, generateText } from "ai";
 import { z } from "zod";
 import { internal } from "@/convex/_generated/api";
-import { getFileUrl, getPublicFile } from "@/convex/library/library_helpers";
+import { getFileUrl, getPublicFile } from "@/convex/app/library";
 import { calculateModelCost } from "@/convex/sub/sub_helpers";
 import { languageModels } from "../models";
 import { getFileType } from "@/features/library/lib";
@@ -31,13 +31,10 @@ export const fileAnalysis = createTool({
       };
     }
 
-    const file = await ctx.runQuery(
-      internal.library.library_queries.getFileByName,
-      {
-        fileName: fileName,
-        userId: ctx.userId,
-      },
-    );
+    const file = await ctx.runQuery(internal.app.library.getFileByName, {
+      fileName: fileName,
+      userId: ctx.userId,
+    });
     if (!file) {
       return {
         response: "File not found",

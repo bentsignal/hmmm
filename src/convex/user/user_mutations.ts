@@ -74,7 +74,7 @@ export const requestDeleteUser = mutation({
     // delete all files from storage
     await ctx.scheduler.runAfter(
       0,
-      internal.library.library_actions.deleteFilesFromStorage,
+      internal.app.actions.deleteFilesFromStorage,
       {
         keys: files.map((file) => file.key),
       },
