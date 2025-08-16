@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internalQuery, query } from "@/convex/_generated/server";
-import { polar } from "./polar";
+import { polar } from "../polar";
 import { getUsageHelper, getUserPlanHelper } from "./sub_helpers";
 import { PlanTier } from "./sub_types";
 

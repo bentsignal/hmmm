@@ -8,7 +8,7 @@ import { v } from "convex/values";
 import { components } from "@/convex/_generated/api";
 import { DataModel } from "@/convex/_generated/dataModel";
 import { internalMutation, mutation } from "@/convex/_generated/server";
-import { getUsageHelper } from "./sub_helpers";
+import { getUsageHelper } from "../sub/sub_helpers";
 
 // aggregate usage per user
 export const usage = new TableAggregate<{

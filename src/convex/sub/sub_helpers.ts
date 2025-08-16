@@ -2,13 +2,13 @@ import type { LanguageModelUsage } from "ai";
 import { QueryCtx } from "@/convex/_generated/server";
 import type { LanguageModel } from "@/convex/ai/models";
 import { hasUnlimitedAccess } from "@/convex/user/user_helpers";
-import { polar } from "./polar";
+import { polar } from "../polar";
+import { usage } from "../user/usage";
 import {
   ALLOWED_USAGE_PERCENTAGE,
   FREE_TIER_MAX_USAGE,
   HIGHEST_TIER_PUBLIC_PLAN,
 } from "./sub_config";
-import { usage } from "./usage";
 import * as timeHelpers from "@/lib/date-time-utils";
 
 export type Plan = {

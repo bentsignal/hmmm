@@ -3,7 +3,7 @@
 import { clerkClient, WebhookEvent } from "@clerk/nextjs/server";
 import { Webhook } from "svix";
 import { v } from "convex/values";
-import { polar } from "@/convex/sub/polar";
+import { polar } from "@/convex/polar";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 

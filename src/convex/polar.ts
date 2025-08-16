@@ -1,9 +1,10 @@
 import { Polar } from "@convex-dev/polar";
 import { components, internal } from "@/convex/_generated/api";
+import { internalQuery } from "./_generated/server";
 
 export const polar = new Polar(components.polar, {
   getUserInfo: async (ctx): Promise<{ userId: string; email: string }> => {
-    const user = await ctx.runQuery(internal.user.user_queries.getUserIdentity);
+    const user = await ctx.runQuery(internal.polar.getUserIdentity);
     if (!user) {
       throw new Error("User not found");
     }
@@ -11,5 +12,13 @@ export const polar = new Polar(components.polar, {
       userId: user.subject,
       email: user.email || "",
     };
+  },
+});
+
+export const getUserIdentity = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const user = await ctx.auth.getUserIdentity();
+    return user;
   },
 });

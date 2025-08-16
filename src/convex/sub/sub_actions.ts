@@ -1,5 +1,5 @@
 import { internalAction } from "@/convex/_generated/server";
-import { polar } from "./polar";
+import { polar } from "../polar";
 
 export const syncProducts = internalAction({
   args: {},
