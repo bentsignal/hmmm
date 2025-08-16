@@ -1,7 +1,7 @@
 import type { LanguageModelUsage } from "ai";
 import { QueryCtx } from "@/convex/_generated/server";
 import type { LanguageModel } from "@/convex/ai/models";
-import { hasUnlimitedAccess } from "@/convex/user/user_helpers";
+import { hasUnlimitedAccess } from "@/convex/user/account";
 import { polar } from "../polar";
 import { usage } from "../user/usage";
 import {

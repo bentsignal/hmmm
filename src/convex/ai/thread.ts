@@ -14,7 +14,7 @@ import {
   QueryCtx,
 } from "@/convex/_generated/server";
 import { agent } from "@/convex/ai/agents";
-import { isAdmin } from "@/convex/user/user_helpers";
+import { isAdmin } from "@/convex/user/account";
 import { modelPresets } from "../ai/models";
 import { titleGeneratorPrompt } from "../ai/prompts";
 import { messageSendRateLimit } from "../limiter";

@@ -87,7 +87,7 @@ export const sendNewsletter = internalAction({
     const cleanSubject = subject.replace(/[\r\n]+/g, " ").trim();
     const cleanTitle = title.replace(/[\r\n]+/g, " ").trim();
     const recipients = await ctx.runQuery(
-      internal.user.user_queries.getNewsletterRecipients,
+      internal.user.account.getNewsletterRecipients,
     );
     console.log(`Sending newsletter to ${recipients.length} recipients`);
     // send message to each recipient

@@ -39,11 +39,9 @@ import type * as sub_sub_helpers from "../sub/sub_helpers.js";
 import type * as sub_sub_mutations from "../sub/sub_mutations.js";
 import type * as sub_sub_queries from "../sub/sub_queries.js";
 import type * as sub_sub_types from "../sub/sub_types.js";
+import type * as user_account from "../user/account.js";
 import type * as user_clerk from "../user/clerk.js";
 import type * as user_usage from "../user/usage.js";
-import type * as user_user_helpers from "../user/user_helpers.js";
-import type * as user_user_mutations from "../user/user_mutations.js";
-import type * as user_user_queries from "../user/user_queries.js";
 
 import type {
   ApiFromModules,
@@ -91,11 +89,9 @@ declare const fullApi: ApiFromModules<{
   "sub/sub_mutations": typeof sub_sub_mutations;
   "sub/sub_queries": typeof sub_sub_queries;
   "sub/sub_types": typeof sub_sub_types;
+  "user/account": typeof user_account;
   "user/clerk": typeof user_clerk;
   "user/usage": typeof user_usage;
-  "user/user_helpers": typeof user_user_helpers;
-  "user/user_mutations": typeof user_user_mutations;
-  "user/user_queries": typeof user_user_queries;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

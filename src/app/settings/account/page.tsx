@@ -18,7 +18,7 @@ export default async function Account() {
 
   // get user info
   const { data: email, error } = await tryCatch(
-    fetchQuery(api.user.user_queries.getUserEmail, {}, { token }),
+    fetchQuery(api.user.account.getUserEmail, {}, { token }),
   );
   if (error || !email) {
     console.error(error);
