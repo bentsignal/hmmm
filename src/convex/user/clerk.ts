@@ -1,17 +1,33 @@
 "use node";
 
-import { WebhookEvent } from "@clerk/nextjs/server";
+import { clerkClient, WebhookEvent } from "@clerk/nextjs/server";
 import { Webhook } from "svix";
 import { v } from "convex/values";
+import { polar } from "@/convex/sub/polar";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 
-const CLERK_WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
-if (!CLERK_WEBHOOK_SECRET) {
-  throw new Error("CLERK_WEBHOOK_SECRET is not set");
-}
+export const deleteUser = internalAction({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { userId } = args;
 
-export const webhookProcessor = internalAction({
+    // delete customer
+    const customer = await polar.getCustomerByUserId(ctx, userId);
+    if (!customer) {
+      throw new Error("No customer found");
+    }
+    await polar.sdk.customers.delete({ id: customer.id });
+
+    // delete user from clerk
+    const clerk = await clerkClient();
+    await clerk.users.deleteUser(userId);
+  },
+});
+
+export const processWebhook = internalAction({
   args: {
     body: v.string(),
     svixId: v.string(),
@@ -19,6 +35,10 @@ export const webhookProcessor = internalAction({
     svixSignature: v.string(),
   },
   handler: async (ctx, args) => {
+    const CLERK_WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
+    if (!CLERK_WEBHOOK_SECRET) {
+      throw new Error("CLERK_WEBHOOK_SECRET is not set");
+    }
     const { body, svixId, svixTimestamp, svixSignature } = args;
     let event: WebhookEvent;
     try {

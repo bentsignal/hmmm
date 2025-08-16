@@ -67,7 +67,7 @@ export const requestDeleteUser = mutation({
     await ctx.db.delete(user._id);
 
     // delete user from clerk & customer from polar
-    await ctx.scheduler.runAfter(0, internal.user.user_actions.deleteUser, {
+    await ctx.scheduler.runAfter(0, internal.user.clerk.deleteUser, {
       userId: userId.subject,
     });
 

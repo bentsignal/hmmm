@@ -1,6 +1,6 @@
 import { httpRouter } from "convex/server";
+import { internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
-import { webhookHandler } from "./clerk/clerk_http_actions";
 import { resend } from "./resend";
 import { polar } from "./sub/polar";
 
@@ -11,7 +11,26 @@ polar.registerRoutes(http);
 http.route({
   path: "/clerk/events",
   method: "POST",
-  handler: webhookHandler,
+  handler: httpAction(async (ctx, request) => {
+    const svixId = request.headers.get("svix-id");
+    const svixTimestamp = request.headers.get("svix-timestamp");
+    const svixSignature = request.headers.get("svix-signature");
+
+    if (!svixId || !svixTimestamp || !svixSignature) {
+      return new Response("Missing required headers", { status: 400 });
+    }
+
+    const payload = await request.json();
+    const body = JSON.stringify(payload);
+
+    await ctx.scheduler.runAfter(0, internal.user.clerk.processWebhook, {
+      body,
+      svixId,
+      svixTimestamp,
+      svixSignature,
+    });
+    return new Response("OK", { status: 200 });
+  }),
 });
 
 http.route({
