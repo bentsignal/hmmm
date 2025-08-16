@@ -1,6 +1,7 @@
 import { v } from "convex/values";
-import { internalQuery, query, QueryCtx } from "@/convex/_generated/server";
+import { internalQuery, QueryCtx } from "@/convex/_generated/server";
 import { hasUnlimitedAccess } from "@/convex/user/account";
+import { authedQuery } from "../convex_helpers";
 import { polar } from "../polar";
 
 // user can use up to 75% of their plan's price. Hopefully
@@ -63,12 +64,10 @@ export const getUserPlanHelper = async (
   };
 };
 
-export const getUserPlan = query({
+export const getUserPlan = authedQuery({
   args: {},
   handler: async (ctx) => {
-    const user = await ctx.auth.getUserIdentity();
-    if (!user) throw new Error("No user found");
-    return await getUserPlanHelper(ctx, user.subject);
+    return await getUserPlanHelper(ctx, ctx.user.subject);
   },
 });
 

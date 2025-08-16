@@ -18,7 +18,7 @@
 
 This was my entry for a hackathon hosted by [Theo](https://www.x.com/theo), where the goal was to build an AI chat app in under 10 days.
 
-This project is fully open source, licensed under [BSD-3](./LICENSE).
+This project is open source, licensed under [BSD-3](./LICENSE).
 
 Check [here](https://www.bentsignal.com/qbe) for more info on the project.
 

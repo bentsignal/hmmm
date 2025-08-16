@@ -2,31 +2,15 @@ import { v } from "convex/values";
 import { components, internal } from "@/convex/_generated/api";
 import {
   internalMutation,
-  internalQuery,
   mutation,
-  query,
   QueryCtx,
 } from "@/convex/_generated/server";
+import { authedQuery } from "../convex_helpers";
 
-export const getUser = internalQuery({
+export const getUserEmail = authedQuery({
   args: {},
   handler: async (ctx) => {
-    const userId = await ctx.auth.getUserIdentity();
-    if (!userId) {
-      return null;
-    }
-    return await getUserByUserId(ctx, userId.subject);
-  },
-});
-
-export const getUserEmail = query({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await ctx.auth.getUserIdentity();
-    if (!userId) {
-      return null;
-    }
-    const user = await getUserByUserId(ctx, userId.subject);
+    const user = await getUserByUserId(ctx, ctx.user.subject);
     if (!user) {
       return null;
     }

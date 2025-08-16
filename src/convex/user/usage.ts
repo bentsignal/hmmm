@@ -11,10 +11,10 @@ import { DataModel } from "@/convex/_generated/dataModel";
 import {
   internalMutation,
   mutation,
-  query,
   QueryCtx,
 } from "@/convex/_generated/server";
 import { LanguageModel } from "../ai/models";
+import { authedQuery, checkApiKey, checkAuth } from "../convex_helpers";
 import {
   ALLOWED_USAGE_PERCENTAGE,
   FREE_TIER_MAX_USAGE,
@@ -46,10 +46,18 @@ const usageTriggerInternalMutation = customMutation(
   internalMutation,
   customCtx(triggers.wrapDB),
 );
-const usageTriggerMutation = customMutation(
-  mutation,
-  customCtx(triggers.wrapDB),
-);
+
+const apiAuthedUsageTriggerMutation = customMutation(mutation, {
+  args: {
+    apiKey: v.string(),
+  },
+  input: async (ctx, args) => {
+    checkApiKey(args.apiKey);
+    const user = await checkAuth(ctx);
+    const wrappedCtx = triggers.wrapDB(ctx);
+    return { ctx: { ...wrappedCtx, user }, args };
+  },
+});
 
 export const logUsage = usageTriggerInternalMutation({
   args: v.object({
@@ -66,44 +74,29 @@ export const logUsage = usageTriggerInternalMutation({
   },
 });
 
-export const logTranscriptionUsage = usageTriggerMutation({
+export const logTranscriptionUsage = apiAuthedUsageTriggerMutation({
   args: v.object({
     cost: v.number(),
     totalCost: v.number(),
     model: v.string(),
-    key: v.string(),
   }),
   handler: async (ctx, args) => {
-    // auth check
-    const userId = await ctx.auth.getUserIdentity();
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
-    const INTERNAL_KEY = process.env.NEXT_CONVEX_INTERNAL_KEY;
-    if (!INTERNAL_KEY || INTERNAL_KEY !== args.key) {
-      throw new Error("Unauthorized");
-    }
     // usage check
-    const usage = await getUsageHelper(ctx, userId.subject);
+    const usage = await getUsageHelper(ctx, ctx.user.subject);
     if (usage.limitHit) {
       throw new Error("User has reached usage limit");
     }
     await ctx.db.insert("usage", {
-      userId: userId.subject,
+      userId: ctx.user.subject,
       cost: args.cost,
       type: "transcription",
     });
   },
 });
 
-export const getUsage = query({
+export const getUsage = authedQuery({
   handler: async (ctx) => {
-    // auth check
-    const userId = await ctx.auth.getUserIdentity();
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
-    const usage = await getUsageHelper(ctx, userId.subject);
+    const usage = await getUsageHelper(ctx, ctx.user.subject);
     return usage;
   },
 });

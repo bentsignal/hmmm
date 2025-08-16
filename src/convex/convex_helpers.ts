@@ -24,7 +24,7 @@ export const checkApiKey = (apiKey: string) => {
 export const checkAuth = async (ctx: QueryCtx | MutationCtx | ActionCtx) => {
   const user = await ctx.auth.getUserIdentity();
   if (!user) {
-    throw new ConvexError("Unauthorized");
+    throw new ConvexError("Unauthenticated");
   }
   return user;
 };

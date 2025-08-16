@@ -6,10 +6,11 @@ import {
 import { Triggers } from "convex-helpers/server/triggers";
 import { paginationOptsValidator, UserIdentity } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { internalQuery, query } from "@/convex/_generated/server";
+import { internalQuery } from "@/convex/_generated/server";
 import {
   apiMutation,
   authedMutation,
+  authedQuery,
   checkApiKey,
   checkAuth,
 } from "@/convex/convex_helpers";
@@ -231,7 +232,7 @@ export const getPublicFile = (file: Doc<"files">): LibraryFile => {
   };
 };
 
-export const listUserFiles = query({
+export const getUserFiles = authedQuery({
   args: {
     paginationOpts: paginationOptsValidator,
     direction: v.union(v.literal("asc"), v.literal("desc")),
@@ -241,16 +242,12 @@ export const listUserFiles = query({
   },
   handler: async (ctx, args) => {
     const { paginationOpts, direction, tab, searchTerm } = args;
-    const userIdentity = await ctx.auth.getUserIdentity();
-    if (!userIdentity) {
-      throw new Error("Unauthorized");
-    }
     let paginated;
     if (searchTerm) {
       paginated = await ctx.db
         .query("files")
         .withSearchIndex("search_file_name", (q) =>
-          q.search("fileName", searchTerm).eq("userId", userIdentity.subject),
+          q.search("fileName", searchTerm).eq("userId", ctx.user.subject),
         )
         .filter((q) => {
           if (tab === "images") {
@@ -269,7 +266,7 @@ export const listUserFiles = query({
     } else {
       paginated = await ctx.db
         .query("files")
-        .withIndex("by_user", (q) => q.eq("userId", userIdentity.subject))
+        .withIndex("by_user", (q) => q.eq("userId", ctx.user.subject))
         .filter((q) => {
           if (tab === "images") {
             return q.or(
@@ -298,15 +295,11 @@ export const listUserFiles = query({
   },
 });
 
-export const getStorageStatus = query({
+export const getStorageStatus = authedQuery({
   handler: async (ctx) => {
-    const userIdentity = await ctx.auth.getUserIdentity();
-    if (!userIdentity) {
-      throw new Error("Unauthorized");
-    }
     const { storageUsed, storageLimit } = await getStorageHelper(
       ctx,
-      userIdentity.subject,
+      ctx.user.subject,
     );
     return {
       storageUsed,

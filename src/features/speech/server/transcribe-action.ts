@@ -87,7 +87,7 @@ export async function transcribeAudio(audio: ArrayBuffer) {
   //     model: transcriptionModel.id,
   //     cost: transcriptionModel.cost.other,
   //     totalCost: cost,
-  //     key: env.NEXT_CONVEX_INTERNAL_KEY,
+  //     apiKey: env.NEXT_CONVEX_INTERNAL_KEY,
   //   },
   //   { token: authToken },
   // );

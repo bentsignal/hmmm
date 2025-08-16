@@ -6,9 +6,9 @@ import {
   internalAction,
   internalMutation,
   internalQuery,
-  mutation,
   query,
 } from "@/convex/_generated/server";
+import { authedMutation } from "../convex_helpers";
 import { counter } from "../counter";
 import { limiter } from "../limiter";
 import { languageModels } from "./models";
@@ -49,19 +49,15 @@ export const saveNewSuggestions = internalMutation({
   },
 });
 
-export const incrementSuggestion = mutation({
+export const incrementSuggestion = authedMutation({
   args: {
     id: v.id("suggestions"),
   },
   handler: async (ctx, args) => {
-    const userId = await ctx.auth.getUserIdentity();
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
     // no need to let user know if limit is hit. just don't want to increment
     // the counter if its being spammed malicously
     const { ok } = await limiter.limit(ctx, "suggestion", {
-      key: userId.subject,
+      key: ctx.user.subject,
     });
     if (!ok) {
       return;
