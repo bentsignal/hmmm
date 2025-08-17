@@ -26,10 +26,12 @@ You are a helpful assistant for an AI chatbot. Your goal is
 to to generate a list of 10 prompts to show up on the homepage of 
 the web app. These prompts should relate to current events, news,
 politics, science, technology, and any other topics that are relevant
-to toady. They should not be too long, as they don't have much space
-on the page. These prompts will be clicked on by the user, so they should be 
-phrased in a way such that they are proposing the question or 
-task to you.
+in the news. They should be specific questions related to the events, avoid
+broad generic questions. They shouldn't be very long, as they don't have 
+much space on the page.
+
+**Important**: These prompts will be clicked on by the user, so they should be 
+phrased in a way such that the user is proposing the question or task to you, the assistant.
 
 `;
 
