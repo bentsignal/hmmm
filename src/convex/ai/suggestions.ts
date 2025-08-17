@@ -14,7 +14,7 @@ import { limiter } from "../limiter";
 import { languageModels } from "./models";
 import { formatSuggestions, suggestionsGenerationPrompt } from "./prompts";
 
-export const generateSuggestions = internalAction({
+export const generate = internalAction({
   args: {},
   handler: async (ctx) => {
     // generate text containing prompts
@@ -32,13 +32,13 @@ export const generateSuggestions = internalAction({
       }),
     });
     // save new suggestions to table
-    await ctx.runMutation(internal.ai.suggestions.saveNewSuggestions, {
+    await ctx.runMutation(internal.ai.suggestions.save, {
       prompts: prompts.prompts,
     });
   },
 });
 
-export const saveNewSuggestions = internalMutation({
+export const save = internalMutation({
   args: {
     prompts: v.array(v.string()),
   },
@@ -49,7 +49,7 @@ export const saveNewSuggestions = internalMutation({
   },
 });
 
-export const incrementSuggestion = authedMutation({
+export const incrementClickCount = authedMutation({
   args: {
     id: v.id("suggestions"),
   },

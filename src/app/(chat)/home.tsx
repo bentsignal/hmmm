@@ -76,8 +76,8 @@ const HomePrompts = ({
   const { sendMessage } = useSendMessage();
 
   const prompts = usePreloadedQuery(preloadedSuggestions);
-  const incrementSuggestion = useMutation(
-    api.ai.suggestions.incrementSuggestion,
+  const incrementClickCount = useMutation(
+    api.ai.suggestions.incrementClickCount,
   );
 
   return (
@@ -102,7 +102,7 @@ const HomePrompts = ({
             role="button"
             aria-label={`Suggested homepage prompt: ${prompt.prompt}`}
             onClick={() => {
-              incrementSuggestion({ id: prompt._id });
+              incrementClickCount({ id: prompt._id });
               sendMessage({
                 customPrompt: prompt.prompt,
                 showInstantLoad,

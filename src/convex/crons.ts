@@ -7,7 +7,7 @@ const crons = cronJobs();
 crons.cron(
   "update-home-prompts",
   "0 0,6,12,18 * * *",
-  internal.ai.suggestions.generateSuggestions,
+  internal.ai.suggestions.generate,
 );
 
 crons.weekly(
