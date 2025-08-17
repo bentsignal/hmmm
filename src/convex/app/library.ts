@@ -63,9 +63,79 @@ const authedStorageTriggerMutation = customMutation(
   }),
 );
 
+export const getStorageHelper = async (
+  ctx: QueryCtx | MutationCtx,
+  userId: string,
+) => {
+  // how much storage a user is allowed to user, based
+  // on their subscription tier
+  const plan = await getUserPlanHelper(ctx, userId);
+  const storageLimit = storageLimits[plan.name];
+
+  // how much storage the user has actually used
+  const bounds: {
+    lower: { key: number; inclusive: boolean };
+    upper: { key: number; inclusive: boolean };
+  } = {
+    lower: { key: 0, inclusive: true },
+    upper: { key: Date.now(), inclusive: true },
+  };
+  const storageUsed = await storage.sum(ctx, {
+    namespace: userId,
+    bounds,
+  });
+
+  return {
+    storageLimit,
+    storageUsed,
+  };
+};
+
+export const verifyOwnership = async (
+  ctx: QueryCtx | MutationCtx,
+  user: UserIdentity,
+  fileIds: Doc<"files">["_id"][],
+) => {
+  // make sure files exist, and belong to user
+  const files = [];
+  for (const fileId of fileIds) {
+    const file = await ctx.db.get(fileId);
+    if (!file) {
+      throw new ConvexError("File not found");
+    }
+    if (file.userId !== user.subject) {
+      throw new ConvexError("Unauthorized");
+    }
+    files.push(file);
+  }
+  return files;
+};
+
+export const getFileUrl = (key: string) => {
+  if (!process.env.UPLOADTHING_ORG_ID) {
+    throw new ConvexError("UPLOADTHING_ORG_ID not set");
+  }
+  return `https://${process.env.UPLOADTHING_ORG_ID}.ufs.sh/f/${key}`;
+};
+
 /**
- * Called by uploadthing (core.ts) to store file metadata after the
- * files have been uploaded to storage.
+ * Get the user facing data for a file
+ * @param file
+ * @returns
+ */
+export const getPublicFile = (file: Doc<"files">): LibraryFile => {
+  return {
+    id: file._id,
+    url: getFileUrl(file.key),
+    fileName: file.fileName,
+    mimeType: file.fileType,
+    size: file.size,
+  };
+};
+
+/**
+ * Store file metadata in convex after the files have
+ * been uploaded to uploadthing storage.
  */
 export const uploadFileMetadata = apiStorageTriggerMutation({
   args: {
@@ -169,68 +239,6 @@ export const renameFile = authedMutation({
     });
   },
 });
-
-export const getStorageHelper = async (
-  ctx: QueryCtx | MutationCtx,
-  userId: string,
-) => {
-  const plan = await getUserPlanHelper(ctx, userId);
-  const storageLimit = storageLimits[plan.name];
-
-  const bounds: {
-    lower: { key: number; inclusive: boolean };
-    upper: { key: number; inclusive: boolean };
-  } = {
-    lower: { key: 0, inclusive: true },
-    upper: { key: Date.now(), inclusive: true },
-  };
-  const storageUsed = await storage.sum(ctx, {
-    namespace: userId,
-    bounds,
-  });
-
-  return {
-    storageLimit,
-    storageUsed,
-  };
-};
-
-export const verifyOwnership = async (
-  ctx: QueryCtx | MutationCtx,
-  user: UserIdentity,
-  fileIds: Doc<"files">["_id"][],
-) => {
-  // make sure file exists, and belongs to user
-  const files = [];
-  for (const fileId of fileIds) {
-    const file = await ctx.db.get(fileId);
-    if (!file) {
-      throw new ConvexError("File not found");
-    }
-    if (file.userId !== user.subject) {
-      throw new ConvexError("Unauthorized");
-    }
-    files.push(file);
-  }
-  return files;
-};
-
-export const getFileUrl = (key: string) => {
-  if (!process.env.UPLOADTHING_ORG_ID) {
-    throw new ConvexError("UPLOADTHING_ORG_ID not set");
-  }
-  return `https://${process.env.UPLOADTHING_ORG_ID}.ufs.sh/f/${key}`;
-};
-
-export const getPublicFile = (file: Doc<"files">): LibraryFile => {
-  return {
-    id: file._id,
-    url: getFileUrl(file.key),
-    fileName: file.fileName,
-    mimeType: file.fileType,
-    size: file.size,
-  };
-};
 
 export const getUserFiles = authedQuery({
   args: {
