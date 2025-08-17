@@ -35,7 +35,7 @@ export const agent = new Agent(components.agent, {
   },
   usageHandler: async (ctx, args) => {
     const cost = calculateModelCost(modelPresets.default, args.usage);
-    await ctx.runMutation(internal.user.usage.logUsage, {
+    await ctx.runMutation(internal.user.usage.log, {
       userId: args.userId || "no-user",
       type: "message",
       cost: cost,

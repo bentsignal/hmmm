@@ -78,7 +78,7 @@ export const fileAnalysis = createTool({
         languageModels["gemini-2.5-flash"],
         result.usage,
       );
-      await ctx.runMutation(internal.user.usage.logUsage, {
+      await ctx.runMutation(internal.user.usage.log, {
         userId: ctx.userId,
         type: "tool_call",
         cost: cost,

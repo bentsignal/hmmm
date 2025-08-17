@@ -83,7 +83,7 @@ export async function transcribeAudio(audio: ArrayBuffer) {
 
   // log usage, billed per minute
   await fetchMutation(
-    api.user.usage.logTranscriptionUsage,
+    api.user.usage.logTranscription,
     {
       duration,
       apiKey: env.NEXT_CONVEX_INTERNAL_KEY,

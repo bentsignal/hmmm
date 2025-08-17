@@ -61,7 +61,7 @@ export const processWebhook = internalAction({
       if (!email) {
         throw new Error("Missing required data");
       }
-      await ctx.runMutation(internal.user.account.createUser, {
+      await ctx.runMutation(internal.user.account.create, {
         userId: id,
         email,
       });

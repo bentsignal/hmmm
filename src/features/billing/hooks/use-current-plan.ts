@@ -9,7 +9,7 @@ export default function useCurrentPlan() {
     data: plan,
     isPending: planLoading,
     error: planError,
-  } = useQuery(convexQuery(api.user.subscription.getUserPlan, args));
+  } = useQuery(convexQuery(api.user.subscription.getPlan, args));
 
   return { plan, planLoading, planError };
 }

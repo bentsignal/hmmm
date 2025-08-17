@@ -22,6 +22,12 @@ import {
 } from "../user/subscription";
 import * as timeHelpers from "@/lib/date-time-utils";
 
+const UsageType = v.union(
+  v.literal("message"),
+  v.literal("tool_call"),
+  v.literal("transcription"),
+);
+
 // aggregate usage per user
 export const usage = new TableAggregate<{
   Namespace: string;
@@ -56,42 +62,6 @@ const apiAuthedUsageTriggerMutation = customMutation(mutation, {
     const user = await checkAuth(ctx);
     const wrappedCtx = triggers.wrapDB(ctx);
     return { ctx: { ...wrappedCtx, user }, args };
-  },
-});
-
-export const logUsage = usageTriggerInternalMutation({
-  args: v.object({
-    cost: v.number(),
-    userId: v.string(),
-    type: v.union(v.literal("message"), v.literal("tool_call")),
-  }),
-  handler: async (ctx, args) => {
-    await ctx.db.insert("usage", {
-      userId: args.userId,
-      cost: args.cost,
-      type: args.type,
-    });
-  },
-});
-
-export const logTranscriptionUsage = apiAuthedUsageTriggerMutation({
-  args: v.object({
-    duration: v.number(),
-  }),
-  handler: async (ctx, args) => {
-    const cost = calculateTranscriptionCost(args.duration);
-    await ctx.db.insert("usage", {
-      userId: ctx.user.subject,
-      cost,
-      type: "transcription",
-    });
-  },
-});
-
-export const getUsage = authedQuery({
-  handler: async (ctx) => {
-    const usage = await getUsageHelper(ctx, ctx.user.subject);
-    return usage;
   },
 });
 
@@ -153,3 +123,39 @@ export const calculateTranscriptionCost = (duration: number) => {
   const cost = modelPresets.transcription.cost.other * Math.ceil(duration / 60);
   return cost;
 };
+
+export const log = usageTriggerInternalMutation({
+  args: v.object({
+    cost: v.number(),
+    userId: v.string(),
+    type: UsageType,
+  }),
+  handler: async (ctx, args) => {
+    await ctx.db.insert("usage", {
+      userId: args.userId,
+      cost: args.cost,
+      type: args.type,
+    });
+  },
+});
+
+export const logTranscription = apiAuthedUsageTriggerMutation({
+  args: v.object({
+    duration: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const cost = calculateTranscriptionCost(args.duration);
+    await ctx.db.insert("usage", {
+      userId: ctx.user.subject,
+      cost,
+      type: "transcription",
+    });
+  },
+});
+
+export const getUsage = authedQuery({
+  handler: async (ctx) => {
+    const usage = await getUsageHelper(ctx, ctx.user.subject);
+    return usage;
+  },
+});

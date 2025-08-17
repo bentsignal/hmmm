@@ -7,7 +7,37 @@ import {
 } from "@/convex/_generated/server";
 import { authedQuery } from "../convex_helpers";
 
-export const getUserEmail = authedQuery({
+/**
+ * User's with access have unlimited usage at the highest tier
+ * @param ctx
+ * @param userId
+ * @returns true / false / undefined depending on user access level
+ */
+export const hasUnlimitedAccess = async (ctx: QueryCtx, userId: string) => {
+  const user = await getUserByUserId(ctx, userId);
+  if (!user) {
+    return false;
+  }
+  return user.unlimited;
+};
+
+export const isAdmin = async (ctx: QueryCtx, userId: string) => {
+  const user = await getUserByUserId(ctx, userId);
+  if (!user) {
+    return false;
+  }
+  return user.admin;
+};
+
+export const getUserByUserId = async (ctx: QueryCtx, userId: string) => {
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_user_id", (q) => q.eq("userId", userId))
+    .unique();
+  return user;
+};
+
+export const getEmail = authedQuery({
   args: {},
   handler: async (ctx) => {
     const user = await getUserByUserId(ctx, ctx.user.subject);
@@ -18,7 +48,7 @@ export const getUserEmail = authedQuery({
   },
 });
 
-export const createUser = internalMutation({
+export const create = internalMutation({
   args: {
     userId: v.string(),
     email: v.string(),
@@ -33,7 +63,7 @@ export const createUser = internalMutation({
   },
 });
 
-export const requestDeleteUser = mutation({
+export const requestDelete = mutation({
   args: {},
   handler: async (ctx) => {
     // auth check
@@ -96,33 +126,3 @@ export const requestDeleteUser = mutation({
     );
   },
 });
-
-/**
- * User's with access have unlimited usage at the highest tier
- * @param ctx
- * @param userId
- * @returns true / false / undefined depending on user access level
- */
-export const hasUnlimitedAccess = async (ctx: QueryCtx, userId: string) => {
-  const user = await getUserByUserId(ctx, userId);
-  if (!user) {
-    return false;
-  }
-  return user.unlimited;
-};
-
-export const isAdmin = async (ctx: QueryCtx, userId: string) => {
-  const user = await getUserByUserId(ctx, userId);
-  if (!user) {
-    return false;
-  }
-  return user.admin;
-};
-
-export const getUserByUserId = async (ctx: QueryCtx, userId: string) => {
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_user_id", (q) => q.eq("userId", userId))
-    .unique();
-  return user;
-};

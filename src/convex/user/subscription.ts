@@ -64,14 +64,14 @@ export const getUserPlanHelper = async (
   };
 };
 
-export const getUserPlan = authedQuery({
+export const getPlan = authedQuery({
   args: {},
   handler: async (ctx) => {
     return await getUserPlanHelper(ctx, ctx.user.subject);
   },
 });
 
-export const getUserPlanTier = internalQuery({
+export const getPlanTier = internalQuery({
   args: {
     userId: v.string(),
   },

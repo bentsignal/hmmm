@@ -128,7 +128,7 @@ export const weather = createTool({
 
     // log usage
     if (ctx.userId) {
-      await ctx.runMutation(internal.user.usage.logUsage, {
+      await ctx.runMutation(internal.user.usage.log, {
         userId: ctx.userId,
         cost: 0.01,
         type: "tool_call",
