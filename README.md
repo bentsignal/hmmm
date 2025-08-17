@@ -16,11 +16,9 @@
 <br />
 <div align="center">
 
-This was my entry for a hackathon hosted by [Theo](https://www.x.com/theo), where the goal was to build an AI chat app in under 10 days.
+A great starting point for those looking to build agentic applications for the web.
 
-This project is open source, licensed under [BSD-3](./LICENSE).
-
-Check [here](https://www.bentsignal.com/qbe) for more info on the project.
+More info on installation and initialization coming soon.
 
 <br />
 <br />
