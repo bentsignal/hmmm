@@ -21,6 +21,9 @@ interface Model {
 
 export interface LanguageModel extends Model {
   model: LanguageModelV1;
+  /**
+   * @deprecated currently unused, static options are passed to agent in `agents.ts`
+   */
   openrouterProviderOptions?: OpenRouterProviderOptions;
 }
 

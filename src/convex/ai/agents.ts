@@ -58,11 +58,11 @@ export const generateResponse = async (
   });
   const result = await thread.generateText({
     prompt,
-    maxTokens: 5000,
+    maxTokens: 16000,
     providerOptions: {
       openrouter: {
         reasoning: {
-          max_tokens: 16000,
+          max_tokens: 8000,
         },
       },
     },
