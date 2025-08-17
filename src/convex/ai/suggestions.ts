@@ -55,7 +55,7 @@ export const incrementSuggestion = authedMutation({
   },
   handler: async (ctx, args) => {
     // no need to let user know if limit is hit. just don't want to increment
-    // the counter if its being spammed malicously
+    // the counter if its being spammed
     const { ok } = await limiter.limit(ctx, "suggestion", {
       key: ctx.user.subject,
     });
@@ -66,28 +66,30 @@ export const incrementSuggestion = authedMutation({
   },
 });
 
-export const getSuggestions = query({
+export const getCurrent = query({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("suggestions").order("desc").take(10);
   },
 });
 
-export const getTodaysSuggestions = internalQuery({
+export const getTopWeekly = internalQuery({
   args: {
     numResults: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // get all suggestions generated today
+    // get all suggestions generated in the last 7 days
     const now = new Date();
-    const startOfDay = new Date(
+    const sevenDaysAgo = new Date(
       now.getFullYear(),
       now.getMonth(),
-      now.getDate(),
+      now.getDate() - 7,
     ).getTime();
     const suggestions = await ctx.db
       .query("suggestions")
-      .withIndex("by_creation_time", (q) => q.gte("_creationTime", startOfDay))
+      .withIndex("by_creation_time", (q) =>
+        q.gte("_creationTime", sevenDaysAgo),
+      )
       .order("desc")
       .collect();
     // count how many times each suggestion has been clicked

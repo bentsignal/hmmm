@@ -19,9 +19,10 @@ interface NewsletterProps {
     response: string;
   }[];
   userId: string;
+  origin: string;
 }
 
-const Newsletter = ({ title, stories, userId }: NewsletterProps) => {
+const Newsletter = ({ title, stories, userId, origin }: NewsletterProps) => {
   return (
     <Html>
       <Tailwind
@@ -40,7 +41,7 @@ const Newsletter = ({ title, stories, userId }: NewsletterProps) => {
                 <Text className="text-sm">{story.response}</Text>
                 <Section className="mx-auto flex items-center justify-center text-center">
                   <Link
-                    href={`https://qbe.sh/new?q=${prompt}`}
+                    href={`${origin}/new?q=${prompt}`}
                     className="mx-auto w-full text-center text-sm font-bold no-underline"
                   >
                     Read More
@@ -53,7 +54,7 @@ const Newsletter = ({ title, stories, userId }: NewsletterProps) => {
           <Section className="mt-4 text-center">
             <Section className="mb-4">
               <Button
-                href="https://qbe.sh/settings/general"
+                href={`${origin}/settings/general`}
                 className="rounded-lg bg-blue-200 px-4 py-2 text-sm 
                           font-bold text-black no-underline"
               >
@@ -62,7 +63,7 @@ const Newsletter = ({ title, stories, userId }: NewsletterProps) => {
             </Section>
             <Section>
               <Link
-                href={`https://qbe.sh/mail?userId=${userId}&status=false`}
+                href={`${origin}/mail?userId=${userId}&status=false`}
                 className="text-sm text-red-500 no-underline"
               >
                 Unsubscribe
@@ -79,10 +80,16 @@ export default async function getNewsletterHtml({
   title,
   stories,
   userId,
+  origin,
 }: NewsletterProps) {
   return pretty(
     await render(
-      <Newsletter title={title} stories={stories} userId={userId} />,
+      <Newsletter
+        title={title}
+        stories={stories}
+        userId={userId}
+        origin={origin}
+      />,
     ),
   );
 }

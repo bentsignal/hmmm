@@ -16,15 +16,27 @@ import getNewsletterHtml from "./templates";
 // the number of stories to include in the newsletter
 const STORY_COUNT = 5;
 
-// the number of stories that will be fed back in to generate title
-const MAX_FOR_SUMMARY = 3;
+// the number of stories that will be fed back in to generate the title
+// of the newsletter, which will be used in the subject line
+const MAX_FOR_SUBJECT = 3;
+
+// mail config
+
+const ORIGIN =
+  process.env.CONVEX_ENV === "development"
+    ? "http://localhost:3000"
+    : "https://qbe.sh";
+const ENDPOINT = "mail";
+const RESUBSCRIBE = "resubscribe@qbe.sh";
+const UNSUBSCRIBE = "unsubscribe@qbe.sh";
+const FROM = "QBE <newsletter@mail.qbe.sh>";
 
 export const sendNewsletter = internalAction({
   handler: async (ctx) => {
-    console.log("Sending newsletter");
-    // get the top 10 most clicked suggestions from today
+    console.log("Starting newsletter generation");
+    // get the top 10 most clicked suggestions from the last 7 days
     const suggestions = await ctx.runQuery(
-      internal.ai.suggestions.getTodaysSuggestions,
+      internal.ai.suggestions.getTopWeekly,
       { numResults: STORY_COUNT },
     );
     console.log(`Retrieved ${suggestions.length} suggestions`);
@@ -60,13 +72,13 @@ export const sendNewsletter = internalAction({
       console.log("No previews were generated, aborting");
       return;
     }
-    const useForSummary = Math.min(MAX_FOR_SUMMARY, previews.length);
+    const useForSubject = Math.min(MAX_FOR_SUBJECT, previews.length);
     console.log(
-      `Generated ${previews.length} previews, using ${useForSummary} for summary`,
+      `Generated ${previews.length} previews, using ${useForSubject} for subject`,
     );
     // concatenate the top 3 prompts and responses
     const topThreeConcat = previews
-      .slice(0, useForSummary)
+      .slice(0, useForSubject)
       .map((response, index) => {
         return `${index + 1}. ${suggestions[index].prompt}\n${response.response}`;
       })
@@ -91,20 +103,17 @@ export const sendNewsletter = internalAction({
     );
     console.log(`Sending newsletter to ${recipients.length} recipients`);
     // send message to each recipient
-    const siteUrl = "https://qbe.sh";
-    const endpoint = "mail";
-    const resubscribe = "resubscribe@qbe.sh";
-    const unsubscribe = "unsubscribe@qbe.sh";
     await Promise.all(
       recipients.map(async (recipient) => {
-        const url = `${siteUrl}/${endpoint}?userId=${encodeURIComponent(recipient.userId)}`;
+        const url = `${ORIGIN}/${ENDPOINT}?userId=${encodeURIComponent(recipient.userId)}`;
         const html = await getNewsletterHtml({
           title: cleanTitle,
           stories: previews,
           userId: recipient.userId,
+          origin: ORIGIN,
         });
         await resend.sendEmail(ctx, {
-          from: "QBE <newsletter@mail.qbe.sh>",
+          from: FROM,
           to: recipient.email,
           subject: `📰 ${cleanSubject}`,
           headers: [
@@ -114,11 +123,11 @@ export const sendNewsletter = internalAction({
             },
             {
               name: "List-Unsubscribe",
-              value: `<mailto:${unsubscribe}>, <${url}&status=false>`,
+              value: `<mailto:${UNSUBSCRIBE}>, <${url}&status=false>`,
             },
             {
               name: "List-Resubscribe",
-              value: `<mailto:${resubscribe}>, <${url}&status=true>`,
+              value: `<mailto:${RESUBSCRIBE}>, <${url}&status=true>`,
             },
           ],
           html,

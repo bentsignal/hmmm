@@ -19,7 +19,7 @@ export default function Home({
   preloadedSuggestions,
   authed,
 }: {
-  preloadedSuggestions: Preloaded<typeof api.ai.suggestions.getSuggestions>;
+  preloadedSuggestions: Preloaded<typeof api.ai.suggestions.getCurrent>;
   authed: boolean;
 }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -70,7 +70,7 @@ const HomePrompts = ({
   preloadedSuggestions,
 }: {
   showInstantLoad: () => void;
-  preloadedSuggestions: Preloaded<typeof api.ai.suggestions.getSuggestions>;
+  preloadedSuggestions: Preloaded<typeof api.ai.suggestions.getCurrent>;
 }) => {
   const { usage } = useUsage();
   const { sendMessage } = useSendMessage();
