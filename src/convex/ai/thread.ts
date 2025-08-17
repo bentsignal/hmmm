@@ -136,20 +136,21 @@ export const validateMessage = async (
   message: string,
   attachmentLength: number,
 ) => {
+  // max 20k characters per message
   if (message.length > 20000) {
     throw new ConvexError("Message is too long. Please shorten your message.");
-  }
-  // check usage and rate limiting
-  const [usage] = await Promise.all([
-    getUsageHelper(ctx, ctx.user.subject),
-    messageSendRateLimit(ctx, ctx.user.subject),
-  ]);
-  if (usage.limitHit) {
-    throw new ConvexError("User has reached usage limit");
   }
   // max 20 files per message
   if (attachmentLength > MAX_ATTACHMENTS_PER_MESSAGE) {
     throw new ConvexError("You can only attach up to 20 files per message.");
+  }
+  // check usage and rate limiting
+  const [usage] = await Promise.all([
+    getUsageHelper(ctx),
+    messageSendRateLimit(ctx),
+  ]);
+  if (usage.limitHit) {
+    throw new ConvexError("User has reached usage limit");
   }
 };
 

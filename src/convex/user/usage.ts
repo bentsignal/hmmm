@@ -2,19 +2,21 @@ import { TableAggregate } from "@convex-dev/aggregate";
 import { LanguageModelUsage } from "ai";
 import {
   customCtx,
+  CustomCtx,
   customMutation,
 } from "convex-helpers/server/customFunctions";
 import { Triggers } from "convex-helpers/server/triggers";
 import { v } from "convex/values";
 import { components } from "@/convex/_generated/api";
 import { DataModel } from "@/convex/_generated/dataModel";
-import {
-  internalMutation,
-  mutation,
-  QueryCtx,
-} from "@/convex/_generated/server";
+import { internalMutation, mutation } from "@/convex/_generated/server";
 import { LanguageModel, modelPresets } from "../ai/models";
-import { authedQuery, checkApiKey, checkAuth } from "../convex_helpers";
+import {
+  authedMutation,
+  authedQuery,
+  checkApiKey,
+  checkAuth,
+} from "../convex_helpers";
 import {
   ALLOWED_USAGE_PERCENTAGE,
   FREE_TIER_MAX_USAGE,
@@ -65,7 +67,10 @@ const apiAuthedUsageTriggerMutation = customMutation(mutation, {
   },
 });
 
-export const getUsageHelper = async (ctx: QueryCtx, userId: string) => {
+export const getUsageHelper = async (
+  ctx: CustomCtx<typeof authedQuery | typeof authedMutation>,
+) => {
+  const userId = ctx.user.subject;
   const plan = await getUserPlanHelper(ctx, userId);
 
   // free tier gets set amount per day, paid users get % of their price per month
@@ -155,7 +160,7 @@ export const logTranscription = apiAuthedUsageTriggerMutation({
 
 export const getUsage = authedQuery({
   handler: async (ctx) => {
-    const usage = await getUsageHelper(ctx, ctx.user.subject);
+    const usage = await getUsageHelper(ctx);
     return usage;
   },
 });
