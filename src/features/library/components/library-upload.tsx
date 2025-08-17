@@ -1,12 +1,16 @@
+import { useState } from "react";
 import { Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { LibraryStorageStatus } from "./library-storage-status";
-import { WaveLoader } from "@/components/ui/loader";
+import LibraryUploadProgress from "./library-upload-progress";
+import { Loader } from "@/components/ui/loader";
 import { UploadButton } from "@/lib/uploadthing";
 
 export const LibraryUpload = () => {
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+
   const isAuthenticated = useConvexAuth();
   const storageStatus = useQuery(
     api.app.library.getStorageStatus,
@@ -16,16 +20,17 @@ export const LibraryUpload = () => {
   if (!storageStatus) return null;
 
   const percentageUsed = Math.min(
-    (storageStatus?.storageUsed ?? 0) / (storageStatus?.storageLimit ?? 0),
+    (storageStatus.storageUsed ?? 0) / (storageStatus.storageLimit ?? 0),
     100,
   );
   const disabled = storageStatus?.storageLimit === 0 || percentageUsed >= 100;
 
   return (
     <div className="m-4 flex flex-col gap-4">
+      <LibraryUploadProgress progress={uploadProgress} />
       <LibraryStorageStatus
-        storageUsed={storageStatus?.storageUsed ?? 0}
-        storageLimit={storageStatus?.storageLimit ?? 0}
+        storageUsed={storageStatus.storageUsed}
+        storageLimit={storageStatus.storageLimit}
         percentageUsed={percentageUsed}
       />
       <UploadButton
@@ -39,15 +44,26 @@ export const LibraryUpload = () => {
           }
         }}
         content={{
-          button({ ready, isUploading }) {
+          button({ ready, isUploading, uploadProgress }) {
+            // update progress bar
+            if (isUploading) {
+              setUploadProgress(uploadProgress);
+            } else {
+              setUploadProgress(null);
+            }
+
+            // show loader
             if (isUploading) {
               return (
-                <WaveLoader
-                  className=" h-5 w-5"
-                  bgColor="bg-primary-foreground"
+                <Loader
+                  variant="dots"
+                  color="bg-primary-foreground"
+                  size="sm"
                 />
               );
             }
+
+            // show upload button
             if (ready) {
               return (
                 <div className="flex items-center gap-2">

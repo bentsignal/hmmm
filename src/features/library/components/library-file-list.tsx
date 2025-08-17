@@ -6,7 +6,7 @@ import { LibraryGridFile, LibraryListFile } from "./library-file";
 import { LibraryFileContextItems } from "./library-file-context-items";
 import PageLoader from "@/components/page-loader";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
-import { WaveLoader } from "@/components/ui/loader";
+import { Loader } from "@/components/ui/loader";
 import { libraryPagination } from "@/features/library/config";
 
 export const LibraryFileList = ({
@@ -45,7 +45,7 @@ export const LibraryFileList = ({
   if (status === "LoadingFirstPage") {
     return (
       <div className="flex h-full w-full items-center justify-center">
-        <WaveLoader size="lg" />
+        <Loader size="sm" variant="dots" />
       </div>
     );
   }
