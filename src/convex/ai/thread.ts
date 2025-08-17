@@ -37,7 +37,7 @@ import {
  * @param threadId
  * @returns metadata relating to thread
  */
-export const getThreadMetadata = async (ctx: QueryCtx, threadId: string) => {
+export const getMetadata = async (ctx: QueryCtx, threadId: string) => {
   const metadata = await ctx.db
     .query("threadMetadata")
     .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
@@ -51,17 +51,17 @@ export const getThreadMetadata = async (ctx: QueryCtx, threadId: string) => {
 
 /**
  * verify that a user is allowed to access a thread. If they are,
- * return the thread metadata. Admin's can access any thread
+ * return the thread metadata. Admins can access any thread
  * @param ctx
  * @param threadId
  * @returns threadMetadata / null depending on whether or not access is granted
  */
-export const authorizeThreadAccess = async (
+export const authorizeAccess = async (
   ctx: CustomCtx<typeof authedMutation> | CustomCtx<typeof authedQuery>,
   threadId: string,
 ) => {
   const [metadata, isAdminUser] = await Promise.all([
-    getThreadMetadata(ctx, threadId),
+    getMetadata(ctx, threadId),
     isAdmin(ctx, ctx.user.subject),
   ]);
   // thread not found
@@ -125,7 +125,13 @@ export const logSystemNotice = async (
   });
 };
 
-export const threadMessageCheck = async (
+/**
+ * Rate limiting, input validation (message length, attachment length), usage check
+ * @param ctx
+ * @param message
+ * @param attachmentLength
+ */
+export const validateMessage = async (
   ctx: CustomCtx<typeof authedMutation>,
   message: string,
   attachmentLength: number,
@@ -147,7 +153,14 @@ export const threadMessageCheck = async (
   }
 };
 
-export const saveNewMessage = async (
+/**
+ * Save user message to thread
+ * @param ctx
+ * @param threadId
+ * @param prompt
+ * @param attachments
+ */
+export const saveUserMessage = async (
   ctx: CustomCtx<typeof authedMutation>,
   threadId: string,
   prompt: string,
@@ -169,6 +182,41 @@ export const saveNewMessage = async (
   });
 };
 
+/**
+ * Update title of thread (shown in thread list in sidebar)
+ * @param ctx
+ * @param threadId
+ * @param title
+ */
+const saveNewTitle = async ({
+  ctx,
+  threadId,
+  title,
+}: {
+  ctx: MutationCtx | CustomCtx<typeof authedMutation>;
+  threadId: string;
+  title: string;
+}) => {
+  const metadata = await getMetadata(ctx, threadId);
+  if (!metadata) {
+    throw new ConvexError("Thread not found");
+  }
+  // if function is called by client mutation, check auth
+  if ("user" in ctx && metadata.userId !== ctx.user.subject) {
+    throw new Error("Unauthorized");
+  }
+  // update thread title
+  await ctx.db.patch(metadata._id, {
+    title: title,
+  });
+  await agent.updateThreadMetadata(ctx, {
+    threadId: threadId,
+    patch: {
+      title: title,
+    },
+  });
+};
+
 export const generateTitle = internalAction({
   args: {
     prompt: v.string(),
@@ -181,14 +229,36 @@ export const generateTitle = internalAction({
       prompt: prompt,
       system: titleGeneratorPrompt,
     });
-    await ctx.runMutation(internal.ai.thread.updateThreadTitle, {
+    await ctx.runMutation(internal.ai.thread.setTitle, {
       threadId: threadId,
       title: response.text.trim(),
     });
   },
 });
 
-export const requestNewThread = authedMutation({
+export const setTitle = internalMutation({
+  args: {
+    title: v.string(),
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { title, threadId } = args;
+    await saveNewTitle({ ctx, threadId, title });
+  },
+});
+
+export const rename = authedMutation({
+  args: {
+    name: v.string(),
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { threadId, name } = args;
+    await saveNewTitle({ ctx, threadId, title: name });
+  },
+});
+
+export const create = authedMutation({
   args: {
     prompt: v.string(),
     // file names
@@ -198,7 +268,7 @@ export const requestNewThread = authedMutation({
     const { prompt, attachments } = args;
     const numAttachments = attachments?.length || 0;
     // auth, usage, input val, rate limit
-    await threadMessageCheck(ctx, prompt, numAttachments);
+    await validateMessage(ctx, prompt, numAttachments);
     // create new thread in agent component table, as well as
     // new document in separate threadMetadata table
     const { threadId } = await agent.createThread(ctx, {
@@ -207,7 +277,7 @@ export const requestNewThread = authedMutation({
     });
     // create metadata doc for thread and store first message
     const [{ lastMessageId }] = await Promise.all([
-      saveNewMessage(ctx, threadId, prompt, attachments),
+      saveUserMessage(ctx, threadId, prompt, attachments),
       ctx.db.insert("threadMetadata", {
         userId: ctx.user.subject,
         title: "New Chat",
@@ -242,7 +312,7 @@ export const requestNewThread = authedMutation({
   },
 });
 
-export const newThreadMessage = authedMutation({
+export const sendMessage = authedMutation({
   args: {
     threadId: v.string(),
     prompt: v.string(),
@@ -251,21 +321,18 @@ export const newThreadMessage = authedMutation({
   handler: async (ctx, args) => {
     const { threadId, prompt, attachments } = args;
     const numAttachments = attachments?.length || 0;
-    await threadMessageCheck(ctx, prompt, numAttachments);
+    await validateMessage(ctx, prompt, numAttachments);
     // get thread metadata
-    const metadata = await getThreadMetadata(ctx, threadId);
+    const metadata = await authorizeAccess(ctx, threadId);
     if (!metadata) {
       throw new ConvexError("Thread not found");
-    }
-    if (metadata.userId !== ctx.user.subject) {
-      throw new ConvexError("Unauthorized");
     }
     if (metadata.state !== "idle") {
       throw new ConvexError("Thread is not idle");
     }
     // save new message to thread, update thread state, clear previous follow up questions
     const [{ lastMessageId }] = await Promise.all([
-      saveNewMessage(ctx, threadId, prompt, attachments),
+      saveUserMessage(ctx, threadId, prompt, attachments),
       ctx.db.patch(metadata._id, {
         state: "waiting",
         updatedAt: Date.now(),
@@ -295,12 +362,9 @@ export const deleteThread = authedMutation({
   handler: async (ctx, args) => {
     // get thread metadata
     const { threadId } = args;
-    const metadata = await getThreadMetadata(ctx, threadId);
+    const metadata = await authorizeAccess(ctx, threadId);
     if (!metadata) {
       throw new ConvexError("Thread not found");
-    }
-    if (metadata.userId !== ctx.user.subject) {
-      throw new Error("Unauthorized");
     }
     if (metadata.state !== "idle") {
       throw new Error(
@@ -319,30 +383,7 @@ export const deleteThread = authedMutation({
   },
 });
 
-export const updateThreadTitle = internalMutation({
-  args: {
-    title: v.string(),
-    threadId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { title, threadId } = args;
-    const metadata = await getThreadMetadata(ctx, threadId);
-    if (!metadata) {
-      throw new ConvexError("Thread not found");
-    }
-    await ctx.db.patch(metadata._id, {
-      title: title,
-    });
-    await agent.updateThreadMetadata(ctx, {
-      threadId: threadId,
-      patch: {
-        title: title,
-      },
-    });
-  },
-});
-
-export const updateThreadState = internalMutation({
+export const setState = internalMutation({
   args: {
     threadId: v.string(),
     state: v.union(
@@ -353,7 +394,7 @@ export const updateThreadState = internalMutation({
   },
   handler: async (ctx, args) => {
     const { threadId, state } = args;
-    const metadata = await getThreadMetadata(ctx, threadId);
+    const metadata = await getMetadata(ctx, threadId);
     if (!metadata) {
       throw new ConvexError("Thread not found");
     }
@@ -363,41 +404,16 @@ export const updateThreadState = internalMutation({
   },
 });
 
-export const renameThread = authedMutation({
-  args: {
-    threadId: v.string(),
-    newTitle: v.string(),
-  },
-  handler: async (ctx, args) => {
-    // get thread metadata
-    const { threadId, newTitle } = args;
-    const metadata = await getThreadMetadata(ctx, threadId);
-    if (!metadata) {
-      throw new ConvexError("Thread not found");
-    }
-    if (metadata.userId !== ctx.user.subject) {
-      throw new Error("Unauthorized");
-    }
-    // update thread title
-    await ctx.db.patch(metadata._id, {
-      title: newTitle,
-    });
-  },
-});
-
-export const toggleThreadPin = authedMutation({
+export const togglePinned = authedMutation({
   args: {
     threadId: v.string(),
   },
   handler: async (ctx, args) => {
     // get thread metadata
     const { threadId } = args;
-    const metadata = await getThreadMetadata(ctx, threadId);
+    const metadata = await authorizeAccess(ctx, threadId);
     if (!metadata) {
       throw new ConvexError("Thread not found");
-    }
-    if (metadata.userId !== ctx.user.subject) {
-      throw new Error("Unauthorized");
     }
     // toggle thread pin
     await ctx.db.patch(metadata._id, {
@@ -413,7 +429,7 @@ export const saveFollowUpQuestions = internalMutation({
   },
   handler: async (ctx, args) => {
     const { threadId, followUpQuestions } = args;
-    const metadata = await getThreadMetadata(ctx, threadId);
+    const metadata = await getMetadata(ctx, threadId);
     if (!metadata) {
       throw new ConvexError("Thread not found");
     }
@@ -423,17 +439,17 @@ export const saveFollowUpQuestions = internalMutation({
   },
 });
 
-export const getThreadTitle = authedQuery({
+export const getTitle = authedQuery({
   args: {
     threadId: v.string(),
   },
   handler: async (ctx, args) => {
-    const metadata = await authorizeThreadAccess(ctx, args.threadId);
+    const metadata = await authorizeAccess(ctx, args.threadId);
     return metadata?.title;
   },
 });
 
-export const getThreadState = authedQuery({
+export const getState = authedQuery({
   args: {
     threadId: v.string(),
   },
@@ -442,7 +458,7 @@ export const getThreadState = authedQuery({
     if (threadId.trim().length === 0) {
       return "idle";
     }
-    const metadata = await authorizeThreadAccess(ctx, threadId);
+    const metadata = await authorizeAccess(ctx, threadId);
     return metadata?.state;
   },
 });
@@ -496,7 +512,7 @@ export const getThreadMessages = authedQuery({
       throw new Error("Empty thread ID");
     }
     // auth check is done here
-    const metadata = await authorizeThreadAccess(ctx, threadId);
+    const metadata = await authorizeAccess(ctx, threadId);
     if (!metadata) {
       const streamsFallback: SyncStreamsReturnValue =
         !streamArgs || streamArgs.kind === "list"
@@ -534,13 +550,13 @@ export const getThreadMessages = authedQuery({
   },
 });
 
-export const getThreadFollowUpQuestions = authedQuery({
+export const getFollowUpQuestions = authedQuery({
   args: {
     threadId: v.string(),
   },
   handler: async (ctx, args) => {
     const { threadId } = args;
-    const metadata = await authorizeThreadAccess(ctx, threadId);
+    const metadata = await authorizeAccess(ctx, threadId);
     if (!metadata) {
       return [];
     }

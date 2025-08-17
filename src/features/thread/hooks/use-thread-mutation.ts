@@ -6,9 +6,9 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 export default function useThreadMutation() {
-  const createThread = useMutation(api.ai.thread.requestNewThread);
-  const newThreadMessage = useMutation(
-    api.ai.thread.newThreadMessage,
+  const createThread = useMutation(api.ai.thread.create);
+  const sendMessage = useMutation(
+    api.ai.thread.sendMessage,
   ).withOptimisticUpdate(
     optimisticallySendMessage(api.ai.thread.getThreadMessages),
   );
@@ -20,14 +20,14 @@ export default function useThreadMutation() {
     },
   });
   const { mutate: renameThread } = useTanstackMutation({
-    mutationFn: useConvexMutation(api.ai.thread.renameThread),
+    mutationFn: useConvexMutation(api.ai.thread.rename),
     onError: (error) => {
       console.error(error);
       toast.error("Failed to rename thread");
     },
   });
-  const { mutate: toggleThreadPin } = useTanstackMutation({
-    mutationFn: useConvexMutation(api.ai.thread.toggleThreadPin),
+  const { mutate: togglePinned } = useTanstackMutation({
+    mutationFn: useConvexMutation(api.ai.thread.togglePinned),
     onError: (error) => {
       console.error(error);
       toast.error("Failed to toggle thread pin");
@@ -35,9 +35,9 @@ export default function useThreadMutation() {
   });
   return {
     createThread,
-    newThreadMessage,
+    sendMessageInThread: sendMessage,
     deleteThread,
     renameThread,
-    toggleThreadPin,
+    togglePinned,
   };
 }

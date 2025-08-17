@@ -49,7 +49,7 @@ const Redirector = async ({ searchParams }: NewPageProps) => {
   const authToken = await getAuthToken();
   const { data: threadId, error } = await tryCatch(
     fetchMutation(
-      api.ai.thread.requestNewThread,
+      api.ai.thread.create,
       {
         prompt: parsedQuery,
       },

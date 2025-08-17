@@ -15,7 +15,7 @@ export default function useSendMessage() {
   const router = useRouter();
 
   const setPrompt = useComposerStore((state) => state.setPrompt);
-  const { createThread, newThreadMessage } = useThreadMutation();
+  const { createThread, sendMessageInThread } = useThreadMutation();
 
   // state of current thread
   const activeThread = useThreadStore((state) => state.activeThread);
@@ -112,7 +112,7 @@ export default function useSendMessage() {
       return threadId;
     } else {
       const { error: newThreadMessageError } = await tryCatch(
-        newThreadMessage({
+        sendMessageInThread({
           threadId: activeThread,
           prompt: prompt,
           attachments: attachedFiles.map((file) => file.fileName),

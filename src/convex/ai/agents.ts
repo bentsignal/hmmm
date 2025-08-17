@@ -104,7 +104,7 @@ export const streamResponse = internalAction({
         "G1",
         "Failed to initialize stream generation.",
       );
-      await ctx.runMutation(internal.ai.thread.updateThreadState, {
+      await ctx.runMutation(internal.ai.thread.setState, {
         threadId: threadId,
         state: "idle",
       });
@@ -113,7 +113,7 @@ export const streamResponse = internalAction({
     // stream response back to user
     const { error: streamError } = await tryCatch(
       Promise.all([
-        ctx.runMutation(internal.ai.thread.updateThreadState, {
+        ctx.runMutation(internal.ai.thread.setState, {
           threadId: threadId,
           state: "streaming",
         }),
@@ -131,7 +131,7 @@ export const streamResponse = internalAction({
     // stream has completed
     await Promise.allSettled([
       // set thread back to idle
-      ctx.runMutation(internal.ai.thread.updateThreadState, {
+      ctx.runMutation(internal.ai.thread.setState, {
         threadId: threadId,
         state: "idle",
       }),
