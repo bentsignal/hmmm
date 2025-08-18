@@ -4,7 +4,7 @@ import { fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import { PageFallback } from "@/components/error-boundary";
 import { tryCatch } from "@/lib/utils";
-import { getAuthToken } from "@/features/auth/util/auth-util";
+import { getAuthToken } from "@/features/auth/util";
 import DeleteAccount from "@/features/settings/components/delete-accont";
 import SettingsCard from "@/features/settings/components/settings-card";
 

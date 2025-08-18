@@ -1,7 +1,6 @@
-// import { SignUp, SignedOut } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import SignUpComponent from "@/features/auth/components/sign-up-component";
+import SignUp from "@/features/auth/components/sign-up";
 
 export default async function SignUpPage() {
   const { userId } = await auth();
@@ -12,10 +11,7 @@ export default async function SignUpPage() {
 
   return (
     <div className="flex h-screen w-screen items-center justify-center">
-      {/* <SignedOut>
-        <SignUp forceRedirectUrl="/" />
-      </SignedOut> */}
-      <SignUpComponent />
+      <SignUp />
     </div>
   );
 }

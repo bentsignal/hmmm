@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { fetchMutation } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import { tryCatch } from "@/lib/utils";
-import { getAuthToken } from "@/features/auth/util/auth-util";
+import { getAuthToken } from "@/features/auth/util";
 
 interface NewPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
