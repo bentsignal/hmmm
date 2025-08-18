@@ -68,6 +68,8 @@ export function getStatusLabel(message: UIMessage) {
           return "Checking the news";
         case "fileAnalysis":
           return "Analyzing file";
+        case "codeGeneration":
+          return "Generating code";
         default:
           return "Searching for information";
       }

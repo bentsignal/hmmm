@@ -9,6 +9,7 @@ import { ActionCtx, internalAction } from "../_generated/server";
 import { modelPresets } from "./models";
 import { logSystemError } from "./thread";
 import {
+  codeGeneration,
   currentEvents,
   dateTime,
   fileAnalysis,
@@ -29,6 +30,7 @@ export const agent = new Agent(components.agent, {
     weather,
     positionHolder,
     fileAnalysis,
+    codeGeneration,
   },
   contextOptions: {
     excludeToolMessages: false,

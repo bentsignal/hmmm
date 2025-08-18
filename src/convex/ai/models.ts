@@ -177,6 +177,17 @@ export const languageModels = {
       other: 0,
     },
   },
+  "gpt-5": {
+    provider: "OpenAI",
+    name: "GPT-5",
+    id: "openai/gpt-5",
+    model: openai("gpt-5"),
+    cost: {
+      in: 1.25,
+      out: 10,
+      other: 0,
+    },
+  },
   /*
 
     Anthropic

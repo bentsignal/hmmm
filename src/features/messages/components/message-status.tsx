@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { UIMessage, useSmoothText } from "@convex-dev/agent/react";
-import { Brain, Clock, File, Globe, Newspaper, Sun } from "lucide-react";
+import { Brain, Clock, Code, File, Globe, Newspaper, Sun } from "lucide-react";
 import {
   extractReasoningFromMessage,
   getStatusLabel,
@@ -57,6 +57,8 @@ export default function MessageStatus({
               <Sun className="h-4 w-4" />
             ) : statusLabel === "Analyzing file" ? (
               <File className="h-4 w-4" />
+            ) : statusLabel === "Generating code" ? (
+              <Code className="h-4 w-4" />
             ) : (
               <Brain className="h-4 w-4" />
             )}
