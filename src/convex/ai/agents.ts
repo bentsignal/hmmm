@@ -20,29 +20,29 @@ import { tryCatch } from "@/lib/utils";
 
 export const agent = new Agent(components.agent, {
   chat: modelPresets.default.model,
-  name: "QBE",
-  instructions: agentPrompt,
-  maxSteps: 20,
-  maxRetries: 3,
-  tools: {
-    dateTime,
-    currentEvents,
-    weather,
-    positionHolder,
-    fileAnalysis,
-    codeGeneration,
-  },
-  contextOptions: {
-    excludeToolMessages: false,
-  },
-  usageHandler: async (ctx, args) => {
-    const cost = calculateModelCost(modelPresets.default, args.usage);
-    await ctx.runMutation(internal.user.usage.log, {
-      userId: args.userId || "no-user",
-      type: "message",
-      cost: cost,
-    });
-  },
+  // name: "QBE",
+  // instructions: agentPrompt,
+  // maxSteps: 20,
+  // maxRetries: 3,
+  // tools: {
+  //   dateTime,
+  //   currentEvents,
+  //   weather,
+  //   positionHolder,
+  //   fileAnalysis,
+  //   codeGeneration,
+  // },
+  // contextOptions: {
+  //   excludeToolMessages: false,
+  // },
+  // usageHandler: async (ctx, args) => {
+  //   const cost = calculateModelCost(modelPresets.default, args.usage);
+  //   await ctx.runMutation(internal.user.usage.log, {
+  //     userId: args.userId || "no-user",
+  //     type: "message",
+  //     cost: cost,
+  //   });
+  // },
 });
 
 export const generateResponse = async (

@@ -43,7 +43,7 @@ export default function MessageStatus({
 
   return (
     <div className="my-4 flex w-full flex-col items-start gap-2">
-      <HoverCard openDelay={200} closeDelay={200} open={false}>
+      <HoverCard openDelay={200} closeDelay={200}>
         <HoverCardTrigger>
           <div className={cn("flex items-center gap-2 select-none")}>
             {/* , "cursor-pointer")}> */}

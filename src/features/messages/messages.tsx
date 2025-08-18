@@ -47,6 +47,8 @@ export default function Messages({
   const waiting =
     messages.length > 0 && messages[messages.length - 1].role === "user";
 
+  console.log(messages);
+
   return (
     <>
       <div className="flex flex-col gap-16">
