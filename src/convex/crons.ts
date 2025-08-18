@@ -4,9 +4,9 @@ import { internalMutation } from "./_generated/server";
 
 const crons = cronJobs();
 
-crons.cron(
+crons.daily(
   "update-home-prompts",
-  "0 0,6,12,18 * * *",
+  { hourUTC: 12, minuteUTC: 0 },
   internal.ai.suggestions.generate,
 );
 
