@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 
 export default function ComposerSend({
   showInstantLoad,
+  handleError,
 }: {
   showInstantLoad?: () => void;
+  handleError?: () => void;
 }) {
   const { isAuthenticated } = useConvexAuth();
   const { sendMessage, blockSend, isLoading } = useSendMessage();
@@ -23,7 +25,7 @@ export default function ComposerSend({
   return (
     <Button
       onClick={() => {
-        sendMessage({ showInstantLoad });
+        sendMessage({ showInstantLoad, handleError });
       }}
       disabled={
         isAuthenticated && (blockSend || isLoading) && !optimisticEnable

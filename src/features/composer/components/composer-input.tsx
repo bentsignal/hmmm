@@ -7,8 +7,10 @@ import useHotkey from "@/features/shortcuts/hooks/use-shortcut";
 
 export default function ComposerInput({
   showInstantLoad,
+  handleError,
 }: {
   showInstantLoad?: () => void;
+  handleError?: () => void;
 }) {
   const { isAuthenticated } = useConvexAuth();
   const { value, setPrompt, disabled, placeholder } = useComposerInput();
@@ -30,7 +32,7 @@ export default function ComposerInput({
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendMessage({ showInstantLoad });
+      sendMessage({ showInstantLoad, handleError });
     }
   };
 
