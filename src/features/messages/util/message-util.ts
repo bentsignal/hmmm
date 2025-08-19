@@ -11,7 +11,6 @@ import {
   SystemNoticeCode,
   SystemNoticeLabel,
   ToolInvocationPartWithResult,
-  ToolInvocationUIPart,
 } from "../types/message-types";
 import { LibraryFile } from "@/features/library/types";
 
@@ -39,7 +38,7 @@ export function extractTextFromChildren(children: ReactNode): string {
 export function extractReasoningFromMessage(message: UIMessage) {
   return message.parts
     .filter((part) => part.type === "reasoning")
-    .map((part) => part.reasoning)
+    .map((part) => part.text)
     .join("\n");
 }
 
@@ -51,28 +50,22 @@ export function getLatestPartType(message: UIMessage) {
 export function getStatusLabel(message: UIMessage) {
   const latestPartType = getLatestPartType(message);
   switch (latestPartType) {
-    default:
-      return "Reasoning";
     case "reasoning":
       return "Reasoning";
-    case "tool-invocation":
-      const toolName = (
-        message.parts[message.parts.length - 1] as ToolInvocationUIPart
-      ).toolInvocation.toolName;
-      switch (toolName) {
-        case "dateTime":
-          return "Checking the time";
-        case "weather":
-          return "Checking the weather";
-        case "currentEvents":
-          return "Checking the news";
-        case "fileAnalysis":
-          return "Analyzing file";
-        case "codeGeneration":
-          return "Generating code";
-        default:
-          return "Searching for information";
-      }
+    case "tool-dateTime":
+      return "Checking the time";
+    case "tool-weather":
+      return "Checking the weather";
+    case "tool-currentEvents":
+      return "Checking the news";
+    case "tool-fileAnalysis":
+      return "Analyzing file";
+    case "tool-codeGeneration":
+      return "Generating code";
+    case "tool-positionHolder":
+      return "Searching for information";
+    default:
+      return "Reasoning";
   }
 }
 

@@ -19,30 +19,30 @@ import {
 import { tryCatch } from "@/lib/utils";
 
 export const agent = new Agent(components.agent, {
-  chat: modelPresets.default.model,
-  // name: "QBE",
-  // instructions: agentPrompt,
+  languageModel: modelPresets.default.model,
+  name: "QBE",
+  instructions: agentPrompt,
   // maxSteps: 20,
   // maxRetries: 3,
-  // tools: {
-  //   dateTime,
-  //   currentEvents,
-  //   weather,
-  //   positionHolder,
-  //   fileAnalysis,
-  //   codeGeneration,
-  // },
-  // contextOptions: {
-  //   excludeToolMessages: false,
-  // },
-  // usageHandler: async (ctx, args) => {
-  //   const cost = calculateModelCost(modelPresets.default, args.usage);
-  //   await ctx.runMutation(internal.user.usage.log, {
-  //     userId: args.userId || "no-user",
-  //     type: "message",
-  //     cost: cost,
-  //   });
-  // },
+  tools: {
+    dateTime,
+    currentEvents,
+    weather,
+    positionHolder,
+    fileAnalysis,
+    codeGeneration,
+  },
+  contextOptions: {
+    excludeToolMessages: false,
+  },
+  usageHandler: async (ctx, args) => {
+    const cost = calculateModelCost(modelPresets.default, args.usage);
+    await ctx.runMutation(internal.user.usage.log, {
+      userId: args.userId || "no-user",
+      type: "message",
+      cost: cost,
+    });
+  },
 });
 
 export const generateResponse = async (
@@ -60,7 +60,7 @@ export const generateResponse = async (
   });
   const result = await thread.generateText({
     prompt,
-    maxTokens: 16000,
+    maxOutputTokens: 16000,
     providerOptions: {
       openrouter: {
         reasoning: {
@@ -87,7 +87,7 @@ export const streamResponse = internalAction({
       thread.streamText(
         {
           promptMessageId,
-          maxTokens: 64000,
+          maxOutputTokens: 64000,
           providerOptions: {
             openrouter: {
               reasoning: {
@@ -147,7 +147,7 @@ export const streamResponse = internalAction({
           schema: z.object({
             questions: z.array(z.string()).max(3),
           }),
-          maxTokens: 1000,
+          maxOutputTokens: 1000,
           maxRetries: 3,
         });
         await ctx.runMutation(internal.ai.thread.saveFollowUpQuestions, {

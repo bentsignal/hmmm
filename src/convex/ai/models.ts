@@ -2,9 +2,9 @@ import { openai } from "@ai-sdk/openai";
 import { openrouter } from "@openrouter/ai-sdk-provider";
 import type { OpenRouterProviderOptions } from "@openrouter/ai-sdk-provider";
 import type {
-  EmbeddingModel as EmbeddingModelV1,
-  LanguageModelV1,
-  TranscriptionModel as TranscriptionModelV1,
+  EmbeddingModel as EmbeddingModelV2,
+  LanguageModel as LanguageModelV2,
+  TranscriptionModel as TranscriptionModelV2,
 } from "ai";
 
 interface Model {
@@ -20,7 +20,7 @@ interface Model {
 }
 
 export interface LanguageModel extends Model {
-  model: LanguageModelV1;
+  model: LanguageModelV2;
   /**
    * @deprecated currently unused, static options are passed to agent in `agents.ts`
    */
@@ -28,11 +28,11 @@ export interface LanguageModel extends Model {
 }
 
 export interface TranscriptionModel extends Model {
-  model: TranscriptionModelV1;
+  model: TranscriptionModelV2;
 }
 
 export interface EmbeddingModel extends Model {
-  model: EmbeddingModelV1<string>;
+  model: EmbeddingModelV2<string>;
 }
 
 export const transcriptionModels = {
