@@ -9,6 +9,7 @@ import "@/features/messages/styles/message-styles.css";
 import { useEffect, useState } from "react";
 import useMessageStore from "../messages/store/message-store";
 import ThreadTitleUpdater from "./components/thread-title-updater";
+import useThreadStatus from "./hooks/use-thread-status";
 import Abyss from "@/components/abyss";
 import UsageChatCallout from "@/features/billing/components/usage-chat-callout";
 import Messages from "@/features/messages";
@@ -30,6 +31,9 @@ export default function Thread({ threadId }: { threadId: string }) {
     };
   }, [threadId, setActiveThread]);
 
+  // thread is not idle if waiting for a response, or if a response is streaming in
+  const { isThreadIdle } = useThreadStatus({ threadId });
+
   return (
     <div className="relative flex h-full w-full flex-1 flex-col items-center justify-start">
       <ThreadTitleUpdater threadId={threadId} />
@@ -37,13 +41,14 @@ export default function Thread({ threadId }: { threadId: string }) {
       <ScrollArea ref={scrollAreaRef} className="h-full w-full">
         <div
           className="mx-auto mb-8 flex h-full w-full max-w-4xl
-          flex-col gap-4 place-self-center px-8 py-24 sm:mb-0"
+          flex-col gap-4 place-self-center px-8 pt-24 pb-32 sm:mb-0"
         >
           <Messages
             threadId={threadId}
             triggerMessagesLoaded={() => setMessagesLoaded(true)}
+            isThreadIdle={isThreadIdle}
           />
-          <UsageChatCallout />
+          <UsageChatCallout hide={!isThreadIdle} />
           <Bumper />
           <div ref={messagesEndRef} />
         </div>

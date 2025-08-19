@@ -15,7 +15,7 @@ export default function useSendMessage() {
   const router = useRouter();
 
   const setPrompt = useComposerStore((state) => state.setPrompt);
-  const { createThread, newThreadMessage } = useThreadMutation();
+  const { createThread, sendMessageInThread } = useThreadMutation();
 
   // state of current thread
   const activeThread = useThreadStore((state) => state.activeThread);
@@ -82,13 +82,16 @@ export default function useSendMessage() {
     // increment number of messages sent per session, this is used to
     // manage auto scrolling when new messages are sent
     setNumMessagesSent(useMessageStore.getState().numMessagesSent + 1);
+    const attachedFiles = useComposerStore.getState().attachedFiles;
+    const clearAttachments = useComposerStore.getState().clearAttachments;
 
     // if activeThread is null, create a new thread with the new message. if
     // not, send the new message to the currrently active thread
     if (activeThread === null) {
       const { data: threadId, error: threadCreationError } = await tryCatch(
         createThread({
-          message: prompt,
+          prompt: prompt,
+          attachments: attachedFiles.map((file) => file.fileName),
         }),
       );
       if (threadCreationError) {
@@ -97,17 +100,22 @@ export default function useSendMessage() {
           return;
         }
         toast.error("An internal error occurred. Please try again.");
+        if (navigateToNewThread) {
+          router.refresh();
+        }
         return;
       }
+      clearAttachments();
       if (navigateToNewThread) {
         router.push(`/chat/${threadId}`);
       }
       return threadId;
     } else {
       const { error: newThreadMessageError } = await tryCatch(
-        newThreadMessage({
+        sendMessageInThread({
           threadId: activeThread,
           prompt: prompt,
+          attachments: attachedFiles.map((file) => file.fileName),
         }),
       );
       if (newThreadMessageError) {
@@ -118,6 +126,7 @@ export default function useSendMessage() {
         toast.error("An internal error occurred. Please try again.");
         return;
       }
+      clearAttachments();
     }
   };
 

@@ -19,9 +19,7 @@ export default function Home({
   preloadedSuggestions,
   authed,
 }: {
-  preloadedSuggestions: Preloaded<
-    typeof api.agents.prompts.prompt_queries.getSuggestions
-  >;
+  preloadedSuggestions: Preloaded<typeof api.ai.suggestions.getCurrent>;
   authed: boolean;
 }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -72,16 +70,14 @@ const HomePrompts = ({
   preloadedSuggestions,
 }: {
   showInstantLoad: () => void;
-  preloadedSuggestions: Preloaded<
-    typeof api.agents.prompts.prompt_queries.getSuggestions
-  >;
+  preloadedSuggestions: Preloaded<typeof api.ai.suggestions.getCurrent>;
 }) => {
   const { usage } = useUsage();
   const { sendMessage } = useSendMessage();
 
   const prompts = usePreloadedQuery(preloadedSuggestions);
-  const incrementSuggestion = useMutation(
-    api.agents.prompts.prompt_mutations.incrementSuggestion,
+  const incrementClickCount = useMutation(
+    api.ai.suggestions.incrementClickCount,
   );
 
   return (
@@ -106,7 +102,7 @@ const HomePrompts = ({
             role="button"
             aria-label={`Suggested homepage prompt: ${prompt.prompt}`}
             onClick={() => {
-              incrementSuggestion({ id: prompt._id });
+              incrementClickCount({ id: prompt._id });
               sendMessage({
                 customPrompt: prompt.prompt,
                 showInstantLoad,

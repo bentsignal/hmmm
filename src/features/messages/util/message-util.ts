@@ -1,12 +1,19 @@
 import { ReactNode } from "react";
 import { UIMessage } from "@convex-dev/agent/react";
+import { z } from "zod";
 import {
+  FileAnalysisResultSchema,
+  FileResult,
+  Source,
+  SourceSchema,
   SystemErrorCode,
   SystemErrorLabel,
   SystemNoticeCode,
   SystemNoticeLabel,
+  ToolInvocationPartWithResult,
   ToolInvocationUIPart,
 } from "../types/message-types";
+import { LibraryFile } from "@/features/library/types";
 
 export function extractTextFromChildren(children: ReactNode): string {
   if (typeof children === "string") {
@@ -59,6 +66,10 @@ export function getStatusLabel(message: UIMessage) {
           return "Checking the weather";
         case "currentEvents":
           return "Checking the news";
+        case "fileAnalysis":
+          return "Analyzing file";
+        case "codeGeneration":
+          return "Generating code";
         default:
           return "Searching for information";
       }
@@ -83,4 +94,50 @@ export function isNoticeMessage(message: string): SystemNoticeCode | null {
   if (!message.startsWith(SystemNoticeLabel)) return null;
   const code = message.replace(SystemNoticeLabel, "") as SystemNoticeCode;
   return code;
+}
+
+export function extractSourcesFromMessage(message: UIMessage) {
+  const collected: Array<Source> = [];
+  // if only one tool call is made, then the result will just be an
+  // array of sources. If multiple are made, then sources will just be
+  // one of fields in the result object.
+  const ArrayOrObjectResultSchema = z.union([
+    z.array(SourceSchema),
+    z.object({ sources: z.array(SourceSchema) }),
+  ]);
+  for (const part of message.parts) {
+    if (part.type !== "tool-invocation") continue;
+    // working around lack of type safety in v4
+    // TODO: adjust once upgraded to v5
+    const withResult = part as ToolInvocationPartWithResult;
+    if (!("toolInvocation" in withResult)) continue;
+    const parsed = ArrayOrObjectResultSchema.safeParse(
+      withResult.toolInvocation.result,
+    );
+    if (!parsed.success) continue;
+    if (Array.isArray(parsed.data)) {
+      collected.push(...parsed.data);
+    } else {
+      collected.push(...parsed.data.sources);
+    }
+  }
+  return collected;
+}
+
+export function extractFilesFromMessage(message: UIMessage) {
+  const collected: Array<FileResult> = [];
+  for (const part of message.parts) {
+    if (part.type !== "tool-invocation") continue;
+  }
+  for (const part of message.parts) {
+    if (part.type !== "tool-invocation") continue;
+    const withResult = part as ToolInvocationPartWithResult;
+    if (!("toolInvocation" in withResult)) continue;
+    const parsed = FileAnalysisResultSchema.safeParse(
+      withResult.toolInvocation.result,
+    );
+    if (!parsed.success) continue;
+    collected.push(parsed.data.file);
+  }
+  return collected as Array<LibraryFile>;
 }

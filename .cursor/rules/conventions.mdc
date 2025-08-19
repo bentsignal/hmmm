@@ -6,16 +6,7 @@ alwaysApply: true
 
 ### Capitalization
 
-File and folder names should always be lowercase. They should never contain uppercase characters.
-
-### Convex files
-
-Use snake case when naming any file that will be stored in the `src/convex` directory, or any of its sub directories.
-
-Examples:
-
-- `src/convex/user/user_actions.ts`
-- `src/convex/agent/models/model_presets.ts`
+File and folder names should always be lowercase.
 
 ### Hooks
 
@@ -31,7 +22,7 @@ A feature named "composer" could have a hook for the web named _useComposerInput
 - An XR hook named _useXRComposerInput_, located at: `src/features/composer/hooks/xr/use-xr-composer-input.ts`
 - An native hook named _useNativeComposerInput_, located at: `src/features/composer/hooks/native/use-native-composer-input.ts`
 
-**Important**: You do not always need to create an XR and native hook for every new hook created for the web. Only do so when specific platform dependent functionality is required in the hook. Sometimes, the hook that works on the web may also work for native and XR platforms without modification.
+**_Important_**: You do not always need to create an XR and native hook for every new hook created for the web. Only do so when specific platform dependent functionality is required in the hook. Sometimes, the hook that works on the web may also work for native and XR platforms without modification.
 
 ### Components
 
@@ -47,11 +38,11 @@ A feature named "composer" could a contain component for the web named _Composer
 - An XR component named _XRComposer_, located at: `src/features/composer/components/xr/xr-composer.tsx`
 - An Native component named _NativeComposer_, located at: `src/features/composer/components/native/native-composer.tsx`
 
-**Important**: You do not always need to create an XR and Native component for every new web component created. Only do so when asked to. Not all components need to be created for each platform.
+**_Important_**: You do not always need to create an XR and Native component for every new web component created. Only do so when asked to. Not all components need to be created for each platform.
 
 ## Index files
 
-This project uses `index.ts` and `index.tsx` files to keep top level imports cleaner. It is not always necessary, to create theses files, but it can be useful at times. Use your best judgement. For example:
+This project uses `index.ts` and `index.tsx` files to keep imports clean. It is not always necessary to create theses files, but it can be useful at times. Use your best judgement. For example:
 
 The file `src/features/thread/thread.tsx` contains the _Thread_ component. By default, importing it would look something like this:
 
@@ -80,7 +71,7 @@ The beauty of this is that you implement exception handling without the nesting 
 ```typescript
   // get initial usage data
   const { data: usage, error } = await tryCatch(
-    fetchQuery(api.sub.sub_queries.getUsage, undefined, { token }),
+    fetchQuery(api.user.usage.getUsage, undefined, { token }),
   );
 
   // get user's plan

@@ -6,10 +6,7 @@ import useSendMessage from "@/features/composer/hooks/use-send-message";
 export default function ThreadFollowUps({ threadId }: { threadId: string }) {
   const { isAuthenticated } = useConvexAuth();
   const args = isAuthenticated ? { threadId } : "skip";
-  const followUpQuestions = useQuery(
-    api.thread.thread_queries.getThreadFollowUpQuestions,
-    args,
-  );
+  const followUpQuestions = useQuery(api.ai.thread.getFollowUpQuestions, args);
   const empty = !followUpQuestions || followUpQuestions.length === 0;
 
   const { sendMessage } = useSendMessage();

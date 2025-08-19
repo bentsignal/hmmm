@@ -15,7 +15,7 @@ export default function useShortcut({
       "keydown",
       (e: KeyboardEvent) => {
         if (
-          e.key === hotkey.key &&
+          e.key.toUpperCase() === hotkey.key.toUpperCase() &&
           // shift key active if required
           ((e.shiftKey && hotkey.shift) || (!hotkey.shift && !e.shiftKey)) &&
           // ctrl/cmd key active if required

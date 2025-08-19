@@ -6,7 +6,6 @@ import "@/features/messages/styles/message-styles.css";
 import { UIMessage } from "@convex-dev/agent/react";
 import equal from "fast-deep-equal";
 import ThreadFollowUps from "../thread/components/thread-follow-ups";
-import useThreadStatus from "../thread/hooks/use-thread-status";
 import PromptMessage from "./components/prompt-message";
 import ResponseMessage from "./components/response-message";
 import useMessages from "./hooks/use-messages";
@@ -20,17 +19,22 @@ import {
 export default function Messages({
   threadId,
   triggerMessagesLoaded,
+  isThreadIdle,
 }: {
   threadId: string;
   triggerMessagesLoaded: () => void;
+  isThreadIdle: boolean;
 }) {
-  const { messages, loadMore, status } = useMessages({
+  const {
+    messages: pureMessages,
+    loadMore,
+    status,
+  } = useMessages({
     threadId,
     streaming: true,
   });
 
-  // thread is not idle if waiting for a response, or if a response is streaming in
-  const { isThreadIdle } = useThreadStatus({ threadId });
+  const messages = pureMessages.filter((item) => item.role !== "system");
 
   // when messages have loaded, tell parent component to scroll to the bottom of the page
   useEffect(() => {
@@ -46,30 +50,39 @@ export default function Messages({
   return (
     <>
       <div className="flex flex-col gap-16">
-        {messages.map((item, index) =>
-          index === INVISIBLE_PAGE_LOADER_INDEX ? (
-            // add invisible component 5 messages before the top of the page to fetch
-            // the next page of messages. As long as the user doesn't scroll too
-            // fast, they shouldn't notice pagination.
-            <PageLoader
-              status={status}
-              loadMore={() => loadMore(PAGE_SIZE)}
-              singleUse={true}
-              key={item.id}
-            >
-              <Message
-                message={item}
-                isActive={index === messages.length - 1 && !isThreadIdle}
-              />
-            </PageLoader>
-          ) : (
+        {messages.map((item, index) => {
+          // message id can change while a message is streaming, so we need a stable
+          // key to prevent the message from re-rendering.
+          const isLast = index === messages.length - 1;
+          const isStreaming = isLast && !isThreadIdle;
+          const stableKey = isStreaming ? "last-streaming-message" : item.id;
+          // add invisible wrapper 5th message down from the top of the page. When this
+          // message comes into view, the next page of messages will be fetched.
+          if (index === INVISIBLE_PAGE_LOADER_INDEX) {
+            return (
+              <PageLoader
+                status={status}
+                loadMore={() => loadMore(PAGE_SIZE)}
+                singleUse={true}
+                key={stableKey}
+              >
+                <Message
+                  threadId={threadId}
+                  message={item}
+                  isActive={index === messages.length - 1 && !isThreadIdle}
+                />
+              </PageLoader>
+            );
+          }
+          return (
             <Message
-              key={item.id}
+              key={stableKey}
+              threadId={threadId}
               message={item}
-              isActive={index === messages.length - 1 && !isThreadIdle}
+              isActive={isStreaming}
             />
-          ),
-        )}
+          );
+        })}
         {waiting && (
           <div className="flex items-start justify-start">
             <Loader variant="typing" size="md" />
@@ -84,16 +97,22 @@ export default function Messages({
 const PureMessage = ({
   message,
   isActive,
+  threadId,
 }: {
   message: UIMessage;
   isActive: boolean;
+  threadId: string;
 }) => {
   return (
     <div className="w-full max-w-full">
       {message.role === "user" ? (
         <PromptMessage message={message} />
       ) : message.role === "assistant" && message.parts.length > 0 ? (
-        <ResponseMessage message={message} isActive={isActive} />
+        <ResponseMessage
+          threadId={threadId}
+          message={message}
+          isActive={isActive}
+        />
       ) : null}
     </div>
   );

@@ -5,7 +5,8 @@ import { Container } from "@react-three/uikit";
 import ComposerInput from "./xr-composer-input";
 import ComposerSend from "./xr-composer-send";
 import { Grabbable, XRHandle } from "@/components/xr";
-import { ComposerSpeech } from "@/features/speech/components/xr-composer-speech";
+
+// import { ComposerSpeech } from "@/features/speech/components/xr-composer-speech";
 
 export default function XRComposer() {
   return (
@@ -25,7 +26,7 @@ export default function XRComposer() {
           <Container maxHeight={200} overflow="scroll" alignItems="flex-end">
             <ComposerInput />
           </Container>
-          <ComposerSpeech />
+          {/* <ComposerSpeech /> */}
           <ComposerSend />
         </Container>
         <XRHandle show={true} />

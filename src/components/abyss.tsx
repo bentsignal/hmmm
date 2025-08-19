@@ -30,7 +30,7 @@ export default function Abyss({
   /** blur amount: sm, md, lg, xl. default: sm */
   blur?: keyof typeof blurValues;
 }) {
-  const base = `w-full left-0 absolute z-50 pointer-events-none from-transparent`;
+  const base = `w-full left-0 absolute z-10 pointer-events-none from-transparent`;
   return (
     <>
       {top && (

@@ -4,7 +4,7 @@ import useThreadStore from "../store";
 import * as ContextMenu from "@/components/ui/context-menu";
 
 export default function ThreadListContextItems() {
-  const { toggleThreadPin } = useThreadMutation();
+  const { togglePinned } = useThreadMutation();
   const { triggerRenameModal, triggerDeleteModal } = useThreadStore();
   const hoveredThread = useThreadStore.getState().hoveredThread;
   return (
@@ -12,7 +12,7 @@ export default function ThreadListContextItems() {
       <ContextMenu.ContextMenuItem
         onClick={() => {
           if (hoveredThread) {
-            toggleThreadPin({ threadId: hoveredThread.id });
+            togglePinned({ threadId: hoveredThread.id });
           }
         }}
       >

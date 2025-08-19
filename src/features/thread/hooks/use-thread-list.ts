@@ -34,7 +34,7 @@ export default function useThreadList() {
     results: threads,
     status,
     loadMore,
-  } = usePaginatedQuery(api.thread.thread_queries.getThreadList, args, {
+  } = usePaginatedQuery(api.ai.thread.getThreadList, args, {
     initialNumItems: INITIAL_PAGE_SIZE,
   });
 

@@ -6,30 +6,28 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 export default function useThreadMutation() {
-  const createThread = useMutation(
-    api.thread.thread_mutations.requestNewThread,
-  );
-  const newThreadMessage = useMutation(
-    api.thread.thread_mutations.newThreadMessage,
+  const createThread = useMutation(api.ai.thread.create);
+  const sendMessage = useMutation(
+    api.ai.thread.sendMessage,
   ).withOptimisticUpdate(
-    optimisticallySendMessage(api.thread.thread_queries.getThreadMessages),
+    optimisticallySendMessage(api.ai.thread.getThreadMessages),
   );
   const { mutate: deleteThread } = useTanstackMutation({
-    mutationFn: useConvexMutation(api.thread.thread_mutations.deleteThread),
+    mutationFn: useConvexMutation(api.ai.thread.deleteThread),
     onError: (error) => {
       console.error(error);
       toast.error("Failed to delete thread");
     },
   });
   const { mutate: renameThread } = useTanstackMutation({
-    mutationFn: useConvexMutation(api.thread.thread_mutations.renameThread),
+    mutationFn: useConvexMutation(api.ai.thread.rename),
     onError: (error) => {
       console.error(error);
       toast.error("Failed to rename thread");
     },
   });
-  const { mutate: toggleThreadPin } = useTanstackMutation({
-    mutationFn: useConvexMutation(api.thread.thread_mutations.toggleThreadPin),
+  const { mutate: togglePinned } = useTanstackMutation({
+    mutationFn: useConvexMutation(api.ai.thread.togglePinned),
     onError: (error) => {
       console.error(error);
       toast.error("Failed to toggle thread pin");
@@ -37,9 +35,9 @@ export default function useThreadMutation() {
   });
   return {
     createThread,
-    newThreadMessage,
+    sendMessageInThread: sendMessage,
     deleteThread,
     renameThread,
-    toggleThreadPin,
+    togglePinned,
   };
 }

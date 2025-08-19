@@ -4,16 +4,16 @@ import { internalMutation } from "./_generated/server";
 
 const crons = cronJobs();
 
-crons.cron(
+crons.daily(
   "update-home-prompts",
-  "0 0,6,12,18 * * *",
-  internal.agents.prompts.prompt_actions.generateSuggestions,
+  { hourUTC: 12, minuteUTC: 0 },
+  internal.ai.suggestions.generate,
 );
 
-crons.daily(
+crons.weekly(
   "send-newsletter",
-  { hourUTC: 20, minuteUTC: 0 },
-  internal.mail.mail_actions.sendNewsletter,
+  { dayOfWeek: "thursday", hourUTC: 18, minuteUTC: 0 },
+  internal.mail.actions.sendNewsletter,
 );
 
 crons.interval(

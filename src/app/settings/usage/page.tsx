@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { PageFallback } from "@/components/error-boundary";
 import { Card, CardContent } from "@/components/ui/card";
 import { tryCatch } from "@/lib/utils";
-import { getAuthToken } from "@/features/auth/util/auth-util";
+import { getAuthToken } from "@/features/auth/util";
 import UsageCountdown from "@/features/billing/components/usage-countdown";
 import UsageProgress from "@/features/billing/components/usage-progress";
 import UsageUpgradeCallout from "@/features/billing/components/usage-upgrade-callout";
@@ -20,7 +20,7 @@ export default async function Usage() {
 
   // get initial usage data
   const { data: usage, error } = await tryCatch(
-    fetchQuery(api.sub.sub_queries.getUsage, undefined, { token }),
+    fetchQuery(api.user.usage.getUsage, undefined, { token }),
   );
 
   // get user's plan

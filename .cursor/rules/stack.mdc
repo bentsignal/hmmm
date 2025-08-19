@@ -16,7 +16,7 @@ ex: `pnpm dlx shadcn@latest add accordion`
 
 ## Next
 
-This project is built on Next JS 15 with React 19. **IMPORTANT** The react compiler is enabled for this project. Do not manually memoize values, components, or functions (with useCallback), unless it makes sense alongside the use of the react compiler.
+This project is built with Next JS 15 & React 19. **_Important_** The react compiler is enabled for this project. Do not manually memoize values, components, or functions (with useCallback), unless it makes sense to do so alongside the use of the react compiler.
 
 ## Convex
 

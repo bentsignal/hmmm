@@ -4,60 +4,39 @@ alwaysApply: true
 
 # Overview
 
-Most of the code for this project has been organized into one of the following three folders:
+Most files will fall into one of three folders
 
 1. `src/app`
 2. `src/convex`
 3. `src/features`
 
-The app directory is what drives the Next JS app router, and contains file based routing for the web app. The convex directory holds all of the code that runs in the convex deployment. The goal of the features directory is to group code tied heavily to one specific feature.
+The app directory hosts the files for the Next.js app router. The convex directory hosts the code that runs in the convex deployment. The goal of the features directory is to group code tied heavily to one specific feature into one place.
 
-There will be some exceptions, but this is the general plan to follow. More info on how to organize code within these folders will follow below.
+There will occasionally be exceptions to these guidelines. More info on how to organize code within each these folders will follow below.
 
 ## App
 
 **Location**: `src/app`
 
-This is where all of the pages for the web app live. The app uses the Next JS app router, so adhere to the guidelines of working with the app router.
+This project uses the Next.js App Router. The routing files can be found in this directory.
 
-When creating a new page, always create a `loading.tsx` file in the page's directly. By default, this should contain the line `export { default } from "@/components/default-loading";`. This will export a default loading component centered vertically and horizontally, so that the user will see a loading spinner immediately when attempting to navigate to a new page.
+When creating a new page, always create a `loading.tsx` file in the page's directory. By default, this loading file should contain the line `export { default } from "@/components/default-loading";`. This will export a default loading component centered vertically and horizontally, so that the user will see a loading spinner immediately when attempting to navigate to a new page.
 
-Keep component definitions out of the page files for the most part, unless the component is incredibly small and completely specific to the page. Creating a `wrapper.tsx` file in the page directory is fine when necessary.
+You should generally avoid defining reusable components in page files, unless the component is incredibly small and unlikely to be used elsewhere. Creating a `wrapper.tsx` file in the page directory is fine when appropriate.
 
 ## Convex
 
 **Location**: `src/convex`
 
-The convex backend runs in a completely separate enviornment from the Next JS back end. It is hosted by convex, and much of the code is executed in their special runtime optimized for database transactions. Because of this, all convex query, mutation, and action definitions must exist inside of `src/convex`.
-
-I have created feature folders inside of this directory that correspond to specific features that convex handles. Each feature folder separates its mutations, queries, and actions into separate files. A helper file is also conditionally created to store any utility functions related to a features. Only create these files when needed, but make sure to separate these concerns into appropriate files. For example:
-
-For threads, the following files exist:
-
-- `src/convex/thread/thread_queries.ts`
-- `src/convex/thread/thread_mutations.ts`
-- `src/convex/thread/thread_actions.ts`
-- `src/convex/thread/thread_helpers.ts`
-
-Smaller concerns don't need a dedicated folder to themselves and can have queries, mutations, and actions combined into one file. If the line count gets to be larger than 200, that is generally when I would go about separating them into their own files in a dedicated folder.
-
-Isolated components that are unlikely to grow in size can also exist as single files in the convex directory when appropriate. For example:
-
-- `src/convex/limiter.ts`. Contains the boilerplate for the rate limiting component. Not likely to grow much in size.
-
-### Agents
-
-The agents folder (found at `src/convex/agents`) is unique compared to the other sub folders in the convex directory. It contains all of the functionality related to the AI agents. It is largely split into the following sub There is a sub folder called models (found at `src/convex/models`) that contains files related to managing the variety of LLM's used by the agent.
+The convex backend runs in a completely separate enviornment from the Next JS back end. It is hosted by convex, and much of the code is executed in their special runtime. Because of this, all convex query, mutation, and action functions must exist inside somewhere inside of `src/convex`.
 
 ## Features
 
 **Location**: `src/features`
 
-This project strongly subscribes to the idea that it is best for the files strongly tied to a specific feature to live close together. Each of the sub folders in `src/features` is named after one of the main areas of the app.
+This project heavily subscribes to the idea that it is best for the files tied to a specific feature to live close together. Files for each feature should be separated into the following sub folders. The example below will use a theoretical feature named _my-feature_.
 
-Files for each feature should then be separated into the following sub folders. The example below will use a theoretical feature named my-feature.
-
-**Important**: Each feature will not necessarily require all of these folders. They should be created as needed.
+**_*Important*_**: Each feature will not necessarily require all of these folders. They should be created as needed.
 
 ### Components
 
@@ -116,7 +95,7 @@ General purpose components that are not tied to a specific feature and will like
 - _Logo_ `logo.tsx`: The logo for the product, reused across the auth components as well as the homepage
 - _CustomButton_ `custom-button.tsx`: A button component with custom behavior for loading states.
 
-**Important**: Do not ever create new files in `src/components/ui`, that folder is exclusively for components installed from registries.
+**_Important_**: Do not ever create new files in `src/components/ui`, that folder is exclusively for components installed from registries.
 
 ### Hooks
 

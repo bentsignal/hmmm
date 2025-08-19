@@ -20,6 +20,7 @@ export interface LoaderProps {
   size?: "sm" | "md" | "lg"
   text?: string
   className?: string
+  color?: string
 }
 
 export function CircularLoader({
@@ -144,9 +145,11 @@ export function PulseDotLoader({
 export function DotsLoader({
   className,
   size = "md",
+  color,
 }: {
   className?: string
   size?: "sm" | "md" | "lg"
+  color: string
 }) {
   const dotSizes = {
     sm: "h-1.5 w-1.5",
@@ -172,7 +175,8 @@ export function DotsLoader({
         <div
           key={i}
           className={cn(
-            "bg-primary animate-[bounce-dots_1.4s_ease-in-out_infinite] rounded-full",
+            color,
+            "animate-[bounce-dots_1.4s_ease-in-out_infinite] rounded-full",
             dotSizes[size]
           )}
           style={{
@@ -231,9 +235,11 @@ export function TypingLoader({
 export function WaveLoader({
   className,
   size = "md",
+  color,
 }: {
   className?: string
   size?: "sm" | "md" | "lg"
+  color: string
 }) {
   const barWidths = {
     sm: "w-0.5",
@@ -265,7 +271,8 @@ export function WaveLoader({
         <div
           key={i}
           className={cn(
-            "bg-primary animate-[wave_1s_ease-in-out_infinite] rounded-full",
+            color,
+            "animate-[wave-bars_1s_ease-in-out_infinite] rounded-full",
             barWidths[size]
           )}
           style={{
@@ -428,7 +435,6 @@ export function TextShimmer({
     <div
       className={cn(
         "bg-[linear-gradient(to_right,var(--foreground)_40%,var(--shimmer)_60%,var(--foreground)_80%)]",
-        "dark:bg-[linear-gradient(to_right,var(--foreground)_40%,var(--shimmer)_60%,var(--foreground)_80%)]",
         "bg-size-[200%_auto] bg-clip-text",
         active && "animate-[shimmer_4s_infinite_linear]",
         textSizes[size],
@@ -479,6 +485,7 @@ export function TextDotsLoader({
 
 function Loader({
   variant = "circular",
+  color = "bg-primary",
   size = "md",
   text,
   className,
@@ -493,11 +500,11 @@ function Loader({
     case "pulse-dot":
       return <PulseDotLoader size={size} className={className} />
     case "dots":
-      return <DotsLoader size={size} className={className} />
+      return <DotsLoader size={size} className={className} color={color} />
     case "typing":
       return <TypingLoader size={size} className={className} />
     case "wave":
-      return <WaveLoader size={size} className={className} />
+      return <WaveLoader size={size} className={className} color={color} />
     case "bars":
       return <BarsLoader size={size} className={className} />
     case "terminal":

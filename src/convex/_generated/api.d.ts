@@ -8,54 +8,36 @@
  * @module
  */
 
-import type * as agents_agent from "../agents/agent.js";
-import type * as agents_agent_helpers from "../agents/agent_helpers.js";
-import type * as agents_index from "../agents/index.js";
-import type * as agents_models_index from "../agents/models/index.js";
-import type * as agents_models_model_presets from "../agents/models/model_presets.js";
-import type * as agents_models_models from "../agents/models/models.js";
-import type * as agents_models_util_index from "../agents/models/util/index.js";
-import type * as agents_models_util_model_utils from "../agents/models/util/model_utils.js";
-import type * as agents_prompts_index from "../agents/prompts/index.js";
-import type * as agents_prompts_prompt_actions from "../agents/prompts/prompt_actions.js";
-import type * as agents_prompts_prompt_mutations from "../agents/prompts/prompt_mutations.js";
-import type * as agents_prompts_prompt_queries from "../agents/prompts/prompt_queries.js";
-import type * as agents_prompts_prompts from "../agents/prompts/prompts.js";
-import type * as agents_prompts_types_index from "../agents/prompts/types/index.js";
-import type * as agents_prompts_types_prompt_types from "../agents/prompts/types/prompt_types.js";
-import type * as agents_tools_current_events_tool from "../agents/tools/current_events_tool.js";
-import type * as agents_tools_date_time_tool from "../agents/tools/date_time_tool.js";
-import type * as agents_tools_index from "../agents/tools/index.js";
-import type * as agents_tools_postition_holder_tool from "../agents/tools/postition_holder_tool.js";
-import type * as agents_tools_tool_helpers from "../agents/tools/tool_helpers.js";
-import type * as agents_tools_weather_tool from "../agents/tools/weather_tool.js";
-import type * as clerk_clerk_actions from "../clerk/clerk_actions.js";
-import type * as clerk_clerk_http_actions from "../clerk/clerk_http_actions.js";
+import type * as ai_agents from "../ai/agents.js";
+import type * as ai_models from "../ai/models.js";
+import type * as ai_prompts from "../ai/prompts.js";
+import type * as ai_suggestions from "../ai/suggestions.js";
+import type * as ai_thread from "../ai/thread.js";
+import type * as ai_tools_code_generation_tool from "../ai/tools/code_generation_tool.js";
+import type * as ai_tools_current_events_tool from "../ai/tools/current_events_tool.js";
+import type * as ai_tools_date_time_tool from "../ai/tools/date_time_tool.js";
+import type * as ai_tools_file_analysis_tool from "../ai/tools/file_analysis_tool.js";
+import type * as ai_tools_index from "../ai/tools/index.js";
+import type * as ai_tools_postition_holder_tool from "../ai/tools/postition_holder_tool.js";
+import type * as ai_tools_tool_helpers from "../ai/tools/tool_helpers.js";
+import type * as ai_tools_weather_tool from "../ai/tools/weather_tool.js";
+import type * as app_actions from "../app/actions.js";
+import type * as app_library from "../app/library.js";
+import type * as convex_helpers from "../convex_helpers.js";
 import type * as counter from "../counter.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as limiter from "../limiter.js";
-import type * as mail_mail_actions from "../mail/mail_actions.js";
-import type * as mail_mail_mutations from "../mail/mail_mutations.js";
+import type * as mail_actions from "../mail/actions.js";
 import type * as mail_newsletter from "../mail/newsletter.js";
+import type * as mail_templates from "../mail/templates.js";
 import type * as migrations from "../migrations.js";
+import type * as polar from "../polar.js";
 import type * as resend from "../resend.js";
-import type * as sub_polar from "../sub/polar.js";
-import type * as sub_sub_actions from "../sub/sub_actions.js";
-import type * as sub_sub_config from "../sub/sub_config.js";
-import type * as sub_sub_helpers from "../sub/sub_helpers.js";
-import type * as sub_sub_mutations from "../sub/sub_mutations.js";
-import type * as sub_sub_queries from "../sub/sub_queries.js";
-import type * as sub_sub_types from "../sub/sub_types.js";
-import type * as sub_usage from "../sub/usage.js";
-import type * as thread_thread_actions from "../thread/thread_actions.js";
-import type * as thread_thread_helpers from "../thread/thread_helpers.js";
-import type * as thread_thread_mutations from "../thread/thread_mutations.js";
-import type * as thread_thread_queries from "../thread/thread_queries.js";
-import type * as user_user_actions from "../user/user_actions.js";
-import type * as user_user_helpers from "../user/user_helpers.js";
-import type * as user_user_mutations from "../user/user_mutations.js";
-import type * as user_user_queries from "../user/user_queries.js";
+import type * as user_account from "../user/account.js";
+import type * as user_clerk from "../user/clerk.js";
+import type * as user_subscription from "../user/subscription.js";
+import type * as user_usage from "../user/usage.js";
 
 import type {
   ApiFromModules,
@@ -72,54 +54,36 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  "agents/agent": typeof agents_agent;
-  "agents/agent_helpers": typeof agents_agent_helpers;
-  "agents/index": typeof agents_index;
-  "agents/models/index": typeof agents_models_index;
-  "agents/models/model_presets": typeof agents_models_model_presets;
-  "agents/models/models": typeof agents_models_models;
-  "agents/models/util/index": typeof agents_models_util_index;
-  "agents/models/util/model_utils": typeof agents_models_util_model_utils;
-  "agents/prompts/index": typeof agents_prompts_index;
-  "agents/prompts/prompt_actions": typeof agents_prompts_prompt_actions;
-  "agents/prompts/prompt_mutations": typeof agents_prompts_prompt_mutations;
-  "agents/prompts/prompt_queries": typeof agents_prompts_prompt_queries;
-  "agents/prompts/prompts": typeof agents_prompts_prompts;
-  "agents/prompts/types/index": typeof agents_prompts_types_index;
-  "agents/prompts/types/prompt_types": typeof agents_prompts_types_prompt_types;
-  "agents/tools/current_events_tool": typeof agents_tools_current_events_tool;
-  "agents/tools/date_time_tool": typeof agents_tools_date_time_tool;
-  "agents/tools/index": typeof agents_tools_index;
-  "agents/tools/postition_holder_tool": typeof agents_tools_postition_holder_tool;
-  "agents/tools/tool_helpers": typeof agents_tools_tool_helpers;
-  "agents/tools/weather_tool": typeof agents_tools_weather_tool;
-  "clerk/clerk_actions": typeof clerk_clerk_actions;
-  "clerk/clerk_http_actions": typeof clerk_clerk_http_actions;
+  "ai/agents": typeof ai_agents;
+  "ai/models": typeof ai_models;
+  "ai/prompts": typeof ai_prompts;
+  "ai/suggestions": typeof ai_suggestions;
+  "ai/thread": typeof ai_thread;
+  "ai/tools/code_generation_tool": typeof ai_tools_code_generation_tool;
+  "ai/tools/current_events_tool": typeof ai_tools_current_events_tool;
+  "ai/tools/date_time_tool": typeof ai_tools_date_time_tool;
+  "ai/tools/file_analysis_tool": typeof ai_tools_file_analysis_tool;
+  "ai/tools/index": typeof ai_tools_index;
+  "ai/tools/postition_holder_tool": typeof ai_tools_postition_holder_tool;
+  "ai/tools/tool_helpers": typeof ai_tools_tool_helpers;
+  "ai/tools/weather_tool": typeof ai_tools_weather_tool;
+  "app/actions": typeof app_actions;
+  "app/library": typeof app_library;
+  convex_helpers: typeof convex_helpers;
   counter: typeof counter;
   crons: typeof crons;
   http: typeof http;
   limiter: typeof limiter;
-  "mail/mail_actions": typeof mail_mail_actions;
-  "mail/mail_mutations": typeof mail_mail_mutations;
+  "mail/actions": typeof mail_actions;
   "mail/newsletter": typeof mail_newsletter;
+  "mail/templates": typeof mail_templates;
   migrations: typeof migrations;
+  polar: typeof polar;
   resend: typeof resend;
-  "sub/polar": typeof sub_polar;
-  "sub/sub_actions": typeof sub_sub_actions;
-  "sub/sub_config": typeof sub_sub_config;
-  "sub/sub_helpers": typeof sub_sub_helpers;
-  "sub/sub_mutations": typeof sub_sub_mutations;
-  "sub/sub_queries": typeof sub_sub_queries;
-  "sub/sub_types": typeof sub_sub_types;
-  "sub/usage": typeof sub_usage;
-  "thread/thread_actions": typeof thread_thread_actions;
-  "thread/thread_helpers": typeof thread_thread_helpers;
-  "thread/thread_mutations": typeof thread_thread_mutations;
-  "thread/thread_queries": typeof thread_thread_queries;
-  "user/user_actions": typeof user_user_actions;
-  "user/user_helpers": typeof user_user_helpers;
-  "user/user_mutations": typeof user_user_mutations;
-  "user/user_queries": typeof user_user_queries;
+  "user/account": typeof user_account;
+  "user/clerk": typeof user_clerk;
+  "user/subscription": typeof user_subscription;
+  "user/usage": typeof user_usage;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 
@@ -2906,6 +2870,149 @@ export declare const components: {
     };
   };
   aggregateUsage: {
+    btree: {
+      aggregateBetween: FunctionReference<
+        "query",
+        "internal",
+        { k1?: any; k2?: any; namespace?: any },
+        { count: number; sum: number }
+      >;
+      atNegativeOffset: FunctionReference<
+        "query",
+        "internal",
+        { k1?: any; k2?: any; namespace?: any; offset: number },
+        { k: any; s: number; v: any }
+      >;
+      atOffset: FunctionReference<
+        "query",
+        "internal",
+        { k1?: any; k2?: any; namespace?: any; offset: number },
+        { k: any; s: number; v: any }
+      >;
+      get: FunctionReference<
+        "query",
+        "internal",
+        { key: any; namespace?: any },
+        null | { k: any; s: number; v: any }
+      >;
+      offset: FunctionReference<
+        "query",
+        "internal",
+        { k1?: any; key: any; namespace?: any },
+        number
+      >;
+      offsetUntil: FunctionReference<
+        "query",
+        "internal",
+        { k2?: any; key: any; namespace?: any },
+        number
+      >;
+      paginate: FunctionReference<
+        "query",
+        "internal",
+        {
+          cursor?: string;
+          k1?: any;
+          k2?: any;
+          limit: number;
+          namespace?: any;
+          order: "asc" | "desc";
+        },
+        {
+          cursor: string;
+          isDone: boolean;
+          page: Array<{ k: any; s: number; v: any }>;
+        }
+      >;
+      paginateNamespaces: FunctionReference<
+        "query",
+        "internal",
+        { cursor?: string; limit: number },
+        { cursor: string; isDone: boolean; page: Array<any> }
+      >;
+      validate: FunctionReference<
+        "query",
+        "internal",
+        { namespace?: any },
+        any
+      >;
+    };
+    inspect: {
+      display: FunctionReference<"query", "internal", { namespace?: any }, any>;
+      dump: FunctionReference<"query", "internal", { namespace?: any }, string>;
+      inspectNode: FunctionReference<
+        "query",
+        "internal",
+        { namespace?: any; node?: string },
+        null
+      >;
+    };
+    public: {
+      clear: FunctionReference<
+        "mutation",
+        "internal",
+        { maxNodeSize?: number; namespace?: any; rootLazy?: boolean },
+        null
+      >;
+      deleteIfExists: FunctionReference<
+        "mutation",
+        "internal",
+        { key: any; namespace?: any },
+        any
+      >;
+      delete_: FunctionReference<
+        "mutation",
+        "internal",
+        { key: any; namespace?: any },
+        null
+      >;
+      init: FunctionReference<
+        "mutation",
+        "internal",
+        { maxNodeSize?: number; namespace?: any; rootLazy?: boolean },
+        null
+      >;
+      insert: FunctionReference<
+        "mutation",
+        "internal",
+        { key: any; namespace?: any; summand?: number; value: any },
+        null
+      >;
+      makeRootLazy: FunctionReference<
+        "mutation",
+        "internal",
+        { namespace?: any },
+        null
+      >;
+      replace: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          currentKey: any;
+          namespace?: any;
+          newKey: any;
+          newNamespace?: any;
+          summand?: number;
+          value: any;
+        },
+        null
+      >;
+      replaceOrInsert: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          currentKey: any;
+          namespace?: any;
+          newKey: any;
+          newNamespace?: any;
+          summand?: number;
+          value: any;
+        },
+        any
+      >;
+    };
+  };
+  aggregateStorage: {
     btree: {
       aggregateBetween: FunctionReference<
         "query",

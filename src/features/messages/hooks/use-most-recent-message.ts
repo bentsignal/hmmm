@@ -18,14 +18,10 @@ export default function useMostRecentMessage({
   // don't get messages if the auth session data hasn't loaded yet
   const { isAuthenticated } = useConvexAuth();
   const args = isAuthenticated ? { threadId } : "skip";
-  const { results } = useThreadMessages(
-    api.thread.thread_queries.getThreadMessages,
-    args,
-    {
-      initialNumItems: 1,
-      stream: true,
-    },
-  );
+  const { results } = useThreadMessages(api.ai.thread.getThreadMessages, args, {
+    initialNumItems: 1,
+    stream: true,
+  });
 
   // determine if new messages have been sent since thread has been loaded
   // this is used to move new messages sent to the top of the screen

@@ -13,10 +13,10 @@ const handler = async (request: NextRequest) => {
     return NextResponse.redirect(env.NEXT_PUBLIC_BASE_URL, 302);
   }
   const { error } = await tryCatch(
-    fetchMutation(api.mail.mail_mutations.updateNewsletterPreferenceForUser, {
+    fetchMutation(api.mail.newsletter.apiUpdatePreference, {
       userId,
       status: status === "true",
-      key: env.NEXT_CONVEX_INTERNAL_KEY,
+      apiKey: env.NEXT_CONVEX_INTERNAL_KEY,
     }),
   );
   if (error) {

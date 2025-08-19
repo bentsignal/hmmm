@@ -57,7 +57,7 @@ export default function ThreadRenameModal() {
               if (!hoveredThread) return;
               renameThread({
                 threadId: hoveredThread.id,
-                newTitle: newThreadName,
+                name: newThreadName,
               });
               setRenameModalOpen(false);
               setNewThreadName("");
