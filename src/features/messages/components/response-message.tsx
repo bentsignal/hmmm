@@ -36,7 +36,7 @@ export default function ResponseMessage({
     inputText: message.text,
     streaming: message.status === "streaming",
   });
-  const createdAt = getDateTimeString(new Date(message.createdAt ?? 0));
+  const createdAt = getDateTimeString(new Date(message._creationTime ?? 0));
   const isMobile = useIsMobile();
 
   // error occured during repsonse generation, inform user
@@ -51,11 +51,11 @@ export default function ResponseMessage({
     return <NoticeMessage code={noticeCode} />;
   }
 
-  // // get web sources from message if they exist
-  // const sources = extractSourcesFromMessage(message);
+  // get web sources from message if they exist
+  const sources = extractSourcesFromMessage(message);
 
-  // // files analyzed during response generation
-  // const files = extractFilesFromMessage(message);
+  // files analyzed during response generation
+  const files = extractFilesFromMessage(message);
 
   // if the message begins with the substring "undefined", remove it from the
   // message. Not sure why this happens, seems to be a bug in a dependency
@@ -64,8 +64,8 @@ export default function ResponseMessage({
   return (
     <div className="flex w-full flex-col items-start gap-2">
       <MessageStatus message={message} isActive={isActive} />
-      {/* <MessageFiles files={files} /> */}
-      {/* <MessageSources threadId={threadId} sources={sources} /> */}
+      <MessageFiles files={files} />
+      <MessageSources threadId={threadId} sources={sources} />
       <div className="relative flex w-full max-w-full flex-col gap-2">
         <Markdown className="prose dark:prose-invert relative w-full max-w-full">
           {cleanedText}
@@ -75,7 +75,7 @@ export default function ResponseMessage({
             className="mt-2 flex justify-start gap-2 transition-opacity duration-1000"
             style={{
               opacity:
-                !isActive && message.createdAt && message.text.length > 0
+                !isActive && message._creationTime && message.text.length > 0
                   ? 1
                   : 0,
             }}

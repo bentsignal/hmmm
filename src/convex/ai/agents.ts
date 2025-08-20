@@ -1,5 +1,5 @@
 import { Agent } from "@convex-dev/agent";
-import { generateObject } from "ai";
+import { generateObject, stepCountIs } from "ai";
 import z from "zod";
 import { v } from "convex/values";
 import { components, internal } from "@/convex/_generated/api";
@@ -22,8 +22,9 @@ export const agent = new Agent(components.agent, {
   languageModel: modelPresets.default.model,
   name: "QBE",
   instructions: agentPrompt,
-  // maxSteps: 20,
+  maxSteps: 20,
   // maxRetries: 3,
+  // stopWhen: [stepCountIs(10)],
   tools: {
     dateTime,
     currentEvents,
@@ -36,6 +37,7 @@ export const agent = new Agent(components.agent, {
     excludeToolMessages: false,
   },
   usageHandler: async (ctx, args) => {
+    console.log(args);
     const cost = calculateModelCost(modelPresets.default, args.usage);
     await ctx.runMutation(internal.user.usage.log, {
       userId: args.userId || "no-user",

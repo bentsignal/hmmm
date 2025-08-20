@@ -45,9 +45,9 @@ export default function Messages({
 
   // show a loading spinner when the user has sent a prompt and is waiting for a response
   const waiting =
-    messages.length > 0 && messages[messages.length - 1].role === "user";
-
-  console.log(messages);
+    messages.length > 0 &&
+    (messages[messages.length - 1].role === "user" ||
+      messages[messages.length - 1].status === "pending");
 
   return (
     <>

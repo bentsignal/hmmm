@@ -292,7 +292,6 @@ export declare const components: {
                               Record<string, any>
                             >;
                             signature?: string;
-                            state?: "streaming" | "done";
                             text: string;
                             type: "reasoning";
                           }
@@ -314,6 +313,27 @@ export declare const components: {
                             toolCallId: string;
                             toolName: string;
                             type: "tool-call";
+                          }
+                        | {
+                            args?: any;
+                            experimental_content?: Array<
+                              | { text: string; type: "text" }
+                              | {
+                                  data: string;
+                                  mimeType?: string;
+                                  type: "image";
+                                }
+                            >;
+                            isError?: boolean;
+                            providerExecuted?: boolean;
+                            providerOptions?: Record<
+                              string,
+                              Record<string, any>
+                            >;
+                            result: any;
+                            toolCallId: string;
+                            toolName: string;
+                            type: "tool-result";
                           }
                       >;
                   providerOptions?: Record<string, Record<string, any>>;
@@ -350,7 +370,6 @@ export declare const components: {
               | {
                   providerOptions?: Record<string, Record<string, any>>;
                   signature?: string;
-                  state?: "streaming" | "done";
                   text: string;
                   type: "reasoning";
                 }
@@ -481,7 +500,6 @@ export declare const components: {
                               Record<string, any>
                             >;
                             signature?: string;
-                            state?: "streaming" | "done";
                             text: string;
                             type: "reasoning";
                           }
@@ -503,6 +521,27 @@ export declare const components: {
                             toolCallId: string;
                             toolName: string;
                             type: "tool-call";
+                          }
+                        | {
+                            args?: any;
+                            experimental_content?: Array<
+                              | { text: string; type: "text" }
+                              | {
+                                  data: string;
+                                  mimeType?: string;
+                                  type: "image";
+                                }
+                            >;
+                            isError?: boolean;
+                            providerExecuted?: boolean;
+                            providerOptions?: Record<
+                              string,
+                              Record<string, any>
+                            >;
+                            result: any;
+                            toolCallId: string;
+                            toolName: string;
+                            type: "tool-result";
                           }
                       >;
                   providerOptions?: Record<string, Record<string, any>>;
@@ -541,7 +580,6 @@ export declare const components: {
               | {
                   providerOptions?: Record<string, Record<string, any>>;
                   signature?: string;
-                  state?: "streaming" | "done";
                   text: string;
                   type: "reasoning";
                 }
@@ -685,7 +723,6 @@ export declare const components: {
                       | {
                           providerOptions?: Record<string, Record<string, any>>;
                           signature?: string;
-                          state?: "streaming" | "done";
                           text: string;
                           type: "reasoning";
                         }
@@ -701,6 +738,20 @@ export declare const components: {
                           toolCallId: string;
                           toolName: string;
                           type: "tool-call";
+                        }
+                      | {
+                          args?: any;
+                          experimental_content?: Array<
+                            | { text: string; type: "text" }
+                            | { data: string; mimeType?: string; type: "image" }
+                          >;
+                          isError?: boolean;
+                          providerExecuted?: boolean;
+                          providerOptions?: Record<string, Record<string, any>>;
+                          result: any;
+                          toolCallId: string;
+                          toolName: string;
+                          type: "tool-result";
                         }
                     >;
                 providerOptions?: Record<string, Record<string, any>>;
@@ -739,7 +790,6 @@ export declare const components: {
             | {
                 providerOptions?: Record<string, Record<string, any>>;
                 signature?: string;
-                state?: "streaming" | "done";
                 text: string;
                 type: "reasoning";
               }
@@ -886,7 +936,6 @@ export declare const components: {
                               Record<string, any>
                             >;
                             signature?: string;
-                            state?: "streaming" | "done";
                             text: string;
                             type: "reasoning";
                           }
@@ -908,6 +957,27 @@ export declare const components: {
                             toolCallId: string;
                             toolName: string;
                             type: "tool-call";
+                          }
+                        | {
+                            args?: any;
+                            experimental_content?: Array<
+                              | { text: string; type: "text" }
+                              | {
+                                  data: string;
+                                  mimeType?: string;
+                                  type: "image";
+                                }
+                            >;
+                            isError?: boolean;
+                            providerExecuted?: boolean;
+                            providerOptions?: Record<
+                              string,
+                              Record<string, any>
+                            >;
+                            result: any;
+                            toolCallId: string;
+                            toolName: string;
+                            type: "tool-result";
                           }
                       >;
                   providerOptions?: Record<string, Record<string, any>>;
@@ -946,7 +1016,6 @@ export declare const components: {
               | {
                   providerOptions?: Record<string, Record<string, any>>;
                   signature?: string;
-                  state?: "streaming" | "done";
                   text: string;
                   type: "reasoning";
                 }
@@ -1075,7 +1144,6 @@ export declare const components: {
                       | {
                           providerOptions?: Record<string, Record<string, any>>;
                           signature?: string;
-                          state?: "streaming" | "done";
                           text: string;
                           type: "reasoning";
                         }
@@ -1091,6 +1159,20 @@ export declare const components: {
                           toolCallId: string;
                           toolName: string;
                           type: "tool-call";
+                        }
+                      | {
+                          args?: any;
+                          experimental_content?: Array<
+                            | { text: string; type: "text" }
+                            | { data: string; mimeType?: string; type: "image" }
+                          >;
+                          isError?: boolean;
+                          providerExecuted?: boolean;
+                          providerOptions?: Record<string, Record<string, any>>;
+                          result: any;
+                          toolCallId: string;
+                          toolName: string;
+                          type: "tool-result";
                         }
                     >;
                 providerOptions?: Record<string, Record<string, any>>;
@@ -1129,7 +1211,6 @@ export declare const components: {
             | {
                 providerOptions?: Record<string, Record<string, any>>;
                 signature?: string;
-                state?: "streaming" | "done";
                 text: string;
                 type: "reasoning";
               }
@@ -1247,7 +1328,6 @@ export declare const components: {
                       | {
                           providerOptions?: Record<string, Record<string, any>>;
                           signature?: string;
-                          state?: "streaming" | "done";
                           text: string;
                           type: "reasoning";
                         }
@@ -1263,6 +1343,20 @@ export declare const components: {
                           toolCallId: string;
                           toolName: string;
                           type: "tool-call";
+                        }
+                      | {
+                          args?: any;
+                          experimental_content?: Array<
+                            | { text: string; type: "text" }
+                            | { data: string; mimeType?: string; type: "image" }
+                          >;
+                          isError?: boolean;
+                          providerExecuted?: boolean;
+                          providerOptions?: Record<string, Record<string, any>>;
+                          result: any;
+                          toolCallId: string;
+                          toolName: string;
+                          type: "tool-result";
                         }
                     >;
                 providerOptions?: Record<string, Record<string, any>>;
@@ -1301,7 +1395,6 @@ export declare const components: {
             | {
                 providerOptions?: Record<string, Record<string, any>>;
                 signature?: string;
-                state?: "streaming" | "done";
                 text: string;
                 type: "reasoning";
               }
@@ -1427,7 +1520,6 @@ export declare const components: {
                               Record<string, any>
                             >;
                             signature?: string;
-                            state?: "streaming" | "done";
                             text: string;
                             type: "reasoning";
                           }
@@ -1449,6 +1541,27 @@ export declare const components: {
                             toolCallId: string;
                             toolName: string;
                             type: "tool-call";
+                          }
+                        | {
+                            args?: any;
+                            experimental_content?: Array<
+                              | { text: string; type: "text" }
+                              | {
+                                  data: string;
+                                  mimeType?: string;
+                                  type: "image";
+                                }
+                            >;
+                            isError?: boolean;
+                            providerExecuted?: boolean;
+                            providerOptions?: Record<
+                              string,
+                              Record<string, any>
+                            >;
+                            result: any;
+                            toolCallId: string;
+                            toolName: string;
+                            type: "tool-result";
                           }
                       >;
                   providerOptions?: Record<string, Record<string, any>>;
@@ -1545,7 +1658,6 @@ export declare const components: {
                       | {
                           providerOptions?: Record<string, Record<string, any>>;
                           signature?: string;
-                          state?: "streaming" | "done";
                           text: string;
                           type: "reasoning";
                         }
@@ -1561,6 +1673,20 @@ export declare const components: {
                           toolCallId: string;
                           toolName: string;
                           type: "tool-call";
+                        }
+                      | {
+                          args?: any;
+                          experimental_content?: Array<
+                            | { text: string; type: "text" }
+                            | { data: string; mimeType?: string; type: "image" }
+                          >;
+                          isError?: boolean;
+                          providerExecuted?: boolean;
+                          providerOptions?: Record<string, Record<string, any>>;
+                          result: any;
+                          toolCallId: string;
+                          toolName: string;
+                          type: "tool-result";
                         }
                     >;
                 providerOptions?: Record<string, Record<string, any>>;
@@ -1599,7 +1725,6 @@ export declare const components: {
             | {
                 providerOptions?: Record<string, Record<string, any>>;
                 signature?: string;
-                state?: "streaming" | "done";
                 text: string;
                 type: "reasoning";
               }
@@ -2848,6 +2973,18 @@ export declare const components: {
         { olderThan?: number },
         null
       >;
+      createManualEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          replyTo?: Array<string>;
+          subject: string;
+          to: string;
+        },
+        string
+      >;
       get: FunctionReference<
         "query",
         "internal",
@@ -2923,6 +3060,25 @@ export declare const components: {
           to: string;
         },
         string
+      >;
+      updateManualEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          emailId: string;
+          errorMessage?: string;
+          resendId?: string;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+        },
+        null
       >;
     };
   };
@@ -3002,6 +3158,30 @@ export declare const components: {
         "internal",
         { namespace?: any; node?: string },
         null
+      >;
+      listTreeNodes: FunctionReference<
+        "query",
+        "internal",
+        { take?: number },
+        Array<{
+          _creationTime: number;
+          _id: string;
+          aggregate?: { count: number; sum: number };
+          items: Array<{ k: any; s: number; v: any }>;
+          subtrees: Array<string>;
+        }>
+      >;
+      listTrees: FunctionReference<
+        "query",
+        "internal",
+        { take?: number },
+        Array<{
+          _creationTime: number;
+          _id: string;
+          maxNodeSize: number;
+          namespace?: any;
+          root: string;
+        }>
       >;
     };
     public: {
@@ -3145,6 +3325,30 @@ export declare const components: {
         "internal",
         { namespace?: any; node?: string },
         null
+      >;
+      listTreeNodes: FunctionReference<
+        "query",
+        "internal",
+        { take?: number },
+        Array<{
+          _creationTime: number;
+          _id: string;
+          aggregate?: { count: number; sum: number };
+          items: Array<{ k: any; s: number; v: any }>;
+          subtrees: Array<string>;
+        }>
+      >;
+      listTrees: FunctionReference<
+        "query",
+        "internal",
+        { take?: number },
+        Array<{
+          _creationTime: number;
+          _id: string;
+          maxNodeSize: number;
+          namespace?: any;
+          root: string;
+        }>
       >;
     };
     public: {
