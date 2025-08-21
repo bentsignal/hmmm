@@ -1,4 +1,3 @@
-import { useSmoothText } from "@convex-dev/agent/react";
 import { Info } from "lucide-react";
 import { MyUIMessage } from "../types/message-types";
 import {
@@ -22,6 +21,7 @@ import {
 } from "@/components/ui/tooltip";
 import { getDateTimeString } from "@/lib/date-time-utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTypewriter } from "@/hooks/use-typewriter";
 
 export default function ResponseMessage({
   message,
@@ -32,18 +32,21 @@ export default function ResponseMessage({
   isActive: boolean;
   threadId: string;
 }) {
-  const [visibleText] = useSmoothText(message.text);
+  const { animatedText } = useTypewriter({
+    inputText: message.text,
+    streaming: isActive,
+  });
   const createdAt = getDateTimeString(new Date(message._creationTime ?? 0));
   const isMobile = useIsMobile();
 
   // error occured during repsonse generation, inform user
-  const errorCode = isErrorMessage(visibleText);
+  const errorCode = isErrorMessage(animatedText);
   if (errorCode) {
     return <ErrorMessage code={errorCode} dateTime={createdAt} />;
   }
 
   // notice from the server to the user
-  const noticeCode = isNoticeMessage(visibleText);
+  const noticeCode = isNoticeMessage(animatedText);
   if (noticeCode) {
     return <NoticeMessage code={noticeCode} />;
   }
@@ -61,7 +64,7 @@ export default function ResponseMessage({
       <MessageSources threadId={threadId} sources={sources} />
       <div className="relative flex w-full max-w-full flex-col gap-2">
         <Markdown className="prose dark:prose-invert relative w-full max-w-full">
-          {visibleText}
+          {animatedText}
         </Markdown>
         {!isMobile && (
           <div
