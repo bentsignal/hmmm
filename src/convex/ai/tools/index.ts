@@ -1,6 +1,15 @@
-export * from "./date_time_tool";
-export * from "./weather_tool";
-export * from "./current_events_tool";
-export * from "./postition_holder_tool";
-export * from "./file_analysis_tool";
-export * from "./code_generation_tool";
+import { ToolSet } from "ai";
+import { codeGeneration } from "./code_generation_tool";
+import { dateTime } from "./date_time_tool";
+import { fileAnalysis } from "./file_analysis_tool";
+import { currentEvents, positionHolder } from "./search";
+import { weather } from "./weather_tool";
+
+export const tools = {
+  dateTime,
+  currentEvents,
+  weather,
+  positionHolder,
+  fileAnalysis,
+  codeGeneration,
+} satisfies ToolSet;

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
-import { UIMessage, useSmoothText } from "@convex-dev/agent/react";
+import { useSmoothText } from "@convex-dev/agent/react";
 import { Brain, Clock, Code, File, Globe, Newspaper, Sun } from "lucide-react";
+import { MyUIMessage } from "../types/message-types";
 import {
   extractReasoningFromMessage,
   getStatusLabel,
@@ -19,7 +20,7 @@ export default function MessageStatus({
   message,
   isActive,
 }: {
-  message: UIMessage;
+  message: MyUIMessage;
   isActive: boolean;
 }) {
   // extract text from reasoning parts & smooth

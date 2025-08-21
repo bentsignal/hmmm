@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { UIMessage } from "@convex-dev/agent/react";
+import { MyUIMessage } from "../types/message-types";
 import { CopyButton } from "./copy-button";
 import { Markdown } from "@/components/ui/markdown";
 
-export default function PromptMessage({ message }: { message: UIMessage }) {
+export default function PromptMessage({ message }: { message: MyUIMessage }) {
   const [hovering, setHovering] = useState(false);
 
   return (

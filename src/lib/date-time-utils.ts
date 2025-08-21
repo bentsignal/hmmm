@@ -114,7 +114,19 @@ export const convertToUTC = (date: Date) => {
   return new Date(date.getTime() + offset);
 };
 
-export const getCurrentDateTime = ({ timezone }: { timezone: string }) => {
+export type CurrentDateTime = {
+  hours: number;
+  minutes: number;
+  month: string;
+  day: string;
+  year: string;
+};
+
+export const getCurrentDateTime = ({
+  timezone,
+}: {
+  timezone: string;
+}): CurrentDateTime => {
   const date = new Date();
 
   // get time

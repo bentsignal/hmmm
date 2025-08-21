@@ -1,6 +1,12 @@
 import { toUIMessages, useThreadMessages } from "@convex-dev/agent/react";
 import { useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import {
+  MyDataParts,
+  MyMetadata,
+  MyTools,
+  MyUIMessage,
+} from "../types/message-types";
 import { INITIAL_PAGE_SIZE } from "@/features/messages/config";
 
 export default function useMessages({
@@ -23,7 +29,12 @@ export default function useMessages({
     stream: streaming,
   });
 
-  const uiMessages = toUIMessages(messages);
+  const uiMessages: MyUIMessage[] = toUIMessages<
+    MyMetadata,
+    MyDataParts,
+    MyTools
+  >(messages);
+  console.log(uiMessages);
 
   return {
     isAuthenticated,

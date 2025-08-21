@@ -6,6 +6,7 @@ import type {
   LanguageModel as LanguageModelV2,
   TranscriptionModel as TranscriptionModelV2,
 } from "ai";
+import z from "zod";
 
 interface Model {
   provider: string;
@@ -18,6 +19,14 @@ interface Model {
     other: number;
   };
 }
+
+export const OpenRouterProviderMetadata = z.object({
+  openrouter: z.object({
+    usage: z.object({
+      cost: z.number(),
+    }),
+  }),
+});
 
 export interface LanguageModel extends Model {
   model: LanguageModelV2;

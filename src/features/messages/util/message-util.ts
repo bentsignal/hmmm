@@ -1,16 +1,11 @@
 import { ReactNode } from "react";
-import { UIMessage } from "@convex-dev/agent/react";
-import { z } from "zod";
+import { Source } from "@/convex/ai/tools/search";
 import {
-  FileAnalysisResultSchema,
-  FileResult,
-  Source,
-  SourceSchema,
+  MyUIMessage,
   SystemErrorCode,
   SystemErrorLabel,
   SystemNoticeCode,
   SystemNoticeLabel,
-  ToolInvocationPartWithResult,
 } from "../types/message-types";
 import { LibraryFile } from "@/features/library/types";
 
@@ -35,23 +30,21 @@ export function extractTextFromChildren(children: ReactNode): string {
   return "";
 }
 
-export function extractReasoningFromMessage(message: UIMessage) {
+export function extractReasoningFromMessage(message: MyUIMessage) {
   return message.parts
     .filter((part) => part.type === "reasoning")
     .map((part) => part.text)
     .join("\n");
 }
 
-export function getLatestPartType(message: UIMessage) {
+export function getLatestPartType(message: MyUIMessage) {
   if (message.parts.length === 0) return null;
   return message.parts[message.parts.length - 1].type;
 }
 
-export function getStatusLabel(message: UIMessage) {
+export function getStatusLabel(message: MyUIMessage) {
   const latestPartType = getLatestPartType(message);
   switch (latestPartType) {
-    case "reasoning":
-      return "Reasoning";
     case "tool-dateTime":
       return "Checking the time";
     case "tool-weather":
@@ -89,48 +82,26 @@ export function isNoticeMessage(message: string): SystemNoticeCode | null {
   return code;
 }
 
-export function extractSourcesFromMessage(message: UIMessage) {
+export function extractSourcesFromMessage(message: MyUIMessage) {
   const collected: Array<Source> = [];
-  // if only one tool call is made, then the result will just be an
-  // array of sources. If multiple are made, then sources will just be
-  // one of fields in the result object.
-  const ArrayOrObjectResultSchema = z.union([
-    z.array(SourceSchema),
-    z.object({ sources: z.array(SourceSchema) }),
-  ]);
-  for (const part of message.parts) {
-    if (part.type !== "tool-invocation") continue;
-    // working around lack of type safety in v4
-    // TODO: adjust once upgraded to v5
-    const withResult = part as ToolInvocationPartWithResult;
-    if (!("toolInvocation" in withResult)) continue;
-    const parsed = ArrayOrObjectResultSchema.safeParse(
-      withResult.toolInvocation.result,
-    );
-    if (!parsed.success) continue;
-    if (Array.isArray(parsed.data)) {
-      collected.push(...parsed.data);
-    } else {
-      collected.push(...parsed.data.sources);
+  message.parts.forEach((part) => {
+    if (
+      (part.type === "tool-currentEvents" ||
+        part.type === "tool-positionHolder") &&
+      part.output
+    ) {
+      collected.push(...part.output.sources);
     }
-  }
+  });
   return collected;
 }
 
-export function extractFilesFromMessage(message: UIMessage) {
-  const collected: Array<FileResult> = [];
-  for (const part of message.parts) {
-    if (part.type !== "tool-invocation") continue;
-  }
-  for (const part of message.parts) {
-    if (part.type !== "tool-invocation") continue;
-    const withResult = part as ToolInvocationPartWithResult;
-    if (!("toolInvocation" in withResult)) continue;
-    const parsed = FileAnalysisResultSchema.safeParse(
-      withResult.toolInvocation.result,
-    );
-    if (!parsed.success) continue;
-    collected.push(parsed.data.file);
-  }
-  return collected as Array<LibraryFile>;
+export function extractFilesFromMessage(message: MyUIMessage) {
+  const collected: Array<LibraryFile> = [];
+  message.parts.forEach((part) => {
+    if (part.type === "tool-fileAnalysis" && part.output && part.output.file) {
+      collected.push(part.output.file);
+    }
+  });
+  return collected;
 }

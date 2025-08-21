@@ -10,7 +10,11 @@ import { v } from "convex/values";
 import { components } from "@/convex/_generated/api";
 import { DataModel } from "@/convex/_generated/dataModel";
 import { internalMutation, mutation } from "@/convex/_generated/server";
-import { LanguageModel, modelPresets } from "../ai/models";
+import {
+  LanguageModel,
+  modelPresets,
+  OpenRouterProviderMetadata,
+} from "../ai/models";
 import {
   authedMutation,
   authedQuery,
@@ -116,7 +120,17 @@ export const getUsageHelper = async (
 export const calculateModelCost = (
   model: LanguageModel,
   usage: LanguageModelUsage,
+  providerMetadata?: Record<string, Record<string, unknown>>,
 ) => {
+  // attempt to get exact cost from provider metadata. if not available,
+  // calculate cost based on usage and model pricing. this fallback will
+  // not account for cached token discounts, but its better than nothing.
+  const parsedProviderMetadata =
+    OpenRouterProviderMetadata.safeParse(providerMetadata);
+  if (parsedProviderMetadata.success) {
+    console.log(parsedProviderMetadata.data.openrouter.usage.cost);
+    return parsedProviderMetadata.data.openrouter.usage.cost;
+  }
   const million = 1000000;
   const inputCost = model.cost.in * ((usage.inputTokens ?? 0) / million);
   const outputCost = model.cost.out * ((usage.outputTokens ?? 0) / million);

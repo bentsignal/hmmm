@@ -3,7 +3,7 @@
 import { memo, useRef, useState } from "react";
 import equal from "fast-deep-equal";
 import { ExternalLink } from "lucide-react";
-import { Source } from "../types/message-types";
+import { Source } from "@/convex/ai/tools/search";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const loadedSignatures = new Set<string>();

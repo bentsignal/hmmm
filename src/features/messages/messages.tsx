@@ -3,12 +3,12 @@
 import { memo, useEffect } from "react";
 import "@/features/messages/styles/github-dark.min.css";
 import "@/features/messages/styles/message-styles.css";
-import { UIMessage } from "@convex-dev/agent/react";
 import equal from "fast-deep-equal";
 import ThreadFollowUps from "../thread/components/thread-follow-ups";
 import PromptMessage from "./components/prompt-message";
 import ResponseMessage from "./components/response-message";
 import useMessages from "./hooks/use-messages";
+import { MyUIMessage } from "./types/message-types";
 import PageLoader from "@/components/page-loader";
 import { Loader } from "@/components/ui/loader";
 import {
@@ -101,7 +101,7 @@ const PureMessage = ({
   isActive,
   threadId,
 }: {
-  message: UIMessage;
+  message: MyUIMessage;
   isActive: boolean;
   threadId: string;
 }) => {

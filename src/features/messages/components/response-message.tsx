@@ -1,5 +1,6 @@
-import { UIMessage, useSmoothText } from "@convex-dev/agent/react";
+import { useSmoothText } from "@convex-dev/agent/react";
 import { Info } from "lucide-react";
+import { MyUIMessage } from "../types/message-types";
 import {
   extractFilesFromMessage,
   extractSourcesFromMessage,
@@ -27,7 +28,7 @@ export default function ResponseMessage({
   isActive,
   threadId,
 }: {
-  message: UIMessage;
+  message: MyUIMessage;
   isActive: boolean;
   threadId: string;
 }) {
