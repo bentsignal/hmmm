@@ -17,20 +17,16 @@ import { TextElement } from "@/components/xr";
 
 export default function XRResponseMessage({ message }: { message: UIMessage }) {
   // error occured during repsonse generation, inform user
-  const errorCode = isErrorMessage(message.content);
+  const errorCode = isErrorMessage(message.text);
   if (errorCode) {
     return <ErrorMessage code={errorCode} />;
   }
 
   // notices from server, currently just that you need premium for web results
-  const noticeCode = isNoticeMessage(message.content);
+  const noticeCode = isNoticeMessage(message.text);
   if (noticeCode) {
     return <NoticeMessage code={noticeCode} />;
   }
-
-  // if the message begins with the substring "undefined", remove it from the
-  // message. Not sure why this happens, seems to be a bug in a dependency
-  const cleanedText = message.content.replace(/^undefined/, "");
 
   return (
     <Container
@@ -40,7 +36,7 @@ export default function XRResponseMessage({ message }: { message: UIMessage }) {
       flexWrap="wrap"
     >
       <MessageStatus message={message} />
-      <XRMarkdown content={cleanedText} />
+      <XRMarkdown content={message.text} />
     </Container>
   );
 }

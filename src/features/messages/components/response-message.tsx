@@ -1,4 +1,4 @@
-import { UIMessage } from "@convex-dev/agent/react";
+import { UIMessage, useSmoothText } from "@convex-dev/agent/react";
 import { Info } from "lucide-react";
 import {
   extractFilesFromMessage,
@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/tooltip";
 import { getDateTimeString } from "@/lib/date-time-utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useTypewriter } from "@/hooks/use-typewriter";
 
 export default function ResponseMessage({
   message,
@@ -32,21 +31,18 @@ export default function ResponseMessage({
   isActive: boolean;
   threadId: string;
 }) {
-  const { animatedText } = useTypewriter({
-    inputText: message.text,
-    streaming: message.status === "streaming",
-  });
+  const [visibleText] = useSmoothText(message.text);
   const createdAt = getDateTimeString(new Date(message._creationTime ?? 0));
   const isMobile = useIsMobile();
 
   // error occured during repsonse generation, inform user
-  const errorCode = isErrorMessage(animatedText);
+  const errorCode = isErrorMessage(visibleText);
   if (errorCode) {
     return <ErrorMessage code={errorCode} dateTime={createdAt} />;
   }
 
   // notice from the server to the user
-  const noticeCode = isNoticeMessage(animatedText);
+  const noticeCode = isNoticeMessage(visibleText);
   if (noticeCode) {
     return <NoticeMessage code={noticeCode} />;
   }
@@ -57,10 +53,6 @@ export default function ResponseMessage({
   // files analyzed during response generation
   const files = extractFilesFromMessage(message);
 
-  // if the message begins with the substring "undefined", remove it from the
-  // message. Not sure why this happens, seems to be a bug in a dependency
-  const cleanedText = animatedText.replace(/^undefined/, "");
-
   return (
     <div className="flex w-full flex-col items-start gap-2">
       <MessageStatus message={message} isActive={isActive} />
@@ -68,7 +60,7 @@ export default function ResponseMessage({
       <MessageSources threadId={threadId} sources={sources} />
       <div className="relative flex w-full max-w-full flex-col gap-2">
         <Markdown className="prose dark:prose-invert relative w-full max-w-full">
-          {cleanedText}
+          {visibleText}
         </Markdown>
         {!isMobile && (
           <div
