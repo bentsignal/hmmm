@@ -118,8 +118,8 @@ export const calculateModelCost = (
   usage: LanguageModelUsage,
 ) => {
   const million = 1000000;
-  const inputCost = model.cost.in * (usage.promptTokens / million);
-  const outputCost = model.cost.out * (usage.completionTokens / million);
+  const inputCost = model.cost.in * ((usage.inputTokens ?? 0) / million);
+  const outputCost = model.cost.out * ((usage.outputTokens ?? 0) / million);
   const totalCost = inputCost + outputCost + model.cost.other;
   return totalCost;
 };

@@ -1,10 +1,9 @@
 import { Agent } from "@convex-dev/agent";
-import { generateObject, stepCountIs } from "ai";
+import { generateObject } from "ai";
 import z from "zod";
 import { v } from "convex/values";
 import { components, internal } from "@/convex/_generated/api";
 import { agentPrompt, followUpGeneratorPrompt } from "@/convex/ai/prompts";
-import { calculateModelCost } from "@/convex/user/usage";
 import { ActionCtx, internalAction } from "../_generated/server";
 import { modelPresets } from "./models";
 import { logSystemError } from "./thread";
@@ -37,8 +36,7 @@ export const agent = new Agent(components.agent, {
     excludeToolMessages: false,
   },
   usageHandler: async (ctx, args) => {
-    console.log(args);
-    const cost = calculateModelCost(modelPresets.default, args.usage);
+    const cost = (args.providerMetadata?.openrouter.usage.cost ?? 0) as number;
     await ctx.runMutation(internal.user.usage.log, {
       userId: args.userId || "no-user",
       type: "message",

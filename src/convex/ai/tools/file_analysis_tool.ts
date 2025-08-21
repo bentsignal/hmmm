@@ -1,5 +1,5 @@
 import { createTool } from "@convex-dev/agent";
-import { CoreUserMessage, generateText } from "ai";
+import { generateText, UserModelMessage } from "ai";
 import { z } from "zod";
 import { internal } from "@/convex/_generated/api";
 import { getFileUrl, getPublicFile } from "@/convex/app/library";
@@ -45,7 +45,7 @@ export const fileAnalysis = createTool({
     const fileType = getFileType(file.fileType) === "image" ? "image" : "file";
     const url = getFileUrl(file.key);
 
-    const messages: CoreUserMessage[] = [
+    const messages: UserModelMessage[] = [
       {
         role: "user",
         content: [
@@ -61,7 +61,7 @@ export const fileAnalysis = createTool({
             : {
                 type: "file",
                 data: url,
-                mimeType: file.fileType,
+                mediaType: file.fileType,
               },
         ],
       },
