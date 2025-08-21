@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack -H 0.0.0.0",
+    "dev": "concurrently \"bun run dev:next\" \"bun run dev:convex\"",
+    "dev:next": "next dev --turbopack -H 0.0.0.0",
     "dev:convex": "convex dev",
     "count": "cloc ./src",
     "build": "next build",
@@ -96,6 +97,7 @@
     "@types/react-dom": "^19.1.6",
     "@types/react-speech-recognition": "^3.9.6",
     "@types/three": "^0.177.0",
+    "concurrently": "^9.2.0",
     "eslint": "^9.28.0",
     "eslint-config-next": "15.3.3",
     "eslint-plugin-react-hooks": "^5.2.0",
