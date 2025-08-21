@@ -9,7 +9,7 @@ import { modelPresets } from "@/convex/ai/models";
 import { MAX_AUDIO_FILE_SIZE, MAX_RECORDING_DURATION } from "../config";
 import { getAudioDurationFromBuffer } from "../util/audio-duration";
 import { tryCatch } from "@/lib/utils";
-import { getAuthToken } from "@/features/auth/util/auth-util";
+import { getAuthToken } from "@/features/auth/util";
 
 export async function transcribeAudio(audio: ArrayBuffer) {
   // auth check

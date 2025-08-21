@@ -46,11 +46,15 @@ export default function Home({
       </div>
       <div className="w-full">
         <ErrorBoundary>
-          <Composer showInstantLoad={() => setIsLoading(true)} />
+          <Composer
+            showInstantLoad={() => setIsLoading(true)}
+            handleError={() => setIsLoading(false)}
+          />
         </ErrorBoundary>
       </div>
       <HomePrompts
         showInstantLoad={() => setIsLoading(true)}
+        handleError={() => setIsLoading(false)}
         preloadedSuggestions={preloadedSuggestions}
       />
       <UsageChatCallout />
@@ -67,9 +71,11 @@ export default function Home({
 
 const HomePrompts = ({
   showInstantLoad,
+  handleError,
   preloadedSuggestions,
 }: {
   showInstantLoad: () => void;
+  handleError: () => void;
   preloadedSuggestions: Preloaded<typeof api.ai.suggestions.getCurrent>;
 }) => {
   const { usage } = useUsage();
@@ -106,6 +112,7 @@ const HomePrompts = ({
               sendMessage({
                 customPrompt: prompt.prompt,
                 showInstantLoad,
+                handleError,
               });
             }}
           >

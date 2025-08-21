@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { PageFallback } from "@/components/error-boundary";
 import { Card, CardContent } from "@/components/ui/card";
 import { tryCatch } from "@/lib/utils";
-import { getAuthToken } from "@/features/auth/util/auth-util";
+import { getAuthToken } from "@/features/auth/util";
 import UsageCountdown from "@/features/billing/components/usage-countdown";
 import UsageProgress from "@/features/billing/components/usage-progress";
 import UsageUpgradeCallout from "@/features/billing/components/usage-upgrade-callout";

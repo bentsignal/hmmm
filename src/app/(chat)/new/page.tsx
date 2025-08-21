@@ -3,8 +3,10 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { fetchMutation } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
+import Redirector from "./redirector";
+import DefaultLoading from "@/components/default-loading";
 import { tryCatch } from "@/lib/utils";
-import { getAuthToken } from "@/features/auth/util/auth-util";
+import { getAuthToken } from "@/features/auth/util";
 
 interface NewPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -12,13 +14,13 @@ interface NewPageProps {
 
 export default async function NewPage({ searchParams }: NewPageProps) {
   return (
-    <Suspense fallback={<></>}>
-      <Redirector searchParams={searchParams} />
+    <Suspense fallback={<DefaultLoading />}>
+      <Processor searchParams={searchParams} />
     </Suspense>
   );
 }
 
-const Redirector = async ({ searchParams }: NewPageProps) => {
+const Processor = async ({ searchParams }: NewPageProps) => {
   // parse query
   const params = await searchParams;
   const query = params.q as string;
@@ -61,8 +63,6 @@ const Redirector = async ({ searchParams }: NewPageProps) => {
     redirect("/");
   }
 
-  // redirect to new thread;
-  redirect(`/chat/${threadId}`);
-
-  return null;
+  // redirect to new thread client side to avoid re rendering the sidebar;
+  return <Redirector threadId={threadId} />;
 };

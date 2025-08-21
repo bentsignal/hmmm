@@ -8,11 +8,11 @@ alwaysApply: true
 
 ## Package Manager
 
-This project uses pnpm as a package manager. Always use `pnpm` to install, remove or update packages. Use `pnpx` to execute commands from packages.
+This project uses bun as a package manager. Always use `bun` to install, remove or update packages. Use `bunx` to execute commands.
 
-ex: `pnpm add react@latest`
-ex: `pnpx convex dev`
-ex: `pnpm dlx shadcn@latest add accordion`
+ex: `bun add react@latest`
+ex: `bunx convex dev`
+ex: `bunx dlx shadcn@latest add accordion`
 
 ## Next
 

@@ -136,8 +136,8 @@ export const languageModels = {
   "o4-mini": {
     provider: "OpenAI",
     name: "o4 mini",
-    id: "openai/o4-mini-high",
-    model: openrouter("openai/o4-mini-high"),
+    id: "openai/o4-mini",
+    model: openrouter("openai/o4-mini"),
     cost: {
       in: 1.1,
       out: 4.4,

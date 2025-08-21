@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { SessionClaims } from "@/features/auth/types/auth-types";
+import { SessionClaims } from "@/features/auth/types";
 
 export const getSessionData = async () => {
   const session = await auth();

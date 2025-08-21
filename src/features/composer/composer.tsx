@@ -9,8 +9,10 @@ import ComposerSpeech from "@/features/speech/components/composer-speech";
 
 export default function Composer({
   showInstantLoad,
+  handleError,
 }: {
   showInstantLoad?: () => void;
+  handleError?: () => void;
 }) {
   return (
     <div className="mx-auto w-full max-w-2xl p-4">
@@ -22,13 +24,19 @@ export default function Composer({
       >
         <ComposerAttachmentsPreview />
         <div className="flex flex-col items-end gap-3 p-4 sm:flex-row">
-          <ComposerInput showInstantLoad={showInstantLoad} />
+          <ComposerInput
+            showInstantLoad={showInstantLoad}
+            handleError={handleError}
+          />
           <div className="flex w-full flex-1 items-center justify-between gap-2">
             <div className="flex flex-1 items-center justify-start gap-2">
               <ComposerAddAttachments />
               <ComposerSpeech />
             </div>
-            <ComposerSend showInstantLoad={showInstantLoad} />
+            <ComposerSend
+              showInstantLoad={showInstantLoad}
+              handleError={handleError}
+            />
           </div>
         </div>
       </div>

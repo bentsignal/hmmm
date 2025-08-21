@@ -48,10 +48,12 @@ export default function useSendMessage() {
     customPrompt,
     navigateToNewThread = true,
     showInstantLoad,
+    handleError,
   }: {
     customPrompt?: string;
     navigateToNewThread?: boolean;
     showInstantLoad?: () => void;
+    handleError?: () => void;
   }) => {
     // if customPrompt is provided, use it, otherwise use the prompt from the store
     const prompt = customPrompt ?? useComposerStore.getState().prompt;
@@ -95,13 +97,14 @@ export default function useSendMessage() {
         }),
       );
       if (threadCreationError) {
+        handleError?.();
         if (threadCreationError instanceof ConvexError) {
           toast.error(threadCreationError.data as string);
           return;
         }
         toast.error("An internal error occurred. Please try again.");
         if (navigateToNewThread) {
-          router.refresh();
+          // router.refresh();
         }
         return;
       }
@@ -119,6 +122,7 @@ export default function useSendMessage() {
         }),
       );
       if (newThreadMessageError) {
+        handleError?.();
         if (newThreadMessageError instanceof ConvexError) {
           toast.error(newThreadMessageError.data as string);
           return;

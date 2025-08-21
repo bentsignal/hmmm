@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
-import { getAuthToken } from "@/features/auth/util/auth-util";
+import { getAuthToken } from "@/features/auth/util";
 import NewsletterToggle from "@/features/settings/components/newsletter-toggle";
 import SettingsBangs from "@/features/settings/components/settings-bangs";
 import SettingsCard from "@/features/settings/components/settings-card";

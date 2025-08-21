@@ -28,7 +28,7 @@ import {
 import { Input as UIInput } from "@/components/ui/input";
 import { Loader } from "@/components/ui/loader";
 
-export default function SignUpComponent() {
+export default function SignUp() {
   const { theme } = useTheme();
   const color = theme === "light" ? "black" : "white";
   return (
