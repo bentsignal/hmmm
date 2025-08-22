@@ -11,31 +11,31 @@ export const shortcuts = {
   search: {
     name: "Search",
     hotkey: {
-      key: "?",
+      key: ".",
       ctrlCmd: true,
       shift: true,
     },
   },
   "focus-input": {
-    name: "Focus Input",
+    name: "Focus Prompt",
     hotkey: {
       key: ".",
       ctrlCmd: true,
     },
   },
-  "next-thread": {
-    name: "Next Thread",
-    hotkey: {
-      key: "Tab",
-    },
-  },
-  "previous-thread": {
-    name: "Previous Thread",
-    hotkey: {
-      key: "Tab",
-      shift: true,
-    },
-  },
+  // "next-thread": {
+  //   name: "Next Thread",
+  //   hotkey: {
+  //     key: "Tab",
+  //   },
+  // },
+  // "previous-thread": {
+  //   name: "Previous Thread",
+  //   hotkey: {
+  //     key: "Tab",
+  //     shift: true,
+  //   },
+  // },
   library: {
     name: "Library",
     hotkey: {
