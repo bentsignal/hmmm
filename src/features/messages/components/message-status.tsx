@@ -48,7 +48,7 @@ export default function MessageStatus({
             ) : (
               <Brain className="h-4 w-4" />
             )}
-            <TextShimmer active={isActive} text={statusLabel ?? "Reasoning"} />
+            <TextShimmer active={isActive} text={statusLabel} />
           </div>
         </HoverCardTrigger>
         <HoverCardContent

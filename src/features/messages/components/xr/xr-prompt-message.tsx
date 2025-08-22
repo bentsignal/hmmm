@@ -15,7 +15,7 @@ export default function XRPromptMessage({ message }: { message: UIMessage }) {
       padding={xrStyles.spacingLg}
       borderRadius={xrStyles.radiusLg}
     >
-      {message.content}
+      {message.text}
     </Text>
   );
 }

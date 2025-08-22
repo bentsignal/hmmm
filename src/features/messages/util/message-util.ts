@@ -46,8 +46,6 @@ export function getLatestPartType(message: MyUIMessage) {
 export function getStatusLabel(parts: MyUIMessagePart[]) {
   const part = parts[parts.length - 1];
   switch (part.type) {
-    case "reasoning":
-      return "Reasoning";
     case "tool-dateTime":
       return "Checking the time";
     case "tool-weather":
@@ -61,7 +59,7 @@ export function getStatusLabel(parts: MyUIMessagePart[]) {
     case "tool-positionHolder":
       return "Searching for information";
     default:
-      return null;
+      return "Reasoning";
   }
 }
 

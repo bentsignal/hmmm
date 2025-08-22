@@ -1,8 +1,8 @@
 import { memo, useEffect } from "react";
 import { hexColors, xrStyles } from "@/styles";
-import { UIMessage } from "@convex-dev/agent/react";
 import { Button } from "@react-three/uikit-default";
 import equal from "fast-deep-equal";
+import { responseHasNoContent } from "../../util/message-util";
 import { TextElement } from "@/components/xr";
 import {
   PromptMessage,
@@ -10,6 +10,7 @@ import {
 } from "@/features/messages/components/xr";
 import { PAGE_SIZE } from "@/features/messages/config";
 import useMessages from "@/features/messages/hooks/use-messages";
+import { MyUIMessage } from "@/features/messages/types";
 
 export default function XRMessages({
   threadId,
@@ -32,7 +33,9 @@ export default function XRMessages({
 
   // show a loading spinner when the user has sent a prompt and is waiting for a response
   const waiting =
-    messages.length > 0 && messages[messages.length - 1].role === "user";
+    messages.length > 0 &&
+    (messages[messages.length - 1].role === "user" ||
+      responseHasNoContent(messages[messages.length - 1]));
 
   return (
     <>
@@ -54,7 +57,11 @@ export default function XRMessages({
   );
 }
 
-const PureMessage = ({ message }: { message: UIMessage }) => {
+const PureMessage = ({ message }: { message: MyUIMessage }) => {
+  if (message.role === "assistant" && responseHasNoContent(message)) {
+    return null;
+  }
+
   return message.role === "user" ? (
     <PromptMessage key={message.id} message={message} />
   ) : (

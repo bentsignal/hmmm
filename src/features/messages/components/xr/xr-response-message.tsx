@@ -1,8 +1,16 @@
 import { hexColors, xrStyles } from "@/styles";
-import { UIMessage } from "@convex-dev/agent/react";
 import { Container, Text } from "@react-three/uikit";
-import { Brain, Clock, Globe, Newspaper, Sun } from "@react-three/uikit-lucide";
+import {
+  Brain,
+  Clock,
+  Code,
+  File,
+  Globe,
+  Newspaper,
+  Sun,
+} from "@react-three/uikit-lucide";
 import { NOTICE_MESSAGES } from "../../data/notice-messages";
+import { MyUIMessage } from "../../types";
 import type {
   SystemErrorCode,
   SystemNoticeCode,
@@ -15,7 +23,11 @@ import {
 import XRMarkdown from "./xr-markdown";
 import { TextElement } from "@/components/xr";
 
-export default function XRResponseMessage({ message }: { message: UIMessage }) {
+export default function XRResponseMessage({
+  message,
+}: {
+  message: MyUIMessage;
+}) {
   // error occured during repsonse generation, inform user
   const errorCode = isErrorMessage(message.text);
   if (errorCode) {
@@ -41,13 +53,15 @@ export default function XRResponseMessage({ message }: { message: UIMessage }) {
   );
 }
 
-const MessageStatus = ({ message }: { message: UIMessage }) => {
-  const statusLabel = getStatusLabel(message);
-  const iconStyles = {
-    width: xrStyles.textMd,
-    height: xrStyles.textMd,
-    color: hexColors.foreground,
-  };
+const iconStyles = {
+  width: xrStyles.textMd,
+  height: xrStyles.textMd,
+  color: hexColors.foreground,
+};
+
+const MessageStatus = ({ message }: { message: MyUIMessage }) => {
+  const statusLabel = getStatusLabel(message.parts);
+
   return (
     <Container alignItems="center" gap={xrStyles.spacingMd}>
       {statusLabel === "Checking the time" ? (
@@ -60,6 +74,10 @@ const MessageStatus = ({ message }: { message: UIMessage }) => {
         <Newspaper {...iconStyles} />
       ) : statusLabel === "Checking the weather" ? (
         <Sun {...iconStyles} />
+      ) : statusLabel === "Analyzing file" ? (
+        <File {...iconStyles} />
+      ) : statusLabel === "Generating code" ? (
+        <Code {...iconStyles} />
       ) : (
         <Brain {...iconStyles} />
       )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Box } from "lucide-react";
 import Link from "next/link";
 import { Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -58,7 +59,14 @@ export default function Home({
         preloadedSuggestions={preloadedSuggestions}
       />
       <UsageChatCallout />
-      {!authed && (
+      {authed ? (
+        <Button asChild className="mt-2">
+          <Link href="/xr" className="flex items-center gap-2">
+            <Box className="h-4 w-4" />
+            <span className="">Enter XR</span>
+          </Link>
+        </Button>
+      ) : (
         <Button asChild className="mt-2">
           <Link href="/sign-up" className="text-lg font-semibold">
             Get Started
