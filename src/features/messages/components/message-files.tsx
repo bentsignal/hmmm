@@ -10,8 +10,8 @@ export const MessageFiles = ({ files }: { files: LibraryFile[] }) => {
   return (
     <Sheet>
       <SheetTrigger>
-        <div className="mb-3 w-full cursor-pointer select-none">
-          <div className="bg-card flex w-fit items-center gap-2 rounded-full px-4 py-2">
+        <div className="w-full cursor-pointer select-none">
+          <div className="bg-card flex w-fit items-center gap-2 rounded-md px-3 py-2">
             <FileIcon className="h-4 w-4" />
             <span className="text-muted-foreground text-sm font-bold">
               Analyzed {files.length} file{files.length > 1 ? "s" : ""}

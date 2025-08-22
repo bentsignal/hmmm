@@ -1,5 +1,5 @@
 import { createTool } from "@convex-dev/agent";
-import { CoreUserMessage, generateText } from "ai";
+import { generateText, UserModelMessage } from "ai";
 import { z } from "zod";
 import { internal } from "@/convex/_generated/api";
 import { getFileUrl, getPublicFile } from "@/convex/app/library";
@@ -8,20 +8,23 @@ import { languageModels } from "../models";
 import { getFileType } from "@/features/library/lib";
 import { LibraryFile } from "@/features/library/types";
 
-type FileAnalysisResponse = {
+const inputSchema = z.object({
+  fileName: z.string().describe("file name of the file to analyze."),
+  prompt: z.string().describe("The prompt to use to analyze the file."),
+});
+type FileAnalysisInput = z.infer<typeof inputSchema>;
+
+type FileAnalysisOutput = {
   response: string;
   file: LibraryFile | null;
 };
 
-export const fileAnalysis = createTool({
+export const fileAnalysis = createTool<FileAnalysisInput, FileAnalysisOutput>({
   description: `
     Used to analyze a file. Can be used to analyze images, documents, etc.
   `,
-  args: z.object({
-    fileName: z.string().describe("file name of the file to analyze."),
-    prompt: z.string().describe("The prompt to use to analyze the file."),
-  }),
-  handler: async (ctx, args): Promise<FileAnalysisResponse> => {
+  args: inputSchema,
+  handler: async (ctx, args): Promise<FileAnalysisOutput> => {
     const { fileName, prompt } = args;
 
     if (!ctx.userId) {
@@ -45,7 +48,7 @@ export const fileAnalysis = createTool({
     const fileType = getFileType(file.fileType) === "image" ? "image" : "file";
     const url = getFileUrl(file.key);
 
-    const messages: CoreUserMessage[] = [
+    const messages: UserModelMessage[] = [
       {
         role: "user",
         content: [
@@ -61,7 +64,7 @@ export const fileAnalysis = createTool({
             : {
                 type: "file",
                 data: url,
-                mimeType: file.fileType,
+                mediaType: file.fileType,
               },
         ],
       },
@@ -77,6 +80,7 @@ export const fileAnalysis = createTool({
       const cost = calculateModelCost(
         languageModels["gemini-2.5-flash"],
         result.usage,
+        result.providerMetadata,
       );
       await ctx.runMutation(internal.user.usage.log, {
         userId: ctx.userId,

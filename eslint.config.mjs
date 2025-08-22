@@ -13,6 +13,9 @@ const compat = new FlatCompat({
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
+    ignores: ["src/convex/_generated/**/*"],
+  },
+  {
     plugins: {
       "react-hooks": reactHooks,
     },

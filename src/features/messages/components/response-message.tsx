@@ -1,5 +1,5 @@
-import { UIMessage } from "@convex-dev/agent/react";
 import { Info } from "lucide-react";
+import { MyUIMessage } from "../types/message-types";
 import {
   extractFilesFromMessage,
   extractSourcesFromMessage,
@@ -28,15 +28,15 @@ export default function ResponseMessage({
   isActive,
   threadId,
 }: {
-  message: UIMessage;
+  message: MyUIMessage;
   isActive: boolean;
   threadId: string;
 }) {
   const { animatedText } = useTypewriter({
-    inputText: message.content,
-    streaming: message.status === "streaming",
+    inputText: message.text,
+    streaming: isActive,
   });
-  const createdAt = getDateTimeString(new Date(message.createdAt ?? 0));
+  const createdAt = getDateTimeString(new Date(message._creationTime ?? 0));
   const isMobile = useIsMobile();
 
   // error occured during repsonse generation, inform user
@@ -57,25 +57,21 @@ export default function ResponseMessage({
   // files analyzed during response generation
   const files = extractFilesFromMessage(message);
 
-  // if the message begins with the substring "undefined", remove it from the
-  // message. Not sure why this happens, seems to be a bug in a dependency
-  const cleanedText = animatedText.replace(/^undefined/, "");
-
   return (
-    <div className="flex w-full flex-col items-start gap-2">
+    <div className="flex w-full flex-col items-start gap-3">
       <MessageStatus message={message} isActive={isActive} />
       <MessageFiles files={files} />
       <MessageSources threadId={threadId} sources={sources} />
       <div className="relative flex w-full max-w-full flex-col gap-2">
         <Markdown className="prose dark:prose-invert relative w-full max-w-full">
-          {cleanedText}
+          {animatedText}
         </Markdown>
         {!isMobile && (
           <div
-            className="mt-2 flex justify-start gap-2 transition-opacity duration-1000"
+            className="flex justify-start gap-3 transition-opacity duration-1000"
             style={{
               opacity:
-                !isActive && message.createdAt && message.content.length > 0
+                !isActive && message._creationTime && message.text.length > 0
                   ? 1
                   : 0,
             }}
@@ -90,7 +86,7 @@ export default function ResponseMessage({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            <CopyButton getContent={() => message.content} />
+            <CopyButton getContent={() => message.text} />
           </div>
         )}
       </div>

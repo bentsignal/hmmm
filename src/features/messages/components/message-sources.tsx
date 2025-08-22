@@ -3,7 +3,7 @@
 import { memo, useRef, useState } from "react";
 import equal from "fast-deep-equal";
 import { ExternalLink } from "lucide-react";
-import { Source } from "../types/message-types";
+import { Source } from "@/convex/ai/tools/search";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const loadedSignatures = new Set<string>();
@@ -75,7 +75,7 @@ const PreviewSources = ({
 
   return (
     <div
-      className="mb-3 flex w-full flex-col gap-4 transition-opacity duration-500 select-none hover:cursor-pointer"
+      className="flex w-full flex-col gap-4 transition-opacity duration-500 select-none hover:cursor-pointer"
       style={{ opacity: allLoaded ? 1 : 0 }}
     >
       <div className="relative flex h-48 w-full flex-col gap-2">
@@ -101,19 +101,21 @@ const PreviewSources = ({
         ))}
       </div>
       <div className="bg-card flex w-fit items-center gap-3 rounded-full px-4 py-2">
-        <div className="flex gap-2">
-          {favicons.map((favicon, index) => (
-            <div key={`favicon-${index}`}>
-              <img
-                src={favicon ?? ""}
-                alt={" "}
-                className="h-4 w-4 rounded-lg"
-                onLoad={handleLoadOrError}
-                onError={handleLoadOrError}
-              />
-            </div>
-          ))}
-        </div>
+        {favicons.length > 0 && (
+          <div className="flex gap-2">
+            {favicons.map((favicon, index) => (
+              <div key={`favicon-${index}`}>
+                <img
+                  src={favicon ?? ""}
+                  alt={" "}
+                  className="h-4 w-4 rounded-lg"
+                  onLoad={handleLoadOrError}
+                  onError={handleLoadOrError}
+                />
+              </div>
+            ))}
+          </div>
+        )}
         <span className="text-muted-foreground text-sm font-bold">
           {sources.length} source{sources.length > 1 ? "s" : ""}
         </span>

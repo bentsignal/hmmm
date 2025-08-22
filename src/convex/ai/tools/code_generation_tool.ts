@@ -5,7 +5,18 @@ import { languageModels } from "../models";
 import { codeGenerationPrompt } from "../prompts";
 import { tryCatch } from "@/lib/utils";
 
-export const codeGeneration = createTool({
+const inputSchema = z.object({});
+type CodeGenerationInput = z.infer<typeof inputSchema>;
+
+type CodeGenerationOutput = {
+  code: string;
+  reasoning?: string;
+};
+
+export const codeGeneration = createTool<
+  CodeGenerationInput,
+  CodeGenerationOutput
+>({
   description: `
     Used to generate code for difficult problems. Should not be used for
     simple requests that require basic code.
@@ -15,8 +26,8 @@ export const codeGeneration = createTool({
     relevant information, you are then responsible for displaying this 
     information to the user.
   `,
-  args: z.object({}),
-  handler: async (ctx, args, options) => {
+  args: inputSchema,
+  handler: async (ctx, args, options): Promise<CodeGenerationOutput> => {
     const messages = options.messages;
 
     // try to generate code with GPT-5 directly through openai
@@ -29,7 +40,10 @@ export const codeGeneration = createTool({
       }),
     );
     if (!error) {
-      return data.text;
+      return {
+        code: data.text,
+        reasoning: data.reasoningText,
+      };
     }
 
     // might have hit rate limits with openai, fallback to o4 through openrouter
@@ -42,6 +56,9 @@ export const codeGeneration = createTool({
       model: languageModels["o4-mini"].model,
       messages: messages,
     });
-    return result.text;
+    return {
+      code: result.text,
+      reasoning: result.reasoningText,
+    };
   },
 });

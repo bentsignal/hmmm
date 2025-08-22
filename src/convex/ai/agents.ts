@@ -4,39 +4,28 @@ import z from "zod";
 import { v } from "convex/values";
 import { components, internal } from "@/convex/_generated/api";
 import { agentPrompt, followUpGeneratorPrompt } from "@/convex/ai/prompts";
-import { calculateModelCost } from "@/convex/user/usage";
 import { ActionCtx, internalAction } from "../_generated/server";
+import { calculateModelCost } from "../user/usage";
 import { modelPresets } from "./models";
 import { logSystemError } from "./thread";
-import {
-  codeGeneration,
-  currentEvents,
-  dateTime,
-  fileAnalysis,
-  positionHolder,
-  weather,
-} from "./tools";
+import { tools } from "./tools";
 import { tryCatch } from "@/lib/utils";
 
 export const agent = new Agent(components.agent, {
-  chat: modelPresets.default.model,
+  languageModel: modelPresets.default.model,
   name: "QBE",
   instructions: agentPrompt,
   maxSteps: 20,
-  maxRetries: 3,
-  tools: {
-    dateTime,
-    currentEvents,
-    weather,
-    positionHolder,
-    fileAnalysis,
-    codeGeneration,
-  },
+  tools: tools,
   contextOptions: {
     excludeToolMessages: false,
   },
   usageHandler: async (ctx, args) => {
-    const cost = calculateModelCost(modelPresets.default, args.usage);
+    const cost = calculateModelCost(
+      modelPresets.default,
+      args.usage,
+      args.providerMetadata,
+    );
     await ctx.runMutation(internal.user.usage.log, {
       userId: args.userId || "no-user",
       type: "message",
@@ -60,7 +49,7 @@ export const generateResponse = async (
   });
   const result = await thread.generateText({
     prompt,
-    maxTokens: 16000,
+    maxOutputTokens: 16000,
     providerOptions: {
       openrouter: {
         reasoning: {
@@ -87,7 +76,7 @@ export const streamResponse = internalAction({
       thread.streamText(
         {
           promptMessageId,
-          maxTokens: 64000,
+          maxOutputTokens: 64000,
           providerOptions: {
             openrouter: {
               reasoning: {
@@ -147,7 +136,7 @@ export const streamResponse = internalAction({
           schema: z.object({
             questions: z.array(z.string()).max(3),
           }),
-          maxTokens: 1000,
+          maxOutputTokens: 1000,
           maxRetries: 3,
         });
         await ctx.runMutation(internal.ai.thread.saveFollowUpQuestions, {

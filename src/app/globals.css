@@ -85,7 +85,7 @@
   --premium: oklch(0.65 0.1 280);
   --light: oklch(0.65 0.1 160);
   --ultra: oklch(0.65 0.1 60);
-  --shimmer: oklch(0.6 0 0);
+  --shimmer: oklch(0.7 0 0);
 }
 
 .dark {
@@ -123,7 +123,7 @@
   --premium: oklch(0.95 0.1 280);
   --light: oklch(0.95 0.1 160);
   --ultra: oklch(0.95 0.1 60);
-  --shimmer: oklch(0.75 0 0);
+  --shimmer: oklch(0.6 0 0);
 }
 
 @layer base {

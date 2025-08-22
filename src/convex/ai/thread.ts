@@ -168,7 +168,7 @@ export const saveUserMessage = async (
   attachments?: string[],
 ) => {
   const fileNames = attachments || [];
-  return await agent.saveMessages(ctx, {
+  const { messages } = await agent.saveMessages(ctx, {
     threadId: threadId,
     messages: [
       {
@@ -181,6 +181,11 @@ export const saveUserMessage = async (
       })),
     ],
   });
+  const lastMessageId = messages[messages.length - 1]._id;
+  if (!lastMessageId) {
+    throw new ConvexError("Failed to save message");
+  }
+  return { lastMessageId };
 };
 
 /**

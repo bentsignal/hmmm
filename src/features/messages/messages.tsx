@@ -3,12 +3,13 @@
 import { memo, useEffect } from "react";
 import "@/features/messages/styles/github-dark.min.css";
 import "@/features/messages/styles/message-styles.css";
-import { UIMessage } from "@convex-dev/agent/react";
 import equal from "fast-deep-equal";
 import ThreadFollowUps from "../thread/components/thread-follow-ups";
 import PromptMessage from "./components/prompt-message";
 import ResponseMessage from "./components/response-message";
 import useMessages from "./hooks/use-messages";
+import { MyUIMessage } from "./types/message-types";
+import { responseHasNoContent } from "./util/message-util";
 import PageLoader from "@/components/page-loader";
 import { Loader } from "@/components/ui/loader";
 import {
@@ -45,7 +46,9 @@ export default function Messages({
 
   // show a loading spinner when the user has sent a prompt and is waiting for a response
   const waiting =
-    messages.length > 0 && messages[messages.length - 1].role === "user";
+    messages.length > 0 &&
+    (messages[messages.length - 1].role === "user" ||
+      responseHasNoContent(messages[messages.length - 1]));
 
   return (
     <>
@@ -99,10 +102,14 @@ const PureMessage = ({
   isActive,
   threadId,
 }: {
-  message: UIMessage;
+  message: MyUIMessage;
   isActive: boolean;
   threadId: string;
 }) => {
+  if (message.role === "assistant" && responseHasNoContent(message)) {
+    return null;
+  }
+
   return (
     <div className="w-full max-w-full">
       {message.role === "user" ? (
