@@ -108,3 +108,14 @@ export function extractFilesFromMessage(message: MyUIMessage) {
   });
   return collected;
 }
+
+export const responseHasNoContent = (message: MyUIMessage) => {
+  if (message.text.length > 0) return false;
+  const reasoning = extractReasoningFromMessage(message);
+  if (reasoning.length > 0) return false;
+  const sources = extractSourcesFromMessage(message);
+  if (sources.length > 0) return false;
+  const files = extractFilesFromMessage(message);
+  if (files.length > 0) return false;
+  return true;
+};

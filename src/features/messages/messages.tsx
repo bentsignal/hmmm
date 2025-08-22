@@ -9,6 +9,7 @@ import PromptMessage from "./components/prompt-message";
 import ResponseMessage from "./components/response-message";
 import useMessages from "./hooks/use-messages";
 import { MyUIMessage } from "./types/message-types";
+import { responseHasNoContent } from "./util/message-util";
 import PageLoader from "@/components/page-loader";
 import { Loader } from "@/components/ui/loader";
 import {
@@ -47,8 +48,7 @@ export default function Messages({
   const waiting =
     messages.length > 0 &&
     (messages[messages.length - 1].role === "user" ||
-      (messages[messages.length - 1].parts.length <= 1 &&
-        messages[messages.length - 1].status === "pending"));
+      responseHasNoContent(messages[messages.length - 1]));
 
   return (
     <>
@@ -106,7 +106,7 @@ const PureMessage = ({
   isActive: boolean;
   threadId: string;
 }) => {
-  if (message.parts.length === 0) {
+  if (message.role === "assistant" && responseHasNoContent(message)) {
     return null;
   }
 

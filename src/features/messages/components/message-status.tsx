@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { useSmoothText } from "@convex-dev/agent/react";
 import { Brain, Clock, Code, File, Globe, Newspaper, Sun } from "lucide-react";
 import { MyUIMessage } from "../types/message-types";
@@ -23,24 +22,11 @@ export default function MessageStatus({
   message: MyUIMessage;
   isActive: boolean;
 }) {
-  // extract text from reasoning parts & smooth
   const content = extractReasoningFromMessage(message);
   const [text] = useSmoothText(content);
-  const statusLabel = getStatusLabel(message.parts);
-
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  // auto scroll to bottom when actively reasoning
-  useEffect(() => {
-    if (isActive && scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({
-        top: Math.max(scrollContainerRef.current.scrollHeight - 500, 0),
-        behavior: "smooth",
-      });
-    }
-  }, [text, isActive]);
-
   if (content.length === 0) return null;
+
+  const statusLabel = getStatusLabel(message.parts);
 
   return (
     <div className="flex w-full flex-col items-start gap-2">
@@ -75,11 +61,9 @@ export default function MessageStatus({
         >
           <Abyss color="card" height={50} blur="sm" />
           <div
-            ref={scrollContainerRef}
             className={cn(
               "scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent",
               "h-64 w-full overflow-y-auto p-8",
-              isActive && "overflow-y-hidden select-none",
             )}
           >
             <Markdown className="prose dark:prose-invert relative w-full max-w-full text-sm">

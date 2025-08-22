@@ -34,7 +34,6 @@ export default function useMessages({
     MyDataParts,
     MyTools
   >(messages);
-  console.log(uiMessages);
 
   return {
     isAuthenticated,
