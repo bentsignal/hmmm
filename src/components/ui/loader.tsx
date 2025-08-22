@@ -436,7 +436,7 @@ export function TextShimmer({
       className={cn(
         "bg-[linear-gradient(to_right,var(--foreground)_30%,var(--shimmer)_60%,var(--foreground)_90%)]",
         "bg-size-[200%_auto] bg-clip-text",
-        active && "animate-[shimmer_4s_infinite_linear]",
+        active && "animate-[shimmer_3s_infinite_linear]",
         textSizes[size],
         className
       )}
