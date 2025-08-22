@@ -18,7 +18,7 @@ export default function ThreadFollowUps({ threadId }: { threadId: string }) {
 
   return (
     <div
-      className="mt-4 flex max-w-[500px] flex-col gap-4 transition-opacity duration-1000"
+      className="flex max-w-[500px] flex-col gap-4 transition-opacity duration-1000"
       style={{
         opacity: empty ? 0 : 1,
       }}

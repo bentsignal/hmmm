@@ -1,5 +1,5 @@
 import { UIMessage } from "@convex-dev/agent/react";
-import { InferUITools, UIDataTypes } from "ai";
+import { InferUITools, UIDataTypes, UIMessagePart } from "ai";
 import { tools } from "@/convex/ai/tools";
 
 export type SystemErrorCode = "G1" | "G2" | "G3" | "G4";
@@ -14,3 +14,4 @@ export type MyMetadata = unknown;
 export type MyDataParts = UIDataTypes;
 
 export type MyUIMessage = UIMessage<MyMetadata, MyDataParts, MyTools>;
+export type MyUIMessagePart = UIMessagePart<MyDataParts, MyTools>;

@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Source } from "@/convex/ai/tools/search";
 import {
   MyUIMessage,
+  MyUIMessagePart,
   SystemErrorCode,
   SystemErrorLabel,
   SystemNoticeCode,
@@ -42,9 +43,10 @@ export function getLatestPartType(message: MyUIMessage) {
   return message.parts[message.parts.length - 1].type;
 }
 
-export function getStatusLabel(message: MyUIMessage) {
-  const latestPartType = getLatestPartType(message);
-  switch (latestPartType) {
+export function getStatusLabel(part: MyUIMessagePart) {
+  switch (part.type) {
+    case "reasoning":
+      return "Reasoning";
     case "tool-dateTime":
       return "Checking the time";
     case "tool-weather":
@@ -58,7 +60,7 @@ export function getStatusLabel(message: MyUIMessage) {
     case "tool-positionHolder":
       return "Searching for information";
     default:
-      return "Reasoning";
+      return null;
   }
 }
 
