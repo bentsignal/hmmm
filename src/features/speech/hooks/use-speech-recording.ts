@@ -158,7 +158,6 @@ export default function useSpeechRecording() {
         clearTimeout(maxDurationTimeoutRef.current);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {
