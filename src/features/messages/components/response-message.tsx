@@ -58,7 +58,7 @@ export default function ResponseMessage({
   const files = extractFilesFromMessage(message);
 
   return (
-    <div className="flex w-full flex-col items-start gap-2">
+    <div className="flex w-full flex-col items-start gap-3">
       <MessageStatus message={message} isActive={isActive} />
       <MessageFiles files={files} />
       <MessageSources threadId={threadId} sources={sources} />
@@ -68,7 +68,7 @@ export default function ResponseMessage({
         </Markdown>
         {!isMobile && (
           <div
-            className="mt-2 flex justify-start gap-2 transition-opacity duration-1000"
+            className="flex justify-start gap-3 transition-opacity duration-1000"
             style={{
               opacity:
                 !isActive && message._creationTime && message.text.length > 0

@@ -47,7 +47,8 @@ export default function Messages({
   const waiting =
     messages.length > 0 &&
     (messages[messages.length - 1].role === "user" ||
-      messages[messages.length - 1].status === "pending");
+      (messages[messages.length - 1].parts.length <= 1 &&
+        messages[messages.length - 1].status === "pending"));
 
   return (
     <>
@@ -105,6 +106,10 @@ const PureMessage = ({
   isActive: boolean;
   threadId: string;
 }) => {
+  if (message.parts.length === 0) {
+    return null;
+  }
+
   return (
     <div className="w-full max-w-full">
       {message.role === "user" ? (

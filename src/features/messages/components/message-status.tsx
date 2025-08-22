@@ -26,7 +26,7 @@ export default function MessageStatus({
   // extract text from reasoning parts & smooth
   const content = extractReasoningFromMessage(message);
   const [text] = useSmoothText(content);
-  const statusLabel = getStatusLabel(message);
+  const statusLabel = getStatusLabel(message.parts);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -43,11 +43,10 @@ export default function MessageStatus({
   if (content.length === 0) return null;
 
   return (
-    <div className="my-4 flex w-full flex-col items-start gap-2">
+    <div className="flex w-full flex-col items-start gap-2">
       <HoverCard openDelay={200} closeDelay={200}>
         <HoverCardTrigger>
-          <div className={cn("flex items-center gap-2 select-none")}>
-            {/* , "cursor-pointer")}> */}
+          <div className="flex cursor-pointer items-center gap-2 py-0.5 select-none">
             {statusLabel === "Checking the time" ? (
               <Clock className="h-4 w-4" />
             ) : statusLabel === "Searching for information" ? (
@@ -63,7 +62,7 @@ export default function MessageStatus({
             ) : (
               <Brain className="h-4 w-4" />
             )}
-            <TextShimmer active={isActive} text={statusLabel} />
+            <TextShimmer active={isActive} text={statusLabel ?? "Reasoning"} />
           </div>
         </HoverCardTrigger>
         <HoverCardContent
@@ -79,7 +78,7 @@ export default function MessageStatus({
             ref={scrollContainerRef}
             className={cn(
               "scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent",
-              "h-64 w-full overflow-y-auto p-6",
+              "h-64 w-full overflow-y-auto p-8",
               isActive && "overflow-y-hidden select-none",
             )}
           >

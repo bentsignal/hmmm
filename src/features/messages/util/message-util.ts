@@ -43,7 +43,8 @@ export function getLatestPartType(message: MyUIMessage) {
   return message.parts[message.parts.length - 1].type;
 }
 
-export function getStatusLabel(part: MyUIMessagePart) {
+export function getStatusLabel(parts: MyUIMessagePart[]) {
+  const part = parts[parts.length - 1];
   switch (part.type) {
     case "reasoning":
       return "Reasoning";
