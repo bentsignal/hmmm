@@ -1,3 +1,5 @@
+"use node";
+
 import { createTool } from "@convex-dev/agent";
 import { generateText, UserModelMessage } from "ai";
 import { z } from "zod";
@@ -9,14 +11,14 @@ import { getFileType } from "@/features/library/lib";
 import { LibraryFile } from "@/features/library/types";
 
 const inputSchema = z.object({
-  fileName: z.string().describe("file name of the file to analyze."),
-  prompt: z.string().describe("The prompt to use to analyze the file."),
+  fileNames: z.array(z.string().describe("names of the files to analyze.")),
+  prompt: z.string().describe("The prompt to use to analyze the files."),
 });
 type FileAnalysisInput = z.infer<typeof inputSchema>;
 
 type FileAnalysisOutput = {
   response: string;
-  file: LibraryFile | null;
+  files: LibraryFile[];
 };
 
 export const fileAnalysis = createTool<FileAnalysisInput, FileAnalysisOutput>({
@@ -25,28 +27,19 @@ export const fileAnalysis = createTool<FileAnalysisInput, FileAnalysisOutput>({
   `,
   args: inputSchema,
   handler: async (ctx, args): Promise<FileAnalysisOutput> => {
-    const { fileName, prompt } = args;
+    const { fileNames, prompt } = args;
 
     if (!ctx.userId) {
       return {
         response: "User not authenticated",
-        file: null,
+        files: [],
       };
     }
 
-    const file = await ctx.runQuery(internal.app.library.getFileByName, {
-      fileName: fileName,
+    const files = await ctx.runQuery(internal.app.library.getFilesByName, {
+      fileNames: fileNames,
       userId: ctx.userId,
     });
-    if (!file) {
-      return {
-        response: "File not found",
-        file: null,
-      };
-    }
-
-    const fileType = getFileType(file.fileType) === "image" ? "image" : "file";
-    const url = getFileUrl(file.key);
 
     const messages: UserModelMessage[] = [
       {
@@ -56,16 +49,21 @@ export const fileAnalysis = createTool<FileAnalysisInput, FileAnalysisOutput>({
             type: "text",
             text: prompt,
           },
-          fileType === "image"
-            ? {
-                type: "image",
-                image: url,
-              }
-            : {
-                type: "file",
-                data: url,
-                mediaType: file.fileType,
-              },
+          ...files.map((file) => {
+            const fileType =
+              getFileType(file.fileType) === "image" ? "image" : "file";
+            const url = getFileUrl(file.key);
+            return fileType === "image"
+              ? {
+                  type: "image" as const,
+                  image: url,
+                }
+              : {
+                  type: "file" as const,
+                  data: url,
+                  mediaType: file.fileType,
+                };
+          }),
         ],
       },
     ];
@@ -91,7 +89,7 @@ export const fileAnalysis = createTool<FileAnalysisInput, FileAnalysisOutput>({
 
     return {
       response: result.text,
-      file: getPublicFile(file),
+      files: files.map((file) => getPublicFile(file)),
     };
   },
 });

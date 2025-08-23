@@ -100,8 +100,8 @@ export function extractSourcesFromMessage(message: MyUIMessage) {
 export function extractFilesFromMessage(message: MyUIMessage) {
   const collected: Array<LibraryFile> = [];
   message.parts.forEach((part) => {
-    if (part.type === "tool-fileAnalysis" && part.output && part.output.file) {
-      collected.push(part.output.file);
+    if (part.type === "tool-fileAnalysis" && part.output) {
+      collected.push(...part.output.files);
     }
   });
   return collected;

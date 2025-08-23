@@ -316,22 +316,26 @@ export const getStorageStatus = authedQuery({
   },
 });
 
-export const getFileByName = internalQuery({
+export const getFilesByName = internalQuery({
   args: {
-    fileName: v.string(),
+    fileNames: v.array(v.string()),
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { fileName, userId } = args;
-    const file = await ctx.db
-      .query("files")
-      .withSearchIndex("search_file_name", (q) =>
-        q.search("fileName", fileName).eq("userId", userId),
-      )
-      .first();
-    if (!file) {
-      return null;
+    const { fileNames, userId } = args;
+    const files = [];
+    for (const fileName of fileNames) {
+      const file = await ctx.db
+        .query("files")
+        .withSearchIndex("search_file_name", (q) =>
+          q.search("fileName", fileName).eq("userId", userId),
+        )
+        .first();
+      if (!file) {
+        continue;
+      }
+      files.push(file);
     }
-    return file;
+    return files;
   },
 });
