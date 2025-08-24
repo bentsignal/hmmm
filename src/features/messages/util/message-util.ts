@@ -117,6 +117,7 @@ export function extractImageFromMessage(message: MyUIMessage) {
   message.parts.forEach((part) => {
     if (part.type === "tool-imageGenerationInit" && part.output) {
       imageId = part.output.slot;
+      return;
     }
   });
   return imageId;
