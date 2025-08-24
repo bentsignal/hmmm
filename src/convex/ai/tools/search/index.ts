@@ -21,5 +21,5 @@ export type SearchReturnType = {
   };
 } | null;
 
-export * from "./current_events_tool";
-export * from "./postition_holder_tool";
+export * from "./current_events";
+export * from "./postition_holder";

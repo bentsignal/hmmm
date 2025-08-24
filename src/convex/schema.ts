@@ -18,6 +18,7 @@ export default defineSchema({
     size: v.number(),
   })
     .index("by_user", ["userId"])
+    .index("by_key", ["key"])
     .searchIndex("search_file_name", {
       searchField: "fileName",
       filterFields: ["userId"],
@@ -62,9 +63,4 @@ export default defineSchema({
   suggestions: defineTable({
     prompt: v.string(),
   }),
-  generatedImages: defineTable({
-    userId: v.optional(v.string()),
-    threadId: v.optional(v.string()),
-    file: v.optional(v.id("files")),
-  }).index("by_thread_id", ["threadId"]),
 });

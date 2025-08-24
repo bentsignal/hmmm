@@ -93,7 +93,7 @@ export default function useSendMessage() {
       const { data: threadId, error: threadCreationError } = await tryCatch(
         createThread({
           prompt: prompt,
-          attachments: attachedFiles.map((file) => file.fileName),
+          attachmentKeys: attachedFiles.map((file) => file.key),
         }),
       );
       if (threadCreationError) {
@@ -118,7 +118,7 @@ export default function useSendMessage() {
         sendMessageInThread({
           threadId: activeThread,
           prompt: prompt,
-          attachments: attachedFiles.map((file) => file.fileName),
+          attachmentKeys: attachedFiles.map((file) => file.key),
         }),
       );
       if (newThreadMessageError) {

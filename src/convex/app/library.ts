@@ -137,6 +137,7 @@ export const getFileUrl = (key: string) => {
 export const getPublicFile = (file: Doc<"files">): LibraryFile => {
   return {
     id: file._id,
+    key: file.key,
     url: getFileUrl(file.key),
     fileName: file.fileName,
     mimeType: file.fileType,
@@ -374,5 +375,25 @@ export const getFilesByName = internalQuery({
       files.push(file);
     }
     return files;
+  },
+});
+
+export const getFileByKey = authedQuery({
+  args: {
+    key: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { key } = args;
+    const file = await ctx.db
+      .query("files")
+      .withIndex("by_key", (q) => q.eq("key", key))
+      .first();
+    if (!file) {
+      return null;
+    }
+    if (file.userId !== ctx.user.subject) {
+      throw new ConvexError("Unauthorized");
+    }
+    return getPublicFile(file);
   },
 });

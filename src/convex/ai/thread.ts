@@ -9,7 +9,6 @@ import {
   ActionCtx,
   internalAction,
   internalMutation,
-  internalQuery,
   MutationCtx,
   QueryCtx,
 } from "@/convex/_generated/server";
@@ -17,7 +16,6 @@ import { agent } from "@/convex/ai/agents";
 import { isAdmin } from "@/convex/user/account";
 import { modelPresets } from "../ai/models";
 import { titleGeneratorPrompt } from "../ai/prompts";
-import { getPublicFile } from "../app/library";
 import { authedMutation, authedQuery } from "../convex_helpers";
 import { messageSendRateLimit } from "../limiter";
 import { getUsageHelper } from "../user/usage";
@@ -161,15 +159,15 @@ export const validateMessage = async (
  * @param ctx
  * @param threadId
  * @param prompt
- * @param attachments
+ * @param attachmentKeys
  */
 export const saveUserMessage = async (
   ctx: CustomCtx<typeof authedMutation>,
   threadId: string,
   prompt: string,
-  attachments?: string[],
+  attachmentKeys?: string[],
 ) => {
-  const fileNames = attachments || [];
+  const keys = attachmentKeys || [];
   const { messages } = await agent.saveMessages(ctx, {
     threadId: threadId,
     messages: [
@@ -177,9 +175,9 @@ export const saveUserMessage = async (
         role: "user",
         content: prompt,
       },
-      ...fileNames.map((fileName) => ({
+      ...keys.map((key) => ({
         role: "system" as const,
-        content: `User has attached a file with the following file name: ${fileName}`,
+        content: `User has attached a file with the following file key: ${key}`,
       })),
     ],
   });
@@ -269,12 +267,11 @@ export const rename = authedMutation({
 export const create = authedMutation({
   args: {
     prompt: v.string(),
-    // file names
-    attachments: v.optional(v.array(v.string())),
+    attachmentKeys: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const { prompt, attachments } = args;
-    const numAttachments = attachments?.length || 0;
+    const { prompt, attachmentKeys } = args;
+    const numAttachments = attachmentKeys?.length || 0;
     // auth, usage, input val, rate limit
     await validateMessage(ctx, prompt, numAttachments);
     // create new thread in agent component table, as well as
@@ -285,7 +282,7 @@ export const create = authedMutation({
     });
     // create metadata doc for thread and store first message
     const [{ lastMessageId }] = await Promise.all([
-      saveUserMessage(ctx, threadId, prompt, attachments),
+      saveUserMessage(ctx, threadId, prompt, attachmentKeys),
       ctx.db.insert("threadMetadata", {
         userId: ctx.user.subject,
         title: "New Chat",
@@ -324,11 +321,11 @@ export const sendMessage = authedMutation({
   args: {
     threadId: v.string(),
     prompt: v.string(),
-    attachments: v.optional(v.array(v.string())),
+    attachmentKeys: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const { threadId, prompt, attachments } = args;
-    const numAttachments = attachments?.length || 0;
+    const { threadId, prompt, attachmentKeys } = args;
+    const numAttachments = attachmentKeys?.length || 0;
     await validateMessage(ctx, prompt, numAttachments);
     // get thread metadata
     const metadata = await authorizeAccess(ctx, threadId);
@@ -340,7 +337,7 @@ export const sendMessage = authedMutation({
     }
     // save new message to thread, update thread state, clear previous follow up questions
     const [{ lastMessageId }] = await Promise.all([
-      saveUserMessage(ctx, threadId, prompt, attachments),
+      saveUserMessage(ctx, threadId, prompt, attachmentKeys),
       ctx.db.patch(metadata._id, {
         state: "waiting",
         updatedAt: Date.now(),
@@ -569,79 +566,5 @@ export const getFollowUpQuestions = authedQuery({
       return [];
     }
     return metadata.followUpQuestions ?? [];
-  },
-});
-
-export const createImageSlot = internalMutation({
-  args: {
-    userId: v.optional(v.string()),
-    threadId: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const { userId, threadId } = args;
-    const image = await ctx.db.insert("generatedImages", {
-      userId,
-      threadId,
-    });
-    return image;
-  },
-});
-
-export const uploadImageToSlot = internalMutation({
-  args: {
-    slot: v.id("generatedImages"),
-    file: v.id("files"),
-  },
-  handler: async (ctx, args) => {
-    const { slot, file } = args;
-    await ctx.db.patch(slot, {
-      file,
-    });
-  },
-});
-
-export const getMostRecentImageSlot = internalQuery({
-  args: {
-    threadId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { threadId } = args;
-    const slot = await ctx.db
-      .query("generatedImages")
-      .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
-      .order("desc")
-      .first();
-    if (!slot) {
-      throw new ConvexError("Image slot not found");
-    }
-    return slot;
-  },
-});
-
-export const getImageSlot = authedQuery({
-  args: {
-    slot: v.id("generatedImages"),
-  },
-  handler: async (ctx, args) => {
-    const { slot } = args;
-    const image = await ctx.db.get(slot);
-    if (image?.userId !== ctx.user.subject) {
-      throw new ConvexError("Unauthorized");
-    }
-    if (!image) {
-      return null;
-    }
-    if (!image.file) {
-      return null;
-    }
-    const file = await ctx.db.get(image.file);
-    if (!file) {
-      return null;
-    }
-    if (file.userId !== ctx.user.subject) {
-      throw new ConvexError("Unauthorized");
-    }
-    const publicImage = getPublicFile(file);
-    return publicImage;
   },
 });

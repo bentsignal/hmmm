@@ -1,10 +1,10 @@
 import { ToolSet } from "ai";
-import { codeGeneration } from "./code_generation_tool";
-import { dateTime } from "./date_time_tool";
-import { fileAnalysis } from "./file_analysis_tool";
-import { imageGeneration, imageGenerationInit } from "./image_generation_tool";
+import { codeGeneration } from "./code_generation";
+import { dateTime } from "./date_time";
+import { fileAnalysis } from "./file";
+import { generateImage, initImage } from "./image";
 import { currentEvents, positionHolder } from "./search";
-import { weather } from "./weather_tool";
+import { weather } from "./weather";
 
 export const tools = {
   dateTime,
@@ -13,6 +13,6 @@ export const tools = {
   positionHolder,
   fileAnalysis,
   codeGeneration,
-  imageGeneration,
-  imageGenerationInit,
+  generateImage,
+  initImage,
 } satisfies ToolSet;

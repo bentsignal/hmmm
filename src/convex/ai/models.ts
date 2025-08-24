@@ -3,7 +3,6 @@ import { openrouter } from "@openrouter/ai-sdk-provider";
 import type { OpenRouterProviderOptions } from "@openrouter/ai-sdk-provider";
 import type {
   EmbeddingModel as EmbeddingModelV2,
-  ImageModel as ImageGenerationModelV2,
   LanguageModel as LanguageModelV2,
   TranscriptionModel as TranscriptionModelV2,
 } from "ai";
@@ -46,19 +45,30 @@ export interface EmbeddingModel extends Model {
 }
 
 export interface ImageGenerationModel extends Model {
-  model: ImageGenerationModelV2;
+  model: "fal-ai/imagen4/preview/ultra" | "fal-ai/flux-1/krea";
 }
 
 export const imageGenerationModels = {
-  "gpt-image-1": {
-    provider: "OpenAI",
-    name: "GPT Image 1",
-    id: "openai/gpt-image-1",
-    model: openai.image("gpt-image-1"),
+  krea: {
+    provider: "Fal AI",
+    name: "Krea",
+    id: "fal-ai/flux-1/krea",
+    model: "fal-ai/flux-1/krea",
     cost: {
-      in: 10,
-      out: 40,
-      other: 0,
+      in: 0,
+      out: 0,
+      other: 0.03,
+    },
+  },
+  "imagen4-ultra": {
+    provider: "Fal AI",
+    name: "Imagen 4 Ultra",
+    id: "fal-ai/imagen4/preview/ultra",
+    model: "fal-ai/imagen4/preview/ultra",
+    cost: {
+      in: 0,
+      out: 0,
+      other: 0.06,
     },
   },
 } as const satisfies Record<string, ImageGenerationModel>;
@@ -429,5 +439,4 @@ export const modelPresets = {
   transcription: transcriptionModels["whisper-1"],
   search: languageModels["sonar"],
   embedding: embeddingModels["text-embedding-3-small"],
-  imageGeneration: imageGenerationModels["gpt-image-1"],
 };
