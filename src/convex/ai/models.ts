@@ -3,6 +3,7 @@ import { openrouter } from "@openrouter/ai-sdk-provider";
 import type { OpenRouterProviderOptions } from "@openrouter/ai-sdk-provider";
 import type {
   EmbeddingModel as EmbeddingModelV2,
+  ImageModel as ImageGenerationModelV2,
   LanguageModel as LanguageModelV2,
   TranscriptionModel as TranscriptionModelV2,
 } from "ai";
@@ -43,6 +44,24 @@ export interface TranscriptionModel extends Model {
 export interface EmbeddingModel extends Model {
   model: EmbeddingModelV2<string>;
 }
+
+export interface ImageGenerationModel extends Model {
+  model: ImageGenerationModelV2;
+}
+
+export const imageGenerationModels = {
+  "gpt-image-1": {
+    provider: "OpenAI",
+    name: "GPT Image 1",
+    id: "openai/gpt-image-1",
+    model: openai.image("gpt-image-1"),
+    cost: {
+      in: 10,
+      out: 40,
+      other: 0,
+    },
+  },
+} as const satisfies Record<string, ImageGenerationModel>;
 
 export const transcriptionModels = {
   /*
@@ -194,6 +213,28 @@ export const languageModels = {
     cost: {
       in: 1.25,
       out: 10,
+      other: 0,
+    },
+  },
+  "gpt-5-mini": {
+    provider: "OpenAI",
+    name: "GPT-5 Mini",
+    id: "openai/gpt-5-mini",
+    model: openai("gpt-5-mini"),
+    cost: {
+      in: 0.25,
+      out: 2,
+      other: 0,
+    },
+  },
+  "gpt-5-nano": {
+    provider: "OpenAI",
+    name: "GPT-5 Nano",
+    id: "openai/gpt-5-nano",
+    model: openai("gpt-5-nano"),
+    cost: {
+      in: 0.05,
+      out: 0.4,
       other: 0,
     },
   },
@@ -388,4 +429,5 @@ export const modelPresets = {
   transcription: transcriptionModels["whisper-1"],
   search: languageModels["sonar"],
   embedding: embeddingModels["text-embedding-3-small"],
+  imageGeneration: imageGenerationModels["gpt-image-1"],
 };

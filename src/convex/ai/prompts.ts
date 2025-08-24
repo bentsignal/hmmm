@@ -173,3 +173,83 @@ Below are some general guidelines to follow for your response:
 typescript unless explicitly asked to by the user to use javascript.
 
 `;
+
+export const imageGenerationRouterPrompt = `
+
+This tool is used to generate images. You have the option to route the request
+to one of two models: 
+
+1.  Model A: Artistic Image Generator
+2.  Model B: Utilitarian Image Generator
+
+**Model A: Artistic Image Generator**
+*   **Strengths:** Creates highly aesthetic, beautiful, and visually striking images. Excellent for creative, imaginative, or abstract concepts.
+*   **Weaknesses:** Extremely poor at generating legible custom text within images. Should NOT be used if the request explicitly mentions the use of custom text, words, labels, or legibility. If the request mentions the use of custom text, words, labels, or legibility, you should use Model B.
+
+**Model B: Utilitarian Image Generator**
+*   **Strengths:** Highly accurate at generating images that precisely match detailed instructions. Excellent at rendering legible text, words, and labels within images. Good for functional graphics, diagrams, or images where textual clarity is paramount.
+*   **Weaknesses:** While accurate, the aesthetic quality of the generated images may not be as high as Model A.
+
+**Instructions:**
+1.  Carefully read the user's image generation request.
+2.  **Prioritize Model B if:**
+    *   The request explicitly mentions text, words, labels, signs, fonts, or any form of written content an image should contain.
+    *   The request implies a need for high fidelity to specific details, clear communication, or an objective representation where precision outweighs artistic interpretation (e.g., diagrams, product shots, instructional images).
+3.  **Prioritize Model A if:**
+    *   The request emphasizes artistic style, beauty, creativity, abstract concepts, mood, atmosphere, or visual effects.
+    *   The request does not mention or imply any need for text or highly precise functional elements.
+    *   The user explicitly asks for an "artistic," "beautiful," "stunning," or "creative" image.
+
+**Your output should be ONLY the name of the chosen model (e.g., "Model A" or "Model B"). Do not include any other text or explanation.**
+
+**Example User Requests and Expected Outputs:**
+
+*   **User:** "Generate an image of a serene forest with a mystical glow."
+*   **Output:** Model A
+
+*   **User:** "Create a minimalist logo for a coffee shop named 'The Daily Grind' with the text clearly visible."
+*   **Output:** Model B
+
+*   **User:** "I need a vibrant painting of a dragon flying over a mountain range."
+*   **Output:** Model A
+
+*   **User:** "Design a mock-up of a book cover for 'Eco-Friendly Living' with that title prominently displayed."
+*   **Output:** Model B
+
+*   **User:** "Generate abstract art representing digital transformation, no text needed."
+*   **Output:** Model A
+
+*   **User:** "Show me a flow chart for a customer onboarding process, with each step labeled."
+*   **Output:** Model B
+
+*   **User:** "Create an ethereal landscape with bioluminescent flora."
+*   **Output:** Model A
+
+*   **User:** "Design a poster for a 'Community Bake Sale' with the date and time: Saturday, Nov 10th, 9 AM - 2 PM, all clearly readable."
+*   **Output:** Model B
+
+*   **User:** "I want a cyberpunk city skyline at dusk, very atmospheric."
+*   **Output:** Model A
+
+*   **User:** "Generate an infographic explaining the 'Rule of Thirds' in photography, with text labels for each section."
+*   **Output:** Model B
+
+*   **User:** "Show me a whimsical illustration of a cat playing a piano, in a storybook style."
+*   **Output:** Model A
+
+*   **User:** "Produce a warning sign that says 'DANGER: High Voltage' in bold, red letters."
+*   **Output:** Model B
+
+*   **User:** "Create a surreal image of melting clocks in a desert, inspired by Dalí."
+*   **Output:** Model A
+
+*   **User:** "I need a graph showing quarterly sales revenue, with axis labels and clear numbers."
+*   **Output:** Model B
+
+*   **User:** "Generate a highly stylized portrait of a knight, with dynamic lighting."
+*   **Output:** Model A
+
+*   **User:** "Design a business card template for 'Aura Tech Solutions' with contact information listed."
+*   **Output:** Model B
+
+`;

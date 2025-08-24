@@ -2,6 +2,7 @@ import { Info } from "lucide-react";
 import { MyUIMessage } from "../types/message-types";
 import {
   extractFilesFromMessage,
+  extractImageFromMessage,
   extractSourcesFromMessage,
   isErrorMessage,
   isNoticeMessage,
@@ -9,6 +10,7 @@ import {
 import { CopyButton } from "./copy-button";
 import ErrorMessage from "./error-message";
 import { MessageFiles } from "./message-files";
+import MessageImage from "./message-image";
 import { MessageSources } from "./message-sources";
 import MessageStatus from "./message-status";
 import NoticeMessage from "./notice-message";
@@ -57,11 +59,14 @@ export default function ResponseMessage({
   // files analyzed during response generation
   const files = extractFilesFromMessage(message);
 
+  const imageId = extractImageFromMessage(message);
+
   return (
     <div className="flex w-full flex-col items-start gap-3">
       <MessageStatus message={message} isActive={isActive} />
       <MessageFiles files={files} />
       <MessageSources threadId={threadId} sources={sources} />
+      <MessageImage imageId={imageId} />
       <div className="relative flex w-full max-w-full flex-col gap-2">
         <Markdown className="prose dark:prose-invert relative w-full max-w-full">
           {animatedText}

@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { Doc } from "@/convex/_generated/dataModel";
 import { Source } from "@/convex/ai/tools/search";
 import {
   MyUIMessage,
@@ -58,6 +59,10 @@ export function getStatusLabel(parts: MyUIMessagePart[]) {
       return "Generating code";
     case "tool-positionHolder":
       return "Searching for information";
+    case "tool-imageGeneration":
+      return "Generating image";
+    case "tool-imageGenerationInit":
+      return "Generating image";
     default:
       return "Reasoning";
   }
@@ -105,6 +110,16 @@ export function extractFilesFromMessage(message: MyUIMessage) {
     }
   });
   return collected;
+}
+
+export function extractImageFromMessage(message: MyUIMessage) {
+  let imageId: Doc<"generatedImages">["_id"] | null = null;
+  message.parts.forEach((part) => {
+    if (part.type === "tool-imageGenerationInit" && part.output) {
+      imageId = part.output.slot;
+    }
+  });
+  return imageId;
 }
 
 export const responseHasNoContent = (message: MyUIMessage) => {

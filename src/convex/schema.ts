@@ -62,4 +62,9 @@ export default defineSchema({
   suggestions: defineTable({
     prompt: v.string(),
   }),
+  generatedImages: defineTable({
+    userId: v.optional(v.string()),
+    threadId: v.optional(v.string()),
+    file: v.optional(v.id("files")),
+  }).index("by_thread_id", ["threadId"]),
 });

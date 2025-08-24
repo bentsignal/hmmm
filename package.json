@@ -28,6 +28,7 @@
     "@convex-dev/react-query": "0.0.0-alpha.11",
     "@convex-dev/resend": "^0.1.7",
     "@convex-dev/sharded-counter": "^0.1.8",
+    "@fal-ai/client": "^1.6.2",
     "@openrouter/ai-sdk-provider": "1.1.2",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-context-menu": "^2.2.15",

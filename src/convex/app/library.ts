@@ -1,11 +1,12 @@
 import { TableAggregate } from "@convex-dev/aggregate";
 import {
+  CustomCtx,
   customCtx,
   customMutation,
 } from "convex-helpers/server/customFunctions";
 import { Triggers } from "convex-helpers/server/triggers";
 import { paginationOptsValidator, UserIdentity } from "convex/server";
-import { ConvexError, v } from "convex/values";
+import { ConvexError, Infer, v } from "convex/values";
 import { internalQuery } from "@/convex/_generated/server";
 import {
   apiMutation,
@@ -16,7 +17,12 @@ import {
 } from "@/convex/convex_helpers";
 import { components, internal } from "../_generated/api";
 import { DataModel, Doc } from "../_generated/dataModel";
-import { mutation, MutationCtx, QueryCtx } from "../_generated/server";
+import {
+  internalMutation,
+  mutation,
+  MutationCtx,
+  QueryCtx,
+} from "../_generated/server";
 import { limiter } from "../limiter";
 import { getUserPlanHelper } from "../user/subscription";
 import { storageLimits } from "@/features/library/config";
@@ -61,6 +67,11 @@ const authedStorageTriggerMutation = customMutation(
     const wrappedCtx = triggers.wrapDB(ctx);
     return { ...wrappedCtx, user };
   }),
+);
+
+const internalStorageTriggerMutation = customMutation(
+  internalMutation,
+  customCtx(triggers.wrapDB),
 );
 
 export const getStorageHelper = async (
@@ -133,29 +144,55 @@ export const getPublicFile = (file: Doc<"files">): LibraryFile => {
   };
 };
 
+const vFileMetadata = v.object({
+  key: v.string(),
+  name: v.string(),
+  type: v.string(),
+  size: v.number(),
+});
+
+const storeFileMetadata = async (
+  ctx: CustomCtx<
+    typeof apiStorageTriggerMutation | typeof internalStorageTriggerMutation
+  >,
+  userId: string,
+  file: Infer<typeof vFileMetadata>,
+) => {
+  return await ctx.db.insert("files", {
+    userId,
+    fileName: file.name,
+    fileType: file.type,
+    key: file.key,
+    size: file.size,
+  });
+};
+
 /**
  * Store file metadata in convex after the files have
  * been uploaded to uploadthing storage.
  */
 export const uploadFileMetadata = apiStorageTriggerMutation({
   args: {
-    file: v.object({
-      key: v.string(),
-      name: v.string(),
-      type: v.string(),
-      size: v.number(),
-    }),
+    file: vFileMetadata,
     userId: v.string(),
   },
   handler: async (ctx, args) => {
     const { file, userId } = args;
-    await ctx.db.insert("files", {
-      userId,
-      fileName: file.name,
-      fileType: file.type,
-      key: file.key,
-      size: file.size,
-    });
+    return await storeFileMetadata(ctx, userId, file);
+  },
+});
+
+/**
+ * Store files after image generation.
+ */
+export const uploadFileMetadataInternal = internalStorageTriggerMutation({
+  args: {
+    file: vFileMetadata,
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { file, userId } = args;
+    return await storeFileMetadata(ctx, userId, file);
   },
 });
 
