@@ -88,7 +88,9 @@ export const downloadImage = async (url: string) => {
 
 export const uploadImage = async (image: Uint8Array, fileName: string) => {
   // upload image to uploadthing
-  const file = new UTFile([image], fileName, { type: "image/png" });
+  // Create a Blob first to ensure compatibility with BlobPart
+  const blob = new Blob([image], { type: "image/png" });
+  const file = new UTFile([blob], fileName, { type: "image/png" });
   const uploadedFile = await utapi.uploadFiles(file);
   if (uploadedFile.error) {
     throw new Error(
