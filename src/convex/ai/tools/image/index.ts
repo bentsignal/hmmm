@@ -1,6 +1,7 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 import { internal } from "@/convex/_generated/api";
+import { PlanTier } from "@/convex/user/subscription";
 import { zAspectRatio } from "./types";
 
 type InitImageResult = {
@@ -63,6 +64,16 @@ export const generateImage = createTool<tGenerateImage, GenerateImageResult>({
       throw new Error("Thread ID is required");
     }
 
+    // only premium users can generate images
+    const plan = await ctx.runQuery(internal.user.subscription.getPlanTier, {
+      userId: ctx.userId,
+    });
+    if (plan < PlanTier.Premium) {
+      return {
+        key: "You must be a premium or ultra user to generate images.",
+      };
+    }
+
     // jump to node runtime to generate the image.
     const result = await ctx.runAction(
       internal.ai.tools.image.actions.generate,
@@ -112,6 +123,16 @@ export const editImage = createTool<tEditImage, GenerateImageResult>({
 
     if (!ctx.threadId || !ctx.userId) {
       throw new Error("Thread ID is required");
+    }
+
+    // only premium users can generate images
+    const plan = await ctx.runQuery(internal.user.subscription.getPlanTier, {
+      userId: ctx.userId,
+    });
+    if (plan < PlanTier.Premium) {
+      return {
+        key: "You must be a premium or ultra user to generate images.",
+      };
     }
 
     const files = await ctx.runQuery(internal.app.library.getFilesByKeys, {

@@ -2,6 +2,7 @@
 
 import crypto from "node:crypto";
 import { v } from "convex/values";
+import { internal } from "@/convex/_generated/api";
 import { internalAction } from "@/convex/_generated/server";
 import { falImageGenerationModels } from "@/convex/ai/models";
 import {
@@ -31,12 +32,9 @@ export const generate = internalAction({
     const { prompt, userId, threadId, aspectRatio } = args;
 
     // generate image
+    const model = falImageGenerationModels["fal-ai/gemini-25-flash-image"];
     const generation = await tryCatch(
-      generateImageFalAI(
-        prompt,
-        aspectRatio,
-        falImageGenerationModels["fal-ai/gemini-25-flash-image"],
-      ),
+      generateImageFalAI(prompt, aspectRatio, model),
     );
     if (generation.error) {
       console.error(generation.error);
@@ -68,6 +66,16 @@ export const generate = internalAction({
       };
     }
 
+    // log usage
+    if (userId) {
+      const cost = model.cost.other;
+      await ctx.runMutation(internal.user.usage.log, {
+        userId: userId,
+        type: "tool_call",
+        cost: cost,
+      });
+    }
+
     return {
       success: true,
       value: save.data,
@@ -86,13 +94,8 @@ export const edit = internalAction({
     const { prompt, urls, userId, threadId } = args;
 
     // edit image
-    const editResult = await tryCatch(
-      editImageFalAI(
-        prompt,
-        urls,
-        falImageGenerationModels["fal-ai/gemini-25-flash-image/edit"],
-      ),
-    );
+    const model = falImageGenerationModels["fal-ai/gemini-25-flash-image/edit"];
+    const editResult = await tryCatch(editImageFalAI(prompt, urls, model));
     if (editResult.error) {
       console.error(editResult.error);
       return {
@@ -121,6 +124,16 @@ export const edit = internalAction({
         success: false,
         value: "Ran into an issue while saving the image.",
       };
+    }
+
+    // log usage
+    if (userId) {
+      const cost = model.cost.other;
+      await ctx.runMutation(internal.user.usage.log, {
+        userId: userId,
+        type: "tool_call",
+        cost: cost,
+      });
     }
 
     return {
