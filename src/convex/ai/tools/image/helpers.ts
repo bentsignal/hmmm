@@ -88,10 +88,10 @@ export const downloadImage = async (url: string) => {
 
 export const uploadImage = async (image: Uint8Array, fileName: string) => {
   // upload image to uploadthing
-  const buffer = new Uint8Array(
-    image.buffer.slice(image.byteOffset, image.byteOffset + image.byteLength),
-  );
-  const blob = new Blob([buffer], { type: "image/png" });
+  const arrayBuffer = new ArrayBuffer(image.length);
+  const view = new Uint8Array(arrayBuffer);
+  view.set(image);
+  const blob = new Blob([view], { type: "image/png" });
   const file = new UTFile([blob], fileName, { type: "image/png" });
   const uploadedFile = await utapi.uploadFiles(file);
   if (uploadedFile.error) {
