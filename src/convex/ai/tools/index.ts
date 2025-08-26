@@ -1,7 +1,7 @@
 import { ToolSet } from "ai";
 import { codeGeneration } from "./code_generation";
 import { dateTime } from "./date_time";
-import { analyzeFiles } from "./file";
+import { analyzeFiles } from "./files";
 import { editImage, generateImage, initImage } from "./image";
 import { currentEvents, positionHolder } from "./search";
 import { weather } from "./weather";
