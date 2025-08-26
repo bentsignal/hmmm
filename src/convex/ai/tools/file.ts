@@ -7,6 +7,7 @@ import { internal } from "@/convex/_generated/api";
 import { getFileUrl } from "@/convex/app/library";
 import { calculateModelCost } from "@/convex/user/usage";
 import { languageModels } from "../models";
+import { tryCatch } from "@/lib/utils";
 import { getFileType } from "@/features/library/lib";
 
 const inputSchema = z.object({
@@ -41,10 +42,25 @@ export const analyzeFiles = createTool<FileAnalysisInput, FileAnalysisOutput>({
       };
     }
 
-    const files = await ctx.runQuery(internal.app.library.getFilesByKeys, {
-      keys: keys,
-      userId: ctx.userId,
-    });
+    const files = await tryCatch(
+      ctx.runQuery(internal.app.library.getFilesByKeys, {
+        keys: keys,
+        userId: ctx.userId,
+      }),
+    );
+
+    if (files.error) {
+      console.error(files.error);
+      return {
+        response: "Ran into an issue while retrieving files",
+      };
+    }
+
+    if (files.data.length === 0) {
+      return {
+        response: "No files found",
+      };
+    }
 
     const messages: UserModelMessage[] = [
       {
@@ -54,7 +70,7 @@ export const analyzeFiles = createTool<FileAnalysisInput, FileAnalysisOutput>({
             type: "text",
             text: prompt,
           },
-          ...files.map((file) => {
+          ...files.data.map((file) => {
             const fileType =
               getFileType(file.mimeType) === "image" ? "image" : "file";
             const url = getFileUrl(file.key);
@@ -73,17 +89,26 @@ export const analyzeFiles = createTool<FileAnalysisInput, FileAnalysisOutput>({
       },
     ];
 
-    const result = await generateText({
-      model: languageModels["gemini-2.5-flash"].model,
-      messages: messages,
-    });
+    const analysis = await tryCatch(
+      generateText({
+        model: languageModels["gemini-2.5-flash"].model,
+        messages: messages,
+      }),
+    );
+
+    if (analysis.error) {
+      console.error(analysis.error);
+      return {
+        response: "Ran into an issue while analyzing the files",
+      };
+    }
 
     // log usage
     if (ctx.userId) {
       const cost = calculateModelCost(
         languageModels["gemini-2.5-flash"],
-        result.usage,
-        result.providerMetadata,
+        analysis.data.usage,
+        analysis.data.providerMetadata,
       );
       await ctx.runMutation(internal.user.usage.log, {
         userId: ctx.userId,
@@ -93,7 +118,7 @@ export const analyzeFiles = createTool<FileAnalysisInput, FileAnalysisOutput>({
     }
 
     return {
-      response: result.text,
+      response: analysis.data.text,
     };
   },
 });
