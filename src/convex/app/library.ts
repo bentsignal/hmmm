@@ -378,16 +378,39 @@ export const getFilesByName = internalQuery({
   },
 });
 
+const getFileByKeyHelper = async (ctx: QueryCtx, key: string) => {
+  const file = await ctx.db
+    .query("files")
+    .withIndex("by_key", (q) => q.eq("key", key))
+    .first();
+  return file;
+};
+
+export const getFileByKeyInternal = internalQuery({
+  args: {
+    key: v.string(),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { key, userId } = args;
+    const file = await getFileByKeyHelper(ctx, key);
+    if (!file) {
+      return null;
+    }
+    if (file.userId !== userId) {
+      throw new ConvexError("Unauthorized");
+    }
+    return getPublicFile(file);
+  },
+});
+
 export const getFileByKey = authedQuery({
   args: {
     key: v.string(),
   },
   handler: async (ctx, args) => {
     const { key } = args;
-    const file = await ctx.db
-      .query("files")
-      .withIndex("by_key", (q) => q.eq("key", key))
-      .first();
+    const file = await getFileByKeyHelper(ctx, key);
     if (!file) {
       return null;
     }
@@ -395,5 +418,27 @@ export const getFileByKey = authedQuery({
       throw new ConvexError("Unauthorized");
     }
     return getPublicFile(file);
+  },
+});
+
+export const getFilesByKeys = internalQuery({
+  args: {
+    keys: v.array(v.string()),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { keys, userId } = args;
+    const files = [];
+    for (const key of keys) {
+      const file = await getFileByKeyHelper(ctx, key);
+      if (!file) {
+        continue;
+      }
+      if (file.userId !== userId) {
+        throw new ConvexError("Unauthorized");
+      }
+      files.push(file);
+    }
+    return files.map((file) => getPublicFile(file));
   },
 });

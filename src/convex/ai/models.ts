@@ -45,15 +45,25 @@ export interface EmbeddingModel extends Model {
 }
 
 export interface ImageGenerationModel extends Model {
-  model: "fal-ai/imagen4/preview/ultra" | "fal-ai/flux-1/krea";
+  type: "text-to-image" | "image-to-image";
 }
 
-export const imageGenerationModels = {
+export interface FalImageGenerationModel extends ImageGenerationModel {
+  model:
+    | "fal-ai/imagen4/preview/ultra"
+    | "fal-ai/flux-1/krea"
+    | "fal-ai/qwen-image-edit"
+    | "fal-ai/gemini-25-flash-image/edit"
+    | "fal-ai/gemini-25-flash-image";
+}
+
+export const falImageGenerationModels = {
   krea: {
     provider: "Fal AI",
     name: "Krea",
     id: "fal-ai/flux-1/krea",
     model: "fal-ai/flux-1/krea",
+    type: "text-to-image",
     cost: {
       in: 0,
       out: 0,
@@ -65,13 +75,50 @@ export const imageGenerationModels = {
     name: "Imagen 4 Ultra",
     id: "fal-ai/imagen4/preview/ultra",
     model: "fal-ai/imagen4/preview/ultra",
+    type: "text-to-image",
     cost: {
       in: 0,
       out: 0,
       other: 0.06,
     },
   },
-} as const satisfies Record<string, ImageGenerationModel>;
+  "fal-ai/qwen-image-edit": {
+    provider: "Fal AI",
+    name: "Qwen Image to Image",
+    id: "fal-ai/qwen-image-edit",
+    model: "fal-ai/qwen-image-edit",
+    type: "image-to-image",
+    cost: {
+      in: 0,
+      out: 0,
+      other: 0.03,
+    },
+  },
+  "fal-ai/gemini-25-flash-image/edit": {
+    provider: "Fal AI",
+    name: "Gemini 2.5 Flash Image Edit",
+    id: "fal-ai/gemini-25-flash-image/edit",
+    model: "fal-ai/gemini-25-flash-image/edit",
+    type: "image-to-image",
+    cost: {
+      in: 0,
+      out: 0,
+      other: 0.04,
+    },
+  },
+  "fal-ai/gemini-25-flash-image": {
+    provider: "Fal AI",
+    name: "Gemini 2.5 Flash Image",
+    id: "fal-ai/gemini-25-flash-image",
+    model: "fal-ai/gemini-25-flash-image",
+    type: "text-to-image",
+    cost: {
+      in: 0,
+      out: 0,
+      other: 0.04,
+    },
+  },
+} as const satisfies Record<string, FalImageGenerationModel>;
 
 export const transcriptionModels = {
   /*

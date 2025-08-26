@@ -139,15 +139,17 @@ const PureLibraryListFile = ({ file, mode, selected }: LibraryFileProps) => {
           </Tooltip>
         </div>
       )}
-      <div className="relative flex h-10 w-10 items-center justify-center">
+      <div className="relative flex h-10 items-center justify-center">
         {fileType === "image" ? (
           <img
             src={file.url}
             alt={file.fileName ?? "unnamed file"}
-            className="h-full w-full rounded-md object-cover"
+            className="h-full w-20 rounded-md object-cover"
           />
         ) : (
-          <LibraryFileIcon fileType={fileType} className="h-5 w-5" />
+          <div className="flex h-full w-10 items-center justify-center">
+            <LibraryFileIcon fileType={fileType} className="h-5 w-5" />
+          </div>
         )}
       </div>
       <div className="flex flex-col gap-1">

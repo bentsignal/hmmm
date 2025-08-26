@@ -17,6 +17,7 @@ import type * as ai_tools_code_generation from "../ai/tools/code_generation.js";
 import type * as ai_tools_date_time from "../ai/tools/date_time.js";
 import type * as ai_tools_file from "../ai/tools/file.js";
 import type * as ai_tools_image_actions from "../ai/tools/image/actions.js";
+import type * as ai_tools_image_helpers from "../ai/tools/image/helpers.js";
 import type * as ai_tools_image_index from "../ai/tools/image/index.js";
 import type * as ai_tools_image_types from "../ai/tools/image/types.js";
 import type * as ai_tools_index from "../ai/tools/index.js";
@@ -67,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   "ai/tools/date_time": typeof ai_tools_date_time;
   "ai/tools/file": typeof ai_tools_file;
   "ai/tools/image/actions": typeof ai_tools_image_actions;
+  "ai/tools/image/helpers": typeof ai_tools_image_helpers;
   "ai/tools/image/index": typeof ai_tools_image_index;
   "ai/tools/image/types": typeof ai_tools_image_types;
   "ai/tools/index": typeof ai_tools_index;

@@ -1,17 +1,16 @@
 "use node";
 
 import crypto from "node:crypto";
-import { utapi } from "@/server/uploadthing";
-import { fal } from "@fal-ai/client";
-import { UTFile } from "uploadthing/server";
 import { v } from "convex/values";
-import { internal } from "@/convex/_generated/api";
 import { internalAction } from "@/convex/_generated/server";
+import { falImageGenerationModels } from "@/convex/ai/models";
 import {
-  ImageGenerationModel,
-  imageGenerationModels,
-} from "@/convex/ai/models";
-import { aspectRatioMap, vAspectRatio, type AspectRatio } from "./types";
+  downloadImage,
+  editImageFalAI,
+  generateImageFalAI,
+  saveImage,
+} from "./helpers";
+import { vAspectRatio } from "./types";
 import { tryCatch } from "@/lib/utils";
 
 globalThis.crypto = crypto as unknown as Crypto;
@@ -32,119 +31,101 @@ export const generate = internalAction({
     const { prompt, userId, threadId, aspectRatio } = args;
 
     // generate image
-    const result = await generateFalAIImage(
-      prompt,
-      aspectRatio,
-      imageGenerationModels["imagen4-ultra"],
+    const generation = await tryCatch(
+      generateImageFalAI(
+        prompt,
+        aspectRatio,
+        falImageGenerationModels["fal-ai/gemini-25-flash-image"],
+      ),
     );
-    if (result.error) {
+    if (generation.error) {
+      console.error(generation.error);
       return {
         success: false,
-        value: result.error,
-      };
-    }
-    if (!result.image) {
-      return {
-        success: false,
-        value: "No image generated",
+        value: "Ran into an issue while generating the image.",
       };
     }
 
-    // upload image to uploadthing
-    let fileName = "";
-    if (userId) {
-      fileName += `${userId}-`;
-    }
-    if (threadId) {
-      fileName += `${threadId}-`;
-    }
-    fileName += "generated-image.png";
-    const file = new UTFile([result.image], fileName, { type: "image/png" });
-    const uploadedFile = await utapi.uploadFiles(file);
-    if (uploadedFile.error) {
+    // download image data from url
+    const download = await tryCatch(downloadImage(generation.data));
+    if (download.error) {
+      console.error(download.error);
       return {
         success: false,
-        value: `Error uploading image to uploadthing: ${uploadedFile.error.message}`,
+        value: "Ran into an issue while downloading the image.",
       };
     }
 
-    // save file metadata to convex metadata table, as well as to image slot
-    // in thread when appropriate.
-    await ctx.runMutation(internal.app.library.uploadFileMetadataInternal, {
-      file: {
-        key: uploadedFile.data.key,
-        name: fileName,
-        type: "image/png",
-        size: result.image.length,
-      },
-      userId: userId ?? "no-user",
-    });
+    // save result to user's library
+    const save = await tryCatch(
+      saveImage(ctx, prompt, download.data, userId, threadId),
+    );
+    if (save.error) {
+      console.error(save.error);
+      return {
+        success: false,
+        value: "Ran into an issue while saving the image.",
+      };
+    }
 
     return {
       success: true,
-      value: uploadedFile.data.key,
+      value: save.data,
     };
   },
 });
 
-const downloadImage = async (url: string) => {
-  const download = await tryCatch(fetch(url));
-  if (download.error) {
-    return {
-      image: null,
-      error: `Error downloading image from Fal CDN: ${download.error.message}`,
-    };
-  }
-  const conversion = await tryCatch(download.data.arrayBuffer());
-  if (conversion.error) {
-    return {
-      image: null,
-      error: `Error converting image to uint8Array: ${conversion.error.message}`,
-    };
-  }
-  const uint8Array = new Uint8Array(conversion.data);
+export const edit = internalAction({
+  args: v.object({
+    prompt: v.string(),
+    urls: v.array(v.string()),
+    userId: v.optional(v.string()),
+    threadId: v.optional(v.string()),
+  }),
+  handler: async (ctx, args): Promise<GenerateImageOutput> => {
+    const { prompt, urls, userId, threadId } = args;
 
-  return {
-    image: uint8Array,
-    error: null,
-  };
-};
-
-const generateFalAIImage = async (
-  prompt: string,
-  aspectRatio: AspectRatio,
-  model: ImageGenerationModel,
-) => {
-  const { data: result, error: generationError } = await tryCatch(
-    fal.subscribe(model.model, {
-      input: {
+    // edit image
+    const editResult = await tryCatch(
+      editImageFalAI(
         prompt,
-        num_images: 1,
-        aspect_ratio: aspectRatioMap[aspectRatio],
-      },
-    }),
-  );
-  if (generationError) {
+        urls,
+        falImageGenerationModels["fal-ai/gemini-25-flash-image/edit"],
+      ),
+    );
+    if (editResult.error) {
+      console.error(editResult.error);
+      return {
+        success: false,
+        value: "Ran into an issue while editing the image.",
+      };
+    }
+
+    // download image data from url
+    const download = await tryCatch(downloadImage(editResult.data));
+    if (download.error) {
+      console.error(download.error);
+      return {
+        success: false,
+        value: "Ran into an issue while downloading the image.",
+      };
+    }
+
+    // save result to user's library
+    const save = await tryCatch(
+      saveImage(ctx, prompt, download.data, userId, threadId),
+    );
+    if (save.error) {
+      console.error(save.error);
+      return {
+        success: false,
+        value: "Ran into an issue while saving the image.",
+      };
+    }
+
     return {
-      image: null,
-      error: `Error generating image with Fal AI: ${generationError.message}`,
+      success: true,
+      value: save.data,
     };
-  }
-  if (!result) {
-    return {
-      image: null,
-      error: "No result from Fal AI",
-    };
-  }
-  const image = await downloadImage(result.data.images[0].url);
-  if (image.error) {
-    return {
-      image: null,
-      error: image.error,
-    };
-  }
-  return {
-    image: image.image,
-    error: null,
-  };
-};
+  },
+});

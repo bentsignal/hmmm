@@ -50,7 +50,7 @@ export default function MessageStatus({
               <Newspaper className="h-4 w-4" />
             ) : statusLabel === "Checking the weather" ? (
               <Sun className="h-4 w-4" />
-            ) : statusLabel === "Analyzing file" ? (
+            ) : statusLabel === "Analyzing files" ? (
               <File className="h-4 w-4" />
             ) : statusLabel === "Generating code" ? (
               <Code className="h-4 w-4" />

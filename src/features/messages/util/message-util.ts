@@ -8,7 +8,6 @@ import {
   SystemNoticeCode,
   SystemNoticeLabel,
 } from "../types/message-types";
-import { LibraryFile } from "@/features/library/types";
 
 export function extractTextFromChildren(children: ReactNode): string {
   if (typeof children === "string") {
@@ -52,8 +51,8 @@ export function getStatusLabel(parts: MyUIMessagePart[]) {
       return "Checking the weather";
     case "tool-currentEvents":
       return "Checking the news";
-    case "tool-fileAnalysis":
-      return "Analyzing file";
+    case "tool-analyzeFiles":
+      return "Analyzing files";
     case "tool-codeGeneration":
       return "Generating code";
     case "tool-positionHolder":
@@ -61,6 +60,8 @@ export function getStatusLabel(parts: MyUIMessagePart[]) {
     case "tool-initImage":
       return "Generating image";
     case "tool-generateImage":
+      return "Generating image";
+    case "tool-editImage":
       return "Generating image";
     default:
       return "Reasoning";
@@ -101,24 +102,16 @@ export function extractSourcesFromMessage(message: MyUIMessage) {
   return collected;
 }
 
-export function extractFilesFromMessage(message: MyUIMessage) {
-  const collected: Array<LibraryFile> = [];
-  message.parts.forEach((part) => {
-    if (part.type === "tool-fileAnalysis" && part.output) {
-      collected.push(...part.output.files);
-    }
-  });
-  return collected;
-}
-
 export function extractImageFromMessage(message: MyUIMessage) {
   if (message.parts.length === 0) return null;
   const lastPart = message.parts[message.parts.length - 1];
   if (lastPart.type === "tool-initImage") {
     return "in-progress";
   }
-  const key = message.parts.find((part) => part.type === "tool-generateImage")
-    ?.output?.key;
+  const key = message.parts.find(
+    (part) =>
+      part.type === "tool-generateImage" || part.type === "tool-editImage",
+  )?.output?.key;
   return key;
 }
 
@@ -128,7 +121,7 @@ export const responseHasNoContent = (message: MyUIMessage) => {
   if (reasoning.length > 0) return false;
   const sources = extractSourcesFromMessage(message);
   if (sources.length > 0) return false;
-  const files = extractFilesFromMessage(message);
-  if (files.length > 0) return false;
+  const image = extractImageFromMessage(message);
+  if (image) return false;
   return true;
 };

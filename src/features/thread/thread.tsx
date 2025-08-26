@@ -39,10 +39,7 @@ export default function Thread({ threadId }: { threadId: string }) {
       <ThreadTitleUpdater threadId={threadId} />
       <Abyss />
       <ScrollArea ref={scrollAreaRef} className="h-full w-full">
-        <div
-          className="mx-auto mb-8 flex h-full w-full max-w-4xl
-          flex-col gap-3 place-self-center px-8 pt-24 pb-32 sm:mb-0"
-        >
+        <div className="mx-auto mb-8 flex h-full w-full max-w-4xl flex-col gap-3 place-self-center px-8 pt-24 pb-32 sm:mb-0">
           <Messages
             threadId={threadId}
             triggerMessagesLoaded={() => setMessagesLoaded(true)}
@@ -54,10 +51,7 @@ export default function Thread({ threadId }: { threadId: string }) {
         </div>
       </ScrollArea>
       {!isAtBottom && (
-        <div
-          className="absolute right-0 bottom-36 z-10 flex w-full
-          items-center justify-center rounded-full p-0 sm:bottom-24"
-        >
+        <div className="absolute right-0 bottom-36 z-10 flex w-full items-center justify-center rounded-full p-0 sm:bottom-24">
           <Button
             onClick={() => scrollToBottom()}
             className="font-semibold shadow-lg"

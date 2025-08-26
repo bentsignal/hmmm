@@ -50,7 +50,10 @@ export default defineSchema({
     inputTokens: v.number(),
     outputTokens: v.number(),
     usageId: v.optional(v.id("usage")),
-  }).index("by_user_thread", ["userId", "threadId"]),
+    attachments: v.optional(v.array(v.id("files"))),
+  })
+    .index("by_user_thread", ["userId", "threadId"])
+    .index("by_message_id", ["messageId"]),
   usage: defineTable({
     userId: v.string(),
     type: v.union(

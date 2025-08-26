@@ -24,8 +24,6 @@ const Generated = ({ fileKey }: { fileKey: string }) => {
       : "skip",
   );
 
-  console.log(image);
-
   if (!image) return null;
 
   return (

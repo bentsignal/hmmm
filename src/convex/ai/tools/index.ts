@@ -1,8 +1,8 @@
 import { ToolSet } from "ai";
 import { codeGeneration } from "./code_generation";
 import { dateTime } from "./date_time";
-import { fileAnalysis } from "./file";
-import { generateImage, initImage } from "./image";
+import { analyzeFiles } from "./file";
+import { editImage, generateImage, initImage } from "./image";
 import { currentEvents, positionHolder } from "./search";
 import { weather } from "./weather";
 
@@ -11,8 +11,9 @@ export const tools = {
   currentEvents,
   weather,
   positionHolder,
-  fileAnalysis,
+  analyzeFiles,
   codeGeneration,
   generateImage,
   initImage,
+  editImage,
 } satisfies ToolSet;

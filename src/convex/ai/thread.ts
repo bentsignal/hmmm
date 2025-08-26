@@ -16,11 +16,13 @@ import { agent } from "@/convex/ai/agents";
 import { isAdmin } from "@/convex/user/account";
 import { modelPresets } from "../ai/models";
 import { titleGeneratorPrompt } from "../ai/prompts";
+import { getPublicFile } from "../app/library";
 import { authedMutation, authedQuery } from "../convex_helpers";
 import { messageSendRateLimit } from "../limiter";
 import { getUsageHelper } from "../user/usage";
 import { tryCatch } from "@/lib/utils";
 import { MAX_ATTACHMENTS_PER_MESSAGE } from "@/features/library/config";
+import { LibraryFile } from "@/features/library/types/library-types";
 import {
   SystemErrorCode,
   SystemNoticeCode,
@@ -165,9 +167,12 @@ export const saveUserMessage = async (
   ctx: CustomCtx<typeof authedMutation>,
   threadId: string,
   prompt: string,
-  attachmentKeys?: string[],
+  attachments?: {
+    key: string;
+    name: string;
+    mimeType: string;
+  }[],
 ) => {
-  const keys = attachmentKeys || [];
   const { messages } = await agent.saveMessages(ctx, {
     threadId: threadId,
     messages: [
@@ -175,17 +180,40 @@ export const saveUserMessage = async (
         role: "user",
         content: prompt,
       },
-      ...keys.map((key) => ({
+      ...(attachments?.map((attachment) => ({
         role: "system" as const,
-        content: `User has attached a file with the following file key: ${key}`,
-      })),
+        content: `User has attached a file - file name: <${attachment.name}>, mimeType: <${attachment.mimeType}>, file key: <${attachment.key}>`,
+      })) ?? []),
     ],
   });
-  const lastMessageId = messages[messages.length - 1]._id;
-  if (!lastMessageId) {
+  if (messages.length === 0) {
     throw new ConvexError("Failed to save message");
   }
-  return { lastMessageId };
+  const results = await Promise.all(
+    attachments?.map((attachment) =>
+      ctx.db
+        .query("files")
+        .withIndex("by_key", (q) => q.eq("key", attachment.key))
+        .first(),
+    ) ?? [],
+  );
+  const files = results.filter((file) => file !== null);
+  const lastPromptMessage = messages.find(
+    (message) => message.message?.content === prompt,
+  );
+  if (!lastPromptMessage) {
+    throw new ConvexError("Failed to save message");
+  }
+  await ctx.db.insert("messageMetadata", {
+    messageId: lastPromptMessage._id,
+    threadId: threadId,
+    userId: ctx.user.subject,
+    model: "null",
+    inputTokens: 0,
+    outputTokens: 0,
+    attachments: files.map((file) => file._id),
+  });
+  return { lastMessageId: messages[messages.length - 1]._id };
 };
 
 /**
@@ -264,14 +292,20 @@ export const rename = authedMutation({
   },
 });
 
+const vAttachment = v.object({
+  key: v.string(),
+  name: v.string(),
+  mimeType: v.string(),
+});
+
 export const create = authedMutation({
   args: {
     prompt: v.string(),
-    attachmentKeys: v.optional(v.array(v.string())),
+    attachments: v.optional(v.array(vAttachment)),
   },
   handler: async (ctx, args) => {
-    const { prompt, attachmentKeys } = args;
-    const numAttachments = attachmentKeys?.length || 0;
+    const { prompt, attachments } = args;
+    const numAttachments = attachments?.length || 0;
     // auth, usage, input val, rate limit
     await validateMessage(ctx, prompt, numAttachments);
     // create new thread in agent component table, as well as
@@ -282,7 +316,7 @@ export const create = authedMutation({
     });
     // create metadata doc for thread and store first message
     const [{ lastMessageId }] = await Promise.all([
-      saveUserMessage(ctx, threadId, prompt, attachmentKeys),
+      saveUserMessage(ctx, threadId, prompt, attachments),
       ctx.db.insert("threadMetadata", {
         userId: ctx.user.subject,
         title: "New Chat",
@@ -321,11 +355,11 @@ export const sendMessage = authedMutation({
   args: {
     threadId: v.string(),
     prompt: v.string(),
-    attachmentKeys: v.optional(v.array(v.string())),
+    attachments: v.optional(v.array(vAttachment)),
   },
   handler: async (ctx, args) => {
-    const { threadId, prompt, attachmentKeys } = args;
-    const numAttachments = attachmentKeys?.length || 0;
+    const { threadId, prompt, attachments } = args;
+    const numAttachments = attachments?.length || 0;
     await validateMessage(ctx, prompt, numAttachments);
     // get thread metadata
     const metadata = await authorizeAccess(ctx, threadId);
@@ -337,7 +371,7 @@ export const sendMessage = authedMutation({
     }
     // save new message to thread, update thread state, clear previous follow up questions
     const [{ lastMessageId }] = await Promise.all([
-      saveUserMessage(ctx, threadId, prompt, attachmentKeys),
+      saveUserMessage(ctx, threadId, prompt, attachments),
       ctx.db.patch(metadata._id, {
         state: "waiting",
         updatedAt: Date.now(),
@@ -542,13 +576,57 @@ export const getThreadMessages = authedQuery({
         paginationOpts,
       }),
     ]);
+    const dedupedMessageIds = paginated.page
+      .filter(
+        (message, index, self) =>
+          index === self.findIndex((t) => t._id === message._id),
+      )
+      .map((message) => message._id);
+
+    const messageAttachments = await Promise.all(
+      dedupedMessageIds.map(async (messageId) => {
+        const messageMetadata = await ctx.db
+          .query("messageMetadata")
+          .withIndex("by_message_id", (q) => q.eq("messageId", messageId))
+          .first();
+        if (!messageMetadata || !messageMetadata.attachments) {
+          return {
+            id: messageId,
+            attachments: null,
+          };
+        }
+        const files = await Promise.all(
+          messageMetadata.attachments.map((attachment) =>
+            ctx.db.get(attachment),
+          ),
+        );
+        const publicFiles = files
+          .filter((file) => file?.userId === ctx.user.subject)
+          .filter((file) => file !== null)
+          .map((file) => getPublicFile(file));
+        return {
+          id: messageId,
+          attachments: publicFiles,
+        };
+      }),
+    );
+    const attachmentMap = new Map<string, LibraryFile[]>();
+    messageAttachments.forEach((message) => {
+      if (message.attachments) {
+        attachmentMap.set(message.id, message.attachments);
+      }
+    });
     return {
       ...paginated,
       page: paginated.page.map((message) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { userId, model, provider, usage, ...messageWithoutUserId } =
           message;
-        return messageWithoutUserId;
+        const attachments = attachmentMap.get(message._id);
+        return {
+          ...messageWithoutUserId,
+          attachments: attachments ?? [],
+        };
       }),
       streams,
     };

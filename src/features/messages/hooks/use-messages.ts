@@ -29,11 +29,29 @@ export default function useMessages({
     stream: streaming,
   });
 
-  const uiMessages: MyUIMessage[] = toUIMessages<
+  const rawUIMessages: MyUIMessage[] = toUIMessages<
     MyMetadata,
     MyDataParts,
     MyTools
   >(messages);
+
+  const uiMessages = rawUIMessages.map((message: MyUIMessage) => {
+    const nonUIMessage = messages.find((m) => m._id === message.id);
+    if (!nonUIMessage) {
+      return message;
+    }
+    const attachments = nonUIMessage.attachments;
+    if (attachments) {
+      return {
+        ...message,
+        metadata: {
+          ...message.metadata,
+          attachments: attachments,
+        },
+      } as const satisfies MyUIMessage;
+    }
+    return message;
+  });
 
   return {
     isAuthenticated,
