@@ -74,7 +74,7 @@ const MessageStatus = ({ message }: { message: MyUIMessage }) => {
         <Newspaper {...iconStyles} />
       ) : statusLabel === "Checking the weather" ? (
         <Sun {...iconStyles} />
-      ) : statusLabel === "Analyzing file" ? (
+      ) : statusLabel === "Analyzing files" ? (
         <File {...iconStyles} />
       ) : statusLabel === "Generating code" ? (
         <Code {...iconStyles} />
