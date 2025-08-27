@@ -208,9 +208,6 @@ export const saveUserMessage = async (
     messageId: lastPromptMessage._id,
     threadId: threadId,
     userId: ctx.user.subject,
-    model: "null",
-    inputTokens: 0,
-    outputTokens: 0,
     attachments: files.map((file) => file._id),
   });
   return { lastMessageId: messages[messages.length - 1]._id };
