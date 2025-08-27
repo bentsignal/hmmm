@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"bun run dev:next\" \"bun run dev:convex\"",
+    "dev": "concurrently \"pnpm run dev:next\" \"pnpm run dev:convex\"",
     "dev:next": "next dev --turbopack -H 0.0.0.0",
     "dev:convex": "convex dev",
     "count": "cloc ./src",
@@ -112,5 +112,5 @@
     "tw-animate-css": "^1.3.4",
     "typescript": "^5.8.3"
   },
-  "packageManager": "bun@1.2.20"
+  "packageManager": "pnpm@10.14.0"
 }
