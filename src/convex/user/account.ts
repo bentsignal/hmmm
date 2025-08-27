@@ -80,7 +80,7 @@ export const requestDelete = mutation({
         .collect(),
       ctx.db
         .query("messageMetadata")
-        .withIndex("by_user_thread", (q) => q.eq("userId", userId.subject))
+        .withIndex("by_user", (q) => q.eq("userId", userId.subject))
         .collect(),
       ctx.db
         .query("files")
