@@ -116,7 +116,7 @@ export default function Library() {
                   tab={activeTab}
                 />
               </div>
-              <div className="absolute right-0 bottom-0 left-0 flex w-full items-center justify-center">
+              <div className="pointer-events-none absolute right-0 bottom-0 left-0 flex w-full items-center justify-center">
                 <LibraryBulkToolbar />
               </div>
             </div>

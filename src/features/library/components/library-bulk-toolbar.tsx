@@ -22,7 +22,7 @@ export const LibraryBulkToolbar = () => {
   return (
     <div
       className={cn(
-        "bg-background my-4 flex items-center justify-center rounded-xl border p-2",
+        "bg-background pointer-events-auto my-4 flex items-center justify-center rounded-xl border p-2",
         disabled && "opacity-50",
       )}
     >
