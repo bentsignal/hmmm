@@ -1,4 +1,5 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Download, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { useLibraryStore } from "../store";
 import { Button } from "@/components/ui/button";
 import {
@@ -6,7 +7,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { cn, tryCatch } from "@/lib/utils";
+import { useDownloadFile } from "@/hooks/use-download-file";
 import useComposerStore from "@/features/composer/store";
 
 export const LibraryBulkToolbar = () => {
@@ -28,6 +30,7 @@ export const LibraryBulkToolbar = () => {
     >
       <AttachButton disabled={disabled} />
       <DeleteButton disabled={disabled} />
+      <DownloadButton disabled={disabled} />
     </div>
   );
 };
@@ -79,6 +82,33 @@ const DeleteButton = ({ disabled }: { disabled: boolean }) => {
         </Button>
       </TooltipTrigger>
       <TooltipContent>Delete selected files</TooltipContent>
+    </Tooltip>
+  );
+};
+
+const DownloadButton = ({ disabled }: { disabled: boolean }) => {
+  const { download } = useDownloadFile();
+  const selectedFiles = useLibraryStore((state) => state.selectedFiles);
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          disabled={disabled}
+          onClick={async () => {
+            const { error } = await tryCatch(
+              download(selectedFiles.map((file) => file.url)),
+            );
+            if (error) {
+              toast.error(error.message);
+            }
+          }}
+        >
+          <Download className="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>Download selected files</TooltipContent>
     </Tooltip>
   );
 };
