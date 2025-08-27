@@ -10,6 +10,12 @@ crons.daily(
   internal.ai.suggestions.generate,
 );
 
+crons.monthly(
+  "delete-old-suggestions",
+  { day: 1, hourUTC: 12, minuteUTC: 0 },
+  internal.ai.suggestions.cleanup,
+);
+
 crons.weekly(
   "send-newsletter",
   { dayOfWeek: "thursday", hourUTC: 18, minuteUTC: 0 },

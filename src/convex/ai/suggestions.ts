@@ -109,3 +109,25 @@ export const getTopWeekly = internalQuery({
       .slice(0, args.numResults ?? counts.length);
   },
 });
+
+/**
+ * Delete suggestions that are older than 1 month
+ */
+export const cleanup = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = new Date();
+    const oneMonthAgo = new Date(now);
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    const oneMonthAgoTime = oneMonthAgo.getTime();
+    const suggestionsToDelete = await ctx.db
+      .query("suggestions")
+      .withIndex("by_creation_time", (q) =>
+        q.lt("_creationTime", oneMonthAgoTime),
+      )
+      .collect();
+    await Promise.all(
+      suggestionsToDelete.map((suggestion) => ctx.db.delete(suggestion._id)),
+    );
+  },
+});
