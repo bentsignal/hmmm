@@ -1,7 +1,0 @@
----
-description:
-globs:
-alwaysApply: true
----
-
-This project is a web app providing users with an interface to chat with LLM's.

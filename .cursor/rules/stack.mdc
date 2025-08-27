@@ -8,11 +8,11 @@ alwaysApply: true
 
 ## Package Manager
 
-This project uses bun as a package manager. Always use `bun` to install, remove or update packages. Use `bunx` to execute commands.
+This project uses pnpm as a package manager. Always use `pnpm` to install, remove or update packages. Use `pnpx` to execute commands.
 
-ex: `bun add react@latest`
-ex: `bunx convex dev`
-ex: `bunx dlx shadcn@latest add accordion`
+ex: `pnpm add react@latest`
+ex: `pnpx convex dev`
+ex: `pnpm dlx shadcn@latest add accordion`
 
 ## Next
 
@@ -20,7 +20,7 @@ This project is built with Next JS 15 & React 19. **_Important_** The react comp
 
 ## Convex
 
-Paired with Next, the project also uses convex as a reactive backend. The convex backend runs in a completely separate enviornment from the Next JS back end. It is hosted by convex, and much of the code is executed in their special runtime optimized for database transactions. Because of this, all convex query, mutation, and action definitions must exist inside of `src/convex`. These can then be called by components elsewhere, but the definitions themselves must be made in the convex folder.
+For more info on convex, view `.cursor/rules/convex_rules.mdc`
 
 ## Routing
 
@@ -32,16 +32,16 @@ This project uses tailwind for styling. When working with tailwind, always adher
 
 ## Components
 
-This project uses the ShadCN component library. ShadCN's reusable components can be found in `src/components/ui`. You should not need to modify these components ever, they should be used solely to compose UI for components and pages outside of this directory.
+This project uses the ShadCN component library. ShadCN's reusable components can be found in `src/components/ui`.
 
 ## Icons
 
-For most cases, use lucide-react for icons. When you need an icon for a company, product, brand, or organization's logo, use simple-icons.
+When you need an icon for a company, product, brand, or organization's logo, use simple-icons. For all other cases, use lucide-react.
 
 ## State
 
-This project uses a combination of React Query and Zustand to manage global application state. Most state can be handled using Reacy Query, but sometimes a zustand store is a better option.
+When necessary, this project uses zustand to manage global application state.
 
-## AI inference
+## AI
 
-This project uses the convex agent component to make calls for inference from LLM's. This convex component is built on v4 of Vercel's AI SDK. Use the `context-7` mcp server to get documentation for either of these packages whenever necessary.
+This project uses the convex agent component to generate responses from LLMs. This convex component is built on top of Vercel's AI SDK 5. For simple requests, it will sometimes use the AI SDK directly. Make calls to the `context-7` mcp server whenever you need more information about either of these packages.
