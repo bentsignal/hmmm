@@ -46,10 +46,6 @@ export default defineSchema({
     messageId: v.string(),
     threadId: v.string(),
     userId: v.string(),
-    model: v.optional(v.string()),
-    inputTokens: v.optional(v.number()),
-    outputTokens: v.optional(v.number()),
-    usageId: v.optional(v.id("usage")),
     attachments: v.optional(v.array(v.id("files"))),
   })
     .index("by_user", ["userId"])
