@@ -1,6 +1,8 @@
 import { createTool } from "@convex-dev/agent";
 import { generateText } from "ai";
 import { z } from "zod";
+import { internal } from "@/convex/_generated/api";
+import { calculateModelCost } from "@/convex/user/usage";
 import { languageModels } from "../models";
 import { codeGenerationPrompt } from "../prompts";
 import { tryCatch } from "@/lib/utils";
@@ -30,8 +32,7 @@ export const codeGeneration = createTool<
   handler: async (ctx, args, options): Promise<CodeGenerationOutput> => {
     const messages = options.messages;
 
-    // try to generate code with GPT-5 directly through openai
-    const { data, error } = await tryCatch(
+    const result = await tryCatch(
       generateText({
         system: codeGenerationPrompt,
         model: languageModels["gpt-5"].model,
@@ -39,26 +40,31 @@ export const codeGeneration = createTool<
         temperature: 1,
       }),
     );
-    if (!error) {
+
+    if (result.error) {
+      console.error(result.error);
       return {
-        code: data.text,
-        reasoning: data.reasoningText,
+        code: "Ran into an error generating code. Please try again.",
       };
     }
 
-    // might have hit rate limits with openai, fallback to o4 through openrouter
-    console.error(
-      "Error generating code with GPT-5, falling back to o4-mini through openrouter. Error: ",
-      error,
-    );
-    const result = await generateText({
-      system: codeGenerationPrompt,
-      model: languageModels["o4-mini"].model,
-      messages: messages,
-    });
+    // log usage
+    if (ctx.userId) {
+      const cost = calculateModelCost(
+        languageModels["gpt-5"],
+        result.data.usage,
+        result.data.providerMetadata,
+      );
+      await ctx.runMutation(internal.user.usage.log, {
+        userId: ctx.userId,
+        type: "tool_call",
+        cost,
+      });
+    }
+
     return {
-      code: result.text,
-      reasoning: result.reasoningText,
+      code: result.data.text,
+      reasoning: result.data.reasoningText,
     };
   },
 });

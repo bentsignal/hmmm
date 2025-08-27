@@ -11,7 +11,6 @@ import z from "zod";
 interface Model {
   provider: string;
   name: string;
-  id: string;
   openrouterProviderOptions?: OpenRouterProviderOptions;
   cost: {
     in: number;
@@ -59,9 +58,8 @@ export interface FalImageGenerationModel extends ImageGenerationModel {
 
 export const falImageGenerationModels = {
   krea: {
-    provider: "Fal AI",
+    provider: "Flux",
     name: "Krea",
-    id: "fal-ai/flux-1/krea",
     model: "fal-ai/flux-1/krea",
     type: "text-to-image",
     cost: {
@@ -71,9 +69,8 @@ export const falImageGenerationModels = {
     },
   },
   "imagen4-ultra": {
-    provider: "Fal AI",
+    provider: "Google",
     name: "Imagen 4 Ultra",
-    id: "fal-ai/imagen4/preview/ultra",
     model: "fal-ai/imagen4/preview/ultra",
     type: "text-to-image",
     cost: {
@@ -83,9 +80,8 @@ export const falImageGenerationModels = {
     },
   },
   "fal-ai/qwen-image-edit": {
-    provider: "Fal AI",
+    provider: "Qwen",
     name: "Qwen Image to Image",
-    id: "fal-ai/qwen-image-edit",
     model: "fal-ai/qwen-image-edit",
     type: "image-to-image",
     cost: {
@@ -95,9 +91,8 @@ export const falImageGenerationModels = {
     },
   },
   "fal-ai/gemini-25-flash-image/edit": {
-    provider: "Fal AI",
+    provider: "Google",
     name: "Gemini 2.5 Flash Image Edit",
-    id: "fal-ai/gemini-25-flash-image/edit",
     model: "fal-ai/gemini-25-flash-image/edit",
     type: "image-to-image",
     cost: {
@@ -107,9 +102,8 @@ export const falImageGenerationModels = {
     },
   },
   "fal-ai/gemini-25-flash-image": {
-    provider: "Fal AI",
+    provider: "Google",
     name: "Gemini 2.5 Flash Image",
-    id: "fal-ai/gemini-25-flash-image",
     model: "fal-ai/gemini-25-flash-image",
     type: "text-to-image",
     cost: {
@@ -129,7 +123,6 @@ export const transcriptionModels = {
   "whisper-1": {
     provider: "OpenAI",
     name: "Whisper 1",
-    id: "whisper-1",
     model: openai.transcription("whisper-1"),
     cost: {
       in: 0,
@@ -143,7 +136,6 @@ export const embeddingModels = {
   "text-embedding-3-small": {
     provider: "OpenAI",
     name: "Text Embedding 3 Small",
-    id: "text-embedding-3-small",
     model: openai.embedding("text-embedding-3-small"),
     cost: {
       in: 0.02,
@@ -162,7 +154,6 @@ export const languageModels = {
   "gemini-2.0-flash": {
     provider: "Google",
     name: "Gemini 2.0 Flash",
-    id: "google/gemini-2.0-flash-001",
     model: openrouter("google/gemini-2.0-flash-001"),
     cost: {
       in: 0.1,
@@ -173,7 +164,6 @@ export const languageModels = {
   "gemini-2.5-flash-lite": {
     provider: "Google",
     name: "Gemini 2.5 Flash Lite",
-    id: "google/gemini-2.5-flash-lite-preview-06-17",
     model: openrouter("google/gemini-2.5-flash-lite-preview-06-17"),
     cost: {
       in: 0.1,
@@ -184,7 +174,6 @@ export const languageModels = {
   "gemini-2.5-flash": {
     provider: "Google",
     name: "Gemini 2.5 Flash",
-    id: "google/gemini-2.5-flash",
     model: openrouter("google/gemini-2.5-flash"),
     cost: {
       in: 0.3,
@@ -200,7 +189,6 @@ export const languageModels = {
   "gemini-2.5-pro": {
     provider: "Google",
     name: "Gemini 2.5 Pro",
-    id: "google/gemini-2.5-pro",
     model: openrouter("google/gemini-2.5-pro"),
     cost: {
       in: 2.5,
@@ -221,7 +209,6 @@ export const languageModels = {
   "o4-mini": {
     provider: "OpenAI",
     name: "o4 mini",
-    id: "openai/o4-mini",
     model: openrouter("openai/o4-mini"),
     cost: {
       in: 1.1,
@@ -232,7 +219,6 @@ export const languageModels = {
   o3: {
     provider: "OpenAI",
     name: "o3",
-    id: "openai/o3-2025-04-16",
     model: openrouter("openai/o3-2025-04-16"),
     cost: {
       in: 2,
@@ -243,7 +229,6 @@ export const languageModels = {
   "oss-120b": {
     provider: "OpenAI",
     name: "GPT-OSS 120b",
-    id: "openai/gpt-oss-120b",
     model: openrouter("openai/gpt-oss-120b"),
     cost: {
       in: 0.15,
@@ -254,7 +239,6 @@ export const languageModels = {
   "oss-20b": {
     provider: "OpenAI",
     name: "GPT-OSS 20b",
-    id: "openai/gpt-oss-20b",
     model: openrouter("openai/gpt-oss-20b"),
     cost: {
       in: 0.05,
@@ -265,8 +249,7 @@ export const languageModels = {
   "gpt-5": {
     provider: "OpenAI",
     name: "GPT-5",
-    id: "openai/gpt-5",
-    model: openai("gpt-5"),
+    model: openrouter("openai/gpt-5"),
     cost: {
       in: 1.25,
       out: 10,
@@ -276,7 +259,6 @@ export const languageModels = {
   "gpt-5-mini": {
     provider: "OpenAI",
     name: "GPT-5 Mini",
-    id: "openai/gpt-5-mini",
     model: openai("gpt-5-mini"),
     cost: {
       in: 0.25,
@@ -287,7 +269,6 @@ export const languageModels = {
   "gpt-5-nano": {
     provider: "OpenAI",
     name: "GPT-5 Nano",
-    id: "openai/gpt-5-nano",
     model: openai("gpt-5-nano"),
     cost: {
       in: 0.05,
@@ -303,7 +284,6 @@ export const languageModels = {
   "claude-4-sonnet": {
     provider: "Anthropic",
     name: "Claude 4 Sonnet",
-    id: "anthropic/claude-sonnet-4",
     model: openrouter("anthropic/claude-sonnet-4"),
     cost: {
       in: 3,
@@ -324,7 +304,6 @@ export const languageModels = {
   "grok-3-mini": {
     provider: "xAI",
     name: "Grok 3 Mini",
-    id: "x-ai/grok-3-mini",
     model: openrouter("x-ai/grok-3-mini"),
     cost: {
       in: 0.3,
@@ -335,7 +314,6 @@ export const languageModels = {
   "grok-4": {
     provider: "xAI",
     name: "Grok 4",
-    id: "x-ai/grok-4",
     model: openrouter("x-ai/grok-4"),
     cost: {
       in: 3,
@@ -351,7 +329,6 @@ export const languageModels = {
   sonar: {
     provider: "Perplexity",
     name: "Sonar",
-    id: "perplexity/sonar",
     model: openrouter("perplexity/sonar"),
     cost: {
       in: 1,
@@ -362,7 +339,6 @@ export const languageModels = {
   "sonar-reasoning-pro": {
     provider: "Perplexity",
     name: "Sonar Reasoning Pro",
-    id: "perplexity/sonar-reasoning-pro",
     model: openrouter("perplexity/sonar-reasoning-pro"),
     cost: {
       in: 2,
@@ -378,7 +354,6 @@ export const languageModels = {
   "switchpoint-router": {
     provider: "Switchpoint",
     name: "Switchpoint Router",
-    id: "switchpoint/router",
     model: openrouter("switchpoint/router"),
     cost: {
       in: 0.85,
@@ -394,7 +369,6 @@ export const languageModels = {
   "kimi-k2": {
     provider: "Moonshot",
     name: "Kimi K2",
-    id: "moonshotai/kimi-k2",
     model: openrouter("@preset/kimi-k2"),
     cost: {
       in: 1,
@@ -410,7 +384,6 @@ export const languageModels = {
   "mercury-coder": {
     provider: "Inception",
     name: "Mercury Coder",
-    id: "inception/mercury-coder",
     model: openrouter("inception/mercury-coder"),
     cost: {
       in: 0.25,
@@ -426,7 +399,6 @@ export const languageModels = {
   "qwen-3-235b": {
     provider: "Alibaba",
     name: "Qwen 3 235B",
-    id: "alibaba/qwen-3-235b",
     model: openrouter("@preset/qwen-cerebras"),
     cost: {
       in: 0.6,
@@ -442,7 +414,6 @@ export const languageModels = {
   "glm-4.5": {
     provider: "z-ai",
     name: "GLM 4.5",
-    id: "z-ai/glm-4.5",
     model: openrouter("z-ai/glm-4.5"),
     cost: {
       in: 0.6,
@@ -463,7 +434,6 @@ export const languageModels = {
   "horizon-alpha": {
     provider: "Open Router",
     name: "Horizon Alpha",
-    id: "openrouter/horizon-alpha",
     model: openrouter("openrouter/horizon-alpha"),
     cost: {
       in: 0,

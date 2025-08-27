@@ -128,7 +128,6 @@ export const calculateModelCost = (
   const parsedProviderMetadata =
     OpenRouterProviderMetadata.safeParse(providerMetadata);
   if (parsedProviderMetadata.success) {
-    console.log(parsedProviderMetadata.data.openrouter.usage.cost);
     return parsedProviderMetadata.data.openrouter.usage.cost;
   }
   const million = 1000000;
