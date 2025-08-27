@@ -39,7 +39,7 @@ export function Code({ inline, className, children }: CodeProps) {
     );
   }
   return (
-    <div className="not-prose inline-flex">
+    <div className="not-prose inline-flex max-w-full">
       <CodeBlock className="rounded-md px-2 py-1">
         <CodeBlockCode
           code={children?.toString() ?? ""}
