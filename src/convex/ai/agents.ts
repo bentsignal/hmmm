@@ -20,6 +20,7 @@ export const agent = new Agent(components.agent, {
   contextOptions: {
     excludeToolMessages: false,
   },
+  callSettings: { maxRetries: 3, temperature: 1.0 },
   usageHandler: async (ctx, args) => {
     const cost = calculateModelCost(
       modelPresets.default,
