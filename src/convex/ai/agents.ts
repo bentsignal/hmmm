@@ -135,7 +135,7 @@ export const streamResponse = internalAction({
           prompt: responseMessage,
           system: followUpGeneratorPrompt,
           schema: z.object({
-            questions: z.array(z.string()).max(3),
+            questions: z.array(z.string().max(300)).max(3),
           }),
           maxOutputTokens: 1000,
           maxRetries: 3,
