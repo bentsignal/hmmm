@@ -13,8 +13,12 @@ export const LibraryStorageStatus = ({
   storageLimit: number;
   percentageUsed: number;
 }) => {
-  const usedGB = (storageUsed / 1024 / 1024 / 1024).toFixed(2);
-  const limitGB = (storageLimit / 1024 / 1024 / 1024).toFixed(0);
+  const remainingGB = (
+    (storageLimit - storageUsed) /
+    1024 /
+    1024 /
+    1024
+  ).toFixed(2);
 
   const textColor =
     percentageUsed >= 90
@@ -48,8 +52,7 @@ export const LibraryStorageStatus = ({
           </Link>
         ))}
       <span className={cn("text-muted-foreground text-sm", textColor)}>
-        <span className="font-bold">{usedGB} GB</span> of{" "}
-        <span className="font-bold">{limitGB} GB</span> used
+        <span className="font-bold">{remainingGB} GB</span> available
       </span>
       <Progress value={percentageUsed} className="h-2" />
     </div>
