@@ -10,6 +10,7 @@ import {
 import { LibraryBulkToolbar } from "./components/library-bulk-toolbar";
 import { LibraryDeleteModal } from "./components/library-delete-modal";
 import { LibraryFileList } from "./components/library-file-list";
+import { LibraryPhotoViewer } from "./components/library-photo-viewer";
 import { LibraryRenameModal } from "./components/library-rename-modal";
 import { LibraryToolbar } from "./components/library-toolbar";
 import { LibraryUpload } from "./components/library-upload";
@@ -60,6 +61,7 @@ export default function Library() {
     <>
       <LibraryDeleteModal />
       <LibraryRenameModal />
+      <LibraryPhotoViewer />
       <Dialog
         open={libraryOpen}
         onOpenChange={(open) => {

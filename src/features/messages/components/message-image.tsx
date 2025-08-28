@@ -1,6 +1,7 @@
 import { ImageIcon } from "lucide-react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useFileInteraction } from "@/features/library/hooks/use-file-interaction";
 
 export default function MessageImage({ image }: { image?: string | null }) {
   if (!image) return null;
@@ -13,6 +14,7 @@ export default function MessageImage({ image }: { image?: string | null }) {
 }
 
 const Generated = ({ fileKey }: { fileKey: string }) => {
+  const { handleFileClick, handleFileHover } = useFileInteraction();
   const isAuthenticated = useConvexAuth();
 
   const image = useQuery(
@@ -31,8 +33,11 @@ const Generated = ({ fileKey }: { fileKey: string }) => {
       src={image.url}
       alt="Generated image"
       className="h-64 w-auto rounded-2xl hover:cursor-pointer"
+      onMouseEnter={() => {
+        handleFileHover(image, "default");
+      }}
       onClick={() => {
-        window.open(image.url, "_blank");
+        handleFileClick(image, "default", false);
       }}
     />
   );

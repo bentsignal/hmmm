@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { LibraryFileIcon } from "@/features/library/components/library-file-icon";
+import { useFileInteraction } from "@/features/library/hooks/use-file-interaction";
 import { getFileType } from "@/features/library/lib/library-util";
 import { LibraryFile } from "@/features/library/types/library-types";
 
@@ -20,10 +21,18 @@ interface AttachmentRowProps {
 
 const AttachmentRow = ({ file, onRemove }: AttachmentRowProps) => {
   const fileType = getFileType(file.mimeType);
-
+  const { handleFileClick, handleFileHover } = useFileInteraction();
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
-      <div className="flex items-center gap-3">
+      <div
+        className="flex items-center gap-3 select-none hover:cursor-pointer"
+        onClick={() => {
+          handleFileClick(file, "default", false);
+        }}
+        onMouseEnter={() => {
+          handleFileHover(file, "default");
+        }}
+      >
         <div className="flex h-8 w-8 items-center justify-center">
           {fileType === "image" ? (
             <img

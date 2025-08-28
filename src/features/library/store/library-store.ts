@@ -8,6 +8,8 @@ interface LibraryStore {
   setLibraryDeleteModalOpen: (open: boolean) => void;
   libraryRenameModalOpen: boolean;
   setLibraryRenameModalOpen: (open: boolean) => void;
+  photoViewerOpen: boolean;
+  setPhotoViewerOpen: (open: boolean) => void;
   selectedFile: LibraryFile | null;
   setSelectedFile: (file: LibraryFile | null) => void;
   libraryMode: LibraryMode;
@@ -23,6 +25,8 @@ export const useLibraryStore = create<LibraryStore>((set) => ({
   setLibraryDeleteModalOpen: (open) => set({ libraryDeleteModalOpen: open }),
   libraryRenameModalOpen: false,
   setLibraryRenameModalOpen: (open) => set({ libraryRenameModalOpen: open }),
+  photoViewerOpen: false,
+  setPhotoViewerOpen: (open) => set({ photoViewerOpen: open }),
   selectedFile: null,
   setSelectedFile: (file) => set({ selectedFile: file }),
   libraryMode: "default",

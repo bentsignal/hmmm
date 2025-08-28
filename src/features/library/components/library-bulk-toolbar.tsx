@@ -1,5 +1,6 @@
 import { Download, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useFileInteraction } from "../hooks/use-file-interaction";
 import { useLibraryStore } from "../store";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,7 +9,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn, tryCatch } from "@/lib/utils";
-import { useDownloadFile } from "@/hooks/use-download-file";
 import useComposerStore from "@/features/composer/store";
 
 export const LibraryBulkToolbar = () => {
@@ -87,7 +87,7 @@ const DeleteButton = ({ disabled }: { disabled: boolean }) => {
 };
 
 const DownloadButton = ({ disabled }: { disabled: boolean }) => {
-  const { download } = useDownloadFile();
+  const { download } = useFileInteraction();
   const selectedFiles = useLibraryStore((state) => state.selectedFiles);
 
   return (
