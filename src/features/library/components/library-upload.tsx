@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Upload } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { LibraryStorageStatus } from "./library-storage-status";
 import LibraryUploadProgress from "./library-upload-progress";
-import { Loader } from "@/components/ui/loader";
 import { UploadButton } from "@/lib/uploadthing";
 
 export const LibraryUpload = () => {
@@ -52,14 +51,13 @@ export const LibraryUpload = () => {
               setUploadProgress(null);
             }
 
-            // show loader
+            // let user cancel upload while in progress
             if (isUploading) {
               return (
-                <Loader
-                  variant="dots"
-                  color="bg-primary-foreground"
-                  size="sm"
-                />
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm font-bold">Cancel</span>
+                </div>
               );
             }
 
