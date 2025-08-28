@@ -4,12 +4,10 @@ import { hasUnlimitedAccess } from "@/convex/user/account";
 import { authedQuery } from "../convex_helpers";
 import { polar } from "../polar";
 
-// user can use up to 75% of their plan's price. Hopefully
-// can be increased in the future, just need to see how all
-// of the other recurring costs stack up
-export const ALLOWED_USAGE_PERCENTAGE = 0.75;
+// user can use up to 60% of their plan's price on inference
+export const ALLOWED_USAGE_PERCENTAGE = 0.6;
 
-// free tier can incur 1 cent of cost per day
+// free tier can incur FREE_TIER_MAX_USAGE cost per day
 export const FREE_TIER_MAX_USAGE = 0.03;
 
 // ultra is the highest tier a user can purchase, unlimited
