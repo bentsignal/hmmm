@@ -30,6 +30,7 @@ export const threadMetadataBackfillTwo = migrations.define({
         threadId: thread._id,
         updatedAt: thread._creationTime,
         state: "idle",
+        pinned: false,
       });
     });
   },

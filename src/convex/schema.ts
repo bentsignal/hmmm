@@ -33,10 +33,10 @@ export default defineSchema({
       v.literal("waiting"),
       v.literal("streaming"),
     ),
-    pinned: v.optional(v.boolean()),
+    pinned: v.boolean(),
     followUpQuestions: v.optional(v.array(v.string())),
   })
-    .index("by_user_time", ["userId", "updatedAt"])
+    .index("by_user_time", ["userId", "pinned", "updatedAt"])
     .index("by_thread_id", ["threadId"])
     .searchIndex("search_title", {
       searchField: "title",

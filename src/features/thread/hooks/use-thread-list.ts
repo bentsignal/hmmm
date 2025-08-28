@@ -64,18 +64,16 @@ export default function useThreadList() {
 
       if (item.pinned) {
         pinnedThreads.push(item);
+      } else if (itemDate >= today && itemDate < tomorrow) {
+        todaysThreads.push(item);
+      } else if (itemDate >= yesterday && itemDate < today) {
+        yesterdayThreads.push(item);
+      } else if (itemDate >= lastWeek && itemDate < yesterday) {
+        lastWeekThreads.push(item);
+      } else if (itemDate >= lastMonth && itemDate < lastWeek) {
+        lastMonthThreads.push(item);
       } else {
-        if (itemDate >= today && itemDate < tomorrow) {
-          todaysThreads.push(item);
-        } else if (itemDate >= yesterday && itemDate < today) {
-          yesterdayThreads.push(item);
-        } else if (itemDate >= lastWeek && itemDate < yesterday) {
-          lastWeekThreads.push(item);
-        } else if (itemDate >= lastMonth && itemDate < lastWeek) {
-          lastMonthThreads.push(item);
-        } else {
-          oldThreads.push(item);
-        }
+        oldThreads.push(item);
       }
     }
 
