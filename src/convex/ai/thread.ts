@@ -320,6 +320,7 @@ export const create = authedMutation({
         threadId: threadId,
         updatedAt: Date.now(),
         state: "waiting",
+        pinned: false,
       }),
     ]);
     // generate title for new thread, and start response
@@ -641,5 +642,19 @@ export const getFollowUpQuestions = authedQuery({
       return [];
     }
     return metadata.followUpQuestions ?? [];
+  },
+});
+
+export const patchPins = internalMutation({
+  handler: async (ctx) => {
+    const threads = await ctx.db
+      .query("threadMetadata")
+      .filter((q) => q.eq(q.field("pinned"), undefined))
+      .collect();
+    await Promise.all(
+      threads.map(async (thread) => {
+        await ctx.db.patch(thread._id, { pinned: false });
+      }),
+    );
   },
 });
