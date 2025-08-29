@@ -1,10 +1,12 @@
 "use client";
 
+import { env } from "@/env";
 import { Markdown } from "@/components/ui/markdown";
 import { CopyButton } from "@/features/messages/components/copy-button";
 
 export default function SettingsBangs() {
-  const bangURL = "https://www.qbe.sh/new?q=%s";
+  console.log(env.NEXT_PUBLIC_BASE_URL);
+  const bangURL = `${env.NEXT_PUBLIC_BASE_URL}/new?q=%s`;
   const bang = `\`\n${bangURL}\n\`\n`;
   return (
     <>

@@ -5,7 +5,7 @@ import { SignOutButton } from "@clerk/nextjs";
 import { LogOut, MoveLeft } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Socials from "@/components/socials";
+// import Socials from "@/components/socials";
 import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
@@ -27,13 +27,13 @@ export default function SettingsNavDesktop() {
       className="bg-background hidden md:flex"
     >
       <SidebarContent>
-        <SidebarMenu>
+        <SidebarMenu className="">
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
               className="hover:text-primary hover:bg-card"
             >
-              <Link href="/">
+              <Link href="/" prefetch={true}>
                 <div className="flex items-center gap-2 ">
                   <MoveLeft className="h-4 w-4" />
                   <span>Back</span>
@@ -41,7 +41,7 @@ export default function SettingsNavDesktop() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <Separator />
+          <Separator className="my-1" />
           {settingsTabs.map((group, index) => (
             <Fragment key={index}>
               {group.map((tab) => (
@@ -55,6 +55,7 @@ export default function SettingsNavDesktop() {
                   >
                     <Link
                       href={tab.href}
+                      prefetch={true}
                       className={cn(
                         "text-muted-foreground",
                         pathname === tab.href && "text-primary font-bold",
@@ -66,7 +67,9 @@ export default function SettingsNavDesktop() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              {index !== settingsTabs.length - 1 && <Separator />}
+              {index !== settingsTabs.length - 1 && (
+                <Separator className="my-1" />
+              )}
             </Fragment>
           ))}
           <SidebarMenuItem>
@@ -80,8 +83,8 @@ export default function SettingsNavDesktop() {
             </SignOutButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <Separator />
-        <Socials />
+        {/* <Separator /> */}
+        {/* <Socials /> */}
       </SidebarContent>
     </Sidebar>
   );

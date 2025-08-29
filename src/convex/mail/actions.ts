@@ -21,7 +21,6 @@ const STORY_COUNT = 5;
 const MAX_FOR_SUBJECT = 3;
 
 // mail config
-
 const ORIGIN =
   process.env.CONVEX_ENV === "development"
     ? "http://localhost:3000"
