@@ -15,7 +15,7 @@ export default function NewsletterToggle({
 
   return (
     <div className="flex items-center gap-4">
-      <span className="font-medium">Daily newsletter</span>
+      <span className="font-medium">Weekly newsletter</span>
       <Switch
         checked={checked}
         onCheckedChange={(value: boolean) => {
