@@ -10,6 +10,13 @@ export default defineSchema({
     newsletter: v.optional(v.boolean()),
     admin: v.optional(v.boolean()),
   }).index("by_user_id", ["userId"]),
+  personalInfo: defineTable({
+    userId: v.string(),
+    name: v.optional(v.string()),
+    location: v.optional(v.string()),
+    language: v.optional(v.string()),
+    notes: v.optional(v.string()),
+  }).index("by_user_id", ["userId"]),
   files: defineTable({
     userId: v.string(),
     fileName: v.string(),

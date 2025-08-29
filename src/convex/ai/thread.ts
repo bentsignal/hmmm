@@ -173,9 +173,38 @@ export const saveUserMessage = async (
     mimeType: string;
   }[],
 ) => {
+  const personal = await ctx.db
+    .query("personalInfo")
+    .withIndex("by_user_id", (q) => q.eq("userId", ctx.user.subject))
+    .first();
+  const parts = [] as Array<{ role: "system"; content: string }>;
+  if (
+    personal &&
+    (personal.name || personal.location || personal.language || personal.notes)
+  ) {
+    const fields = [
+      personal.name ? `The user's name is ${personal.name}` : null,
+      personal.location
+        ? `The user's current location is ${personal.location}`
+        : null,
+      personal.language
+        ? `User would like your response to be in: ${personal.language}`
+        : null,
+      personal.notes
+        ? `Additional info user would like you to know: ${personal.notes}`
+        : null,
+    ].filter(Boolean) as string[];
+    if (fields.length > 0) {
+      parts.push({
+        role: "system",
+        content: `User profile — ${fields.join("; ")}`,
+      });
+    }
+  }
   const { messages } = await agent.saveMessages(ctx, {
     threadId: threadId,
     messages: [
+      ...parts,
       {
         role: "user",
         content: prompt,

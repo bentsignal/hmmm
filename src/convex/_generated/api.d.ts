@@ -42,6 +42,7 @@ import type * as polar from "../polar.js";
 import type * as resend from "../resend.js";
 import type * as user_account from "../user/account.js";
 import type * as user_clerk from "../user/clerk.js";
+import type * as user_info from "../user/info.js";
 import type * as user_subscription from "../user/subscription.js";
 import type * as user_usage from "../user/usage.js";
 
@@ -94,6 +95,7 @@ declare const fullApi: ApiFromModules<{
   resend: typeof resend;
   "user/account": typeof user_account;
   "user/clerk": typeof user_clerk;
+  "user/info": typeof user_info;
   "user/subscription": typeof user_subscription;
   "user/usage": typeof user_usage;
 }>;

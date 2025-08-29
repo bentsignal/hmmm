@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Bangs from "./bangs";
 import Notifications from "./notifications";
+import PersonalInfo from "./personal-info";
 import Shortcuts from "@/features/shortcuts/components";
 
 export default async function Preferences() {
@@ -15,6 +16,7 @@ export default async function Preferences() {
   return (
     <SettingsWrapper>
       <Notifications />
+      <PersonalInfo />
       <Shortcuts />
       <Bangs />
     </SettingsWrapper>
