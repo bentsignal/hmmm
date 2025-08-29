@@ -17,7 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { settingsTabs } from "@/features/settings/data";
 
-export default function SettingsDesktop() {
+export default function SettingsNavDesktop() {
   const pathname = usePathname();
 
   return (

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { settingsTabs } from "@/features/settings/data";
 
-export default function SettingsMobile() {
+export default function SettingsNavMobile() {
   const pathname = usePathname();
   const router = useRouter();
 
