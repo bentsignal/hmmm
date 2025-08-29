@@ -1,6 +1,9 @@
 "use client";
 
 import { useRef } from "react";
+import { Cog } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Sidebar,
@@ -8,6 +11,11 @@ import {
   SidebarHeader,
   SidebarMenu,
 } from "@/components/ui/sidebar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { LibraryButton } from "@/features/library/components/library-trigger-button";
 import { shortcuts } from "@/features/shortcuts";
 import useShortcut from "@/features/shortcuts/hooks/use-shortcut";
@@ -58,6 +66,7 @@ export default function ChatSidebar() {
           onChange={(e) => setSearch(e.target.value)}
           ref={searchRef}
         />
+        <SettingsButton />
         <LibraryButton />
         <NewThreadButton />
       </SidebarHeader>
@@ -80,3 +89,21 @@ export default function ChatSidebar() {
     </Sidebar>
   );
 }
+
+const SettingsButton = () => {
+  const router = useRouter();
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="outline"
+          onClick={() => router.push("/settings/general")}
+          size="icon"
+        >
+          <Cog className="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>Settings</TooltipContent>
+    </Tooltip>
+  );
+};

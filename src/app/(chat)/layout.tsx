@@ -1,7 +1,6 @@
 import { SignedIn } from "@clerk/nextjs";
 import { cookies } from "next/headers";
 import ChatSidebar from "./chat-sidebar";
-import TopRightNav from "@/components/top-right-nav";
 import {
   SidebarInset,
   SidebarProvider,
@@ -28,7 +27,6 @@ export default async function ChatLayout({
         <SignedIn>
           <div className="absolute top-0 right-0 left-0 z-20 flex w-full items-center justify-between">
             <SidebarTrigger className="m-4 border p-5 shadow-md" />
-            <TopRightNav />
           </div>
         </SignedIn>
         {children}
