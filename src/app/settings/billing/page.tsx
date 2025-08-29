@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
+import { getAuthToken } from "@/features/auth/util";
 import UserBillingInfo from "@/features/billing/components/user-billing-info";
 import SettingsCard from "@/features/settings/components/settings-card";
 
@@ -22,9 +23,17 @@ export default async function Billing() {
       price: plan.prices[0].priceAmount ?? 0,
     }));
 
+  // get user's current plan
+  const authToken = await getAuthToken();
+  const usersPlan = await fetchQuery(
+    api.user.subscription.getPlan,
+    {},
+    { token: authToken },
+  );
+
   return (
     <SettingsCard title="Billing">
-      <UserBillingInfo plans={publicPlans} />
+      <UserBillingInfo plans={publicPlans} usersPlan={usersPlan} />
     </SettingsCard>
   );
 }
