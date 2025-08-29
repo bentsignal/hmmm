@@ -1,5 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import { PageFallback } from "@/components/error-boundary";
@@ -11,11 +9,6 @@ import UsageProgress from "@/features/billing/components/usage-progress";
 import UsageUpgradeCallout from "@/features/billing/components/usage-upgrade-callout";
 
 export default async function Usage() {
-  // auth check
-  const { userId } = await auth();
-  if (!userId) {
-    redirect("/login");
-  }
   const token = await getAuthToken();
 
   // get initial usage data

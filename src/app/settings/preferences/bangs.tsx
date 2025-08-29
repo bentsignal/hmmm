@@ -1,15 +1,15 @@
 "use client";
 
 import { env } from "@/env";
+import InfoCard from "@/components/info-card";
 import { Markdown } from "@/components/ui/markdown";
 import { CopyButton } from "@/features/messages/components/copy-button";
 
-export default function SettingsBangs() {
-  console.log(env.NEXT_PUBLIC_BASE_URL);
-  const bangURL = `${env.NEXT_PUBLIC_BASE_URL}/new?q=%s`;
+export default function Bangs() {
+  const bangURL = `${env.NEXT_PUBLIC_BASE_URL}new?q=%s`;
   const bang = `\`\n${bangURL}\n\`\n`;
   return (
-    <>
+    <InfoCard title="Search">
       <span>
         Add the following URL to your browser&apos;s search engine settings to
         create new chats directly from your browser&apos;s search bar.
@@ -21,6 +21,6 @@ export default function SettingsBangs() {
         <Markdown className="prose dark:prose-invert">{bang}</Markdown>
         <CopyButton getContent={() => bangURL} />
       </div>
-    </>
+    </InfoCard>
   );
 }

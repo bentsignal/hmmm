@@ -1,6 +1,5 @@
+import { SettingsNavDesktop, SettingsNavMobile } from "./nav";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import SettingsNavDesktop from "@/features/settings/components/settings-nav-desktop";
-import SettingsNavMobile from "@/features/settings/components/settings-nav-mobile";
 
 export default function SettingsLayout({
   children,

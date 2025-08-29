@@ -29,23 +29,19 @@ const socials = [
 }[];
 
 export default function Socials() {
-  return (
-    <div className="flex w-full items-center justify-center gap-2">
-      {socials.map((social) => (
-        <Link
-          key={social.label}
-          href={social.href}
-          rel="noopener noreferrer"
-          target="_blank"
-          className="p-1"
-        >
-          <SimpleIcon
-            icon={social.icon}
-            color="var(--color-foreground)"
-            size={social.size}
-          />
-        </Link>
-      ))}
-    </div>
-  );
+  return socials.map((social) => (
+    <Link
+      key={social.label}
+      href={social.href}
+      rel="noopener noreferrer"
+      target="_blank"
+      className="p-1"
+    >
+      <SimpleIcon
+        icon={social.icon}
+        color="var(--color-foreground)"
+        size={social.size}
+      />
+    </Link>
+  ));
 }

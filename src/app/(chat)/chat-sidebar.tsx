@@ -97,7 +97,7 @@ const SettingsButton = () => {
       <TooltipTrigger asChild>
         <Button
           variant="outline"
-          onClick={() => router.push("/settings/general")}
+          onClick={() => router.push("/settings/preferences")}
           size="icon"
         >
           <Cog className="h-4 w-4" />

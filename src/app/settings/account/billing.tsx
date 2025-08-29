@@ -1,17 +1,10 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
+import InfoCard from "@/components/info-card";
 import { getAuthToken } from "@/features/auth/util";
 import UserBillingInfo from "@/features/billing/components/user-billing-info";
-import SettingsCard from "@/features/settings/components/settings-card";
 
 export default async function Billing() {
-  const { userId } = await auth();
-  if (!userId) {
-    redirect("/login");
-  }
-
   // strip plan data for client side
   const plans = await fetchQuery(api.polar.listAllProducts, {});
   const publicPlans = plans
@@ -32,8 +25,8 @@ export default async function Billing() {
   );
 
   return (
-    <SettingsCard title="Billing">
+    <InfoCard title="Billing">
       <UserBillingInfo plans={publicPlans} usersPlan={usersPlan} />
-    </SettingsCard>
+    </InfoCard>
   );
 }

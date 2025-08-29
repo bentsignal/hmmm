@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import CustomAlert from "@/components/alert";
+import InfoCard from "@/components/info-card";
 import { Button } from "@/components/ui/button";
 
 export default function DeleteAccount() {
@@ -25,8 +26,12 @@ export default function DeleteAccount() {
   });
 
   return (
-    <div>
-      <Button variant="destructive" onClick={() => setIsOpen(true)}>
+    <InfoCard title="Danger Zone">
+      <Button
+        className="w-fit"
+        variant="destructive"
+        onClick={() => setIsOpen(true)}
+      >
         Delete Account
       </Button>
       <CustomAlert
@@ -43,6 +48,6 @@ export default function DeleteAccount() {
         typeToConfirmMessage="delete my account"
         destructive
       />
-    </div>
+    </InfoCard>
   );
 }

@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 
-export default function SettingsCard({
+export default function InfoCard({
   children,
   title,
 }: {
