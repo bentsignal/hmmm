@@ -11,7 +11,7 @@ export const ALLOWED_USAGE_PERCENTAGE = 0.6;
 export const FREE_TIER_MAX_USAGE = 0.03;
 
 // ultra is the highest tier a user can purchase, unlimited
-// must be manually granted to a user
+// must be manually granted to a user via the convex dashboard
 export const HIGHEST_TIER_PUBLIC_PLAN = "Ultra";
 
 export type Plan = {

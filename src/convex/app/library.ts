@@ -15,6 +15,7 @@ import {
   checkApiKey,
   checkAuth,
 } from "@/convex/convex_helpers";
+import type { Plan } from "@/convex/user/subscription";
 import { components, internal } from "../_generated/api";
 import { DataModel, Doc } from "../_generated/dataModel";
 import {
@@ -25,8 +26,17 @@ import {
 } from "../_generated/server";
 import { limiter } from "../limiter";
 import { getUserPlanHelper } from "../user/subscription";
-import { storageLimits } from "@/features/library/config";
 import { LibraryFile } from "@/features/library/types";
+
+const GB = 1024 * 1024 * 1024;
+
+const storageLimits: Record<Plan["name"], number> = {
+  Free: 0 * GB,
+  Light: 5 * GB,
+  Premium: 20 * GB,
+  Ultra: 50 * GB,
+  Unlimited: 100 * GB,
+};
 
 // this table stores the total storage used by each user
 export const storage = new TableAggregate<{
