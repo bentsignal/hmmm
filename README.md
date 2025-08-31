@@ -18,7 +18,7 @@
 
 A great starting point for those looking to build agentic applications for the web.
 
-More info on installation and initialization coming soon.
+For more information, head over to the [docs](https://docs.qbe.sh)
 
 <br />
 <br />
