@@ -38,7 +38,10 @@ export default function Thread({ threadId }: { threadId: string }) {
     <div className="relative flex h-full w-full flex-1 flex-col items-center justify-start">
       <ThreadTitleUpdater threadId={threadId} />
       <Abyss />
-      <ScrollArea ref={scrollAreaRef} className="h-full w-full">
+      <ScrollArea
+        ref={scrollAreaRef}
+        className="h-full w-full mask-t-from-95% mask-b-from-90%"
+      >
         <div className="mx-auto mb-8 flex h-full w-full max-w-4xl flex-col gap-3 place-self-center px-8 pt-24 pb-32 sm:mb-0">
           <Messages
             threadId={threadId}

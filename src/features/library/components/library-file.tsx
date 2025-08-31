@@ -35,7 +35,7 @@ const PureLibraryGridFile = ({ file, mode, selected }: LibraryFileProps) => {
       }}
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
-        "bg-card hover:bg-card/80 relative flex min-h-40 w-full flex-col items-center gap-4 rounded-lg p-4 shadow-sm transition-all select-none hover:cursor-pointer",
+        "bg-card supports-[backdrop-filter]:bg-card/50 hover:bg-card/80 relative flex min-h-40 w-full flex-col items-center gap-4 rounded-lg p-4 shadow-sm transition-all select-none hover:cursor-pointer",
         mode === "select" && !selected && "opacity-50",
       )}
     >
@@ -101,7 +101,7 @@ const PureLibraryListFile = ({ file, mode, selected }: LibraryFileProps) => {
       }}
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
-        "bg-card hover:bg-card/80 row relative flex w-full items-center gap-4 rounded-lg p-4 shadow-sm transition-all select-none hover:cursor-pointer",
+        "bg-card supports-[backdrop-filter]:bg-card/50 hover:bg-card/80 row relative flex w-full items-center gap-4 rounded-lg p-4 shadow-sm transition-all select-none hover:cursor-pointer",
         mode === "select" && !selected && "opacity-50",
       )}
     >

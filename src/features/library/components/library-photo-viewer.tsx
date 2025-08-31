@@ -43,7 +43,7 @@ export const LibraryPhotoViewer = () => {
         <DialogHeader className="sr-only">
           <DialogTitle>Photo Viewer</DialogTitle>
         </DialogHeader>
-        <div className="border-border bg-card flex flex-col gap-4 rounded-xl border-1 px-8 pt-5 pb-8">
+        <div className="border-border bg-card supports-[backdrop-filter]:bg-card/50 flex max-h-[900px] flex-col gap-4 rounded-xl border-1 px-8 pt-5 pb-8 backdrop-blur-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ImageIcon className="h-5 w-5" />
@@ -69,7 +69,7 @@ export const LibraryPhotoViewer = () => {
           <img
             src={selectedFile.url}
             alt={fileName}
-            className="h-full max-h-[900px] w-auto rounded-xl object-contain"
+            className="h-full max-h-[800px] w-auto rounded-xl object-contain"
           />
         </div>
       </DialogContent>

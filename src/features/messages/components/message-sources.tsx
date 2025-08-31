@@ -47,7 +47,12 @@ const PreviewSources = ({
     )
     .slice(0, 5);
 
-  const favicons = sources
+  const dedupedFavicons = sources.filter(
+    (source, index, self) =>
+      self.findIndex((t) => t.favicon === source.favicon) === index,
+  );
+
+  const favicons = dedupedFavicons
     .map((source) => source.favicon)
     .filter(
       (favicon): favicon is string =>
@@ -100,7 +105,7 @@ const PreviewSources = ({
           </div>
         ))}
       </div>
-      <div className="bg-card flex w-fit items-center gap-3 rounded-full px-4 py-2">
+      <div className="bg-card supports-[backdrop-filter]:bg-card/50 flex w-fit items-center gap-3 rounded-full px-4 py-2">
         {favicons.length > 0 && (
           <div className="flex gap-2">
             {favicons.map((favicon, index) => (

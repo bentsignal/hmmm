@@ -26,7 +26,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className="dark"
+      style={{ colorScheme: "dark" }}
+    >
       <head>
         {/* REACT SCAN */}
         {/* <script
@@ -35,11 +40,30 @@ export default function RootLayout({
         /> */}
       </head>
       <body
-        className={`${inter.variable} ${robotoMono.variable} font-main antialiased`}
+        className={`${inter.variable} ${robotoMono.variable} font-main relative overflow-hidden antialiased`}
       >
+        <Stars />
         <Providers>{children}</Providers>
         <Toaster />
       </body>
     </html>
   );
 }
+
+const Stars = () => {
+  return (
+    <div className="pointer-events-none absolute inset-0 h-screen w-screen">
+      {Array.from({ length: 200 }).map((_, index) => (
+        <div
+          className={`bg-foreground absolute h-[1px] w-[1px]`}
+          key={index}
+          style={{
+            left: `calc(100vw * ${Math.random()} + 20px)`,
+            top: `calc(100vh * ${Math.random()} + 20px)`,
+            opacity: Math.random(),
+          }}
+        />
+      ))}
+    </div>
+  );
+};

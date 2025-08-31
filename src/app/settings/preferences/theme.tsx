@@ -1,15 +1,14 @@
 "use client";
 
-import { Cog, Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useRouter } from "next/navigation";
-import { Button } from "./ui/button";
+import InfoCard from "@/components/info-card";
+import { Button } from "@/components/ui/button";
 
-export default function TopRightNav() {
-  const router = useRouter();
+export default function Theme() {
   const { theme, setTheme } = useTheme();
   return (
-    <div className="bg-card m-4 flex w-fit items-center rounded-lg border p-1 shadow-md">
+    <InfoCard title="Theme">
       <Button
         variant="ghost"
         size="icon"
@@ -19,13 +18,6 @@ export default function TopRightNav() {
         <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
         <span className="sr-only">Toggle theme</span>
       </Button>
-      <Button
-        variant="ghost"
-        onClick={() => router.push("/settings/general")}
-        size="icon"
-      >
-        <Cog className="h-4 w-4" />
-      </Button>
-    </div>
+    </InfoCard>
   );
 }

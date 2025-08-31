@@ -130,9 +130,24 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
+}
+
+body {
+  position: relative;
+  min-height: 100vh;
+}
+
+body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  z-index: -1;
+  background:
+    linear-gradient(to top, #23065600 0%, #120218ff 72%),
+    linear-gradient(to top, #ffd6faff 0%, #0f00dbff 65%);
 }
 
 @keyframes shimmer {

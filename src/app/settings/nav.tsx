@@ -84,17 +84,13 @@ export const SettingsNavDesktop = () => {
   const pathname = usePathname();
 
   return (
-    <Sidebar
-      collapsible="none"
-      variant="floating"
-      className="bg-background hidden md:flex"
-    >
+    <Sidebar collapsible="none" variant="floating" className="hidden md:flex">
       <SidebarContent>
         <SidebarMenu className="">
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="hover:text-primary hover:bg-card"
+              className="hover:text-primary hover:bg-card/50"
             >
               <Link href="/" prefetch={true}>
                 <div className="flex items-center gap-2 ">
@@ -110,11 +106,11 @@ export const SettingsNavDesktop = () => {
               {group.map((tab) => (
                 <SidebarMenuItem
                   key={tab.label}
-                  className="hover:bg-card rounded-md"
+                  className="hover:bg-card/50 rounded-md"
                 >
                   <SidebarMenuButton
                     asChild
-                    className={`${pathname === tab.href && "bg-card"}`}
+                    className={`${pathname === tab.href && "bg-card/50"}`}
                   >
                     <Link
                       href={tab.href}

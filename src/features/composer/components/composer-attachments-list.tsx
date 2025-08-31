@@ -72,7 +72,7 @@ export const ComposerAttachmentsList = ({
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="bg-card/50 max-w-md backdrop-blur-lg">
         <DialogHeader>
           <DialogTitle>Attachments</DialogTitle>
         </DialogHeader>

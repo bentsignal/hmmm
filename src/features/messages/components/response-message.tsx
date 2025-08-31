@@ -58,12 +58,12 @@ export default function ResponseMessage({
   const image = extractImageFromMessage(message);
 
   return (
-    <div className="flex w-full flex-col items-start gap-3">
+    <div className="flex w-full flex-col items-start gap-3 ">
       <MessageStatus message={message} isActive={isActive} />
       <MessageSources threadId={threadId} sources={sources} />
       <MessageImage image={image} />
       <div className="relative flex w-full max-w-full flex-col gap-2">
-        <Markdown className="prose dark:prose-invert relative w-full max-w-full">
+        <Markdown className="prose dark:prose-invert text-foreground! relative w-full max-w-full">
           {animatedText}
         </Markdown>
         {!isMobile && (

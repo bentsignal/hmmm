@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Box } from "lucide-react";
+// import { Box } from "lucide-react";
 import Link from "next/link";
 import { Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -59,20 +59,21 @@ export default function Home({
         preloadedSuggestions={preloadedSuggestions}
       />
       <UsageChatCallout />
-      {authed ? (
-        <Button asChild className="mt-2">
-          <Link href="/xr" className="flex items-center gap-2">
-            <Box className="h-4 w-4" />
-            <span className="">Enter XR</span>
-          </Link>
-        </Button>
-      ) : (
+      {!authed && (
         <Button asChild className="mt-2">
           <Link href="/sign-up" className="text-lg font-semibold">
             Get Started
           </Link>
         </Button>
       )}
+      {/* (
+        <Button asChild className="mt-2">
+          <Link href="/xr" className="flex items-center gap-2">
+            <Box className="h-4 w-4" />
+            <span className="">Enter XR</span>
+          </Link>
+        </Button>
+      ) :  */}
     </div>
   );
 }
@@ -95,12 +96,12 @@ const HomePrompts = ({
   );
 
   return (
-    <div className="relative mx-auto w-full max-w-2xl">
-      <Abyss height={50} top={false} />
+    <div className="relative mx-auto w-full max-w-2xl mask-b-from-80%">
+      <Abyss height={100} top={false} />
       <div
         className={cn(
           "flex w-full flex-col items-start gap-2 px-4 pb-12 text-sm",
-          "max-h-[300px] min-h-[300px] overflow-y-auto",
+          "max-h-[350px] min-h-[350px] overflow-y-auto",
           "scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent",
         )}
       >
@@ -108,7 +109,7 @@ const HomePrompts = ({
           <span
             key={prompt._id}
             className={cn(
-              "bg-card/50 text-card-foreground hover:bg-accent w-full rounded-lg p-4 shadow-md transition-all duration-300 select-none",
+              "bg-card/50 text-card-foreground hover:bg-card/70 w-full rounded-lg p-4 shadow-md transition-all duration-300 select-none",
               usage?.limitHit
                 ? "hover:cursor-not-allowed"
                 : "hover:cursor-pointer",

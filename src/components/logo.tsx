@@ -4,7 +4,7 @@ import "@/styles/logo-anim.css";
 export default function Logo({
   size = 50,
   containerClass,
-  faceClass = "bg-background",
+  faceClass = "bg-background supports-[backdrop-filter]:bg-background/50 supports-[backdrop-filter]:backdrop-blur-md",
   spin = false,
 }: {
   size?: number;
@@ -92,8 +92,7 @@ const CubeFace = ({
   return (
     <div
       className={cn(
-        `border-foreground text-foreground absolute flex
-      items-center justify-center border-2 text-xl font-bold`,
+        "border-border text-foreground absolute flex items-center justify-center border-2 text-xl font-bold",
         className,
       )}
       style={{

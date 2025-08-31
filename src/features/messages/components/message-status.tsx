@@ -64,17 +64,17 @@ export default function MessageStatus({
         </HoverCardTrigger>
         <HoverCardContent
           className={cn(
-            "bg-card prose dark:prose-invert relative",
-            "mt-2 w-lg rounded-md border",
+            "bg-card supports-[backdrop-filter]:bg-card/50 prose dark:prose-invert relative backdrop-blur-lg",
+            "w-lg rounded-md border",
             "overflow-hidden rounded-4xl p-0",
           )}
           align="start"
         >
-          <Abyss color="card" height={50} blur="sm" />
+          <Abyss height={50} blur="sm" />
           <div
             className={cn(
               "scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent",
-              "h-64 w-full overflow-y-auto p-8",
+              "h-64 w-full overflow-y-auto mask-t-from-70% mask-b-from-70% p-8",
             )}
           >
             <Markdown className="prose dark:prose-invert relative w-full max-w-full text-sm">

@@ -15,7 +15,7 @@ export default function useComposerInput() {
   );
 
   // show placeholder value only when not using web speech api
-  const placeholder = "Type your message...";
+  const placeholder = "Aa";
 
   /** value that will actually be shown in input text box */
   const value = useComposerStore((state) =>

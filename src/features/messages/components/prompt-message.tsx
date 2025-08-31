@@ -18,7 +18,7 @@ export default function PromptMessage({ message }: { message: MyUIMessage }) {
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
     >
-      <div className="bg-secondary text-secondary-foreground flex max-w-lg flex-col overflow-hidden rounded-xl px-5 py-4 shadow-md">
+      <div className="supports-[backdrop-filter]:bg-card/50 text-secondary-foreground flex max-w-lg flex-col overflow-hidden rounded-xl px-5 py-4 shadow-md backdrop-blur-lg">
         <Markdown className="prose dark:prose-invert relative w-full max-w-full">
           {message.text}
         </Markdown>
@@ -53,7 +53,7 @@ const Attachments = ({ message }: { message: MyUIMessage }) => {
               return (
                 <div
                   key={file.id}
-                  className="bg-muted hover:bg-muted/80 flex h-10 max-w-48 items-center gap-2 rounded-lg px-3 py-2 transition-colors"
+                  className="bg-card supports-[backdrop-filter]:bg-card/50 hover:bg-card/50 supports-[backdrop-filter]:hover:bg-card/80 flex h-10 max-w-48 items-center gap-2 rounded-lg px-3 py-2 transition-colors"
                 >
                   <LibraryFileIcon
                     fileType={fileType}

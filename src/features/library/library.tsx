@@ -82,7 +82,7 @@ export default function Library() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex">
-            <div className="bg-card supports-[backdrop-filter]:bg-card/80 flex h-full w-46 flex-col justify-between rounded-xl rounded-r-none border border-r-0 backdrop-blur">
+            <div className="bg-card supports-[backdrop-filter]:bg-card/50 flex h-full w-46 flex-col justify-between rounded-xl rounded-r-none border border-r-0 backdrop-blur-lg">
               <div className="flex flex-col gap-2 p-4">
                 {tabs.map((tab) => (
                   <Button
@@ -90,7 +90,8 @@ export default function Library() {
                     variant="ghost"
                     className={cn(
                       "w-full justify-start gap-2",
-                      activeTab === tab.value && "bg-card text-primary",
+                      activeTab === tab.value &&
+                        "bg-card supports-[backdrop-filter]:bg-card/50 text-primary",
                     )}
                     onClick={() => setActiveTab(tab.value)}
                   >
@@ -101,7 +102,7 @@ export default function Library() {
               </div>
               <LibraryUpload />
             </div>
-            <div className="bg-background relative flex h-full flex-1 flex-col rounded-xl rounded-l-none border border-l-0">
+            <div className="bg-background supports-[backdrop-filter]:bg-background/50 relative flex h-full flex-1 flex-col rounded-xl rounded-l-none border border-l-0 backdrop-blur-lg">
               <LibraryToolbar
                 view={view}
                 setView={setView}

@@ -25,7 +25,7 @@ export const ComposerAttachmentsPreview = () => {
           return (
             <div
               key={file.id}
-              className="bg-muted hover:bg-muted/80 flex items-center gap-2 rounded-lg px-3 py-2 transition-colors"
+              className="bg-muted supports-[backdrop-filter]:bg-muted/50 hover:bg-muted/80 flex items-center gap-2 rounded-lg px-3 py-2 transition-colors"
             >
               <LibraryFileIcon fileType={fileType} className="h-4 w-4" />
               <span className="line-clamp-1 max-w-32 text-sm font-medium sm:max-w-none">
@@ -35,7 +35,7 @@ export const ComposerAttachmentsPreview = () => {
           );
         })}
         {remainingCount > 0 && (
-          <div className="bg-muted hover:bg-muted/80 flex items-center gap-2 rounded-lg px-3 py-2 transition-colors">
+          <div className="bg-muted supports-[backdrop-filter]:bg-muted/50 hover:bg-muted/80 flex items-center gap-2 rounded-lg px-3 py-2 transition-colors">
             <span className="text-sm font-medium">+{remainingCount} more</span>
           </div>
         )}

@@ -18,7 +18,7 @@ export function Code({ inline, className, children }: CodeProps) {
   if (isBlock) {
     return (
       <div
-        className="not-prose group bg-card border-border relative my-2 w-full 
+        className="not-prose group border-border relative my-2 w-full 
         overflow-hidden rounded-xl border-1"
       >
         <div className="bg-border flex h-14 w-full items-center justify-between px-4">
@@ -29,7 +29,7 @@ export function Code({ inline, className, children }: CodeProps) {
             <CopyButton getContent={() => extractTextFromChildren(children)} />
           </div>
         </div>
-        <CodeBlock className="border-none bg-transparent p-6">
+        <CodeBlock className="rounded-t-none border-none bg-transparent p-6 ">
           <CodeBlockCode
             code={children?.toString() ?? ""}
             theme={theme === "dark" ? "github-dark" : "github-light"}
