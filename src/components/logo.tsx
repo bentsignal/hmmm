@@ -12,7 +12,6 @@ export default function Logo({
   faceClass?: string;
   spin?: boolean;
 }) {
-  console.log(faceClass);
   const faces = [
     {
       face: "front",
