@@ -17,7 +17,7 @@ import {
   Strategy,
   SupportedStrategy,
 } from "@clerk/elements/sign-in";
-import { useTheme } from "next-themes";
+// import { useTheme } from "next-themes";
 import DefaultLoading from "@/components/default-loading";
 import Logo from "@/components/logo";
 import { SimpleIcon } from "@/components/simple-icon";
@@ -34,8 +34,9 @@ import { Input as UIInput } from "@/components/ui/input";
 import { Loader } from "@/components/ui/loader";
 
 export default function SignIn() {
-  const { theme } = useTheme();
-  const color = theme === "light" ? "black" : "white";
+  // const { theme } = useTheme();
+  // const color = theme === "light" ? "black" : "white";
+  const color = "white";
   return (
     <div className="grid w-full grow items-center px-4 sm:justify-center">
       <Root fallback={<DefaultLoading />}>

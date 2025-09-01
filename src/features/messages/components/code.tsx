@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { useTheme } from "next-themes";
+// import { useTheme } from "next-themes";
 import { extractTextFromChildren } from "../util/message-util";
 import { CopyButton } from "./copy-button";
 import { Language } from "./language";
@@ -12,7 +12,7 @@ interface CodeProps {
 }
 
 export function Code({ inline, className, children }: CodeProps) {
-  const { theme } = useTheme();
+  // const { theme } = useTheme();
   const isBlock = !inline && (className?.includes("language-") || false);
 
   if (isBlock) {
@@ -32,7 +32,8 @@ export function Code({ inline, className, children }: CodeProps) {
         <CodeBlock className="rounded-t-none border-none bg-transparent p-6 ">
           <CodeBlockCode
             code={children?.toString() ?? ""}
-            theme={theme === "dark" ? "github-dark" : "github-light"}
+            // theme={theme === "dark" ? "github-dark" : "github-light"}
+            theme="github-dark"
           />
         </CodeBlock>
       </div>
@@ -43,7 +44,8 @@ export function Code({ inline, className, children }: CodeProps) {
       <CodeBlock className="rounded-md px-2 py-1">
         <CodeBlockCode
           code={children?.toString() ?? ""}
-          theme={theme === "dark" ? "github-dark" : "github-light"}
+          // theme={theme === "dark" ? "github-dark" : "github-light"}
+          theme="github-dark"
           className="text-sm"
         />
       </CodeBlock>

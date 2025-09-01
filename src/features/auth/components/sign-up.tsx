@@ -10,7 +10,7 @@ import {
   Loading,
 } from "@clerk/elements/common";
 import { Action, Captcha, Root, Step, Strategy } from "@clerk/elements/sign-up";
-import { useTheme } from "next-themes";
+// import { useTheme } from "next-themes";
 import Link from "next/link";
 // import { Label as UILabel } from "@/components/ui/label";
 import DefaultLoading from "@/components/default-loading";
@@ -29,8 +29,9 @@ import { Input as UIInput } from "@/components/ui/input";
 import { Loader } from "@/components/ui/loader";
 
 export default function SignUp() {
-  const { theme } = useTheme();
-  const color = theme === "light" ? "black" : "white";
+  // const { theme } = useTheme();
+  // const color = theme === "light" ? "black" : "white";
+  const color = "white";
   return (
     <div className="grid w-full grow items-center px-4 sm:justify-center">
       <Root fallback={<DefaultLoading />}>
