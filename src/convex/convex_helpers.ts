@@ -11,12 +11,10 @@ import {
   query,
   QueryCtx,
 } from "./_generated/server";
+import { env } from "./convex.env";
 
 export const checkApiKey = (apiKey: string) => {
-  if (!process.env.NEXT_CONVEX_INTERNAL_KEY) {
-    throw new ConvexError("Internal key not set");
-  }
-  if (apiKey !== process.env.NEXT_CONVEX_INTERNAL_KEY) {
+  if (apiKey !== env.NEXT_CONVEX_INTERNAL_KEY) {
     throw new ConvexError("Invalid key");
   }
 };

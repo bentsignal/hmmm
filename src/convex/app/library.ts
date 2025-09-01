@@ -24,6 +24,7 @@ import {
   MutationCtx,
   QueryCtx,
 } from "../_generated/server";
+import { env } from "../convex.env";
 import { limiter } from "../limiter";
 import { getUserPlanHelper } from "../user/subscription";
 import { LibraryFile } from "@/features/library/types";
@@ -133,10 +134,7 @@ export const verifyOwnership = async (
 };
 
 export const getFileUrl = (key: string) => {
-  if (!process.env.UPLOADTHING_ORG_ID) {
-    throw new ConvexError("UPLOADTHING_ORG_ID not set");
-  }
-  return `https://${process.env.UPLOADTHING_ORG_ID}.ufs.sh/f/${key}`;
+  return `https://${env.UPLOADTHING_ORG_ID}.ufs.sh/f/${key}`;
 };
 
 /**

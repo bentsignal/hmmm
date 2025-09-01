@@ -1,14 +1,10 @@
-import kv from "@/kv";
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 import { internal } from "@/convex/_generated/api";
+import { env } from "@/convex/convex.env";
+import kv from "@/convex/kv";
 import { formatCacheKey } from "./tool_helpers";
 import { tryCatch } from "@/lib/utils";
-
-const GOOGLE_WEATHER_API_KEY = process.env.GOOGLE_WEATHER_API_KEY;
-if (!GOOGLE_WEATHER_API_KEY) {
-  throw new Error("GOOGLE_WEATHER_API_KEY is not set");
-}
 
 export const weather = createTool({
   description: `
@@ -79,7 +75,7 @@ export const weather = createTool({
     }
     // construct url for weather api
     const base = "https://weather.googleapis.com";
-    const shared = `key=${GOOGLE_WEATHER_API_KEY}&location.latitude=${coordinates.lat}&location.longitude=${coordinates.lng}&unitsSystem=${args.unitSystem}`;
+    const shared = `key=${env.GOOGLE_API_KEY}&location.latitude=${coordinates.lat}&location.longitude=${coordinates.lng}&unitsSystem=${args.unitSystem}`;
     let url;
     switch (args.queryType) {
       case "current-conditions":
@@ -141,7 +137,7 @@ export const weather = createTool({
 
 const getCoordinates = async (location: string) => {
   const geocodingResponse = await fetch(
-    `https://maps.googleapis.com/maps/api/geocode/json?address=${location}&key=${GOOGLE_WEATHER_API_KEY}`,
+    `https://maps.googleapis.com/maps/api/geocode/json?address=${location}&key=${env.GOOGLE_API_KEY}`,
   );
   const geocodingData = await geocodingResponse.json();
   const { lat, lng } = geocodingData.results[0].geometry.location;

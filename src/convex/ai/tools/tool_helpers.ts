@@ -1,13 +1,9 @@
 import { ToolCtx } from "@convex-dev/agent";
 import { Exa } from "exa-js";
 import { internal } from "@/convex/_generated/api";
+import { env } from "@/convex/convex.env";
 
-const EXA_API_KEY = process.env.EXA_API_KEY;
-if (!EXA_API_KEY) {
-  throw new Error("EXA_API_KEY is not set");
-}
-
-export const exa = new Exa(EXA_API_KEY);
+export const exa = new Exa(env.EXA_API_KEY);
 
 export const logSearchCost = async (
   ctx: ToolCtx,

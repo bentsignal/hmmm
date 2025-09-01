@@ -6,6 +6,7 @@ import { v } from "convex/values";
 import { polar } from "@/convex/polar";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
+import { env } from "../convex.env";
 
 export const deleteUser = internalAction({
   args: {
@@ -35,14 +36,10 @@ export const processWebhook = internalAction({
     svixSignature: v.string(),
   },
   handler: async (ctx, args) => {
-    const CLERK_WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
-    if (!CLERK_WEBHOOK_SECRET) {
-      throw new Error("CLERK_WEBHOOK_SECRET is not set");
-    }
     const { body, svixId, svixTimestamp, svixSignature } = args;
     let event: WebhookEvent;
     try {
-      const wh = new Webhook(CLERK_WEBHOOK_SECRET);
+      const wh = new Webhook(env.CLERK_WEBHOOK_SECRET);
       event = wh.verify(body, {
         "svix-id": svixId,
         "svix-timestamp": svixTimestamp,

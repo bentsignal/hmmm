@@ -1,11 +1,14 @@
 import { env } from "@/env";
-import { utapi } from "@/server/uploadthing";
 import { auth } from "@clerk/nextjs/server";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
-import { UploadThingError } from "uploadthing/server";
+import { UploadThingError, UTApi } from "uploadthing/server";
 import { fetchMutation } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import { tryCatch } from "@/lib/utils";
+
+const utapi = new UTApi({
+  token: env.UPLOADTHING_TOKEN,
+});
 
 const f = createUploadthing();
 

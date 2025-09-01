@@ -11,6 +11,7 @@ import {
   emailSummaryGeneratorPrompt,
   emailTitleGeneratorPrompt,
 } from "../ai/prompts";
+import { env } from "../convex.env";
 import getNewsletterHtml from "./templates";
 
 // the number of stories to include in the newsletter
@@ -22,7 +23,7 @@ const MAX_FOR_SUBJECT = 3;
 
 // mail config
 const ORIGIN =
-  process.env.CONVEX_ENV === "development"
+  env.CONVEX_ENVIRONMENT === "development"
     ? "http://localhost:3000"
     : "https://qbe.sh";
 const ENDPOINT = "mail";

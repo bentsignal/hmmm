@@ -1,6 +1,6 @@
-import kv from "@/kv";
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
+import kv from "@/convex/kv";
 import { CachedSourceSchema, SearchReturnType } from ".";
 import { exa, formatCacheKey, logSearchCost } from "../tool_helpers";
 import { getCurrentDateTime } from "@/lib/date-time-utils";

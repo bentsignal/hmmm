@@ -1,9 +1,9 @@
-import { utapi } from "@/server/uploadthing";
 import { fal } from "@fal-ai/client";
 import { UTFile } from "uploadthing/server";
 import { internal } from "@/convex/_generated/api";
 import { ActionCtx } from "@/convex/_generated/server";
 import { FalImageGenerationModel } from "@/convex/ai/models";
+import { utapi } from "@/convex/uploadthing";
 import { aspectRatioMap, type AspectRatio } from "./types";
 import { tryCatch } from "@/lib/utils";
 

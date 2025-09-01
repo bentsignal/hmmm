@@ -1,7 +1,7 @@
 "use node";
 
-import { utapi } from "@/server/uploadthing";
 import { v } from "convex/values";
+import { utapi } from "@/convex/uploadthing";
 import { internalAction } from "../_generated/server";
 
 export const deleteFilesFromStorage = internalAction({
