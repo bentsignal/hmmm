@@ -5,7 +5,6 @@ export const env = createEnv({
   server: {
     // clerk
     CLERK_SECRET_KEY: z.string().min(1),
-    CLERK_WEBHOOK_SECRET: z.string().min(1),
     // convex
     CONVEX_DEPLOYMENT: z.string().min(1),
     NEXT_CONVEX_INTERNAL_KEY: z.string().min(1),
@@ -30,7 +29,6 @@ export const env = createEnv({
     NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
     // clerk
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
-    CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
     NEXT_PUBLIC_CLERK_FRONTEND_API_URL:
