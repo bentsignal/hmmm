@@ -18,7 +18,7 @@ const robotoMono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "QBE",
+  title: "hmmm...",
   description: "How can I help you today?",
 };
 

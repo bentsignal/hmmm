@@ -7,8 +7,8 @@
   </a>
   <br />
   <br />
-  <a href="https://www.qbe.sh" target="_blank">
-    qbe.sh
+  <a href="https://www.hmmm.chat" target="_blank">
+    hmmm.chat
   </a>
 </div>
 <br />
@@ -18,7 +18,7 @@
 
 A great starting point for those looking to build agentic applications for the web.
 
-For more information, head over to the [docs](https://docs.qbe.sh)
+For more information, head over to the [docs](https://docs.hmmm.chat)
 
 <br />
 <br />

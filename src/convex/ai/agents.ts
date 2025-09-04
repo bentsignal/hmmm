@@ -13,7 +13,7 @@ import { tryCatch } from "@/lib/utils";
 
 export const agent = new Agent(components.agent, {
   languageModel: modelPresets.default.model,
-  name: "QBE",
+  name: "The Thinker",
   instructions: agentPrompt,
   maxSteps: 20,
   tools: tools,

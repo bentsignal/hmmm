@@ -25,11 +25,11 @@ const MAX_FOR_SUBJECT = 3;
 const ORIGIN =
   env.CONVEX_ENVIRONMENT === "development"
     ? "http://localhost:3000"
-    : "https://qbe.sh";
+    : "https://hmmm.chat";
 const ENDPOINT = "mail";
-const RESUBSCRIBE = "resubscribe@qbe.sh";
-const UNSUBSCRIBE = "unsubscribe@qbe.sh";
-const FROM = "QBE <newsletter@mail.qbe.sh>";
+const RESUBSCRIBE = "resubscribe@hmmm.chat";
+const UNSUBSCRIBE = "unsubscribe@hmmm.chat";
+const FROM = "hmmm... <newsletter@mail.hmmm.chat>";
 
 export const sendNewsletter = internalAction({
   handler: async (ctx) => {
