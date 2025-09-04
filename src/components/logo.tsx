@@ -18,16 +18,16 @@ export default function Logo({
       label: "E",
       transform: `rotateY(0deg) translateZ(${size / 2}px)`,
     },
-    {
-      face: "right",
-      label: "B",
-      transform: `rotateY(90deg) translateZ(${size / 2}px)`,
-    },
-    {
-      face: "back",
-      label: "E",
-      transform: `rotateY(180deg) translateZ(${size / 2}px)`,
-    },
+    // {
+    //   face: "right",
+    //   label: "B",
+    //   transform: `rotateY(90deg) translateZ(${size / 2}px)`,
+    // },
+    // {
+    //   face: "back",
+    //   label: "E",
+    //   transform: `rotateY(180deg) translateZ(${size / 2}px)`,
+    // },
     {
       face: "left",
       label: "B",
@@ -38,11 +38,11 @@ export default function Logo({
       label: "Q",
       transform: `rotateX(90deg) rotateZ(90deg) translateZ(${size / 2}px)`,
     },
-    {
-      face: "bottom",
-      label: "Q",
-      transform: `rotateX(-90deg) translateZ(${size / 2}px)`,
-    },
+    // {
+    //   face: "bottom",
+    //   label: "Q",
+    //   transform: `rotateX(-90deg) translateZ(${size / 2}px)`,
+    // },
   ];
   return (
     <div
