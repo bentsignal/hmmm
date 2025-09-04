@@ -2,16 +2,7 @@
 
 import { createContext, useContext, useState } from "react";
 import Cookies from "js-cookie";
-
-export const themes = [
-  "sunrise",
-  "afternoon",
-  "nebula",
-  "outer-space",
-] as const;
-
-export type Theme = (typeof themes)[number];
-export const defaultTheme = "nebula";
+import { defaultTheme, Theme } from "@/lib/theme";
 
 interface ThemeContextType {
   theme: Theme;

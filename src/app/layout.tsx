@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Inter, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "@/providers";
-import { defaultTheme, Theme } from "@/providers/theme-provider";
 import { cookies } from "next/headers";
 import { Toaster } from "sonner";
+import { defaultTheme, getThemeClass, Theme } from "@/lib/theme";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -29,6 +29,7 @@ export default async function RootLayout({
 }>) {
   const initialTheme =
     ((await cookies()).get("theme")?.value as Theme) || defaultTheme;
+  const themeClass = getThemeClass(initialTheme);
   return (
     <html
       lang="en"
@@ -44,7 +45,7 @@ export default async function RootLayout({
         /> */}
       </head>
       <body
-        className={`${inter.variable} ${robotoMono.variable} font-main relative overflow-hidden antialiased theme-${initialTheme}`}
+        className={`${inter.variable} ${robotoMono.variable} ${themeClass} font-main relative overflow-hidden antialiased`}
       >
         <Providers>{children}</Providers>
         <Toaster />

@@ -1,8 +1,9 @@
 "use client";
 
-import { themes, useTheme } from "@/providers/theme-provider";
+import { useTheme } from "@/providers/theme-provider";
 import Cookies from "js-cookie";
 import InfoCard from "@/components/info-card";
+import { themes } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 export default function Appearance() {
