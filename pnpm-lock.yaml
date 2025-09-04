@@ -36,8 +36,8 @@ importers:
         specifier: ^0.2.9
         version: 0.2.9(convex@1.26.2(@clerk/clerk-react@5.44.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1))
       '@convex-dev/polar':
-        specifier: ^0.6.4
-        version: 0.6.4(@polar-sh/checkout@0.1.10(@stripe/react-stripe-js@3.9.2(@stripe/stripe-js@5.10.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@stripe/stripe-js@5.10.0)(@types/react-dom@19.1.8(@types/react@19.1.11))(@types/react@19.1.11)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@3.25.76))(@polar-sh/sdk@0.32.11(zod@3.25.76))(@standard-schema/spec@1.0.0)(convex@1.26.2(@clerk/clerk-react@5.44.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.9.2)(zod@3.25.76)
+        specifier: ^0.5.0
+        version: 0.5.0(@standard-schema/spec@1.0.0)(@stripe/react-stripe-js@3.9.2(@stripe/stripe-js@5.10.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@stripe/stripe-js@5.10.0)(@types/react-dom@19.1.8(@types/react@19.1.11))(@types/react@19.1.11)(convex@1.26.2(@clerk/clerk-react@5.44.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.9.2)(zod@3.25.76)
       '@convex-dev/rate-limiter':
         specifier: ^0.2.12
         version: 0.2.12(convex@1.26.2(@clerk/clerk-react@5.44.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1))(react@19.1.1)
@@ -480,12 +480,10 @@ packages:
     peerDependencies:
       convex: ~1.16.5 || >=1.17.0 <1.35.0
 
-  '@convex-dev/polar@0.6.4':
-    resolution: {integrity: sha512-QXWe+URjSMIkJI9vB8u4ghNA3IPa1fCnlhP3lXg0kDV5CvW7imZx7TzXx2Yce9ZQA7EhMfSJH6GNBV7zYa7vhQ==}
+  '@convex-dev/polar@0.5.0':
+    resolution: {integrity: sha512-MNgkLNoWVmTKBTI0AA39QngV/bwr3Tq7k+hlAr/gyj7oYmvkDrHL5h9vgOfLqacUKEH4ute3lhGY1G42UGdzgg==}
     peerDependencies:
-      '@polar-sh/checkout': '>=0.1.10'
-      '@polar-sh/sdk': '>=0.32.11'
-      convex: ^1.25.4
+      convex: ^1.19.2 || >=1.17.0 <1.35.0
       react: ^18 || ^19
       react-dom: ^18 || ^19
 
@@ -5945,7 +5943,7 @@ snapshots:
     dependencies:
       convex: 1.26.2(@clerk/clerk-react@5.44.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1)
 
-  '@convex-dev/polar@0.6.4(@polar-sh/checkout@0.1.10(@stripe/react-stripe-js@3.9.2(@stripe/stripe-js@5.10.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@stripe/stripe-js@5.10.0)(@types/react-dom@19.1.8(@types/react@19.1.11))(@types/react@19.1.11)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@3.25.76))(@polar-sh/sdk@0.32.11(zod@3.25.76))(@standard-schema/spec@1.0.0)(convex@1.26.2(@clerk/clerk-react@5.44.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.9.2)(zod@3.25.76)':
+  '@convex-dev/polar@0.5.0(@standard-schema/spec@1.0.0)(@stripe/react-stripe-js@3.9.2(@stripe/stripe-js@5.10.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@stripe/stripe-js@5.10.0)(@types/react-dom@19.1.8(@types/react@19.1.11))(@types/react@19.1.11)(convex@1.26.2(@clerk/clerk-react@5.44.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.9.2)(zod@3.25.76)':
     dependencies:
       '@polar-sh/checkout': 0.1.10(@stripe/react-stripe-js@3.9.2(@stripe/stripe-js@5.10.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@stripe/stripe-js@5.10.0)(@types/react-dom@19.1.8(@types/react@19.1.11))(@types/react@19.1.11)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@3.25.76)
       '@polar-sh/sdk': 0.32.11(zod@3.25.76)
@@ -5957,7 +5955,12 @@ snapshots:
       remeda: 2.30.0
       standardwebhooks: 1.0.0
     transitivePeerDependencies:
+      - '@modelcontextprotocol/sdk'
       - '@standard-schema/spec'
+      - '@stripe/react-stripe-js'
+      - '@stripe/stripe-js'
+      - '@types/react'
+      - '@types/react-dom'
       - hono
       - typescript
       - zod

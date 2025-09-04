@@ -22,7 +22,7 @@
     "@convex-dev/agent": "0.2.7",
     "@convex-dev/aggregate": "^0.1.23",
     "@convex-dev/migrations": "^0.2.9",
-    "@convex-dev/polar": "^0.6.4",
+    "@convex-dev/polar": "^0.5.0",
     "@convex-dev/rate-limiter": "^0.2.12",
     "@convex-dev/react-query": "0.0.0-alpha.11",
     "@convex-dev/resend": "^0.1.12",
