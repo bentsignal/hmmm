@@ -18,7 +18,7 @@ export default function PromptMessage({ message }: { message: MyUIMessage }) {
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
     >
-      <div className="supports-[backdrop-filter]:bg-card/50 text-secondary-foreground flex max-w-lg flex-col overflow-hidden rounded-xl px-5 py-4 shadow-md backdrop-blur-lg">
+      <div className="bg-sidebar/50 flex max-w-lg flex-col overflow-hidden rounded-xl px-5 py-4 shadow-md backdrop-blur-lg">
         <Markdown className="prose dark:prose-invert relative w-full max-w-full">
           {message.text}
         </Markdown>

@@ -26,7 +26,7 @@ export default function ThreadFollowUps({ threadId }: { threadId: string }) {
       {followUpQuestions?.map((question) => (
         <div
           key={question}
-          className="text-secondary-foreground bg-secondary supports-[backdrop-filter]:bg-card/50 hover:secondary/50 supports-[backdrop-filter]:hover:bg-card/70 rounded-xl p-4 text-sm shadow-md backdrop-blur-sm transition-all duration-300 select-none hover:cursor-pointer"
+          className="bg-card/50 hover:bg-card/70 rounded-xl p-4 text-sm shadow-md backdrop-blur-sm transition-all duration-300 select-none hover:cursor-pointer"
           onClick={() => {
             sendMessage({ customPrompt: question, navigateToNewThread: false });
           }}

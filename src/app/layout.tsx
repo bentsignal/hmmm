@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "@/providers";
+import { defaultTheme, Theme } from "@/providers/theme-provider";
+import { cookies } from "next/headers";
 import { Toaster } from "sonner";
 
 const inter = Inter({
@@ -20,11 +22,13 @@ export const metadata: Metadata = {
   description: "How can I help you today?",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const initialTheme =
+    ((await cookies()).get("theme")?.value as Theme) || defaultTheme;
   return (
     <html
       lang="en"
@@ -40,30 +44,11 @@ export default function RootLayout({
         /> */}
       </head>
       <body
-        className={`${inter.variable} ${robotoMono.variable} font-main relative overflow-hidden antialiased`}
+        className={`${inter.variable} ${robotoMono.variable} font-main relative overflow-hidden antialiased theme-${initialTheme}`}
       >
-        <Stars />
         <Providers>{children}</Providers>
         <Toaster />
       </body>
     </html>
   );
 }
-
-const Stars = () => {
-  return (
-    <div className="pointer-events-none absolute inset-0 h-screen w-screen">
-      {Array.from({ length: 200 }).map((_, index) => (
-        <div
-          className={`bg-foreground absolute h-[1px] w-[1px]`}
-          key={index}
-          style={{
-            left: `calc(100vw * ${Math.random()} + 20px)`,
-            top: `calc(100vh * ${Math.random()} + 20px)`,
-            opacity: Math.random(),
-          }}
-        />
-      ))}
-    </div>
-  );
-};

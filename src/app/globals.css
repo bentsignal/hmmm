@@ -86,6 +86,15 @@
   --light: oklch(0.65 0.1 160);
   --ultra: oklch(0.65 0.1 60);
   --shimmer: oklch(0.7 0 0);
+
+  /* themes */
+  --outer-space-black: oklch(0 0 0);
+  --outer-space-grey: oklch(0.24 0 0);
+
+  --nebula-black: oklch(0.14 0.06 317.05);
+  --nebula-purple: oklch(0.24 0.13 289.46 / 0);
+  --nebula-blue: oklch(0.41 0.28 265.5);
+  --nebula-pink: oklch(0.92 0.07 330.12);
 }
 
 .dark {
@@ -135,19 +144,34 @@
 body {
   position: relative;
   min-height: 100vh;
+  min-width: 100vw;
+  background-size: cover;
 }
 
-body::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  background-size: cover;
-  z-index: -1;
+.theme-outer-space {
+  background: linear-gradient(
+    to top,
+    var(--outer-space-grey) 0%,
+    var(--outer-space-black) 100%
+  );
+}
+
+.theme-nebula {
   background:
-    linear-gradient(to top, #23065600 0%, #120218ff 72%),
-    linear-gradient(to top, #ffd6faff 0%, #0f00dbff 65%);
+    linear-gradient(to top, var(--nebula-purple) 0%, var(--nebula-black) 72%),
+    linear-gradient(to top, var(--nebula-pink) 0%, var(--nebula-blue) 65%);
+}
+
+.theme-afternoon {
+  background:
+    linear-gradient(to top, #ffffff00 0%, #090934ff 100%),
+    linear-gradient(to top, #ffebe0ff 0%, #528bd1ff 32%, #091e2aff 88%);
+}
+
+.theme-sunrise {
+  background:
+    linear-gradient(to top, #ffffff00 0%, #5463bbff 92%),
+    linear-gradient(to top, #f07a7aff 0%, #f5c270ff 32%, #eccdb6ff 88%);
 }
 
 @keyframes shimmer {
