@@ -72,7 +72,8 @@ const PreviewSources = ({
 
   const handleLoadOrError = () => {
     loadedCount.current += 1;
-    if (loadedCount.current >= images.length + favicons.length) {
+    // if (loadedCount.current >= images.length + favicons.length) {
+    if (loadedCount.current >= favicons.length) {
       setAllLoaded(true);
       loadedSignatures.add(signature);
     }
@@ -83,7 +84,7 @@ const PreviewSources = ({
       className="flex w-full flex-col gap-4 transition-opacity duration-500 select-none hover:cursor-pointer"
       style={{ opacity: allLoaded ? 1 : 0 }}
     >
-      <div className="relative hidden h-48 w-full flex-col gap-2">
+      {/* <div className="relative flex h-48 w-full flex-col gap-2">
         {images.map((source, index) => (
           <div key={`image-${index}`}>
             <img
@@ -104,7 +105,7 @@ const PreviewSources = ({
             />
           </div>
         ))}
-      </div>
+      </div> */}
       <div className="bg-card supports-[backdrop-filter]:bg-card/50 flex w-fit items-center gap-3 rounded-full px-4 py-2">
         {favicons.length > 0 && (
           <div className="flex gap-2">
