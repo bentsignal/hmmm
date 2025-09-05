@@ -12,6 +12,7 @@ export default function Logo({
   faceClass?: string;
   spin?: boolean;
 }) {
+  // test
   return null;
   const faces = [
     {
