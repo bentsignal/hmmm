@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { env } from "@/env";
 // import { Box } from "lucide-react";
 import Link from "next/link";
 import { Preloaded, useMutation, usePreloadedQuery } from "convex/react";
@@ -33,6 +34,8 @@ export default function Home({
       </div>
     );
   }
+
+  console.log(env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL);
 
   return (
     <div className="flex w-full flex-1 flex-col items-center justify-center gap-2">
