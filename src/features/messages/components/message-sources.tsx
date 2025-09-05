@@ -83,7 +83,7 @@ const PreviewSources = ({
       className="flex w-full flex-col gap-4 transition-opacity duration-500 select-none hover:cursor-pointer"
       style={{ opacity: allLoaded ? 1 : 0 }}
     >
-      <div className="relative flex h-48 w-full flex-col gap-2">
+      <div className="relative hidden h-48 w-full flex-col gap-2">
         {images.map((source, index) => (
           <div key={`image-${index}`}>
             <img
