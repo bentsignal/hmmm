@@ -72,7 +72,7 @@ export default function ChatSidebar() {
       </SidebarHeader>
       <SidebarContent
         className="scrollbar-thin scrollbar-thumb-secondary 
-        scrollbar-track-transparent overflow-y-auto"
+        scrollbar-track-transparent overflow-y-auto mask-b-from-95%"
       >
         <SidebarMenu>
           <ThreadList
