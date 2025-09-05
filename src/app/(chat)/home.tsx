@@ -34,12 +34,14 @@ export default function Home({
     );
   }
 
+  const hero = authed ? "Welcome back" : "Welcome";
+
   return (
     <div className="flex w-full flex-1 flex-col items-center justify-center gap-2">
       <Logo className="my-2" />
       <div className="my-2 flex flex-col items-center gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold">Welcome back</span>
+          <span className="text-2xl font-bold">{hero}</span>
         </div>
         <span className="text-muted-foreground text-lg font-semibold">
           How can I help you today?
