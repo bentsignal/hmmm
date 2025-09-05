@@ -10,9 +10,11 @@ import ComposerSpeech from "@/features/speech/components/composer-speech";
 export default function Composer({
   showInstantLoad,
   handleError,
+  authed,
 }: {
   showInstantLoad?: () => void;
   handleError?: () => void;
+  authed: boolean;
 }) {
   return (
     <div className="mx-auto w-full max-w-2xl p-4">
@@ -29,10 +31,12 @@ export default function Composer({
             handleError={handleError}
           />
           <div className="flex w-full flex-1 items-center justify-between gap-2">
-            <div className="flex flex-1 items-center justify-start gap-2">
-              <ComposerAddAttachments />
-              <ComposerSpeech />
-            </div>
+            {authed && (
+              <div className="flex flex-1 items-center justify-start gap-2">
+                <ComposerAddAttachments />
+                <ComposerSpeech />
+              </div>
+            )}
             <ComposerSend
               showInstantLoad={showInstantLoad}
               handleError={handleError}

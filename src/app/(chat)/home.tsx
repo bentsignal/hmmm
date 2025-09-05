@@ -52,6 +52,7 @@ export default function Home({
           <Composer
             showInstantLoad={() => setIsLoading(true)}
             handleError={() => setIsLoading(false)}
+            authed={authed}
           />
         </ErrorBoundary>
       </div>
