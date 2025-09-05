@@ -110,7 +110,7 @@ export default function Library() {
                 setSortDirection={setSortDirection}
                 setSearchTerm={setSearch}
               />
-              <div className="max-h-[500px] min-h-[500px] flex-1 overflow-y-auto px-4 pb-4">
+              <div className="max-h-[500px] min-h-[500px] flex-1 overflow-y-auto mask-b-from-95% px-4 pb-4">
                 <LibraryFileList
                   view={view}
                   sort={sort}
