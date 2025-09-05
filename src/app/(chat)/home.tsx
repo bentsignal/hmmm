@@ -36,7 +36,7 @@ export default function Home({
 
   return (
     <div className="flex w-full flex-1 flex-col items-center justify-center gap-2">
-      <Logo size={50} containerClass="my-6" />
+      <Logo className="my-2" />
       <div className="my-2 flex flex-col items-center gap-2">
         <div className="flex items-center gap-2">
           <span className="text-2xl font-bold">Welcome back</span>

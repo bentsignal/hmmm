@@ -40,14 +40,8 @@ export default function SignUp() {
             <>
               <Step name="start">
                 <Card className="flex w-full flex-col items-center justify-center sm:w-96">
-                  <CardHeader className="flex flex-col items-center justify-center">
-                    <CardHeader className="flex flex-col items-center justify-center">
-                      <Logo
-                        size={50}
-                        containerClass="mt-4 mb-2"
-                        faceClass="bg-card"
-                      />
-                    </CardHeader>
+                  <CardHeader className="flex w-24 flex-col items-center justify-center">
+                    <Logo className="mt-2 size-[50px]" />
                   </CardHeader>
                   <CardContent className="mt-2 flex w-[90%] flex-col gap-y-4 sm:w-[80%]">
                     <Connection name="google" asChild>
