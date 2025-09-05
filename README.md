@@ -18,7 +18,7 @@
 <br />
 <div align="center">
 
-A great starting point for those looking to build agentic applications for the web.
+A great starting point for building agentic applications for the web.
 
 For more information, head over to the [docs](https://docs.hmmm.chat)
 
