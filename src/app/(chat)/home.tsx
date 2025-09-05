@@ -101,7 +101,7 @@ const HomePrompts = ({
       <div
         className={cn(
           "flex w-full flex-col items-start gap-2 px-4 pb-12 text-sm",
-          "max-h-[350px] min-h-[350px] overflow-y-auto",
+          "h-[300px] overflow-y-auto",
           "scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent",
         )}
       >
