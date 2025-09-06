@@ -3,12 +3,13 @@
 import { useTheme } from "@/providers/theme-provider";
 import Cookies from "js-cookie";
 import InfoCard from "@/components/info-card";
+import { Switch } from "@/components/ui/switch";
 import { themes } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 export default function Appearance() {
   console.log(Cookies.get());
-  const { theme, changeTheme } = useTheme();
+  const { theme, changeTheme, stars, changeStars } = useTheme();
   return (
     <InfoCard title="Appearance">
       <div className="flex flex-col gap-4">
@@ -29,7 +30,7 @@ export default function Appearance() {
             );
           })}
         </div>
-        {/* <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Stars</span>
           <Switch
             checked={stars}
@@ -37,7 +38,7 @@ export default function Appearance() {
               changeStars(checked);
             }}
           />
-        </div> */}
+        </div>
       </div>
     </InfoCard>
   );
