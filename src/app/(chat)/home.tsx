@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-// import { Box } from "lucide-react";
+import { Box } from "lucide-react";
 import Link from "next/link";
 import { Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -19,9 +19,11 @@ import useSendMessage from "@/features/composer/hooks/use-send-message";
 export default function Home({
   preloadedSuggestions,
   authed,
+  showXr,
 }: {
   preloadedSuggestions: Preloaded<typeof api.ai.suggestions.getCurrent>;
   authed: boolean;
+  showXr: boolean;
 }) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -69,14 +71,14 @@ export default function Home({
           </Link>
         </Button>
       )}
-      {/* (
+      {authed && showXr && (
         <Button asChild className="mt-2">
           <Link href="/xr" className="flex items-center gap-2">
             <Box className="h-4 w-4" />
             <span className="">Enter XR</span>
           </Link>
         </Button>
-      ) :  */}
+      )}
     </div>
   );
 }
