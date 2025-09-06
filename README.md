@@ -3,7 +3,7 @@
 <br />
 <div align="center">
   <a href="https://www.youtube.com/watch?v=0tyf2mZNXcs">
-    <img src="docs/assets/ar.gif" alt="Logo" width="500px">
+    <img src="src/app/opengraph-image.jpg" alt="Header image showing the homepage of the live website" width="500px">
   </a>
   <br />
   <br />
