@@ -8,12 +8,10 @@ import { getAuthToken } from "@/features/auth/util";
 export default async function Personalization() {
   const token = await getAuthToken();
 
-  const userInfo = await fetchQuery(api.user.info.get, {}, { token });
-  const showModelSelector = await fetchQuery(
-    api.user.subscription.showModelSelector,
-    {},
-    { token },
-  );
+  const [userInfo, showModelSelector] = await Promise.all([
+    fetchQuery(api.user.info.get, {}, { token }),
+    fetchQuery(api.user.subscription.showModelSelector, {}, { token }),
+  ]);
 
   const publicModels = getPublicLanguageModels();
 
