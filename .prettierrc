@@ -3,7 +3,6 @@
     "@ianvs/prettier-plugin-sort-imports",
     "prettier-plugin-tailwindcss"
   ],
-  "tailwindPreserveWhitespace": true,
   "importOrder": [
     "^react$",
     "<THIRD_PARTY_MODULES>",
