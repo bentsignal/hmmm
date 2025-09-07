@@ -53,8 +53,8 @@ export function getStatusLabel(parts: MyUIMessagePart[]) {
       return "Checking the news";
     case "tool-analyzeFiles":
       return "Analyzing files";
-    case "tool-codeGeneration":
-      return "Generating code";
+    // case "tool-codeGeneration":
+    //   return "Generating code";
     case "tool-positionHolder":
       return "Searching for information";
     case "tool-initImage":

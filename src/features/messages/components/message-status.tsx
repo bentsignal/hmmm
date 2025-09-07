@@ -2,7 +2,7 @@ import { useSmoothText } from "@convex-dev/agent/react";
 import {
   Brain,
   Clock,
-  Code,
+  // Code,
   File,
   Globe,
   Image as ImageIcon,
@@ -52,9 +52,9 @@ export default function MessageStatus({
               <Sun className="h-4 w-4" />
             ) : statusLabel === "Analyzing files" ? (
               <File className="h-4 w-4" />
-            ) : statusLabel === "Generating code" ? (
-              <Code className="h-4 w-4" />
-            ) : statusLabel === "Generating image" ? (
+            ) : // ) : statusLabel === "Generating code" ? (
+            //   <Code className="h-4 w-4" />
+            statusLabel === "Generating image" ? (
               <ImageIcon className="h-4 w-4" />
             ) : (
               <Brain className="h-4 w-4" />
