@@ -3,7 +3,7 @@ import { Container, Text } from "@react-three/uikit";
 import {
   Brain,
   Clock,
-  Code,
+  // Code,
   File,
   Globe,
   Newspaper,
@@ -76,9 +76,9 @@ const MessageStatus = ({ message }: { message: MyUIMessage }) => {
         <Sun {...iconStyles} />
       ) : statusLabel === "Analyzing files" ? (
         <File {...iconStyles} />
-      ) : statusLabel === "Generating code" ? (
-        <Code {...iconStyles} />
       ) : (
+        // ) : statusLabel === "Generating code" ? (
+        //   <Code {...iconStyles} />
         <Brain {...iconStyles} />
       )}
       <Text color={hexColors.foreground}>{statusLabel}</Text>
