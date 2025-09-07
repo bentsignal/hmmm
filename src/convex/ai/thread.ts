@@ -5,6 +5,7 @@ import { CustomCtx } from "convex-helpers/server/customFunctions";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { components, internal } from "@/convex/_generated/api";
+import { Doc } from "@/convex/_generated/dataModel";
 import {
   ActionCtx,
   internalAction,
@@ -19,6 +20,7 @@ import { titleGeneratorPrompt } from "../ai/prompts";
 import { getPublicFile } from "../app/library";
 import { authedMutation, authedQuery } from "../convex_helpers";
 import { messageSendRateLimit } from "../limiter";
+import { getPerferredModelIfAllowed, getUserInfoHelper } from "../user/info";
 import { getUsageHelper } from "../user/usage";
 import { tryCatch } from "@/lib/utils";
 import { MAX_ATTACHMENTS_PER_MESSAGE } from "@/features/library/config";
@@ -167,31 +169,28 @@ export const saveUserMessage = async (
   ctx: CustomCtx<typeof authedMutation>,
   threadId: string,
   prompt: string,
+  userInfo: Doc<"personalInfo"> | null,
   attachments?: {
     key: string;
     name: string;
     mimeType: string;
   }[],
 ) => {
-  const personal = await ctx.db
-    .query("personalInfo")
-    .withIndex("by_user_id", (q) => q.eq("userId", ctx.user.subject))
-    .first();
   const parts = [] as Array<{ role: "system"; content: string }>;
   if (
-    personal &&
-    (personal.name || personal.location || personal.language || personal.notes)
+    userInfo &&
+    (userInfo.name || userInfo.location || userInfo.language || userInfo.notes)
   ) {
     const fields = [
-      personal.name ? `The user's name is ${personal.name}` : null,
-      personal.location
-        ? `The user's current location is ${personal.location}`
+      userInfo.name ? `The user's name is ${userInfo.name}` : null,
+      userInfo.location
+        ? `The user's current location is ${userInfo.location}`
         : null,
-      personal.language
-        ? `User would like your response to be in: ${personal.language}`
+      userInfo.language
+        ? `User would like your response to be in: ${userInfo.language}`
         : null,
-      personal.notes
-        ? `Additional info user would like you to know: ${personal.notes}`
+      userInfo.notes
+        ? `Additional info user would like you to know: ${userInfo.notes}`
         : null,
     ].filter(Boolean) as string[];
     if (fields.length > 0) {
@@ -340,9 +339,10 @@ export const create = authedMutation({
       userId: ctx.user.subject,
       title: "New Chat",
     });
+    const userInfo = await getUserInfoHelper(ctx);
     // create metadata doc for thread and store first message
     const [{ lastMessageId }] = await Promise.all([
-      saveUserMessage(ctx, threadId, prompt, attachments),
+      saveUserMessage(ctx, threadId, prompt, userInfo, attachments),
       ctx.db.insert("threadMetadata", {
         userId: ctx.user.subject,
         title: "New Chat",
@@ -352,6 +352,8 @@ export const create = authedMutation({
         pinned: false,
       }),
     ]);
+    // determine which model should be used for the response
+    const model = await getPerferredModelIfAllowed(ctx, userInfo?.model);
     // generate title for new thread, and start response
     const { error } = await tryCatch(
       Promise.all([
@@ -362,6 +364,7 @@ export const create = authedMutation({
         ctx.scheduler.runAfter(0, internal.ai.agents.streamResponse, {
           threadId: threadId,
           promptMessageId: lastMessageId,
+          model: model,
         }),
       ]),
     );
@@ -396,9 +399,11 @@ export const sendMessage = authedMutation({
     if (metadata.state !== "idle") {
       throw new ConvexError("Thread is not idle");
     }
+    const userInfo = await getUserInfoHelper(ctx);
+    const model = await getPerferredModelIfAllowed(ctx, userInfo?.model);
     // save new message to thread, update thread state, clear previous follow up questions
     const [{ lastMessageId }] = await Promise.all([
-      saveUserMessage(ctx, threadId, prompt, attachments),
+      saveUserMessage(ctx, threadId, prompt, userInfo, attachments),
       ctx.db.patch(metadata._id, {
         state: "waiting",
         updatedAt: Date.now(),
@@ -412,6 +417,7 @@ export const sendMessage = authedMutation({
       ctx.scheduler.runAfter(0, internal.ai.agents.streamResponse, {
         threadId: args.threadId,
         promptMessageId: lastMessageId,
+        model: model,
       }),
     );
     if (error) {

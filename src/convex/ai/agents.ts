@@ -6,7 +6,7 @@ import { components, internal } from "@/convex/_generated/api";
 import { agentPrompt, followUpGeneratorPrompt } from "@/convex/ai/prompts";
 import { ActionCtx, internalAction } from "../_generated/server";
 import { calculateModelCost } from "../user/usage";
-import { modelPresets } from "./models";
+import { getModel, modelPresets } from "./models";
 import { logSystemError } from "./thread";
 import { tools } from "./tools";
 import { tryCatch } from "@/lib/utils";
@@ -66,16 +66,19 @@ export const streamResponse = internalAction({
   args: {
     threadId: v.string(),
     promptMessageId: v.string(),
+    model: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { threadId, promptMessageId } = args;
     const { thread } = await agent.continueThread(ctx, {
       threadId: threadId,
     });
+    const model = getModel(args.model);
     // initiate response
     const { data: result, error: streamInitError } = await tryCatch(
       thread.streamText(
         {
+          model: model.model,
           promptMessageId,
           maxOutputTokens: 64000,
           providerOptions: {

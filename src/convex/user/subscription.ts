@@ -1,7 +1,8 @@
+import { CustomCtx } from "convex-helpers/server/customFunctions";
 import { v } from "convex/values";
 import { internalQuery, QueryCtx } from "@/convex/_generated/server";
 import { hasUnlimitedAccess } from "@/convex/user/account";
-import { authedQuery } from "../convex_helpers";
+import { authedMutation, authedQuery } from "../convex_helpers";
 import { polar } from "../polar";
 
 // user can use up to 60% of their plan's price on inference
@@ -27,6 +28,9 @@ export const enum PlanTier {
   Ultra = 3,
   Unlimited = 4,
 }
+
+// users must be at least Premium tier to choose which model to use
+const MODEL_SELECTION_TIER = PlanTier.Premium;
 
 export const getUserPlanHelper = async (
   ctx: QueryCtx,
@@ -69,25 +73,44 @@ export const getPlan = authedQuery({
   },
 });
 
+export const getPlanTierHelper = async (ctx: QueryCtx, userId: string) => {
+  const plan = await getUserPlanHelper(ctx, userId);
+  switch (plan.name) {
+    case "Free":
+      return PlanTier.Free;
+    case "Light":
+      return PlanTier.Light;
+    case "Premium":
+      return PlanTier.Premium;
+    case "Ultra":
+      return PlanTier.Ultra;
+    case "Unlimited":
+      return PlanTier.Unlimited;
+    default:
+      return PlanTier.Free;
+  }
+};
+
 export const getPlanTier = internalQuery({
   args: {
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const plan = await getUserPlanHelper(ctx, args.userId);
-    switch (plan.name) {
-      case "Free":
-        return PlanTier.Free;
-      case "Light":
-        return PlanTier.Light;
-      case "Premium":
-        return PlanTier.Premium;
-      case "Ultra":
-        return PlanTier.Ultra;
-      case "Unlimited":
-        return PlanTier.Unlimited;
-      default:
-        return PlanTier.Free;
-    }
+    return await getPlanTierHelper(ctx, args.userId);
+  },
+});
+
+export const allowModelSelection = async (
+  ctx: CustomCtx<typeof authedQuery> | CustomCtx<typeof authedMutation>,
+  userId: string,
+) => {
+  const planTier = await getPlanTierHelper(ctx, userId);
+  return planTier >= MODEL_SELECTION_TIER;
+};
+
+export const showModelSelector = authedQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await allowModelSelection(ctx, ctx.user.subject);
   },
 });
