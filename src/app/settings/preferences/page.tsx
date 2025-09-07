@@ -5,7 +5,7 @@ import Appearance from "./appearance";
 import Bangs from "./bangs";
 import Experimental from "./experimental";
 import Notifications from "./notifications";
-import PersonalInfo from "./personal-info";
+import Personalization from "./personalization";
 import Shortcuts from "@/features/shortcuts/components";
 
 export default async function Preferences() {
@@ -18,7 +18,7 @@ export default async function Preferences() {
   return (
     <SettingsWrapper>
       <Appearance />
-      <PersonalInfo />
+      <Personalization />
       <Notifications />
       <Shortcuts />
       <Bangs />

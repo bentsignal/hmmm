@@ -1,5 +1,4 @@
 import { ToolSet } from "ai";
-import { codeGeneration } from "./code_generation";
 import { dateTime } from "./date_time";
 import { analyzeFiles } from "./files";
 import { editImage, generateImage, initImage } from "./image";
@@ -12,7 +11,6 @@ export const tools = {
   weather,
   positionHolder,
   analyzeFiles,
-  codeGeneration,
   generateImage,
   initImage,
   editImage,

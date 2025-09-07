@@ -1,6 +1,5 @@
 import { openai } from "@ai-sdk/openai";
 import { openrouter } from "@openrouter/ai-sdk-provider";
-import type { OpenRouterProviderOptions } from "@openrouter/ai-sdk-provider";
 import type {
   EmbeddingModel as EmbeddingModelV2,
   LanguageModel as LanguageModelV2,
@@ -11,7 +10,6 @@ import z from "zod";
 interface Model {
   provider: string;
   name: string;
-  openrouterProviderOptions?: OpenRouterProviderOptions;
   cost: {
     in: number;
     out: number;
@@ -28,12 +26,11 @@ export const OpenRouterProviderMetadata = z.object({
 });
 
 export interface LanguageModel extends Model {
+  available: boolean;
   model: LanguageModelV2;
-  /**
-   * @deprecated currently unused, static options are passed to agent in `agents.ts`
-   */
-  openrouterProviderOptions?: OpenRouterProviderOptions;
 }
+
+export type PublicLanguageModel = Omit<LanguageModel, "model" | "cost">;
 
 export interface TranscriptionModel extends Model {
   model: TranscriptionModelV2;
@@ -160,6 +157,7 @@ export const languageModels = {
       out: 0.4,
       other: 0,
     },
+    available: false,
   },
   "gemini-2.5-flash-lite": {
     provider: "Google",
@@ -170,6 +168,7 @@ export const languageModels = {
       out: 0.4,
       other: 0,
     },
+    available: false,
   },
   "gemini-2.5-flash": {
     provider: "Google",
@@ -180,11 +179,7 @@ export const languageModels = {
       out: 2.5,
       other: 0,
     },
-    openrouterProviderOptions: {
-      reasoning: {
-        max_tokens: 6000,
-      },
-    },
+    available: true,
   },
   "gemini-2.5-pro": {
     provider: "Google",
@@ -195,11 +190,7 @@ export const languageModels = {
       out: 15,
       other: 0,
     },
-    openrouterProviderOptions: {
-      reasoning: {
-        max_tokens: 6000,
-      },
-    },
+    available: true,
   },
   /*
 
@@ -215,6 +206,7 @@ export const languageModels = {
       out: 4.4,
       other: 0,
     },
+    available: false,
   },
   o3: {
     provider: "OpenAI",
@@ -225,6 +217,7 @@ export const languageModels = {
       out: 8,
       other: 0,
     },
+    available: false,
   },
   "oss-120b": {
     provider: "OpenAI",
@@ -235,6 +228,7 @@ export const languageModels = {
       out: 0.6,
       other: 0,
     },
+    available: false,
   },
   "oss-20b": {
     provider: "OpenAI",
@@ -245,6 +239,7 @@ export const languageModels = {
       out: 0.2,
       other: 0,
     },
+    available: false,
   },
   "gpt-5": {
     provider: "OpenAI",
@@ -255,6 +250,7 @@ export const languageModels = {
       out: 10,
       other: 0,
     },
+    available: true,
   },
   "gpt-5-mini": {
     provider: "OpenAI",
@@ -265,6 +261,7 @@ export const languageModels = {
       out: 2,
       other: 0,
     },
+    available: true,
   },
   "gpt-5-nano": {
     provider: "OpenAI",
@@ -275,6 +272,7 @@ export const languageModels = {
       out: 0.4,
       other: 0,
     },
+    available: true,
   },
   /*
 
@@ -290,11 +288,7 @@ export const languageModels = {
       out: 15,
       other: 0,
     },
-    openrouterProviderOptions: {
-      reasoning: {
-        max_tokens: 16000,
-      },
-    },
+    available: true,
   },
   /*
 
@@ -310,6 +304,7 @@ export const languageModels = {
       out: 0.5,
       other: 0,
     },
+    available: false,
   },
   "grok-4": {
     provider: "xAI",
@@ -320,6 +315,7 @@ export const languageModels = {
       out: 15,
       other: 0,
     },
+    available: false,
   },
   /*
 
@@ -335,6 +331,7 @@ export const languageModels = {
       out: 1,
       other: 0.005,
     },
+    available: false,
   },
   "sonar-reasoning-pro": {
     provider: "Perplexity",
@@ -345,6 +342,7 @@ export const languageModels = {
       out: 8,
       other: 0.005,
     },
+    available: false,
   },
   /*
 
@@ -360,6 +358,7 @@ export const languageModels = {
       out: 3.4,
       other: 0,
     },
+    available: false,
   },
   /*
 
@@ -369,12 +368,13 @@ export const languageModels = {
   "kimi-k2": {
     provider: "Moonshot",
     name: "Kimi K2",
-    model: openrouter("@preset/kimi-k2"),
+    model: openrouter("moonshotai/kimi-k2-0905"),
     cost: {
-      in: 1,
-      out: 3,
+      in: 0.3,
+      out: 1.2,
       other: 0,
     },
+    available: false,
   },
   /*
 
@@ -390,6 +390,7 @@ export const languageModels = {
       out: 1,
       other: 0,
     },
+    available: false,
   },
   /*
 
@@ -405,6 +406,7 @@ export const languageModels = {
       out: 1.2,
       other: 0,
     },
+    available: false,
   },
   /*
 
@@ -420,33 +422,32 @@ export const languageModels = {
       out: 2.2,
       other: 0,
     },
-    openrouterProviderOptions: {
-      reasoning: {
-        max_tokens: 6000,
-      },
-    },
-  },
-  /*
-
-    Open router
-
-  */
-  "horizon-alpha": {
-    provider: "Open Router",
-    name: "Horizon Alpha",
-    model: openrouter("openrouter/horizon-alpha"),
-    cost: {
-      in: 0,
-      out: 0,
-      other: 0,
-    },
-    openrouterProviderOptions: {
-      reasoning: {
-        max_tokens: 6000,
-      },
-    },
+    available: false,
   },
 } as const satisfies Record<string, LanguageModel>;
+
+export function getPublicLanguageModels(): Record<string, PublicLanguageModel> {
+  return Object.fromEntries(
+    Object.entries(languageModels)
+      .filter(([, modelData]) => modelData.available)
+      .map(([modelId, modelData]) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { model, cost, available, ...publicModel } = modelData;
+        return [modelId, publicModel];
+      }),
+  ) as Record<string, PublicLanguageModel>;
+}
+
+export const getModel = (modelId?: string) => {
+  if (!modelId) {
+    return modelPresets.default;
+  }
+  const publicModels = getPublicLanguageModels();
+  if (publicModels[modelId]) {
+    return languageModels[modelId as keyof typeof languageModels];
+  }
+  return modelPresets.default;
+};
 
 export const modelPresets = {
   default: languageModels["gemini-2.5-flash"],

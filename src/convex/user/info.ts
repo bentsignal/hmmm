@@ -1,5 +1,18 @@
+import { CustomCtx } from "convex-helpers/server/customFunctions";
 import { ConvexError, v } from "convex/values";
+import { getPublicLanguageModels } from "../ai/models";
 import { authedMutation, authedQuery } from "../convex_helpers";
+import { allowModelSelection } from "./subscription";
+
+export const getUserInfoHelper = async (
+  ctx: CustomCtx<typeof authedQuery> | CustomCtx<typeof authedMutation>,
+) => {
+  const doc = await ctx.db
+    .query("personalInfo")
+    .withIndex("by_user_id", (q) => q.eq("userId", ctx.user.subject))
+    .first();
+  return doc;
+};
 
 export const get = authedQuery({
   args: {},
@@ -9,19 +22,11 @@ export const get = authedQuery({
       .withIndex("by_user_id", (q) => q.eq("userId", ctx.user.subject))
       .first();
     if (!doc) {
-      return {
-        name: undefined,
-        location: undefined,
-        language: undefined,
-        notes: undefined,
-      };
+      return null;
     }
-    return {
-      name: doc.name,
-      location: doc.location,
-      language: doc.language,
-      notes: doc.notes,
-    };
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { _id, _creationTime, userId, ...publicDoc } = doc;
+    return publicDoc;
   },
 });
 
@@ -31,6 +36,7 @@ export const update = authedMutation({
     location: v.optional(v.string()),
     language: v.optional(v.string()),
     notes: v.optional(v.string()),
+    model: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // validate input
@@ -46,6 +52,12 @@ export const update = authedMutation({
     if (args.notes && args.notes.length > 1000) {
       throw new ConvexError("Notes must be less than 1000 characters");
     }
+    if (args.model) {
+      const publicModels = getPublicLanguageModels();
+      if (!publicModels[args.model]) {
+        throw new ConvexError("Invalid model");
+      }
+    }
 
     const existing = await ctx.db
       .query("personalInfo")
@@ -59,6 +71,7 @@ export const update = authedMutation({
         location: args.location,
         language: args.language,
         notes: args.notes,
+        model: args.model,
       });
     } else {
       await ctx.db.insert("personalInfo", {
@@ -67,7 +80,27 @@ export const update = authedMutation({
         location: args.location,
         language: args.language,
         notes: args.notes,
+        model: args.model,
       });
     }
   },
 });
+
+export const getPerferredModelIfAllowed = async (
+  ctx: CustomCtx<typeof authedMutation>,
+  modelId?: string,
+) => {
+  if (!modelId) {
+    return undefined;
+  }
+  const allowed = await allowModelSelection(ctx, ctx.user.subject);
+  if (!allowed) {
+    return undefined;
+  }
+  const publicModels = getPublicLanguageModels();
+  const publicModelIds = Object.keys(publicModels);
+  if (publicModelIds.includes(modelId)) {
+    return modelId;
+  }
+  return undefined;
+};

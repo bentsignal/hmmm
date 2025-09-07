@@ -16,6 +16,7 @@ export default defineSchema({
     location: v.optional(v.string()),
     language: v.optional(v.string()),
     notes: v.optional(v.string()),
+    model: v.optional(v.string()),
   }).index("by_user_id", ["userId"]),
   files: defineTable({
     userId: v.string(),
