@@ -11,7 +11,9 @@ import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -69,6 +71,27 @@ export default function UserInfoForm({
     }
     return false;
   }, [name, location, language, notes, model, lastSavedUserInfo]);
+
+  const groupedModels = useMemo(() => {
+    const providerToModels = new Map<
+      string,
+      Array<[string, PublicLanguageModel]>
+    >();
+    for (const [modelId, modelData] of Object.entries(models)) {
+      const arr = providerToModels.get(modelData.provider) ?? [];
+      arr.push([modelId, modelData]);
+      providerToModels.set(modelData.provider, arr);
+    }
+    const sortedProviders = Array.from(providerToModels.keys()).sort((a, b) =>
+      a.localeCompare(b),
+    );
+    return sortedProviders.map((provider) => {
+      const items = (providerToModels.get(provider) ?? []).sort((a, b) =>
+        a[1].name.localeCompare(b[1].name),
+      );
+      return { provider, items } as const;
+    });
+  }, [models]);
 
   return (
     <form
@@ -130,10 +153,15 @@ export default function UserInfoForm({
               <SelectValue placeholder="Select a model" />
             </SelectTrigger>
             <SelectContent>
-              {Object.keys(models).map((modelId) => (
-                <SelectItem key={modelId} value={modelId}>
-                  {models[modelId].name}
-                </SelectItem>
+              {groupedModels.map(({ provider, items }) => (
+                <SelectGroup key={provider} className="mb-2">
+                  <SelectLabel>{provider}</SelectLabel>
+                  {items.map(([modelId, modelData]) => (
+                    <SelectItem key={modelId} value={modelId}>
+                      {modelData.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               ))}
             </SelectContent>
           </Select>

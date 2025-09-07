@@ -315,7 +315,7 @@ export const languageModels = {
       out: 15,
       other: 0,
     },
-    available: true,
+    available: false,
   },
   /*
 
@@ -374,7 +374,7 @@ export const languageModels = {
       out: 1.2,
       other: 0,
     },
-    available: true,
+    available: false,
   },
   /*
 
