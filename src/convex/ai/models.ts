@@ -255,7 +255,7 @@ export const languageModels = {
   "gpt-5-mini": {
     provider: "OpenAI",
     name: "GPT-5 Mini",
-    model: openai("gpt-5-mini"),
+    model: openrouter("openai/gpt-5-mini"),
     cost: {
       in: 0.25,
       out: 2,
@@ -266,7 +266,7 @@ export const languageModels = {
   "gpt-5-nano": {
     provider: "OpenAI",
     name: "GPT-5 Nano",
-    model: openai("gpt-5-nano"),
+    model: openrouter("openai/gpt-5-nano"),
     cost: {
       in: 0.05,
       out: 0.4,
