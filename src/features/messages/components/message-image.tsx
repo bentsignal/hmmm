@@ -15,7 +15,7 @@ export default function MessageImage({ image }: { image?: string | null }) {
 
 const Generated = ({ fileKey }: { fileKey: string }) => {
   const { handleFileClick, handleFileHover } = useFileInteraction();
-  const isAuthenticated = useConvexAuth();
+  const { isAuthenticated } = useConvexAuth();
 
   const image = useQuery(
     api.app.library.getFileByKey,
