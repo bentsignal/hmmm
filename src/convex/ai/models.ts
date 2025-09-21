@@ -317,6 +317,17 @@ export const languageModels = {
     },
     available: false,
   },
+  "grok-4-fast": {
+    provider: "xAI",
+    name: "Grok 4 Fast",
+    model: openrouter("x-ai/grok-4-fast:free"),
+    cost: {
+      in: 0.2,
+      out: 0.5,
+      other: 0,
+    },
+    available: false,
+  },
   /*
 
     Perplexity
