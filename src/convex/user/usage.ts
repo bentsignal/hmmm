@@ -10,7 +10,11 @@ import { v } from "convex/values";
 import { components } from "@/convex/_generated/api";
 import { DataModel } from "@/convex/_generated/dataModel";
 import { internalMutation, mutation } from "@/convex/_generated/server";
-import { modelPresets, OpenRouterProviderMetadata } from "../ai/models";
+import {
+  LanguageModel,
+  modelPresets,
+  OpenRouterProviderMetadata,
+} from "../ai/models";
 import {
   authedMutation,
   authedQuery,
@@ -114,6 +118,7 @@ export const getUsageHelper = async (
 };
 
 export const calculateModelCost = (
+  model: LanguageModel,
   usage: LanguageModelUsage,
   providerMetadata?: Record<string, Record<string, unknown>>,
 ) => {
