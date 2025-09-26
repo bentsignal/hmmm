@@ -162,18 +162,18 @@ export const languageModels = {
   "gemini-2.5-flash-lite": {
     provider: "Google",
     name: "Gemini 2.5 Flash Lite",
-    model: openrouter("google/gemini-2.5-flash-lite-preview-06-17"),
+    model: openrouter("google/gemini-2.5-flash-lite-preview-09-2025"),
     cost: {
       in: 0.1,
       out: 0.4,
       other: 0,
     },
-    available: false,
+    available: true,
   },
   "gemini-2.5-flash": {
     provider: "Google",
     name: "Gemini 2.5 Flash",
-    model: openrouter("google/gemini-2.5-flash"),
+    model: openrouter("google/gemini-2.5-flash-preview-09-2025"),
     cost: {
       in: 0.3,
       out: 2.5,
@@ -461,10 +461,10 @@ export const getModel = (modelId?: string) => {
 };
 
 export const modelPresets = {
-  default: languageModels["gemini-2.5-flash"],
+  default: languageModels["gemini-2.5-flash-lite"],
   classifier: languageModels["gemini-2.5-flash-lite"],
   followUp: languageModels["gemini-2.0-flash"],
-  titleGenerator: languageModels["gemini-2.0-flash"],
+  titleGenerator: languageModels["gemini-2.5-flash-lite"],
   transcription: transcriptionModels["whisper-1"],
   search: languageModels["sonar"],
   embedding: embeddingModels["text-embedding-3-small"],

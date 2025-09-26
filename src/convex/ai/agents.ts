@@ -22,11 +22,7 @@ export const agent = new Agent(components.agent, {
   },
   callSettings: { maxRetries: 3, temperature: 1.0 },
   usageHandler: async (ctx, args) => {
-    const cost = calculateModelCost(
-      modelPresets.default,
-      args.usage,
-      args.providerMetadata,
-    );
+    const cost = calculateModelCost(args.usage, args.providerMetadata);
     await ctx.runMutation(internal.user.usage.log, {
       userId: args.userId || "no-user",
       type: "message",

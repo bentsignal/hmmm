@@ -10,11 +10,7 @@ import { v } from "convex/values";
 import { components } from "@/convex/_generated/api";
 import { DataModel } from "@/convex/_generated/dataModel";
 import { internalMutation, mutation } from "@/convex/_generated/server";
-import {
-  LanguageModel,
-  modelPresets,
-  OpenRouterProviderMetadata,
-} from "../ai/models";
+import { modelPresets, OpenRouterProviderMetadata } from "../ai/models";
 import {
   authedMutation,
   authedQuery,
@@ -118,7 +114,6 @@ export const getUsageHelper = async (
 };
 
 export const calculateModelCost = (
-  model: LanguageModel,
   usage: LanguageModelUsage,
   providerMetadata?: Record<string, Record<string, unknown>>,
 ) => {
@@ -131,9 +126,12 @@ export const calculateModelCost = (
     return parsedProviderMetadata.data.openrouter.usage.cost;
   }
   const million = 1000000;
-  const inputCost = model.cost.in * ((usage.inputTokens ?? 0) / million);
-  const outputCost = model.cost.out * ((usage.outputTokens ?? 0) / million);
-  const totalCost = inputCost + outputCost + model.cost.other;
+  const fallbackModel = modelPresets.default;
+  const inputCost =
+    fallbackModel.cost.in * ((usage.inputTokens ?? 0) / million);
+  const outputCost =
+    fallbackModel.cost.out * ((usage.outputTokens ?? 0) / million);
+  const totalCost = inputCost + outputCost + fallbackModel.cost.other;
   return totalCost;
 };
 
