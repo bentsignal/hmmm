@@ -461,7 +461,7 @@ export const getModel = (modelId?: string) => {
 };
 
 export const modelPresets = {
-  default: languageModels["gemini-2.5-flash-lite"],
+  default: languageModels["gemini-2.5-flash"],
   classifier: languageModels["gemini-2.5-flash-lite"],
   followUp: languageModels["gemini-2.0-flash"],
   titleGenerator: languageModels["gemini-2.5-flash-lite"],
