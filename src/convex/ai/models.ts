@@ -168,7 +168,7 @@ export const languageModels = {
       out: 0.4,
       other: 0,
     },
-    available: true,
+    available: false,
   },
   "gemini-2.5-flash": {
     provider: "Google",
@@ -279,13 +279,24 @@ export const languageModels = {
     Anthropic
 
   */
-  "claude-4-sonnet": {
+  "claude-4.5-sonnet": {
     provider: "Anthropic",
-    name: "Claude 4 Sonnet",
-    model: openrouter("anthropic/claude-sonnet-4"),
+    name: "Claude 4.5 Sonnet",
+    model: openrouter("anthropic/claude-sonnet-4.5"),
     cost: {
       in: 3,
       out: 15,
+      other: 0,
+    },
+    available: true,
+  },
+  "claude-4.5-haiku": {
+    provider: "Anthropic",
+    name: "Claude 4.5 Haiku",
+    model: openrouter("anthropic/claude-haiku-4.5"),
+    cost: {
+      in: 1,
+      out: 5,
       other: 0,
     },
     available: true,
@@ -320,13 +331,13 @@ export const languageModels = {
   "grok-4-fast": {
     provider: "xAI",
     name: "Grok 4 Fast",
-    model: openrouter("x-ai/grok-4-fast:free"),
+    model: openrouter("x-ai/grok-4-fast"),
     cost: {
       in: 0.2,
       out: 0.5,
       other: 0,
     },
-    available: false,
+    available: true,
   },
   /*
 
