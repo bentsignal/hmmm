@@ -1,6 +1,5 @@
 "use node";
 
-import crypto from "node:crypto";
 import { v } from "convex/values";
 import { internal } from "@/convex/_generated/api";
 import { internalAction } from "@/convex/_generated/server";
@@ -13,8 +12,6 @@ import {
 } from "./helpers";
 import { vAspectRatio } from "./types";
 import { tryCatch } from "@/lib/utils";
-
-globalThis.crypto = crypto as unknown as Crypto;
 
 type GenerateImageOutput = {
   success: boolean;

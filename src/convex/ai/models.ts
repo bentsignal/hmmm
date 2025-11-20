@@ -190,6 +190,17 @@ export const languageModels = {
       out: 15,
       other: 0,
     },
+    available: false,
+  },
+  "gemini-3-pro": {
+    provider: "Google",
+    name: "Gemini 3 Pro",
+    model: openrouter("google/gemini-3-pro"),
+    cost: {
+      in: 2,
+      out: 15,
+      other: 0,
+    },
     available: true,
   },
   /*
@@ -241,10 +252,21 @@ export const languageModels = {
     },
     available: false,
   },
-  "gpt-5": {
+  "gpt-5.1": {
     provider: "OpenAI",
-    name: "GPT-5",
-    model: openrouter("openai/gpt-5"),
+    name: "GPT-5.1",
+    model: openrouter("openai/gpt-5.1"),
+    cost: {
+      in: 1.25,
+      out: 10,
+      other: 0,
+    },
+    available: true,
+  },
+  "gpt-5.1-chat": {
+    provider: "OpenAI",
+    name: "GPT-5.1 Chat",
+    model: openrouter("openai/gpt-5.1-chat"),
     cost: {
       in: 1.25,
       out: 10,
@@ -261,7 +283,7 @@ export const languageModels = {
       out: 2,
       other: 0,
     },
-    available: true,
+    available: false,
   },
   "gpt-5-nano": {
     provider: "OpenAI",
@@ -272,7 +294,7 @@ export const languageModels = {
       out: 0.4,
       other: 0,
     },
-    available: true,
+    available: false,
   },
   /*
 
@@ -332,6 +354,17 @@ export const languageModels = {
     provider: "xAI",
     name: "Grok 4 Fast",
     model: openrouter("x-ai/grok-4-fast"),
+    cost: {
+      in: 0.2,
+      out: 0.5,
+      other: 0,
+    },
+    available: false,
+  },
+  "grok-4.1-fast": {
+    provider: "xAI",
+    name: "Grok 4.1 Fast",
+    model: openrouter("x-ai/grok-4.1-fast"),
     cost: {
       in: 0.2,
       out: 0.5,
