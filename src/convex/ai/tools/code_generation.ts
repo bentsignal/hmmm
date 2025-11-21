@@ -35,7 +35,7 @@ export const codeGeneration = createTool<
     const result = await tryCatch(
       generateText({
         system: codeGenerationPrompt,
-        model: languageModels["gpt-5"].model,
+        model: languageModels["gpt-5.1"].model,
         messages: messages,
         temperature: 1,
       }),
@@ -51,7 +51,7 @@ export const codeGeneration = createTool<
     // log usage
     if (ctx.userId) {
       const cost = calculateModelCost(
-        languageModels["gpt-5"],
+        languageModels["gpt-5.1"],
         result.data.usage,
         result.data.providerMetadata,
       );
