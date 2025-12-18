@@ -179,7 +179,7 @@ export const languageModels = {
       out: 2.5,
       other: 0,
     },
-    available: true,
+    available: false,
   },
   "gemini-2.5-pro": {
     provider: "Google",
@@ -191,6 +191,17 @@ export const languageModels = {
       other: 0,
     },
     available: false,
+  },
+  "gemini-3-flash": {
+    provider: "Google",
+    name: "Gemini 3 Flash",
+    model: openrouter("google/gemini-3-flash-preview"),
+    cost: {
+      in: 0.5,
+      out: 3,
+      other: 0,
+    },
+    available: true,
   },
   "gemini-3-pro": {
     provider: "Google",
@@ -252,24 +263,24 @@ export const languageModels = {
     },
     available: false,
   },
-  "gpt-5.1": {
+  "gpt-5.2": {
     provider: "OpenAI",
-    name: "GPT-5.1",
-    model: openrouter("openai/gpt-5.1"),
+    name: "GPT-5.2",
+    model: openrouter("openai/gpt-5.2"),
     cost: {
-      in: 1.25,
-      out: 10,
+      in: 1.75,
+      out: 14,
       other: 0,
     },
     available: true,
   },
-  "gpt-5.1-chat": {
+  "gpt-5.2-chat": {
     provider: "OpenAI",
-    name: "GPT-5.1 Chat",
-    model: openrouter("openai/gpt-5.1-chat"),
+    name: "GPT-5.2 Chat",
+    model: openrouter("openai/gpt-5.2-chat"),
     cost: {
-      in: 1.25,
-      out: 10,
+      in: 1.75,
+      out: 14,
       other: 0,
     },
     available: true,
@@ -319,6 +330,17 @@ export const languageModels = {
     cost: {
       in: 1,
       out: 5,
+      other: 0,
+    },
+    available: true,
+  },
+  "claude-opus-4.5": {
+    provider: "Anthropic",
+    name: "Claude Opus 4.5",
+    model: openrouter("anthropic/claude-opus-4.5"),
+    cost: {
+      in: 5,
+      out: 25,
       other: 0,
     },
     available: true,
@@ -505,7 +527,7 @@ export const getModel = (modelId?: string) => {
 };
 
 export const modelPresets = {
-  default: languageModels["gemini-2.5-flash"],
+  default: languageModels["gemini-3-flash"],
   classifier: languageModels["gemini-2.5-flash-lite"],
   followUp: languageModels["gemini-2.0-flash"],
   titleGenerator: languageModels["gemini-2.5-flash-lite"],
