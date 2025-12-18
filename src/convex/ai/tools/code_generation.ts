@@ -3,7 +3,7 @@ import { generateText } from "ai";
 import { z } from "zod";
 import { internal } from "@/convex/_generated/api";
 import { calculateModelCost } from "@/convex/user/usage";
-import { languageModels } from "../models";
+import { modelPresets } from "../models";
 import { codeGenerationPrompt } from "../prompts";
 import { tryCatch } from "@/lib/utils";
 
@@ -35,7 +35,7 @@ export const codeGeneration = createTool<
     const result = await tryCatch(
       generateText({
         system: codeGenerationPrompt,
-        model: languageModels["gpt-5.1"].model,
+        model: modelPresets.code.model,
         messages: messages,
         temperature: 1,
       }),
@@ -51,7 +51,7 @@ export const codeGeneration = createTool<
     // log usage
     if (ctx.userId) {
       const cost = calculateModelCost(
-        languageModels["gpt-5.1"],
+        modelPresets.code,
         result.data.usage,
         result.data.providerMetadata,
       );

@@ -534,4 +534,5 @@ export const modelPresets = {
   transcription: transcriptionModels["whisper-1"],
   search: languageModels["sonar"],
   embedding: embeddingModels["text-embedding-3-small"],
+  code: languageModels["gpt-5.2"],
 };
