@@ -179,7 +179,7 @@ export const languageModels = {
       out: 2.5,
       other: 0,
     },
-    available: false,
+    available: true,
   },
   "gemini-2.5-pro": {
     provider: "Google",
@@ -201,7 +201,7 @@ export const languageModels = {
       out: 3,
       other: 0,
     },
-    available: true,
+    available: false,
   },
   "gemini-3-pro": {
     provider: "Google",
@@ -212,7 +212,7 @@ export const languageModels = {
       out: 15,
       other: 0,
     },
-    available: true,
+    available: false,
   },
   /*
 
@@ -527,7 +527,7 @@ export const getModel = (modelId?: string) => {
 };
 
 export const modelPresets = {
-  default: languageModels["gemini-3-flash"],
+  default: languageModels["gemini-2.5-flash"],
   classifier: languageModels["gemini-2.5-flash-lite"],
   followUp: languageModels["gemini-2.0-flash"],
   titleGenerator: languageModels["gemini-2.5-flash-lite"],
