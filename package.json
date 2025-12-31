@@ -60,6 +60,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.26.2",
+    "convex-env": "^1.0.2",
     "convex-helpers": "^0.1.104",
     "exa-js": "^1.8.23",
     "fast-deep-equal": "^3.1.3",

@@ -149,6 +149,9 @@ importers:
       convex:
         specifier: ^1.26.2
         version: 1.26.2(@clerk/clerk-react@5.44.0(react-dom@19.1.4(react@19.1.4))(react@19.1.4))(react@19.1.4)
+      convex-env:
+        specifier: ^1.0.2
+        version: 1.0.2(@standard-schema/spec@1.1.0)(convex@1.26.2(@clerk/clerk-react@5.44.0(react-dom@19.1.4(react@19.1.4))(react@19.1.4))(react@19.1.4))(react@19.1.4)(typescript@5.9.2)(zod@3.25.76)
       convex-helpers:
         specifier: ^0.1.104
         version: 0.1.104(@standard-schema/spec@1.1.0)(convex@1.26.2(@clerk/clerk-react@5.44.0(react-dom@19.1.4(react@19.1.4))(react@19.1.4))(react@19.1.4))(react@19.1.4)(typescript@5.9.2)(zod@3.25.76)
@@ -3108,6 +3111,11 @@ packages:
     resolution: {integrity: sha512-nTjqfcBFEipKdXCv4YDQWCfmcLZKm81ldF0pAopTvyrFGVbcR6P/VAAd5G7N+0tTr8QqiU0tFadD6FK4NtJwOA==}
     engines: {node: '>= 0.6'}
 
+  convex-env@1.0.2:
+    resolution: {integrity: sha512-3WcbBKg98Q4Ho2eq3AfB0tvLblum4GY8qqnNbdDAJ5aXd9Z9WZrsqRUk7JzEg2JoaFok9kD10ShDmE3Jzza1gg==}
+    peerDependencies:
+      convex: '>=1.20.0'
+
   convex-helpers@0.1.104:
     resolution: {integrity: sha512-7CYvx7T3K6n+McDTK4ZQaQNNGBzq5aWezpjzsKbOxPXx7oNcTP9wrpef3JxeXWFzkByJv5hRCjseh9B7eNJ7Ig==}
     hasBin: true
@@ -3118,6 +3126,28 @@ packages:
       react: ^17.0.2 || ^18.0.0 || ^19.0.0
       typescript: ^5.5
       zod: ^3.22.4 || ^4.0.15
+    peerDependenciesMeta:
+      '@standard-schema/spec':
+        optional: true
+      hono:
+        optional: true
+      react:
+        optional: true
+      typescript:
+        optional: true
+      zod:
+        optional: true
+
+  convex-helpers@0.1.108:
+    resolution: {integrity: sha512-5dHYX4Dy/qnBuvP5CI9ZKEwYtSlyQKK2MiIdGTVV8WUON5mWr/St8IeBxsJTBNh/vuBrlX0XPAZ1arbk4KQUdg==}
+    hasBin: true
+    peerDependencies:
+      '@standard-schema/spec': ^1.0.0
+      convex: ^1.25.4
+      hono: ^4.0.5
+      react: ^17.0.2 || ^18.0.0 || ^19.0.0
+      typescript: ^5.5
+      zod: ^3.25.0 || ^4.0.0
     peerDependenciesMeta:
       '@standard-schema/spec':
         optional: true
@@ -8542,7 +8572,27 @@ snapshots:
 
   content-type@1.0.5: {}
 
+  convex-env@1.0.2(@standard-schema/spec@1.1.0)(convex@1.26.2(@clerk/clerk-react@5.44.0(react-dom@19.1.4(react@19.1.4))(react@19.1.4))(react@19.1.4))(react@19.1.4)(typescript@5.9.2)(zod@3.25.76):
+    dependencies:
+      convex: 1.26.2(@clerk/clerk-react@5.44.0(react-dom@19.1.4(react@19.1.4))(react@19.1.4))(react@19.1.4)
+      convex-helpers: 0.1.108(@standard-schema/spec@1.1.0)(convex@1.26.2(@clerk/clerk-react@5.44.0(react-dom@19.1.4(react@19.1.4))(react@19.1.4))(react@19.1.4))(react@19.1.4)(typescript@5.9.2)(zod@3.25.76)
+    transitivePeerDependencies:
+      - '@standard-schema/spec'
+      - hono
+      - react
+      - typescript
+      - zod
+
   convex-helpers@0.1.104(@standard-schema/spec@1.1.0)(convex@1.26.2(@clerk/clerk-react@5.44.0(react-dom@19.1.4(react@19.1.4))(react@19.1.4))(react@19.1.4))(react@19.1.4)(typescript@5.9.2)(zod@3.25.76):
+    dependencies:
+      convex: 1.26.2(@clerk/clerk-react@5.44.0(react-dom@19.1.4(react@19.1.4))(react@19.1.4))(react@19.1.4)
+    optionalDependencies:
+      '@standard-schema/spec': 1.1.0
+      react: 19.1.4
+      typescript: 5.9.2
+      zod: 3.25.76
+
+  convex-helpers@0.1.108(@standard-schema/spec@1.1.0)(convex@1.26.2(@clerk/clerk-react@5.44.0(react-dom@19.1.4(react@19.1.4))(react@19.1.4))(react@19.1.4))(react@19.1.4)(typescript@5.9.2)(zod@3.25.76):
     dependencies:
       convex: 1.26.2(@clerk/clerk-react@5.44.0(react-dom@19.1.4(react@19.1.4))(react@19.1.4))(react@19.1.4)
     optionalDependencies:
