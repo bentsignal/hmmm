@@ -2,7 +2,10 @@ import { createEnv } from "convex-env";
 import { v } from "convex/values";
 
 export const env = createEnv({
-  CONVEX_ENVIRONMENT: v.string(),
+  CONVEX_ENVIRONMENT: v.union(
+    v.literal("development"),
+    v.literal("production"),
+  ),
   EXA_API_KEY: v.string(),
   FAL_KEY: v.string(),
   GOOGLE_API_KEY: v.string(),
