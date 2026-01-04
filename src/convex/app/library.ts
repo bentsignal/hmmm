@@ -134,7 +134,7 @@ export const verifyOwnership = async (
 };
 
 export const getFileUrl = (key: string) => {
-  return `https://${env.UPLOADTHING_ORG_ID}.ufs.sh/f/${key}`;
+  return `https://${env.UPLOADTHING_APP_ID}.ufs.sh/f/${key}`;
 };
 
 /**
