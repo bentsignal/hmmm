@@ -2,6 +2,7 @@ export const themes = [
   "sunrise",
   "afternoon",
   "nebula",
+  "high-altitude",
   "outer-space",
 ] as const;
 

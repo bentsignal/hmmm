@@ -157,6 +157,35 @@ body {
   );
 }
 
+.theme-high-altitude {
+  background:
+    0% 99% / auto 50% no-repeat
+      radial-gradient(
+        100% 70% at 50% 100%,
+        #f7f7f730 0%,
+        #dbccff08 53%,
+        #0000ff00 100%
+      ),
+    0% 100% / auto 50% no-repeat
+      radial-gradient(
+        100% 70% at 50% 100%,
+        #5e73f726 0%,
+        #dbccff08 53%,
+        #0000ff00 100%
+      ),
+    50% 100% / auto 50% repeat-x
+      radial-gradient(
+        200% 60% at 50% 100%,
+        #dff4fbff 0%,
+        #96c3edff 7%,
+        #1771c4ff 30%,
+        #165598ff 41%,
+        #10406aff 61%,
+        #ffffff00 100%
+      ),
+    linear-gradient(to top, #05133dff 0%, #01010eff 44%);
+}
+
 .theme-nebula {
   background:
     linear-gradient(to top, var(--nebula-purple) 0%, var(--nebula-black) 72%),
