@@ -640,6 +640,9 @@ importers:
       '@acme/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@acme/features':
+        specifier: workspace:*
+        version: link:../../packages/features
       '@acme/ui':
         specifier: workspace:*
         version: link:../../packages/ui

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useConvexAuth, usePaginatedQuery } from "convex/react";
 
 import { api } from "@acme/db/api";
@@ -9,6 +10,7 @@ import {
   PAGE_SIZE,
 } from "~/features/thread/config";
 import useDebouncedInput from "~/hooks/use-debounced-input";
+import { threadQueries } from "~/lib/queries";
 
 // Cache date boundaries outside component to avoid recalculation
 const getDateBoundaries = () => {
@@ -31,16 +33,42 @@ export default function useThreadList() {
     useDebouncedInput();
 
   const { isAuthenticated } = useConvexAuth();
+
+  // Phase 1: Preloaded first page via React Query (instant from loader cache)
+  const firstPageQuery = useQuery({
+    ...threadQueries.listFirstPage(debouncedSearch),
+    select: (data) => ({ page: data.page, isDone: data.isDone }),
+  });
+
+  // Phase 2: Live Convex paginated query for real-time updates + load more
   const args = isAuthenticated ? { search: debouncedSearch } : "skip";
-  const {
-    results: threads,
-    status,
-    loadMore,
-  } = usePaginatedQuery(api.ai.thread.getThreadList, args, {
+  const liveQuery = usePaginatedQuery(api.ai.thread.getThreadList, args, {
     initialNumItems: INITIAL_PAGE_SIZE,
   });
 
-  const loadMoreThreads = () => loadMore(PAGE_SIZE);
+  // Switch to live results once the first page has loaded
+  const shouldUseLiveResults = liveQuery.status !== "LoadingFirstPage";
+  const threads = shouldUseLiveResults
+    ? liveQuery.results
+    : (firstPageQuery.data?.page ?? []);
+  type PaginationStatus =
+    | "LoadingFirstPage"
+    | "LoadingMore"
+    | "CanLoadMore"
+    | "Exhausted";
+  const status: PaginationStatus = shouldUseLiveResults
+    ? liveQuery.status
+    : firstPageQuery.data?.isDone
+      ? "Exhausted"
+      : firstPageQuery.isLoading
+        ? "LoadingFirstPage"
+        : "CanLoadMore";
+
+  const loadMoreThreads = () => {
+    if (shouldUseLiveResults) {
+      liveQuery.loadMore(PAGE_SIZE);
+    }
+  };
 
   // group threads by pin status & creation date
   const {

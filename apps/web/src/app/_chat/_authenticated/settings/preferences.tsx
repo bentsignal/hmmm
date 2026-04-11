@@ -7,9 +7,19 @@ import Experimental from "~/app/settings/preferences/-experimental";
 import Notifications from "~/app/settings/preferences/-notifications";
 import Personalization from "~/app/settings/preferences/-personalization";
 import Shortcuts from "~/features/shortcuts/components";
+import { userQueries } from "~/lib/queries";
 
-export const Route = createFileRoute("/_chat/settings/preferences")({
+export const Route = createFileRoute(
+  "/_chat/_authenticated/settings/preferences",
+)({
   component: PreferencesPage,
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(userQueries.info()),
+      context.queryClient.ensureQueryData(userQueries.newsletterPreference()),
+      context.queryClient.ensureQueryData(userQueries.showModelSelector()),
+    ]);
+  },
 });
 
 function PreferencesPage() {

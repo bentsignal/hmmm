@@ -1,12 +1,13 @@
-import { useQuery } from "convex/react";
-
-import { api } from "@acme/db/api";
+import { useSuspenseQuery } from "@tanstack/react-query";
 
 import NewsletterToggle from "~/app/settings/preferences/-newsletter-toggle";
 import InfoCard from "~/components/info-card";
+import { userQueries } from "~/lib/queries";
 
 export default function Notifications() {
-  const newsletterStatus = useQuery(api.mail.newsletter.getUserPreference);
+  const { data: newsletterStatus } = useSuspenseQuery(
+    userQueries.newsletterPreference(),
+  );
 
   return (
     <InfoCard title="Notifications">

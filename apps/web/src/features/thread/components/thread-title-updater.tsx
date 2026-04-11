@@ -1,11 +1,9 @@
-import { useConvexAuth, useQuery } from "convex/react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 
-import { api } from "@acme/db/api";
+import { threadQueries } from "~/lib/queries";
 
 export default function ThreadTitleUpdater({ threadId }: { threadId: string }) {
-  const { isAuthenticated } = useConvexAuth();
-  const args = isAuthenticated ? { threadId } : "skip";
-  const title = useQuery(api.ai.thread.getTitle, args);
+  const { data: title } = useSuspenseQuery(threadQueries.title(threadId));
 
   if (title) {
     document.title = title;

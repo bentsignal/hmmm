@@ -1,17 +1,12 @@
-import { useQuery } from "convex/react";
-
-import { api } from "@acme/db/api";
+import { useSuspenseQuery } from "@tanstack/react-query";
 
 import InfoCard from "~/components/info-card";
 import UserBillingInfo from "~/features/billing/components/user-billing-info";
+import { pricingQueries, userQueries } from "~/lib/queries";
 
 export default function Billing() {
-  const plans = useQuery(api.polar.listAllProducts);
-  const usersPlan = useQuery(api.user.subscription.getPlan);
-
-  if (plans === undefined || usersPlan === undefined) {
-    return null;
-  }
+  const { data: plans } = useSuspenseQuery(pricingQueries.listAllProducts());
+  const { data: usersPlan } = useSuspenseQuery(userQueries.plan());
 
   const publicPlans = plans
     .filter((plan) => plan.isArchived === false)

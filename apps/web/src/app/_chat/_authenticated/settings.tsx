@@ -4,7 +4,7 @@ import { SidebarProvider } from "@acme/ui/sidebar";
 
 import { SettingsNavDesktop, SettingsNavMobile } from "~/app/settings/-nav";
 
-export const Route = createFileRoute("/_chat/settings")({
+export const Route = createFileRoute("/_chat/_authenticated/settings")({
   component: SettingsLayout,
 });
 

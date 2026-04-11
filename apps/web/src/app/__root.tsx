@@ -68,7 +68,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       fetchCookies(),
     ]);
 
-    if (authState.token) {
+    if (authState.isSignedIn) {
       context.convexQueryClient.serverHttpClient?.setAuth(authState.token);
     }
 

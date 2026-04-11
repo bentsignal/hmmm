@@ -4,6 +4,7 @@ import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query
 import { ConvexQueryClient } from "@convex-dev/react-query";
 import { ConvexReactClient } from "convex/react";
 
+import type { AuthState } from "~/features/auth/types/auth-types";
 import type { Theme } from "~/lib/theme";
 import { Error } from "~/components/error";
 import { NotFound } from "~/components/not-found";
@@ -16,11 +17,7 @@ export interface RouterContext {
   convex: ConvexReactClient;
   convexQueryClient: ConvexQueryClient;
   queryClient: QueryClient;
-  auth?: {
-    userId: string | null;
-    token: string | null;
-    isSignedIn: boolean;
-  };
+  auth: AuthState;
   cookies: {
     theme: Theme;
     stars: boolean;
@@ -46,12 +43,12 @@ export function getRouter() {
 
   const router = createRouter({
     routeTree,
-    scrollRestoration: true,
     defaultPreload: "intent",
     context: {
       convex,
       queryClient,
       convexQueryClient,
+      auth: { isSignedIn: false },
       cookies: {
         theme: defaultTheme,
         stars: false,

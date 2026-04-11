@@ -1,16 +1,11 @@
-import { useQuery } from "convex/react";
-
-import { api } from "@acme/db/api";
+import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { PageFallback } from "~/components/error-boundary";
 import InfoCard from "~/components/info-card";
+import { userQueries } from "~/lib/queries";
 
 export default function AccountInfo() {
-  const email = useQuery(api.user.account.getEmail);
-
-  if (email === undefined) {
-    return null;
-  }
+  const { data: email } = useSuspenseQuery(userQueries.email());
 
   if (email === null) {
     return <PageFallback />;

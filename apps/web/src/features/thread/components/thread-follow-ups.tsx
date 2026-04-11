@@ -1,14 +1,13 @@
-import { useConvexAuth, useQuery } from "convex/react";
-
-import { api } from "@acme/db/api";
+import { useSuspenseQuery } from "@tanstack/react-query";
 
 import useUsage from "~/features/billing/hooks/use-usage";
 import useSendMessage from "~/features/composer/hooks/use-send-message";
+import { threadQueries } from "~/lib/queries";
 
 export default function ThreadFollowUps({ threadId }: { threadId: string }) {
-  const { isAuthenticated } = useConvexAuth();
-  const args = isAuthenticated ? { threadId } : "skip";
-  const followUpQuestions = useQuery(api.ai.thread.getFollowUpQuestions, args);
+  const { data: followUpQuestions } = useSuspenseQuery(
+    threadQueries.followUps(threadId),
+  );
   const empty = !followUpQuestions || followUpQuestions.length === 0;
 
   const { sendMessage } = useSendMessage();

@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { Box } from "lucide-react";
 
 import { api } from "@acme/db/api";
@@ -14,6 +15,7 @@ import UsageChatCallout from "~/features/billing/components/usage-chat-callout";
 import useUsage from "~/features/billing/hooks/use-usage";
 import Composer from "~/features/composer";
 import useSendMessage from "~/features/composer/hooks/use-send-message";
+import { suggestionQueries } from "~/lib/queries";
 import { cn } from "~/lib/utils";
 
 export default function Home({
@@ -90,7 +92,7 @@ const HomePrompts = ({
   const { usage } = useUsage();
   const { sendMessage } = useSendMessage();
 
-  const prompts = useQuery(api.ai.suggestions.getCurrent);
+  const { data: prompts } = useSuspenseQuery(suggestionQueries.getCurrent());
   const incrementClickCount = useMutation(
     api.ai.suggestions.incrementClickCount,
   );

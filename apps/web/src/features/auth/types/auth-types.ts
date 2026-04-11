@@ -1,3 +1,3 @@
-export interface SessionData {
-  uid: string | null;
-}
+export type AuthState =
+  | { isSignedIn: true; userId: string; token: string }
+  | { isSignedIn: false };

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { SignOutButton } from "@clerk/tanstack-react-start";
 import { LogOut, MoveLeft } from "lucide-react";
 
+import { QuickLink } from "@acme/features/quick-link";
 import {
   Select,
   SelectContent,
@@ -91,7 +92,7 @@ export const SettingsNavDesktop = () => {
               asChild
               className="hover:text-primary hover:bg-card/50"
             >
-              <Link to="/" preload="intent">
+              <Link to="/" preload="render">
                 <div className="flex items-center gap-2">
                   <MoveLeft className="h-4 w-4" />
                   <span>Back</span>
@@ -111,9 +112,9 @@ export const SettingsNavDesktop = () => {
                     asChild
                     className={`${pathname === tab.href && "bg-card/50"}`}
                   >
-                    <Link
+                    <QuickLink
                       to={tab.href}
-                      preload="intent"
+                      preload="render"
                       className={cn(
                         "text-muted-foreground",
                         pathname === tab.href && "text-primary font-bold",
@@ -121,7 +122,7 @@ export const SettingsNavDesktop = () => {
                     >
                       <tab.icon className="h-4 w-4" />
                       <span>{tab.label}</span>
-                    </Link>
+                    </QuickLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

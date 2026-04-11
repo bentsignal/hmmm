@@ -1,19 +1,15 @@
-import { useQuery } from "convex/react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 
-import { api } from "@acme/db/api";
 import { Card, CardContent } from "@acme/ui/card";
 
 import { PageFallback } from "~/components/error-boundary";
 import UsageCountdown from "~/features/billing/components/usage-countdown";
 import UsageProgress from "~/features/billing/components/usage-progress";
 import UsageUpgradeCallout from "~/features/billing/components/usage-upgrade-callout";
+import { userQueries } from "~/lib/queries";
 
 export default function Usage() {
-  const usage = useQuery(api.user.usage.getUsage);
-
-  if (usage === undefined) {
-    return null;
-  }
+  const { data: usage } = useSuspenseQuery(userQueries.usage());
 
   if (usage === null) {
     return <PageFallback />;

@@ -11,7 +11,7 @@ const searchSchema = z.object({
   q: z.string().optional(),
 });
 
-export const Route = createFileRoute("/_chat/new")({
+export const Route = createFileRoute("/_chat/_authenticated/new")({
   validateSearch: searchSchema,
   component: NewPage,
 });
@@ -19,8 +19,6 @@ export const Route = createFileRoute("/_chat/new")({
 function NewPage() {
   const { q } = Route.useSearch();
   const navigate = useNavigate();
-  const { auth } = Route.useRouteContext();
-  const isSignedIn = auth?.isSignedIn ?? false;
   const createThread = useMutation(api.ai.thread.create);
   const [processing, setProcessing] = useState(false);
 
@@ -36,13 +34,6 @@ function NewPage() {
   useEffect(() => {
     if (parsedQuery.length === 0) {
       navigate({ to: "/" });
-      return;
-    }
-
-    if (!isSignedIn) {
-      const redirectParams = new URLSearchParams();
-      redirectParams.set("q", parsedQuery);
-      navigate({ to: `/login?redirect_url=/new?${redirectParams.toString()}` });
       return;
     }
 

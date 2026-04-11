@@ -8,9 +8,15 @@ import {
 
 import ChatSidebar from "~/app/(chat)/-chat-sidebar";
 import Library from "~/features/library";
+import { threadQueries } from "~/lib/queries";
 
 export const Route = createFileRoute("/_chat")({
   component: ChatLayout,
+  loader: async ({ context }) => {
+    if (context.auth.isSignedIn) {
+      await context.queryClient.ensureQueryData(threadQueries.listFirstPage());
+    }
+  },
 });
 
 function ChatLayout() {
@@ -19,14 +25,14 @@ function ChatLayout() {
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
-      {auth?.isSignedIn && (
+      {auth.isSignedIn && (
         <>
           <ChatSidebar />
           <Library />
         </>
       )}
       <SidebarInset className="relative h-screen">
-        {auth?.isSignedIn && (
+        {auth.isSignedIn && (
           <div className="absolute top-0 right-0 left-0 z-20 flex w-full items-center justify-between">
             <SidebarTrigger className="m-4 border p-5 shadow-md" />
           </div>

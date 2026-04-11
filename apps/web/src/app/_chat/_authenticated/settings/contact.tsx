@@ -4,7 +4,7 @@ import SettingsWrapper from "~/app/settings/-wrapper";
 import InfoCard from "~/components/info-card";
 import Socials from "~/components/socials";
 
-export const Route = createFileRoute("/_chat/settings/contact")({
+export const Route = createFileRoute("/_chat/_authenticated/settings/contact")({
   component: ContactPage,
 });
 

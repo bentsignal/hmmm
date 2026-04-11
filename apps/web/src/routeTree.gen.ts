@@ -19,16 +19,17 @@ import { Route as PolicyPrivacyRouteImport } from './app/policy/privacy'
 import { Route as ApiUploadthingRouteImport } from './app/api/uploadthing'
 import { Route as ApiMailRouteImport } from './app/api/mail'
 import { Route as ChatXrRouteImport } from './app/_chat/xr'
-import { Route as ChatSettingsRouteImport } from './app/_chat/settings'
 import { Route as ChatPricingRouteImport } from './app/_chat/pricing'
-import { Route as ChatNewRouteImport } from './app/_chat/new'
+import { Route as ChatAuthenticatedRouteImport } from './app/_chat/_authenticated'
 import { Route as AuthSignUpRouteImport } from './app/_auth/sign-up'
 import { Route as AuthLoginRouteImport } from './app/_auth/login'
-import { Route as ChatSettingsIndexRouteImport } from './app/_chat/settings/index'
-import { Route as ChatSettingsPreferencesRouteImport } from './app/_chat/settings/preferences'
-import { Route as ChatSettingsContactRouteImport } from './app/_chat/settings/contact'
-import { Route as ChatSettingsAccountRouteImport } from './app/_chat/settings/account'
-import { Route as ChatChatIdRouteImport } from './app/_chat/chat.$id'
+import { Route as ChatAuthenticatedSettingsRouteImport } from './app/_chat/_authenticated/settings'
+import { Route as ChatAuthenticatedNewRouteImport } from './app/_chat/_authenticated/new'
+import { Route as ChatAuthenticatedSettingsIndexRouteImport } from './app/_chat/_authenticated/settings/index'
+import { Route as ChatAuthenticatedSettingsPreferencesRouteImport } from './app/_chat/_authenticated/settings/preferences'
+import { Route as ChatAuthenticatedSettingsContactRouteImport } from './app/_chat/_authenticated/settings/contact'
+import { Route as ChatAuthenticatedSettingsAccountRouteImport } from './app/_chat/_authenticated/settings/account'
+import { Route as ChatAuthenticatedChatIdRouteImport } from './app/_chat/_authenticated/chat.$id'
 
 const PolicyRoute = PolicyRouteImport.update({
   id: '/policy',
@@ -78,19 +79,13 @@ const ChatXrRoute = ChatXrRouteImport.update({
   path: '/xr',
   getParentRoute: () => ChatRoute,
 } as any)
-const ChatSettingsRoute = ChatSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => ChatRoute,
-} as any)
 const ChatPricingRoute = ChatPricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
   getParentRoute: () => ChatRoute,
 } as any)
-const ChatNewRoute = ChatNewRouteImport.update({
-  id: '/new',
-  path: '/new',
+const ChatAuthenticatedRoute = ChatAuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => ChatRoute,
 } as any)
 const AuthSignUpRoute = AuthSignUpRouteImport.update({
@@ -103,30 +98,45 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => AuthRoute,
 } as any)
-const ChatSettingsIndexRoute = ChatSettingsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ChatSettingsRoute,
+const ChatAuthenticatedSettingsRoute =
+  ChatAuthenticatedSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => ChatAuthenticatedRoute,
+  } as any)
+const ChatAuthenticatedNewRoute = ChatAuthenticatedNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => ChatAuthenticatedRoute,
 } as any)
-const ChatSettingsPreferencesRoute = ChatSettingsPreferencesRouteImport.update({
-  id: '/preferences',
-  path: '/preferences',
-  getParentRoute: () => ChatSettingsRoute,
-} as any)
-const ChatSettingsContactRoute = ChatSettingsContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => ChatSettingsRoute,
-} as any)
-const ChatSettingsAccountRoute = ChatSettingsAccountRouteImport.update({
-  id: '/account',
-  path: '/account',
-  getParentRoute: () => ChatSettingsRoute,
-} as any)
-const ChatChatIdRoute = ChatChatIdRouteImport.update({
+const ChatAuthenticatedSettingsIndexRoute =
+  ChatAuthenticatedSettingsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => ChatAuthenticatedSettingsRoute,
+  } as any)
+const ChatAuthenticatedSettingsPreferencesRoute =
+  ChatAuthenticatedSettingsPreferencesRouteImport.update({
+    id: '/preferences',
+    path: '/preferences',
+    getParentRoute: () => ChatAuthenticatedSettingsRoute,
+  } as any)
+const ChatAuthenticatedSettingsContactRoute =
+  ChatAuthenticatedSettingsContactRouteImport.update({
+    id: '/contact',
+    path: '/contact',
+    getParentRoute: () => ChatAuthenticatedSettingsRoute,
+  } as any)
+const ChatAuthenticatedSettingsAccountRoute =
+  ChatAuthenticatedSettingsAccountRouteImport.update({
+    id: '/account',
+    path: '/account',
+    getParentRoute: () => ChatAuthenticatedSettingsRoute,
+  } as any)
+const ChatAuthenticatedChatIdRoute = ChatAuthenticatedChatIdRouteImport.update({
   id: '/chat/$id',
   path: '/chat/$id',
-  getParentRoute: () => ChatRoute,
+  getParentRoute: () => ChatAuthenticatedRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -135,19 +145,19 @@ export interface FileRoutesByFullPath {
   '/policy': typeof PolicyRouteWithChildren
   '/login': typeof AuthLoginRoute
   '/sign-up': typeof AuthSignUpRoute
-  '/new': typeof ChatNewRoute
   '/pricing': typeof ChatPricingRoute
-  '/settings': typeof ChatSettingsRouteWithChildren
   '/xr': typeof ChatXrRoute
   '/api/mail': typeof ApiMailRoute
   '/api/uploadthing': typeof ApiUploadthingRoute
   '/policy/privacy': typeof PolicyPrivacyRoute
   '/policy/terms': typeof PolicyTermsRoute
-  '/chat/$id': typeof ChatChatIdRoute
-  '/settings/account': typeof ChatSettingsAccountRoute
-  '/settings/contact': typeof ChatSettingsContactRoute
-  '/settings/preferences': typeof ChatSettingsPreferencesRoute
-  '/settings/': typeof ChatSettingsIndexRoute
+  '/new': typeof ChatAuthenticatedNewRoute
+  '/settings': typeof ChatAuthenticatedSettingsRouteWithChildren
+  '/chat/$id': typeof ChatAuthenticatedChatIdRoute
+  '/settings/account': typeof ChatAuthenticatedSettingsAccountRoute
+  '/settings/contact': typeof ChatAuthenticatedSettingsContactRoute
+  '/settings/preferences': typeof ChatAuthenticatedSettingsPreferencesRoute
+  '/settings/': typeof ChatAuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof ChatIndexRoute
@@ -155,18 +165,18 @@ export interface FileRoutesByTo {
   '/policy': typeof PolicyRouteWithChildren
   '/login': typeof AuthLoginRoute
   '/sign-up': typeof AuthSignUpRoute
-  '/new': typeof ChatNewRoute
   '/pricing': typeof ChatPricingRoute
   '/xr': typeof ChatXrRoute
   '/api/mail': typeof ApiMailRoute
   '/api/uploadthing': typeof ApiUploadthingRoute
   '/policy/privacy': typeof PolicyPrivacyRoute
   '/policy/terms': typeof PolicyTermsRoute
-  '/chat/$id': typeof ChatChatIdRoute
-  '/settings/account': typeof ChatSettingsAccountRoute
-  '/settings/contact': typeof ChatSettingsContactRoute
-  '/settings/preferences': typeof ChatSettingsPreferencesRoute
-  '/settings': typeof ChatSettingsIndexRoute
+  '/new': typeof ChatAuthenticatedNewRoute
+  '/chat/$id': typeof ChatAuthenticatedChatIdRoute
+  '/settings/account': typeof ChatAuthenticatedSettingsAccountRoute
+  '/settings/contact': typeof ChatAuthenticatedSettingsContactRoute
+  '/settings/preferences': typeof ChatAuthenticatedSettingsPreferencesRoute
+  '/settings': typeof ChatAuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -176,20 +186,21 @@ export interface FileRoutesById {
   '/policy': typeof PolicyRouteWithChildren
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/sign-up': typeof AuthSignUpRoute
-  '/_chat/new': typeof ChatNewRoute
+  '/_chat/_authenticated': typeof ChatAuthenticatedRouteWithChildren
   '/_chat/pricing': typeof ChatPricingRoute
-  '/_chat/settings': typeof ChatSettingsRouteWithChildren
   '/_chat/xr': typeof ChatXrRoute
   '/api/mail': typeof ApiMailRoute
   '/api/uploadthing': typeof ApiUploadthingRoute
   '/policy/privacy': typeof PolicyPrivacyRoute
   '/policy/terms': typeof PolicyTermsRoute
   '/_chat/': typeof ChatIndexRoute
-  '/_chat/chat/$id': typeof ChatChatIdRoute
-  '/_chat/settings/account': typeof ChatSettingsAccountRoute
-  '/_chat/settings/contact': typeof ChatSettingsContactRoute
-  '/_chat/settings/preferences': typeof ChatSettingsPreferencesRoute
-  '/_chat/settings/': typeof ChatSettingsIndexRoute
+  '/_chat/_authenticated/new': typeof ChatAuthenticatedNewRoute
+  '/_chat/_authenticated/settings': typeof ChatAuthenticatedSettingsRouteWithChildren
+  '/_chat/_authenticated/chat/$id': typeof ChatAuthenticatedChatIdRoute
+  '/_chat/_authenticated/settings/account': typeof ChatAuthenticatedSettingsAccountRoute
+  '/_chat/_authenticated/settings/contact': typeof ChatAuthenticatedSettingsContactRoute
+  '/_chat/_authenticated/settings/preferences': typeof ChatAuthenticatedSettingsPreferencesRoute
+  '/_chat/_authenticated/settings/': typeof ChatAuthenticatedSettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -199,14 +210,14 @@ export interface FileRouteTypes {
     | '/policy'
     | '/login'
     | '/sign-up'
-    | '/new'
     | '/pricing'
-    | '/settings'
     | '/xr'
     | '/api/mail'
     | '/api/uploadthing'
     | '/policy/privacy'
     | '/policy/terms'
+    | '/new'
+    | '/settings'
     | '/chat/$id'
     | '/settings/account'
     | '/settings/contact'
@@ -219,13 +230,13 @@ export interface FileRouteTypes {
     | '/policy'
     | '/login'
     | '/sign-up'
-    | '/new'
     | '/pricing'
     | '/xr'
     | '/api/mail'
     | '/api/uploadthing'
     | '/policy/privacy'
     | '/policy/terms'
+    | '/new'
     | '/chat/$id'
     | '/settings/account'
     | '/settings/contact'
@@ -239,20 +250,21 @@ export interface FileRouteTypes {
     | '/policy'
     | '/_auth/login'
     | '/_auth/sign-up'
-    | '/_chat/new'
+    | '/_chat/_authenticated'
     | '/_chat/pricing'
-    | '/_chat/settings'
     | '/_chat/xr'
     | '/api/mail'
     | '/api/uploadthing'
     | '/policy/privacy'
     | '/policy/terms'
     | '/_chat/'
-    | '/_chat/chat/$id'
-    | '/_chat/settings/account'
-    | '/_chat/settings/contact'
-    | '/_chat/settings/preferences'
-    | '/_chat/settings/'
+    | '/_chat/_authenticated/new'
+    | '/_chat/_authenticated/settings'
+    | '/_chat/_authenticated/chat/$id'
+    | '/_chat/_authenticated/settings/account'
+    | '/_chat/_authenticated/settings/contact'
+    | '/_chat/_authenticated/settings/preferences'
+    | '/_chat/_authenticated/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -336,13 +348,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatXrRouteImport
       parentRoute: typeof ChatRoute
     }
-    '/_chat/settings': {
-      id: '/_chat/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof ChatSettingsRouteImport
-      parentRoute: typeof ChatRoute
-    }
     '/_chat/pricing': {
       id: '/_chat/pricing'
       path: '/pricing'
@@ -350,11 +355,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatPricingRouteImport
       parentRoute: typeof ChatRoute
     }
-    '/_chat/new': {
-      id: '/_chat/new'
-      path: '/new'
-      fullPath: '/new'
-      preLoaderRoute: typeof ChatNewRouteImport
+    '/_chat/_authenticated': {
+      id: '/_chat/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ChatAuthenticatedRouteImport
       parentRoute: typeof ChatRoute
     }
     '/_auth/sign-up': {
@@ -371,40 +376,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_chat/settings/': {
-      id: '/_chat/settings/'
+    '/_chat/_authenticated/settings': {
+      id: '/_chat/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof ChatAuthenticatedSettingsRouteImport
+      parentRoute: typeof ChatAuthenticatedRoute
+    }
+    '/_chat/_authenticated/new': {
+      id: '/_chat/_authenticated/new'
+      path: '/new'
+      fullPath: '/new'
+      preLoaderRoute: typeof ChatAuthenticatedNewRouteImport
+      parentRoute: typeof ChatAuthenticatedRoute
+    }
+    '/_chat/_authenticated/settings/': {
+      id: '/_chat/_authenticated/settings/'
       path: '/'
       fullPath: '/settings/'
-      preLoaderRoute: typeof ChatSettingsIndexRouteImport
-      parentRoute: typeof ChatSettingsRoute
+      preLoaderRoute: typeof ChatAuthenticatedSettingsIndexRouteImport
+      parentRoute: typeof ChatAuthenticatedSettingsRoute
     }
-    '/_chat/settings/preferences': {
-      id: '/_chat/settings/preferences'
+    '/_chat/_authenticated/settings/preferences': {
+      id: '/_chat/_authenticated/settings/preferences'
       path: '/preferences'
       fullPath: '/settings/preferences'
-      preLoaderRoute: typeof ChatSettingsPreferencesRouteImport
-      parentRoute: typeof ChatSettingsRoute
+      preLoaderRoute: typeof ChatAuthenticatedSettingsPreferencesRouteImport
+      parentRoute: typeof ChatAuthenticatedSettingsRoute
     }
-    '/_chat/settings/contact': {
-      id: '/_chat/settings/contact'
+    '/_chat/_authenticated/settings/contact': {
+      id: '/_chat/_authenticated/settings/contact'
       path: '/contact'
       fullPath: '/settings/contact'
-      preLoaderRoute: typeof ChatSettingsContactRouteImport
-      parentRoute: typeof ChatSettingsRoute
+      preLoaderRoute: typeof ChatAuthenticatedSettingsContactRouteImport
+      parentRoute: typeof ChatAuthenticatedSettingsRoute
     }
-    '/_chat/settings/account': {
-      id: '/_chat/settings/account'
+    '/_chat/_authenticated/settings/account': {
+      id: '/_chat/_authenticated/settings/account'
       path: '/account'
       fullPath: '/settings/account'
-      preLoaderRoute: typeof ChatSettingsAccountRouteImport
-      parentRoute: typeof ChatSettingsRoute
+      preLoaderRoute: typeof ChatAuthenticatedSettingsAccountRouteImport
+      parentRoute: typeof ChatAuthenticatedSettingsRoute
     }
-    '/_chat/chat/$id': {
-      id: '/_chat/chat/$id'
+    '/_chat/_authenticated/chat/$id': {
+      id: '/_chat/_authenticated/chat/$id'
       path: '/chat/$id'
       fullPath: '/chat/$id'
-      preLoaderRoute: typeof ChatChatIdRouteImport
-      parentRoute: typeof ChatRoute
+      preLoaderRoute: typeof ChatAuthenticatedChatIdRouteImport
+      parentRoute: typeof ChatAuthenticatedRoute
     }
   }
 }
@@ -421,40 +440,56 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
-interface ChatSettingsRouteChildren {
-  ChatSettingsAccountRoute: typeof ChatSettingsAccountRoute
-  ChatSettingsContactRoute: typeof ChatSettingsContactRoute
-  ChatSettingsPreferencesRoute: typeof ChatSettingsPreferencesRoute
-  ChatSettingsIndexRoute: typeof ChatSettingsIndexRoute
+interface ChatAuthenticatedSettingsRouteChildren {
+  ChatAuthenticatedSettingsAccountRoute: typeof ChatAuthenticatedSettingsAccountRoute
+  ChatAuthenticatedSettingsContactRoute: typeof ChatAuthenticatedSettingsContactRoute
+  ChatAuthenticatedSettingsPreferencesRoute: typeof ChatAuthenticatedSettingsPreferencesRoute
+  ChatAuthenticatedSettingsIndexRoute: typeof ChatAuthenticatedSettingsIndexRoute
 }
 
-const ChatSettingsRouteChildren: ChatSettingsRouteChildren = {
-  ChatSettingsAccountRoute: ChatSettingsAccountRoute,
-  ChatSettingsContactRoute: ChatSettingsContactRoute,
-  ChatSettingsPreferencesRoute: ChatSettingsPreferencesRoute,
-  ChatSettingsIndexRoute: ChatSettingsIndexRoute,
+const ChatAuthenticatedSettingsRouteChildren: ChatAuthenticatedSettingsRouteChildren =
+  {
+    ChatAuthenticatedSettingsAccountRoute:
+      ChatAuthenticatedSettingsAccountRoute,
+    ChatAuthenticatedSettingsContactRoute:
+      ChatAuthenticatedSettingsContactRoute,
+    ChatAuthenticatedSettingsPreferencesRoute:
+      ChatAuthenticatedSettingsPreferencesRoute,
+    ChatAuthenticatedSettingsIndexRoute: ChatAuthenticatedSettingsIndexRoute,
+  }
+
+const ChatAuthenticatedSettingsRouteWithChildren =
+  ChatAuthenticatedSettingsRoute._addFileChildren(
+    ChatAuthenticatedSettingsRouteChildren,
+  )
+
+interface ChatAuthenticatedRouteChildren {
+  ChatAuthenticatedNewRoute: typeof ChatAuthenticatedNewRoute
+  ChatAuthenticatedSettingsRoute: typeof ChatAuthenticatedSettingsRouteWithChildren
+  ChatAuthenticatedChatIdRoute: typeof ChatAuthenticatedChatIdRoute
 }
 
-const ChatSettingsRouteWithChildren = ChatSettingsRoute._addFileChildren(
-  ChatSettingsRouteChildren,
-)
+const ChatAuthenticatedRouteChildren: ChatAuthenticatedRouteChildren = {
+  ChatAuthenticatedNewRoute: ChatAuthenticatedNewRoute,
+  ChatAuthenticatedSettingsRoute: ChatAuthenticatedSettingsRouteWithChildren,
+  ChatAuthenticatedChatIdRoute: ChatAuthenticatedChatIdRoute,
+}
+
+const ChatAuthenticatedRouteWithChildren =
+  ChatAuthenticatedRoute._addFileChildren(ChatAuthenticatedRouteChildren)
 
 interface ChatRouteChildren {
-  ChatNewRoute: typeof ChatNewRoute
+  ChatAuthenticatedRoute: typeof ChatAuthenticatedRouteWithChildren
   ChatPricingRoute: typeof ChatPricingRoute
-  ChatSettingsRoute: typeof ChatSettingsRouteWithChildren
   ChatXrRoute: typeof ChatXrRoute
   ChatIndexRoute: typeof ChatIndexRoute
-  ChatChatIdRoute: typeof ChatChatIdRoute
 }
 
 const ChatRouteChildren: ChatRouteChildren = {
-  ChatNewRoute: ChatNewRoute,
+  ChatAuthenticatedRoute: ChatAuthenticatedRouteWithChildren,
   ChatPricingRoute: ChatPricingRoute,
-  ChatSettingsRoute: ChatSettingsRouteWithChildren,
   ChatXrRoute: ChatXrRoute,
   ChatIndexRoute: ChatIndexRoute,
-  ChatChatIdRoute: ChatChatIdRoute,
 }
 
 const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
