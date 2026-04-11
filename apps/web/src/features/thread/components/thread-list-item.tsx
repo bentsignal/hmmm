@@ -3,13 +3,14 @@ import { Link } from "@tanstack/react-router";
 import equal from "fast-deep-equal";
 import { Brain } from "lucide-react";
 
+import { useIsMobile } from "@acme/ui/hooks/use-mobile";
 import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@acme/ui/sidebar";
+
 import useThreadStore from "~/features/thread/store";
-import { useIsMobile } from "@acme/ui/hooks/use-mobile";
 import { cn } from "~/lib/utils";
 import { Thread } from "../types";
 
