@@ -22,7 +22,7 @@
     "clean": "git clean -xdf .cache .turbo node_modules",
     "format": "prettier --check . --ignore-path ../../.gitignore --ignore-path .prettierignore",
     "fomat:fix": "prettier --write . --ignore-path ../../.gitignore --ignore-path .prettierignore",
-    "lint": "eslint",
+    "lint": "eslint --flag unstable_native_nodejs_ts_config",
     "typecheck": "tsc --noEmit",
     "setup": "convex dev --until-success",
     "logs": "convex logs"
@@ -55,6 +55,7 @@
     "zod": "^3.25.56"
   },
   "devDependencies": {
+    "@acme/eslint-config": "workspace:*",
     "@convex-dev/eslint-plugin": "^1.1.1",
     "@types/node": "^20.19.0",
     "@types/react": "^19.1.6",
