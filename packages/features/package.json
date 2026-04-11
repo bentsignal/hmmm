@@ -1,0 +1,45 @@
+{
+  "name": "@acme/features",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./account": "./src/account/account-details.tsx",
+    "./image": "./src/image/image.tsx",
+    "./image/config": "./src/image/create-image-config.ts",
+    "./image/sizes": "./src/image/sizes.ts",
+    "./layout/account-item": "./src/layout/account-item.tsx",
+    "./layout/sign-out-item": "./src/layout/sign-out-item.tsx",
+    "./quick-link": "./src/quick-link/quick-link.tsx",
+    "./screen": "./src/screen/index.tsx",
+    "./theme": "./src/theme/index.tsx"
+  },
+  "license": "MIT",
+  "scripts": {
+    "clean": "git clean -xdf .cache .turbo dist node_modules"
+  },
+  "dependencies": {
+    "next-themes": "^0.4.6"
+  },
+  "devDependencies": {
+    "@acme/eslint-config": "workspace:*",
+    "@acme/prettier-config": "workspace:*",
+    "@acme/tsconfig": "workspace:*",
+    "@acme/ui": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:react19",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "react": "catalog:react19",
+    "typescript": "catalog:"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "catalog:",
+    "@tanstack/react-router": "catalog:",
+    "@tanstack/react-start": "catalog:",
+    "great-time": "catalog:",
+    "lucide-react": "catalog:",
+    "react": "catalog:react19",
+    "rostra": "catalog:"
+  },
+  "prettier": "@acme/prettier-config"
+}

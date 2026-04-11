@@ -1,0 +1,15 @@
+import { useConvexAuth, useQuery } from "convex/react";
+
+import { api } from "@acme/db/api";
+
+export default function ThreadTitleUpdater({ threadId }: { threadId: string }) {
+  const { isAuthenticated } = useConvexAuth();
+  const args = isAuthenticated ? { threadId } : "skip";
+  const title = useQuery(api.ai.thread.getTitle, args);
+
+  if (title) {
+    document.title = title;
+  }
+
+  return null;
+}
