@@ -1,0 +1,71 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "topo": {
+      "dependsOn": ["^topo"]
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".cache/tsbuildinfo.json", "dist/**"]
+    },
+    "dev": {
+      "dependsOn": ["^dev"],
+      "cache": false,
+      "persistent": false
+    },
+    "format": {
+      "outputs": [".cache/.prettiercache"],
+      "outputLogs": "new-only"
+    },
+    "lint": {
+      "dependsOn": ["^topo"],
+      "outputs": [".cache/.eslintcache"]
+    },
+    "test": {
+      "dependsOn": ["^topo"],
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^topo"],
+      "outputs": [".cache/tsbuildinfo.json"]
+    },
+    "clean": {
+      "cache": false
+    },
+    "//#clean": {
+      "cache": false
+    },
+    "push": {
+      "cache": false,
+      "interactive": true
+    },
+    "studio": {
+      "cache": false,
+      "persistent": true
+    },
+    "ui-add": {
+      "cache": false,
+      "interactive": true
+    }
+  },
+  "globalEnv": [
+    "VITE_NODE_ENV",
+    "VITE_UT_URL",
+    "VITE_SITE_URL",
+    "VITE_SHOP_URL",
+    "VITE_CMS_URL",
+    "VITE_SHOPIFY_IMAGE_URL_STORE_ID",
+    "VITE_CONVEX_URL",
+
+    "CONVEX_DEPLOY_KEY"
+  ],
+  "globalPassThroughEnv": [
+    "NODE_ENV",
+    "CI",
+    "VERCEL",
+    "VERCEL_ENV",
+    "VERCEL_URL",
+    "npm_lifecycle_event"
+  ]
+}

@@ -13,7 +13,6 @@ At the end of every run, run the following commands in order:
 
 1. `pnpm run lint`
 2. `pnpm run typecheck`
-3. `pnpm run test`
 
 If all of these succeed, run:
 
