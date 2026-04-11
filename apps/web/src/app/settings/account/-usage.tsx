@@ -2,7 +2,6 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { Card, CardContent } from "@acme/ui/card";
 
-import { PageFallback } from "~/components/error-boundary";
 import UsageCountdown from "~/features/billing/components/usage-countdown";
 import UsageProgress from "~/features/billing/components/usage-progress";
 import UsageUpgradeCallout from "~/features/billing/components/usage-upgrade-callout";
@@ -10,10 +9,6 @@ import { userQueries } from "~/lib/queries";
 
 export default function Usage() {
   const { data: usage } = useSuspenseQuery(userQueries.usage());
-
-  if (usage === null) {
-    return <PageFallback />;
-  }
 
   return (
     <Card className="w-full">

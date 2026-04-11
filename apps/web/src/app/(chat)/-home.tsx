@@ -9,7 +9,6 @@ import { Button } from "@acme/ui/button";
 import { Loader } from "@acme/ui/loader";
 
 import Abyss from "~/components/abyss";
-import ErrorBoundary from "~/components/error-boundary";
 import Logo from "~/components/logo";
 import UsageChatCallout from "~/features/billing/components/usage-chat-callout";
 import useUsage from "~/features/billing/hooks/use-usage";
@@ -50,13 +49,11 @@ export default function Home({
         </span>
       </div>
       <div className="w-full">
-        <ErrorBoundary>
-          <Composer
-            showInstantLoad={() => setIsLoading(true)}
-            handleError={() => setIsLoading(false)}
-            authed={authed}
-          />
-        </ErrorBoundary>
+        <Composer
+          showInstantLoad={() => setIsLoading(true)}
+          handleError={() => setIsLoading(false)}
+          authed={authed}
+        />
       </div>
       <HomePrompts
         showInstantLoad={() => setIsLoading(true)}
