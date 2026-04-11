@@ -2,6 +2,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 import { ConvexQueryClient } from "@convex-dev/react-query";
+import { ConvexHttpClient } from "convex/browser";
 import { ConvexReactClient } from "convex/react";
 
 import type { AuthState } from "~/features/auth/types/auth-types";
@@ -15,6 +16,7 @@ import { routeTree } from "./routeTree.gen";
 
 export interface RouterContext {
   convex: ConvexReactClient;
+  convexHttpClient: ConvexHttpClient;
   convexQueryClient: ConvexQueryClient;
   queryClient: QueryClient;
   auth: AuthState;
@@ -40,12 +42,14 @@ export function getRouter() {
     },
   });
   convexQueryClient.connect(queryClient);
+  const convexHttpClient = new ConvexHttpClient(env.VITE_CONVEX_URL);
 
   const router = createRouter({
     routeTree,
     defaultPreload: "intent",
     context: {
       convex,
+      convexHttpClient,
       queryClient,
       convexQueryClient,
       auth: { isSignedIn: false },

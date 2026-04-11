@@ -1,62 +1,28 @@
-import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMutation } from "convex/react";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { api } from "@acme/db/api";
 
-import DefaultLoading from "~/components/default-loading";
-
-const searchSchema = z.object({
-  q: z.string().optional(),
-});
+import { validatePrompt } from "~/lib/prompt";
 
 export const Route = createFileRoute("/_chat/_authenticated/new")({
-  validateSearch: searchSchema,
-  component: NewPage,
+  validateSearch: z.object({
+    q: z.string(),
+  }),
+  loaderDeps: ({ search }) => ({ q: search.q }),
+  pendingMs: 0,
+  loader: async ({ context, deps }) => {
+    const prompt = validatePrompt(deps.q);
+
+    if (!prompt) {
+      throw redirect({ to: "/" });
+    }
+
+    const threadId = await context.convexHttpClient.mutation(
+      api.ai.thread.create,
+      { prompt },
+    );
+
+    throw redirect({ to: "/chat/$id", params: { id: threadId } });
+  },
 });
-
-function NewPage() {
-  const { q } = Route.useSearch();
-  const navigate = useNavigate();
-  const createThread = useMutation(api.ai.thread.create);
-  const [processing, setProcessing] = useState(false);
-
-  let parsedQuery = "";
-  if (q) {
-    try {
-      parsedQuery = decodeURIComponent(q.replace(/\+/g, " "));
-    } catch {
-      parsedQuery = q.replace(/\+/g, " ");
-    }
-  }
-
-  useEffect(() => {
-    if (parsedQuery.length === 0) {
-      navigate({ to: "/" });
-      return;
-    }
-
-    if (processing) return;
-    setProcessing(true);
-
-    createThread({ prompt: parsedQuery })
-      .then((threadId) => {
-        if (threadId) {
-          navigate({ to: `/chat/${threadId}` });
-        } else {
-          navigate({ to: "/" });
-        }
-      })
-      .catch((error) => {
-        console.error(error);
-        navigate({ to: "/" });
-      });
-  }, []);
-
-  return (
-    <div className="flex h-screen w-full flex-1 flex-col items-center justify-center">
-      <DefaultLoading />
-    </div>
-  );
-}

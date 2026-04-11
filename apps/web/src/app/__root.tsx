@@ -70,6 +70,9 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
     if (authState.isSignedIn) {
       context.convexQueryClient.serverHttpClient?.setAuth(authState.token);
+      context.convexHttpClient.setAuth(authState.token);
+    } else {
+      context.convexHttpClient.clearAuth();
     }
 
     return { auth: authState, cookies };

@@ -8,6 +8,7 @@ import useMessageStore from "~/features/messages/store";
 import useThreadMutation from "~/features/thread/hooks/use-thread-mutation";
 import useThreadStatus from "~/features/thread/hooks/use-thread-status";
 import useThreadStore from "~/features/thread/store/thread-store";
+import { validatePrompt } from "~/lib/prompt";
 import { tryCatch } from "~/lib/utils";
 import useComposerStore from "../store";
 
@@ -57,13 +58,13 @@ export default function useSendMessage() {
     handleError?: () => void;
   }) => {
     // if customPrompt is provided, use it, otherwise use the prompt from the store
-    const prompt = customPrompt ?? useComposerStore.getState().prompt;
+    const rawPrompt = customPrompt ?? useComposerStore.getState().prompt;
 
     // if user is not authenticated, redirect to sign-up page. create thread after
     // they have signed in
     if (!isAuthenticated) {
       const redirectParams = new URLSearchParams();
-      redirectParams.set("q", prompt);
+      redirectParams.set("q", rawPrompt);
       const url = "/sign-up?redirect_url=/new?" + redirectParams.toString();
       navigate({ to: url });
     }
@@ -73,8 +74,9 @@ export default function useSendMessage() {
       return;
     }
 
-    // prompt can't be empty
-    if (prompt.trim() === "") {
+    // validate prompt is non-empty
+    const prompt = validatePrompt(rawPrompt);
+    if (!prompt) {
       return;
     }
     setPrompt("");
