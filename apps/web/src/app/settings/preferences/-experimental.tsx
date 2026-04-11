@@ -1,12 +1,13 @@
 import { useState } from "react";
-import Cookies from "js-cookie";
 
 import { Switch } from "@acme/ui/switch";
 
 import InfoCard from "~/components/info-card";
 
 export default function Experimental() {
-  const [xrChecked, setXrChecked] = useState(Cookies.get("xr") === "true");
+  const [xrChecked, setXrChecked] = useState(
+    document.cookie.match(/(?:^|; )xr=([^;]*)/)?.[1] === "true",
+  );
   return (
     <InfoCard title="Experimental">
       <div className="flex flex-col gap-2">
@@ -15,7 +16,7 @@ export default function Experimental() {
           checked={xrChecked}
           setChecked={(value: boolean) => {
             setXrChecked(value);
-            Cookies.set("xr", value.toString());
+            document.cookie = `xr=${value}; path=/; max-age=31536000`;
           }}
           note="Show/hide XR button on home page"
         />

@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import Cookies from "js-cookie";
 
 import Home from "~/app/(chat)/-home";
 import { suggestionQueries } from "~/lib/queries";
@@ -13,7 +12,7 @@ export const Route = createFileRoute("/_chat/")({
 
 function HomePage() {
   const { auth } = Route.useRouteContext();
-  const showXr = Cookies.get("xr") === "true";
+  const showXr = document.cookie.match(/(?:^|; )xr=([^;]*)/)?.[1] === "true";
 
   return <Home authed={auth.isSignedIn} showXr={showXr} />;
 }

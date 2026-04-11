@@ -1,5 +1,3 @@
-import Cookies from "js-cookie";
-
 import { Switch } from "@acme/ui/switch";
 
 import InfoCard from "~/components/info-card";
@@ -8,7 +6,6 @@ import { cn } from "~/lib/utils";
 import { useTheme } from "~/providers/theme-provider";
 
 export default function Appearance() {
-  console.log(Cookies.get());
   const { theme, changeTheme, stars, changeStars } = useTheme();
   return (
     <InfoCard title="Appearance">

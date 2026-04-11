@@ -1,5 +1,4 @@
 import { createContext, useContext, useState } from "react";
-import Cookies from "js-cookie";
 
 import { defaultTheme, Theme } from "~/lib/theme";
 
@@ -37,12 +36,12 @@ export default function ThemeProvider({
     const newThemeClass = `theme-${newTheme}`;
     document.body.classList.add(newThemeClass);
     setTheme(newTheme);
-    Cookies.set("theme", newTheme);
+    document.cookie = `theme=${newTheme}; path=/; max-age=31536000`;
   };
 
   const changeStars = (newStarsValue: boolean) => {
     setStars(newStarsValue);
-    Cookies.set("stars", newStarsValue.toString());
+    document.cookie = `stars=${newStarsValue}; path=/; max-age=31536000`;
   };
 
   return (
