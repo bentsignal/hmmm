@@ -112,9 +112,13 @@ export default function useThreadList() {
 
   // Phase 2: Live Convex paginated query for real-time updates + load more
   const args = isAuthenticated ? { search: debouncedSearch } : "skip";
-  const liveQuery = usePaginatedQuery(api.ai.thread.getThreadList, args, {
-    initialNumItems: INITIAL_PAGE_SIZE,
-  });
+  const liveQuery = usePaginatedQuery(
+    api.ai.thread.queries.getThreadList,
+    args,
+    {
+      initialNumItems: INITIAL_PAGE_SIZE,
+    },
+  );
 
   // Switch to live results once the first page has loaded
   const shouldUseLiveResults = liveQuery.status !== "LoadingFirstPage";

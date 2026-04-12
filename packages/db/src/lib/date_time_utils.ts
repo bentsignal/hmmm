@@ -63,19 +63,15 @@ export const getDayBounds = () => {
   return { start, end };
 };
 
-export type CurrentDateTime = {
+export interface CurrentDateTime {
   hours: number;
   minutes: number;
   month: string;
   day: string;
   year: string;
-};
+}
 
-export const getCurrentDateTime = ({
-  timezone,
-}: {
-  timezone: string;
-}): CurrentDateTime => {
+export const getCurrentDateTime = ({ timezone }: { timezone: string }) => {
   const date = new Date();
 
   const timeString = date.toLocaleTimeString("en-US", {

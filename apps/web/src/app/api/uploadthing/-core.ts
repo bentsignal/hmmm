@@ -46,7 +46,7 @@ export const ourFileRouter = {
       // storage and rate limit check
       const convex = getConvexHttpClient();
       const { data, error } = await tryCatch(
-        convex.mutation(api.app.library.verifyUpload, {
+        convex.mutation(api.app.storage.verifyUpload, {
           userId,
           apiKey: env.CONVEX_INTERNAL_KEY,
           payloadSize,

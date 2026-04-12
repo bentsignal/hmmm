@@ -4,17 +4,11 @@ import { z } from "zod";
 import { internal } from "../../../_generated/api";
 import { tryCatch } from "../../../lib/utils";
 
-const inputSchema = z.object({
-  keys: z.array(z.string().describe("keys of the files to analyze.")),
-  prompt: z.string().describe("The prompt to use to analyze the files."),
-});
-type FileAnalysisInput = z.infer<typeof inputSchema>;
-
-type FileAnalysisOutput = {
+interface FileAnalysisOutput {
   response: string;
-};
+}
 
-export const analyzeFiles = createTool<FileAnalysisInput, FileAnalysisOutput>({
+export const analyzeFiles = createTool({
   description: `
   
   A tool that can take in multiple files and perform analysis on them. You provide
@@ -26,15 +20,17 @@ export const analyzeFiles = createTool<FileAnalysisInput, FileAnalysisOutput>({
   keys are included for context, not to be shown to the user.
   
   `,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  args: inputSchema as any,
+  args: z.object({
+    keys: z.array(z.string().describe("keys of the files to analyze.")),
+    prompt: z.string().describe("The prompt to use to analyze the files."),
+  }),
   handler: async (ctx, args): Promise<FileAnalysisOutput> => {
     const { keys, prompt } = args;
 
     if (!ctx.userId) {
       return {
         response: "User not authenticated",
-      };
+      } as const satisfies FileAnalysisOutput;
     }
 
     const analysis = await tryCatch(
@@ -49,11 +45,11 @@ export const analyzeFiles = createTool<FileAnalysisInput, FileAnalysisOutput>({
       console.error(analysis.error);
       return {
         response: "Ran into an issue while analyzing the files",
-      };
+      } as const satisfies FileAnalysisOutput;
     }
 
     return {
       response: analysis.data,
-    };
+    } as const satisfies FileAnalysisOutput;
   },
 });

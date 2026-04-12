@@ -39,7 +39,74 @@ const weatherArgs = z.object({
 });
 type WeatherInput = z.infer<typeof weatherArgs>;
 
-export const weather = createTool<WeatherInput, unknown>({
+type QueryType = WeatherInput["queryType"];
+
+interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+const geocodingResultSchema = z.object({
+  geometry: z.object({
+    location: z.object({
+      lat: z.number(),
+      lng: z.number(),
+    }),
+  }),
+});
+const geocodingResponseSchema = z.object({
+  // nonempty makes the type a `[T, ...T[]]` tuple, so `results[0]` is narrowed
+  // to non-undefined even under web's `noUncheckedIndexedAccess`.
+  results: z.array(geocodingResultSchema).nonempty(),
+});
+
+function buildWeatherUrl(
+  queryType: QueryType,
+  coordinates: Coordinates,
+  args: WeatherInput,
+) {
+  const base = "https://weather.googleapis.com";
+  const shared = `key=${env.GOOGLE_API_KEY}&location.latitude=${coordinates.lat}&location.longitude=${coordinates.lng}&unitsSystem=${args.unitSystem}`;
+  switch (queryType) {
+    case "current-conditions":
+      return `${base}/v1/currentConditions:lookup?${shared}`;
+    case "daily-forecast":
+      return `${base}/v1/forecast/days:lookup?${shared}&days=${args.days}&pageSize=${args.days}`;
+    case "hourly-forecast":
+      return `${base}/v1/forecast/hours:lookup?${shared}&hours=24&pageSize=24`;
+    case "last-24-hours":
+      return `${base}/v1/history/hours:lookup?${shared}&hours=${24}&pageSize=${24}`;
+  }
+}
+
+const getCacheTtl = (queryType: QueryType) => {
+  switch (queryType) {
+    case "current-conditions":
+      return 60 * 10; // 10 minutes
+    case "daily-forecast":
+      return 60 * 60; // 1 hour
+    case "hourly-forecast":
+      return 60 * 10; // 10 minutes
+    case "last-24-hours":
+      return 60 * 10; // 10 minutes
+  }
+};
+
+const getCoordinates = async (location: string) => {
+  const geocodingResponse = await fetch(
+    `https://maps.googleapis.com/maps/api/geocode/json?address=${location}&key=${env.GOOGLE_API_KEY}`,
+  );
+  const parsed = geocodingResponseSchema.parse(await geocodingResponse.json());
+  return parsed.results[0].geometry.location;
+};
+
+const getWeather = async (url: string) => {
+  const weatherResponse = await fetch(url);
+  const data = z.unknown().parse(await weatherResponse.json());
+  return data;
+};
+
+export const weather = createTool({
   description: `
 
   This tool is used to get the current weather for a given location. It can be
@@ -51,10 +118,8 @@ export const weather = createTool<WeatherInput, unknown>({
   user's question directly.
 
   `,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  args: weatherArgs as any,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  handler: async (ctx, args: WeatherInput, options) => {
+  args: weatherArgs,
+  handler: async (ctx, args) => {
     // check cache
     const cacheKey = formatCacheKey("weather", [
       args.location,
@@ -78,24 +143,8 @@ export const weather = createTool<WeatherInput, unknown>({
       );
       return null;
     }
-    // construct url for weather api
-    const base = "https://weather.googleapis.com";
-    const shared = `key=${env.GOOGLE_API_KEY}&location.latitude=${coordinates.lat}&location.longitude=${coordinates.lng}&unitsSystem=${args.unitSystem}`;
-    let url;
-    switch (args.queryType) {
-      case "current-conditions":
-        url = `${base}/v1/currentConditions:lookup?${shared}`;
-        break;
-      case "daily-forecast":
-        url = `${base}/v1/forecast/days:lookup?${shared}&days=${args.days}&pageSize=${args.days}`;
-        break;
-      case "hourly-forecast":
-        url = `${base}/v1/forecast/hours:lookup?${shared}&hours=24&pageSize=24`;
-        break;
-      case "last-24-hours":
-        url = `${base}/v1/history/hours:lookup?${shared}&hours=${24}&pageSize=${24}`;
-        break;
-    }
+
+    const url = buildWeatherUrl(args.queryType, coordinates, args);
 
     // get weather data
     const { data: weatherData, error: weatherError } = await tryCatch(
@@ -110,21 +159,7 @@ export const weather = createTool<WeatherInput, unknown>({
     }
 
     // write to cache
-    let ttl;
-    switch (args.queryType) {
-      case "current-conditions":
-        ttl = 60 * 10; // 10 minutes
-        break;
-      case "daily-forecast":
-        ttl = 60 * 60; // 1 hour
-        break;
-      case "hourly-forecast":
-        ttl = 60 * 10; // 10 minutes
-        break;
-      case "last-24-hours":
-        ttl = 60 * 10; // 10 minutes
-        break;
-    }
+    const ttl = getCacheTtl(args.queryType);
     await kv.set(cacheKey, weatherData, { ex: ttl });
 
     // log usage
@@ -139,18 +174,3 @@ export const weather = createTool<WeatherInput, unknown>({
     return weatherData;
   },
 });
-
-const getCoordinates = async (location: string) => {
-  const geocodingResponse = await fetch(
-    `https://maps.googleapis.com/maps/api/geocode/json?address=${location}&key=${env.GOOGLE_API_KEY}`,
-  );
-  const geocodingData = await geocodingResponse.json();
-  const { lat, lng } = geocodingData.results[0].geometry.location;
-  return { lat, lng };
-};
-
-const getWeather = async (url: string) => {
-  const weatherResponse = await fetch(url);
-  const weatherData = await weatherResponse.json();
-  return weatherData;
-};

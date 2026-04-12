@@ -4,16 +4,7 @@ import { z } from "zod";
 import type { CurrentDateTime } from "../../lib/date_time_utils";
 import { getCurrentDateTime } from "../../lib/date_time_utils";
 
-const dateTimeArgs = z.object({
-  timezone: z
-    .string()
-    .describe(
-      "IANA timezone identifier (e.g., 'America/New_York', 'Europe/London', 'Asia/Tokyo')",
-    ),
-});
-type DateTimeInput = z.infer<typeof dateTimeArgs>;
-
-export const dateTime = createTool<DateTimeInput, CurrentDateTime>({
+export const dateTime = createTool({
   description: `
 
   Used to get current date and time.
@@ -35,16 +26,18 @@ export const dateTime = createTool<DateTimeInput, CurrentDateTime>({
   they would like the time in 24 hour format.
 
   `,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  args: dateTimeArgs as any,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  handler: async (
-    ctx,
-    args: DateTimeInput,
-    options,
-  ): Promise<CurrentDateTime> => {
-    return getCurrentDateTime({
-      timezone: args.timezone,
-    });
+  args: z.object({
+    timezone: z
+      .string()
+      .describe(
+        "IANA timezone identifier (e.g., 'America/New_York', 'Europe/London', 'Asia/Tokyo')",
+      ),
+  }),
+  handler: async (_ctx, args): Promise<CurrentDateTime> => {
+    return await Promise.resolve(
+      getCurrentDateTime({
+        timezone: args.timezone,
+      }),
+    );
   },
 });

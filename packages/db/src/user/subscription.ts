@@ -1,8 +1,10 @@
-import { CustomCtx } from "convex-helpers/server/customFunctions";
+import type { CustomCtx } from "convex-helpers/server/customFunctions";
 import { v } from "convex/values";
 
-import { internalQuery, QueryCtx } from "../_generated/server";
-import { authedMutation, authedQuery } from "../convex_helpers";
+import type { QueryCtx } from "../_generated/server";
+import type { authedMutation } from "../convex_helpers";
+import { internalQuery } from "../_generated/server";
+import { authedQuery } from "../convex_helpers";
 import { polar } from "../polar";
 import { hasUnlimitedAccess } from "./account";
 
@@ -16,11 +18,11 @@ export const FREE_TIER_MAX_USAGE = 0.03;
 // must be manually granted to a user via the convex dashboard
 export const HIGHEST_TIER_PUBLIC_PLAN = "Ultra";
 
-export type Plan = {
+export interface Plan {
   name: "Free" | "Light" | "Premium" | "Ultra" | "Unlimited";
   price: number;
   max: boolean;
-};
+}
 
 export const enum PlanTier {
   Free = 0,
@@ -33,10 +35,26 @@ export const enum PlanTier {
 // users must be at least Premium tier to choose which model to use
 const MODEL_SELECTION_TIER = PlanTier.Premium;
 
-export const getUserPlanHelper = async (
-  ctx: QueryCtx,
-  userId: string,
-): Promise<Plan> => {
+const VALID_PLAN_NAMES = new Set<string>([
+  "Free",
+  "Light",
+  "Premium",
+  "Ultra",
+  "Unlimited",
+]);
+
+function isPlanName(name: string): name is Plan["name"] {
+  return VALID_PLAN_NAMES.has(name);
+}
+
+function parsePlanName(name: string) {
+  if (isPlanName(name)) {
+    return name;
+  }
+  return "Free";
+}
+
+export const getUserPlanHelper = async (ctx: QueryCtx, userId: string) => {
   const [subscription, unlimited] = await Promise.all([
     polar.getCurrentSubscription(ctx, {
       userId,
@@ -49,7 +67,7 @@ export const getUserPlanHelper = async (
       name: "Unlimited",
       price: 0,
       max: true,
-    };
+    } satisfies Plan;
   }
 
   if (!subscription) {
@@ -57,14 +75,15 @@ export const getUserPlanHelper = async (
       name: "Free",
       price: 0,
       max: false,
-    };
+    } satisfies Plan;
   }
 
+  const planName = parsePlanName(subscription.product.name);
   return {
-    name: subscription.product.name as Plan["name"],
+    name: planName,
     price: subscription.product.prices[0]?.priceAmount ?? 0,
     max: subscription.product.name === HIGHEST_TIER_PUBLIC_PLAN,
-  };
+  } satisfies Plan;
 };
 
 export const getPlan = authedQuery({

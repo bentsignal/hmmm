@@ -12,7 +12,7 @@ import {
 import { authedMutation } from "../convex_helpers";
 import { counter } from "../counter";
 import { limiter } from "../limiter";
-import { languageModels } from "./models";
+import { languageModels } from "./models/language";
 import { formatSuggestions, suggestionsGenerationPrompt } from "./prompts";
 
 export const generate = internalAction({
@@ -20,7 +20,7 @@ export const generate = internalAction({
   handler: async (ctx) => {
     // generate text containing prompts
     const { text: rawPrompts } = await generateText({
-      model: languageModels["sonar"].model,
+      model: languageModels.sonar.model,
       prompt: suggestionsGenerationPrompt,
     });
     // parse text into array of prompts

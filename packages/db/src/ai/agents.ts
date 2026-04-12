@@ -3,13 +3,14 @@ import { generateObject } from "ai";
 import { v } from "convex/values";
 import z from "zod";
 
+import type { ActionCtx } from "../_generated/server";
 import { components, internal } from "../_generated/api";
-import { ActionCtx, internalAction } from "../_generated/server";
+import { internalAction } from "../_generated/server";
 import { tryCatch } from "../lib/utils";
 import { calculateModelCost } from "../user/usage";
-import { getModel, modelPresets } from "./models";
+import { getModel, modelPresets } from "./models/helpers";
 import { agentPrompt, followUpGeneratorPrompt } from "./prompts";
-import { logSystemError } from "./thread";
+import { logSystemError } from "./thread/helpers";
 import { tools } from "./tools";
 
 export const agent = new Agent(components.agent, {
@@ -29,7 +30,7 @@ export const agent = new Agent(components.agent, {
       args.providerMetadata,
     );
     await ctx.runMutation(internal.user.usage.log, {
-      userId: args.userId || "no-user",
+      userId: args.userId ?? "no-user",
       type: "message",
       cost: cost,
     });
@@ -94,13 +95,13 @@ export const streamResponse = internalAction({
       ),
     );
     if (streamInitError) {
-      logSystemError(
+      await logSystemError(
         ctx,
         threadId,
         "G1",
         "Failed to initialize stream generation.",
       );
-      await ctx.runMutation(internal.ai.thread.setState, {
+      await ctx.runMutation(internal.ai.thread.mutations.setState, {
         threadId: threadId,
         state: "idle",
       });
@@ -109,7 +110,7 @@ export const streamResponse = internalAction({
     // stream response back to user
     const { error: streamError } = await tryCatch(
       Promise.all([
-        ctx.runMutation(internal.ai.thread.setState, {
+        ctx.runMutation(internal.ai.thread.mutations.setState, {
           threadId: threadId,
           state: "streaming",
         }),
@@ -117,7 +118,7 @@ export const streamResponse = internalAction({
       ]),
     );
     if (streamError) {
-      logSystemError(
+      await logSystemError(
         ctx,
         threadId,
         "G2",
@@ -127,7 +128,7 @@ export const streamResponse = internalAction({
     // stream has completed
     await Promise.allSettled([
       // set thread back to idle
-      ctx.runMutation(internal.ai.thread.setState, {
+      ctx.runMutation(internal.ai.thread.mutations.setState, {
         threadId: threadId,
         state: "idle",
       }),
@@ -144,10 +145,13 @@ export const streamResponse = internalAction({
           maxOutputTokens: 1000,
           maxRetries: 3,
         });
-        await ctx.runMutation(internal.ai.thread.saveFollowUpQuestions, {
-          threadId: threadId,
-          followUpQuestions: followUpQuestions.questions,
-        });
+        await ctx.runMutation(
+          internal.ai.thread.mutations.saveFollowUpQuestions,
+          {
+            threadId: threadId,
+            followUpQuestions: followUpQuestions.questions,
+          },
+        );
       })(),
     ]);
   },

@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_chat/_authenticated/new")({
     }
 
     const threadId = await context.convexHttpClient.mutation(
-      api.ai.thread.create,
+      api.ai.thread.mutations.create,
       { prompt },
     );
 

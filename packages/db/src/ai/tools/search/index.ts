@@ -1,6 +1,6 @@
 import z from "zod";
 
-import { CurrentDateTime } from "../../../lib/date_time_utils";
+import type { CurrentDateTime } from "../../../lib/date_time_utils";
 
 export const SourceSchema = z.object({
   url: z.string(),

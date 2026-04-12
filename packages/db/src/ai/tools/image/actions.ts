@@ -5,7 +5,7 @@ import { v } from "convex/values";
 import { internal } from "../../../_generated/api";
 import { internalAction } from "../../../_generated/server";
 import { tryCatch } from "../../../lib/utils";
-import { falImageGenerationModels } from "../../models";
+import { falImageGenerationModels } from "../../models/image";
 import {
   downloadImage,
   editImageFalAI,
@@ -14,10 +14,10 @@ import {
 } from "./helpers";
 import { vAspectRatio } from "./types";
 
-type GenerateImageOutput = {
+interface GenerateImageOutput {
   success: boolean;
   value: string;
-};
+}
 
 export const generate = internalAction({
   args: v.object({
@@ -54,7 +54,7 @@ export const generate = internalAction({
 
     // save result to user's library
     const save = await tryCatch(
-      saveImage(ctx, prompt, download.data, userId, threadId),
+      saveImage({ ctx, prompt, image: download.data, userId, threadId }),
     );
     if (save.error) {
       console.error(save.error);
@@ -114,7 +114,7 @@ export const edit = internalAction({
 
     // save result to user's library
     const save = await tryCatch(
-      saveImage(ctx, prompt, download.data, userId, threadId),
+      saveImage({ ctx, prompt, image: download.data, userId, threadId }),
     );
     if (save.error) {
       console.error(save.error);

@@ -1,7 +1,8 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 
-import { CachedSourceSchema, SearchReturnType } from ".";
+import type { SearchReturnType } from ".";
+import { CachedSourceSchema } from ".";
 import kv from "../../../kv";
 import { getCurrentDateTime } from "../../../lib/date_time_utils";
 import { tryCatch } from "../../../lib/utils";
@@ -10,32 +11,8 @@ import { exa, formatCacheKey, logSearchCost } from "../tool_helpers";
 const NUM_RESULTS = 5;
 const MAX_CHARACTERS = 3000;
 
-const inputSchema = z.object({
-  query: z
-    .string()
-    .min(1)
-    .max(300)
-    .describe(
-      "A full sentence query describing the position you want to know about",
-    ),
-  position: z
-    .string()
-    .min(1)
-    .max(100)
-    .describe("The position you want to know about"),
-  group: z
-    .string()
-    .min(1)
-    .max(100)
-    .describe(
-      "The name of the group, company, or organization you want to know about",
-    ),
-});
-type PositionHolderInput = z.infer<typeof inputSchema>;
-
-export const positionHolder = createTool<PositionHolderInput, SearchReturnType>(
-  {
-    description: `
+export const positionHolder = createTool({
+  description: `
 
     This tool is used to determine who currently holds a position that is subject
     to change, such as the president of the United States or the CEO of a company.
@@ -56,73 +33,90 @@ export const positionHolder = createTool<PositionHolderInput, SearchReturnType>(
     how current the information returned from the sources is.
 
     `,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    args: inputSchema as any,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    handler: async (ctx, args, options): Promise<SearchReturnType> => {
-      // check cache
-      const cacheKey = formatCacheKey("position-holder", [
-        args.position,
-        args.group,
-      ]);
-      const cachedData = await kv.get(cacheKey);
-      const cachedResult = await CachedSourceSchema.safeParseAsync(cachedData);
-      if (cachedResult.success) {
-        return {
-          sources: cachedResult.data.sources,
-          currentDateTime: {
-            timezone: "America/New_York",
-            dateTime: getCurrentDateTime({ timezone: "America/New_York" }),
-          },
-        };
-      }
-
-      const { data: response, error: responseError } = await tryCatch(
-        exa.searchAndContents(args.query, {
-          numResults: NUM_RESULTS,
-          text: {
-            maxCharacters: MAX_CHARACTERS,
-          },
-        }),
-      );
-      if (responseError) {
-        console.error("Error during current events tool call", responseError);
-        return null;
-      }
-
-      // log usage
-      if (ctx.userId) {
-        await logSearchCost(ctx, NUM_RESULTS, ctx.userId);
-      }
-
-      const sources = response.results.map((result) => ({
-        url: result.url,
-        content: result.text,
-        title: result.title,
-        favicon: result.favicon,
-        image: result.image,
-      }));
-
-      // write to cache
-      await kv.set(
-        cacheKey,
-        {
-          sources,
-        },
-        { ex: 60 * 60 }, // 1 hour
-      );
-
-      const dateTime = getCurrentDateTime({
-        timezone: "America/New_York",
-      });
-
+  args: z.object({
+    query: z
+      .string()
+      .min(1)
+      .max(300)
+      .describe(
+        "A full sentence query describing the position you want to know about",
+      ),
+    position: z
+      .string()
+      .min(1)
+      .max(100)
+      .describe("The position you want to know about"),
+    group: z
+      .string()
+      .min(1)
+      .max(100)
+      .describe(
+        "The name of the group, company, or organization you want to know about",
+      ),
+  }),
+  handler: async (ctx, args): Promise<SearchReturnType> => {
+    // check cache
+    const cacheKey = formatCacheKey("position-holder", [
+      args.position,
+      args.group,
+    ]);
+    const cachedData = await kv.get(cacheKey);
+    const cachedResult = await CachedSourceSchema.safeParseAsync(cachedData);
+    if (cachedResult.success) {
       return {
-        sources,
+        sources: cachedResult.data.sources,
         currentDateTime: {
           timezone: "America/New_York",
-          dateTime,
+          dateTime: getCurrentDateTime({ timezone: "America/New_York" }),
         },
       };
-    },
+    }
+
+    const { data: response, error: responseError } = await tryCatch(
+      exa.searchAndContents(args.query, {
+        numResults: NUM_RESULTS,
+        text: {
+          maxCharacters: MAX_CHARACTERS,
+        },
+      }),
+    );
+    if (responseError) {
+      console.error("Error during current events tool call", responseError);
+      return null;
+    }
+
+    // log usage
+    if (ctx.userId) {
+      await logSearchCost(ctx, NUM_RESULTS, ctx.userId);
+    }
+
+    const sources = response.results.map((result) => ({
+      url: result.url,
+      content: result.text,
+      title: result.title,
+      favicon: result.favicon,
+      image: result.image,
+    }));
+
+    // write to cache
+    await kv.set(
+      cacheKey,
+      {
+        sources,
+      },
+      { ex: 60 * 60 }, // 1 hour
+    );
+
+    const dateTime = getCurrentDateTime({
+      timezone: "America/New_York",
+    });
+
+    return {
+      sources,
+      currentDateTime: {
+        timezone: "America/New_York",
+        dateTime,
+      },
+    };
   },
-);
+});

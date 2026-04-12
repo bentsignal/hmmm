@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
-import { internalQuery, MutationCtx } from "../_generated/server";
+import type { MutationCtx } from "../_generated/server";
+import { internalQuery } from "../_generated/server";
 import { apiMutation, authedMutation, authedQuery } from "../convex_helpers";
 import { getUserByUserId } from "../user/account";
 

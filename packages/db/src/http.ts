@@ -21,8 +21,7 @@ http.route({
       return new Response("Missing required headers", { status: 400 });
     }
 
-    const payload = await request.json();
-    const body = JSON.stringify(payload);
+    const body = JSON.stringify(await request.json());
 
     await ctx.scheduler.runAfter(0, internal.user.clerk.processWebhook, {
       body,

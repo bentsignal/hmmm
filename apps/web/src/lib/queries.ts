@@ -11,7 +11,7 @@ export const pricingQueries = {
 
 export const threadQueries = {
   listFirstPage: (search = "") =>
-    convexQuery(api.ai.thread.getThreadList, {
+    convexQuery(api.ai.thread.queries.getThreadList, {
       search,
       paginationOpts: {
         numItems: THREAD_LIST_PAGE_SIZE,
@@ -19,7 +19,7 @@ export const threadQueries = {
       },
     }),
   messagesFirstPage: (threadId: string) =>
-    convexQuery(api.ai.thread.getThreadMessages, {
+    convexQuery(api.ai.thread.queries.getThreadMessages, {
       threadId,
       paginationOpts: {
         numItems: MESSAGE_PAGE_SIZE,
@@ -28,11 +28,11 @@ export const threadQueries = {
       streamArgs: { kind: "list" },
     }),
   state: (threadId: string) =>
-    convexQuery(api.ai.thread.getState, { threadId }),
+    convexQuery(api.ai.thread.queries.getState, { threadId }),
   title: (threadId: string) =>
-    convexQuery(api.ai.thread.getTitle, { threadId }),
+    convexQuery(api.ai.thread.queries.getTitle, { threadId }),
   followUps: (threadId: string) =>
-    convexQuery(api.ai.thread.getFollowUpQuestions, { threadId }),
+    convexQuery(api.ai.thread.queries.getFollowUpQuestions, { threadId }),
 };
 
 export const suggestionQueries = {

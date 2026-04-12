@@ -5,13 +5,8 @@ import {
 } from "convex-helpers/server/customFunctions";
 import { ConvexError, v } from "convex/values";
 
-import {
-  ActionCtx,
-  mutation,
-  MutationCtx,
-  query,
-  QueryCtx,
-} from "./_generated/server";
+import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { env } from "./convex.env";
 
 export const checkApiKey = (apiKey: string) => {
@@ -32,7 +27,7 @@ export const apiMutation = customMutation(mutation, {
   args: {
     apiKey: v.string(),
   },
-  input: async (ctx, args) => {
+  input: (ctx, args) => {
     const { apiKey } = args;
     checkApiKey(apiKey);
     return { ctx, args: {} };
@@ -43,7 +38,7 @@ export const apiQuery = customQuery(query, {
   args: {
     apiKey: v.string(),
   },
-  input: async (ctx, args) => {
+  input: (ctx, args) => {
     const { apiKey } = args;
     checkApiKey(apiKey);
     return { ctx, args: {} };

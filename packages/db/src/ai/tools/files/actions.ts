@@ -1,18 +1,18 @@
 "use node";
 
-import { generateText, UserModelMessage } from "ai";
+import { generateText } from "ai";
 import { v } from "convex/values";
 
 import { internal } from "../../../_generated/api";
 import { internalAction } from "../../../_generated/server";
-import { getFileUrl } from "../../../app/library";
+import { getFileUrl } from "../../../app/file_helpers";
 import { tryCatch } from "../../../lib/utils";
 import { calculateModelCost } from "../../../user/usage";
-import { languageModels } from "../../models";
+import { languageModels } from "../../models/language";
 
-const getFileType = (fileType?: string) => {
-  if (fileType?.startsWith("image/")) return "image";
-  if (fileType?.startsWith("text/") || fileType?.startsWith("application/pdf"))
+const getFileType = (fileType: string) => {
+  if (fileType.startsWith("image/")) return "image";
+  if (fileType.startsWith("text/") || fileType.startsWith("application/pdf"))
     return "document";
   return "file";
 };
@@ -23,7 +23,7 @@ export const analysis = internalAction({
     prompt: v.string(),
     userId: v.optional(v.string()),
   }),
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<string> => {
     const { keys, prompt, userId } = args;
     const files = await tryCatch(
       ctx.runQuery(internal.app.library.getFilesByKeys, {
@@ -40,23 +40,18 @@ export const analysis = internalAction({
       throw new Error("No files found");
     }
 
-    const messages: UserModelMessage[] = [
+    const messages = [
       {
-        role: "user",
+        role: "user" as const,
         content: [
           {
-            type: "text",
+            type: "text" as const,
             text: prompt,
           },
           ...files.data.map((file) => {
-            const fileType =
-              getFileType(file.mimeType) === "image" ? "image" : "file";
             const url = getFileUrl(file.key);
-            return fileType === "image"
-              ? {
-                  type: "image" as const,
-                  image: url,
-                }
+            return getFileType(file.mimeType) === "image"
+              ? { type: "image" as const, image: url }
               : {
                   type: "file" as const,
                   data: url,

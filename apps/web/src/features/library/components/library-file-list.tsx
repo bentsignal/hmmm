@@ -138,13 +138,12 @@ export const LibraryFileList = ({
       }
     : "skip";
   const {
-    results: rawFiles,
+    results: files,
     status,
     loadMore,
   } = usePaginatedQuery(api.app.library.getUserFiles, args, {
     initialNumItems: libraryPagination.initialSize,
   });
-  const files = rawFiles.filter((f): f is LibraryFile => f !== null);
 
   const libraryMode = useLibraryStore((state) => state.libraryMode);
   const selectedFiles = useLibraryStore((state) => state.selectedFiles);

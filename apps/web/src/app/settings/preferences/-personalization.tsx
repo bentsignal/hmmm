@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 
-import { getPublicLanguageModels } from "@acme/db/models";
+import { getPublicLanguageModels } from "@acme/db/models/helpers";
 
 import InfoCard from "~/components/info-card";
 import { userQueries } from "~/lib/queries";

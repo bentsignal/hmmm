@@ -1,8 +1,9 @@
 import { Migrations } from "@convex-dev/migrations";
 
+import type { DataModel } from "./_generated/dataModel.js";
 import { components, internal } from "./_generated/api.js";
-import { DataModel } from "./_generated/dataModel.js";
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Convex component type
 export const migrations = new Migrations<DataModel>(components.migrations);
 export const run = migrations.runner();
 
@@ -17,23 +18,23 @@ export const threadMetadataBackfillTwo = migrations.define({
       },
     );
     // for each thread, create an entry in the new threads table
-    threads.page.forEach(async (thread) => {
+    for (const thread of threads.page) {
       const metadata = await ctx.db
         .query("threadMetadata")
         .withIndex("by_thread_id", (q) => q.eq("threadId", thread._id))
         .first();
       if (metadata) {
-        return;
+        continue;
       }
       await ctx.db.insert("threadMetadata", {
         userId: user.userId,
-        title: thread.title || "",
+        title: thread.title ?? "",
         threadId: thread._id,
         updatedAt: thread._creationTime,
         state: "idle",
         pinned: false,
       });
-    });
+    }
   },
 });
 

@@ -3,7 +3,7 @@ import { auth } from "@clerk/tanstack-react-start/server";
 import { experimental_transcribe as transcribe } from "ai";
 
 import { api } from "@acme/db/api";
-import { modelPresets } from "@acme/db/models";
+import { modelPresets } from "@acme/db/models/helpers";
 
 import { env } from "~/env";
 import { getConvexHttpClient } from "~/lib/convex-server";

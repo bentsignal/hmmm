@@ -1,11 +1,12 @@
+import type { CustomCtx } from "convex-helpers/server/customFunctions";
 import { MINUTE, RateLimiter } from "@convex-dev/rate-limiter";
-import { CustomCtx } from "convex-helpers/server/customFunctions";
 import { ConvexError } from "convex/values";
 
+import type { authedMutation } from "./convex_helpers";
 import { components } from "./_generated/api";
 import { mutation } from "./_generated/server";
-import { authedMutation } from "./convex_helpers";
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Convex component type
 export const limiter = new RateLimiter(components.rateLimiter, {
   messageSend: { kind: "token bucket", rate: 10, period: MINUTE, capacity: 3 },
   transcription: {

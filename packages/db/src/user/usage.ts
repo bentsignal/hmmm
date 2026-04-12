@@ -1,27 +1,21 @@
+import type { LanguageModelUsage } from "ai";
+import type { CustomCtx } from "convex-helpers/server/customFunctions";
 import { TableAggregate } from "@convex-dev/aggregate";
-import { LanguageModelUsage } from "ai";
 import {
   customCtx,
-  CustomCtx,
   customMutation,
 } from "convex-helpers/server/customFunctions";
 import { Triggers } from "convex-helpers/server/triggers";
 import { v } from "convex/values";
 
+import type { DataModel } from "../_generated/dataModel";
+import type { LanguageModel } from "../ai/models/types";
+import type { authedMutation } from "../convex_helpers";
 import { components } from "../_generated/api";
-import { DataModel } from "../_generated/dataModel";
 import { internalMutation, mutation } from "../_generated/server";
-import {
-  LanguageModel,
-  modelPresets,
-  OpenRouterProviderMetadata,
-} from "../ai/models";
-import {
-  authedMutation,
-  authedQuery,
-  checkApiKey,
-  checkAuth,
-} from "../convex_helpers";
+import { modelPresets } from "../ai/models/helpers";
+import { OpenRouterProviderMetadata } from "../ai/models/types";
+import { authedQuery, checkApiKey, checkAuth } from "../convex_helpers";
 import * as timeHelpers from "../lib/date_time_utils";
 import {
   ALLOWED_USAGE_PERCENTAGE,
@@ -41,6 +35,7 @@ export const usage = new TableAggregate<{
   Key: number;
   DataModel: DataModel;
   TableName: "usage";
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Convex component type
 }>(components.aggregateUsage, {
   namespace: (doc) => doc.userId,
   sortKey: (doc) => doc._creationTime,
@@ -95,14 +90,11 @@ export const getUsageHelper = async (
   }
 
   // get the total usage for the period
-  const bounds: {
-    lower: { key: number; inclusive: boolean };
-    upper: { key: number; inclusive: boolean };
-  } = {
+  const bounds = {
     lower: { key: start.getTime(), inclusive: true },
     upper: { key: end.getTime(), inclusive: true },
   };
-  const totalUsage: number = await usage.sum(ctx, {
+  const totalUsage = await usage.sum(ctx, {
     namespace: userId,
     bounds,
   });

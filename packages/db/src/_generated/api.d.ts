@@ -9,10 +9,15 @@
  */
 
 import type * as ai_agents from "../ai/agents.js";
-import type * as ai_models from "../ai/models.js";
+import type * as ai_models_helpers from "../ai/models/helpers.js";
+import type * as ai_models_image from "../ai/models/image.js";
+import type * as ai_models_language from "../ai/models/language.js";
+import type * as ai_models_types from "../ai/models/types.js";
 import type * as ai_prompts from "../ai/prompts.js";
 import type * as ai_suggestions from "../ai/suggestions.js";
-import type * as ai_thread from "../ai/thread.js";
+import type * as ai_thread_helpers from "../ai/thread/helpers.js";
+import type * as ai_thread_mutations from "../ai/thread/mutations.js";
+import type * as ai_thread_queries from "../ai/thread/queries.js";
 import type * as ai_tools_code_generation from "../ai/tools/code_generation.js";
 import type * as ai_tools_date_time from "../ai/tools/date_time.js";
 import type * as ai_tools_files_actions from "../ai/tools/files/actions.js";
@@ -28,7 +33,9 @@ import type * as ai_tools_search_postition_holder from "../ai/tools/search/posti
 import type * as ai_tools_tool_helpers from "../ai/tools/tool_helpers.js";
 import type * as ai_tools_weather from "../ai/tools/weather.js";
 import type * as app_actions from "../app/actions.js";
+import type * as app_file_helpers from "../app/file_helpers.js";
 import type * as app_library from "../app/library.js";
+import type * as app_storage from "../app/storage.js";
 import type * as convex_helpers from "../convex_helpers.js";
 import type * as counter from "../counter.js";
 import type * as crons from "../crons.js";
@@ -59,10 +66,15 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "ai/agents": typeof ai_agents;
-  "ai/models": typeof ai_models;
+  "ai/models/helpers": typeof ai_models_helpers;
+  "ai/models/image": typeof ai_models_image;
+  "ai/models/language": typeof ai_models_language;
+  "ai/models/types": typeof ai_models_types;
   "ai/prompts": typeof ai_prompts;
   "ai/suggestions": typeof ai_suggestions;
-  "ai/thread": typeof ai_thread;
+  "ai/thread/helpers": typeof ai_thread_helpers;
+  "ai/thread/mutations": typeof ai_thread_mutations;
+  "ai/thread/queries": typeof ai_thread_queries;
   "ai/tools/code_generation": typeof ai_tools_code_generation;
   "ai/tools/date_time": typeof ai_tools_date_time;
   "ai/tools/files/actions": typeof ai_tools_files_actions;
@@ -78,7 +90,9 @@ declare const fullApi: ApiFromModules<{
   "ai/tools/tool_helpers": typeof ai_tools_tool_helpers;
   "ai/tools/weather": typeof ai_tools_weather;
   "app/actions": typeof app_actions;
+  "app/file_helpers": typeof app_file_helpers;
   "app/library": typeof app_library;
+  "app/storage": typeof app_storage;
   convex_helpers: typeof convex_helpers;
   counter: typeof counter;
   crons: typeof crons;

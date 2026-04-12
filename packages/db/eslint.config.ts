@@ -6,7 +6,7 @@ import { createStrictSyntax } from "@acme/eslint-config/syntax";
 
 export default defineConfig(
   {
-    ignores: ["src/_generated/**"],
+    ignores: ["src/_generated/**/"],
   },
   baseConfig,
   strictConfig,

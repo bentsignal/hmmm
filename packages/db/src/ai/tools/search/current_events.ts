@@ -1,7 +1,8 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 
-import { CachedSourceSchema, SearchReturnType } from ".";
+import type { SearchReturnType } from ".";
+import { CachedSourceSchema } from ".";
 import kv from "../../../kv";
 import { getCurrentDateTime } from "../../../lib/date_time_utils";
 import { tryCatch } from "../../../lib/utils";
@@ -9,18 +10,7 @@ import { exa, formatCacheKey, logSearchCost } from "../tool_helpers";
 
 const NUM_RESULTS = 5;
 
-const inputSchema = z.object({
-  query: z
-    .string()
-    .min(1)
-    .max(300)
-    .describe(
-      "A full sentence query describing the current events you want to know about",
-    ),
-});
-type CurrentEventsInput = z.infer<typeof inputSchema>;
-
-export const currentEvents = createTool<CurrentEventsInput, SearchReturnType>({
+export const currentEvents = createTool({
   description: `
 
   This tool is used to get information about current events happening around the 
@@ -42,10 +32,16 @@ export const currentEvents = createTool<CurrentEventsInput, SearchReturnType>({
   how current the information returned from the sources is.
 
   `,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  args: inputSchema as any,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  handler: async (ctx, args, options): Promise<SearchReturnType> => {
+  args: z.object({
+    query: z
+      .string()
+      .min(1)
+      .max(300)
+      .describe(
+        "A full sentence query describing the current events you want to know about",
+      ),
+  }),
+  handler: async (ctx, args): Promise<SearchReturnType> => {
     // check cache
     const cacheKey = formatCacheKey("current-events", [args.query]);
     const cachedData = await kv.get(cacheKey);

@@ -1,6 +1,7 @@
 "use node";
 
-import { clerkClient, WebhookEvent } from "@clerk/nextjs/server";
+import type { WebhookEvent } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import { v } from "convex/values";
 import { Webhook } from "svix";
 
@@ -8,6 +9,10 @@ import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import { env } from "../convex.env";
 import { polar } from "../polar";
+
+function isWebhookEvent(value: unknown): value is WebhookEvent {
+  return typeof value === "object" && value !== null && "type" in value;
+}
 
 export const deleteUser = internalAction({
   args: {
@@ -38,27 +43,28 @@ export const processWebhook = internalAction({
   },
   handler: async (ctx, args) => {
     const { body, svixId, svixTimestamp, svixSignature } = args;
-    let event: WebhookEvent;
+    let verified: unknown;
     try {
       const wh = new Webhook(env.CLERK_WEBHOOK_SECRET);
-      event = wh.verify(body, {
+      verified = wh.verify(body, {
         "svix-id": svixId,
         "svix-timestamp": svixTimestamp,
         "svix-signature": svixSignature,
-      }) as WebhookEvent;
+      });
     } catch (error) {
       console.error("Error verifying webhook:", error);
       throw new Error("Invalid webhook");
     }
-    if (event.type === "user.created") {
-      const { id } = event.data;
-      if (!id) {
+    if (!isWebhookEvent(verified)) {
+      throw new Error("Invalid webhook payload");
+    }
+    if (verified.type === "user.created") {
+      const { id, email_addresses } = verified.data;
+      const firstEmail = email_addresses.at(0);
+      if (!id || !firstEmail) {
         throw new Error("Missing required data");
       }
-      const email = event.data.email_addresses[0]!.email_address;
-      if (!email) {
-        throw new Error("Missing required data");
-      }
+      const email = firstEmail.email_address;
       await ctx.runMutation(internal.user.account.create, {
         userId: id,
         email,

@@ -1,6 +1,5 @@
 import { env } from "./convex.env";
 
-// eslint-disable-next-line
 export default {
   providers: [
     {

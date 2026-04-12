@@ -10,7 +10,10 @@
     "./model": {
       "types": "./src/_generated/dataModel.d.ts"
     },
-    "./models": "./src/ai/models.ts",
+    "./models/types": "./src/ai/models/types.ts",
+    "./models/helpers": "./src/ai/models/helpers.ts",
+    "./models/language": "./src/ai/models/language.ts",
+    "./models/image": "./src/ai/models/image.ts",
     "./tools": "./src/ai/tools/index.ts",
     "./tools/search": "./src/ai/tools/search/index.ts",
     "./subscription": "./src/user/subscription.ts",

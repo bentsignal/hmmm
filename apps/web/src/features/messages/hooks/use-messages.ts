@@ -37,7 +37,7 @@ export default function useMessages({
     loadMore,
     isLoading,
     status,
-  } = useThreadMessages(api.ai.thread.getThreadMessages, args, {
+  } = useThreadMessages(api.ai.thread.queries.getThreadMessages, args, {
     initialNumItems: INITIAL_PAGE_SIZE,
     stream: streaming,
   });

@@ -7,28 +7,28 @@ import { toast } from "sonner";
 import { api } from "@acme/db/api";
 
 export default function useThreadMutation() {
-  const createThread = useMutation(api.ai.thread.create);
+  const createThread = useMutation(api.ai.thread.mutations.create);
   const sendMessage = useMutation(
-    api.ai.thread.sendMessage,
+    api.ai.thread.mutations.sendMessage,
   ).withOptimisticUpdate(
-    optimisticallySendMessage(api.ai.thread.getThreadMessages),
+    optimisticallySendMessage(api.ai.thread.queries.getThreadMessages),
   );
   const { mutate: deleteThread } = useTanstackMutation({
-    mutationFn: useConvexMutation(api.ai.thread.deleteThread),
+    mutationFn: useConvexMutation(api.ai.thread.mutations.deleteThread),
     onError: (error) => {
       console.error(error);
       toast.error("Failed to delete thread");
     },
   });
   const { mutate: renameThread } = useTanstackMutation({
-    mutationFn: useConvexMutation(api.ai.thread.rename),
+    mutationFn: useConvexMutation(api.ai.thread.mutations.rename),
     onError: (error) => {
       console.error(error);
       toast.error("Failed to rename thread");
     },
   });
   const { mutate: togglePinned } = useTanstackMutation({
-    mutationFn: useConvexMutation(api.ai.thread.togglePinned),
+    mutationFn: useConvexMutation(api.ai.thread.mutations.togglePinned),
     onError: (error) => {
       console.error(error);
       toast.error("Failed to toggle thread pin");

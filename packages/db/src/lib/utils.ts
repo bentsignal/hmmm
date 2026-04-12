@@ -1,22 +1,21 @@
-type Success<T> = {
+interface Success<T> {
   data: T;
   error: null;
-};
+}
 
-type Failure<E> = {
+interface Failure {
   data: null;
-  error: E;
-};
+  error: Error;
+}
 
-export type Result<T, E = Error> = Success<T> | Failure<E>;
+export type Result<T> = Success<T> | Failure;
 
-export async function tryCatch<T, E = Error>(
-  promise: Promise<T>,
-): Promise<Result<T, E>> {
+export async function tryCatch<T>(promise: Promise<T>) {
   try {
     const data = await promise;
     return { data, error: null };
-  } catch (error) {
-    return { data: null, error: error as E };
+  } catch (caught: unknown) {
+    const error = caught instanceof Error ? caught : new Error(String(caught));
+    return { data: null, error };
   }
 }

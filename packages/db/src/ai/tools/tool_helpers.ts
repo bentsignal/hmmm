@@ -1,4 +1,4 @@
-import { ToolCtx } from "@convex-dev/agent";
+import type { ToolCtx } from "@convex-dev/agent";
 import { Exa } from "exa-js";
 
 import { internal } from "../../_generated/api";

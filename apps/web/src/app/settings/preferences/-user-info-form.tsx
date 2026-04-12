@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useConvexMutation } from "@convex-dev/react-query";
 import { toast } from "sonner";
 
-import type { PublicLanguageModel } from "@acme/db/models";
+import type { PublicLanguageModel } from "@acme/db/models/types";
 import { api } from "@acme/db/api";
 import { Button } from "@acme/ui/button";
 import { Input } from "@acme/ui/input";

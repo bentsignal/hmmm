@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 
+import type { QueryCtx } from "../_generated/server";
 import { components, internal } from "../_generated/api";
-import { internalMutation, mutation, QueryCtx } from "../_generated/server";
+import { internalMutation, mutation } from "../_generated/server";
 import { authedQuery } from "../convex_helpers";
 
 /**
@@ -85,18 +86,13 @@ export const requestDelete = mutation({
         .collect(),
     ]);
     await Promise.all([
-      threadMetadata.map((metadata) => {
-        return ctx.db.delete(metadata._id);
-      }),
-      messageMetadata.map((metadata) => {
-        return ctx.db.delete(metadata._id);
-      }),
-      files.map((file) => {
-        return ctx.db.delete(file._id);
-      }),
+      ...threadMetadata.map((metadata) => ctx.db.delete(metadata._id)),
+      ...messageMetadata.map((metadata) => ctx.db.delete(metadata._id)),
+      ...files.map((file) => ctx.db.delete(file._id)),
     ]);
 
     // delete all user info from agent component
+
     await ctx.runMutation(components.agent.users.deleteAllForUserIdAsync, {
       userId: userId.subject,
     });
@@ -109,6 +105,7 @@ export const requestDelete = mutation({
     await ctx.db.delete(user._id);
 
     // delete user from clerk & customer from polar
+
     await ctx.scheduler.runAfter(0, internal.user.clerk.deleteUser, {
       userId: userId.subject,
     });
@@ -116,6 +113,7 @@ export const requestDelete = mutation({
     // delete all files from storage
     await ctx.scheduler.runAfter(
       0,
+
       internal.app.actions.deleteFilesFromStorage,
       {
         keys: files.map((file) => file.key),

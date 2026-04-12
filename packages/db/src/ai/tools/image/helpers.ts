@@ -1,21 +1,22 @@
 import { fal } from "@fal-ai/client";
 import { UTFile } from "uploadthing/server";
 
+import type { ActionCtx } from "../../../_generated/server";
+import type { FalImageGenerationModel } from "../../models/types";
 import type { AspectRatio } from "./types";
 import { internal } from "../../../_generated/api";
-import { ActionCtx } from "../../../_generated/server";
 import { tryCatch } from "../../../lib/utils";
 import { utapi } from "../../../uploadthing";
-import { FalImageGenerationModel } from "../../models";
 import { aspectRatioMap } from "./types";
 
-export const saveImage = async (
-  ctx: ActionCtx,
-  prompt: string,
-  image: Uint8Array,
-  userId?: string,
-  threadId?: string,
-) => {
+export const saveImage = async (params: {
+  ctx: ActionCtx;
+  prompt: string;
+  image: Uint8Array;
+  userId?: string;
+  threadId?: string;
+}) => {
+  const { ctx, prompt, image, userId, threadId } = params;
   // public is for in user's library, private is for uploadthing
   const { publicFileName, privateFileName } = getFileNames(
     prompt,
@@ -108,7 +109,7 @@ export const generateImageFalAI = async (
   prompt: string,
   aspectRatio: AspectRatio,
   model: FalImageGenerationModel,
-): Promise<string> => {
+) => {
   if (model.type !== "text-to-image") {
     throw new Error("Model is not a text-to-image model");
   }
@@ -127,7 +128,11 @@ export const generateImageFalAI = async (
     );
   }
   try {
-    return result.data.images[0]!.url;
+    const imageUrl = result.data.images[0]?.url;
+    if (!imageUrl) {
+      throw new Error("No image URL found in Fal AI response");
+    }
+    return imageUrl;
   } catch (error) {
     throw new Error(
       `Error retrieving result from Fal AI response, ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -139,7 +144,7 @@ export const editImageFalAI = async (
   prompt: string,
   urls: string[],
   model: FalImageGenerationModel,
-): Promise<string> => {
+) => {
   if (model.type !== "image-to-image") {
     throw new Error("Model is not a image-to-image model");
   }
@@ -156,11 +161,12 @@ export const editImageFalAI = async (
       `Error editing image with Fal AI: ${generationError.message}`,
     );
   }
-  if (!result) {
-    throw new Error("No result from Fal AI");
-  }
   try {
-    return result.data.images[0]!.url;
+    const imageUrl = result.data.images[0]?.url;
+    if (!imageUrl) {
+      throw new Error("No image URL found in Fal AI response");
+    }
+    return imageUrl;
   } catch (error) {
     throw new Error(
       `Error retrieving result from Fal AI response, ${error instanceof Error ? error.message : "Unknown error"}`,

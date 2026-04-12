@@ -5,21 +5,15 @@ import { z } from "zod";
 import { internal } from "../../_generated/api";
 import { tryCatch } from "../../lib/utils";
 import { calculateModelCost } from "../../user/usage";
-import { modelPresets } from "../models";
+import { modelPresets } from "../models/helpers";
 import { codeGenerationPrompt } from "../prompts";
 
-const inputSchema = z.object({});
-type CodeGenerationInput = z.infer<typeof inputSchema>;
-
-type CodeGenerationOutput = {
+interface CodeGenerationOutput {
   code: string;
   reasoning?: string;
-};
+}
 
-export const codeGeneration = createTool<
-  CodeGenerationInput,
-  CodeGenerationOutput
->({
+export const codeGeneration = createTool({
   description: `
     Used to generate code for difficult problems. Should not be used for
     simple requests that require basic code.
@@ -29,8 +23,7 @@ export const codeGeneration = createTool<
     relevant information, you are then responsible for displaying this 
     information to the user.
   `,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  args: inputSchema as any,
+  args: z.object({}),
   handler: async (ctx, args, options): Promise<CodeGenerationOutput> => {
     const messages = options.messages;
 
@@ -50,12 +43,14 @@ export const codeGeneration = createTool<
       };
     }
 
+    const data = result.data;
+
     // log usage
     if (ctx.userId) {
       const cost = calculateModelCost(
         modelPresets.code,
-        result.data.usage,
-        result.data.providerMetadata,
+        data.usage,
+        data.providerMetadata,
       );
       await ctx.runMutation(internal.user.usage.log, {
         userId: ctx.userId,
@@ -65,8 +60,8 @@ export const codeGeneration = createTool<
     }
 
     return {
-      code: result.data.text,
-      reasoning: result.data.reasoningText,
+      code: data.text,
+      reasoning: data.reasoningText,
     };
   },
 });

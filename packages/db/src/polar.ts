@@ -3,6 +3,7 @@ import { Polar } from "@convex-dev/polar";
 import { components, internal } from "./_generated/api";
 import { internalAction, internalQuery } from "./_generated/server";
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Convex component type
 export const polar = new Polar(components.polar, {
   getUserInfo: async (ctx): Promise<{ userId: string; email: string }> => {
     const user = await ctx.runQuery(internal.polar.getUserIdentity);
@@ -11,7 +12,7 @@ export const polar = new Polar(components.polar, {
     }
     return {
       userId: user.subject,
-      email: user.email || "",
+      email: user.email ?? "",
     };
   },
 });
