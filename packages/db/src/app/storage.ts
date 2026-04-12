@@ -36,7 +36,6 @@ export const storage = new TableAggregate<{
   Key: number;
   DataModel: DataModel;
   TableName: "files";
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Convex component type
 }>(components.aggregateStorage, {
   namespace: (doc) => doc.userId,
   sortKey: (doc) => doc._creationTime,

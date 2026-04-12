@@ -33,13 +33,12 @@ const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 export const cleanupResend = internalMutation({
   args: {},
   handler: async (ctx) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- Convex component type
     await ctx.scheduler.runAfter(0, components.resend.lib.cleanupOldEmails, {
       olderThan: ONE_WEEK_MS,
     });
     await ctx.scheduler.runAfter(
       0,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- Convex component type
+
       components.resend.lib.cleanupAbandonedEmails,
       // These generally indicate a bug, so keep them around for longer.
       { olderThan: 4 * ONE_WEEK_MS },

@@ -1,3 +1,5 @@
+"use node";
+
 import {
   Body,
   Button,

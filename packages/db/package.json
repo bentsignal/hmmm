@@ -50,12 +50,10 @@
     "convex": "catalog:",
     "convex-env": "^2.5.0",
     "convex-helpers": "catalog:",
-    "exa-js": "^1.8.23",
-    "openai": "^5.12.2",
     "react": "catalog:react19",
     "svix": "^1.67.0",
     "uploadthing": "catalog:",
-    "zod": "^3.25.56"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@acme/eslint-config": "workspace:*",

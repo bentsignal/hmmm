@@ -1,3 +1,5 @@
+"use node";
+
 import { UTApi } from "uploadthing/server";
 
 import { env } from "./convex.env";

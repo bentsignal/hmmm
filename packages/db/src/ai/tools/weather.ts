@@ -55,8 +55,6 @@ const geocodingResultSchema = z.object({
   }),
 });
 const geocodingResponseSchema = z.object({
-  // nonempty makes the type a `[T, ...T[]]` tuple, so `results[0]` is narrowed
-  // to non-undefined even under web's `noUncheckedIndexedAccess`.
   results: z.array(geocodingResultSchema).nonempty(),
 });
 

@@ -6,7 +6,11 @@ import { CachedSourceSchema } from ".";
 import kv from "../../../kv";
 import { getCurrentDateTime } from "../../../lib/date_time_utils";
 import { tryCatch } from "../../../lib/utils";
-import { exa, formatCacheKey, logSearchCost } from "../tool_helpers";
+import {
+  exaSearchAndContents,
+  formatCacheKey,
+  logSearchCost,
+} from "../tool_helpers";
 
 const NUM_RESULTS = 5;
 
@@ -57,7 +61,7 @@ export const currentEvents = createTool({
     }
 
     const { data: response, error: responseError } = await tryCatch(
-      exa.searchAndContents(args.query, {
+      exaSearchAndContents(args.query, {
         numResults: NUM_RESULTS,
         text: {
           maxCharacters: 5000,

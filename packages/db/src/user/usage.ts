@@ -35,7 +35,6 @@ export const usage = new TableAggregate<{
   Key: number;
   DataModel: DataModel;
   TableName: "usage";
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Convex component type
 }>(components.aggregateUsage, {
   namespace: (doc) => doc.userId,
   sortKey: (doc) => doc._creationTime,

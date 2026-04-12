@@ -1,3 +1,5 @@
+"use node";
+
 import { fal } from "@fal-ai/client";
 import { UTFile } from "uploadthing/server";
 

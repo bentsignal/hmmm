@@ -1,10 +1,51 @@
 import type { ToolCtx } from "@convex-dev/agent";
-import { Exa } from "exa-js";
+import { z } from "zod";
 
 import { internal } from "../../_generated/api";
 import { env } from "../../convex.env";
 
-export const exa = new Exa(env.EXA_API_KEY);
+const exaSearchResponseSchema = z.object({
+  results: z.array(
+    z.object({
+      url: z.string(),
+      title: z.string().nullable(),
+      text: z.string(),
+      favicon: z.string().optional(),
+      image: z.string().optional(),
+    }),
+  ),
+});
+
+interface ExaSearchOptions {
+  numResults: number;
+  text: { maxCharacters: number };
+  excludeDomains?: string[];
+}
+
+export const exaSearchAndContents = async (
+  query: string,
+  opts: ExaSearchOptions,
+) => {
+  const res = await fetch("https://api.exa.ai/search", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": env.EXA_API_KEY,
+    },
+    body: JSON.stringify({
+      query,
+      numResults: opts.numResults,
+      contents: { text: { maxCharacters: opts.text.maxCharacters } },
+      excludeDomains: opts.excludeDomains,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(
+      `Exa search failed: ${res.status.toString()} ${res.statusText}`,
+    );
+  }
+  return exaSearchResponseSchema.parse(await res.json());
+};
 
 export const logSearchCost = async (
   ctx: ToolCtx,
