@@ -38,7 +38,7 @@ export interface TranscriptionModel extends Model {
 }
 
 export interface EmbeddingModel extends Model {
-  model: EmbeddingModelV2<string>;
+  model: EmbeddingModelV2;
 }
 
 export interface ImageGenerationModel extends Model {

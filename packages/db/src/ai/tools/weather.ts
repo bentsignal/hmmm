@@ -118,8 +118,8 @@ export const weather = createTool({
   user's question directly.
 
   `,
-  args: weatherArgs,
-  handler: async (ctx, args) => {
+  inputSchema: weatherArgs,
+  execute: async (ctx, args) => {
     // check cache
     const cacheKey = formatCacheKey("weather", [
       args.location,

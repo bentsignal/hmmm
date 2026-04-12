@@ -23,8 +23,8 @@ export const codeGeneration = createTool({
     relevant information, you are then responsible for displaying this 
     information to the user.
   `,
-  args: z.object({}),
-  handler: async (ctx, args, options): Promise<CodeGenerationOutput> => {
+  inputSchema: z.object({}),
+  execute: async (ctx, args, options): Promise<CodeGenerationOutput> => {
     const messages = options.messages;
 
     const result = await tryCatch(

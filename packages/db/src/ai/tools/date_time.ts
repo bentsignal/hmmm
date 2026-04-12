@@ -26,14 +26,14 @@ export const dateTime = createTool({
   they would like the time in 24 hour format.
 
   `,
-  args: z.object({
+  inputSchema: z.object({
     timezone: z
       .string()
       .describe(
         "IANA timezone identifier (e.g., 'America/New_York', 'Europe/London', 'Asia/Tokyo')",
       ),
   }),
-  handler: async (_ctx, args): Promise<CurrentDateTime> => {
+  execute: async (_ctx, args): Promise<CurrentDateTime> => {
     return await Promise.resolve(
       getCurrentDateTime({
         timezone: args.timezone,

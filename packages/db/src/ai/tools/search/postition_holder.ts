@@ -33,7 +33,7 @@ export const positionHolder = createTool({
     how current the information returned from the sources is.
 
     `,
-  args: z.object({
+  inputSchema: z.object({
     query: z
       .string()
       .min(1)
@@ -54,7 +54,7 @@ export const positionHolder = createTool({
         "The name of the group, company, or organization you want to know about",
       ),
   }),
-  handler: async (ctx, args): Promise<SearchReturnType> => {
+  execute: async (ctx, args): Promise<SearchReturnType> => {
     // check cache
     const cacheKey = formatCacheKey("position-holder", [
       args.position,

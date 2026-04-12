@@ -32,7 +32,7 @@ export const currentEvents = createTool({
   how current the information returned from the sources is.
 
   `,
-  args: z.object({
+  inputSchema: z.object({
     query: z
       .string()
       .min(1)
@@ -41,7 +41,7 @@ export const currentEvents = createTool({
         "A full sentence query describing the current events you want to know about",
       ),
   }),
-  handler: async (ctx, args): Promise<SearchReturnType> => {
+  execute: async (ctx, args): Promise<SearchReturnType> => {
     // check cache
     const cacheKey = formatCacheKey("current-events", [args.query]);
     const cachedData = await kv.get(cacheKey);

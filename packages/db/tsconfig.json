@@ -7,7 +7,7 @@
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "target": "ESNext",
-    "lib": ["ES2021", "dom"],
+    "lib": ["ES2023", "dom"],
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "isolatedModules": true,

@@ -4,6 +4,8 @@ packages:
   - tooling/*
 
 catalog:
+  "@convex-dev/agent": ^0.6.1
+  "@convex-dev/polar": ^0.5.0
   "@convex-dev/react-query": 0.1.0
   "@eslint/js": ^9.38.0
   "@t3-oss/env-core": ^0.13.8
@@ -19,6 +21,7 @@ catalog:
   "@tanstack/react-start": ~1.159.6
   "@types/node": ^24
   "@vitejs/plugin-react": 5.1.0
+  ai: ^6.0.158
   babel-plugin-react-compiler: ^1.0.0
   class-variance-authority: ^0.7.1
   convex: 1.31.6

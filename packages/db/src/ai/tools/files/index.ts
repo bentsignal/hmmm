@@ -20,11 +20,11 @@ export const analyzeFiles = createTool({
   keys are included for context, not to be shown to the user.
   
   `,
-  args: z.object({
+  inputSchema: z.object({
     keys: z.array(z.string().describe("keys of the files to analyze.")),
     prompt: z.string().describe("The prompt to use to analyze the files."),
   }),
-  handler: async (ctx, args): Promise<FileAnalysisOutput> => {
+  execute: async (ctx, args): Promise<FileAnalysisOutput> => {
     const { keys, prompt } = args;
 
     if (!ctx.userId) {
@@ -33,7 +33,7 @@ export const analyzeFiles = createTool({
       } as const satisfies FileAnalysisOutput;
     }
 
-    const analysis = await tryCatch(
+    const analysis = await tryCatch<string>(
       ctx.runAction(internal.ai.tools.files.actions.analysis, {
         keys: keys,
         prompt: prompt,

@@ -27,8 +27,8 @@ export const initImage = createTool({
   call has completed, you are free to call either the generateImage or editImage
   tool. Each call to this tool is only valid for one image generation or editing
   request. After that, another request to this tool must be made.`,
-  args: z.object({}),
-  handler: (_ctx, _args): Promise<InitImageResult> => {
+  inputSchema: z.object({}),
+  execute: (_ctx, _args): Promise<InitImageResult> => {
     // TODO: remove once streaming tool call results is implemented
     return Promise.resolve({
       response:
@@ -52,11 +52,11 @@ export const generateImage = createTool({
     ${initWarning}
 
     `,
-  args: z.object({
+  inputSchema: z.object({
     prompt: z.string().describe("The prompt to use to generate the image."),
     aspectRatio: zAspectRatio,
   }),
-  handler: async (ctx, args): Promise<GenerateImageResult> => {
+  execute: async (ctx, args): Promise<GenerateImageResult> => {
     const { prompt, aspectRatio } = args;
 
     if (!ctx.threadId || !ctx.userId) {
@@ -110,11 +110,11 @@ export const editImage = createTool({
     ${initWarning}
 
   `,
-  args: z.object({
+  inputSchema: z.object({
     prompt: z.string().describe("The prompt to use to edit the images."),
     imageKeys: z.array(z.string()).describe("The keys of the images to edit."),
   }),
-  handler: async (ctx, args): Promise<GenerateImageResult> => {
+  execute: async (ctx, args): Promise<GenerateImageResult> => {
     const { prompt, imageKeys } = args;
 
     if (!ctx.threadId || !ctx.userId) {
