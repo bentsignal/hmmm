@@ -3,6 +3,7 @@ import { ImageIcon } from "lucide-react";
 
 import { api } from "@acme/db/api";
 
+import { Image } from "~/components/image";
 import { useFileInteraction } from "~/features/library/hooks/use-file-interaction";
 
 export default function MessageImage({ image }: { image?: string | null }) {
@@ -19,6 +20,7 @@ const Generated = ({ fileKey }: { fileKey: string }) => {
   const { handleFileClick, handleFileHover } = useFileInteraction();
   const { isAuthenticated } = useConvexAuth();
 
+  // eslint-disable-next-line no-restricted-syntax -- convex useQuery doesn't support select; conditional fetch via "skip"
   const image = useQuery(
     api.app.library.getFileByKey,
     isAuthenticated
@@ -31,9 +33,11 @@ const Generated = ({ fileKey }: { fileKey: string }) => {
   if (!image) return null;
 
   return (
-    <img
+    <Image
       src={image.url}
       alt="Generated image"
+      width={256}
+      height={256}
       className="h-64 w-auto rounded-2xl hover:cursor-pointer"
       onMouseEnter={() => {
         handleFileHover(image, "default");

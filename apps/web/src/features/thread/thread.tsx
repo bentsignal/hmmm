@@ -27,6 +27,7 @@ export default function Thread({ threadId }: { threadId: string }) {
 
   // set active thread when component mounts
   const setActiveThread = useThreadStore((state) => state.setActiveThread);
+  // eslint-disable-next-line no-restricted-syntax -- Syncs active thread ID with the thread store on mount/unmount
   useEffect(() => {
     setActiveThread(threadId);
     return () => {

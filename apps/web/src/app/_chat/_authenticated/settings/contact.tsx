@@ -1,4 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+
+import { QuickLink } from "@acme/features/quick-link";
 
 import SettingsWrapper from "~/app/settings/-wrapper";
 import InfoCard from "~/components/info-card";
@@ -20,10 +22,10 @@ function ContactPage() {
         </span>
         <div className="flex flex-col gap-2">
           <span className="text-primary text-sm font-bold underline">
-            <Link to="/policy/privacy">Privacy Policy</Link>
+            <QuickLink to="/policy/privacy">Privacy Policy</QuickLink>
           </span>
           <span className="text-primary text-sm font-bold underline">
-            <Link to="/policy/terms">Terms of Service</Link>
+            <QuickLink to="/policy/terms">Terms of Service</QuickLink>
           </span>
         </div>
       </InfoCard>

@@ -1,9 +1,9 @@
+import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
 import {
   File as FileIcon,
   Image as ImageIcon,
   Library as LibraryIcon,
-  LucideIcon,
 } from "lucide-react";
 
 import { Button } from "@acme/ui/button";
@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@acme/ui/dialog";
 
+import type { LibrarySort, LibraryTab, LibraryView } from "./types";
 import useDebouncedInput from "~/hooks/use-debounced-input";
 import { cn } from "~/lib/utils";
 import { LibraryBulkToolbar } from "./components/library-bulk-toolbar";
@@ -25,9 +26,8 @@ import { LibraryRenameModal } from "./components/library-rename-modal";
 import { LibraryToolbar } from "./components/library-toolbar";
 import { LibraryUpload } from "./components/library-upload";
 import { useLibraryStore } from "./store";
-import { LibrarySort, LibraryTab, LibraryView } from "./types";
 
-const tabs: { label: string; value: LibraryTab; icon: LucideIcon }[] = [
+const tabs = [
   {
     label: "All Files",
     value: "all",
@@ -43,14 +43,17 @@ const tabs: { label: string; value: LibraryTab; icon: LucideIcon }[] = [
     value: "documents",
     icon: FileIcon,
   },
-];
+] satisfies { label: string; value: LibraryTab; icon: LucideIcon }[];
 
 export default function Library() {
   const libraryOpen = useLibraryStore((state) => state.libraryOpen);
   const setLibraryOpen = useLibraryStore((state) => state.setLibraryOpen);
   const setLibraryMode = useLibraryStore((state) => state.setLibraryMode);
 
-  const [activeTab, setActiveTab] = useState<LibraryTab>(tabs[0]!.value);
+  const firstTab = tabs[0];
+  const [activeTab, setActiveTab] = useState<LibraryTab>(
+    firstTab ? firstTab.value : "all",
+  );
   const [view, setView] = useState<LibraryView>("grid");
   const [sort, setSort] = useState<LibrarySort>("date");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");

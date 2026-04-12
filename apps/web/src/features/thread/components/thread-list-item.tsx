@@ -1,8 +1,9 @@
+// eslint-disable-next-line no-restricted-imports -- manual memo needed: deep-equal check prevents thread list item re-renders
 import { memo } from "react";
-import { Link } from "@tanstack/react-router";
-import equal from "fast-deep-equal";
 import { Brain } from "lucide-react";
+import equal from "fast-deep-equal";
 
+import { QuickLink as Link } from "@acme/features/quick-link";
 import { useIsMobile } from "@acme/ui/hooks/use-mobile";
 import {
   SidebarMenuButton,
@@ -10,9 +11,9 @@ import {
   useSidebar,
 } from "@acme/ui/sidebar";
 
+import type { Thread } from "../types";
 import useThreadStore from "~/features/thread/store";
 import { cn } from "~/lib/utils";
-import { Thread } from "../types";
 
 function ThreadListItem({ thread }: { thread: Thread }) {
   const isMobile = useIsMobile();

@@ -20,7 +20,9 @@ export const Route = createFileRoute("/_chat")({
 });
 
 function ChatLayout() {
-  const { auth, cookies } = Route.useRouteContext();
+  const { auth, cookies } = Route.useRouteContext({
+    select: (ctx) => ({ auth: ctx.auth, cookies: ctx.cookies }),
+  });
   const defaultOpen = cookies.sidebarOpen;
 
   return (

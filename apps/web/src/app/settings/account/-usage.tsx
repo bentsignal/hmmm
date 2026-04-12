@@ -8,7 +8,15 @@ import UsageUpgradeCallout from "~/features/billing/components/usage-upgrade-cal
 import { userQueries } from "~/lib/queries";
 
 export default function Usage() {
-  const { data: usage } = useSuspenseQuery(userQueries.usage());
+  const { data: usage } = useSuspenseQuery({
+    ...userQueries.usage(),
+    select: (data) => ({
+      unlimited: data.unlimited,
+      range: data.range,
+      percentageUsed: data.percentageUsed,
+      endOfPeriod: data.endOfPeriod,
+    }),
+  });
 
   return (
     <Card className="w-full">

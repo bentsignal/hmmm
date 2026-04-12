@@ -24,7 +24,7 @@ export default function ThreadDeleteModal() {
         const selectedThread = useThreadStore.getState().hoveredThread;
         if (!selectedThread) return;
         if (pathname.includes(selectedThread.id)) {
-          navigate({ to: "/" });
+          void navigate({ to: "/" });
         }
         deleteThread({ threadId: selectedThread.id });
         setHoveredThread(null);

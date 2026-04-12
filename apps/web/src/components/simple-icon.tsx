@@ -1,5 +1,4 @@
-import type { SimpleIcon as SimpleIconType } from "simple-icons";
-import React from "react";
+import type React from "react";
 import * as simpleIcons from "simple-icons";
 
 interface SimpleIconProps extends React.SVGProps<SVGSVGElement> {
@@ -8,20 +7,15 @@ interface SimpleIconProps extends React.SVGProps<SVGSVGElement> {
   size?: number | string;
 }
 
-export const SimpleIcon: React.FC<SimpleIconProps> = ({
+export const SimpleIcon = ({
   icon,
   color,
   size = "1em",
   ...rest
-}) => {
-  const iconData = simpleIcons[icon] as SimpleIconType;
+}: SimpleIconProps) => {
+  const iconData = simpleIcons[icon];
 
-  if (!iconData) {
-    console.warn(`Icon "${icon}" not found in simple-icons.`);
-    return null;
-  }
-
-  const iconColor = color || `#${iconData.hex}`;
+  const iconColor = color ?? `#${iconData.hex}`;
 
   return (
     <svg

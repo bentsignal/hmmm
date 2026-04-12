@@ -2,8 +2,8 @@ import { FileIcon } from "lucide-react";
 
 import { Sheet, SheetContent, SheetTrigger } from "@acme/ui/sheet";
 
+import type { LibraryFile } from "~/features/library/types";
 import { LibraryListFile } from "~/features/library/components/library-file";
-import { LibraryFile } from "~/features/library/types";
 
 export const MessageFiles = ({ files }: { files: LibraryFile[] }) => {
   if (files.length === 0) {

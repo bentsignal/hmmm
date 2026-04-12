@@ -18,7 +18,7 @@ export default function NewThreadButton() {
   useShortcut({
     hotkey: shortcuts["new-chat"].hotkey,
     callback: () => {
-      navigate({ to: "/" });
+      void navigate({ to: "/" });
     },
   });
 
@@ -31,7 +31,7 @@ export default function NewThreadButton() {
             if (isMobile) {
               toggleSidebar();
             }
-            navigate({ to: "/" });
+            void navigate({ to: "/" });
           }}
         >
           <SquarePen className="h-4 w-4" />

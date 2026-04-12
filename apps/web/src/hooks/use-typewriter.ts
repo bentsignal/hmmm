@@ -16,20 +16,23 @@ export function useTypewriter({
 }) {
   const [visibleText, setVisibleText] = useState("");
 
-  const snapshot = useRef<Snapshot>({
-    length: inputText.length,
-    timestamp: Date.now(),
-  });
+  const snapshot = useRef<Snapshot | null>(null);
   const growthRate = useRef(0);
 
+  // eslint-disable-next-line no-restricted-syntax -- Effect needed to drive typewriter animation via requestAnimationFrame/setTimeout
   useEffect(() => {
     if (!streaming) {
       return;
     }
 
+    snapshot.current = {
+      length: inputText.length,
+      timestamp: Date.now(),
+    };
+
     const interval = setInterval(() => {
       // determine how fast the length of the input text is growing
-      if (snapshot.current.length < inputText.length) {
+      if (snapshot.current && snapshot.current.length < inputText.length) {
         const delta = Date.now() - snapshot.current.timestamp;
         const growth = inputText.length - snapshot.current.length;
         growthRate.current = (growth / delta) * (1000 / FPS);

@@ -1,4 +1,4 @@
-import { Shortcut } from "./types";
+import type { Shortcut } from "./types";
 
 export const shortcuts = {
   "new-chat": {

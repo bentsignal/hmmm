@@ -9,9 +9,9 @@ import {
   TooltipTrigger,
 } from "@acme/ui/tooltip";
 
+import type { MyUIMessage } from "../types/message-types";
 import { useTypewriter } from "~/hooks/use-typewriter";
 import { getDateTimeString } from "~/lib/date-time-utils";
-import { MyUIMessage } from "../types/message-types";
 import {
   extractImageFromMessage,
   extractSourcesFromMessage,
@@ -39,7 +39,7 @@ export default function ResponseMessage({
     inputText: message.text,
     streaming: isActive,
   });
-  const createdAt = getDateTimeString(new Date(message._creationTime ?? 0));
+  const createdAt = getDateTimeString(new Date(message._creationTime));
   const isMobile = useIsMobile();
 
   // error occured during repsonse generation, inform user

@@ -1,4 +1,4 @@
-import { Doc } from "@acme/db/model";
+import type { Doc } from "@acme/db/model";
 
 export interface Thread {
   title: Doc<"threadMetadata">["title"];

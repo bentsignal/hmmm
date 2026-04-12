@@ -7,10 +7,14 @@ import { userQueries } from "~/lib/queries";
 import UserInfoForm from "./-user-info-form";
 
 export default function Personalization() {
-  const { data: userInfo } = useSuspenseQuery(userQueries.info());
-  const { data: showModelSelector } = useSuspenseQuery(
-    userQueries.showModelSelector(),
-  );
+  const { data: userInfo } = useSuspenseQuery({
+    ...userQueries.info(),
+    select: (data) => data ?? null,
+  });
+  const { data: showModelSelector } = useSuspenseQuery({
+    ...userQueries.showModelSelector(),
+    select: (data) => Boolean(data),
+  });
 
   const publicModels = getPublicLanguageModels();
 

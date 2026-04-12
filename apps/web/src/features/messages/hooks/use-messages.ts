@@ -1,17 +1,18 @@
+// eslint-disable-next-line no-restricted-imports -- useQuery needed for conditional fetching (isAuthenticated gate)
 import { useQuery } from "@tanstack/react-query";
 import { toUIMessages, useThreadMessages } from "@convex-dev/agent/react";
 import { useConvexAuth } from "convex/react";
 
 import { api } from "@acme/db/api";
 
-import { INITIAL_PAGE_SIZE } from "~/features/messages/config";
-import { threadQueries } from "~/lib/queries";
-import {
+import type {
   MyDataParts,
   MyMetadata,
   MyTools,
   MyUIMessage,
 } from "../types/message-types";
+import { INITIAL_PAGE_SIZE } from "~/features/messages/config";
+import { threadQueries } from "~/lib/queries";
 
 export default function useMessages({
   threadId,
@@ -47,11 +48,9 @@ export default function useMessages({
     ? messages
     : (firstPageQuery.data ?? messages);
 
-  const rawUIMessages: MyUIMessage[] = toUIMessages<
-    MyMetadata,
-    MyDataParts,
-    MyTools
-  >(activeMessages);
+  const rawUIMessages = toUIMessages<MyMetadata, MyDataParts, MyTools>(
+    activeMessages,
+  );
 
   const uiMessages = rawUIMessages.map((message: MyUIMessage) => {
     const nonUIMessage = activeMessages.find((m) => m._id === message.id);
@@ -59,16 +58,13 @@ export default function useMessages({
       return message;
     }
     const attachments = nonUIMessage.attachments;
-    if (attachments) {
-      return {
-        ...message,
-        metadata: {
-          ...message.metadata,
-          attachments: attachments,
-        },
-      } as const satisfies MyUIMessage;
-    }
-    return message;
+    return {
+      ...message,
+      metadata: {
+        ...message.metadata,
+        attachments: attachments,
+      },
+    } as const satisfies MyUIMessage;
   });
 
   return {

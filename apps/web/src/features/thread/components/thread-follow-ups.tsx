@@ -5,10 +5,11 @@ import useSendMessage from "~/features/composer/hooks/use-send-message";
 import { threadQueries } from "~/lib/queries";
 
 export default function ThreadFollowUps({ threadId }: { threadId: string }) {
-  const { data: followUpQuestions } = useSuspenseQuery(
-    threadQueries.followUps(threadId),
-  );
-  const empty = !followUpQuestions || followUpQuestions.length === 0;
+  const { data: followUpState } = useSuspenseQuery({
+    ...threadQueries.followUps(threadId),
+    select: (data) => ({ questions: data, empty: data.length === 0 }),
+  });
+  const { questions: followUpQuestions, empty } = followUpState;
 
   const { sendMessage } = useSendMessage();
   const { usage } = useUsage();
@@ -24,12 +25,15 @@ export default function ThreadFollowUps({ threadId }: { threadId: string }) {
         opacity: empty ? 0 : 1,
       }}
     >
-      {followUpQuestions?.map((question) => (
+      {followUpQuestions.map((question) => (
         <div
           key={question}
           className="bg-card/50 hover:bg-card/70 rounded-xl p-4 text-sm shadow-md backdrop-blur-sm transition-all duration-300 select-none hover:cursor-pointer"
           onClick={() => {
-            sendMessage({ customPrompt: question, navigateToNewThread: false });
+            void sendMessage({
+              customPrompt: question,
+              navigateToNewThread: false,
+            });
           }}
           role="button"
           aria-label={`Follow up question: ${question}`}

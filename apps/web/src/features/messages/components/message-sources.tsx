@@ -1,10 +1,10 @@
-import { memo, useRef, useState } from "react";
-import equal from "fast-deep-equal";
+import { useRef, useState } from "react";
 import { ExternalLink } from "lucide-react";
 
 import { Sheet, SheetContent, SheetTrigger } from "@acme/ui/sheet";
 
 import type { Source } from "~/types/source";
+import { Image } from "~/components/image";
 
 const loadedSignatures = new Set<string>();
 
@@ -29,9 +29,7 @@ const PureMessageSources = ({
   );
 };
 
-export const MessageSources = memo(PureMessageSources, (prev, next) => {
-  return equal(prev, next);
-});
+export const MessageSources = PureMessageSources;
 
 const PreviewSources = ({
   threadId,
@@ -111,9 +109,11 @@ const PreviewSources = ({
           <div className="flex gap-2">
             {favicons.map((favicon, index) => (
               <div key={`favicon-${index}`}>
-                <img
-                  src={favicon ?? ""}
+                <Image
+                  src={favicon}
                   alt={" "}
+                  width={16}
+                  height={16}
                   className="h-4 w-4 rounded-lg"
                   onLoad={handleLoadOrError}
                   onError={handleLoadOrError}
@@ -151,9 +151,11 @@ const ExpandedSources = ({ sources }: { sources: Source[] }) => {
           >
             {source.image ? (
               <div className="shrink-0">
-                <img
+                <Image
                   src={source.image}
                   alt={source.title ?? hostname}
+                  width={640}
+                  height={384}
                   className="max-h-96 w-full rounded-lg object-cover"
                 />
               </div>
@@ -162,9 +164,11 @@ const ExpandedSources = ({ sources }: { sources: Source[] }) => {
               <div className="mb-1 flex items-start gap-2">
                 <div className="text-muted-foreground flex items-center gap-2 text-sm">
                   {source.favicon ? (
-                    <img
+                    <Image
                       src={source.favicon}
                       alt={hostname}
+                      width={16}
+                      height={16}
                       className="h-4 w-4 rounded"
                     />
                   ) : null}

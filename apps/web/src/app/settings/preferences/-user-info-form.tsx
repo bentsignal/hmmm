@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useConvexMutation } from "@convex-dev/react-query";
 import { toast } from "sonner";
@@ -17,13 +17,101 @@ import {
   SelectValue,
 } from "@acme/ui/select";
 
-type UserInfo = {
+interface UserInfo {
   name?: string;
   location?: string;
   language?: string;
   notes?: string;
   model?: string;
-};
+}
+
+function groupModelsByProvider(models: Record<string, PublicLanguageModel>) {
+  const providerToModels = new Map<string, [string, PublicLanguageModel][]>();
+  for (const [modelId, modelData] of Object.entries(models)) {
+    const arr = providerToModels.get(modelData.provider) ?? [];
+    arr.push([modelId, modelData]);
+    providerToModels.set(modelData.provider, arr);
+  }
+  const sortedProviders = Array.from(providerToModels.keys()).sort((a, b) =>
+    a.localeCompare(b),
+  );
+  return sortedProviders.map((provider) => {
+    const items = (providerToModels.get(provider) ?? []).sort((a, b) =>
+      a[1].name.localeCompare(b[1].name),
+    );
+    return { provider, items } as const;
+  });
+}
+
+function isUnchanged(
+  lastSaved: UserInfo,
+  current: {
+    name?: string;
+    location?: string;
+    language?: string;
+    notes?: string;
+    model?: string;
+  },
+  showModelSelector: boolean,
+) {
+  return (
+    current.name === lastSaved.name &&
+    current.location === lastSaved.location &&
+    current.language === lastSaved.language &&
+    current.notes === lastSaved.notes &&
+    (showModelSelector ? current.model === lastSaved.model : true)
+  );
+}
+
+function useSaveUserInfo() {
+  return useMutation({
+    mutationFn: useConvexMutation(api.user.info.update),
+    onSuccess: () => {
+      toast.success("Preferences updated");
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to update preferences");
+    },
+  });
+}
+
+function ModelSelector({
+  model,
+  onModelChange,
+  models,
+}: {
+  model?: string;
+  onModelChange: (value: string) => void;
+  models: Record<string, PublicLanguageModel>;
+}) {
+  const groupedModels = groupModelsByProvider(models);
+
+  return (
+    <div className="grid gap-2">
+      <label className="text-sm font-medium">
+        What model do you want to use?
+      </label>
+      <Select value={model} onValueChange={onModelChange}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select a model" />
+        </SelectTrigger>
+        <SelectContent>
+          {groupedModels.map(({ provider, items }) => (
+            <SelectGroup key={provider} className="mb-2">
+              <SelectLabel>{provider}</SelectLabel>
+              {items.map(([modelId, modelData]) => (
+                <SelectItem key={modelId} value={modelId}>
+                  {modelData.name}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
 
 export default function UserInfoForm({
   userInfo,
@@ -34,16 +122,7 @@ export default function UserInfoForm({
   showModelSelector: boolean;
   models: Record<string, PublicLanguageModel>;
 }) {
-  const { mutate: save } = useMutation({
-    mutationFn: useConvexMutation(api.user.info.update),
-    onSuccess: () => {
-      toast.success("Preferences updated");
-    },
-    onError: (error) => {
-      console.error(error);
-      toast.error("Failed to update preferences");
-    },
-  });
+  const { mutate: save } = useSaveUserInfo();
 
   const [name, setName] = useState(userInfo?.name);
   const [location, setLocation] = useState(userInfo?.location);
@@ -51,66 +130,32 @@ export default function UserInfoForm({
   const [notes, setNotes] = useState(userInfo?.notes);
   const [model, setModel] = useState(userInfo?.model);
 
-  // disable save button if no changes have been made since last save
   const [lastSavedUserInfo, setLastSavedUserInfo] = useState<UserInfo | null>(
     userInfo,
   );
-  const disabled = useMemo(() => {
-    if (!lastSavedUserInfo) {
-      return false;
-    }
-    if (
-      name === lastSavedUserInfo?.name &&
-      location === lastSavedUserInfo?.location &&
-      language === lastSavedUserInfo?.language &&
-      notes === lastSavedUserInfo?.notes &&
-      (showModelSelector ? model === lastSavedUserInfo?.model : true)
-    ) {
-      return true;
-    }
-    return false;
-  }, [name, location, language, notes, model, lastSavedUserInfo]);
 
-  const groupedModels = useMemo(() => {
-    const providerToModels = new Map<
-      string,
-      Array<[string, PublicLanguageModel]>
-    >();
-    for (const [modelId, modelData] of Object.entries(models)) {
-      const arr = providerToModels.get(modelData.provider) ?? [];
-      arr.push([modelId, modelData]);
-      providerToModels.set(modelData.provider, arr);
-    }
-    const sortedProviders = Array.from(providerToModels.keys()).sort((a, b) =>
-      a.localeCompare(b),
+  const disabled =
+    lastSavedUserInfo !== null &&
+    isUnchanged(
+      lastSavedUserInfo,
+      { name, location, language, notes, model },
+      showModelSelector,
     );
-    return sortedProviders.map((provider) => {
-      const items = (providerToModels.get(provider) ?? []).sort((a, b) =>
-        a[1].name.localeCompare(b[1].name),
-      );
-      return { provider, items } as const;
-    });
-  }, [models]);
 
   return (
     <form
       className="grid gap-4"
-      onSubmit={async (e) => {
+      onSubmit={(e) => {
         e.preventDefault();
-        save({
+        const trimmed = {
           name: name?.trim(),
           location: location?.trim(),
           language: language?.trim(),
           notes: notes?.trim(),
           model: showModelSelector ? model : undefined,
-        });
-        setLastSavedUserInfo({
-          name: name?.trim(),
-          location: location?.trim(),
-          language: language?.trim(),
-          notes: notes?.trim(),
-          model: showModelSelector ? model : undefined,
-        });
+        };
+        save(trimmed);
+        setLastSavedUserInfo(trimmed);
       }}
     >
       <div className="grid gap-2">
@@ -143,28 +188,7 @@ export default function UserInfoForm({
         />
       </div>
       {showModelSelector && (
-        <div className="grid gap-2">
-          <label className="text-sm font-medium">
-            What model do you want to use?
-          </label>
-          <Select value={model} onValueChange={(value) => setModel(value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a model" />
-            </SelectTrigger>
-            <SelectContent>
-              {groupedModels.map(({ provider, items }) => (
-                <SelectGroup key={provider} className="mb-2">
-                  <SelectLabel>{provider}</SelectLabel>
-                  {items.map(([modelId, modelData]) => (
-                    <SelectItem key={modelId} value={modelId}>
-                      {modelData.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <ModelSelector model={model} onModelChange={setModel} models={models} />
       )}
       <div className="grid gap-2">
         <label className="text-sm font-medium">

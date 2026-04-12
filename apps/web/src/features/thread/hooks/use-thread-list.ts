@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+// eslint-disable-next-line no-restricted-imports -- useQuery is needed here for preloaded first-page cache before switching to live Convex query
 import { useQuery } from "@tanstack/react-query";
 import { useConvexAuth, usePaginatedQuery } from "convex/react";
 
 import { api } from "@acme/db/api";
 
+import type { PureThread, ThreadGroup } from "../types";
 import {
   INITIAL_PAGE_SIZE,
   INVISIBLE_PAGE_LOADER_INDEX,
@@ -28,6 +29,75 @@ const getDateBoundaries = () => {
   return { today, yesterday, lastWeek, lastMonth, tomorrow };
 };
 
+function categorizeThread(
+  itemDate: Date,
+  boundaries: ReturnType<typeof getDateBoundaries>,
+) {
+  const { today, yesterday, lastWeek, lastMonth, tomorrow } = boundaries;
+  if (itemDate >= today && itemDate < tomorrow) return "today";
+  if (itemDate >= yesterday && itemDate < today) return "yesterday";
+  if (itemDate >= lastWeek && itemDate < yesterday) return "lastWeek";
+  if (itemDate >= lastMonth && itemDate < lastWeek) return "lastMonth";
+  return "old";
+}
+
+function groupThreads(threads: PureThread[]) {
+  const boundaries = getDateBoundaries();
+
+  const pinnedThreads = [];
+  const todaysThreads = [];
+  const yesterdayThreads = [];
+  const lastWeekThreads = [];
+  const lastMonthThreads = [];
+  const oldThreads = [];
+
+  for (const item of threads) {
+    if (item.pinned) {
+      pinnedThreads.push(item);
+      continue;
+    }
+    const category = categorizeThread(new Date(item.updatedAt), boundaries);
+    if (category === "today") todaysThreads.push(item);
+    else if (category === "yesterday") yesterdayThreads.push(item);
+    else if (category === "lastWeek") lastWeekThreads.push(item);
+    else if (category === "lastMonth") lastMonthThreads.push(item);
+    else oldThreads.push(item);
+  }
+
+  return {
+    pinnedThreads,
+    todaysThreads,
+    yesterdayThreads,
+    lastWeekThreads,
+    lastMonthThreads,
+    oldThreads,
+  };
+}
+
+function buildThreadGroups(grouped: ReturnType<typeof groupThreads>) {
+  return [
+    { label: "Pinned", threads: grouped.pinnedThreads },
+    { label: "Today", threads: grouped.todaysThreads },
+    { label: "Yesterday", threads: grouped.yesterdayThreads },
+    { label: "Last 7 Days", threads: grouped.lastWeekThreads },
+    { label: "Last 30 Days", threads: grouped.lastMonthThreads },
+    { label: "Older than 30 Days", threads: grouped.oldThreads },
+  ];
+}
+
+function getLoaderId(threadGroups: ThreadGroup[]) {
+  const flattenedThreads = threadGroups.flatMap((group) => group.threads);
+  if (flattenedThreads.length < INVISIBLE_PAGE_LOADER_INDEX) {
+    return null;
+  }
+  const loaderThread =
+    flattenedThreads[flattenedThreads.length - INVISIBLE_PAGE_LOADER_INDEX];
+  if (!loaderThread) {
+    return null;
+  }
+  return loaderThread.id;
+}
+
 export default function useThreadList() {
   const { setValue: setSearch, debouncedValue: debouncedSearch } =
     useDebouncedInput();
@@ -51,18 +121,13 @@ export default function useThreadList() {
   const threads = shouldUseLiveResults
     ? liveQuery.results
     : (firstPageQuery.data?.page ?? []);
-  type PaginationStatus =
-    | "LoadingFirstPage"
-    | "LoadingMore"
-    | "CanLoadMore"
-    | "Exhausted";
-  const status: PaginationStatus = shouldUseLiveResults
+  const status = shouldUseLiveResults
     ? liveQuery.status
     : firstPageQuery.data?.isDone
-      ? "Exhausted"
+      ? ("Exhausted" as const)
       : firstPageQuery.isLoading
-        ? "LoadingFirstPage"
-        : "CanLoadMore";
+        ? ("LoadingFirstPage" as const)
+        : ("CanLoadMore" as const);
 
   const loadMoreThreads = () => {
     if (shouldUseLiveResults) {
@@ -70,107 +135,13 @@ export default function useThreadList() {
     }
   };
 
-  // group threads by pin status & creation date
-  const {
-    pinnedThreads,
-    todaysThreads,
-    yesterdayThreads,
-    lastWeekThreads,
-    lastMonthThreads,
-    oldThreads,
-  } = useMemo(() => {
-    const { today, yesterday, lastWeek, lastMonth, tomorrow } =
-      getDateBoundaries();
-
-    const pinnedThreads = [];
-    const todaysThreads = [];
-    const yesterdayThreads = [];
-    const lastWeekThreads = [];
-    const lastMonthThreads = [];
-    const oldThreads = [];
-
-    for (const item of threads) {
-      const itemDate = new Date(item.updatedAt);
-
-      if (item.pinned) {
-        pinnedThreads.push(item);
-      } else if (itemDate >= today && itemDate < tomorrow) {
-        todaysThreads.push(item);
-      } else if (itemDate >= yesterday && itemDate < today) {
-        yesterdayThreads.push(item);
-      } else if (itemDate >= lastWeek && itemDate < yesterday) {
-        lastWeekThreads.push(item);
-      } else if (itemDate >= lastMonth && itemDate < lastWeek) {
-        lastMonthThreads.push(item);
-      } else {
-        oldThreads.push(item);
-      }
-    }
-
-    return {
-      pinnedThreads,
-      todaysThreads,
-      yesterdayThreads,
-      lastWeekThreads,
-      lastMonthThreads,
-      oldThreads,
-    };
-  }, [threads]);
-
-  // pack grouped threads into one array
-  const threadGroups = useMemo(
-    () => [
-      {
-        label: "Pinned",
-        threads: pinnedThreads,
-      },
-      {
-        label: "Today",
-        threads: todaysThreads,
-      },
-      {
-        label: "Yesterday",
-        threads: yesterdayThreads,
-      },
-      {
-        label: "Last 7 Days",
-        threads: lastWeekThreads,
-      },
-      {
-        label: "Last 30 Days",
-        threads: lastMonthThreads,
-      },
-      {
-        label: "Older than 30 Days",
-        threads: oldThreads,
-      },
-    ],
-    [
-      pinnedThreads,
-      todaysThreads,
-      yesterdayThreads,
-      lastWeekThreads,
-      lastMonthThreads,
-      oldThreads,
-    ],
-  );
-
-  const flattenedThreads = useMemo(
-    () => threadGroups.flatMap((group) => group.threads),
-    [threadGroups],
-  );
-
-  const loaderId = useMemo(() => {
-    if (flattenedThreads.length < INVISIBLE_PAGE_LOADER_INDEX) {
-      return null;
-    }
-    return flattenedThreads[
-      flattenedThreads.length - INVISIBLE_PAGE_LOADER_INDEX
-    ]!.id;
-  }, [flattenedThreads]);
+  const grouped = groupThreads(threads);
+  const threadGroups = buildThreadGroups(grouped);
+  const flattenedThreads = threadGroups.flatMap((group) => group.threads);
+  const loaderId = getLoaderId(threadGroups);
 
   return {
-    pinnedThreads,
+    pinnedThreads: grouped.pinnedThreads,
     status,
     loadMoreThreads,
     threads: flattenedThreads,

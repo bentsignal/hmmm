@@ -1,7 +1,7 @@
-import { memo, useEffect } from "react";
+import { useEffect } from "react";
 import { Button } from "@react-three/uikit-default";
-import equal from "fast-deep-equal";
 
+import type { MyUIMessage } from "~/features/messages/types";
 import { TextElement } from "~/components/xr";
 import {
   PromptMessage,
@@ -9,7 +9,6 @@ import {
 } from "~/features/messages/components/xr";
 import { PAGE_SIZE } from "~/features/messages/config";
 import useMessages from "~/features/messages/hooks/use-messages";
-import { MyUIMessage } from "~/features/messages/types";
 import { hexColors, xrStyles } from "~/styles";
 import { responseHasNoContent } from "../../util/message-util";
 
@@ -25,7 +24,7 @@ export default function XRMessages({
     streaming: true,
   });
 
-  // when messages have loaded, tell parent component to scroll to the bottom of the page
+  // eslint-disable-next-line no-restricted-syntax -- effect needed to notify parent to scroll after messages load (DOM sync)
   useEffect(() => {
     if (messages.length > 0) {
       triggerMessagesLoaded();
@@ -33,10 +32,11 @@ export default function XRMessages({
   }, [messages.length, triggerMessagesLoaded]);
 
   // show a loading spinner when the user has sent a prompt and is waiting for a response
+  const lastMessage = messages[messages.length - 1];
   const waiting =
     messages.length > 0 &&
-    (messages[messages.length - 1]!.role === "user" ||
-      responseHasNoContent(messages[messages.length - 1]!));
+    lastMessage !== undefined &&
+    (lastMessage.role === "user" || responseHasNoContent(lastMessage));
 
   return (
     <>
@@ -70,6 +70,4 @@ const PureMessage = ({ message }: { message: MyUIMessage }) => {
   );
 };
 
-const Message = memo(PureMessage, (prev, next) => {
-  return equal(prev.message, next.message);
-});
+const Message = PureMessage;

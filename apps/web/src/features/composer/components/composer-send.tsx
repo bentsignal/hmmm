@@ -18,6 +18,7 @@ export default function ComposerSend({
 
   // prevent loading state from showing up immediately on page load
   const [optimisticEnable, setOptimisticEnable] = useState(true);
+  // eslint-disable-next-line no-restricted-syntax -- Syncs with external timer: delays disabling optimistic state for 3s after mount to prevent loading flash
   useEffect(() => {
     setTimeout(() => {
       setOptimisticEnable(false);
@@ -27,10 +28,10 @@ export default function ComposerSend({
   return (
     <Button
       onClick={() => {
-        sendMessage({ showInstantLoad, handleError });
+        void sendMessage({ showInstantLoad, handleError });
       }}
       disabled={
-        isAuthenticated && (blockSend || isLoading) && !optimisticEnable
+        isAuthenticated && (blockSend ?? isLoading) && !optimisticEnable
       }
       size="icon"
       className="shrink-0"

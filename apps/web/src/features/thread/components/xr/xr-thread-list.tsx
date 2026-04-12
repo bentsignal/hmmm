@@ -74,7 +74,7 @@ export default function XRThreadList() {
                       thread={{
                         ...item,
                         active: false,
-                        pinned: item.pinned ?? false,
+                        pinned: item.pinned,
                         status: item.state,
                       }}
                     />

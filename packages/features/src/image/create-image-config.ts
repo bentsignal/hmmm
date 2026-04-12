@@ -2,11 +2,9 @@ import { convert } from "great-time";
 
 export function createImageConfig({
   uploadthingUrl,
-  shopifyImageUrlStoreId,
   sizes,
 }: {
   uploadthingUrl: string;
-  shopifyImageUrlStoreId: string;
   sizes: number[];
 }) {
   const formats = ["image/webp"] satisfies ("image/webp" | "image/avif")[];
@@ -22,12 +20,6 @@ export function createImageConfig({
         protocol: "https" as const,
         hostname: new URL(uploadthingUrl).hostname,
         pathname: "/f/**",
-        search: "",
-      },
-      {
-        protocol: "https" as const,
-        hostname: "cdn.shopify.com",
-        pathname: `/s/files/1/${shopifyImageUrlStoreId}/**`,
         search: "",
       },
     ],

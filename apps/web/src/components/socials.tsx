@@ -1,4 +1,4 @@
-import * as simpleIcons from "simple-icons";
+import type * as simpleIcons from "simple-icons";
 
 import { SimpleIcon } from "./simple-icon";
 

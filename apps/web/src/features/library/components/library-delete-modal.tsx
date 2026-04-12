@@ -38,14 +38,14 @@ export const LibraryDeleteModal = () => {
         if (libraryMode === "select") {
           const selectedFiles = useLibraryStore.getState().selectedFiles;
           if (selectedFiles.length > 0) {
-            deleteFiles(selectedFiles.map((f) => f.id));
+            void deleteFiles(selectedFiles.map((f) => f.id));
             setSelectedFiles([]);
             setLibraryDeleteModalOpen(false);
           }
         } else {
           const selectedFile = useLibraryStore.getState().selectedFile;
           if (selectedFile) {
-            deleteFile(selectedFile.id);
+            void deleteFile(selectedFile.id);
             setSelectedFile(null);
             setLibraryDeleteModalOpen(false);
           }

@@ -1,32 +1,42 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import type { Source } from "~/types/source";
-import {
+import type {
   MyUIMessage,
   MyUIMessagePart,
   SystemErrorCode,
-  SystemErrorLabel,
   SystemNoticeCode,
-  SystemNoticeLabel,
 } from "../types/message-types";
+import type { Source } from "~/types/source";
+import { SystemErrorLabel, SystemNoticeLabel } from "../types/message-types";
 
-export function extractTextFromChildren(children: ReactNode): string {
-  if (typeof children === "string") {
-    return children;
+export function extractTextFromChildren(children: ReactNode) {
+  return extractText(children);
+}
+
+// Recursive helper with explicit return type needed for self-referencing recursion
+// eslint-disable-next-line no-restricted-syntax -- explicit return type required for recursive function
+function extractText(node: ReactNode): string {
+  if (typeof node === "string") {
+    return node;
   }
-  if (Array.isArray(children)) {
-    return children.map(extractTextFromChildren).join("");
+  if (Array.isArray(node)) {
+    let result = "";
+    for (const child of node) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Array.isArray narrows ReactNode to any[], cast needed
+      result += extractText(child as ReactNode);
+    }
+    return result;
   }
   if (
-    typeof children === "object" &&
-    children !== null &&
-    "props" in children &&
-    children.props &&
-    typeof children.props === "object" &&
-    children.props !== null &&
-    "children" in children.props
+    typeof node === "object" &&
+    node !== null &&
+    "props" in node &&
+    typeof node.props === "object" &&
+    node.props !== null &&
+    "children" in node.props
   ) {
-    return extractTextFromChildren(children.props.children as ReactNode);
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- ReactElement.props.children is typed as unknown, safe narrowing to ReactNode
+    return extractText(node.props.children as ReactNode);
   }
   return "";
 }
@@ -40,33 +50,26 @@ export function extractReasoningFromMessage(message: MyUIMessage) {
 
 export function getLatestPartType(message: MyUIMessage) {
   if (message.parts.length === 0) return null;
-  return message.parts[message.parts.length - 1]!.type;
+  const lastPart = message.parts[message.parts.length - 1];
+  if (!lastPart) return null;
+  return lastPart.type;
 }
 
+const statusLabels = new Map<string, string>([
+  ["tool-dateTime", "Checking the time"],
+  ["tool-weather", "Checking the weather"],
+  ["tool-currentEvents", "Checking the news"],
+  ["tool-analyzeFiles", "Analyzing files"],
+  ["tool-positionHolder", "Searching for information"],
+  ["tool-initImage", "Generating image"],
+  ["tool-generateImage", "Generating image"],
+  ["tool-editImage", "Generating image"],
+]);
+
 export function getStatusLabel(parts: MyUIMessagePart[]) {
-  const part = parts[parts.length - 1]!;
-  switch (part.type) {
-    case "tool-dateTime":
-      return "Checking the time";
-    case "tool-weather":
-      return "Checking the weather";
-    case "tool-currentEvents":
-      return "Checking the news";
-    case "tool-analyzeFiles":
-      return "Analyzing files";
-    // case "tool-codeGeneration":
-    //   return "Generating code";
-    case "tool-positionHolder":
-      return "Searching for information";
-    case "tool-initImage":
-      return "Generating image";
-    case "tool-generateImage":
-      return "Generating image";
-    case "tool-editImage":
-      return "Generating image";
-    default:
-      return "Reasoning";
-  }
+  const part = parts[parts.length - 1];
+  if (!part) return "Reasoning";
+  return statusLabels.get(part.type) ?? "Reasoning";
 }
 
 export function formatError(code: SystemErrorCode) {
@@ -77,35 +80,47 @@ export function formatNotice(code: SystemNoticeCode) {
   return `${SystemNoticeLabel}${code}`;
 }
 
-export function isErrorMessage(message: string): SystemErrorCode | null {
+const errorCodes = new Map([
+  ["G1", "G1"],
+  ["G2", "G2"],
+  ["G3", "G3"],
+  ["G4", "G4"],
+] satisfies [string, SystemErrorCode][]);
+
+const noticeCodes = new Map([["N1", "N1"]] satisfies [
+  string,
+  SystemNoticeCode,
+][]);
+
+export function isErrorMessage(message: string) {
   if (!message.startsWith(SystemErrorLabel)) return null;
-  const code = message.replace(SystemErrorLabel, "") as SystemErrorCode;
-  return code;
+  return errorCodes.get(message.replace(SystemErrorLabel, "")) ?? null;
 }
 
-export function isNoticeMessage(message: string): SystemNoticeCode | null {
+export function isNoticeMessage(message: string) {
   if (!message.startsWith(SystemNoticeLabel)) return null;
-  const code = message.replace(SystemNoticeLabel, "") as SystemNoticeCode;
-  return code;
+  return noticeCodes.get(message.replace(SystemNoticeLabel, "")) ?? null;
 }
 
 export function extractSourcesFromMessage(message: MyUIMessage) {
-  const collected: Array<Source> = [];
-  message.parts.forEach((part) => {
+  return message.parts.flatMap((part) => {
     if (
       (part.type === "tool-currentEvents" ||
         part.type === "tool-positionHolder") &&
       part.output
     ) {
-      collected.push(...(part.output as { sources: Array<Source> }).sources);
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- tool output is untyped, runtime shape is { sources: Source[] }
+      const { sources } = part.output as { sources: Source[] };
+      return sources;
     }
+    return [];
   });
-  return collected;
 }
 
 export function extractImageFromMessage(message: MyUIMessage) {
   if (message.parts.length === 0) return null;
-  const lastPart = message.parts[message.parts.length - 1]!;
+  const lastPart = message.parts[message.parts.length - 1];
+  if (!lastPart) return null;
   if (lastPart.type === "tool-initImage") {
     return "in-progress";
   }
@@ -113,9 +128,10 @@ export function extractImageFromMessage(message: MyUIMessage) {
     (part) =>
       part.type === "tool-generateImage" || part.type === "tool-editImage",
   );
-  const key = (foundPart as { output?: { key?: string } } | undefined)?.output
-    ?.key;
-  return key;
+  if (!foundPart || !("output" in foundPart)) return undefined;
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- tool output is untyped, runtime shape is { key?: string }
+  const output = foundPart.output as { key?: string } | undefined;
+  return output?.key;
 }
 
 export const responseHasNoContent = (message: MyUIMessage) => {

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   createRootRouteWithContext,
   HeadContent,
@@ -25,7 +26,7 @@ const fetchClerkAuth = createServerFn({ method: "GET" }).handler(async () => {
     ? ((await getToken({ template: "convex" })) ?? null)
     : null;
 
-  if (isAuthenticated && token && userId !== null) {
+  if (isAuthenticated && token) {
     return {
       isSignedIn: true,
       userId,
@@ -37,12 +38,14 @@ const fetchClerkAuth = createServerFn({ method: "GET" }).handler(async () => {
   };
 });
 
-const fetchCookies = createServerFn({ method: "GET" }).handler(async () => {
+function isTheme(value: string): value is Theme {
+  return themes.some((t) => t === value);
+}
+
+const fetchCookies = createServerFn({ method: "GET" }).handler(() => {
   const themeCookie = getCookie("theme");
-  const theme: Theme =
-    themeCookie && (themes as readonly string[]).includes(themeCookie)
-      ? (themeCookie as Theme)
-      : defaultTheme;
+  const theme =
+    themeCookie && isTheme(themeCookie) ? themeCookie : defaultTheme;
   const stars = getCookie("stars") === "true";
   const sidebarOpen = getCookie(SIDEBAR_COOKIE_NAME) === "true";
 
@@ -80,9 +83,21 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
 });
 
+function ConvexClerkProvider({ children }: { children: ReactNode }) {
+  const { convex } = Route.useRouteContext({
+    select: (ctx) => ({ convex: ctx.convex }),
+  });
+  const authState = useAuth();
+  return (
+    <ConvexProviderWithClerk client={convex} useAuth={() => authState}>
+      {children}
+    </ConvexProviderWithClerk>
+  );
+}
+
 function RootComponent() {
-  const { convex, cookies } = Route.useRouteContext({
-    select: (ctx) => ({ convex: ctx.convex, cookies: ctx.cookies }),
+  const { cookies } = Route.useRouteContext({
+    select: (ctx) => ({ cookies: ctx.cookies }),
   });
 
   return (
@@ -94,7 +109,7 @@ function RootComponent() {
       signInFallbackRedirectUrl="/"
       signUpFallbackRedirectUrl="/"
     >
-      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+      <ConvexClerkProvider>
         <html
           lang="en"
           suppressHydrationWarning
@@ -117,7 +132,7 @@ function RootComponent() {
             <Scripts />
           </body>
         </html>
-      </ConvexProviderWithClerk>
+      </ConvexClerkProvider>
     </ClerkProvider>
   );
 }

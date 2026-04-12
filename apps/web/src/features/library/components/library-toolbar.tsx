@@ -21,9 +21,9 @@ import {
 import { Input } from "@acme/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@acme/ui/tooltip";
 
+import type { LibrarySort, LibraryView } from "../types";
 import { cn } from "~/lib/utils";
 import { useLibraryStore } from "../store";
-import { LibrarySort, LibraryView } from "../types";
 
 export const LibraryToolbar = ({
   view,

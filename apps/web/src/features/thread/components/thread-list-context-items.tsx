@@ -7,8 +7,13 @@ import useThreadStore from "../store";
 
 export default function ThreadListContextItems() {
   const { togglePinned } = useThreadMutation();
-  const { triggerRenameModal, triggerDeleteModal } = useThreadStore();
-  const hoveredThread = useThreadStore.getState().hoveredThread;
+  const triggerRenameModal = useThreadStore(
+    (state) => state.triggerRenameModal,
+  );
+  const triggerDeleteModal = useThreadStore(
+    (state) => state.triggerDeleteModal,
+  );
+  const hoveredThread = useThreadStore((state) => state.hoveredThread);
   return (
     <ContextMenu.ContextMenuContent>
       <ContextMenu.ContextMenuItem

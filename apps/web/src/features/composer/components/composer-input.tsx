@@ -19,7 +19,7 @@ export default function ComposerInput({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // auto-resize the textarea based on the content
+  // eslint-disable-next-line no-restricted-syntax -- Syncs with DOM: imperatively resizes textarea height based on content scroll height
   useEffect(() => {
     if (value === "" && textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -33,7 +33,7 @@ export default function ComposerInput({
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendMessage({ showInstantLoad, handleError });
+      void sendMessage({ showInstantLoad, handleError });
     }
   };
 
@@ -45,7 +45,7 @@ export default function ComposerInput({
     }
   };
 
-  // auto focus on mount
+  // eslint-disable-next-line no-restricted-syntax -- Syncs with DOM: focuses the textarea input on initial mount
   useEffect(() => {
     focusInput();
   }, []);

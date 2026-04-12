@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { DownloadIcon, Image as ImageIcon, X } from "lucide-react";
 
 import { Button } from "@acme/ui/button";
@@ -9,10 +8,21 @@ import {
   DialogTitle,
 } from "@acme/ui/dialog";
 
+import { Image } from "~/components/image";
 import { useFileInteraction } from "../hooks/use-file-interaction";
 import { useLibraryStore } from "../store";
 
 const maxFileNameLength = 40;
+
+function getDisplayFileName(fileName: string | undefined) {
+  if (!fileName?.length) {
+    return "Unnamed file";
+  }
+  if (fileName.length > maxFileNameLength) {
+    return `${fileName.substring(0, maxFileNameLength)}...`;
+  }
+  return fileName;
+}
 
 export const LibraryPhotoViewer = () => {
   const photoViewerOpen = useLibraryStore((state) => state.photoViewerOpen);
@@ -22,15 +32,7 @@ export const LibraryPhotoViewer = () => {
   const selectedFile = useLibraryStore((state) => state.selectedFile);
   const { download } = useFileInteraction();
 
-  const fileName = useMemo(() => {
-    if (!selectedFile || !selectedFile.fileName.length) {
-      return "Unnamed file";
-    }
-    if (selectedFile.fileName.length > maxFileNameLength) {
-      return `${selectedFile.fileName.substring(0, maxFileNameLength)}...`;
-    }
-    return selectedFile.fileName;
-  }, [selectedFile]);
+  const fileName = getDisplayFileName(selectedFile?.fileName);
 
   if (!selectedFile) {
     return null;
@@ -68,9 +70,11 @@ export const LibraryPhotoViewer = () => {
               </Button>
             </div>
           </div>
-          <img
+          <Image
             src={selectedFile.url}
             alt={fileName}
+            width={900}
+            height={800}
             className="h-full max-h-[800px] w-auto rounded-xl object-contain"
           />
         </div>

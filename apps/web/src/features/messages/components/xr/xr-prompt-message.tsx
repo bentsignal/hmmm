@@ -1,4 +1,4 @@
-import { UIMessage } from "@convex-dev/agent/react";
+import type { UIMessage } from "@convex-dev/agent/react";
 import { Text } from "@react-three/uikit";
 
 import { hexColors, xrStyles } from "~/styles";

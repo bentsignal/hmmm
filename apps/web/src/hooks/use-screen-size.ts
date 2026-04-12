@@ -5,17 +5,20 @@ const TABLET_BREAKPOINT = 1280;
 
 type ScreenSize = "mobile" | "desktop" | "tablet";
 
-function getScreenSize(width: number): ScreenSize {
+function getScreenSize(width: number) {
   if (width < MOBILE_BREAKPOINT) return "mobile";
   if (width < TABLET_BREAKPOINT) return "tablet";
   return "desktop";
 }
 
 export function useScreenSize() {
-  const [screenSize, setScreenSize] = useState<ScreenSize | undefined>(
-    undefined,
+  const [screenSize, setScreenSize] = useState<ScreenSize | undefined>(() =>
+    typeof window !== "undefined"
+      ? getScreenSize(window.innerWidth)
+      : undefined,
   );
 
+  // eslint-disable-next-line no-restricted-syntax -- Effect needed to subscribe to media query change events
   useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
     const tabletMql = window.matchMedia(
@@ -26,7 +29,6 @@ export function useScreenSize() {
     };
     mql.addEventListener("change", onChange);
     tabletMql.addEventListener("change", onChange);
-    setScreenSize(getScreenSize(window.innerWidth));
     return () => {
       mql.removeEventListener("change", onChange);
       tabletMql.removeEventListener("change", onChange);

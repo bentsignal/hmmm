@@ -2,8 +2,8 @@ import { useMutation } from "@tanstack/react-query";
 import { useConvexMutation } from "@convex-dev/react-query";
 import { toast } from "sonner";
 
+import type { Doc } from "@acme/db/model";
 import { api } from "@acme/db/api";
-import { Doc } from "@acme/db/model";
 
 export const useFileMutation = () => {
   const deleteFilesMutation = useMutation({

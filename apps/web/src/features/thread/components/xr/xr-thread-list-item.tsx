@@ -1,11 +1,12 @@
+// eslint-disable-next-line no-restricted-imports -- manual memo needed: deep-equal check prevents thread list item re-renders
 import { memo, useState } from "react";
 import { Container, Text } from "@react-three/uikit";
 import { Brain, ExternalLink } from "@react-three/uikit-lucide";
 import equal from "fast-deep-equal";
 
+import type { Thread } from "../../types";
 import { hexColors, xrStyles } from "~/styles";
 import useThreadStore from "../../store";
-import { Thread } from "../../types";
 
 const XRThreadListItem = ({ thread }: { thread: Thread }) => {
   const setActiveThread = useThreadStore((state) => state.setActiveThread);

@@ -1,6 +1,6 @@
 import type { ErrorComponentProps } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
 
+import { QuickLink as Link } from "@acme/features/quick-link";
 import { Button } from "@acme/ui/button";
 
 export function Error(props: ErrorComponentProps) {

@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { useConvexAuth, useQuery } from "convex/react";
+// eslint-disable-next-line no-restricted-imports -- useQuery needed here because storage data is fetched conditionally based on auth state, not preloaded in route loader
+import { useQuery } from "@tanstack/react-query";
+import { convexQuery, useConvexAuth } from "@convex-dev/react-query";
 import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,18 +15,22 @@ export const LibraryUpload = () => {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const { isAuthenticated } = useConvexAuth();
-  const storageStatus = useQuery(
-    api.app.library.getStorageStatus,
-    isAuthenticated ? {} : "skip",
-  );
+  const args = isAuthenticated ? {} : "skip";
+  const { data: storageStatus } = useQuery({
+    ...convexQuery(api.app.library.getStorageStatus, args),
+    select: (data) => ({
+      storageUsed: data.storageUsed,
+      storageLimit: data.storageLimit,
+    }),
+  });
 
   if (!storageStatus) return null;
 
   const percentageUsed = Math.min(
-    (storageStatus.storageUsed ?? 0) / (storageStatus.storageLimit ?? 0),
+    storageStatus.storageUsed / storageStatus.storageLimit,
     100,
   );
-  const disabled = storageStatus?.storageLimit === 0 || percentageUsed >= 100;
+  const disabled = storageStatus.storageLimit === 0 || percentageUsed >= 100;
 
   return (
     <div className="m-4 flex flex-col gap-4">

@@ -8,8 +8,8 @@ import {
   SidebarMenuItem,
 } from "@acme/ui/sidebar";
 
+import type { ThreadGroup } from "../types";
 import PageLoader from "~/components/page-loader";
-import { ThreadGroup } from "../types";
 import ThreadListContextItems from "./thread-list-context-items";
 import ThreadListItem from "./thread-list-item";
 
@@ -63,18 +63,13 @@ export default function ThreadList({
               <SidebarGroup key={group.label} className="gap-1">
                 <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
                 {group.threads.map((item) => {
-                  const thread = (
-                    <ThreadListItem
-                      key={item.id}
-                      thread={{
-                        title: item.title,
-                        id: item.id,
-                        active: pathname.includes(item.id ?? ""),
-                        status: item.state,
-                        pinned: item.pinned === true,
-                      }}
-                    />
-                  );
+                  const threadProps = {
+                    title: item.title,
+                    id: item.id,
+                    active: pathname.includes(item.id),
+                    status: item.state,
+                    pinned: item.pinned === true,
+                  };
                   // wrap item in invisible page loader
                   if (loaderId === item.id) {
                     return (
@@ -84,11 +79,11 @@ export default function ThreadList({
                         loadMore={loadMore}
                         singleUse={true}
                       >
-                        {thread}
+                        <ThreadListItem thread={threadProps} />
                       </PageLoader>
                     );
                   }
-                  return thread;
+                  return <ThreadListItem key={item.id} thread={threadProps} />;
                 })}
               </SidebarGroup>
             ),

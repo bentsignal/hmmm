@@ -42,7 +42,7 @@ export default function ChatSidebar() {
 
   // focus search on "ctrl/cmd + shift + ?"
   useShortcut({
-    hotkey: shortcuts["search"].hotkey,
+    hotkey: shortcuts.search.hotkey,
     callback: () => {
       if (searchRef.current) {
         searchRef.current.focus();

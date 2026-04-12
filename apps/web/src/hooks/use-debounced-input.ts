@@ -4,6 +4,7 @@ export default function useDebouncedInput(time = 500) {
   const [value, setValue] = useState("");
   const [debouncedValue, setDebouncedValue] = useState("");
 
+  // eslint-disable-next-line no-restricted-syntax -- Effect needed to sync with setTimeout for debouncing
   useEffect(() => {
     const timeout = setTimeout(() => {
       setDebouncedValue(value);

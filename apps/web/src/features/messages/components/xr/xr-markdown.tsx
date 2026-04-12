@@ -1,6 +1,6 @@
-import type { Schema } from "hast-util-sanitize";
+import type { Components } from "react-markdown";
 import { Container } from "@react-three/uikit";
-import ReactMarkdown, { Components } from "react-markdown";
+import ReactMarkdown from "react-markdown";
 import rehypeSanitize from "rehype-sanitize";
 
 import { H1, H2, H3, H4, H5, H6, TextElement } from "~/components/xr";
@@ -24,7 +24,7 @@ export default function XRMarkdown({ content }: { content: string }) {
   );
 }
 
-const sanitizeSchema: Schema = {
+const sanitizeSchema = {
   tagNames: [
     "h1",
     "h2",
@@ -54,7 +54,7 @@ const List = ({ children }: { children: React.ReactNode }) => (
   </Container>
 );
 
-const markdownComponents: Partial<Components> = {
+const markdownComponents = {
   p: ({ children }) => <TextElement>{children}</TextElement>,
   ul: ({ children }) => <List>{children}</List>,
   ol: ({ children }) => <List>{children}</List>,
@@ -78,4 +78,4 @@ const markdownComponents: Partial<Components> = {
       Currently unable to render tables. Please view in the browser.
     </TextElement>
   ),
-};
+} satisfies Partial<Components>;

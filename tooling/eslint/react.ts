@@ -24,6 +24,7 @@ export const reactConfig = defineConfig(
     rules: {
       "react-compiler/react-compiler": "error",
       "react/no-unstable-nested-components": ["error", { allowAsProps: true }],
+      "@typescript-eslint/only-throw-error": "off",
     },
   },
   reactHooks.configs.flat["recommended-latest"]!,

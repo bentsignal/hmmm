@@ -6,7 +6,7 @@ import InfoCard from "~/components/info-card";
 
 export default function Experimental() {
   const [xrChecked, setXrChecked] = useState(
-    document.cookie.match(/(?:^|; )xr=([^;]*)/)?.[1] === "true",
+    /(?:^|; )xr=([^;]*)/.exec(document.cookie)?.[1] === "true",
   );
   return (
     <InfoCard title="Experimental">

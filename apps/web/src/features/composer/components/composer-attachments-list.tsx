@@ -9,10 +9,11 @@ import {
   DialogTrigger,
 } from "@acme/ui/dialog";
 
+import type { LibraryFile } from "~/features/library/types/library-types";
+import { Image } from "~/components/image";
 import { LibraryFileIcon } from "~/features/library/components/library-file-icon";
 import { useFileInteraction } from "~/features/library/hooks/use-file-interaction";
 import { getFileType } from "~/features/library/lib/library-util";
-import { LibraryFile } from "~/features/library/types/library-types";
 import { useComposerStore } from "../store/composer-store";
 import { ComposerAddAttachments } from "./composer-add-attachments";
 
@@ -37,9 +38,11 @@ const AttachmentRow = ({ file, onRemove }: AttachmentRowProps) => {
       >
         <div className="flex h-8 w-8 items-center justify-center">
           {fileType === "image" ? (
-            <img
+            <Image
               src={file.url}
               alt={file.fileName}
+              width={32}
+              height={32}
               className="h-full w-full rounded object-cover"
             />
           ) : (

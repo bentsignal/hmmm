@@ -7,12 +7,39 @@ import { modelPresets } from "@acme/db/models";
 
 import { env } from "~/env";
 import { getConvexHttpClient } from "~/lib/convex-server";
-import { tryCatch } from "~/lib/utils";
 import { MAX_AUDIO_FILE_SIZE, MAX_RECORDING_DURATION } from "../config";
 import { getAudioDurationFromBuffer } from "../util/audio-duration";
 
+function validateInputData(data: unknown) {
+  if (!(data instanceof ArrayBuffer)) {
+    throw new Error("Expected ArrayBuffer input");
+  }
+  return data;
+}
+
+function validateFileSize(audio: ArrayBuffer) {
+  if (audio.byteLength === 0) {
+    throw new Error("Audio file is empty");
+  }
+  if (audio.byteLength > MAX_AUDIO_FILE_SIZE * 1024 * 1024) {
+    throw new Error(
+      `Audio file is too large. Maximum file size
+      is ${MAX_AUDIO_FILE_SIZE} MB (OpenAI limit).`,
+    );
+  }
+}
+
+function validateDuration(duration: number) {
+  if (duration > MAX_RECORDING_DURATION) {
+    throw new Error(
+      `Audio duration is ${Math.round(duration)} seconds. Maximum recording
+      duration is ${MAX_RECORDING_DURATION} seconds.`,
+    );
+  }
+}
+
 export const transcribeAudio = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => data as ArrayBuffer)
+  .inputValidator((data: unknown) => validateInputData(data))
   .handler(async ({ data: audio }) => {
     // auth check
     const { userId, getToken } = await auth();
@@ -41,45 +68,28 @@ export const transcribeAudio = createServerFn({ method: "POST" })
       throw new Error("Rate limit exceeded");
     }
 
-    // validate file size
-    if (audio.byteLength === 0) {
-      throw new Error("Audio file is empty");
-    }
-    if (audio.byteLength > MAX_AUDIO_FILE_SIZE * 1024 * 1024) {
-      throw new Error(
-        `Audio file is too large. Maximum file size
-      is ${MAX_AUDIO_FILE_SIZE} MB (OpenAI limit).`,
-      );
-    }
+    validateFileSize(audio);
 
     const audioBuffer = Buffer.from(audio);
 
     // get audio duration
-    const { data: duration, error: parsingError } = await tryCatch(
-      getAudioDurationFromBuffer(audioBuffer),
-    );
-
-    // validate duration
-    if (parsingError) {
-      throw parsingError;
+    let duration: number;
+    try {
+      duration = await getAudioDurationFromBuffer(audioBuffer);
+    } catch (err) {
+      throw new Error("Failed to parse audio duration", { cause: err });
     }
-    if (duration > MAX_RECORDING_DURATION) {
-      throw new Error(
-        `Audio duration is ${Math.round(duration)} seconds. Maximum recording
-      duration is ${MAX_RECORDING_DURATION} seconds.`,
-      );
-    }
+    validateDuration(duration);
 
     // transcribe audio
-    const { data: transcription, error } = await tryCatch(
-      transcribe({
+    let transcription: Awaited<ReturnType<typeof transcribe>>;
+    try {
+      transcription = await transcribe({
         model: modelPresets.transcription.model,
         audio: audioBuffer,
-      }),
-    );
-
-    if (error) {
-      console.error(error);
+      });
+    } catch (err) {
+      console.error(err);
       return "Failed to transcribe audio, please try again.";
     }
 

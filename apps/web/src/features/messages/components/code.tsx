@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { CodeBlock, CodeBlockCode } from "@acme/ui/code-block";
 
@@ -10,12 +10,12 @@ import { Language } from "./language";
 interface CodeProps {
   inline?: boolean;
   className?: string;
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 export function Code({ inline, className, children }: CodeProps) {
   // const { theme } = useTheme();
-  const isBlock = !inline && (className?.includes("language-") || false);
+  const isBlock = !inline && (className?.includes("language-") ?? false);
 
   if (isBlock) {
     return (
@@ -30,7 +30,7 @@ export function Code({ inline, className, children }: CodeProps) {
         </div>
         <CodeBlock className="rounded-t-none border-none bg-transparent p-6">
           <CodeBlockCode
-            code={children?.toString() ?? ""}
+            code={extractTextFromChildren(children)}
             // theme={theme === "dark" ? "github-dark" : "github-light"}
             theme="github-dark"
           />
@@ -42,7 +42,7 @@ export function Code({ inline, className, children }: CodeProps) {
     <div className="not-prose inline-flex max-w-full">
       <CodeBlock className="rounded-md px-2 py-1">
         <CodeBlockCode
-          code={children?.toString() ?? ""}
+          code={extractTextFromChildren(children)}
           // theme={theme === "dark" ? "github-dark" : "github-light"}
           theme="github-dark"
           className="text-sm"

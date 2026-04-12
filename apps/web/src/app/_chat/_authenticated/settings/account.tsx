@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import SettingsWrapper from "~/app/settings/-wrapper";
 import AccountInfo from "~/app/settings/account/-account-info";
-import Billing from "~/app/settings/account/-billing";
+import { Billing } from "~/app/settings/account/-billing";
 import DeleteAccount from "~/app/settings/account/-delete";
 import Usage from "~/app/settings/account/-usage";
 import { pricingQueries, userQueries } from "~/lib/queries";

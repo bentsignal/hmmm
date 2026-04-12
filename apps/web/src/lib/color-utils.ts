@@ -1,5 +1,5 @@
 export const oklchStringToHex = (oklch: string) => {
-  const match = oklch.match(/^oklch\(\s*([^\s]+)\s+([^\s]+)\s+([^\s]+)\s*\)$/);
+  const match = /^oklch\(\s*([^\s]+)\s+([^\s]+)\s+([^\s]+)\s*\)$/.exec(oklch);
   if (!match) {
     throw new Error("Invalid oklch string format");
   }

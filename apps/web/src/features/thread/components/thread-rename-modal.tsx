@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import * as Alert from "@acme/ui/alert-dialog";
 import { Input } from "@acme/ui/input";
@@ -18,15 +18,13 @@ export default function ThreadRenameModal() {
   const [newThreadName, setNewThreadName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    setNewThreadName(hoveredThread?.title ?? "");
-  }, [hoveredThread?.title]);
-
   return (
     <Alert.AlertDialog
       open={renameModalOpen}
       onOpenChange={(open) => {
-        if (!open) {
+        if (open) {
+          setNewThreadName(hoveredThread?.title ?? "");
+        } else {
           setRenameModalOpen(false);
           setNewThreadName("");
         }

@@ -1,5 +1,6 @@
+import type { XRStore } from "@react-three/xr";
 import { Canvas } from "@react-three/fiber";
-import { PointerEvents, XR, XRStore } from "@react-three/xr";
+import { PointerEvents, XR } from "@react-three/xr";
 
 import { Composer } from "~/features/composer/components/xr";
 import {
@@ -10,13 +11,9 @@ import {
 import { cn } from "~/lib/utils";
 
 export default function XRCanvas({ store }: { store: XRStore }) {
-  const hideCanvas = true;
   return (
     <Canvas
-      className={cn(
-        "!absolute inset-0 top-0",
-        hideCanvas ? "-z-50 opacity-0" : "",
-      )}
+      className={cn("!absolute inset-0 top-0", "-z-50 opacity-0")}
       style={{ height: "100dvh", touchAction: "none" }}
       gl={{ localClippingEnabled: true }}
     >

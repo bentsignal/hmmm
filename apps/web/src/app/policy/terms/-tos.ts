@@ -57,7 +57,7 @@ solely for your personal, non-commercial use or internal business purpose.
 
 Except as set out in this section or elsewhere in our Legal Terms, no part of the Services and no Content or Marks may be copied, reproduced, aggregated, republished, uploaded, posted, publicly displayed, encoded, translated, transmitted, distributed, sold, licensed, or otherwise exploited for any commercial purpose whatsoever, without our express prior written permission.
 
-If you wish to make any use of the Services, Content, or Marks other than as set out in this section or elsewhere in our Legal Terms, please address your request to: \***\*\_\_\*\***. If we ever grant you the permission to post, reproduce, or publicly display any part of our Services or Content, you must identify us as the owners or licensors of the Services, Content, or Marks and ensure that any copyright or proprietary notice appears or is visible on posting, reproducing, or displaying our Content.
+If you wish to make any use of the Services, Content, or Marks other than as set out in this section or elsewhere in our Legal Terms, please address your request to: ****__****. If we ever grant you the permission to post, reproduce, or publicly display any part of our Services or Content, you must identify us as the owners or licensors of the Services, Content, or Marks and ensure that any copyright or proprietary notice appears or is visible on posting, reproducing, or displaying our Content.
 
 We reserve all rights not expressly granted to you in and to the Services, Content, and Marks.
 
@@ -143,17 +143,17 @@ We cannot guarantee the Services will be available at all times. We may experien
 
 ## 10. GOVERNING LAW
 
-These Legal Terms shall be governed by and defined following the laws of \***\*\_\_\*\***. \***\*\_\_\*\*** and yourself irrevocably consent that the courts of \***\*\_\_\*\*** shall have exclusive jurisdiction to resolve any dispute which may arise in connection with these Legal Terms.
+These Legal Terms shall be governed by and defined following the laws of ****__****. ****__**** and yourself irrevocably consent that the courts of ****__**** shall have exclusive jurisdiction to resolve any dispute which may arise in connection with these Legal Terms.
 
 ## 11. DISPUTE RESOLUTION
 
 ### Informal Negotiations
 
-To expedite resolution and control the cost of any dispute, controversy, or claim related to these Legal Terms (each a "**Dispute**" and collectively, the "**Disputes**") brought by either you or us (individually, a "**Party**" and collectively, the "**Parties**"), the Parties agree to first attempt to negotiate any Dispute (except those Disputes expressly provided below) informally for at least \***\*\_\_\*\*** days before initiating arbitration. Such informal negotiations commence upon written notice from one Party to the other Party.
+To expedite resolution and control the cost of any dispute, controversy, or claim related to these Legal Terms (each a "**Dispute**" and collectively, the "**Disputes**") brought by either you or us (individually, a "**Party**" and collectively, the "**Parties**"), the Parties agree to first attempt to negotiate any Dispute (except those Disputes expressly provided below) informally for at least ****__**** days before initiating arbitration. Such informal negotiations commence upon written notice from one Party to the other Party.
 
 ### Binding Arbitration
 
-Any dispute arising out of or in connection with these Legal Terms, including any question regarding its existence, validity, or termination, shall be referred to and finally resolved by the International Commercial Arbitration Court under the European Arbitration Chamber (Belgium, Brussels, Avenue Louise, 146) according to the Rules of this ICAC, which, as a result of referring to it, is considered as the part of this clause. The number of arbitrators shall be \***\*\_\_\*\***. The seat, or legal place, or arbitration shall be \***\*\_\_\*\***. The language of the proceedings shall be \***\*\_\_\*\***. The governing law of these Legal Terms shall be substantive law of \***\*\_\_\*\***.
+Any dispute arising out of or in connection with these Legal Terms, including any question regarding its existence, validity, or termination, shall be referred to and finally resolved by the International Commercial Arbitration Court under the European Arbitration Chamber (Belgium, Brussels, Avenue Louise, 146) according to the Rules of this ICAC, which, as a result of referring to it, is considered as the part of this clause. The number of arbitrators shall be ****__****. The seat, or legal place, or arbitration shall be ****__****. The language of the proceedings shall be ****__****. The governing law of these Legal Terms shall be substantive law of ****__****.
 
 ### Restrictions
 

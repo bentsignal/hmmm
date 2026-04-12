@@ -1,5 +1,4 @@
-import { Link } from "@tanstack/react-router";
-
+import { QuickLink } from "@acme/features/quick-link";
 import { Progress } from "@acme/ui/progress";
 
 import { cn } from "~/lib/utils";
@@ -30,12 +29,12 @@ export const LibraryStorageStatus = ({
   if (storageLimit === 0) {
     return (
       <div className="m-4 flex flex-col gap-4">
-        <Link
+        <QuickLink
           to="/pricing"
           className="text-primary text-sm font-bold text-wrap underline"
         >
           Upgrade to premium to access file storage.
-        </Link>
+        </QuickLink>
       </div>
     );
   }
@@ -44,12 +43,12 @@ export const LibraryStorageStatus = ({
     <div className="flex flex-col gap-2">
       {percentageUsed > 75 ||
         (Number.isNaN(percentageUsed) && (
-          <Link
+          <QuickLink
             to="/pricing"
             className="text-primary text-sm font-bold underline"
           >
             Upgrade
-          </Link>
+          </QuickLink>
         ))}
       <span className={cn("text-muted-foreground text-sm", textColor)}>
         <span className="font-bold">{remainingGB} GB</span> available

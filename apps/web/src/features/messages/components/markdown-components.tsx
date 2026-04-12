@@ -1,17 +1,14 @@
-import { Components } from "react-markdown";
+import type { Components } from "react-markdown";
 
 import { Code } from "~/features/messages/components/code";
 
-export const markdownComponents: Partial<Components> = {
-  code: Code as Components["code"],
+export const markdownComponents = {
+  code: Code,
   pre: ({ children }) => <>{children}</>,
   hr: () => <></>,
   a: ({ children, ...props }) => {
-    if (
-      children &&
-      children.toString().startsWith("[") &&
-      children.toString().endsWith("]")
-    ) {
+    const text = typeof children === "string" ? children : "";
+    if (text.startsWith("[") && text.endsWith("]")) {
       return (
         <a
           className="text-muted bg-muted-foreground rounded-sm px-1.5 py-0.5 text-xs no-underline"
@@ -19,7 +16,7 @@ export const markdownComponents: Partial<Components> = {
           rel="noreferrer"
           {...props}
         >
-          {children.toString().slice(1, -1)}
+          {text.slice(1, -1)}
         </a>
       );
     }
@@ -109,4 +106,4 @@ export const markdownComponents: Partial<Components> = {
       </h6>
     );
   },
-};
+} satisfies Partial<Components>;

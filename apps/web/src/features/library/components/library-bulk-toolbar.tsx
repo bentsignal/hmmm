@@ -72,7 +72,7 @@ const DeleteButton = ({ disabled }: { disabled: boolean }) => {
         <Button
           variant="ghost"
           disabled={disabled}
-          onClick={async () => {
+          onClick={() => {
             setLibraryDeleteModalOpen(true);
           }}
         >
@@ -99,7 +99,9 @@ const DownloadButton = ({ disabled }: { disabled: boolean }) => {
               download(selectedFiles.map((file) => file.url)),
             );
             if (error) {
-              toast.error(error.message);
+              toast.error(
+                error instanceof Error ? error.message : "Download failed",
+              );
             }
           }}
         >

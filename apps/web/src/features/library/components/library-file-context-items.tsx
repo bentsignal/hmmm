@@ -21,7 +21,7 @@ export const LibraryFileContextItems = () => {
           if (!selectedFile) {
             return;
           }
-          download([selectedFile.url]);
+          void download([selectedFile.url]);
         }}
       >
         <DownloadIcon className="h-4 w-4" />

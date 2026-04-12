@@ -1,5 +1,6 @@
-import { ReactNode } from "react";
-import { Text, TextProperties } from "@react-three/uikit";
+import type { TextProperties } from "@react-three/uikit";
+import type { ReactNode } from "react";
+import { Text } from "@react-three/uikit";
 
 import { extractTextFromChildren } from "~/features/messages/util/message-util";
 import { hexColors, xrStyles } from "~/styles";

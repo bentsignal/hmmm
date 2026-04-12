@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports -- manual memo needed: deep-equal check prevents message re-renders during streaming
 import { memo, useEffect } from "react";
 
 import "@/features/messages/styles/github-dark.min.css";
@@ -7,6 +8,7 @@ import equal from "fast-deep-equal";
 
 import { Loader } from "@acme/ui/loader";
 
+import type { MyUIMessage } from "./types/message-types";
 import PageLoader from "~/components/page-loader";
 import {
   INVISIBLE_PAGE_LOADER_INDEX,
@@ -16,7 +18,6 @@ import ThreadFollowUps from "../thread/components/thread-follow-ups";
 import PromptMessage from "./components/prompt-message";
 import ResponseMessage from "./components/response-message";
 import useMessages from "./hooks/use-messages";
-import { MyUIMessage } from "./types/message-types";
 import { responseHasNoContent } from "./util/message-util";
 
 export default function Messages({
@@ -39,7 +40,7 @@ export default function Messages({
 
   const messages = pureMessages.filter((item) => item.role !== "system");
 
-  // when messages have loaded, tell parent component to scroll to the bottom of the page
+  // eslint-disable-next-line no-restricted-syntax -- effect needed to notify parent to scroll after messages load (DOM sync)
   useEffect(() => {
     if (messages.length > 0) {
       triggerMessagesLoaded();
@@ -47,10 +48,11 @@ export default function Messages({
   }, [messages.length, triggerMessagesLoaded]);
 
   // show a loading spinner when the user has sent a prompt and is waiting for a response
+  const lastMessage = messages[messages.length - 1];
   const waiting =
     messages.length > 0 &&
-    (messages[messages.length - 1]!.role === "user" ||
-      responseHasNoContent(messages[messages.length - 1]!));
+    lastMessage !== undefined &&
+    (lastMessage.role === "user" || responseHasNoContent(lastMessage));
 
   return (
     <>

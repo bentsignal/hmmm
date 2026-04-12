@@ -10,7 +10,7 @@ export const pricingQueries = {
 };
 
 export const threadQueries = {
-  listFirstPage: (search: string = "") =>
+  listFirstPage: (search = "") =>
     convexQuery(api.ai.thread.getThreadList, {
       search,
       paginationOpts: {

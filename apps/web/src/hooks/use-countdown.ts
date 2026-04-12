@@ -16,6 +16,7 @@ export default function useCountdown({
   const [hours, setHours] = useState(initialTime.hours);
   const [days, setDays] = useState(initialTime.days);
 
+  // eslint-disable-next-line no-restricted-syntax -- Effect needed to sync with setInterval timer
   useEffect(() => {
     const updateCountdown = () => {
       const { days, hours, minutes } = getTimeRemaining(target);

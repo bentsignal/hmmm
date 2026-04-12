@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import { Thread } from "../types";
+import type { Thread } from "../types";
 
 interface ThreadStore {
   /** thread being hovered over in thread list */

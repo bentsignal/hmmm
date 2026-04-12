@@ -102,12 +102,6 @@ const strictReactSyntaxSelectors = [
   },
   {
     selector:
-      "Property[key.name='select'][value.type='ArrowFunctionExpression'][value.params.length=1][value.body.type='Identifier']",
-    message:
-      "Identity select (e.g. `select: (data) => data`) is not allowed. The select must narrow to only the fields the component needs.",
-  },
-  {
-    selector:
       ":function VariableDeclarator[init.type='JSXElement'], :function VariableDeclarator[init.type='JSXFragment']",
     message:
       "Do not assign JSX to a variable inside a component or hook. Extract it to its own component function so the React Compiler can optimize it.",

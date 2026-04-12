@@ -4,7 +4,10 @@ import InfoCard from "~/components/info-card";
 import { userQueries } from "~/lib/queries";
 
 export default function AccountInfo() {
-  const { data: email } = useSuspenseQuery(userQueries.email());
+  const { data: email } = useSuspenseQuery({
+    ...userQueries.email(),
+    select: (data) => data,
+  });
 
   if (email === null) {
     return null;

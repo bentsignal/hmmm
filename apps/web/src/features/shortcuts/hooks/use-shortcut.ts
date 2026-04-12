@@ -1,6 +1,32 @@
 import { useEffect } from "react";
 
-import { Hotkey } from "../types";
+import type { Hotkey } from "../types";
+
+function matchesKey(e: KeyboardEvent, hotkey: Hotkey) {
+  return e.key.toUpperCase() === hotkey.key.toUpperCase();
+}
+
+function matchesShift(e: KeyboardEvent, hotkey: Hotkey) {
+  return hotkey.shift ? e.shiftKey : !e.shiftKey;
+}
+
+function matchesCtrlCmd(e: KeyboardEvent, hotkey: Hotkey) {
+  if (hotkey.ctrlCmd) return e.ctrlKey || e.metaKey;
+  return !e.ctrlKey && !e.metaKey;
+}
+
+function matchesAlt(e: KeyboardEvent, hotkey: Hotkey) {
+  return hotkey.alt ? e.altKey : !e.altKey;
+}
+
+function matchesHotkey(e: KeyboardEvent, hotkey: Hotkey) {
+  return (
+    matchesKey(e, hotkey) &&
+    matchesShift(e, hotkey) &&
+    matchesCtrlCmd(e, hotkey) &&
+    matchesAlt(e, hotkey)
+  );
+}
 
 export default function useShortcut({
   hotkey,
@@ -9,23 +35,14 @@ export default function useShortcut({
   hotkey: Hotkey;
   callback: () => void;
 }) {
+  // eslint-disable-next-line no-restricted-syntax -- Effect needed to register keyboard event listeners
   useEffect(() => {
     const controller = new AbortController();
 
     window.addEventListener(
       "keydown",
       (e: KeyboardEvent) => {
-        if (
-          e.key.toUpperCase() === hotkey.key.toUpperCase() &&
-          // shift key active if required
-          ((e.shiftKey && hotkey.shift) || (!hotkey.shift && !e.shiftKey)) &&
-          // ctrl/cmd key active if required
-          ((e.ctrlKey && hotkey.ctrlCmd) ||
-            (e.metaKey && hotkey.ctrlCmd) ||
-            (!hotkey.ctrlCmd && !e.ctrlKey && !e.metaKey)) &&
-          // alt key active if required
-          ((e.altKey && hotkey.alt) || (!hotkey.alt && !e.altKey))
-        ) {
+        if (matchesHotkey(e, hotkey)) {
           e.preventDefault();
           e.stopPropagation();
           callback();

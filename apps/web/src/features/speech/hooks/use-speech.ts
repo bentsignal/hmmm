@@ -22,7 +22,7 @@ export default function useSpeech() {
   // prevent users from starting a new transcription while
   // one is being processed, or after they have hit their limit
   const { usage } = useUsage();
-  const disabled = usage?.limitHit || processing;
+  const disabled = usage?.limitHit ?? processing;
 
   // browser native web speech api, preferred when available
   const { transcript, listening, browserSupportsSpeechRecognition } =
@@ -47,6 +47,7 @@ export default function useSpeech() {
   const setStoreIsRecording = useComposerStore(
     (state) => state.setStoreIsRecording,
   );
+  // eslint-disable-next-line no-restricted-syntax -- Syncs external speech recognition/recording state with the composer store
   useEffect(() => {
     setStoreIsListening(listening);
     setStoreIsRecording(isRecording);
@@ -63,29 +64,31 @@ export default function useSpeech() {
   // start speech, use web speech api when available
   const startSpeech = () => {
     if (browserSupportsSpeechRecognition) {
-      SpeechRecognition.startListening();
+      void SpeechRecognition.startListening();
     } else {
       setPrompt("__transcribing__");
-      startRecording();
+      void startRecording();
     }
   };
 
   // stop speech, use web speech api when available
   const stopSpeech = () => {
     if (browserSupportsSpeechRecognition) {
-      SpeechRecognition.stopListening();
+      void SpeechRecognition.stopListening();
     } else {
       stopRecording();
     }
   };
 
   // update prompt when transcription has completed
+  // eslint-disable-next-line no-restricted-syntax -- Syncs web speech API transcript with the prompt
   useEffect(() => {
     // web speech api
     if (transcript.trim().toLowerCase() !== "") {
       setPrompt(transcript);
     }
   }, [transcript, setPrompt]);
+  // eslint-disable-next-line no-restricted-syntax -- Syncs manual transcription result with the prompt
   useEffect(() => {
     // manual transcription
     if (transcribedAudio?.trim().toLowerCase()) {

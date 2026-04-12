@@ -44,9 +44,8 @@ export const formatCountdownString = (
     return `${hours} hour${hours > 1 ? "s" : ""} and ${minutes} minute${
       minutes > 1 ? "s" : ""
     }`;
-  } else {
-    return `${minutes} minute${minutes > 1 ? "s" : ""}`;
   }
+  return `${minutes} minute${minutes > 1 ? "s" : ""}`;
 };
 
 export const getESTDate = () => {
@@ -114,19 +113,15 @@ export const convertToUTC = (date: Date) => {
   return new Date(date.getTime() + offset);
 };
 
-export type CurrentDateTime = {
+export interface CurrentDateTime {
   hours: number;
   minutes: number;
   month: string;
   day: string;
   year: string;
-};
+}
 
-export const getCurrentDateTime = ({
-  timezone,
-}: {
-  timezone: string;
-}): CurrentDateTime => {
+export const getCurrentDateTime = ({ timezone }: { timezone: string }) => {
   const date = new Date();
 
   // get time

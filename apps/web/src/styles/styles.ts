@@ -18,9 +18,19 @@ const colors = {
   destructive: "oklch(0.704 0.191 22.216)",
 };
 
-export const hexColors = Object.fromEntries(
-  Object.entries(colors).map(([key, value]) => [key, oklchStringToHex(value)]),
-) as Record<keyof typeof colors, string>;
+export const hexColors = {
+  background: oklchStringToHex(colors.background),
+  foreground: oklchStringToHex(colors.foreground),
+  card: oklchStringToHex(colors.card),
+  cardForeground: oklchStringToHex(colors.cardForeground),
+  popover: oklchStringToHex(colors.popover),
+  popoverForeground: oklchStringToHex(colors.popoverForeground),
+  primary: oklchStringToHex(colors.primary),
+  primaryForeground: oklchStringToHex(colors.primaryForeground),
+  borderInput: oklchStringToHex(colors.borderInput),
+  accent: oklchStringToHex(colors.accent),
+  destructive: oklchStringToHex(colors.destructive),
+};
 
 export const xrStyles = {
   /** 16 * 0.25 = 4 */

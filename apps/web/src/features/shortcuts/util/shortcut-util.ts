@@ -1,4 +1,4 @@
-import { Hotkey } from "../types";
+import type { Hotkey } from "../types";
 
 export const getShortcutString = (hotkey: Hotkey) => {
   const keys = [];

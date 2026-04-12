@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
+import type { LibraryFile } from "~/features/library/types";
 import { MAX_ATTACHMENTS_PER_MESSAGE } from "~/features/library/config";
-import { LibraryFile } from "~/features/library/types";
 
 interface ComposerStore {
   prompt: string;

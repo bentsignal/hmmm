@@ -23,7 +23,7 @@ export default function XRComposerSend() {
           setActiveThread(threadId);
         }
       }}
-      disabled={blockSend || isLoading}
+      disabled={blockSend ?? isLoading}
       size="icon"
       backgroundColor={hexColors.primary}
       width={40}

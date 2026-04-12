@@ -1,5 +1,5 @@
 import { Fragment, useState } from "react";
-import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { SignOutButton } from "@clerk/tanstack-react-start";
 import { LogOut, MoveLeft } from "lucide-react";
 
@@ -37,7 +37,7 @@ export const SettingsNavMobile = () => {
         onValueChange={(value) => {
           setIsOpen(false);
           setValue(value);
-          navigate({ to: value });
+          void navigate({ to: value });
         }}
         value={value}
         open={isOpen}
@@ -70,12 +70,12 @@ export const SettingsNavMobile = () => {
           </SignOutButton>
         </SelectContent>
       </Select>
-      <Link to="/" className="text-muted-foreground text-sm">
+      <QuickLink to="/" className="text-muted-foreground text-sm">
         <div className="flex items-center gap-2">
           <MoveLeft className="h-4 w-4" />
           <span>Back to chat</span>
         </div>
-      </Link>
+      </QuickLink>
     </div>
   );
 };
@@ -92,12 +92,12 @@ export const SettingsNavDesktop = () => {
               asChild
               className="hover:text-primary hover:bg-card/50"
             >
-              <Link to="/" preload="render">
+              <QuickLink to="/" preload="render">
                 <div className="flex items-center gap-2">
                   <MoveLeft className="h-4 w-4" />
                   <span>Back</span>
                 </div>
-              </Link>
+              </QuickLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <Separator className="my-1" />

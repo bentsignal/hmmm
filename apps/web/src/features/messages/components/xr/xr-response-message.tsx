@@ -9,6 +9,7 @@ import {
   Sun,
 } from "@react-three/uikit-lucide";
 
+import type { MyUIMessage } from "../../types";
 import type {
   SystemErrorCode,
   SystemNoticeCode,
@@ -16,7 +17,6 @@ import type {
 import { TextElement } from "~/components/xr";
 import { hexColors, xrStyles } from "~/styles";
 import { NOTICE_MESSAGES } from "../../data/notice-messages";
-import { MyUIMessage } from "../../types";
 import {
   getStatusLabel,
   isErrorMessage,

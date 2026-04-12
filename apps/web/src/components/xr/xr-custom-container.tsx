@@ -1,9 +1,6 @@
-import { Ref } from "react";
-import {
-  Container,
-  ContainerProperties,
-  ContainerRef,
-} from "@react-three/uikit";
+import type { ContainerProperties, ContainerRef } from "@react-three/uikit";
+import type { Ref } from "react";
+import { Container } from "@react-three/uikit";
 
 import { hexColors, xrStyles } from "~/styles";
 
@@ -35,7 +32,7 @@ export default function XRCustomContainer({
       <Container
         width="100%"
         flexDirection="column"
-        gap={gap || xrStyles.spacingMd}
+        gap={gap ?? xrStyles.spacingMd}
         overflow="scroll"
         scrollbarBorderRadius={xrStyles.radiusSm}
         paddingRight={xrStyles.radiusLg}

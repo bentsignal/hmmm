@@ -1,10 +1,17 @@
 import { SimpleIcon } from "~/components/simple-icon";
 
+function hasKey<T extends object>(
+  obj: T,
+  key: string,
+): key is string & keyof T {
+  return Object.hasOwn(obj, key);
+}
+
 export const Language = ({ className }: { className?: string }) => {
   if (!className) return null;
-  const language = className?.split("-")[1];
-  if (language && language in languages) {
-    const { label, icon } = languages[language as keyof typeof languages];
+  const language = className.split("-")[1];
+  if (language && hasKey(languages, language)) {
+    const { label, icon } = languages[language];
     return (
       <div className="flex items-center gap-2">
         {icon}

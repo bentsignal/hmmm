@@ -6,25 +6,23 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-type Success<T> = {
+interface Success<T> {
   data: T;
   error: null;
-};
+}
 
-type Failure<E> = {
+interface Failure {
   data: null;
-  error: E;
-};
+  error: unknown;
+}
 
-export type Result<T, E = Error> = Success<T> | Failure<E>;
+export type Result<T> = Failure | Success<T>;
 
-export async function tryCatch<T, E = Error>(
-  promise: Promise<T>,
-): Promise<Result<T, E>> {
+export async function tryCatch<T>(promise: Promise<T>) {
   try {
     const data = await promise;
-    return { data, error: null };
-  } catch (error) {
-    return { data: null, error: error as E };
+    return { data, error: null } satisfies Success<T>;
+  } catch (error: unknown) {
+    return { data: null, error } satisfies Failure;
   }
 }

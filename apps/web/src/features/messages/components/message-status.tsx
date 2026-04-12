@@ -18,9 +18,9 @@ import {
 import { TextShimmer } from "@acme/ui/loader";
 import { Markdown } from "@acme/ui/markdown";
 
+import type { MyUIMessage } from "../types/message-types";
 import Abyss from "~/components/abyss";
 import { cn } from "~/lib/utils";
-import { MyUIMessage } from "../types/message-types";
 import {
   extractReasoningFromMessage,
   getStatusLabel,

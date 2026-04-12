@@ -17,7 +17,7 @@ export default function DeleteAccount() {
   const { mutate: deleteAccount, isPending } = useMutation({
     mutationFn: useConvexMutation(api.user.account.requestDelete),
     onSuccess: () => {
-      navigate({ to: "/goodbye" });
+      void navigate({ to: "/goodbye" });
     },
     onError: (error) => {
       console.error(error);

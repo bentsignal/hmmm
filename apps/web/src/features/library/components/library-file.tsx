@@ -1,14 +1,14 @@
-import { memo, useState } from "react";
-import equal from "fast-deep-equal";
+import { useState } from "react";
 import { Plus } from "lucide-react";
 
 import { Button } from "@acme/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@acme/ui/tooltip";
 
+import type { LibraryFile, LibraryMode } from "../types";
+import { Image } from "~/components/image";
 import { cn } from "~/lib/utils";
 import { useFileInteraction } from "../hooks/use-file-interaction";
 import { getFileType } from "../lib";
-import { LibraryFile, LibraryMode } from "../types";
 import { LibraryFileIcon } from "./library-file-icon";
 
 interface LibraryFileProps {
@@ -17,7 +17,38 @@ interface LibraryFileProps {
   selected: boolean;
 }
 
-const PureLibraryGridFile = ({ file, mode, selected }: LibraryFileProps) => {
+const AddToMessageButton = ({
+  onClick,
+  className,
+}: {
+  onClick: (e: React.MouseEvent) => void;
+  className?: string;
+}) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Button
+        size="sm"
+        variant="default"
+        onClick={onClick}
+        className={className}
+      >
+        <Plus className="h-3 w-3" />
+      </Button>
+    </TooltipTrigger>
+    <TooltipContent>Add to message</TooltipContent>
+  </Tooltip>
+);
+
+const SelectIndicator = ({ selected }: { selected: boolean }) => (
+  <div
+    className={cn(
+      "absolute top-2 right-2 z-10 h-3 w-3 rounded-full",
+      selected ? "bg-primary" : "border-primary border",
+    )}
+  />
+);
+
+export const LibraryGridFile = ({ file, mode, selected }: LibraryFileProps) => {
   const fileType = getFileType(file.mimeType);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -37,37 +68,23 @@ const PureLibraryGridFile = ({ file, mode, selected }: LibraryFileProps) => {
         mode === "select" && !selected && "opacity-50",
       )}
     >
-      {mode === "select" && (
-        <div
-          className={cn(
-            "absolute top-2 right-2 z-10 h-3 w-3 rounded-full",
-            selected ? "bg-primary" : "border-primary border",
-          )}
-        ></div>
-      )}
+      {mode === "select" && <SelectIndicator selected={selected} />}
       {mode === "default" && isHovered && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              size="sm"
-              variant="default"
-              onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                handleAddAttachment(file);
-              }}
-              className="absolute top-2 right-2 z-10 h-7 w-7 p-0"
-            >
-              <Plus className="h-3 w-3" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Add to message</TooltipContent>
-        </Tooltip>
+        <AddToMessageButton
+          onClick={(e: React.MouseEvent) => {
+            e.stopPropagation();
+            handleAddAttachment(file);
+          }}
+          className="absolute top-2 right-2 z-10 h-7 w-7 p-0"
+        />
       )}
       <div className="relative flex h-40 w-full items-center justify-center sm:h-20">
         {fileType === "image" ? (
-          <img
+          <Image
             src={file.url}
-            alt={file.fileName ?? "unnamed file"}
+            alt={file.fileName}
+            width={320}
+            height={160}
             className="h-full w-full rounded-xl object-cover"
           />
         ) : (
@@ -76,14 +93,14 @@ const PureLibraryGridFile = ({ file, mode, selected }: LibraryFileProps) => {
       </div>
       <div className="flex w-full flex-1 flex-col items-center justify-center gap-1">
         <span className="line-clamp-2 w-[80%] text-center text-sm font-medium">
-          {file.fileName ?? "unnamed file"}
+          {file.fileName}
         </span>
       </div>
     </div>
   );
 };
 
-const PureLibraryListFile = ({ file, mode, selected }: LibraryFileProps) => {
+export const LibraryListFile = ({ file, mode, selected }: LibraryFileProps) => {
   const fileType = getFileType(file.mimeType);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -114,34 +131,22 @@ const PureLibraryListFile = ({ file, mode, selected }: LibraryFileProps) => {
         </div>
       )}
       {mode === "default" && isHovered && (
-        <div
-          className={cn(
-            "absolute top-0 right-0 z-200 flex h-full items-center justify-center p-0 px-4",
-            isHovered ? "opacity-100" : "opacity-0",
-          )}
-        >
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="sm"
-                variant="default"
-                onClick={(e: React.MouseEvent) => {
-                  e.stopPropagation();
-                  handleAddAttachment(file);
-                }}
-              >
-                <Plus className="h-3 w-3" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Add to message</TooltipContent>
-          </Tooltip>
+        <div className="absolute top-0 right-0 z-200 flex h-full items-center justify-center p-0 px-4 opacity-100">
+          <AddToMessageButton
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation();
+              handleAddAttachment(file);
+            }}
+          />
         </div>
       )}
       <div className="relative flex h-10 items-center justify-center">
         {fileType === "image" ? (
-          <img
+          <Image
             src={file.url}
-            alt={file.fileName ?? "unnamed file"}
+            alt={file.fileName}
+            width={80}
+            height={40}
             className="h-full w-20 rounded-md object-cover"
           />
         ) : (
@@ -152,25 +157,9 @@ const PureLibraryListFile = ({ file, mode, selected }: LibraryFileProps) => {
       </div>
       <div className="flex flex-col gap-1">
         <span className="line-clamp-1 text-sm font-medium">
-          {file.fileName ?? "unnamed file"}
+          {file.fileName}
         </span>
       </div>
     </div>
   );
 };
-
-export const LibraryGridFile = memo(PureLibraryGridFile, (prev, next) => {
-  return (
-    equal(prev.file, next.file) &&
-    prev.mode === next.mode &&
-    prev.selected === next.selected
-  );
-});
-
-export const LibraryListFile = memo(PureLibraryListFile, (prev, next) => {
-  return (
-    equal(prev.file, next.file) &&
-    prev.mode === next.mode &&
-    prev.selected === next.selected
-  );
-});

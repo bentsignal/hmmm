@@ -62,10 +62,11 @@ export const ourFileRouter = {
       }
 
       // expected error
-      const { allow, reason } = data;
-      if (!allow) {
-        console.error("Upload not allowed", reason);
-        throw new UploadThingError(reason);
+      if (!data?.allow) {
+        console.error("Upload not allowed", data?.reason);
+        throw new UploadThingError(
+          String(data?.reason ?? "Upload not allowed"),
+        );
       }
 
       return { userId };

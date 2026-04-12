@@ -12,7 +12,18 @@ export const Route = createFileRoute("/_chat/pricing")({
 });
 
 function PricingPage() {
-  const { data: plans } = useSuspenseQuery(pricingQueries.listAllProducts());
+  const { data: plans } = useSuspenseQuery({
+    ...pricingQueries.listAllProducts(),
+    select: (data) =>
+      data.map((plan) => ({
+        id: plan.id,
+        name: plan.name,
+        description: plan.description,
+        prices: plan.prices,
+        recurringInterval: plan.recurringInterval,
+        isArchived: plan.isArchived,
+      })),
+  });
 
   const publicPlans = plans
     .filter((plan) => plan.isArchived === false)
