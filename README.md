@@ -25,8 +25,6 @@ For more information, head over to the [docs](https://docs.hmmm.chat)
 <br />
 <br />
 
-me@bentsignal.com
-
 [x.com/bentsignal](https://x.com/bentsignal)
 
 </div>
