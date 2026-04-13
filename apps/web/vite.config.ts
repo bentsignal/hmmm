@@ -27,7 +27,7 @@ export default defineConfig(async () => {
           plugins: ["babel-plugin-react-compiler"],
         },
       }),
-      nitro(),
+      nitro({ wasm: false }),
     ],
   };
 });
