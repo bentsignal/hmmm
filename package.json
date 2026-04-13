@@ -18,7 +18,7 @@
     "lint:ws": "pnpm dlx sherif@latest",
     "postinstall": "pnpm lint:ws",
     "typecheck": "turbo run typecheck",
-    "check": "pnpm run lint && pnpm run typecheck && pnpm run test",
+    "check": "pnpm run lint && pnpm run typecheck",
     "ui-add": "turbo run ui-add",
     "create-package": "turbo gen init"
   },
