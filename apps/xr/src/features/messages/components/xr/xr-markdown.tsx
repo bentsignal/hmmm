@@ -42,17 +42,19 @@ const sanitizeSchema = {
   ],
 };
 
-const List = ({ children }: { children: React.ReactNode }) => (
-  <Container
-    flexDirection="column"
-    flexShrink={0}
-    width="100%"
-    gap={xrStyles.spacingMd}
-    paddingLeft={xrStyles.spacingMd}
-  >
-    {children}
-  </Container>
-);
+function List({ children }: { children: React.ReactNode }) {
+  return (
+    <Container
+      flexDirection="column"
+      flexShrink={0}
+      width="100%"
+      gap={xrStyles.spacingMd}
+      paddingLeft={xrStyles.spacingMd}
+    >
+      {children}
+    </Container>
+  );
+}
 
 const markdownComponents = {
   p: ({ children }) => <TextElement>{children}</TextElement>,

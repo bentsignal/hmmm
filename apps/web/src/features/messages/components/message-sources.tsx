@@ -8,13 +8,13 @@ import { Image } from "~/components/image";
 
 const loadedSignatures = new Set<string>();
 
-const PureMessageSources = ({
+function PureMessageSources({
   threadId,
   sources,
 }: {
   threadId: string;
   sources: Source[];
-}) => {
+}) {
   if (sources.length === 0) return null;
 
   return (
@@ -27,17 +27,17 @@ const PureMessageSources = ({
       </SheetContent>
     </Sheet>
   );
-};
+}
 
 export const MessageSources = PureMessageSources;
 
-const PreviewSources = ({
+function PreviewSources({
   threadId,
   sources,
 }: {
   threadId: string;
   sources: Source[];
-}) => {
+}) {
   const images = sources
     .map((source) => source.image)
     .filter(
@@ -68,14 +68,14 @@ const PreviewSources = ({
     loadedSignatures.has(signature),
   );
 
-  const handleLoadOrError = () => {
+  function handleLoadOrError() {
     loadedCount.current += 1;
     // if (loadedCount.current >= images.length + favicons.length) {
     if (loadedCount.current >= favicons.length) {
       setAllLoaded(true);
       loadedSignatures.add(signature);
     }
-  };
+  }
 
   return (
     <div
@@ -128,9 +128,9 @@ const PreviewSources = ({
       </div>
     </div>
   );
-};
+}
 
-const ExpandedSources = ({ sources }: { sources: Source[] }) => {
+function ExpandedSources({ sources }: { sources: Source[] }) {
   return (
     <div className="flex flex-col gap-8 px-8 py-12">
       {sources.map((source, index) => {
@@ -187,4 +187,4 @@ const ExpandedSources = ({ sources }: { sources: Source[] }) => {
       })}
     </div>
   );
-};
+}

@@ -57,7 +57,7 @@ const iconStyles = {
   color: hexColors.foreground,
 };
 
-const MessageStatus = ({ message }: { message: MyUIMessage }) => {
+function MessageStatus({ message }: { message: MyUIMessage }) {
   const statusLabel = getStatusLabel(message.parts);
 
   return (
@@ -82,14 +82,17 @@ const MessageStatus = ({ message }: { message: MyUIMessage }) => {
       <Text color={hexColors.foreground}>{statusLabel}</Text>
     </Container>
   );
-};
+}
 
-const NoticeMessage = ({ code }: { code: SystemNoticeCode }) => (
-  <TextElement>{NOTICE_MESSAGES[code]}</TextElement>
-);
+function NoticeMessage({ code }: { code: SystemNoticeCode }) {
+  return <TextElement>{NOTICE_MESSAGES[code]}</TextElement>;
+}
 
-const ErrorMessage = ({ code }: { code: SystemErrorCode }) => (
-  <TextElement color={hexColors.destructive}>
-    CODE: {code} An error occured while generating a response. Please try again.
-  </TextElement>
-);
+function ErrorMessage({ code }: { code: SystemErrorCode }) {
+  return (
+    <TextElement color={hexColors.destructive}>
+      CODE: {code} An error occured while generating a response. Please try
+      again.
+    </TextElement>
+  );
+}

@@ -22,10 +22,10 @@ interface ExaSearchOptions {
   excludeDomains?: string[];
 }
 
-export const exaSearchAndContents = async (
+export async function exaSearchAndContents(
   query: string,
   opts: ExaSearchOptions,
-) => {
+) {
   const res = await fetch("https://api.exa.ai/search", {
     method: "POST",
     headers: {
@@ -45,13 +45,13 @@ export const exaSearchAndContents = async (
     );
   }
   return exaSearchResponseSchema.parse(await res.json());
-};
+}
 
-export const logSearchCost = async (
+export async function logSearchCost(
   ctx: ToolCtx,
   numResults: number,
   userId: string,
-) => {
+) {
   const baseSearchCost = 0.005; // $5 / 1000 searches
   const contentsCost = numResults * 0.001; // $ 1 / 1000 pages retrieved
   const totalCost = baseSearchCost + contentsCost;
@@ -60,11 +60,11 @@ export const logSearchCost = async (
     type: "tool_call",
     cost: totalCost,
   });
-};
+}
 
-export const formatCacheKey = (toolName: string, args: string[]) => {
+export function formatCacheKey(toolName: string, args: string[]) {
   const formattedArgs = args.map((arg) =>
     arg.replace(/[\s,]+/g, "-").toLowerCase(),
   );
   return `tool:${toolName}:${formattedArgs.join("_")}`;
-};
+}

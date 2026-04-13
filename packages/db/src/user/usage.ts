@@ -66,9 +66,9 @@ const apiAuthedUsageTriggerMutation = customMutation(mutation, {
   },
 });
 
-export const getUsageHelper = async (
+export async function getUsageHelper(
   ctx: CustomCtx<typeof authedQuery | typeof authedMutation>,
-) => {
+) {
   const userId = ctx.user.subject;
   const plan = await getUserPlanHelper(ctx, userId);
 
@@ -107,13 +107,13 @@ export const getUsageHelper = async (
     range,
     unlimited,
   };
-};
+}
 
-export const calculateModelCost = (
+export function calculateModelCost(
   model: LanguageModel,
   usage: LanguageModelUsage,
   providerMetadata?: Record<string, Record<string, unknown>>,
-) => {
+) {
   // attempt to get exact cost from provider metadata. if not available,
   // calculate cost based on usage and model pricing. this fallback will
   // not account for cached token discounts, but its better than nothing.
@@ -130,12 +130,12 @@ export const calculateModelCost = (
     fallbackModel.cost.out * ((usage.outputTokens ?? 0) / million);
   const totalCost = inputCost + outputCost + fallbackModel.cost.other;
   return totalCost;
-};
+}
 
-export const calculateTranscriptionCost = (duration: number) => {
+export function calculateTranscriptionCost(duration: number) {
   const cost = modelPresets.transcription.cost.other * Math.ceil(duration / 60);
   return cost;
-};
+}
 
 export const log = usageTriggerInternalMutation({
   args: v.object({

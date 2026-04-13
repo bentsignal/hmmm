@@ -85,7 +85,7 @@ export function useSpeechRecording() {
 
   const [transcribedAudio, setTranscribedAudio] = useState<string | null>(null);
 
-  const stopRecording = () => {
+  function stopRecording() {
     if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
@@ -93,9 +93,9 @@ export function useSpeechRecording() {
       recordingStartTimeRef.current = null;
       clearTimerRefs(durationIntervalRef, maxDurationTimeoutRef);
     }
-  };
+  }
 
-  const startRecording = async () => {
+  async function startRecording() {
     setTranscribedAudio(null);
 
     if (!isAuthenticated) {
@@ -151,7 +151,7 @@ export function useSpeechRecording() {
       },
       (MAX_RECORDING_DURATION - 1) * 1000,
     );
-  };
+  }
 
   // eslint-disable-next-line no-restricted-syntax -- Cleanup effect syncs with MediaStream and timer APIs
   useEffect(() => {

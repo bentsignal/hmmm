@@ -6,81 +6,97 @@ import { extractTextFromChildren } from "@acme/features/messages/extract-text";
 
 import { hexColors, xrStyles } from "~/styles/styles";
 
-export const TextElement = ({
+export function TextElement({
   children,
   color = hexColors.foreground,
   ...props
 }: {
   children: ReactNode;
-} & TextProperties) => (
-  <Text color={color} width="100%" flexShrink={0} flexWrap="wrap" {...props}>
-    {extractTextFromChildren(children)}
-  </Text>
-);
+} & TextProperties) {
+  return (
+    <Text color={color} width="100%" flexShrink={0} flexWrap="wrap" {...props}>
+      {extractTextFromChildren(children)}
+    </Text>
+  );
+}
 
-const Heading = ({
+function Heading({
   children,
   size,
   ...props
 }: {
   children: ReactNode;
   size: number;
-} & TextProperties) => (
-  <TextElement fontSize={size} fontWeight="bold" {...props}>
-    {children}
-  </TextElement>
-);
+} & TextProperties) {
+  return (
+    <TextElement fontSize={size} fontWeight="bold" {...props}>
+      {children}
+    </TextElement>
+  );
+}
 
-export const H1 = ({
+export function H1({
   children,
   ...props
-}: { children: ReactNode } & TextProperties) => (
-  <Heading size={xrStyles.text2xl} {...props}>
-    {children}
-  </Heading>
-);
+}: { children: ReactNode } & TextProperties) {
+  return (
+    <Heading size={xrStyles.text2xl} {...props}>
+      {children}
+    </Heading>
+  );
+}
 
-export const H2 = ({
+export function H2({
   children,
   ...props
-}: { children: ReactNode } & TextProperties) => (
-  <Heading size={xrStyles.textXl} {...props}>
-    {children}
-  </Heading>
-);
+}: { children: ReactNode } & TextProperties) {
+  return (
+    <Heading size={xrStyles.textXl} {...props}>
+      {children}
+    </Heading>
+  );
+}
 
-export const H3 = ({
+export function H3({
   children,
   ...props
-}: { children: ReactNode } & TextProperties) => (
-  <Heading size={xrStyles.textMd} {...props}>
-    {children}
-  </Heading>
-);
+}: { children: ReactNode } & TextProperties) {
+  return (
+    <Heading size={xrStyles.textMd} {...props}>
+      {children}
+    </Heading>
+  );
+}
 
-export const H4 = ({
+export function H4({
   children,
   ...props
-}: { children: ReactNode } & TextProperties) => (
-  <Heading size={xrStyles.textSm} {...props}>
-    {children}
-  </Heading>
-);
+}: { children: ReactNode } & TextProperties) {
+  return (
+    <Heading size={xrStyles.textSm} {...props}>
+      {children}
+    </Heading>
+  );
+}
 
-export const H5 = ({
+export function H5({
   children,
   ...props
-}: { children: ReactNode } & TextProperties) => (
-  <Heading size={xrStyles.textXs} {...props}>
-    {children}
-  </Heading>
-);
+}: { children: ReactNode } & TextProperties) {
+  return (
+    <Heading size={xrStyles.textXs} {...props}>
+      {children}
+    </Heading>
+  );
+}
 
-export const H6 = ({
+export function H6({
   children,
   ...props
-}: { children: ReactNode } & TextProperties) => (
-  <Heading size={xrStyles.textXs - 2} {...props}>
-    {children}
-  </Heading>
-);
+}: { children: ReactNode } & TextProperties) {
+  return (
+    <Heading size={xrStyles.textXs - 2} {...props}>
+      {children}
+    </Heading>
+  );
+}

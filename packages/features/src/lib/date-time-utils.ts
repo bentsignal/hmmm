@@ -1,4 +1,4 @@
-export const getDateTimeString = (date: Date) => {
+export function getDateTimeString(date: Date) {
   return date.toLocaleString("en-US", {
     year: "numeric",
     month: "long",
@@ -6,9 +6,9 @@ export const getDateTimeString = (date: Date) => {
     hour: "numeric",
     minute: "2-digit",
   });
-};
+}
 
-export const getTimeRemaining = (target: Date) => {
+export function getTimeRemaining(target: Date) {
   const now = new Date();
   const diff = target.getTime() - now.getTime();
 
@@ -29,13 +29,13 @@ export const getTimeRemaining = (target: Date) => {
     hours,
     minutes,
   };
-};
+}
 
-export const formatCountdownString = (
+export function formatCountdownString(
   days: number,
   hours: number,
   minutes: number,
-) => {
+) {
   if (days > 0) {
     return `${days} day${days > 1 ? "s" : ""} and ${hours} hour${
       hours > 1 ? "s" : ""
@@ -46,17 +46,17 @@ export const formatCountdownString = (
     }`;
   }
   return `${minutes} minute${minutes > 1 ? "s" : ""}`;
-};
+}
 
-export const getESTDate = () => {
+export function getESTDate() {
   const now = new Date();
   const estNow = new Date(
     now.toLocaleString("en-US", { timeZone: "America/New_York" }),
   );
   return estNow;
-};
+}
 
-export const getMonthBounds = () => {
+export function getMonthBounds() {
   const estNow = getESTDate();
   const startEST = new Date(
     estNow.getFullYear(),
@@ -79,9 +79,9 @@ export const getMonthBounds = () => {
   const start = convertToUTC(startEST);
   const end = convertToUTC(endEST);
   return { start, end };
-};
+}
 
-export const getDayBounds = () => {
+export function getDayBounds() {
   const estNow = getESTDate();
   const startEST = new Date(
     estNow.getFullYear(),
@@ -104,14 +104,14 @@ export const getDayBounds = () => {
   const start = convertToUTC(startEST);
   const end = convertToUTC(endEST);
   return { start, end };
-};
+}
 
-export const convertToUTC = (date: Date) => {
+export function convertToUTC(date: Date) {
   const now = new Date();
   const estNow = getESTDate();
   const offset = now.getTime() - estNow.getTime();
   return new Date(date.getTime() + offset);
-};
+}
 
 export interface CurrentDateTime {
   hours: number;
@@ -121,7 +121,7 @@ export interface CurrentDateTime {
   year: string;
 }
 
-export const getCurrentDateTime = ({ timezone }: { timezone: string }) => {
+export function getCurrentDateTime({ timezone }: { timezone: string }) {
   const date = new Date();
 
   const timeString = date.toLocaleTimeString("en-US", {
@@ -152,4 +152,4 @@ export const getCurrentDateTime = ({ timezone }: { timezone: string }) => {
     day,
     year,
   };
-};
+}

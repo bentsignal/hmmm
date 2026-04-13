@@ -11,13 +11,13 @@ import { tryCatch } from "../../../lib/utils";
 import { utapi } from "../../../uploadthing";
 import { aspectRatioMap } from "./types";
 
-export const saveImage = async (params: {
+export async function saveImage(params: {
   ctx: ActionCtx;
   prompt: string;
   image: Uint8Array;
   userId?: string;
   threadId?: string;
-}) => {
+}) {
   const { ctx, prompt, image, userId, threadId } = params;
   // public is for in user's library, private is for uploadthing
   const { publicFileName, privateFileName } = getFileNames(
@@ -53,9 +53,9 @@ export const saveImage = async (params: {
   }
 
   return uploadedFile.data;
-};
+}
 
-const getFileNames = (prompt: string, userId?: string, threadId?: string) => {
+function getFileNames(prompt: string, userId?: string, threadId?: string) {
   const publicFileName = prompt
     .replace(/[^a-zA-Z0-9]/g, "-")
     .trim()
@@ -73,9 +73,9 @@ const getFileNames = (prompt: string, userId?: string, threadId?: string) => {
     publicFileName,
     privateFileName,
   };
-};
+}
 
-export const downloadImage = async (url: string) => {
+export async function downloadImage(url: string) {
   const download = await tryCatch(fetch(url));
   if (download.error) {
     throw new Error(`Error downloading image: ${download.error.message}`);
@@ -89,9 +89,9 @@ export const downloadImage = async (url: string) => {
   const uint8Array = new Uint8Array(conversion.data);
 
   return uint8Array;
-};
+}
 
-export const uploadImage = async (image: Uint8Array, fileName: string) => {
+export async function uploadImage(image: Uint8Array, fileName: string) {
   // upload image to uploadthing
   const arrayBuffer = new ArrayBuffer(image.length);
   const view = new Uint8Array(arrayBuffer);
@@ -105,13 +105,13 @@ export const uploadImage = async (image: Uint8Array, fileName: string) => {
     );
   }
   return uploadedFile.data.key;
-};
+}
 
-export const generateImageFalAI = async (
+export async function generateImageFalAI(
   prompt: string,
   aspectRatio: AspectRatio,
   model: FalImageGenerationModel,
-) => {
+) {
   if (model.type !== "text-to-image") {
     throw new Error("Model is not a text-to-image model");
   }
@@ -140,13 +140,13 @@ export const generateImageFalAI = async (
       `Error retrieving result from Fal AI response, ${error instanceof Error ? error.message : "Unknown error"}`,
     );
   }
-};
+}
 
-export const editImageFalAI = async (
+export async function editImageFalAI(
   prompt: string,
   urls: string[],
   model: FalImageGenerationModel,
-) => {
+) {
   if (model.type !== "image-to-image") {
     throw new Error("Model is not a image-to-image model");
   }
@@ -174,4 +174,4 @@ export const editImageFalAI = async (
       `Error retrieving result from Fal AI response, ${error instanceof Error ? error.message : "Unknown error"}`,
     );
   }
-};
+}

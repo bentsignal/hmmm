@@ -30,91 +30,95 @@ interface FileViewProps {
   selectedFiles: LibraryFile[];
 }
 
-const GridView = ({
+function GridView({
   files,
   status,
   loadMore,
   libraryMode,
   selectedFiles,
-}: FileViewProps) => (
-  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 xl:grid-cols-4">
-    {files.map((file, index) => {
-      const activationIndex = Math.max(
-        0,
-        files.length - libraryPagination.loaderIndex,
-      );
-      if (index === activationIndex) {
-        return (
-          <PageLoader
-            status={status}
-            loadMore={() => loadMore(libraryPagination.pageSize)}
-            singleUse={true}
-            key={file.url}
-          >
-            <LibraryGridFile
-              key={file.url}
-              file={file}
-              mode={libraryMode}
-              selected={selectedFiles.some((f) => f.id === file.id)}
-            />
-          </PageLoader>
+}: FileViewProps) {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+      {files.map((file, index) => {
+        const activationIndex = Math.max(
+          0,
+          files.length - libraryPagination.loaderIndex,
         );
-      }
-      return (
-        <LibraryGridFile
-          key={file.url}
-          file={file}
-          mode={libraryMode}
-          selected={selectedFiles.some((f) => f.id === file.id)}
-        />
-      );
-    })}
-  </div>
-);
+        if (index === activationIndex) {
+          return (
+            <PageLoader
+              status={status}
+              loadMore={() => loadMore(libraryPagination.pageSize)}
+              singleUse={true}
+              key={file.url}
+            >
+              <LibraryGridFile
+                key={file.url}
+                file={file}
+                mode={libraryMode}
+                selected={selectedFiles.some((f) => f.id === file.id)}
+              />
+            </PageLoader>
+          );
+        }
+        return (
+          <LibraryGridFile
+            key={file.url}
+            file={file}
+            mode={libraryMode}
+            selected={selectedFiles.some((f) => f.id === file.id)}
+          />
+        );
+      })}
+    </div>
+  );
+}
 
-const ListView = ({
+function ListView({
   files,
   status,
   loadMore,
   libraryMode,
   selectedFiles,
-}: FileViewProps) => (
-  <div className="flex flex-col gap-4">
-    {files.map((file, index) => {
-      const activationIndex = Math.max(
-        0,
-        files.length - libraryPagination.loaderIndex,
-      );
-      if (index === activationIndex) {
-        return (
-          <PageLoader
-            status={status}
-            loadMore={() => loadMore(libraryPagination.pageSize)}
-            singleUse={true}
-            key={file.url}
-          >
-            <LibraryListFile
-              key={file.url}
-              file={file}
-              mode={libraryMode}
-              selected={selectedFiles.some((f) => f.id === file.id)}
-            />
-          </PageLoader>
+}: FileViewProps) {
+  return (
+    <div className="flex flex-col gap-4">
+      {files.map((file, index) => {
+        const activationIndex = Math.max(
+          0,
+          files.length - libraryPagination.loaderIndex,
         );
-      }
-      return (
-        <LibraryListFile
-          key={file.url}
-          file={file}
-          mode={libraryMode}
-          selected={selectedFiles.some((f) => f.id === file.id)}
-        />
-      );
-    })}
-  </div>
-);
+        if (index === activationIndex) {
+          return (
+            <PageLoader
+              status={status}
+              loadMore={() => loadMore(libraryPagination.pageSize)}
+              singleUse={true}
+              key={file.url}
+            >
+              <LibraryListFile
+                key={file.url}
+                file={file}
+                mode={libraryMode}
+                selected={selectedFiles.some((f) => f.id === file.id)}
+              />
+            </PageLoader>
+          );
+        }
+        return (
+          <LibraryListFile
+            key={file.url}
+            file={file}
+            mode={libraryMode}
+            selected={selectedFiles.some((f) => f.id === file.id)}
+          />
+        );
+      })}
+    </div>
+  );
+}
 
-export const LibraryFileList = ({
+export function LibraryFileList({
   view,
   sort,
   sortDirection,
@@ -126,7 +130,7 @@ export const LibraryFileList = ({
   sortDirection: "asc" | "desc";
   searchTerm: string;
   tab: LibraryTab;
-}) => {
+}) {
   const { isAuthenticated } = useConvexAuth();
   const args = isAuthenticated
     ? {
@@ -187,4 +191,4 @@ export const LibraryFileList = ({
       <LibraryFileContextItems />
     </ContextMenu>
   );
-};
+}

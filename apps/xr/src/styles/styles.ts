@@ -2,7 +2,9 @@ import { oklchStringToHex } from "@acme/features/lib/color-utils";
 
 const base = 16;
 
-export const rem = (px: number) => base * px;
+export function rem(px: number) {
+  return base * px;
+}
 
 const colors = {
   background: "oklch(0.2 0 0)",

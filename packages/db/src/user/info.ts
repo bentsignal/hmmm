@@ -5,15 +5,15 @@ import { getPublicLanguageModels } from "../ai/models/helpers";
 import { authedMutation, authedQuery } from "../convex_helpers";
 import { allowModelSelection } from "./subscription";
 
-export const getUserInfoHelper = async (
+export async function getUserInfoHelper(
   ctx: CustomCtx<typeof authedQuery> | CustomCtx<typeof authedMutation>,
-) => {
+) {
   const doc = await ctx.db
     .query("personalInfo")
     .withIndex("by_user_id", (q) => q.eq("userId", ctx.user.subject))
     .first();
   return doc;
-};
+}
 
 export const get = authedQuery({
   args: {},
@@ -30,40 +30,40 @@ export const get = authedQuery({
   },
 });
 
-const validateStringLength = (
+function validateStringLength(
   value: string | undefined,
   maxLength: number,
   fieldName: string,
-) => {
+) {
   if (value && value.length > maxLength) {
     throw new ConvexError(
       `${fieldName} must be less than ${maxLength} characters`,
     );
   }
-};
+}
 
-const validateModel = (model: string | undefined) => {
+function validateModel(model: string | undefined) {
   if (model) {
     const publicModels = getPublicLanguageModels();
     if (!(model in publicModels)) {
       throw new ConvexError("Invalid model");
     }
   }
-};
+}
 
-const validateUserInfoInput = (args: {
+function validateUserInfoInput(args: {
   name?: string;
   location?: string;
   language?: string;
   notes?: string;
   model?: string;
-}) => {
+}) {
   validateStringLength(args.name, 100, "Name");
   validateStringLength(args.location, 100, "Location");
   validateStringLength(args.language, 100, "Language");
   validateStringLength(args.notes, 1000, "Notes");
   validateModel(args.model);
-};
+}
 
 export const update = authedMutation({
   args: {
@@ -101,10 +101,10 @@ export const update = authedMutation({
   },
 });
 
-export const getPerferredModelIfAllowed = async (
+export async function getPerferredModelIfAllowed(
   ctx: CustomCtx<typeof authedMutation>,
   modelId?: string,
-) => {
+) {
   if (!modelId) {
     return undefined;
   }
@@ -118,4 +118,4 @@ export const getPerferredModelIfAllowed = async (
     return modelId;
   }
   return undefined;
-};
+}

@@ -77,7 +77,7 @@ function buildWeatherUrl(
   }
 }
 
-const getCacheTtl = (queryType: QueryType) => {
+function getCacheTtl(queryType: QueryType) {
   switch (queryType) {
     case "current-conditions":
       return 60 * 10; // 10 minutes
@@ -88,21 +88,21 @@ const getCacheTtl = (queryType: QueryType) => {
     case "last-24-hours":
       return 60 * 10; // 10 minutes
   }
-};
+}
 
-const getCoordinates = async (location: string) => {
+async function getCoordinates(location: string) {
   const geocodingResponse = await fetch(
     `https://maps.googleapis.com/maps/api/geocode/json?address=${location}&key=${env.GOOGLE_API_KEY}`,
   );
   const parsed = geocodingResponseSchema.parse(await geocodingResponse.json());
   return parsed.results[0].geometry.location;
-};
+}
 
-const getWeather = async (url: string) => {
+async function getWeather(url: string) {
   const weatherResponse = await fetch(url);
   const data = z.unknown().parse(await weatherResponse.json());
   return data;
-};
+}
 
 export const weather = createTool({
   description: `

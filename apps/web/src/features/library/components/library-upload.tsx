@@ -11,7 +11,7 @@ import { UploadButton } from "~/lib/uploadthing";
 import { LibraryStorageStatus } from "./library-storage-status";
 import { LibraryUploadProgress } from "./library-upload-progress";
 
-export const LibraryUpload = () => {
+export function LibraryUpload() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const { isAuthenticated } = useConvexAuth();
@@ -93,4 +93,4 @@ export const LibraryUpload = () => {
       />
     </div>
   );
-};
+}

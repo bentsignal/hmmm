@@ -102,7 +102,7 @@ export function extractImageFromMessage(message: MyUIMessage) {
   return output?.key;
 }
 
-export const responseHasNoContent = (message: MyUIMessage) => {
+export function responseHasNoContent(message: MyUIMessage) {
   if (message.text.length > 0) return false;
   const reasoning = extractReasoningFromMessage(message);
   if (reasoning.length > 0) return false;
@@ -111,4 +111,4 @@ export const responseHasNoContent = (message: MyUIMessage) => {
   const image = extractImageFromMessage(message);
   if (image) return false;
   return true;
-};
+}

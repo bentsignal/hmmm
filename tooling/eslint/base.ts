@@ -37,6 +37,7 @@ export const baseConfig = defineConfig(
         2,
         { checksVoidReturn: { attributes: false } },
       ],
+      "func-style": ["error", "declaration", { allowArrowFunctions: false }],
     },
   },
   {

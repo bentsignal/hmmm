@@ -7,12 +7,12 @@ interface SimpleIconProps extends React.SVGProps<SVGSVGElement> {
   size?: number | string;
 }
 
-export const SimpleIcon = ({
+export function SimpleIcon({
   icon,
   color,
   size = "1em",
   ...rest
-}: SimpleIconProps) => {
+}: SimpleIconProps) {
   const iconData = simpleIcons[icon];
 
   const iconColor = color ?? `#${iconData.hex}`;
@@ -31,4 +31,4 @@ export const SimpleIcon = ({
       <path d={iconData.path} />
     </svg>
   );
-};
+}

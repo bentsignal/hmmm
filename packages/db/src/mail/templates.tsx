@@ -24,7 +24,7 @@ interface NewsletterProps {
   origin: string;
 }
 
-const Newsletter = ({ title, stories, userId, origin }: NewsletterProps) => {
+function Newsletter({ title, stories, userId, origin }: NewsletterProps) {
   return (
     <Html>
       <Tailwind
@@ -75,7 +75,7 @@ const Newsletter = ({ title, stories, userId, origin }: NewsletterProps) => {
       </Tailwind>
     </Html>
   );
-};
+}
 
 export async function getNewsletterHtml({
   title,

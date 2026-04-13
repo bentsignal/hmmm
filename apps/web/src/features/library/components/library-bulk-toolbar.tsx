@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@acme/ui/tooltip";
 import { cn, tryCatch } from "~/lib/utils";
 import { useFileInteraction } from "../hooks/use-file-interaction";
 
-export const LibraryBulkToolbar = () => {
+export function LibraryBulkToolbar() {
   const inSelectMode = useLibraryStore(
     (state) => state.libraryMode === "select",
   );
@@ -31,9 +31,9 @@ export const LibraryBulkToolbar = () => {
       <DownloadButton disabled={disabled} />
     </div>
   );
-};
+}
 
-const AttachButton = ({ disabled }: { disabled: boolean }) => {
+function AttachButton({ disabled }: { disabled: boolean }) {
   const setSelectedFiles = useLibraryStore((state) => state.setSelectedFiles);
   const setLibraryMode = useLibraryStore((state) => state.setLibraryMode);
   const setLibraryOpen = useLibraryStore((state) => state.setLibraryOpen);
@@ -59,9 +59,9 @@ const AttachButton = ({ disabled }: { disabled: boolean }) => {
       <TooltipContent>Attach files to current thread</TooltipContent>
     </Tooltip>
   );
-};
+}
 
-const DeleteButton = ({ disabled }: { disabled: boolean }) => {
+function DeleteButton({ disabled }: { disabled: boolean }) {
   const setLibraryDeleteModalOpen = useLibraryStore(
     (state) => state.setLibraryDeleteModalOpen,
   );
@@ -82,9 +82,9 @@ const DeleteButton = ({ disabled }: { disabled: boolean }) => {
       <TooltipContent>Delete selected files</TooltipContent>
     </Tooltip>
   );
-};
+}
 
-const DownloadButton = ({ disabled }: { disabled: boolean }) => {
+function DownloadButton({ disabled }: { disabled: boolean }) {
   const { download } = useFileInteraction();
   const selectedFiles = useLibraryStore((state) => state.selectedFiles);
 
@@ -111,4 +111,4 @@ const DownloadButton = ({ disabled }: { disabled: boolean }) => {
       <TooltipContent>Download selected files</TooltipContent>
     </Tooltip>
   );
-};
+}

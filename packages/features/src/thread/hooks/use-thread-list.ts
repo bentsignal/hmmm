@@ -13,7 +13,7 @@ import {
   PAGE_SIZE,
 } from "../config/thread-config";
 
-const getDateBoundaries = () => {
+function getDateBoundaries() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const yesterday = new Date(today);
@@ -26,7 +26,7 @@ const getDateBoundaries = () => {
   tomorrow.setDate(today.getDate() + 1);
 
   return { today, yesterday, lastWeek, lastMonth, tomorrow };
-};
+}
 
 function categorizeThread(
   itemDate: Date,
@@ -129,11 +129,11 @@ export function useThreadList() {
         ? ("LoadingFirstPage" as const)
         : ("CanLoadMore" as const);
 
-  const loadMoreThreads = () => {
+  function loadMoreThreads() {
     if (shouldUseLiveResults) {
       liveQuery.loadMore(PAGE_SIZE);
     }
-  };
+  }
 
   const grouped = groupThreads(threads);
   const threadGroups = buildThreadGroups(grouped);

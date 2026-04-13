@@ -11,11 +11,11 @@ import type {
 } from "./storage";
 import { env } from "../convex.env";
 
-export const verifyOwnership = async (
+export async function verifyOwnership(
   ctx: QueryCtx | MutationCtx,
   user: UserIdentity,
   fileIds: Doc<"files">["_id"][],
-) => {
+) {
   // make sure files exist, and belong to user
   const files = [];
   for (const fileId of fileIds) {
@@ -29,23 +29,25 @@ export const verifyOwnership = async (
     files.push(file);
   }
   return files;
-};
+}
 
-export const getFileUrl = (key: string) => {
+export function getFileUrl(key: string) {
   return `https://${env.UPLOADTHING_APP_ID}.ufs.sh/f/${key}`;
-};
+}
 
 /**
  * Get the user facing data for a file
  */
-export const getPublicFile = (file: Doc<"files">) => ({
-  id: file._id,
-  key: file.key,
-  url: getFileUrl(file.key),
-  fileName: file.fileName,
-  mimeType: file.fileType,
-  size: file.size,
-});
+export function getPublicFile(file: Doc<"files">) {
+  return {
+    id: file._id,
+    key: file.key,
+    url: getFileUrl(file.key),
+    fileName: file.fileName,
+    mimeType: file.fileType,
+    size: file.size,
+  };
+}
 
 export const vFileMetadata = v.object({
   key: v.string(),
@@ -54,13 +56,13 @@ export const vFileMetadata = v.object({
   size: v.number(),
 });
 
-export const storeFileMetadata = async (
+export async function storeFileMetadata(
   ctx: CustomCtx<
     typeof apiStorageTriggerMutation | typeof internalStorageTriggerMutation
   >,
   userId: string,
   file: Infer<typeof vFileMetadata>,
-) => {
+) {
   return await ctx.db.insert("files", {
     userId,
     fileName: file.name,
@@ -68,12 +70,12 @@ export const storeFileMetadata = async (
     key: file.key,
     size: file.size,
   });
-};
+}
 
-export const getFileByKeyHelper = async (ctx: QueryCtx, key: string) => {
+export async function getFileByKeyHelper(ctx: QueryCtx, key: string) {
   const file = await ctx.db
     .query("files")
     .withIndex("by_key", (q) => q.eq("key", key))
     .first();
   return file;
-};
+}

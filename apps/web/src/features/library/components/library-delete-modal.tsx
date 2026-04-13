@@ -2,7 +2,7 @@ import { useFileMutation, useLibraryStore } from "@acme/features/library";
 
 import { CustomAlert } from "~/components/alert";
 
-export const LibraryDeleteModal = () => {
+export function LibraryDeleteModal() {
   const libraryDeleteModalOpen = useLibraryStore(
     (state) => state.libraryDeleteModalOpen,
   );
@@ -56,4 +56,4 @@ export const LibraryDeleteModal = () => {
       destructive={true}
     />
   );
-};
+}

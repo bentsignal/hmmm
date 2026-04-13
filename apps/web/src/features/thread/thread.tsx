@@ -76,10 +76,10 @@ export function Thread({ threadId }: { threadId: string }) {
 // if a new message has been sent since the thread has been opened, add whitespace to
 // the bottom of the page. that way when a new message is sent, we can autoscroll up
 // the page a bit, and have more of the response shown when it arrives
-const Bumper = () => {
+function Bumper() {
   const numMessagesSent = useMessageStore((state) => state.numMessagesSent);
   const [initialLength] = useState(() => numMessagesSent);
   const hasNewMessages = numMessagesSent != initialLength;
   if (!hasNewMessages) return null;
   return <div className="min-h-[50vh] w-full max-w-full" />;
-};
+}

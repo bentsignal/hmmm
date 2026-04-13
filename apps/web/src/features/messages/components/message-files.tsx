@@ -5,7 +5,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@acme/ui/sheet";
 
 import { LibraryListFile } from "~/features/library/components/library-file";
 
-export const MessageFiles = ({ files }: { files: LibraryFile[] }) => {
+export function MessageFiles({ files }: { files: LibraryFile[] }) {
   if (files.length === 0) {
     return null;
   }
@@ -35,4 +35,4 @@ export const MessageFiles = ({ files }: { files: LibraryFile[] }) => {
       </SheetContent>
     </Sheet>
   );
-};
+}

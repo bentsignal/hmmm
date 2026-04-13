@@ -7,7 +7,7 @@ import { useLibraryStore } from "@acme/features/library";
 
 import { tryCatch } from "~/lib/utils";
 
-export const useFileInteraction = () => {
+export function useFileInteraction() {
   const [isDownloading, setIsDownloading] = useState(false);
   const setSelectedFiles = useLibraryStore((state) => state.setSelectedFiles);
   const setSelectedFile = useLibraryStore((state) => state.setSelectedFile);
@@ -17,11 +17,11 @@ export const useFileInteraction = () => {
     (state) => state.setPhotoViewerOpen,
   );
 
-  const handleFileClick = (
+  function handleFileClick(
     file: LibraryFile,
     mode: LibraryMode,
     selected: boolean,
-  ) => {
+  ) {
     if (mode === "select") {
       const selectedFiles = useLibraryStore.getState().selectedFiles;
       if (selected) {
@@ -37,15 +37,15 @@ export const useFileInteraction = () => {
         window.open(file.url, "_blank");
       }
     }
-  };
+  }
 
-  const handleFileHover = (file: LibraryFile, mode: LibraryMode) => {
+  function handleFileHover(file: LibraryFile, mode: LibraryMode) {
     if (mode === "default") {
       setSelectedFile(file);
     }
-  };
+  }
 
-  const handleAddAttachment = (file: LibraryFile) => {
+  function handleAddAttachment(file: LibraryFile) {
     const { errors } = addAttachments([file]);
     if (errors.length > 0) {
       for (const error of errors) {
@@ -53,9 +53,9 @@ export const useFileInteraction = () => {
       }
     }
     setLibraryOpen(false);
-  };
+  }
 
-  const download = async (urls: string[]) => {
+  async function download(urls: string[]) {
     if (isDownloading) {
       throw new Error("Already downloading files");
     }
@@ -86,7 +86,7 @@ export const useFileInteraction = () => {
       console.error("Failed to download files", error);
       throw new Error("Failed to download files");
     }
-  };
+  }
 
   return { handleFileClick, handleFileHover, handleAddAttachment, download };
-};
+}

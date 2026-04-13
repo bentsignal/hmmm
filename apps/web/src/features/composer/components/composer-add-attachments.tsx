@@ -4,7 +4,7 @@ import { useLibraryStore } from "@acme/features/library";
 import { Button } from "@acme/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@acme/ui/tooltip";
 
-export const ComposerAddAttachments = () => {
+export function ComposerAddAttachments() {
   const setLibraryOpen = useLibraryStore((state) => state.setLibraryOpen);
 
   return (
@@ -23,4 +23,4 @@ export const ComposerAddAttachments = () => {
       <TooltipContent>Add attachments</TooltipContent>
     </Tooltip>
   );
-};
+}

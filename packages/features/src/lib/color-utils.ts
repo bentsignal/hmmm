@@ -1,38 +1,22 @@
-export const oklchStringToHex = (oklch: string) => {
+export function oklchStringToHex(oklch: string) {
   const match = /^oklch\(\s*([^\s]+)\s+([^\s]+)\s+([^\s]+)\s*\)$/.exec(oklch);
   if (!match) {
     throw new Error("Invalid oklch string format");
   }
   const [, l, c, h] = match;
   return oklchToHex({ l: Number(l), c: Number(c), h: Number(h) });
-};
+}
 
-export const oklchToHex = ({
-  l,
-  c,
-  h,
-}: {
-  l: number;
-  c: number;
-  h: number;
-}) => {
+export function oklchToHex({ l, c, h }: { l: number; c: number; h: number }) {
   const { r, g, b } = oklchToRGB({ l, c, h });
   return rgbToHex({ r, g, b });
-};
+}
 
-export const rgbToHex = ({ r, g, b }: { r: number; g: number; b: number }) => {
+export function rgbToHex({ r, g, b }: { r: number; g: number; b: number }) {
   return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
-};
+}
 
-export const oklchToRGB = ({
-  l,
-  c,
-  h,
-}: {
-  l: number;
-  c: number;
-  h: number;
-}) => {
+export function oklchToRGB({ l, c, h }: { l: number; c: number; h: number }) {
   const a = c * Math.cos((h * Math.PI) / 180);
   const b = c * Math.sin((h * Math.PI) / 180);
 
@@ -64,4 +48,4 @@ export const oklchToRGB = ({
     g: Math.round(g * 255),
     b: Math.round(b_linear * 255),
   };
-};
+}

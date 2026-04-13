@@ -76,10 +76,10 @@ export const internalStorageTriggerMutation = customMutation(
   customCtx(triggers.wrapDB),
 );
 
-export const getStorageHelper = async (
+export async function getStorageHelper(
   ctx: QueryCtx | MutationCtx,
   userId: string,
-) => {
+) {
   // how much storage a user is allowed to user, based
   // on their subscription tier
   const plan = await getUserPlanHelper(ctx, userId);
@@ -99,7 +99,7 @@ export const getStorageHelper = async (
     storageLimit,
     storageUsed,
   };
-};
+}
 
 /**
  * Called by uploadthing middleware (core.ts) to verify that the

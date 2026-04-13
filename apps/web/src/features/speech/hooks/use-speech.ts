@@ -63,23 +63,23 @@ export function useSpeech() {
   ]);
 
   // start speech, use web speech api when available
-  const startSpeech = () => {
+  function startSpeech() {
     if (browserSupportsSpeechRecognition) {
       void SpeechRecognition.startListening();
     } else {
       setPrompt("__transcribing__");
       void startRecording();
     }
-  };
+  }
 
   // stop speech, use web speech api when available
-  const stopSpeech = () => {
+  function stopSpeech() {
     if (browserSupportsSpeechRecognition) {
       void SpeechRecognition.stopListening();
     } else {
       stopRecording();
     }
-  };
+  }
 
   // update prompt when transcription has completed
   // eslint-disable-next-line no-restricted-syntax -- Syncs web speech API transcript with the prompt

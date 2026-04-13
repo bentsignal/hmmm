@@ -83,7 +83,7 @@ export function ChatSidebar() {
   );
 }
 
-const SettingsButton = () => {
+function SettingsButton() {
   const navigate = useNavigate();
   return (
     <Tooltip>
@@ -99,4 +99,4 @@ const SettingsButton = () => {
       <TooltipContent>Settings</TooltipContent>
     </Tooltip>
   );
-};
+}

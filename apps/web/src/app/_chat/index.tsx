@@ -77,13 +77,13 @@ function Home() {
   );
 }
 
-const HomePrompts = ({
+function HomePrompts({
   showInstantLoad,
   handleError,
 }: {
   showInstantLoad: () => void;
   handleError: () => void;
-}) => {
+}) {
   const { usage } = useUsage();
   const { sendMessage } = useSendMessage();
 
@@ -131,4 +131,4 @@ const HomePrompts = ({
       </div>
     </div>
   );
-};
+}

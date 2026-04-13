@@ -29,11 +29,11 @@ export const updatePreference = authedMutation({
   },
 });
 
-const setPreference = async (
+async function setPreference(
   ctx: MutationCtx,
   userId: string,
   status: boolean,
-) => {
+) {
   const user = await ctx.db
     .query("users")
     .withIndex("by_user_id", (q) => q.eq("userId", userId))
@@ -42,7 +42,7 @@ const setPreference = async (
     throw new Error("User not found");
   }
   await ctx.db.patch(user._id, { newsletter: status });
-};
+}
 
 export const getRecipients = internalQuery({
   args: {},

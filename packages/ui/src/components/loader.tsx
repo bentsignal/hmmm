@@ -400,13 +400,13 @@ export function TextBlinkLoader({
   );
 }
 
-export const Shimmer = ({
+export function Shimmer({
   children,
   active,
 }: {
   children: React.ReactNode;
   active: boolean;
-}) => {
+}) {
   return (
     <div
       className={cn(
@@ -419,7 +419,7 @@ export const Shimmer = ({
       {children}
     </div>
   );
-};
+}
 
 export function TextShimmer({
   text = "Thinking",

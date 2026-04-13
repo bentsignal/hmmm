@@ -24,9 +24,9 @@ export function useScreenSize() {
     const tabletMql = window.matchMedia(
       `(max-width: ${TABLET_BREAKPOINT - 1}px)`,
     );
-    const onChange = () => {
+    function onChange() {
       setScreenSize(getScreenSize(window.innerWidth));
-    };
+    }
     mql.addEventListener("change", onChange);
     tabletMql.addEventListener("change", onChange);
     return () => {

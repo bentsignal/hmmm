@@ -7,7 +7,7 @@ function hasKey<T extends object>(
   return Object.hasOwn(obj, key);
 }
 
-export const Language = ({ className }: { className?: string }) => {
+export function Language({ className }: { className?: string }) {
   if (!className) return null;
   const language = className.split("-")[1];
   if (language && hasKey(languages, language)) {
@@ -22,7 +22,7 @@ export const Language = ({ className }: { className?: string }) => {
     );
   }
   return null;
-};
+}
 
 const languages = {
   typescript: {

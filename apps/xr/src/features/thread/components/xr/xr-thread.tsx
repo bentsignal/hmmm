@@ -73,14 +73,14 @@ export function XRThread({
   );
 }
 
-const Bumper = () => {
+function Bumper() {
   const numMessagesSent = useMessageStore((state) => state.numMessagesSent);
   const [initialLength] = useState(() => numMessagesSent);
   const hasNewMessages = numMessagesSent != initialLength;
   return <Container width="100%" height={hasNewMessages ? 100 : 30} />;
-};
+}
 
-const ThreadControls = ({
+function ThreadControls({
   threadId,
   expanded,
   toggleExpanded,
@@ -92,7 +92,7 @@ const ThreadControls = ({
   toggleExpanded: () => void;
   isHovering: boolean;
   isMainThread?: boolean;
-}) => {
+}) {
   const removeXrThread = useThreadStore((state) => state.removeXrThread);
   const iconStyles = {
     width: xrStyles.textMd,
@@ -121,4 +121,4 @@ const ThreadControls = ({
       )}
     </Container>
   );
-};
+}

@@ -11,7 +11,7 @@ import { TextElement } from "~/components/xr/xr-text";
 import { hexColors, xrStyles } from "~/styles/styles";
 import { XRThreadListItem as ThreadListItem } from "./xr-thread-list-item";
 
-const NewThreadButton = () => {
+function NewThreadButton() {
   const setActiveThread = useThreadStore((state) => state.setActiveThread);
   const setMainThread = useThreadStore((state) => state.setMainThread);
   return (
@@ -34,7 +34,7 @@ const NewThreadButton = () => {
       <Text color={hexColors.card}>New Thread</Text>
     </Button>
   );
-};
+}
 
 export function XRThreadList() {
   const { threads, threadGroups, status, loadMoreThreads } = useThreadList();

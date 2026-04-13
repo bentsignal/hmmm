@@ -41,7 +41,7 @@ const QuickAnchor = forwardRef<
 >(({ href, onClick, onMouseDown, target, ...props }, ref) => {
   const skipNextClickRef = useRef(false);
 
-  const handleMouseDown = (event: MouseEvent<HTMLAnchorElement>) => {
+  function handleMouseDown(event: MouseEvent<HTMLAnchorElement>) {
     onMouseDown?.(event);
 
     if (event.defaultPrevented) {
@@ -54,9 +54,9 @@ const QuickAnchor = forwardRef<
 
     skipNextClickRef.current = true;
     onClick?.(event);
-  };
+  }
 
-  const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+  function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     if (skipNextClickRef.current) {
       skipNextClickRef.current = false;
       event.preventDefault();
@@ -64,7 +64,7 @@ const QuickAnchor = forwardRef<
     }
 
     onClick?.(event);
-  };
+  }
 
   return (
     <a

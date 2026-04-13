@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@acme/ui/tooltip";
 
 import { useShortcut } from "~/features/shortcuts/hooks/use-shortcut";
 
-export const LibraryButton = () => {
+export function LibraryButton() {
   const setLibraryOpen = useLibraryStore((state) => state.setLibraryOpen);
 
   useShortcut({
@@ -31,4 +31,4 @@ export const LibraryButton = () => {
       </TooltipContent>
     </Tooltip>
   );
-};
+}

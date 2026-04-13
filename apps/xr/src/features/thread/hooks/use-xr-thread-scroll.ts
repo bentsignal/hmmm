@@ -12,14 +12,14 @@ export function useXRThreadScroll({
   const [scrollCount, setScrollCount] = useState(0);
   const numMessagesSent = useMessageStore((state) => state.numMessagesSent);
 
-  const scrollToBottom = () => {
+  function scrollToBottom() {
     const container = ref.current;
     if (!container) return;
     const maxY = container.maxScrollPosition.value[1];
     if (maxY == null) return;
     container.scrollPosition.value = [0, maxY];
     setScrollCount((prev) => prev + 1);
-  };
+  }
 
   // scroll to the bottom when a new message is sent and when messages initially load
   // eslint-disable-next-line no-restricted-syntax -- Syncs scroll position with message count and initial load state

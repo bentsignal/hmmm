@@ -59,7 +59,7 @@ export function XRMessages({
   );
 }
 
-const PureMessage = ({ message }: { message: MyUIMessage }) => {
+function PureMessage({ message }: { message: MyUIMessage }) {
   if (message.role === "assistant" && responseHasNoContent(message)) {
     return null;
   }
@@ -69,6 +69,6 @@ const PureMessage = ({ message }: { message: MyUIMessage }) => {
   ) : (
     <ResponseMessage key={message.id} message={message} />
   );
-};
+}
 
 const Message = PureMessage;

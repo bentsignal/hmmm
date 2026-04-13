@@ -13,7 +13,7 @@ import {
 } from "@acme/ui/alert-dialog";
 import { Input } from "@acme/ui/input";
 
-export const LibraryRenameModal = () => {
+export function LibraryRenameModal() {
   const libraryRenameModalOpen = useLibraryStore(
     (state) => state.libraryRenameModalOpen,
   );
@@ -69,4 +69,4 @@ export const LibraryRenameModal = () => {
       </AlertDialogContent>
     </AlertDialog>
   );
-};
+}

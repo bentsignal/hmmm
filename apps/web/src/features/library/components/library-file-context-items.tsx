@@ -5,7 +5,7 @@ import { ContextMenuContent, ContextMenuItem } from "@acme/ui/context-menu";
 
 import { useFileInteraction } from "../hooks/use-file-interaction";
 
-export const LibraryFileContextItems = () => {
+export function LibraryFileContextItems() {
   const setLibraryDeleteModalOpen = useLibraryStore(
     (state) => state.setLibraryDeleteModalOpen,
   );
@@ -45,4 +45,4 @@ export const LibraryFileContextItems = () => {
       </ContextMenuItem>
     </ContextMenuContent>
   );
-};
+}

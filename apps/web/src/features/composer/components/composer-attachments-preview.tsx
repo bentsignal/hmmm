@@ -8,7 +8,7 @@ import { ComposerAttachmentsList } from "./composer-attachments-list";
 // your message
 const MAX_DISPLAY_FILES = 3;
 
-export const ComposerAttachmentsPreview = () => {
+export function ComposerAttachmentsPreview() {
   const attachedFiles = useComposerStore((state) => state.attachedFiles);
 
   if (attachedFiles.length === 0) {
@@ -43,4 +43,4 @@ export const ComposerAttachmentsPreview = () => {
       </div>
     </ComposerAttachmentsList>
   );
-};
+}

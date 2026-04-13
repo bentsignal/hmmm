@@ -101,7 +101,7 @@ export function Messages({
   );
 }
 
-const PureMessage = ({
+function PureMessage({
   message,
   isActive,
   threadId,
@@ -109,7 +109,7 @@ const PureMessage = ({
   message: MyUIMessage;
   isActive: boolean;
   threadId: string;
-}) => {
+}) {
   if (message.role === "assistant" && responseHasNoContent(message)) {
     return null;
   }
@@ -127,7 +127,7 @@ const PureMessage = ({
       ) : null}
     </div>
   );
-};
+}
 
 const Message = memo(PureMessage, (prev, next) => {
   return prev.isActive === next.isActive && equal(prev.message, next.message);

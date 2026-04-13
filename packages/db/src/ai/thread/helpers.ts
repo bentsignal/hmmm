@@ -24,7 +24,7 @@ function formatNotice(code: SystemNoticeCode) {
   return `${SystemNoticeLabel}${code}`;
 }
 
-export const getMetadata = async (ctx: QueryCtx, threadId: string) => {
+export async function getMetadata(ctx: QueryCtx, threadId: string) {
   const metadata = await ctx.db
     .query("threadMetadata")
     .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
@@ -33,12 +33,12 @@ export const getMetadata = async (ctx: QueryCtx, threadId: string) => {
     return null;
   }
   return metadata;
-};
+}
 
-export const authorizeAccess = async (
+export async function authorizeAccess(
   ctx: CustomCtx<typeof authedMutation> | CustomCtx<typeof authedQuery>,
   threadId: string,
-) => {
+) {
   const [metadata, isAdminUser] = await Promise.all([
     getMetadata(ctx, threadId),
     isAdmin(ctx, ctx.user.subject),
@@ -53,14 +53,14 @@ export const authorizeAccess = async (
     throw new Error("Unauthorized");
   }
   return metadata;
-};
+}
 
-export const logSystemError = async (
+export async function logSystemError(
   ctx: ActionCtx | MutationCtx,
   threadId: string,
   code: SystemErrorCode,
   message: string,
-) => {
+) {
   console.log(
     "System Error during generation. Error code:",
     code,
@@ -74,13 +74,13 @@ export const logSystemError = async (
       content: formatError(code),
     },
   });
-};
+}
 
-export const logSystemNotice = async (
+export async function logSystemNotice(
   ctx: ActionCtx,
   threadId: string,
   code: SystemNoticeCode,
-) => {
+) {
   await agent.saveMessage(ctx, {
     threadId: threadId,
     message: {
@@ -88,13 +88,13 @@ export const logSystemNotice = async (
       content: formatNotice(code),
     },
   });
-};
+}
 
-export const validateMessage = async (
+export async function validateMessage(
   ctx: CustomCtx<typeof authedMutation>,
   message: string,
   attachmentLength: number,
-) => {
+) {
   if (message.length > 20000) {
     throw new ConvexError("Message is too long. Please shorten your message.");
   }
@@ -108,7 +108,7 @@ export const validateMessage = async (
   if (usage.limitHit) {
     throw new ConvexError("User has reached usage limit");
   }
-};
+}
 
 interface Attachment {
   key: string;
@@ -166,13 +166,13 @@ function buildAttachmentMessages(attachments: Attachment[] | undefined) {
   }));
 }
 
-export const saveUserMessage = async ({
+export async function saveUserMessage({
   ctx,
   threadId,
   prompt,
   userInfo,
   attachments,
-}: SaveUserMessageArgs) => {
+}: SaveUserMessageArgs) {
   const systemParts = userInfo ? buildUserProfileParts(userInfo) : [];
   const attachmentParts = buildAttachmentMessages(attachments);
   const { messages } = await agent.saveMessages(ctx, {
@@ -209,9 +209,9 @@ export const saveUserMessage = async ({
     attachments: files.map((file) => file._id),
   });
   return { lastMessageId: lastMessage._id };
-};
+}
 
-export const saveNewTitle = async ({
+export async function saveNewTitle({
   ctx,
   threadId,
   title,
@@ -219,7 +219,7 @@ export const saveNewTitle = async ({
   ctx: MutationCtx | CustomCtx<typeof authedMutation>;
   threadId: string;
   title: string;
-}) => {
+}) {
   const metadata = await getMetadata(ctx, threadId);
   if (!metadata) {
     throw new ConvexError("Thread not found");
@@ -236,4 +236,4 @@ export const saveNewTitle = async ({
       title: title,
     },
   });
-};
+}

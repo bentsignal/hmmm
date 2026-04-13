@@ -10,12 +10,12 @@ import { tryCatch } from "../../../lib/utils";
 import { calculateModelCost } from "../../../user/usage";
 import { languageModels } from "../../models/language";
 
-const getFileType = (fileType: string) => {
+function getFileType(fileType: string) {
   if (fileType.startsWith("image/")) return "image";
   if (fileType.startsWith("text/") || fileType.startsWith("application/pdf"))
     return "document";
   return "file";
-};
+}
 
 export const analysis = internalAction({
   args: v.object({

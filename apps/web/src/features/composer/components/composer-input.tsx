@@ -31,20 +31,20 @@ export function ComposerInput({
   }, [value]);
 
   // send message when user hits enter
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  function handleKeyPress(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void sendMessage({ showInstantLoad, handleError });
     }
-  };
+  }
 
-  const focusInput = () => {
+  function focusInput() {
     if (textareaRef.current) {
       textareaRef.current.focus();
       const length = textareaRef.current.value.length;
       textareaRef.current.setSelectionRange(length, length);
     }
-  };
+  }
 
   // eslint-disable-next-line no-restricted-syntax -- Syncs with DOM: focuses the textarea input on initial mount
   useEffect(() => {

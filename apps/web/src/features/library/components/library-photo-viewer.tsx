@@ -24,7 +24,7 @@ function getDisplayFileName(fileName: string | undefined) {
   return fileName;
 }
 
-export const LibraryPhotoViewer = () => {
+export function LibraryPhotoViewer() {
   const photoViewerOpen = useLibraryStore((state) => state.photoViewerOpen);
   const setPhotoViewerOpen = useLibraryStore(
     (state) => state.setPhotoViewerOpen,
@@ -81,4 +81,4 @@ export const LibraryPhotoViewer = () => {
       </DialogContent>
     </Dialog>
   );
-};
+}

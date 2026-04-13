@@ -16,7 +16,7 @@ type ImageLoadState = "loading" | "ready" | "error";
 
 const loadedImageSignatures = new Set<string>();
 
-const getImageSignature = ({
+function getImageSignature({
   src,
   srcSet,
   sizes,
@@ -24,13 +24,13 @@ const getImageSignature = ({
   src?: string;
   srcSet?: string;
   sizes?: string;
-}) => {
+}) {
   return [src ?? "", srcSet ?? "", sizes ?? ""].join("|");
-};
+}
 
-const imageElementIsReady = (image: HTMLImageElement) => {
+function imageElementIsReady(image: HTMLImageElement) {
   return image.complete && image.naturalWidth > 0;
-};
+}
 
 function useImageLoadState(imageSignature: string, shouldReveal: boolean) {
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -53,12 +53,12 @@ function useImageLoadState(imageSignature: string, shouldReveal: boolean) {
         ? "ready"
         : "loading";
 
-  const markReady = () => {
+  function markReady() {
     loadedImageSignatures.add(imageSignature);
     setLoadState({ signature: imageSignature, state: "ready" });
-  };
+  }
 
-  const setImageRef = (imageElement: HTMLImageElement | null) => {
+  function setImageRef(imageElement: HTMLImageElement | null) {
     imageRef.current = imageElement;
 
     if (!imageElement || !shouldReveal || currentState !== "loading") return;
@@ -72,23 +72,25 @@ function useImageLoadState(imageSignature: string, shouldReveal: boolean) {
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => markReady());
     });
-  };
+  }
 
-  const handleLoad =
-    (onLoad?: (e: SyntheticEvent<HTMLImageElement>) => void) =>
-    (event: SyntheticEvent<HTMLImageElement>) => {
+  function handleLoad(onLoad?: (e: SyntheticEvent<HTMLImageElement>) => void) {
+    return (event: SyntheticEvent<HTMLImageElement>) => {
       if (shouldReveal) markReady();
       onLoad?.(event);
     };
+  }
 
-  const handleError =
-    (onError?: (e: SyntheticEvent<HTMLImageElement>) => void) =>
-    (event: SyntheticEvent<HTMLImageElement>) => {
+  function handleError(
+    onError?: (e: SyntheticEvent<HTMLImageElement>) => void,
+  ) {
+    return (event: SyntheticEvent<HTMLImageElement>) => {
       if (shouldReveal) {
         setLoadState({ signature: imageSignature, state: "error" });
       }
       onError?.(event);
     };
+  }
 
   return { currentState, setImageRef, handleLoad, handleError };
 }

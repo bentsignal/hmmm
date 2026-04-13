@@ -17,38 +17,42 @@ interface LibraryFileProps {
   selected: boolean;
 }
 
-const AddToMessageButton = ({
+function AddToMessageButton({
   onClick,
   className,
 }: {
   onClick: (e: React.MouseEvent) => void;
   className?: string;
-}) => (
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <Button
-        size="sm"
-        variant="default"
-        onClick={onClick}
-        className={className}
-      >
-        <Plus className="h-3 w-3" />
-      </Button>
-    </TooltipTrigger>
-    <TooltipContent>Add to message</TooltipContent>
-  </Tooltip>
-);
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          size="sm"
+          variant="default"
+          onClick={onClick}
+          className={className}
+        >
+          <Plus className="h-3 w-3" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>Add to message</TooltipContent>
+    </Tooltip>
+  );
+}
 
-const SelectIndicator = ({ selected }: { selected: boolean }) => (
-  <div
-    className={cn(
-      "absolute top-2 right-2 z-10 h-3 w-3 rounded-full",
-      selected ? "bg-primary" : "border-primary border",
-    )}
-  />
-);
+function SelectIndicator({ selected }: { selected: boolean }) {
+  return (
+    <div
+      className={cn(
+        "absolute top-2 right-2 z-10 h-3 w-3 rounded-full",
+        selected ? "bg-primary" : "border-primary border",
+      )}
+    />
+  );
+}
 
-export const LibraryGridFile = ({ file, mode, selected }: LibraryFileProps) => {
+export function LibraryGridFile({ file, mode, selected }: LibraryFileProps) {
   const fileType = getFileType(file.mimeType);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -98,9 +102,9 @@ export const LibraryGridFile = ({ file, mode, selected }: LibraryFileProps) => {
       </div>
     </div>
   );
-};
+}
 
-export const LibraryListFile = ({ file, mode, selected }: LibraryFileProps) => {
+export function LibraryListFile({ file, mode, selected }: LibraryFileProps) {
   const fileType = getFileType(file.mimeType);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -162,4 +166,4 @@ export const LibraryListFile = ({ file, mode, selected }: LibraryFileProps) => {
       </div>
     </div>
   );
-};
+}

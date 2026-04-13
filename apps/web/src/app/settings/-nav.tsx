@@ -24,7 +24,7 @@ import { settingsTabs } from "~/app/settings/-tabs";
 import { QuickLink } from "~/features/quick-link/quick-link";
 import { cn } from "~/lib/utils";
 
-export const SettingsNavMobile = () => {
+export function SettingsNavMobile() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
@@ -78,9 +78,9 @@ export const SettingsNavMobile = () => {
       </QuickLink>
     </div>
   );
-};
+}
 
-export const SettingsNavDesktop = () => {
+export function SettingsNavDesktop() {
   const { pathname } = useLocation();
 
   return (
@@ -142,4 +142,4 @@ export const SettingsNavDesktop = () => {
       </SidebarContent>
     </Sidebar>
   );
-};
+}

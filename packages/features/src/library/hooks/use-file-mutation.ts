@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import type { Doc } from "@acme/db/model";
 import { api } from "@acme/db/api";
 
-export const useFileMutation = () => {
+export function useFileMutation() {
   const deleteFilesMutation = useMutation({
     mutationFn: useConvexMutation(api.app.library.deleteFiles),
     onError: (error) => {
@@ -22,17 +22,17 @@ export const useFileMutation = () => {
     },
   });
 
-  const deleteFile = async (fileId: Doc<"files">["_id"]) => {
+  async function deleteFile(fileId: Doc<"files">["_id"]) {
     await deleteFilesMutation.mutateAsync({ ids: [fileId] });
-  };
+  }
 
-  const deleteFiles = async (fileIds: Doc<"files">["_id"][]) => {
+  async function deleteFiles(fileIds: Doc<"files">["_id"][]) {
     await deleteFilesMutation.mutateAsync({ ids: fileIds });
-  };
+  }
 
-  const renameFile = async (fileId: Doc<"files">["_id"], name: string) => {
+  async function renameFile(fileId: Doc<"files">["_id"], name: string) {
     await renameFileMutation.mutateAsync({ id: fileId, name });
-  };
+  }
 
   return { deleteFile, deleteFiles, renameFile };
-};
+}

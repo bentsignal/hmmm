@@ -15,12 +15,12 @@ export function useCountdown({ target, updateInterval }: UseCountdownProps) {
 
   // eslint-disable-next-line no-restricted-syntax -- Effect needed to sync with setInterval timer
   useEffect(() => {
-    const updateCountdown = () => {
+    function updateCountdown() {
       const { days, hours, minutes } = getTimeRemaining(target);
       setMinutes(minutes);
       setHours(hours);
       setDays(days);
-    };
+    }
 
     updateCountdown();
     const interval = setInterval(updateCountdown, updateInterval * 1000 * 60);

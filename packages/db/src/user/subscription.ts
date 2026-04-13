@@ -54,7 +54,7 @@ function parsePlanName(name: string) {
   return "Free";
 }
 
-export const getUserPlanHelper = async (ctx: QueryCtx, userId: string) => {
+export async function getUserPlanHelper(ctx: QueryCtx, userId: string) {
   const [subscription, unlimited] = await Promise.all([
     polar.getCurrentSubscription(ctx, {
       userId,
@@ -84,7 +84,7 @@ export const getUserPlanHelper = async (ctx: QueryCtx, userId: string) => {
     price: subscription.product.prices[0]?.priceAmount ?? 0,
     max: subscription.product.name === HIGHEST_TIER_PUBLIC_PLAN,
   } satisfies Plan;
-};
+}
 
 export const getPlan = authedQuery({
   args: {},
@@ -93,7 +93,7 @@ export const getPlan = authedQuery({
   },
 });
 
-export const getPlanTierHelper = async (ctx: QueryCtx, userId: string) => {
+export async function getPlanTierHelper(ctx: QueryCtx, userId: string) {
   const plan = await getUserPlanHelper(ctx, userId);
   switch (plan.name) {
     case "Free":
@@ -109,7 +109,7 @@ export const getPlanTierHelper = async (ctx: QueryCtx, userId: string) => {
     default:
       return PlanTier.Free;
   }
-};
+}
 
 export const getPlanTier = internalQuery({
   args: {
@@ -120,13 +120,13 @@ export const getPlanTier = internalQuery({
   },
 });
 
-export const allowModelSelection = async (
+export async function allowModelSelection(
   ctx: CustomCtx<typeof authedQuery> | CustomCtx<typeof authedMutation>,
   userId: string,
-) => {
+) {
   const planTier = await getPlanTierHelper(ctx, userId);
   return planTier >= MODEL_SELECTION_TIER;
-};
+}
 
 export const showModelSelector = authedQuery({
   args: {},

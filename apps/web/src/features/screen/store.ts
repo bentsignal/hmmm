@@ -10,9 +10,9 @@ function useInternalStore() {
 
   // eslint-disable-next-line no-restricted-syntax -- syncs screen size with window resize, an external browser API
   useEffect(() => {
-    const syncScreenSize = () => {
+    function syncScreenSize() {
       setSize(getScreenSizeFromWidth(window.innerWidth));
-    };
+    }
 
     syncScreenSize();
     window.addEventListener("resize", syncScreenSize);

@@ -20,7 +20,7 @@ export function CopyButton({
 }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
+  async function handleCopy() {
     try {
       const textToCopy = getContent().trim();
       await navigator.clipboard.writeText(textToCopy);
@@ -29,7 +29,7 @@ export function CopyButton({
     } catch (err) {
       console.error("Failed to copy text: ", err);
     }
-  };
+  }
 
   return (
     <Button

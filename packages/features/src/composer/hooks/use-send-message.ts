@@ -133,7 +133,7 @@ export function useSendMessage({
     (state) => state.setNumMessagesSent,
   );
 
-  const sendMessage = async ({
+  async function sendMessage({
     customPrompt,
     navigateToNewThread = true,
     showInstantLoad,
@@ -143,7 +143,7 @@ export function useSendMessage({
     navigateToNewThread?: boolean;
     showInstantLoad?: () => void;
     handleError?: () => void;
-  }) => {
+  }) {
     const rawPrompt = customPrompt ?? useComposerStore.getState().prompt;
 
     if (!isAuthenticated) {
@@ -181,7 +181,7 @@ export function useSendMessage({
       clearAttachments,
       handleError,
     });
-  };
+  }
 
   return { blockSend, sendMessage, isLoading };
 }

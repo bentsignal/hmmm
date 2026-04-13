@@ -41,7 +41,7 @@ export function getPublicLanguageModels() {
   );
 }
 
-export const getModel = (modelId?: string) => {
+export function getModel(modelId?: string) {
   if (!modelId) {
     return modelPresets.default;
   }
@@ -49,7 +49,7 @@ export const getModel = (modelId?: string) => {
     return languageModels[modelId];
   }
   return modelPresets.default;
-};
+}
 
 function isLanguageModelKey(key: string): key is keyof typeof languageModels {
   return key in languageModels;

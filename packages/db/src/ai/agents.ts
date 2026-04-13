@@ -37,12 +37,12 @@ export const agent = new Agent(components.agent, {
   },
 });
 
-export const generateResponse = async (
+export async function generateResponse(
   ctx: ActionCtx,
   prompt: string,
   title?: string,
   userId?: string,
-) => {
+) {
   const { threadId } = await agent.createThread(ctx, {
     title: title ?? "Response",
     userId,
@@ -62,7 +62,7 @@ export const generateResponse = async (
     },
   });
   return result.text;
-};
+}
 
 export const streamResponse = internalAction({
   args: {

@@ -13,13 +13,13 @@ import { PageLoader } from "~/components/page-loader";
 import { ThreadListContextItems } from "./thread-list-context-items";
 import { ThreadListItem } from "./thread-list-item";
 
-const ThreadListSkeleton = () => {
+function ThreadListSkeleton() {
   return (
     <SidebarMenuItem className="bg-border w-full animate-pulse rounded-md">
       <SidebarMenuButton className="py-5" />
     </SidebarMenuItem>
   );
-};
+}
 
 export function ThreadList({
   threadGroups,

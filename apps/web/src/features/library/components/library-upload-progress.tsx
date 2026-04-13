@@ -1,10 +1,10 @@
 import { Progress } from "@acme/ui/progress";
 
-export const LibraryUploadProgress = ({
+export function LibraryUploadProgress({
   progress,
 }: {
   progress: number | null;
-}) => {
+}) {
   if (progress === null) return null;
 
   return (
@@ -13,4 +13,4 @@ export const LibraryUploadProgress = ({
       <Progress value={progress} className="h-2 w-full" />
     </div>
   );
-};
+}

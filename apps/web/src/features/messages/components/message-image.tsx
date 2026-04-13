@@ -16,7 +16,7 @@ export function MessageImage({ image }: { image?: string | null }) {
   return <Generated fileKey={image} />;
 }
 
-const Generated = ({ fileKey }: { fileKey: string }) => {
+function Generated({ fileKey }: { fileKey: string }) {
   const { handleFileClick, handleFileHover } = useFileInteraction();
   const { isAuthenticated } = useConvexAuth();
 
@@ -47,13 +47,13 @@ const Generated = ({ fileKey }: { fileKey: string }) => {
       }}
     />
   );
-};
+}
 
-const InProgress = () => {
+function InProgress() {
   return (
     <div className="relative flex h-64 w-auto min-w-64 items-center justify-center opacity-100 transition-opacity duration-300">
       <ImageIcon className="relative z-10 h-6 w-6" />
       <div className="bg-card absolute inset-0 z-5 flex h-64 w-auto animate-pulse items-center justify-center rounded-lg" />
     </div>
   );
-};
+}

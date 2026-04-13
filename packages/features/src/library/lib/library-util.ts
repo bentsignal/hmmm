@@ -1,4 +1,4 @@
-export const getFileSize = (size?: number) => {
+export function getFileSize(size?: number) {
   if (!size) {
     return "0 B";
   }
@@ -9,9 +9,9 @@ export const getFileSize = (size?: number) => {
     return `${(size / 1024).toFixed(2)} KB`;
   }
   return `${(size / 1024 / 1024).toFixed(2)} MB`;
-};
+}
 
-export const getFileType = (fileType?: string) => {
+export function getFileType(fileType?: string) {
   if (fileType?.startsWith("image/")) {
     return "image";
   }
@@ -22,4 +22,4 @@ export const getFileType = (fileType?: string) => {
     return "document";
   }
   return "file";
-};
+}

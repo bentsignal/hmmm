@@ -40,7 +40,7 @@ export function PromptMessage({ message }: { message: MyUIMessage }) {
   );
 }
 
-const Attachments = ({ message }: { message: MyUIMessage }) => {
+function Attachments({ message }: { message: MyUIMessage }) {
   if (
     !message.metadata?.attachments ||
     message.metadata.attachments.length === 0
@@ -94,4 +94,4 @@ const Attachments = ({ message }: { message: MyUIMessage }) => {
       </SheetContent>
     </Sheet>
   );
-};
+}

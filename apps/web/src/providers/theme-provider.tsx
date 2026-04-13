@@ -28,9 +28,9 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   },
 }));
 
-const initThemeStore = (theme: Theme, stars: boolean) => {
+function initThemeStore(theme: Theme, stars: boolean) {
   useThemeStore.setState({ theme, stars });
-};
+}
 
 export function useTheme() {
   return useThemeStore();
@@ -67,7 +67,7 @@ const starPositions = Array.from({ length: 200 }, () => ({
   opacity: Math.random(),
 }));
 
-const Stars = ({ show }: { show: boolean }) => {
+function Stars({ show }: { show: boolean }) {
   if (!show) return null;
   return (
     <div className="animate-in fade-in pointer-events-none absolute inset-0 h-screen w-screen transition-opacity duration-1000">
@@ -80,4 +80,4 @@ const Stars = ({ show }: { show: boolean }) => {
       ))}
     </div>
   );
-};
+}

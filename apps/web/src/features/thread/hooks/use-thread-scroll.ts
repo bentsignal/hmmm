@@ -24,7 +24,7 @@ export function useThreadScroll({
   const numMessagesSent = useMessageStore((state) => state.numMessagesSent);
   const [isAtBottom, setIsAtBottom] = useState(true);
 
-  const scrollToBottom = (animate = false) => {
+  function scrollToBottom(animate = false) {
     const scrollElement = getScrollViewport(scrollAreaRef.current);
     if (scrollElement) {
       doScrollToBottom(scrollElement, animate);
@@ -32,21 +32,20 @@ export function useThreadScroll({
         setIsAtBottom(true);
       });
     }
-  };
+  }
 
   // eslint-disable-next-line no-restricted-syntax -- Syncs with DOM scroll events on the scroll area viewport
   useEffect(() => {
     const scrollElement = getScrollViewport(scrollAreaRef.current);
     if (!scrollElement) return;
-    const handleScroll = () => {
+    function handleScroll(this: Element) {
       const threshold = 800;
       const isNearBottom =
-        scrollElement.scrollTop + scrollElement.clientHeight >=
-        scrollElement.scrollHeight - threshold;
+        this.scrollTop + this.clientHeight >= this.scrollHeight - threshold;
       requestAnimationFrame(() => {
         setIsAtBottom(isNearBottom);
       });
-    };
+    }
     scrollElement.addEventListener("scroll", handleScroll);
     return () => scrollElement.removeEventListener("scroll", handleScroll);
   }, []);

@@ -3,7 +3,7 @@ import { Progress } from "@acme/ui/progress";
 import { QuickLink } from "~/features/quick-link/quick-link";
 import { cn } from "~/lib/utils";
 
-export const LibraryStorageStatus = ({
+export function LibraryStorageStatus({
   storageUsed,
   storageLimit,
   percentageUsed,
@@ -11,7 +11,7 @@ export const LibraryStorageStatus = ({
   storageUsed: number;
   storageLimit: number;
   percentageUsed: number;
-}) => {
+}) {
   const remainingGB = (
     (storageLimit - storageUsed) /
     1024 /
@@ -56,4 +56,4 @@ export const LibraryStorageStatus = ({
       <Progress value={percentageUsed} className="h-2" />
     </div>
   );
-};
+}

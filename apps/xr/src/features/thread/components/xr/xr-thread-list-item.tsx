@@ -9,7 +9,7 @@ import { useThreadStore } from "@acme/features/thread";
 
 import { hexColors, xrStyles } from "~/styles/styles";
 
-const XRThreadListItemImpl = ({ thread }: { thread: Thread }) => {
+function XRThreadListItemImpl({ thread }: { thread: Thread }) {
   const setActiveThread = useThreadStore((state) => state.setActiveThread);
   const addXrThread = useThreadStore((state) => state.addXrThread);
   const setMainThread = useThreadStore((state) => state.setMainThread);
@@ -67,7 +67,7 @@ const XRThreadListItemImpl = ({ thread }: { thread: Thread }) => {
       </Container>
     </Container>
   );
-};
+}
 
 export const XRThreadListItem = memo(XRThreadListItemImpl, (prev, next) => {
   return equal(prev.thread, next.thread);

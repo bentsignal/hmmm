@@ -9,19 +9,19 @@ import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import { env } from "./convex.env";
 
-export const checkApiKey = (apiKey: string) => {
+export function checkApiKey(apiKey: string) {
   if (apiKey !== env.NEXT_CONVEX_INTERNAL_KEY) {
     throw new ConvexError("Invalid key");
   }
-};
+}
 
-export const checkAuth = async (ctx: QueryCtx | MutationCtx | ActionCtx) => {
+export async function checkAuth(ctx: QueryCtx | MutationCtx | ActionCtx) {
   const user = await ctx.auth.getUserIdentity();
   if (!user) {
     throw new ConvexError("Unauthenticated");
   }
   return user;
-};
+}
 
 export const apiMutation = customMutation(mutation, {
   args: {

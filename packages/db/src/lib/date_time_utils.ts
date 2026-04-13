@@ -1,19 +1,19 @@
-export const getESTDate = () => {
+export function getESTDate() {
   const now = new Date();
   const estNow = new Date(
     now.toLocaleString("en-US", { timeZone: "America/New_York" }),
   );
   return estNow;
-};
+}
 
-export const convertToUTC = (date: Date) => {
+export function convertToUTC(date: Date) {
   const now = new Date();
   const estNow = getESTDate();
   const offset = now.getTime() - estNow.getTime();
   return new Date(date.getTime() + offset);
-};
+}
 
-export const getMonthBounds = () => {
+export function getMonthBounds() {
   const estNow = getESTDate();
   const startEST = new Date(
     estNow.getFullYear(),
@@ -36,9 +36,9 @@ export const getMonthBounds = () => {
   const start = convertToUTC(startEST);
   const end = convertToUTC(endEST);
   return { start, end };
-};
+}
 
-export const getDayBounds = () => {
+export function getDayBounds() {
   const estNow = getESTDate();
   const startEST = new Date(
     estNow.getFullYear(),
@@ -61,7 +61,7 @@ export const getDayBounds = () => {
   const start = convertToUTC(startEST);
   const end = convertToUTC(endEST);
   return { start, end };
-};
+}
 
 export interface CurrentDateTime {
   hours: number;
@@ -71,7 +71,7 @@ export interface CurrentDateTime {
   year: string;
 }
 
-export const getCurrentDateTime = ({ timezone }: { timezone: string }) => {
+export function getCurrentDateTime({ timezone }: { timezone: string }) {
   const date = new Date();
 
   const timeString = date.toLocaleTimeString("en-US", {
@@ -102,4 +102,4 @@ export const getCurrentDateTime = ({ timezone }: { timezone: string }) => {
     day,
     year,
   };
-};
+}

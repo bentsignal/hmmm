@@ -28,9 +28,9 @@ export const limiter = new RateLimiter(components.rateLimiter, {
   },
 });
 
-export const messageSendRateLimit = async (
+export async function messageSendRateLimit(
   ctx: CustomCtx<typeof authedMutation>,
-) => {
+) {
   const userId = ctx.user.subject;
   const { ok } = await limiter.limit(ctx, "messageSend", {
     key: userId,
@@ -39,7 +39,7 @@ export const messageSendRateLimit = async (
     throw new ConvexError(
       `Sending messages too fast, please wait a few seconds`,
     );
-};
+}
 
 export const transcriptionRateLimit = mutation({
   handler: async (ctx) => {

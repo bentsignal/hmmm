@@ -25,7 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@acme/ui/tooltip";
 
 import { cn } from "~/lib/utils";
 
-export const LibraryToolbar = ({
+export function LibraryToolbar({
   view,
   setView,
   setSort,
@@ -37,7 +37,7 @@ export const LibraryToolbar = ({
   setSort: (value: LibrarySort) => void;
   setSortDirection: (value: "asc" | "desc") => void;
   setSearchTerm: (value: string) => void;
-}) => {
+}) {
   return (
     <div className="flex w-full justify-between gap-2 p-4">
       <Input
@@ -51,15 +51,15 @@ export const LibraryToolbar = ({
       </div>
     </div>
   );
-};
+}
 
-const ToggleViewButton = ({
+function ToggleViewButton({
   view,
   setView,
 }: {
   view: LibraryView;
   setView: (value: LibraryView) => void;
-}) => {
+}) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -80,9 +80,9 @@ const ToggleViewButton = ({
       </TooltipContent>
     </Tooltip>
   );
-};
+}
 
-const SelectFilesButton = () => {
+function SelectFilesButton() {
   const libraryMode = useLibraryStore((state) => state.libraryMode);
   const setLibraryMode = useLibraryStore((state) => state.setLibraryMode);
   const setSelectedFiles = useLibraryStore((state) => state.setSelectedFiles);
@@ -113,15 +113,15 @@ const SelectFilesButton = () => {
       <TooltipContent>Select files</TooltipContent>
     </Tooltip>
   );
-};
+}
 
-const SortButton = ({
+function SortButton({
   setSort,
   setSortDirection,
 }: {
   setSort: (value: LibrarySort) => void;
   setSortDirection: (value: "asc" | "desc") => void;
-}) => {
+}) {
   return (
     <DropdownMenu>
       <Tooltip>
@@ -163,4 +163,4 @@ const SortButton = ({
       </DropdownMenuContent>
     </DropdownMenu>
   );
-};
+}

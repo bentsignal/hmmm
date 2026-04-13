@@ -22,7 +22,7 @@ interface AttachmentRowProps {
   onRemove: (id: LibraryFile["id"]) => void;
 }
 
-const AttachmentRow = ({ file, onRemove }: AttachmentRowProps) => {
+function AttachmentRow({ file, onRemove }: AttachmentRowProps) {
   const fileType = getFileType(file.mimeType);
   const { handleFileClick, handleFileHover } = useFileInteraction();
   return (
@@ -63,13 +63,13 @@ const AttachmentRow = ({ file, onRemove }: AttachmentRowProps) => {
       </Button>
     </div>
   );
-};
+}
 
-export const ComposerAttachmentsList = ({
+export function ComposerAttachmentsList({
   children,
 }: {
   children: React.ReactNode;
-}) => {
+}) {
   const attachedFiles = useComposerStore((state) => state.attachedFiles);
   const removeAttachment = useComposerStore((state) => state.removeAttachment);
   const clearAttachments = useComposerStore((state) => state.clearAttachments);
@@ -115,6 +115,6 @@ export const ComposerAttachmentsList = ({
       </DialogContent>
     </Dialog>
   );
-};
+}
 
 export const AttachmentsDialogTrigger = DialogTrigger;

@@ -10,4 +10,6 @@ export type Theme = (typeof themes)[number];
 
 export const defaultTheme = "nebula";
 
-export const getThemeClass = (theme: Theme) => `theme-${theme}`;
+export function getThemeClass(theme: Theme) {
+  return `theme-${theme}`;
+}
