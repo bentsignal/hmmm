@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { TanStackDevtools } from "@tanstack/react-devtools";
+import { queryOptions } from "@tanstack/react-query";
 import {
   createRootRouteWithContext,
   HeadContent,
@@ -55,6 +56,20 @@ const fetchCookies = createServerFn({ method: "GET" }).handler(() => {
   return { theme, stars, sidebarOpen };
 });
 
+const clerkAuthQueryOptions = queryOptions({
+  queryKey: ["__root", "clerkAuth"],
+  queryFn: () => fetchClerkAuth(),
+  staleTime: Infinity,
+  gcTime: Infinity,
+});
+
+const cookiesQueryOptions = queryOptions({
+  queryKey: ["__root", "cookies"],
+  queryFn: () => fetchCookies(),
+  staleTime: Infinity,
+  gcTime: Infinity,
+});
+
 export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
     links: [{ rel: "stylesheet", href: appStyles }],
@@ -70,8 +85,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   }),
   beforeLoad: async ({ context }) => {
     const [authState, cookies] = await Promise.all([
-      fetchClerkAuth(),
-      fetchCookies(),
+      context.queryClient.ensureQueryData(clerkAuthQueryOptions),
+      context.queryClient.ensureQueryData(cookiesQueryOptions),
     ]);
 
     if (authState.isSignedIn) {
