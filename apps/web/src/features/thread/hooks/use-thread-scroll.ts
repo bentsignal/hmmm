@@ -38,10 +38,12 @@ export function useThreadScroll({
   useEffect(() => {
     const scrollElement = getScrollViewport(scrollAreaRef.current);
     if (!scrollElement) return;
-    function handleScroll(this: Element) {
+    const element = scrollElement;
+    function handleScroll() {
       const threshold = 800;
       const isNearBottom =
-        this.scrollTop + this.clientHeight >= this.scrollHeight - threshold;
+        element.scrollTop + element.clientHeight >=
+        element.scrollHeight - threshold;
       requestAnimationFrame(() => {
         setIsAtBottom(isNearBottom);
       });
