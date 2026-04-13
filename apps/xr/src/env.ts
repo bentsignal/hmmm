@@ -16,12 +16,9 @@ export const env = createEnv({
     CLERK_SECRET_KEY: z.string().min(1),
     CONVEX_DEPLOYMENT: z.string().min(1),
     CONVEX_INTERNAL_KEY: z.string().min(1),
-    OPENROUTER_API_KEY: z.string().min(1),
-    OPENAI_API_KEY: z.string().min(1),
     CONVEX_DEPLOY_KEY: z.string().min(1).optional(),
   },
   client: {
-    VITE_BASE_URL: z.string().min(1),
     VITE_CLERK_PUBLISHABLE_KEY: z.string().min(1),
     VITE_CLERK_SIGN_IN_URL: z.string().min(1),
     VITE_CLERK_SIGN_UP_URL: z.string().min(1),

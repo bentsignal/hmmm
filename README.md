@@ -27,4 +27,6 @@ For more information, head over to the [docs](https://docs.hmmm.chat)
 
 [x.com/bentsignal](https://x.com/bentsignal)
 
+<br />
+
 </div>
