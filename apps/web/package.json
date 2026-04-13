@@ -39,7 +39,6 @@
     "clsx": "catalog:",
     "convex": "catalog:",
     "fast-deep-equal": "catalog:",
-    "great-time": "catalog:",
     "katex": "^0.16.25",
     "lucide-react": "catalog:",
     "music-metadata": "^11.6.0",

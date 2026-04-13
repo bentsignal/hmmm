@@ -6,17 +6,8 @@ import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
-export default defineConfig(async ({ mode }) => {
-  const [{ createImageConfig }, { imageWidths }, { env }] = await Promise.all([
-    import("./src/features/image/create-image-config"),
-    import("./src/features/image/sizes"),
-    import("./src/env"),
-  ]);
-
-  const imageConfig = createImageConfig({
-    uploadthingUrl: env.VITE_BASE_URL,
-    sizes: [...imageWidths],
-  });
+export default defineConfig(async () => {
+  await import("./src/env");
 
   return {
     server: {
@@ -36,14 +27,7 @@ export default defineConfig(async ({ mode }) => {
           plugins: ["babel-plugin-react-compiler"],
         },
       }),
-      nitro({
-        vercel: {
-          config: {
-            version: 3,
-            images: imageConfig,
-          },
-        },
-      }),
+      nitro(),
     ],
   };
 });
