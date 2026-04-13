@@ -4,9 +4,9 @@ import { Loader2, Send } from "lucide-react";
 
 import { Button } from "@acme/ui/button";
 
-import useSendMessage from "../hooks/use-send-message";
+import { useSendMessage } from "../hooks/use-send-message";
 
-export default function ComposerSend({
+export function ComposerSend({
   showInstantLoad,
   handleError,
 }: {

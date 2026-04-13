@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
-import type { LibraryFile, LibraryMode } from "../types";
-import useComposerStore from "~/features/composer/store";
+import type { LibraryFile, LibraryMode } from "@acme/features/library";
+import { useComposerStore } from "@acme/features/composer";
+import { useLibraryStore } from "@acme/features/library";
+
 import { tryCatch } from "~/lib/utils";
-import { useLibraryStore } from "../store";
 
 export const useFileInteraction = () => {
   const [isDownloading, setIsDownloading] = useState(false);

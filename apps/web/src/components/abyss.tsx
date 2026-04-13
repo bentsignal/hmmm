@@ -7,7 +7,7 @@ const blurValues = {
   xl: "backdrop-blur-xl",
 };
 
-export default function Abyss({
+export function Abyss({
   top = true,
   bottom = true,
   height = 100,

@@ -1,8 +1,9 @@
-import useUsage from "../hooks/use-usage";
-import UsageCountdown from "./usage-countdown";
-import UsageUpgradeCallout from "./usage-upgrade-callout";
+import { useUsage } from "@acme/features/billing";
 
-export default function UsageChatCallout({ hide }: { hide?: boolean }) {
+import { UsageCountdown } from "./usage-countdown";
+import { UsageUpgradeCallout } from "./usage-upgrade-callout";
+
+export function UsageChatCallout({ hide }: { hide?: boolean }) {
   const { usage } = useUsage();
 
   if (!usage) return null;

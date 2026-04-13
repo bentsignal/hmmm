@@ -1,11 +1,11 @@
-import ComposerSpeech from "~/features/speech/components/composer-speech";
+import { ComposerSpeech } from "~/features/speech/components/composer-speech";
 import { cn } from "~/lib/utils";
 import { ComposerAddAttachments } from "./components/composer-add-attachments";
 import { ComposerAttachmentsPreview } from "./components/composer-attachments-preview";
-import ComposerInput from "./components/composer-input";
-import ComposerSend from "./components/composer-send";
+import { ComposerInput } from "./components/composer-input";
+import { ComposerSend } from "./components/composer-send";
 
-export default function Composer({
+export function Composer({
   showInstantLoad,
   handleError,
   authed,

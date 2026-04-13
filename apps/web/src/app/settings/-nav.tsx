@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 import { SignOutButton } from "@clerk/tanstack-react-start";
 import { LogOut, MoveLeft } from "lucide-react";
 
-import { QuickLink } from "@acme/features/quick-link";
 import {
   Select,
   SelectContent,
@@ -22,6 +21,7 @@ import {
 } from "@acme/ui/sidebar";
 
 import { settingsTabs } from "~/app/settings/-tabs";
+import { QuickLink } from "~/features/quick-link/quick-link";
 import { cn } from "~/lib/utils";
 
 export const SettingsNavMobile = () => {

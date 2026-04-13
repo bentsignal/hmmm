@@ -1,12 +1,8 @@
-import useUsage from "~/features/billing/hooks/use-usage";
-import useCountdown from "~/hooks/use-countdown";
-import { formatCountdownString } from "~/lib/date-time-utils";
+import { useUsage } from "@acme/features/billing";
+import { useCountdown } from "@acme/features/hooks";
+import { formatCountdownString } from "@acme/features/lib/date-time-utils";
 
-export default function UsageCountdown({
-  initialTarget,
-}: {
-  initialTarget: Date;
-}) {
+export function UsageCountdown({ initialTarget }: { initialTarget: Date }) {
   const { usage } = useUsage();
   const { minutes, hours, days } = useCountdown({
     target: new Date(usage?.endOfPeriod ?? initialTarget),

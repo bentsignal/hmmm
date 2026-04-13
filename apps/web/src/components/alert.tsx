@@ -15,9 +15,9 @@ import {
 import { Button } from "@acme/ui/button";
 import { Input } from "@acme/ui/input";
 
-import CustomButton from "./custom-button";
+import { CustomButton } from "./custom-button";
 
-export default function CustomAlert({
+export function CustomAlert({
   open,
   setOpen,
   onCancel,

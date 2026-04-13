@@ -8,8 +8,8 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig(async ({ mode }) => {
   const [{ createImageConfig }, { imageWidths }, { env }] = await Promise.all([
-    import("@acme/features/image/config"),
-    import("@acme/features/image/sizes"),
+    import("./src/features/image/create-image-config"),
+    import("./src/features/image/sizes"),
     import("./src/env"),
   ]);
 

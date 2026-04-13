@@ -3,7 +3,7 @@ import { cn } from "~/lib/utils";
 
 import "@/styles/logo-anim.css";
 
-export default function Logo({ className }: { className?: string }) {
+export function Logo({ className }: { className?: string }) {
   return (
     <Image
       src="/logo.webp"

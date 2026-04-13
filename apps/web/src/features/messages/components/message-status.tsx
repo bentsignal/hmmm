@@ -10,6 +10,11 @@ import {
   Sun,
 } from "lucide-react";
 
+import type { MyUIMessage } from "@acme/features/messages";
+import {
+  extractReasoningFromMessage,
+  getStatusLabel,
+} from "@acme/features/messages";
 import {
   HoverCard,
   HoverCardContent,
@@ -18,16 +23,11 @@ import {
 import { TextShimmer } from "@acme/ui/loader";
 import { Markdown } from "@acme/ui/markdown";
 
-import type { MyUIMessage } from "../types/message-types";
-import Abyss from "~/components/abyss";
+import { Abyss } from "~/components/abyss";
 import { cn } from "~/lib/utils";
-import {
-  extractReasoningFromMessage,
-  getStatusLabel,
-} from "../util/message-util";
 import { markdownComponents } from "./markdown-components";
 
-export default function MessageStatus({
+export function MessageStatus({
   message,
   isActive,
 }: {

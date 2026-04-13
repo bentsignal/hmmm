@@ -4,10 +4,13 @@ import { experimental_transcribe as transcribe } from "ai";
 
 import { api } from "@acme/db/api";
 import { modelPresets } from "@acme/db/models/helpers";
+import {
+  MAX_AUDIO_FILE_SIZE,
+  MAX_RECORDING_DURATION,
+} from "@acme/features/speech";
 
 import { env } from "~/env";
 import { getConvexHttpClient } from "~/lib/convex-server";
-import { MAX_AUDIO_FILE_SIZE, MAX_RECORDING_DURATION } from "../config";
 import { getAudioDurationFromBuffer } from "../util/audio-duration";
 
 function validateInputData(data: unknown) {

@@ -1,10 +1,10 @@
 import { useLocation, useNavigate } from "@tanstack/react-router";
 
-import CustomAlert from "~/components/alert";
-import useThreadStore from "~/features/thread/store";
-import useThreadMutation from "../hooks/use-thread-mutation";
+import { useThreadMutation, useThreadStore } from "@acme/features/thread";
 
-export default function ThreadDeleteModal() {
+import { CustomAlert } from "~/components/alert";
+
+export function ThreadDeleteModal() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { deleteThread } = useThreadMutation();

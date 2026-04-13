@@ -6,7 +6,7 @@ import { api } from "@acme/db/api";
 import { Image } from "~/components/image";
 import { useFileInteraction } from "~/features/library/hooks/use-file-interaction";
 
-export default function MessageImage({ image }: { image?: string | null }) {
+export function MessageImage({ image }: { image?: string | null }) {
   if (!image) return null;
 
   if (image === "in-progress") {

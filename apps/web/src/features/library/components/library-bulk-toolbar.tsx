@@ -1,13 +1,13 @@
 import { Download, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useComposerStore } from "@acme/features/composer";
+import { useLibraryStore } from "@acme/features/library";
 import { Button } from "@acme/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@acme/ui/tooltip";
 
-import useComposerStore from "~/features/composer/store";
 import { cn, tryCatch } from "~/lib/utils";
 import { useFileInteraction } from "../hooks/use-file-interaction";
-import { useLibraryStore } from "../store";
 
 export const LibraryBulkToolbar = () => {
   const inSelectMode = useLibraryStore(

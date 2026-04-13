@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import Composer from "~/features/composer";
-import Thread from "~/features/thread";
-import { threadQueries } from "~/lib/queries";
+import { threadQueries } from "@acme/features/lib/queries";
+
+import { Composer } from "~/features/composer/composer";
+import { Thread } from "~/features/thread/thread";
 
 export const Route = createFileRoute("/_chat/_authenticated/chat/$id")({
   component: ChatPage,

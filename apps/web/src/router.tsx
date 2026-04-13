@@ -5,7 +5,8 @@ import { ConvexQueryClient } from "@convex-dev/react-query";
 import { ConvexHttpClient } from "convex/browser";
 import { ConvexReactClient } from "convex/react";
 
-import type { AuthState } from "~/features/auth/types/auth-types";
+import type { AuthState } from "@acme/features/auth";
+
 import type { Theme } from "~/lib/theme";
 import { Error } from "~/components/error";
 import { NotFound } from "~/components/not-found";

@@ -14,7 +14,7 @@ import {
 } from "../ai/prompts";
 import { env } from "../convex.env";
 import { resend } from "../resend";
-import getNewsletterHtml from "./templates";
+import { getNewsletterHtml } from "./templates";
 
 interface Preview {
   prompt: string;

@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 
+// import { useTheme } from "next-themes";
+import { extractTextFromChildren } from "@acme/features/messages";
 import { CodeBlock, CodeBlockCode } from "@acme/ui/code-block";
 
-// import { useTheme } from "next-themes";
-import { extractTextFromChildren } from "../util/message-util";
 import { CopyButton } from "./copy-button";
 import { Language } from "./language";
 

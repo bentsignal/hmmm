@@ -1,12 +1,12 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { getPublicLanguageModels } from "@acme/db/models/helpers";
+import { userQueries } from "@acme/features/lib/queries";
 
-import InfoCard from "~/components/info-card";
-import { userQueries } from "~/lib/queries";
-import UserInfoForm from "./-user-info-form";
+import { InfoCard } from "~/components/info-card";
+import { UserInfoForm } from "./-user-info-form";
 
-export default function Personalization() {
+export function Personalization() {
   const { data: userInfo } = useSuspenseQuery({
     ...userQueries.info(),
     select: (data) => data ?? null,

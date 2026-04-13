@@ -1,12 +1,10 @@
 import { useRef, useState } from "react";
 
+import { useThreadMutation, useThreadStore } from "@acme/features/thread";
 import * as Alert from "@acme/ui/alert-dialog";
 import { Input } from "@acme/ui/input";
 
-import useThreadMutation from "../hooks/use-thread-mutation";
-import useThreadStore from "../store";
-
-export default function ThreadRenameModal() {
+export function ThreadRenameModal() {
   const renameModalOpen = useThreadStore((state) => state.renameModalOpen);
   const hoveredThread = useThreadStore((state) => state.hoveredThread);
   const setRenameModalOpen = useThreadStore(

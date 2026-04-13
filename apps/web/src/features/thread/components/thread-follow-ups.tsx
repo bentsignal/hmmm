@@ -1,10 +1,11 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 
-import useUsage from "~/features/billing/hooks/use-usage";
-import useSendMessage from "~/features/composer/hooks/use-send-message";
-import { threadQueries } from "~/lib/queries";
+import { useUsage } from "@acme/features/billing";
+import { threadQueries } from "@acme/features/lib/queries";
 
-export default function ThreadFollowUps({ threadId }: { threadId: string }) {
+import { useSendMessage } from "~/features/composer/hooks/use-send-message";
+
+export function ThreadFollowUps({ threadId }: { threadId: string }) {
   const { data: followUpState } = useSuspenseQuery({
     ...threadQueries.followUps(threadId),
     select: (data) => ({ questions: data, empty: data.length === 0 }),

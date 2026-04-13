@@ -5,6 +5,8 @@ import {
   ArrowDownWideNarrow as SortIcon,
 } from "lucide-react";
 
+import type { LibrarySort, LibraryView } from "@acme/features/library";
+import { useLibraryStore } from "@acme/features/library";
 import { Button } from "@acme/ui/button";
 import {
   DropdownMenu,
@@ -21,9 +23,7 @@ import {
 import { Input } from "@acme/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@acme/ui/tooltip";
 
-import type { LibrarySort, LibraryView } from "../types";
 import { cn } from "~/lib/utils";
-import { useLibraryStore } from "../store";
 
 export const LibraryToolbar = ({
   view,

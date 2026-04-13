@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { MoveLeft } from "lucide-react";
 
-import { QuickLink } from "@acme/features/quick-link";
+import { QuickLink } from "~/features/quick-link/quick-link";
 
 export const Route = createFileRoute("/policy")({
   component: PolicyLayout,

@@ -1,9 +1,9 @@
 import { DownloadIcon, Pencil, Trash } from "lucide-react";
 
+import { useLibraryStore } from "@acme/features/library";
 import { ContextMenuContent, ContextMenuItem } from "@acme/ui/context-menu";
 
 import { useFileInteraction } from "../hooks/use-file-interaction";
-import { useLibraryStore } from "../store";
 
 export const LibraryFileContextItems = () => {
   const setLibraryDeleteModalOpen = useLibraryStore(

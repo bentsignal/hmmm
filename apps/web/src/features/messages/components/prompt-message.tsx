@@ -1,18 +1,18 @@
 import { useState } from "react";
 
+import type { MyUIMessage } from "@acme/features/messages";
+import { getFileType } from "@acme/features/library";
 import { Markdown } from "@acme/ui/markdown";
 import { Sheet, SheetContent, SheetTrigger } from "@acme/ui/sheet";
 
-import type { MyUIMessage } from "../types/message-types";
 import { LibraryListFile } from "~/features/library/components/library-file";
 import { LibraryFileIcon } from "~/features/library/components/library-file-icon";
-import { getFileType } from "~/features/library/lib/library-util";
 import { CopyButton } from "./copy-button";
 import { markdownComponents } from "./markdown-components";
 
 const MAX_DISPLAY_FILES = 3;
 
-export default function PromptMessage({ message }: { message: MyUIMessage }) {
+export function PromptMessage({ message }: { message: MyUIMessage }) {
   const [hovering, setHovering] = useState(false);
 
   return (

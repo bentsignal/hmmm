@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import type { Hotkey } from "../types";
+import type { Hotkey } from "@acme/features/shortcuts";
 
 function matchesKey(e: KeyboardEvent, hotkey: Hotkey) {
   return e.key.toUpperCase() === hotkey.key.toUpperCase();
@@ -28,7 +28,7 @@ function matchesHotkey(e: KeyboardEvent, hotkey: Hotkey) {
   );
 }
 
-export default function useShortcut({
+export function useShortcut({
   hotkey,
   callback,
 }: {

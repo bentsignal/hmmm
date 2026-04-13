@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 
 import { cn } from "~/lib/utils";
 
-export default function Back({ className }: { className?: string }) {
+export function Back({ className }: { className?: string }) {
   const navigate = useNavigate();
   return (
     <X

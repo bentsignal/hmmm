@@ -18,7 +18,6 @@ import { Route as PolicyTermsRouteImport } from './app/policy/terms'
 import { Route as PolicyPrivacyRouteImport } from './app/policy/privacy'
 import { Route as ApiUploadthingRouteImport } from './app/api/uploadthing'
 import { Route as ApiMailRouteImport } from './app/api/mail'
-import { Route as ChatXrRouteImport } from './app/_chat/xr'
 import { Route as ChatPricingRouteImport } from './app/_chat/pricing'
 import { Route as ChatAuthenticatedRouteImport } from './app/_chat/_authenticated'
 import { Route as AuthSignUpRouteImport } from './app/_auth/sign-up'
@@ -73,11 +72,6 @@ const ApiMailRoute = ApiMailRouteImport.update({
   id: '/api/mail',
   path: '/api/mail',
   getParentRoute: () => rootRouteImport,
-} as any)
-const ChatXrRoute = ChatXrRouteImport.update({
-  id: '/xr',
-  path: '/xr',
-  getParentRoute: () => ChatRoute,
 } as any)
 const ChatPricingRoute = ChatPricingRouteImport.update({
   id: '/pricing',
@@ -146,7 +140,6 @@ export interface FileRoutesByFullPath {
   '/login': typeof AuthLoginRoute
   '/sign-up': typeof AuthSignUpRoute
   '/pricing': typeof ChatPricingRoute
-  '/xr': typeof ChatXrRoute
   '/api/mail': typeof ApiMailRoute
   '/api/uploadthing': typeof ApiUploadthingRoute
   '/policy/privacy': typeof PolicyPrivacyRoute
@@ -166,7 +159,6 @@ export interface FileRoutesByTo {
   '/login': typeof AuthLoginRoute
   '/sign-up': typeof AuthSignUpRoute
   '/pricing': typeof ChatPricingRoute
-  '/xr': typeof ChatXrRoute
   '/api/mail': typeof ApiMailRoute
   '/api/uploadthing': typeof ApiUploadthingRoute
   '/policy/privacy': typeof PolicyPrivacyRoute
@@ -188,7 +180,6 @@ export interface FileRoutesById {
   '/_auth/sign-up': typeof AuthSignUpRoute
   '/_chat/_authenticated': typeof ChatAuthenticatedRouteWithChildren
   '/_chat/pricing': typeof ChatPricingRoute
-  '/_chat/xr': typeof ChatXrRoute
   '/api/mail': typeof ApiMailRoute
   '/api/uploadthing': typeof ApiUploadthingRoute
   '/policy/privacy': typeof PolicyPrivacyRoute
@@ -211,7 +202,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/sign-up'
     | '/pricing'
-    | '/xr'
     | '/api/mail'
     | '/api/uploadthing'
     | '/policy/privacy'
@@ -231,7 +221,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/sign-up'
     | '/pricing'
-    | '/xr'
     | '/api/mail'
     | '/api/uploadthing'
     | '/policy/privacy'
@@ -252,7 +241,6 @@ export interface FileRouteTypes {
     | '/_auth/sign-up'
     | '/_chat/_authenticated'
     | '/_chat/pricing'
-    | '/_chat/xr'
     | '/api/mail'
     | '/api/uploadthing'
     | '/policy/privacy'
@@ -340,13 +328,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/mail'
       preLoaderRoute: typeof ApiMailRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_chat/xr': {
-      id: '/_chat/xr'
-      path: '/xr'
-      fullPath: '/xr'
-      preLoaderRoute: typeof ChatXrRouteImport
-      parentRoute: typeof ChatRoute
     }
     '/_chat/pricing': {
       id: '/_chat/pricing'
@@ -481,14 +462,12 @@ const ChatAuthenticatedRouteWithChildren =
 interface ChatRouteChildren {
   ChatAuthenticatedRoute: typeof ChatAuthenticatedRouteWithChildren
   ChatPricingRoute: typeof ChatPricingRoute
-  ChatXrRoute: typeof ChatXrRoute
   ChatIndexRoute: typeof ChatIndexRoute
 }
 
 const ChatRouteChildren: ChatRouteChildren = {
   ChatAuthenticatedRoute: ChatAuthenticatedRouteWithChildren,
   ChatPricingRoute: ChatPricingRoute,
-  ChatXrRoute: ChatXrRoute,
   ChatIndexRoute: ChatIndexRoute,
 }
 

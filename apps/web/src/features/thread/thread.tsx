@@ -3,22 +3,22 @@ import { ChevronDown } from "lucide-react";
 import { Button } from "@acme/ui/button";
 import { ScrollArea } from "@acme/ui/scroll-area";
 
-import useThreadScroll from "./hooks/use-thread-scroll";
+import { useThreadScroll } from "./hooks/use-thread-scroll";
 
 import "@/features/messages/styles/github-dark.min.css";
 import "@/features/messages/styles/message-styles.css";
 
 import { useEffect, useState } from "react";
 
-import Abyss from "~/components/abyss";
-import UsageChatCallout from "~/features/billing/components/usage-chat-callout";
-import Messages from "~/features/messages";
-import useThreadStore from "~/features/thread/store";
-import useMessageStore from "../messages/store/message-store";
-import ThreadTitleUpdater from "./components/thread-title-updater";
-import useThreadStatus from "./hooks/use-thread-status";
+import { useMessageStore } from "@acme/features/messages";
+import { useThreadStatus, useThreadStore } from "@acme/features/thread";
 
-export default function Thread({ threadId }: { threadId: string }) {
+import { Abyss } from "~/components/abyss";
+import { UsageChatCallout } from "~/features/billing/components/usage-chat-callout";
+import { Messages } from "~/features/messages/messages";
+import { ThreadTitleUpdater } from "./components/thread-title-updater";
+
+export function Thread({ threadId }: { threadId: string }) {
   const [messagesLoaded, setMessagesLoaded] = useState(false);
 
   // auto scroll when new messages are sent, show/hide/handle scroll to bottom button
@@ -36,7 +36,8 @@ export default function Thread({ threadId }: { threadId: string }) {
   }, [threadId, setActiveThread]);
 
   // thread is not idle if waiting for a response, or if a response is streaming in
-  const { isThreadIdle } = useThreadStatus({ threadId });
+  const { isThreadIdle: isThreadIdleRaw } = useThreadStatus({ threadId });
+  const isThreadIdle = isThreadIdleRaw ?? false;
 
   return (
     <div className="relative flex h-full w-full flex-1 flex-col items-center justify-start">

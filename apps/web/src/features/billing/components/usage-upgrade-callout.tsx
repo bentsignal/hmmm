@@ -1,9 +1,10 @@
 import { useConvexAuth, useQuery } from "convex/react";
 
 import { api } from "@acme/db/api";
-import { QuickLink as Link } from "@acme/features/quick-link";
 
-export default function UsageUpgradeCallout() {
+import { QuickLink as Link } from "~/features/quick-link/quick-link";
+
+export function UsageUpgradeCallout() {
   const { isAuthenticated } = useConvexAuth();
   // eslint-disable-next-line no-restricted-syntax -- Convex useQuery does not support `select`; data is already minimal (name, price, max)
   const plan = useQuery(

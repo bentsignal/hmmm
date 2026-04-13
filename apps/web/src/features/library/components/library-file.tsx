@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 
+import type { LibraryFile, LibraryMode } from "@acme/features/library";
+import { getFileType } from "@acme/features/library";
 import { Button } from "@acme/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@acme/ui/tooltip";
 
-import type { LibraryFile, LibraryMode } from "../types";
 import { Image } from "~/components/image";
 import { cn } from "~/lib/utils";
 import { useFileInteraction } from "../hooks/use-file-interaction";
-import { getFileType } from "../lib";
 import { LibraryFileIcon } from "./library-file-icon";
 
 interface LibraryFileProps {

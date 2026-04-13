@@ -1,6 +1,6 @@
 import { Loader } from "@acme/ui/loader";
 
-export default function DefaultLoading() {
+export function DefaultLoading() {
   return (
     <div className="flex h-full w-full flex-col items-center justify-center">
       <Loader variant="dots" size="sm" />

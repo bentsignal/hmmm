@@ -6,6 +6,13 @@ import {
   Library as LibraryIcon,
 } from "lucide-react";
 
+import type {
+  LibrarySort,
+  LibraryTab,
+  LibraryView,
+} from "@acme/features/library";
+import { useDebouncedInput } from "@acme/features/hooks";
+import { useLibraryStore } from "@acme/features/library";
 import { Button } from "@acme/ui/button";
 import {
   Dialog,
@@ -15,8 +22,6 @@ import {
   DialogTitle,
 } from "@acme/ui/dialog";
 
-import type { LibrarySort, LibraryTab, LibraryView } from "./types";
-import useDebouncedInput from "~/hooks/use-debounced-input";
 import { cn } from "~/lib/utils";
 import { LibraryBulkToolbar } from "./components/library-bulk-toolbar";
 import { LibraryDeleteModal } from "./components/library-delete-modal";
@@ -25,7 +30,6 @@ import { LibraryPhotoViewer } from "./components/library-photo-viewer";
 import { LibraryRenameModal } from "./components/library-rename-modal";
 import { LibraryToolbar } from "./components/library-toolbar";
 import { LibraryUpload } from "./components/library-upload";
-import { useLibraryStore } from "./store";
 
 const tabs = [
   {
@@ -45,7 +49,7 @@ const tabs = [
   },
 ] satisfies { label: string; value: LibraryTab; icon: LucideIcon }[];
 
-export default function Library() {
+export function Library() {
   const libraryOpen = useLibraryStore((state) => state.libraryOpen);
   const setLibraryOpen = useLibraryStore((state) => state.setLibraryOpen);
   const setLibraryMode = useLibraryStore((state) => state.setLibraryMode);

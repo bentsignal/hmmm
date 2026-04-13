@@ -113,7 +113,7 @@ function ModelSelector({
   );
 }
 
-export default function UserInfoForm({
+export function UserInfoForm({
   userInfo,
   showModelSelector,
   models,

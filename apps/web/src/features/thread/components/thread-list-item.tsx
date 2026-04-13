@@ -3,7 +3,8 @@ import { memo } from "react";
 import equal from "fast-deep-equal";
 import { Brain } from "lucide-react";
 
-import { QuickLink as Link } from "@acme/features/quick-link";
+import type { Thread } from "@acme/features/thread";
+import { useThreadStore } from "@acme/features/thread";
 import { useIsMobile } from "@acme/ui/hooks/use-mobile";
 import {
   SidebarMenuButton,
@@ -11,11 +12,10 @@ import {
   useSidebar,
 } from "@acme/ui/sidebar";
 
-import type { Thread } from "../types";
-import useThreadStore from "~/features/thread/store";
+import { QuickLink as Link } from "~/features/quick-link/quick-link";
 import { cn } from "~/lib/utils";
 
-function ThreadListItem({ thread }: { thread: Thread }) {
+function ThreadListItemImpl({ thread }: { thread: Thread }) {
   const isMobile = useIsMobile();
   const { toggleSidebar } = useSidebar();
   const setHoveredThread = useThreadStore((state) => state.setHoveredThread);
@@ -59,6 +59,6 @@ function ThreadListItem({ thread }: { thread: Thread }) {
   );
 }
 
-export default memo(ThreadListItem, (prev, next) => {
+export const ThreadListItem = memo(ThreadListItemImpl, (prev, next) => {
   return equal(prev.thread, next.thread);
 });

@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { useConvexAuth } from "convex/react";
 import { toast } from "sonner";
 
+import { MAX_RECORDING_DURATION } from "@acme/features/speech";
+
 import { tryCatch } from "~/lib/utils";
-import { MAX_RECORDING_DURATION } from "../config";
 import { transcribeAudio } from "../server/transcribe-action";
 
 function clearTimerRefs(
@@ -69,7 +70,7 @@ async function processTranscription(options: {
   setRecordingDuration(0);
 }
 
-export default function useSpeechRecording() {
+export function useSpeechRecording() {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const { isAuthenticated } = useConvexAuth();

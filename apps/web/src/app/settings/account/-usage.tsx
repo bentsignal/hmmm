@@ -1,13 +1,13 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 
+import { userQueries } from "@acme/features/lib/queries";
 import { Card, CardContent } from "@acme/ui/card";
 
-import UsageCountdown from "~/features/billing/components/usage-countdown";
-import UsageProgress from "~/features/billing/components/usage-progress";
-import UsageUpgradeCallout from "~/features/billing/components/usage-upgrade-callout";
-import { userQueries } from "~/lib/queries";
+import { UsageCountdown } from "~/features/billing/components/usage-countdown";
+import { UsageProgress } from "~/features/billing/components/usage-progress";
+import { UsageUpgradeCallout } from "~/features/billing/components/usage-upgrade-callout";
 
-export default function Usage() {
+export function Usage() {
   const { data: usage } = useSuspenseQuery({
     ...userQueries.usage(),
     select: (data) => ({

@@ -1,5 +1,8 @@
 import { X } from "lucide-react";
 
+import type { LibraryFile } from "@acme/features/library";
+import { useComposerStore } from "@acme/features/composer";
+import { getFileType } from "@acme/features/library";
 import { Button } from "@acme/ui/button";
 import {
   Dialog,
@@ -9,12 +12,9 @@ import {
   DialogTrigger,
 } from "@acme/ui/dialog";
 
-import type { LibraryFile } from "~/features/library/types/library-types";
 import { Image } from "~/components/image";
 import { LibraryFileIcon } from "~/features/library/components/library-file-icon";
 import { useFileInteraction } from "~/features/library/hooks/use-file-interaction";
-import { getFileType } from "~/features/library/lib/library-util";
-import { useComposerStore } from "../store/composer-store";
 import { ComposerAddAttachments } from "./composer-add-attachments";
 
 interface AttachmentRowProps {

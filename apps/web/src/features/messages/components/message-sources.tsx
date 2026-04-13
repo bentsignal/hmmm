@@ -1,9 +1,9 @@
 import { useRef, useState } from "react";
 import { ExternalLink } from "lucide-react";
 
+import type { Source } from "@acme/features/types/source";
 import { Sheet, SheetContent, SheetTrigger } from "@acme/ui/sheet";
 
-import type { Source } from "~/types/source";
 import { Image } from "~/components/image";
 
 const loadedSignatures = new Set<string>();

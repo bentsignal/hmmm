@@ -9,7 +9,7 @@ import { api } from "@acme/db/api";
 
 import { UploadButton } from "~/lib/uploadthing";
 import { LibraryStorageStatus } from "./library-storage-status";
-import LibraryUploadProgress from "./library-upload-progress";
+import { LibraryUploadProgress } from "./library-upload-progress";
 
 export const LibraryUpload = () => {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);

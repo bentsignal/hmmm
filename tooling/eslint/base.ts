@@ -24,6 +24,7 @@ export const baseConfig = defineConfig(
     ],
     rules: {
       "turbo/no-undeclared-env-vars": "error",
+      "import/no-cycle": ["error", { maxDepth: 1, ignoreExternal: true }],
       "@typescript-eslint/no-unused-vars": [
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },

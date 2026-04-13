@@ -2,11 +2,11 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { CheckoutLink, CustomerPortalLink } from "@convex-dev/polar/react";
 
 import { api } from "@acme/db/api";
-import { QuickLink as Link } from "@acme/features/quick-link";
+import { pricingQueries, userQueries } from "@acme/features/lib/queries";
 import { Button } from "@acme/ui/button";
 
-import InfoCard from "~/components/info-card";
-import { pricingQueries, userQueries } from "~/lib/queries";
+import { InfoCard } from "~/components/info-card";
+import { QuickLink as Link } from "~/features/quick-link/quick-link";
 
 function useBilling() {
   const { data: allPlans } = useSuspenseQuery({

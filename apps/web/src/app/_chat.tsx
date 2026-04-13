@@ -1,14 +1,14 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
+import { threadQueries } from "@acme/features/lib/queries";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@acme/ui/sidebar";
 
-import ChatSidebar from "~/app/(chat)/-chat-sidebar";
-import Library from "~/features/library";
-import { threadQueries } from "~/lib/queries";
+import { ChatSidebar } from "~/app/(chat)/-chat-sidebar";
+import { Library } from "~/features/library/library";
 
 export const Route = createFileRoute("/_chat")({
   component: ChatLayout,

@@ -1,5 +1,6 @@
 import { useLocation } from "@tanstack/react-router";
 
+import type { ThreadGroup } from "@acme/features/thread";
 import { ContextMenu, ContextMenuTrigger } from "@acme/ui/context-menu";
 import {
   SidebarGroup,
@@ -8,10 +9,9 @@ import {
   SidebarMenuItem,
 } from "@acme/ui/sidebar";
 
-import type { ThreadGroup } from "../types";
-import PageLoader from "~/components/page-loader";
-import ThreadListContextItems from "./thread-list-context-items";
-import ThreadListItem from "./thread-list-item";
+import { PageLoader } from "~/components/page-loader";
+import { ThreadListContextItems } from "./thread-list-context-items";
+import { ThreadListItem } from "./thread-list-item";
 
 const ThreadListSkeleton = () => {
   return (
@@ -21,7 +21,7 @@ const ThreadListSkeleton = () => {
   );
 };
 
-export default function ThreadList({
+export function ThreadList({
   threadGroups,
   status,
   loadMore,

@@ -1,6 +1,6 @@
-import CustomAlert from "~/components/alert";
-import { useFileMutation } from "../hooks/use-file-mutation";
-import { useLibraryStore } from "../store";
+import { useFileMutation, useLibraryStore } from "@acme/features/library";
+
+import { CustomAlert } from "~/components/alert";
 
 export const LibraryDeleteModal = () => {
   const libraryDeleteModalOpen = useLibraryStore(

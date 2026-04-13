@@ -2,20 +2,19 @@ import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
-import { Box } from "lucide-react";
 
 import { api } from "@acme/db/api";
-import { QuickLink } from "@acme/features/quick-link";
+import { useUsage } from "@acme/features/billing";
+import { suggestionQueries } from "@acme/features/lib/queries";
 import { Button } from "@acme/ui/button";
 import { Loader } from "@acme/ui/loader";
 
-import Abyss from "~/components/abyss";
-import Logo from "~/components/logo";
-import UsageChatCallout from "~/features/billing/components/usage-chat-callout";
-import useUsage from "~/features/billing/hooks/use-usage";
-import Composer from "~/features/composer";
-import useSendMessage from "~/features/composer/hooks/use-send-message";
-import { suggestionQueries } from "~/lib/queries";
+import { Abyss } from "~/components/abyss";
+import { Logo } from "~/components/logo";
+import { UsageChatCallout } from "~/features/billing/components/usage-chat-callout";
+import { Composer } from "~/features/composer/composer";
+import { useSendMessage } from "~/features/composer/hooks/use-send-message";
+import { QuickLink } from "~/features/quick-link/quick-link";
 import { cn } from "~/lib/utils";
 
 export const Route = createFileRoute("/_chat/")({
@@ -29,7 +28,6 @@ function Home() {
   const { auth } = Route.useRouteContext({
     select: (ctx) => ({ auth: ctx.auth }),
   });
-  const showXr = /(?:^|; )xr=([^;]*)/.exec(document.cookie)?.[1] === "true";
   const authed = auth.isSignedIn;
 
   const [isLoading, setIsLoading] = useState(false);
@@ -72,14 +70,6 @@ function Home() {
         <Button asChild className="mt-2">
           <QuickLink to="/sign-up" className="text-lg font-semibold">
             Get Started
-          </QuickLink>
-        </Button>
-      )}
-      {authed && showXr && (
-        <Button asChild className="mt-2">
-          <QuickLink to="/xr" className="flex items-center gap-2">
-            <Box className="h-4 w-4" />
-            <span className="">Enter XR</span>
           </QuickLink>
         </Button>
       )}

@@ -1,6 +1,7 @@
+import { useComposerStore } from "@acme/features/composer";
+import { getFileType } from "@acme/features/library";
+
 import { LibraryFileIcon } from "~/features/library/components/library-file-icon";
-import { getFileType } from "~/features/library/lib/library-util";
-import { useComposerStore } from "../store/composer-store";
 import { ComposerAttachmentsList } from "./composer-attachments-list";
 
 // number of files that will be shown in the preview, above where you enter

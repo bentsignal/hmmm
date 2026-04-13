@@ -18,7 +18,7 @@ import type { RouterContext } from "~/router";
 import appStyles from "~/app/styles.css?url";
 import { SIDEBAR_COOKIE_NAME } from "~/lib/cookies";
 import { defaultTheme, getThemeClass, themes } from "~/lib/theme";
-import ThemeProvider from "~/providers/theme-provider";
+import { ThemeProvider } from "~/providers/theme-provider";
 
 const fetchClerkAuth = createServerFn({ method: "GET" }).handler(async () => {
   const { userId, getToken, isAuthenticated } = await auth();

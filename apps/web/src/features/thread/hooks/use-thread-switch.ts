@@ -1,6 +1,6 @@
 // import { useNavigate } from "@tanstack/react-router";
-// import useThreadStore from "../store";
-// import type { Thread } from "../types";
+// import { useThreadStore } from "@acme/features/thread";
+// import type { Thread } from "@acme/features/thread";
 // import { shortcuts } from "~/features/shortcuts";
 // import useShortcut from "~/features/shortcuts/hooks/use-shortcut";
 

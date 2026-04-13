@@ -1,5 +1,6 @@
 import { DownloadIcon, Image as ImageIcon, X } from "lucide-react";
 
+import { useLibraryStore } from "@acme/features/library";
 import { Button } from "@acme/ui/button";
 import {
   Dialog,
@@ -10,7 +11,6 @@ import {
 
 import { Image } from "~/components/image";
 import { useFileInteraction } from "../hooks/use-file-interaction";
-import { useLibraryStore } from "../store";
 
 const maxFileNameLength = 40;
 

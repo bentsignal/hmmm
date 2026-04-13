@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@acme/ui/card";
 
-export default function InfoCard({
+export function InfoCard({
   children,
   title,
 }: {

@@ -1,8 +1,7 @@
+import { useUsage } from "@acme/features/billing";
 import { Progress } from "@acme/ui/progress";
 
-import useUsage from "../hooks/use-usage";
-
-export default function UsageProgress({
+export function UsageProgress({
   initialRange,
   initialPercentageUsed,
 }: {

@@ -1,5 +1,14 @@
 import { Info } from "lucide-react";
 
+import type { MyUIMessage } from "@acme/features/messages";
+import { useTypewriter } from "@acme/features/hooks";
+import { getDateTimeString } from "@acme/features/lib/date-time-utils";
+import {
+  extractImageFromMessage,
+  extractSourcesFromMessage,
+  isErrorMessage,
+  isNoticeMessage,
+} from "@acme/features/messages";
 import { useIsMobile } from "@acme/ui/hooks/use-mobile";
 import { Markdown } from "@acme/ui/markdown";
 import {
@@ -9,24 +18,15 @@ import {
   TooltipTrigger,
 } from "@acme/ui/tooltip";
 
-import type { MyUIMessage } from "../types/message-types";
-import { useTypewriter } from "~/hooks/use-typewriter";
-import { getDateTimeString } from "~/lib/date-time-utils";
-import {
-  extractImageFromMessage,
-  extractSourcesFromMessage,
-  isErrorMessage,
-  isNoticeMessage,
-} from "../util/message-util";
 import { CopyButton } from "./copy-button";
-import ErrorMessage from "./error-message";
+import { ErrorMessage } from "./error-message";
 import { markdownComponents } from "./markdown-components";
-import MessageImage from "./message-image";
+import { MessageImage } from "./message-image";
 import { MessageSources } from "./message-sources";
-import MessageStatus from "./message-status";
-import NoticeMessage from "./notice-message";
+import { MessageStatus } from "./message-status";
+import { NoticeMessage } from "./notice-message";
 
-export default function ResponseMessage({
+export function ResponseMessage({
   message,
   isActive,
   threadId,

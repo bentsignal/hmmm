@@ -1,19 +1,18 @@
 import { useConvexAuth, usePaginatedQuery } from "convex/react";
 
-import { api } from "@acme/db/api";
-import { ContextMenu, ContextMenuTrigger } from "@acme/ui/context-menu";
-import { Loader } from "@acme/ui/loader";
-
 import type {
   LibraryFile,
   LibraryMode,
   LibrarySort,
   LibraryTab,
   LibraryView,
-} from "../types";
-import PageLoader from "~/components/page-loader";
-import { libraryPagination } from "~/features/library/config";
-import { useLibraryStore } from "../store";
+} from "@acme/features/library";
+import { api } from "@acme/db/api";
+import { libraryPagination, useLibraryStore } from "@acme/features/library";
+import { ContextMenu, ContextMenuTrigger } from "@acme/ui/context-menu";
+import { Loader } from "@acme/ui/loader";
+
+import { PageLoader } from "~/components/page-loader";
 import { LibraryGridFile, LibraryListFile } from "./library-file";
 import { LibraryFileContextItems } from "./library-file-context-items";
 

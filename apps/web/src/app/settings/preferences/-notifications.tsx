@@ -3,12 +3,12 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useMutation } from "convex/react";
 
 import { api } from "@acme/db/api";
+import { userQueries } from "@acme/features/lib/queries";
 import { Switch } from "@acme/ui/switch";
 
-import InfoCard from "~/components/info-card";
-import { userQueries } from "~/lib/queries";
+import { InfoCard } from "~/components/info-card";
 
-export default function Notifications() {
+export function Notifications() {
   const { data: newsletterStatus } = useSuspenseQuery({
     ...userQueries.newsletterPreference(),
     select: (data) => data ?? true,

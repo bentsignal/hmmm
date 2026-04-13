@@ -1,6 +1,10 @@
 import { Progress } from "@acme/ui/progress";
 
-const LibraryUploadProgress = ({ progress }: { progress: number | null }) => {
+export const LibraryUploadProgress = ({
+  progress,
+}: {
+  progress: number | null;
+}) => {
   if (progress === null) return null;
 
   return (
@@ -10,5 +14,3 @@ const LibraryUploadProgress = ({ progress }: { progress: number | null }) => {
     </div>
   );
 };
-
-export default LibraryUploadProgress;

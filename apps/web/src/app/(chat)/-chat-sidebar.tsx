@@ -2,6 +2,8 @@ import { useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Cog } from "lucide-react";
 
+import { shortcuts } from "@acme/features/shortcuts";
+import { useThreadList } from "@acme/features/thread";
 import { Button } from "@acme/ui/button";
 import { Input } from "@acme/ui/input";
 import {
@@ -13,17 +15,15 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@acme/ui/tooltip";
 
 import { LibraryButton } from "~/features/library/components/library-trigger-button";
-import { shortcuts } from "~/features/shortcuts";
-import useShortcut from "~/features/shortcuts/hooks/use-shortcut";
-import NewThreadButton from "~/features/thread/components/new-thread-button";
-import ThreadDeleteModal from "~/features/thread/components/thread-delete-modal";
-import ThreadList from "~/features/thread/components/thread-list";
-import ThreadRenameModal from "~/features/thread/components/thread-rename-modal";
-import useThreadList from "~/features/thread/hooks/use-thread-list";
+import { useShortcut } from "~/features/shortcuts/hooks/use-shortcut";
+import { NewThreadButton } from "~/features/thread/components/new-thread-button";
+import { ThreadDeleteModal } from "~/features/thread/components/thread-delete-modal";
+import { ThreadList } from "~/features/thread/components/thread-list";
+import { ThreadRenameModal } from "~/features/thread/components/thread-rename-modal";
 
 // import useThreadSwitch from "~/features/thread/hooks/use-thread-switch";
 
-export default function ChatSidebar() {
+export function ChatSidebar() {
   const searchRef = useRef<HTMLInputElement>(null);
 
   const {

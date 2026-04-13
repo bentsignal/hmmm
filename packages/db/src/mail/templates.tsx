@@ -77,7 +77,7 @@ const Newsletter = ({ title, stories, userId, origin }: NewsletterProps) => {
   );
 };
 
-export default async function getNewsletterHtml({
+export async function getNewsletterHtml({
   title,
   stories,
   userId,

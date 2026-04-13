@@ -1,8 +1,9 @@
-import InfoCard from "~/components/info-card";
-import { shortcuts } from "../shortcuts";
-import { getShortcutString } from "../util";
+import { shortcuts } from "@acme/features/shortcuts";
 
-export default function Shortcuts() {
+import { InfoCard } from "~/components/info-card";
+import { getShortcutString } from "../util/shortcut-util";
+
+export function Shortcuts() {
   return (
     <InfoCard title="Shortcuts">
       <div className="flex flex-col gap-2">

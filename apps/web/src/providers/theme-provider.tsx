@@ -36,7 +36,7 @@ export function useTheme() {
   return useThemeStore();
 }
 
-export default function ThemeProvider({
+export function ThemeProvider({
   children,
   initialTheme,
   initialStars,
@@ -70,7 +70,7 @@ const starPositions = Array.from({ length: 200 }, () => ({
 const Stars = ({ show }: { show: boolean }) => {
   if (!show) return null;
   return (
-    <div className="pointer-events-none absolute inset-0 h-screen w-screen transition-opacity duration-300">
+    <div className="animate-in fade-in pointer-events-none absolute inset-0 h-screen w-screen transition-opacity duration-1000">
       {starPositions.map((pos, index) => (
         <div
           className="bg-foreground absolute h-[1px] w-[1px]"

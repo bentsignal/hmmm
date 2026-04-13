@@ -3,15 +3,23 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./account": "./src/account/account-details.tsx",
-    "./image": "./src/image/image.tsx",
-    "./image/config": "./src/image/create-image-config.ts",
-    "./image/sizes": "./src/image/sizes.ts",
-    "./layout/account-item": "./src/layout/account-item.tsx",
-    "./layout/sign-out-item": "./src/layout/sign-out-item.tsx",
-    "./quick-link": "./src/quick-link/quick-link.tsx",
-    "./screen": "./src/screen/index.tsx",
-    "./theme": "./src/theme/index.tsx"
+    "./auth": "./src/auth/index.ts",
+    "./billing": "./src/billing/index.ts",
+    "./composer": "./src/composer/index.ts",
+    "./hooks": "./src/hooks/index.ts",
+    "./library": "./src/library/index.ts",
+    "./lib/color-utils": "./src/lib/color-utils.ts",
+    "./lib/date-time-utils": "./src/lib/date-time-utils.ts",
+    "./lib/prompt": "./src/lib/prompt.ts",
+    "./lib/queries": "./src/lib/queries.ts",
+    "./lib/result": "./src/lib/result.ts",
+    "./lib/theme": "./src/lib/theme.ts",
+    "./messages": "./src/messages/index.ts",
+    "./messages/extract-text": "./src/messages/util/extract-text.ts",
+    "./shortcuts": "./src/shortcuts/index.ts",
+    "./speech": "./src/speech/index.ts",
+    "./thread": "./src/thread/index.ts",
+    "./types/source": "./src/types/source.ts"
   },
   "license": "MIT",
   "scripts": {
@@ -22,13 +30,12 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
-    "next-themes": "^0.4.6"
+    "@acme/db": "workspace:*"
   },
   "devDependencies": {
     "@acme/eslint-config": "workspace:*",
     "@acme/prettier-config": "workspace:*",
     "@acme/tsconfig": "workspace:*",
-    "@acme/ui": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:react19",
     "eslint": "catalog:",
@@ -37,13 +44,15 @@
     "typescript": "catalog:"
   },
   "peerDependencies": {
+    "@convex-dev/agent": "catalog:",
+    "@convex-dev/react-query": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "catalog:",
-    "@tanstack/react-start": "catalog:",
-    "great-time": "catalog:",
-    "lucide-react": "catalog:",
+    "ai": "catalog:",
+    "convex": "catalog:",
     "react": "catalog:react19",
-    "rostra": "catalog:"
+    "sonner": "catalog:",
+    "zustand": "catalog:"
   },
   "prettier": "@acme/prettier-config"
 }

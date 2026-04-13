@@ -1,5 +1,6 @@
 import { Info } from "lucide-react";
 
+import type { SystemErrorCode } from "@acme/features/messages";
 import {
   Tooltip,
   TooltipContent,
@@ -7,9 +8,7 @@ import {
   TooltipTrigger,
 } from "@acme/ui/tooltip";
 
-import type { SystemErrorCode } from "../types/message-types";
-
-export default function ErrorMessage({
+export function ErrorMessage({
   code,
   dateTime,
 }: {

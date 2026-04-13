@@ -1,9 +1,8 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 
-import type { SearchReturnType } from ".";
-import { CachedSourceSchema } from ".";
-import kv from "../../../kv";
+import type { SearchReturnType } from "./schemas";
+import { kv } from "../../../kv";
 import { getCurrentDateTime } from "../../../lib/date_time_utils";
 import { tryCatch } from "../../../lib/utils";
 import {
@@ -11,6 +10,7 @@ import {
   formatCacheKey,
   logSearchCost,
 } from "../tool_helpers";
+import { CachedSourceSchema } from "./schemas";
 
 const NUM_RESULTS = 5;
 

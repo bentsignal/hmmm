@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
-import { threadQueries } from "~/lib/queries";
+import { threadQueries } from "@acme/features/lib/queries";
 
-export default function ThreadTitleUpdater({ threadId }: { threadId: string }) {
+export function ThreadTitleUpdater({ threadId }: { threadId: string }) {
   const { data: title } = useSuspenseQuery({
     ...threadQueries.title(threadId),
     select: (data) => data ?? "",

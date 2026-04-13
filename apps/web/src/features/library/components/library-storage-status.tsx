@@ -1,6 +1,6 @@
-import { QuickLink } from "@acme/features/quick-link";
 import { Progress } from "@acme/ui/progress";
 
+import { QuickLink } from "~/features/quick-link/quick-link";
 import { cn } from "~/lib/utils";
 
 export const LibraryStorageStatus = ({

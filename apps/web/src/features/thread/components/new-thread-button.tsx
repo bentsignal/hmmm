@@ -1,15 +1,15 @@
 import { useNavigate } from "@tanstack/react-router";
 import { SquarePen } from "lucide-react";
 
+import { shortcuts } from "@acme/features/shortcuts";
 import { Button } from "@acme/ui/button";
 import { useIsMobile } from "@acme/ui/hooks/use-mobile";
 import { useSidebar } from "@acme/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@acme/ui/tooltip";
 
-import { shortcuts } from "~/features/shortcuts";
-import useShortcut from "~/features/shortcuts/hooks/use-shortcut";
+import { useShortcut } from "~/features/shortcuts/hooks/use-shortcut";
 
-export default function NewThreadButton() {
+export function NewThreadButton() {
   const { toggleSidebar } = useSidebar();
   const navigate = useNavigate();
   const isMobile = useIsMobile();

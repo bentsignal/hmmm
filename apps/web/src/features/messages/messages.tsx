@@ -6,21 +6,21 @@ import "@/features/messages/styles/message-styles.css";
 
 import equal from "fast-deep-equal";
 
-import { Loader } from "@acme/ui/loader";
-
-import type { MyUIMessage } from "./types/message-types";
-import PageLoader from "~/components/page-loader";
+import type { MyUIMessage } from "@acme/features/messages";
 import {
   INVISIBLE_PAGE_LOADER_INDEX,
   PAGE_SIZE,
-} from "~/features/messages/config";
-import ThreadFollowUps from "../thread/components/thread-follow-ups";
-import PromptMessage from "./components/prompt-message";
-import ResponseMessage from "./components/response-message";
-import useMessages from "./hooks/use-messages";
-import { responseHasNoContent } from "./util/message-util";
+  responseHasNoContent,
+  useMessages,
+} from "@acme/features/messages";
+import { Loader } from "@acme/ui/loader";
 
-export default function Messages({
+import { PageLoader } from "~/components/page-loader";
+import { ThreadFollowUps } from "../thread/components/thread-follow-ups";
+import { PromptMessage } from "./components/prompt-message";
+import { ResponseMessage } from "./components/response-message";
+
+export function Messages({
   threadId,
   triggerMessagesLoaded,
   isThreadIdle,

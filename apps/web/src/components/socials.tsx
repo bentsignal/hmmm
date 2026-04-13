@@ -28,7 +28,7 @@ const socials = [
   size: number;
 }[];
 
-export default function Socials() {
+export function Socials() {
   return socials.map((social) => (
     <a
       key={social.label}

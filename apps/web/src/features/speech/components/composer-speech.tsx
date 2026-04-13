@@ -3,10 +3,10 @@ import { Mic } from "lucide-react";
 import { Button } from "@acme/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@acme/ui/tooltip";
 
-import useSpeech from "~/features/speech/hooks/use-speech";
+import { useSpeech } from "~/features/speech/hooks/use-speech";
 import { cn } from "~/lib/utils";
 
-export default function ComposerSpeech() {
+export function ComposerSpeech() {
   const { startSpeech, stopSpeech, inProgress, processing, disabled } =
     useSpeech();
 

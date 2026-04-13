@@ -3,7 +3,7 @@ import { Loader } from "@acme/ui/loader";
 
 import { cn } from "~/lib/utils";
 
-export default function CustomButton({
+export function CustomButton({
   loading,
   disabled,
   onClick,

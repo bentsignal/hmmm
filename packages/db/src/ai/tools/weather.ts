@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { internal } from "../../_generated/api";
 import { env } from "../../convex.env";
-import kv from "../../kv";
+import { kv } from "../../kv";
 import { tryCatch } from "../../lib/utils";
 import { formatCacheKey } from "./tool_helpers";
 

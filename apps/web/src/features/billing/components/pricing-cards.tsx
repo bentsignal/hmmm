@@ -3,13 +3,13 @@ import { X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 import { api } from "@acme/db/api";
-import { QuickLink as Link } from "@acme/features/quick-link";
+import { useCurrentPlan } from "@acme/features/billing";
 import { Button } from "@acme/ui/button";
 import * as Card from "@acme/ui/card";
 
-import DefaultLoading from "~/components/default-loading";
-import useCurrentPlan from "~/features/billing/hooks/use-current-plan";
+import { DefaultLoading } from "~/components/default-loading";
 import { markdownComponents } from "~/features/messages/components/markdown-components";
+import { QuickLink as Link } from "~/features/quick-link/quick-link";
 import { cn } from "~/lib/utils";
 
 interface Product {
@@ -88,7 +88,7 @@ function ProductCard({
   );
 }
 
-export default function PricingCards({ products }: { products: Product[] }) {
+export function PricingCards({ products }: { products: Product[] }) {
   const { plan, planLoading } = useCurrentPlan();
 
   if (planLoading) {

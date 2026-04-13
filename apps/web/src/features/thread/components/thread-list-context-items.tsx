@@ -1,11 +1,9 @@
 import { Pencil, Pin, PinOff, Trash } from "lucide-react";
 
+import { useThreadMutation, useThreadStore } from "@acme/features/thread";
 import * as ContextMenu from "@acme/ui/context-menu";
 
-import useThreadMutation from "../hooks/use-thread-mutation";
-import useThreadStore from "../store";
-
-export default function ThreadListContextItems() {
+export function ThreadListContextItems() {
   const { togglePinned } = useThreadMutation();
   const triggerRenameModal = useThreadStore(
     (state) => state.triggerRenameModal,

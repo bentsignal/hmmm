@@ -1,9 +1,8 @@
 import { Paperclip } from "lucide-react";
 
+import { useLibraryStore } from "@acme/features/library";
 import { Button } from "@acme/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@acme/ui/tooltip";
-
-import { useLibraryStore } from "~/features/library/store/library-store";
 
 export const ComposerAddAttachments = () => {
   const setLibraryOpen = useLibraryStore((state) => state.setLibraryOpen);

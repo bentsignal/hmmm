@@ -125,7 +125,7 @@ const reactImportRestrictions = [
     name: "@tanstack/react-router",
     importNames: ["Link"],
     message:
-      "Use `QuickLink` from `@acme/features/quick-link` instead. It has the same API as `Link` but with optimizations. If `Link` is genuinely needed, add an eslint-disable comment explaining why.",
+      "Use `QuickLink` from `~/features/quick-link/quick-link` instead. It has the same API as `Link` but with optimizations. If `Link` is genuinely needed, add an eslint-disable comment explaining why.",
   },
 ] as const;
 

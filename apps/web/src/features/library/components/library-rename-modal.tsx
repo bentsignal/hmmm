@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 
+import { useFileMutation, useLibraryStore } from "@acme/features/library";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,9 +12,6 @@ import {
   AlertDialogTitle,
 } from "@acme/ui/alert-dialog";
 import { Input } from "@acme/ui/input";
-
-import { useFileMutation } from "../hooks/use-file-mutation";
-import { useLibraryStore } from "../store";
 
 export const LibraryRenameModal = () => {
   const libraryRenameModalOpen = useLibraryStore(

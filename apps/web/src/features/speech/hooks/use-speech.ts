@@ -3,11 +3,12 @@ import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
 
-import useUsage from "~/features/billing/hooks/use-usage";
-import useComposerStore from "~/features/composer/store";
-import useSpeechRecording from "./use-speech-recording";
+import { useUsage } from "@acme/features/billing";
+import { useComposerStore } from "@acme/features/composer";
 
-export default function useSpeech() {
+import { useSpeechRecording } from "./use-speech-recording";
+
+export function useSpeech() {
   const setPrompt = useComposerStore((state) => state.setPrompt);
   // listening or recording speech
   const inProgress = useComposerStore(

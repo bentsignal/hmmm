@@ -1,12 +1,13 @@
 import { useEffect, useRef } from "react";
 import { useConvexAuth } from "convex/react";
 
-import { shortcuts } from "~/features/shortcuts";
-import useHotkey from "~/features/shortcuts/hooks/use-shortcut";
-import useComposerInput from "../hooks/use-composer-input";
-import useSendMessage from "../hooks/use-send-message";
+import { useComposerInput } from "@acme/features/composer";
+import { shortcuts } from "@acme/features/shortcuts";
 
-export default function ComposerInput({
+import { useShortcut as useHotkey } from "~/features/shortcuts/hooks/use-shortcut";
+import { useSendMessage } from "../hooks/use-send-message";
+
+export function ComposerInput({
   showInstantLoad,
   handleError,
 }: {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import useMessageStore from "~/features/messages/store";
+import { useMessageStore } from "@acme/features/messages";
 
 function getScrollViewport(scrollArea: HTMLDivElement | null) {
   return scrollArea?.querySelector("[data-radix-scroll-area-viewport]") ?? null;
@@ -13,7 +13,7 @@ function doScrollToBottom(scrollElement: Element, animate: boolean) {
   });
 }
 
-export default function useThreadScroll({
+export function useThreadScroll({
   messagesLoaded,
 }: {
   messagesLoaded: boolean;

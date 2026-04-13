@@ -1,8 +1,9 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import PricingCards from "~/features/billing/components/pricing-cards";
-import { pricingQueries } from "~/lib/queries";
+import { pricingQueries } from "@acme/features/lib/queries";
+
+import { PricingCards } from "~/features/billing/components/pricing-cards";
 
 export const Route = createFileRoute("/_chat/pricing")({
   component: PricingPage,

@@ -7,10 +7,10 @@ import { toast } from "sonner";
 import { api } from "@acme/db/api";
 import { Button } from "@acme/ui/button";
 
-import CustomAlert from "~/components/alert";
-import InfoCard from "~/components/info-card";
+import { CustomAlert } from "~/components/alert";
+import { InfoCard } from "~/components/info-card";
 
-export default function DeleteAccount() {
+export function DeleteAccount() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
 

@@ -2,8 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { api } from "@acme/db/api";
-
-import { validatePrompt } from "~/lib/prompt";
+import { validatePrompt } from "@acme/features/lib/prompt";
 
 export const Route = createFileRoute("/_chat/_authenticated/new")({
   validateSearch: z.object({

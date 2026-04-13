@@ -1,11 +1,11 @@
 import { Library as LibraryIcon } from "lucide-react";
 
+import { useLibraryStore } from "@acme/features/library";
+import { shortcuts } from "@acme/features/shortcuts";
 import { Button } from "@acme/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@acme/ui/tooltip";
 
-import { shortcuts } from "~/features/shortcuts";
-import useShortcut from "~/features/shortcuts/hooks/use-shortcut";
-import { useLibraryStore } from "../store";
+import { useShortcut } from "~/features/shortcuts/hooks/use-shortcut";
 
 export const LibraryButton = () => {
   const setLibraryOpen = useLibraryStore((state) => state.setLibraryOpen);

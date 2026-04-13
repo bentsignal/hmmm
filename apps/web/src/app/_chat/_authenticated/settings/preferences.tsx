@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import SettingsWrapper from "~/app/settings/-wrapper";
-import Appearance from "~/app/settings/preferences/-appearance";
-import Bangs from "~/app/settings/preferences/-bangs";
-import Experimental from "~/app/settings/preferences/-experimental";
-import Notifications from "~/app/settings/preferences/-notifications";
-import Personalization from "~/app/settings/preferences/-personalization";
-import Shortcuts from "~/features/shortcuts/components";
-import { userQueries } from "~/lib/queries";
+import { userQueries } from "@acme/features/lib/queries";
+
+import { SettingsWrapper } from "~/app/settings/-wrapper";
+import { Appearance } from "~/app/settings/preferences/-appearance";
+import { Bangs } from "~/app/settings/preferences/-bangs";
+import { Notifications } from "~/app/settings/preferences/-notifications";
+import { Personalization } from "~/app/settings/preferences/-personalization";
+import { Shortcuts } from "~/features/shortcuts/components/shortcuts";
 
 export const Route = createFileRoute(
   "/_chat/_authenticated/settings/preferences",
@@ -30,7 +30,6 @@ function PreferencesPage() {
       <Notifications />
       <Shortcuts />
       <Bangs />
-      <Experimental />
     </SettingsWrapper>
   );
 }

@@ -1,9 +1,10 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 
-import InfoCard from "~/components/info-card";
-import { userQueries } from "~/lib/queries";
+import { userQueries } from "@acme/features/lib/queries";
 
-export default function AccountInfo() {
+import { InfoCard } from "~/components/info-card";
+
+export function AccountInfo() {
   const { data: email } = useSuspenseQuery({
     ...userQueries.email(),
     select: (data) => data,

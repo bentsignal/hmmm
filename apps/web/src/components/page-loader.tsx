@@ -7,7 +7,7 @@ interface PageLoaderProps {
   singleUse?: boolean;
 }
 
-export default function PageLoader({
+export function PageLoader({
   status,
   loadMore,
   children,

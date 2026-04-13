@@ -30,6 +30,7 @@ import type * as ai_tools_index from "../ai/tools/index.js";
 import type * as ai_tools_search_current_events from "../ai/tools/search/current_events.js";
 import type * as ai_tools_search_index from "../ai/tools/search/index.js";
 import type * as ai_tools_search_postition_holder from "../ai/tools/search/postition_holder.js";
+import type * as ai_tools_search_schemas from "../ai/tools/search/schemas.js";
 import type * as ai_tools_tool_helpers from "../ai/tools/tool_helpers.js";
 import type * as ai_tools_weather from "../ai/tools/weather.js";
 import type * as app_actions from "../app/actions.js";
@@ -87,6 +88,7 @@ declare const fullApi: ApiFromModules<{
   "ai/tools/search/current_events": typeof ai_tools_search_current_events;
   "ai/tools/search/index": typeof ai_tools_search_index;
   "ai/tools/search/postition_holder": typeof ai_tools_search_postition_holder;
+  "ai/tools/search/schemas": typeof ai_tools_search_schemas;
   "ai/tools/tool_helpers": typeof ai_tools_tool_helpers;
   "ai/tools/weather": typeof ai_tools_weather;
   "app/actions": typeof app_actions;

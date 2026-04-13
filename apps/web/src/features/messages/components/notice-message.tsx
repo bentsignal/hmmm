@@ -1,9 +1,9 @@
-import { QuickLink as Link } from "@acme/features/quick-link";
+import type { SystemNoticeCode } from "@acme/features/messages";
+import { NOTICE_MESSAGES } from "@acme/features/messages";
 
-import type { SystemNoticeCode } from "../types/message-types";
-import { NOTICE_MESSAGES } from "../data/notice-messages";
+import { QuickLink as Link } from "~/features/quick-link/quick-link";
 
-export default function NoticeMessage({ code }: { code: SystemNoticeCode }) {
+export function NoticeMessage({ code }: { code: SystemNoticeCode }) {
   return (
     <div className="flex w-full items-center gap-1">
       <div className="flex justify-start gap-2">
