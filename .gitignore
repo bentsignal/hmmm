@@ -62,4 +62,7 @@ dist/
 # tanstack
 .tanstack
 
+# fumadocs-mdx (generated)
+apps/docs/.source/
+
 design
