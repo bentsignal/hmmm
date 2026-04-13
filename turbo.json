@@ -1,0 +1,75 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "topo": {
+      "dependsOn": ["^topo"]
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".cache/tsbuildinfo.json", "dist/**"]
+    },
+    "dev": {
+      "dependsOn": ["^dev"],
+      "cache": false,
+      "persistent": false
+    },
+    "format": {
+      "outputs": [".cache/.prettiercache"],
+      "outputLogs": "new-only"
+    },
+    "lint": {
+      "dependsOn": ["^topo"],
+      "outputs": [".cache/.eslintcache"]
+    },
+    "test": {
+      "dependsOn": ["^topo"],
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^topo"],
+      "outputs": [".cache/tsbuildinfo.json"]
+    },
+    "clean": {
+      "cache": false
+    },
+    "//#clean": {
+      "cache": false
+    },
+    "push": {
+      "cache": false,
+      "interactive": true
+    },
+    "studio": {
+      "cache": false,
+      "persistent": true
+    },
+    "ui-add": {
+      "cache": false,
+      "interactive": true
+    }
+  },
+  "globalEnv": [
+    "CLERK_SECRET_KEY",
+    "CONVEX_DEPLOYMENT",
+    "CONVEX_INTERNAL_KEY",
+    "OPENROUTER_API_KEY",
+    "OPENAI_API_KEY",
+    "UPLOADTHING_TOKEN",
+
+    "VITE_BASE_URL",
+    "VITE_CLERK_PUBLISHABLE_KEY",
+    "VITE_CLERK_SIGN_IN_URL",
+    "VITE_CLERK_SIGN_UP_URL",
+    "VITE_CLERK_FRONTEND_API_URL",
+    "VITE_CONVEX_URL"
+  ],
+  "globalPassThroughEnv": [
+    "NODE_ENV",
+    "CI",
+    "VERCEL",
+    "VERCEL_ENV",
+    "VERCEL_URL",
+    "npm_lifecycle_event"
+  ]
+}

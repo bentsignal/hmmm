@@ -1,0 +1,114 @@
+import type { Source } from "../../types/source";
+import type {
+  MyUIMessage,
+  MyUIMessagePart,
+  SystemErrorCode,
+  SystemNoticeCode,
+} from "../types/message-types";
+import { SystemErrorLabel, SystemNoticeLabel } from "../types/message-types";
+
+export { extractTextFromChildren } from "./extract-text";
+
+export function extractReasoningFromMessage(message: MyUIMessage) {
+  return message.parts
+    .filter((part) => part.type === "reasoning")
+    .map((part) => part.text)
+    .join("\n");
+}
+
+export function getLatestPartType(message: MyUIMessage) {
+  if (message.parts.length === 0) return null;
+  const lastPart = message.parts[message.parts.length - 1];
+  if (!lastPart) return null;
+  return lastPart.type;
+}
+
+const statusLabels = new Map<string, string>([
+  ["tool-dateTime", "Checking the time"],
+  ["tool-weather", "Checking the weather"],
+  ["tool-currentEvents", "Checking the news"],
+  ["tool-analyzeFiles", "Analyzing files"],
+  ["tool-positionHolder", "Searching for information"],
+  ["tool-initImage", "Generating image"],
+  ["tool-generateImage", "Generating image"],
+  ["tool-editImage", "Generating image"],
+]);
+
+export function getStatusLabel(parts: MyUIMessagePart[]) {
+  const part = parts[parts.length - 1];
+  if (!part) return "Reasoning";
+  return statusLabels.get(part.type) ?? "Reasoning";
+}
+
+export function formatError(code: SystemErrorCode) {
+  return `${SystemErrorLabel}${code}`;
+}
+
+export function formatNotice(code: SystemNoticeCode) {
+  return `${SystemNoticeLabel}${code}`;
+}
+
+const errorCodes = new Map([
+  ["G1", "G1"],
+  ["G2", "G2"],
+  ["G3", "G3"],
+  ["G4", "G4"],
+] satisfies [string, SystemErrorCode][]);
+
+const noticeCodes = new Map([["N1", "N1"]] satisfies [
+  string,
+  SystemNoticeCode,
+][]);
+
+export function isErrorMessage(message: string) {
+  if (!message.startsWith(SystemErrorLabel)) return null;
+  return errorCodes.get(message.replace(SystemErrorLabel, "")) ?? null;
+}
+
+export function isNoticeMessage(message: string) {
+  if (!message.startsWith(SystemNoticeLabel)) return null;
+  return noticeCodes.get(message.replace(SystemNoticeLabel, "")) ?? null;
+}
+
+export function extractSourcesFromMessage(message: MyUIMessage) {
+  return message.parts.flatMap((part) => {
+    if (
+      (part.type === "tool-currentEvents" ||
+        part.type === "tool-positionHolder") &&
+      part.output
+    ) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- tool output is untyped, runtime shape is { sources: Source[] }
+      const { sources } = part.output as { sources: Source[] };
+      return sources;
+    }
+    return [];
+  });
+}
+
+export function extractImageFromMessage(message: MyUIMessage) {
+  if (message.parts.length === 0) return null;
+  const lastPart = message.parts[message.parts.length - 1];
+  if (!lastPart) return null;
+  if (lastPart.type === "tool-initImage") {
+    return "in-progress";
+  }
+  const foundPart = message.parts.find(
+    (part) =>
+      part.type === "tool-generateImage" || part.type === "tool-editImage",
+  );
+  if (!foundPart || !("output" in foundPart)) return undefined;
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- tool output is untyped, runtime shape is { key?: string }
+  const output = foundPart.output as { key?: string } | undefined;
+  return output?.key;
+}
+
+export function responseHasNoContent(message: MyUIMessage) {
+  if (message.text.length > 0) return false;
+  const reasoning = extractReasoningFromMessage(message);
+  if (reasoning.length > 0) return false;
+  const sources = extractSourcesFromMessage(message);
+  if (sources.length > 0) return false;
+  const image = extractImageFromMessage(message);
+  if (image) return false;
+  return true;
+}

@@ -1,0 +1,67 @@
+{
+  "name": "@acme/db",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./api": {
+      "types": "./src/_generated/api.d.ts",
+      "default": "./src/_generated/api.js"
+    },
+    "./model": {
+      "types": "./src/_generated/dataModel.d.ts"
+    },
+    "./models/types": "./src/ai/models/types.ts",
+    "./models/helpers": "./src/ai/models/helpers.ts",
+    "./models/language": "./src/ai/models/language.ts",
+    "./models/image": "./src/ai/models/image.ts",
+    "./tools": "./src/ai/tools/index.ts",
+    "./tools/search": "./src/ai/tools/search/index.ts",
+    "./subscription": "./src/user/subscription.ts",
+    "./library-types": "./src/types/library.ts"
+  },
+  "scripts": {
+    "dev": "convex dev",
+    "build": "convex deploy",
+    "clean": "git clean -xdf .cache .turbo node_modules",
+    "format": "prettier --check . --ignore-path ../../.gitignore --ignore-path .prettierignore",
+    "fomat:fix": "prettier --write . --ignore-path ../../.gitignore --ignore-path .prettierignore",
+    "lint": "eslint --flag unstable_native_nodejs_ts_config",
+    "typecheck": "tsc --noEmit",
+    "setup": "convex dev --until-success",
+    "logs": "convex logs"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^3.0.52",
+    "@ai-sdk/provider-utils": "^4.0.23",
+    "@clerk/nextjs": "^6.25.4",
+    "@convex-dev/agent": "catalog:",
+    "@convex-dev/aggregate": "^0.2.1",
+    "@convex-dev/migrations": "^0.3.3",
+    "@convex-dev/polar": "catalog:",
+    "@convex-dev/rate-limiter": "^0.3.2",
+    "@convex-dev/resend": "^0.2.3",
+    "@convex-dev/sharded-counter": "^0.2.0",
+    "@fal-ai/client": "^1.6.2",
+    "@openrouter/ai-sdk-provider": "^2.5.1",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.6",
+    "@upstash/redis": "^1.35.3",
+    "ai": "catalog:",
+    "convex": "catalog:",
+    "convex-env": "^2.5.0",
+    "convex-helpers": "catalog:",
+    "react": "catalog:react19",
+    "svix": "^1.67.0",
+    "uploadthing": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@acme/eslint-config": "workspace:*",
+    "@convex-dev/eslint-plugin": "^1.1.1",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:react19",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -1,0 +1,102 @@
+import { useRef } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { Cog } from "lucide-react";
+
+import { shortcuts } from "@acme/features/shortcuts";
+import { useThreadList } from "@acme/features/thread";
+import { Button } from "@acme/ui/button";
+import { Input } from "@acme/ui/input";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenu,
+} from "@acme/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@acme/ui/tooltip";
+
+import { LibraryButton } from "~/features/library/components/library-trigger-button";
+import { useShortcut } from "~/features/shortcuts/hooks/use-shortcut";
+import { NewThreadButton } from "~/features/thread/components/new-thread-button";
+import { ThreadDeleteModal } from "~/features/thread/components/thread-delete-modal";
+import { ThreadList } from "~/features/thread/components/thread-list";
+import { ThreadRenameModal } from "~/features/thread/components/thread-rename-modal";
+
+// import useThreadSwitch from "~/features/thread/hooks/use-thread-switch";
+
+export function ChatSidebar() {
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const {
+    threads,
+    threadGroups,
+    setSearch,
+    loadMoreThreads,
+    status,
+    loaderId,
+  } = useThreadList();
+
+  // switch between threads with tab and shift tab
+  // useThreadSwitch({
+  //   threads,
+  // });
+
+  // focus search on "ctrl/cmd + shift + ?"
+  useShortcut({
+    hotkey: shortcuts.search.hotkey,
+    callback: () => {
+      if (searchRef.current) {
+        searchRef.current.focus();
+      }
+    },
+  });
+
+  const loadingFirstPage = status === "LoadingFirstPage";
+  const noThreads = threads.length === 0 && !loadingFirstPage;
+
+  return (
+    <Sidebar variant="floating" className="py-4 pr-0 pl-4 select-none">
+      <SidebarHeader className="md:px-auto flex flex-row items-center justify-between px-4 pt-4 md:pt-4">
+        <Input
+          placeholder="Search"
+          className="w-full"
+          onChange={(e) => setSearch(e.target.value)}
+          ref={searchRef}
+        />
+        <SettingsButton />
+        <LibraryButton />
+        <NewThreadButton />
+      </SidebarHeader>
+      <SidebarContent className="scrollbar-thin scrollbar-thumb-secondary scrollbar-track-transparent overflow-y-auto mask-b-from-95%">
+        <SidebarMenu>
+          <ThreadList
+            threadGroups={threadGroups}
+            status={status}
+            loadMore={loadMoreThreads}
+            noThreads={noThreads}
+            loaderId={loaderId}
+          />
+        </SidebarMenu>
+        <ThreadDeleteModal />
+        <ThreadRenameModal />
+      </SidebarContent>
+    </Sidebar>
+  );
+}
+
+function SettingsButton() {
+  const navigate = useNavigate();
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="outline"
+          onClick={() => navigate({ to: "/settings/preferences" })}
+          size="icon"
+        >
+          <Cog className="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>Settings</TooltipContent>
+    </Tooltip>
+  );
+}
