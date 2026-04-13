@@ -1,12 +1,15 @@
 import type { ReactNode } from "react";
+import { TanStackDevtools } from "@tanstack/react-devtools";
 import {
   createRootRouteWithContext,
   HeadContent,
   Outlet,
   Scripts,
 } from "@tanstack/react-router";
+import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
 import { getCookie } from "@tanstack/react-start/server";
+import { ReactScan } from "@/components/react-scan";
 import { ClerkProvider, useAuth } from "@clerk/tanstack-react-start";
 import { auth } from "@clerk/tanstack-react-start/server";
 import { dark } from "@clerk/themes";
@@ -128,6 +131,19 @@ function RootComponent() {
             >
               <Outlet />
             </ThemeProvider>
+            <TanStackDevtools
+              config={{
+                position: "bottom-left",
+                inspectHotkey: ["Control", "Shift", "I"],
+              }}
+              plugins={[
+                {
+                  name: "react-router",
+                  render: <TanStackRouterDevtoolsPanel />,
+                },
+              ]}
+            />
+            <ReactScan />
             <Toaster />
             <Scripts />
           </body>

@@ -22,6 +22,7 @@ export const env = createEnv({
     CONVEX_DEPLOY_KEY: z.string().min(1).optional(),
   },
   client: {
+    VITE_NODE_ENV: z.enum(["development", "production"]).default("production"),
     VITE_BASE_URL: z.string().min(1),
     VITE_CLERK_PUBLISHABLE_KEY: z.string().min(1),
     VITE_CLERK_SIGN_IN_URL: z.string().min(1),
