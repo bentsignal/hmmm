@@ -21,7 +21,7 @@ export default defineConfig(async ({ mode }) => {
   return {
     server: {
       host: true,
-      port: 3100,
+      port: 3010,
     },
     plugins: [
       devtools({}),
