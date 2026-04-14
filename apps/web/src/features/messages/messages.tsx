@@ -74,7 +74,6 @@ export function Messages({
                 key={stableKey}
               >
                 <Message
-                  threadId={threadId}
                   message={item}
                   isActive={index === messages.length - 1 && !isThreadIdle}
                 />
@@ -82,12 +81,7 @@ export function Messages({
             );
           }
           return (
-            <Message
-              key={stableKey}
-              threadId={threadId}
-              message={item}
-              isActive={isStreaming}
-            />
+            <Message key={stableKey} message={item} isActive={isStreaming} />
           );
         })}
         {waiting && (
@@ -104,11 +98,9 @@ export function Messages({
 function PureMessage({
   message,
   isActive,
-  threadId,
 }: {
   message: MyUIMessage;
   isActive: boolean;
-  threadId: string;
 }) {
   if (message.role === "assistant" && responseHasNoContent(message)) {
     return null;
@@ -119,11 +111,7 @@ function PureMessage({
       {message.role === "user" ? (
         <PromptMessage message={message} />
       ) : message.role === "assistant" && message.parts.length > 0 ? (
-        <ResponseMessage
-          threadId={threadId}
-          message={message}
-          isActive={isActive}
-        />
+        <ResponseMessage message={message} isActive={isActive} />
       ) : null}
     </div>
   );

@@ -1,7 +1,10 @@
 import type { ImgHTMLAttributes, SyntheticEvent } from "react";
 import { useRef, useState } from "react";
+import { ImageOff } from "lucide-react";
 
 import { cn } from "@acme/ui/utils";
+
+export type ImageErrorMode = "text" | "icon" | "none";
 
 export interface ImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   src: string;
@@ -9,6 +12,7 @@ export interface ImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   height: number;
   alt: string;
   disableReveal?: boolean;
+  errorMode?: ImageErrorMode;
   errorFallbackText?: string;
 }
 
@@ -30,6 +34,10 @@ function getImageSignature({
 
 function imageElementIsReady(image: HTMLImageElement) {
   return image.complete && image.naturalWidth > 0;
+}
+
+function imageElementHasErrored(image: HTMLImageElement) {
+  return image.complete && image.naturalWidth === 0;
 }
 
 function useImageLoadState(imageSignature: string, shouldReveal: boolean) {
@@ -62,6 +70,12 @@ function useImageLoadState(imageSignature: string, shouldReveal: boolean) {
     imageRef.current = imageElement;
 
     if (!imageElement || !shouldReveal || currentState !== "loading") return;
+
+    if (imageElementHasErrored(imageElement)) {
+      setLoadState({ signature: imageSignature, state: "error" });
+      return;
+    }
+
     if (!imageElementIsReady(imageElement)) return;
 
     if (loadedImageSignatures.has(imageSignature)) {
@@ -95,6 +109,35 @@ function useImageLoadState(imageSignature: string, shouldReveal: boolean) {
   return { currentState, setImageRef, handleLoad, handleError };
 }
 
+function renderError({
+  errorMode = "text",
+  errorFallbackText,
+  className,
+}: {
+  errorMode: ImageErrorMode | undefined;
+  errorFallbackText: string;
+  className: string | undefined;
+}) {
+  if (errorMode === "none") return null;
+  if (errorMode === "icon") {
+    return (
+      <div className={cn("flex items-center justify-center", className)}>
+        <ImageOff className="text-destructive h-4 w-4" />
+      </div>
+    );
+  }
+  return (
+    <div
+      className={cn(
+        "bg-muted/60 text-muted-foreground flex items-center justify-center text-center text-sm",
+        className,
+      )}
+    >
+      {errorFallbackText}
+    </div>
+  );
+}
+
 export function Image({
   src,
   width,
@@ -102,6 +145,7 @@ export function Image({
   sizes,
   loading = "lazy",
   disableReveal = false,
+  errorMode,
   errorFallbackText = "Failed to load image",
   className,
   onLoad,
@@ -118,16 +162,7 @@ export function Image({
   const hideImage = shouldReveal && currentState !== "ready";
 
   if (shouldReveal && currentState === "error") {
-    return (
-      <div
-        className={cn(
-          "bg-muted/60 text-muted-foreground flex items-center justify-center text-center text-sm",
-          className,
-        )}
-      >
-        {errorFallbackText}
-      </div>
-    );
+    return renderError({ errorMode, errorFallbackText, className });
   }
 
   return (

@@ -1,4 +1,3 @@
-import { useRef, useState } from "react";
 import { ExternalLink } from "lucide-react";
 
 import type { Source } from "@acme/features/types/source";
@@ -6,21 +5,13 @@ import { Sheet, SheetContent, SheetTrigger } from "@acme/ui/sheet";
 
 import { Image } from "~/components/image";
 
-const loadedSignatures = new Set<string>();
-
-function PureMessageSources({
-  threadId,
-  sources,
-}: {
-  threadId: string;
-  sources: Source[];
-}) {
+function PureMessageSources({ sources }: { sources: Source[] }) {
   if (sources.length === 0) return null;
 
   return (
     <Sheet>
       <SheetTrigger className="w-full">
-        <PreviewSources threadId={threadId} sources={sources} />
+        <PreviewSources sources={sources} />
       </SheetTrigger>
       <SheetContent className="z-150 w-2xl max-w-screen overflow-y-auto md:max-w-xl">
         <ExpandedSources sources={sources} />
@@ -31,26 +22,12 @@ function PureMessageSources({
 
 export const MessageSources = PureMessageSources;
 
-function PreviewSources({
-  threadId,
-  sources,
-}: {
-  threadId: string;
-  sources: Source[];
-}) {
-  const images = sources
-    .map((source) => source.image)
+function PreviewSources({ sources }: { sources: Source[] }) {
+  const favicons = sources
     .filter(
-      (image): image is string => typeof image === "string" && image.length > 0,
+      (source, index, self) =>
+        self.findIndex((t) => t.favicon === source.favicon) === index,
     )
-    .slice(0, 5);
-
-  const dedupedFavicons = sources.filter(
-    (source, index, self) =>
-      self.findIndex((t) => t.favicon === source.favicon) === index,
-  );
-
-  const favicons = dedupedFavicons
     .map((source) => source.favicon)
     .filter(
       (favicon): favicon is string =>
@@ -58,74 +35,26 @@ function PreviewSources({
     )
     .slice(0, 5);
 
-  // store signature of image and favicons outside scope of component. this is to
-  // prevent the fade animation from replaying when the component remounts. not in
-  // love with this, but it works. shouldn't have severe performance or memory
-  // implications.
-  const loadedCount = useRef(0);
-  const signature = `${threadId}|${images.join("|")}|${favicons.join("|")}`;
-  const [allLoaded, setAllLoaded] = useState(() =>
-    loadedSignatures.has(signature),
-  );
-
-  function handleLoadOrError() {
-    loadedCount.current += 1;
-    // if (loadedCount.current >= images.length + favicons.length) {
-    if (loadedCount.current >= favicons.length) {
-      setAllLoaded(true);
-      loadedSignatures.add(signature);
-    }
-  }
-
   return (
-    <div
-      className="flex w-full flex-col gap-4 transition-opacity duration-500 select-none hover:cursor-pointer"
-      style={{ opacity: allLoaded ? 1 : 0 }}
-    >
-      {/* <div className="relative flex h-48 w-full flex-col gap-2">
-        {images.map((source, index) => (
-          <div key={`image-${index}`}>
-            <img
-              src={source ?? ""}
+    <div className="bg-card supports-[backdrop-filter]:bg-card/50 flex w-fit items-center gap-3 rounded-full px-4 py-2 select-none hover:cursor-pointer">
+      {favicons.length > 0 && (
+        <div className="flex gap-2">
+          {favicons.map((favicon, index) => (
+            <Image
+              key={`favicon-${index}`}
+              src={favicon}
               alt={" "}
-              className="absolute top-0 rounded-lg object-cover"
-              style={{
-                filter: `blur(${index + 0.5}px)`,
-                opacity: 1 - index * 0.1,
-                left: `calc(0px + ${index > 0 ? 100 * Math.log(index * 10) - 100 : 0}px)`,
-                top: `calc(0px + ${(index * 10) / 2}px)`,
-                zIndex: 10 - index,
-                width: `calc(256px - ${index * 20}px)`,
-                height: `calc(192px - ${index * 10}px)`,
-              }}
-              onLoad={handleLoadOrError}
-              onError={handleLoadOrError}
+              width={16}
+              height={16}
+              className="h-4 w-4 rounded-lg"
+              errorMode="icon"
             />
-          </div>
-        ))}
-      </div> */}
-      <div className="bg-card supports-[backdrop-filter]:bg-card/50 flex w-fit items-center gap-3 rounded-full px-4 py-2">
-        {favicons.length > 0 && (
-          <div className="flex gap-2">
-            {favicons.map((favicon, index) => (
-              <div key={`favicon-${index}`}>
-                <Image
-                  src={favicon}
-                  alt={" "}
-                  width={16}
-                  height={16}
-                  className="h-4 w-4 rounded-lg"
-                  onLoad={handleLoadOrError}
-                  onError={handleLoadOrError}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-        <span className="text-muted-foreground text-sm font-bold">
-          {sources.length} source{sources.length > 1 ? "s" : ""}
-        </span>
-      </div>
+          ))}
+        </div>
+      )}
+      <span className="text-muted-foreground text-sm font-bold">
+        {sources.length} source{sources.length > 1 ? "s" : ""}
+      </span>
     </div>
   );
 }
