@@ -4,7 +4,7 @@ const FPS = 20;
 const MS_PER_FRAME = 1000 / FPS;
 const INITIAL_CHARS_PER_SEC = 128;
 
-export type SmoothTextOptions = {
+export interface SmoothTextOptions {
   /**
    * The number of characters to display per second.
    */
@@ -15,7 +15,17 @@ export type SmoothTextOptions = {
    * This will start streaming the first value it sees.
    */
   startStreaming?: boolean;
-};
+}
+
+interface SmoothState {
+  tick: number;
+  cursor: number;
+  lastUpdate: number;
+  lastUpdateLength: number;
+  charsPerMs: number;
+  initial: boolean;
+}
+
 /**
  * A hook that smoothly displays text as it is streamed.
  *
@@ -32,76 +42,68 @@ export function useSmoothText(
     charsPerSec = INITIAL_CHARS_PER_SEC,
     startStreaming = false,
   }: SmoothTextOptions = {},
-): [string, { cursor: number; isStreaming: boolean }] {
+) {
   const [visibleText, setVisibleText] = useState(
     startStreaming ? "" : text || "",
   );
-  const smoothState = useRef({
-    tick: Date.now(),
-    cursor: visibleText.length,
-    lastUpdate: Date.now(),
-    lastUpdateLength: text.length,
-    charsPerMs: charsPerSec / 1000,
-    initial: true,
-  });
+  const stateRef = useRef<SmoothState | null>(null);
+  const [cursor, setCursor] = useState(visibleText.length);
 
-  const isStreaming = smoothState.current.cursor < text.length;
+  const isStreaming = cursor < text.length;
 
+  // eslint-disable-next-line no-restricted-syntax -- Effect needed to drive smooth-text animation via setInterval
   useEffect(() => {
-    if (!isStreaming) {
+    stateRef.current ??= {
+      tick: Date.now(),
+      cursor: visibleText.length,
+      lastUpdate: Date.now(),
+      lastUpdateLength: text.length,
+      charsPerMs: charsPerSec / 1000,
+      initial: true,
+    };
+    const state = stateRef.current;
+    if (state.cursor >= text.length) {
       return;
     }
-    if (smoothState.current.lastUpdateLength !== text.length) {
-      const timeSinceLastUpdate = Date.now() - smoothState.current.lastUpdate;
+    if (state.lastUpdateLength !== text.length) {
+      const timeSinceLastUpdate = Date.now() - state.lastUpdate;
       const latestCharsPerMs =
-        (text.length - smoothState.current.lastUpdateLength) /
-        timeSinceLastUpdate;
-      // Is the rate increasing?
-      const rateError = latestCharsPerMs - smoothState.current.charsPerMs;
-      // Is our visible text falling behind what it could show?
-      const charLag =
-        smoothState.current.lastUpdateLength - smoothState.current.cursor;
+        (text.length - state.lastUpdateLength) / timeSinceLastUpdate;
+      const rateError = latestCharsPerMs - state.charsPerMs;
+      const charLag = state.lastUpdateLength - state.cursor;
       const lagRate = charLag / timeSinceLastUpdate;
-      const charsPerMs =
+      const nextCharsPerMs =
         latestCharsPerMs +
-        (smoothState.current.initial
-          ? 0
-          : Math.max(0, (rateError + lagRate) / 2));
-      smoothState.current.initial = false;
-      // Smooth out the charsPerSec by weighting it with the previous value.
-      smoothState.current.charsPerMs = Math.min(
-        (2 * charsPerMs + smoothState.current.charsPerMs) / 3,
-        smoothState.current.charsPerMs * 2,
+        (state.initial ? 0 : Math.max(0, (rateError + lagRate) / 2));
+      state.initial = false;
+      state.charsPerMs = Math.min(
+        (2 * nextCharsPerMs + state.charsPerMs) / 3,
+        state.charsPerMs * 2,
       );
     }
-    smoothState.current.tick = Math.max(
-      smoothState.current.tick,
-      Date.now() - MS_PER_FRAME,
-    );
-    smoothState.current.lastUpdate = Date.now();
-    smoothState.current.lastUpdateLength = text.length;
+    state.tick = Math.max(state.tick, Date.now() - MS_PER_FRAME);
+    state.lastUpdate = Date.now();
+    state.lastUpdateLength = text.length;
 
     function update() {
-      if (smoothState.current.cursor >= text.length) {
+      if (state.cursor >= text.length) {
         return;
       }
       const now = Date.now();
-      const timeSinceLastUpdate = now - smoothState.current.tick;
+      const timeSinceLastUpdate = now - state.tick;
       const charsSinceLastUpdate = Math.floor(
-        timeSinceLastUpdate * smoothState.current.charsPerMs,
+        timeSinceLastUpdate * state.charsPerMs,
       );
-      const chars = Math.min(
-        charsSinceLastUpdate,
-        text.length - smoothState.current.cursor,
-      );
-      smoothState.current.cursor += chars;
-      smoothState.current.tick += chars / smoothState.current.charsPerMs;
-      setVisibleText(text.slice(0, smoothState.current.cursor));
+      const chars = Math.min(charsSinceLastUpdate, text.length - state.cursor);
+      state.cursor += chars;
+      state.tick += chars / state.charsPerMs;
+      setVisibleText(text.slice(0, state.cursor));
+      setCursor(state.cursor);
     }
     update();
     const interval = setInterval(update, MS_PER_FRAME);
     return () => clearInterval(interval);
-  }, [text, isStreaming, charsPerSec]);
+  }, [text, charsPerSec, visibleText.length]);
 
-  return [visibleText, { cursor: smoothState.current.cursor, isStreaming }];
+  return [visibleText, { cursor, isStreaming }] as const;
 }

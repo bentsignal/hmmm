@@ -7,7 +7,6 @@ import { v } from "convex/values";
 
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
-import type { ThreadDoc } from "./validators";
 import { internal } from "../_generated/api";
 import {
   internalAction,
@@ -15,18 +14,16 @@ import {
   internalQuery,
 } from "../_generated/server";
 import schema from "../schema";
-import { deleteMessage } from "./messages";
-import { deleteStreamsPageForThreadId } from "./streams";
+import { deleteMessage } from "./handlers/messages";
+import { deleteStreamsPageForThreadId } from "./handlers/streams";
 import { vPaginationResult, vThreadDoc } from "./validators";
 
-function publicThreadOrNull(thread: Doc<"threads"> | null): ThreadDoc | null {
-  if (thread === null) {
-    return null;
-  }
+function publicThreadOrNull(thread: Doc<"threads"> | null) {
+  if (thread === null) return null;
   return publicThread(thread);
 }
 
-function publicThread(thread: Doc<"threads">): ThreadDoc {
+function publicThread(thread: Doc<"threads">) {
   return {
     _id: thread._id,
     _creationTime: thread._creationTime,
@@ -140,15 +137,13 @@ export const searchThreadTitles = internalQuery({
 export const deleteAllForThreadIdSync = internalAction({
   args: { threadId: v.id("threads"), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    let cursor: string | undefined = undefined;
+    let cursor: string | undefined;
     while (true) {
-      const result: DeleteThreadReturns = await ctx.runMutation(
+      const result = await ctx.runMutation(
         internal.agent.threads._deletePageForThreadId,
         { threadId: args.threadId, cursor, limit: args.limit },
       );
-      if (result.isDone) {
-        break;
-      }
+      if (result.isDone) break;
       cursor = result.cursor;
     }
     await ctx.runAction(
@@ -173,7 +168,6 @@ const deleteThreadReturns = {
   cursor: v.string(),
   isDone: v.boolean(),
 };
-type DeleteThreadReturns = ObjectType<typeof deleteThreadReturns>;
 
 export const _deletePageForThreadId = internalMutation({
   args: deleteThreadArgs,
@@ -230,7 +224,7 @@ export const deleteAllForThreadIdAsync = internalMutation({
 async function deletePageForThreadIdHandler(
   ctx: MutationCtx,
   args: DeleteThreadArgs,
-): Promise<DeleteThreadReturns> {
+) {
   const messages = await paginator(ctx.db, schema)
     .query("messages")
     .withIndex("threadId_status_tool_order_stepOrder", (q) =>

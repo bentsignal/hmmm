@@ -1,10 +1,8 @@
 import type {
   CallSettings,
-  GenerateObjectResult,
   IdGenerator,
   LanguageModel,
   ModelMessage,
-  StepResult,
   StopCondition,
   ToolSet,
 } from "ai";
@@ -13,15 +11,150 @@ import { stepCountIs } from "ai";
 import { assert, omit } from "convex-helpers";
 
 import type { ModelOrMetadata } from "../shared";
-import type { Message, MessageDoc } from "../validators";
-import type { ToolCtx } from "./createTool";
+import type { ToolCtx } from "../tools";
+import type { Message } from "../validators";
 import type { Agent } from "./index";
 import type { ActionCtx, AgentComponent, Config, Options } from "./types";
-import { serializeObjectResult, serializeResponseMessages } from "../mapping";
-import { getModelName, getProviderName } from "../shared";
-import { wrapTools } from "./createTool";
-import { saveInputMessages } from "./saveInputMessages";
+import { wrapTools } from "../tools";
 import { fetchContextWithPrompt } from "./search";
+import { resolveInputs, resolveUserId } from "./start/resolve";
+import { createSaveHandler } from "./start/save";
+
+function makeModelRef(initial: ModelOrMetadata) {
+  return { current: initial };
+}
+
+/**
+ * Widen a narrowed `ActionCtx` back to the full `GenericActionCtx` shape
+ * required by `ToolCtx`. `ActionCtx` is a structural subset of
+ * `GenericActionCtx`; we never add missing methods here, we just restore
+ * the type so tool definitions can access `ctx.db`, `ctx.scheduler`, etc.
+ */
+function widenActionCtx<CustomCtx extends object>(ctx: ActionCtx & CustomCtx) {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- ActionCtx is a Pick<> of GenericActionCtx; this restores the full shape for ToolCtx.
+  return ctx as unknown as GenericActionCtx<GenericDataModel> & CustomCtx;
+}
+
+/**
+ * Re-narrow the generic `ToolSet` returned by `wrapTools` to the caller's
+ * concrete `Tools` generic. `wrapTools` preserves tool identities at
+ * runtime; the type signature just can't thread the generic through.
+ */
+function narrowTools<Tools extends ToolSet>(tools: ToolSet) {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- wrapTools is identity-preserving at runtime; re-narrow to caller's Tools.
+  return tools as Tools;
+}
+
+interface BuildAiArgsParams<T, Tools extends ToolSet> {
+  args: T & StartGenerationArgs<Tools>;
+  opts: Pick<
+    StartGenerationOptions,
+    "callSettings" | "providerOptions" | "maxSteps"
+  >;
+  model: LanguageModel;
+  messages: ModelMessage[];
+  tools: Tools;
+}
+
+function buildAiArgs<T, Tools extends ToolSet>({
+  args,
+  opts,
+  model,
+  messages,
+  tools,
+}: BuildAiArgsParams<T, Tools>) {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Composing provider/call settings with the caller's generic `T` requires a structural widening the compiler cannot infer through `omit`.
+  return {
+    ...opts.callSettings,
+    providerOptions: opts.providerOptions,
+    ...omit(args, ["promptMessageId", "messages", "prompt"]),
+    model,
+    messages,
+    stopWhen:
+      args.stopWhen ?? (opts.maxSteps ? stepCountIs(opts.maxSteps) : undefined),
+    tools,
+  } as AiArgs<T, Tools>;
+}
+
+/**
+ * Wire an AbortSignal to the generation's `fail` closure so external
+ * aborts finalize the pending message as failed.
+ */
+function attachAbort(
+  abortSignal: AbortSignal,
+  fail: (reason: string) => Promise<void>,
+) {
+  abortSignal.addEventListener(
+    "abort",
+    () => {
+      const reason =
+        abortSignal.reason instanceof Error
+          ? abortSignal.reason.message
+          : String(abortSignal.reason ?? "abortSignal");
+      void fail(reason);
+    },
+    { once: true },
+  );
+}
+
+export interface StartGenerationArgs<Tools extends ToolSet> {
+  /**
+   * If provided, this message will be used as the "prompt" for the LLM
+   * call, instead of the prompt or messages. This is useful if you want to
+   * first save a user message, then use it as the prompt for the LLM call
+   * in another call.
+   */
+  promptMessageId?: string;
+  /**
+   * The model to use for the LLM calls. This will override the model
+   * specified in the Agent constructor.
+   */
+  model?: LanguageModel;
+  /**
+   * The tools to use for the tool calls. This will override tools specified
+   * in the Agent constructor or createThread / continueThread.
+   */
+  tools?: Tools;
+  /**
+   * The single prompt message to use for the LLM call. This will be the
+   * last message in the context. If it's a string, it will be a user role.
+   */
+  prompt?: string | (ModelMessage | Message)[];
+  /**
+   * If provided alongside prompt, the ordering will be:
+   * 1. system prompt
+   * 2. search context
+   * 3. recent messages
+   * 4. these messages
+   * 5. prompt messages, including those already on the same `order` as
+   *   the promptMessageId message, if provided.
+   */
+  messages?: (ModelMessage | Message)[];
+  /**
+   * The abort signal to be passed to the LLM call. If triggered, it marks
+   * the pending message as failed. If the generation is asynchronously
+   * aborted, it will trigger this signal when detected.
+   */
+  abortSignal?: AbortSignal;
+  stopWhen?: StopCondition<Tools> | StopCondition<Tools>[];
+  _internal?: { generateId?: IdGenerator };
+}
+
+export interface StartGenerationOptions extends Options, Config {
+  userId?: string | null;
+  threadId?: string;
+  languageModel?: LanguageModel;
+  agentName: string;
+  agentForToolCtx?: Agent;
+}
+
+type AiArgs<T, Tools extends ToolSet> = T & {
+  system?: string;
+  model: LanguageModel;
+  messages: ModelMessage[];
+  prompt?: never;
+  tools?: Tools;
+} & CallSettings;
 
 export async function startGeneration<
   T,
@@ -32,93 +165,13 @@ export async function startGeneration<
   component: AgentComponent,
   /**
    * These are the arguments you'll pass to the LLM call such as
-   * `generateText` or `streamText`. This function will look up the context
-   * and provide functions to save the steps, abort the generation, and more.
-   * The type of the arguments returned infers from the type of the arguments
-   * you pass here.
+   * `generateText` or `streamText`. This function looks up the context and
+   * provides functions to save the steps, abort the generation, and more.
    */
-  args: T & {
-    /**
-     * If provided, this message will be used as the "prompt" for the LLM call,
-     * instead of the prompt or messages.
-     * This is useful if you want to first save a user message, then use it as
-     * the prompt for the LLM call in another call.
-     */
-    promptMessageId?: string;
-    /**
-     * The model to use for the LLM calls. This will override the model specified
-     * in the Agent constructor.
-     */
-    model?: LanguageModel;
-    /**
-     * The tools to use for the tool calls. This will override tools specified
-     * in the Agent constructor or createThread / continueThread.
-     */
-    tools?: Tools;
-    /**
-     * The single prompt message to use for the LLM call. This will be the
-     * last message in the context. If it's a string, it will be a user role.
-     */
-    prompt?: string | (ModelMessage | Message)[];
-    /**
-     * If provided alongside prompt, the ordering will be:
-     * 1. system prompt
-     * 2. search context
-     * 3. recent messages
-     * 4. these messages
-     * 5. prompt messages, including those already on the same `order` as
-     *   the promptMessageId message, if provided.
-     */
-    messages?: (ModelMessage | Message)[];
-    /**
-     * The abort signal to be passed to the LLM call. If triggered, it will
-     * mark the pending message as failed. If the generation is asynchronously
-     * aborted, it will trigger this signal when detected.
-     */
-    abortSignal?: AbortSignal;
-    stopWhen?: StopCondition<Tools> | Array<StopCondition<Tools>>;
-    _internal?: { generateId?: IdGenerator };
-  },
-  {
-    threadId,
-    ...opts
-  }: Options &
-    Config & {
-      userId?: string | null;
-      threadId?: string;
-      languageModel?: LanguageModel;
-      agentName: string;
-      agentForToolCtx?: Agent;
-    },
-): Promise<{
-  args: T & {
-    system?: string;
-    model: LanguageModel;
-    messages: ModelMessage[];
-    prompt?: never;
-    tools?: Tools;
-  } & CallSettings;
-  order: number;
-  stepOrder: number;
-  userId: string | undefined;
-  promptMessageId: string | undefined;
-  updateModel: (model: ModelOrMetadata | undefined) => void;
-  save: <TOOLS extends ToolSet>(
-    toSave:
-      | { step: StepResult<TOOLS> }
-      | { object: GenerateObjectResult<unknown> },
-    createPendingMessage?: boolean,
-    finishStreamId?: string,
-  ) => Promise<void>;
-  fail: (reason: string) => Promise<void>;
-  getSavedMessages: () => MessageDoc[];
-}> {
-  const userId =
-    opts.userId ??
-    (threadId &&
-      (await ctx.runQuery(component.threads.getThread, { threadId }))
-        ?.userId) ??
-    undefined;
+  args: T & StartGenerationArgs<Tools>,
+  { threadId, ...opts }: StartGenerationOptions,
+) {
+  const userId = await resolveUserId(ctx, component, opts, threadId);
 
   const context = await fetchContextWithPrompt(ctx, component, {
     ...opts,
@@ -129,85 +182,70 @@ export async function startGeneration<
     promptMessageId: args.promptMessageId,
   });
 
-  const saveMessages = opts.storageOptions?.saveMessages ?? "promptAndOutput";
   const { promptMessageId, pendingMessage, savedMessages } =
-    threadId && saveMessages !== "none"
-      ? await saveInputMessages(ctx, component, {
-          ...opts,
-          userId,
-          threadId,
-          prompt: args.prompt,
-          messages: args.messages,
-          promptMessageId: args.promptMessageId,
-          storageOptions: { saveMessages },
-        })
-      : {
-          promptMessageId: args.promptMessageId,
-          pendingMessage: undefined,
-          savedMessages: [] as MessageDoc[],
-        };
+    await resolveInputs(
+      ctx,
+      component,
+      {
+        prompt: args.prompt,
+        messages: args.messages,
+        promptMessageId: args.promptMessageId,
+      },
+      { ...opts, userId, threadId },
+    );
 
   const order = pendingMessage?.order ?? context.order;
   const stepOrder = pendingMessage?.stepOrder ?? context.stepOrder;
-  let pendingMessageId = pendingMessage?._id;
 
   const model = args.model ?? opts.languageModel;
   assert(model, "model is required");
-  let activeModel: ModelOrMetadata = model;
+  // Mutable holder widened to ModelOrMetadata so `updateModel` can swap in
+  // a string-based model reference mid-generation (e.g. from prepareStep).
+  const activeModelRef = makeModelRef(model);
+  // Shared mutable handle so `fail` always targets the latest pending
+  // message id (the save closure updates it across streamed steps).
+  const pendingRef = { id: pendingMessage?._id };
 
-  const fail = async (reason: string) => {
-    if (pendingMessageId) {
+  async function fail(reason: string) {
+    if (pendingRef.id) {
       await ctx.runMutation(component.messages.finalizeMessage, {
-        messageId: pendingMessageId,
+        messageId: pendingRef.id,
         result: { status: "failed", error: reason },
       });
     }
-  };
-  if (args.abortSignal) {
-    const abortSignal = args.abortSignal;
-    abortSignal.addEventListener(
-      "abort",
-      async () => {
-        await fail(abortSignal.reason?.toString() ?? "abortSignal");
-      },
-      { once: true },
-    );
   }
+
+  if (args.abortSignal) attachAbort(args.abortSignal, fail);
+
   const toolCtx = {
-    ...(ctx as GenericActionCtx<GenericDataModel> & CustomCtx),
+    ...widenActionCtx<CustomCtx>(ctx),
     userId,
     threadId,
     promptMessageId,
     agent: opts.agentForToolCtx,
   } satisfies ToolCtx;
-  const tools = wrapTools(toolCtx, args.tools) as Tools;
-  const aiArgs = {
-    ...opts.callSettings,
-    providerOptions: opts.providerOptions,
-    ...omit(args, ["promptMessageId", "messages", "prompt"]),
+  const tools = narrowTools<Tools>(wrapTools(toolCtx, args.tools));
+
+  const aiArgs = buildAiArgs<T, Tools>({
+    args,
+    opts,
     model,
     messages: context.messages,
-    stopWhen:
-      args.stopWhen ?? (opts.maxSteps ? stepCountIs(opts.maxSteps) : undefined),
     tools,
-  } as T & {
-    model: LanguageModel;
-    messages: ModelMessage[];
-    prompt?: never;
-    tools?: Tools;
-    _internal?: { generateId?: IdGenerator };
-  } & CallSettings;
-  // NOTE: We intentionally do NOT override _internal.generateId here.
-  // The AI SDK uses generateId() for many internal IDs (approval IDs,
-  // tool execution IDs, message IDs, etc.) and they must be unique.
-  // The pending message is linked via the explicit `pendingMessageId`
-  // parameter passed to addMessages in the save closure.
-  // Track how many response messages we've already saved across steps.
-  // step.response.messages is cumulative — each step appends to it.
-  // We need to know which messages are new in each step to serialize
-  // only the new ones (important for tool approval flows where the SDK
-  // may add extra messages like approval tool-results).
-  let previousResponseMessageCount = 0;
+  });
+
+  const save = createSaveHandler({
+    ctx,
+    component,
+    threadId,
+    userId,
+    opts,
+    promptMessageId,
+    savedMessages,
+    pendingRef,
+    getActiveModel: () => activeModelRef.current,
+    fail,
+  });
 
   return {
     args: aiArgs,
@@ -217,100 +255,9 @@ export async function startGeneration<
     promptMessageId,
     getSavedMessages: () => savedMessages,
     updateModel: (model: ModelOrMetadata | undefined) => {
-      if (model) {
-        activeModel = model;
-      }
+      if (model) activeModelRef.current = model;
     },
     fail,
-    save: async <TOOLS extends ToolSet>(
-      toSave:
-        | { step: StepResult<TOOLS> }
-        | { object: GenerateObjectResult<unknown> },
-      createPendingMessage?: boolean,
-      /**
-       * If provided, finish this stream atomically with the message save.
-       * This prevents UI flickering from separate mutations (issue #181).
-       */
-      finishStreamId?: string,
-    ) => {
-      if (threadId && saveMessages !== "none") {
-        let serialized;
-        if ("object" in toSave) {
-          serialized = await serializeObjectResult(
-            ctx,
-            component,
-            toSave.object,
-            activeModel,
-          );
-        } else {
-          const allResponseMessages = toSave.step.response.messages;
-          const newResponseMessages = allResponseMessages.slice(
-            previousResponseMessageCount,
-          );
-          previousResponseMessageCount = allResponseMessages.length;
-          serialized = await serializeResponseMessages(
-            ctx,
-            component,
-            toSave.step,
-            activeModel,
-            newResponseMessages,
-          );
-        }
-        if (createPendingMessage) {
-          serialized.messages.push({
-            message: { role: "assistant", content: [] },
-            status: "pending",
-          });
-        }
-        const saved = await ctx.runMutation(component.messages.addMessages, {
-          userId,
-          threadId,
-          agentName: opts.agentName,
-          promptMessageId,
-          pendingMessageId,
-          messages: serialized.messages,
-          failPendingSteps: false,
-          finishStreamId,
-        });
-        const lastMessage = saved.messages.at(-1)!;
-        if (createPendingMessage) {
-          if (lastMessage.status === "failed") {
-            pendingMessageId = undefined;
-            savedMessages.push(...saved.messages);
-            await fail(
-              lastMessage.error ??
-                "Aborting - the pending message was marked as failed",
-            );
-          } else {
-            pendingMessageId = lastMessage._id;
-            savedMessages.push(...saved.messages.slice(0, -1));
-          }
-        } else {
-          pendingMessageId = undefined;
-          savedMessages.push(...saved.messages);
-        }
-      }
-      const output = "object" in toSave ? toSave.object : toSave.step;
-      if (opts.rawRequestResponseHandler) {
-        await opts.rawRequestResponseHandler(ctx, {
-          userId,
-          threadId,
-          agentName: opts.agentName,
-          request: output.request,
-          response: output.response,
-        });
-      }
-      if (opts.usageHandler && output.usage) {
-        await opts.usageHandler(ctx, {
-          userId,
-          threadId,
-          agentName: opts.agentName,
-          model: getModelName(activeModel),
-          provider: getProviderName(activeModel),
-          usage: output.usage,
-          providerMetadata: output.providerMetadata,
-        });
-      }
-    },
+    save,
   };
 }

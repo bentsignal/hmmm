@@ -1,17 +1,15 @@
 import type { ModelMessage } from "ai";
-import type { PaginationOptions, PaginationResult } from "convex/server";
+import type { PaginationOptions } from "convex/server";
 import { parse } from "convex-helpers/validators";
 
-import type { UIMessage } from "../UIMessages";
 import type {
   Message,
-  MessageDoc,
   MessageStatus,
   MessageWithMetadata,
 } from "../validators";
 import type { ActionCtx, AgentComponent, MutationCtx, QueryCtx } from "./types";
 import { serializeMessage } from "../mapping";
-import { toUIMessages } from "../UIMessages";
+import { toUIMessages } from "../ui/to_ui_messages";
 import { vMessageWithMetadata } from "../validators";
 
 /**
@@ -31,7 +29,7 @@ export async function listMessages(
     excludeToolMessages?: boolean;
     statuses?: MessageStatus[];
   },
-): Promise<PaginationResult<MessageDoc>> {
+) {
   if (paginationOpts.numItems === 0) {
     return {
       page: [],
@@ -55,12 +53,12 @@ export async function listUIMessages(
     threadId: string;
     paginationOpts: PaginationOptions;
   },
-): Promise<PaginationResult<UIMessage>> {
+) {
   const result = await listMessages(ctx, component, args);
   return { ...result, page: toUIMessages(result.page) };
 }
 
-export type SaveMessagesArgs = {
+export interface SaveMessagesArgs {
   threadId: string;
   userId?: string | null;
   promptMessageId?: string;
@@ -68,7 +66,7 @@ export type SaveMessagesArgs = {
   metadata?: Omit<MessageWithMetadata, "message">[];
   failPendingSteps?: boolean;
   pendingMessageId?: string;
-};
+}
 
 export async function saveMessages(
   ctx: MutationCtx | ActionCtx,
@@ -76,7 +74,7 @@ export async function saveMessages(
   args: SaveMessagesArgs & {
     agentName?: string;
   },
-): Promise<{ messages: MessageDoc[] }> {
+) {
   const result = await ctx.runMutation(component.messages.addMessages, {
     threadId: args.threadId,
     userId: args.userId ?? undefined,
@@ -134,6 +132,9 @@ export async function saveMessage(
         : [args.message],
     metadata: args.metadata ? [args.metadata] : undefined,
   });
-  const message = messages.at(-1)!;
+  const message = messages.at(-1);
+  if (!message) {
+    throw new Error("saveMessage produced no messages");
+  }
   return { messageId: message._id, message };
 }

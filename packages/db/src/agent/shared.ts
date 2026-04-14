@@ -30,21 +30,16 @@ export function isTool(message: Message | ModelMessage) {
 export function extractText(message: Message | ModelMessage) {
   switch (message.role) {
     case "user":
-      if (typeof message.content === "string") {
-        return message.content;
-      }
+      if (typeof message.content === "string") return message.content;
       return joinText(message.content);
     case "assistant":
-      if (typeof message.content === "string") {
-        return message.content;
-      } else {
-        return joinText(message.content) || undefined;
-      }
+      if (typeof message.content === "string") return message.content;
+      return joinText(message.content) || undefined;
     case "system":
       return message.content;
-    // we don't extract text from tool messages
+    case "tool":
+      return undefined;
   }
-  return undefined;
 }
 
 export function joinText(
@@ -82,7 +77,7 @@ export const DEFAULT_MESSAGE_RANGE = { before: 2, after: 1 };
 export function sorted<T extends { order: number; stepOrder: number }>(
   messages: T[],
   order: "asc" | "desc" = "asc",
-): T[] {
+) {
   return [...messages].sort(
     order === "asc"
       ? (a, b) => a.order - b.order || a.stepOrder - b.stepOrder
@@ -94,21 +89,21 @@ export type ModelOrMetadata =
   | string
   | ({ provider: string } & ({ modelId: string } | { model: string }));
 
-export function getModelName(embeddingModel: ModelOrMetadata): string {
-  if (typeof embeddingModel === "string") {
-    if (embeddingModel.includes("/")) {
-      return embeddingModel.split("/").slice(1).join("/");
+export function getModelName(model: ModelOrMetadata) {
+  if (typeof model === "string") {
+    if (model.includes("/")) {
+      return model.split("/").slice(1).join("/");
     }
-    return embeddingModel;
+    return model;
   }
-  return "modelId" in embeddingModel
-    ? embeddingModel.modelId
-    : embeddingModel.model;
+  return "modelId" in model ? model.modelId : model.model;
 }
 
-export function getProviderName(embeddingModel: ModelOrMetadata): string {
-  if (typeof embeddingModel === "string") {
-    return embeddingModel.split("/").at(0)!;
+export function getProviderName(model: ModelOrMetadata) {
+  if (typeof model === "string") {
+    const provider = model.split("/").at(0);
+    if (!provider) throw new Error(`Invalid model identifier: ${model}`);
+    return provider;
   }
-  return embeddingModel.provider;
+  return model.provider;
 }

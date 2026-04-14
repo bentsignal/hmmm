@@ -48,7 +48,7 @@ export async function generateResponse(
     title: title ?? "Response",
     userId,
   });
-  const { thread } = await agent.continueThread(ctx, {
+  const { thread } = agent.continueThread(ctx, {
     threadId,
   });
   const result = await thread.generateText({
@@ -73,7 +73,7 @@ export const streamResponse = internalAction({
   },
   handler: async (ctx, args) => {
     const { threadId, promptMessageId } = args;
-    const { thread } = await agent.continueThread(ctx, {
+    const { thread } = agent.continueThread(ctx, {
       threadId: threadId,
     });
     const model = getModel(args.model);

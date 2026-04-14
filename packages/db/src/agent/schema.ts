@@ -14,23 +14,14 @@ import {
   vUsage,
 } from "./validators";
 
-/**
- * Tables that used to live inside the `@convex-dev/agent` component, now
- * inlined into the host app and merged with the previously-parallel
- * `threadMetadata` / `messageMetadata` tables.
- *
- * Spread into the host schema in `packages/db/src/schema.ts`.
- */
 export const agentTables = {
   threads: defineTable({
-    // Identity
     userId: v.optional(v.string()),
     title: v.optional(v.string()),
     summary: v.optional(v.string()),
     status: vThreadStatus,
     parentThreadIds: v.optional(v.array(v.id("threads"))),
 
-    // Fields folded in from the old `threadMetadata` table
     state: v.optional(
       v.union(v.literal("idle"), v.literal("waiting"), v.literal("streaming")),
     ),
@@ -70,7 +61,6 @@ export const agentTables = {
     reasoning: v.optional(v.string()),
     reasoningDetails: v.optional(vReasoningDetails),
 
-    // Folded in from the old `messageMetadata` table
     attachments: v.optional(v.array(v.id("files"))),
   })
     .index("threadId_status_tool_order_stepOrder", [

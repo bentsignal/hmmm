@@ -19,12 +19,7 @@ import {
 import { DEFAULT_RECENT_MESSAGES, sorted } from "../shared";
 
 /**
- * Fetch the context messages for a thread.
- *
- * NOTE: this is the trimmed version of the original `@convex-dev/agent`
- * `fetchContextMessages` — vector search and embeddings have been removed
- * because the host app does not use them. We only ever fetch the most
- * recent N successful messages from a thread.
+ * Fetch the most recent N successful messages from a thread.
  */
 export async function fetchContextMessages(
   ctx: QueryCtx | MutationCtx | ActionCtx,
@@ -37,7 +32,7 @@ export async function fetchContextMessages(
     upToAndIncludingMessageId?: string;
     contextOptions: ContextOptions;
   },
-): Promise<MessageDoc[]> {
+) {
   const { recentMessages } = await fetchRecentMessages(ctx, component, args);
   return recentMessages;
 }
@@ -52,9 +47,10 @@ async function fetchRecentMessages(
     upToAndIncludingMessageId?: string;
     contextOptions: ContextOptions;
   },
-): Promise<{ recentMessages: MessageDoc[] }> {
-  assert(args.userId || args.threadId, "Specify userId or threadId");
+) {
+  assert(args.userId ?? args.threadId, "Specify userId or threadId");
   const opts = args.contextOptions;
+  // eslint-disable-next-line no-restricted-syntax -- empty array initializer has no element type; annotation lets later push targets typecheck
   let recentMessages: MessageDoc[] = [];
   const targetMessageId =
     args.targetMessageId ?? args.upToAndIncludingMessageId;
@@ -78,82 +74,130 @@ async function fetchRecentMessages(
   return { recentMessages };
 }
 
+type ToolPartIndex = ReturnType<typeof indexToolParts>;
+
+function indexToolParts(docs: MessageDoc[]) {
+  const idx = {
+    toolCallIds: new Set<string>(),
+    toolResultIds: new Set<string>(),
+    approvalRequestsByToolCallId: new Map<string, string>(),
+    approvalResponseIds: new Set<string>(),
+  };
+  for (const doc of docs) {
+    if (!doc.message || !Array.isArray(doc.message.content)) continue;
+    for (const content of doc.message.content) {
+      indexContentPart(content, idx);
+    }
+  }
+  return idx;
+}
+
+function indexContentPart(
+  content: { type: string } & Record<string, unknown>,
+  idx: ToolPartIndex,
+) {
+  if (content.type === "tool-call" && typeof content.toolCallId === "string") {
+    idx.toolCallIds.add(content.toolCallId);
+  } else if (
+    content.type === "tool-result" &&
+    typeof content.toolCallId === "string"
+  ) {
+    idx.toolResultIds.add(content.toolCallId);
+  } else if (
+    content.type === "tool-approval-request" &&
+    typeof content.toolCallId === "string" &&
+    typeof content.approvalId === "string"
+  ) {
+    idx.approvalRequestsByToolCallId.set(
+      content.toolCallId,
+      content.approvalId,
+    );
+  } else if (
+    content.type === "tool-approval-response" &&
+    typeof content.approvalId === "string"
+  ) {
+    idx.approvalResponseIds.add(content.approvalId);
+  }
+}
+
+function makeToolCallChecks(idx: ToolPartIndex) {
+  function hasApprovalResponse(toolCallId: string) {
+    const approvalId = idx.approvalRequestsByToolCallId.get(toolCallId);
+    return approvalId !== undefined && idx.approvalResponseIds.has(approvalId);
+  }
+  function hasApprovalRequest(toolCallId: string) {
+    return idx.approvalRequestsByToolCallId.has(toolCallId);
+  }
+  return { hasApprovalResponse, hasApprovalRequest };
+}
+
 /**
  * Filter out tool messages that don't have both a tool call and response.
  * For the approval workflow, tool calls with approval responses (but no
  * tool-results yet) should also be kept.
  */
-export function filterOutOrphanedToolMessages(
-  docs: MessageDoc[],
-): MessageDoc[] {
-  const toolCallIds = new Set<string>();
-  const toolResultIds = new Set<string>();
-  const approvalRequestsByToolCallId = new Map<string, string>();
-  const approvalResponseIds = new Set<string>();
+export function filterOutOrphanedToolMessages(docs: MessageDoc[]) {
+  const idx = indexToolParts(docs);
+  const checks = makeToolCallChecks(idx);
+  return docs.flatMap((doc) => {
+    const filtered = filterDocContent(doc, idx, checks);
+    return filtered ? [filtered] : [];
+  });
+}
 
-  for (const doc of docs) {
-    if (doc.message && Array.isArray(doc.message.content)) {
-      for (const content of doc.message.content) {
-        if (content.type === "tool-call") {
-          toolCallIds.add(content.toolCallId);
-        } else if (content.type === "tool-result") {
-          toolResultIds.add(content.toolCallId);
-        } else if (content.type === "tool-approval-request") {
-          const req = content as {
-            type: "tool-approval-request";
-            toolCallId: string;
-            approvalId: string;
-          };
-          approvalRequestsByToolCallId.set(req.toolCallId, req.approvalId);
-        } else if (content.type === "tool-approval-response") {
-          const res = content as {
-            type: "tool-approval-response";
-            approvalId: string;
-          };
-          approvalResponseIds.add(res.approvalId);
-        }
-      }
-    }
+function filterDocContent(
+  doc: MessageDoc,
+  idx: ToolPartIndex,
+  checks: ReturnType<typeof makeToolCallChecks>,
+) {
+  if (doc.message?.role === "assistant" && Array.isArray(doc.message.content)) {
+    const content = doc.message.content.filter(
+      (p) =>
+        p.type !== "tool-call" ||
+        idx.toolResultIds.has(p.toolCallId) ||
+        checks.hasApprovalResponse(p.toolCallId) ||
+        checks.hasApprovalRequest(p.toolCallId),
+    );
+    if (!content.length) return undefined;
+    return { ...doc, message: { ...doc.message, content } };
   }
+  if (doc.message?.role === "tool") {
+    const content = doc.message.content.filter((c) => {
+      if (c.type === "tool-result") {
+        return idx.toolCallIds.has(c.toolCallId);
+      }
+      return true;
+    });
+    if (!content.length) return undefined;
+    return { ...doc, message: { ...doc.message, content } };
+  }
+  return doc;
+}
 
-  const hasApprovalResponse = (toolCallId: string) => {
-    const approvalId = approvalRequestsByToolCallId.get(toolCallId);
-    return approvalId !== undefined && approvalResponseIds.has(approvalId);
+function splitAroundPromptMessage(
+  recentMessages: MessageDoc[],
+  promptMessageId: string | undefined,
+) {
+  if (!promptMessageId) {
+    return {
+      prePromptDocs: recentMessages,
+      existingResponseDocs: [],
+      promptMessage: undefined,
+    };
+  }
+  const idx = recentMessages.findIndex((m) => m._id === promptMessageId);
+  if (idx === -1) {
+    return {
+      prePromptDocs: recentMessages,
+      existingResponseDocs: [],
+      promptMessage: undefined,
+    };
+  }
+  return {
+    prePromptDocs: recentMessages.slice(0, idx),
+    existingResponseDocs: recentMessages.slice(idx + 1),
+    promptMessage: recentMessages[idx],
   };
-  const hasApprovalRequest = (toolCallId: string) =>
-    approvalRequestsByToolCallId.has(toolCallId);
-
-  const result: MessageDoc[] = [];
-  for (const doc of docs) {
-    if (
-      doc.message?.role === "assistant" &&
-      Array.isArray(doc.message.content)
-    ) {
-      const content = doc.message.content.filter(
-        (p) =>
-          p.type !== "tool-call" ||
-          toolResultIds.has(p.toolCallId) ||
-          hasApprovalResponse(p.toolCallId) ||
-          hasApprovalRequest(p.toolCallId),
-      );
-      if (content.length) {
-        result.push({ ...doc, message: { ...doc.message, content } });
-      }
-    } else if (doc.message?.role === "tool") {
-      const content = doc.message.content.filter((c) => {
-        if (c.type === "tool-result") {
-          return toolCallIds.has(c.toolCallId);
-        }
-        return true;
-      });
-      if (content.length) {
-        result.push({ ...doc, message: { ...doc.message, content } });
-      }
-    } else {
-      result.push(doc);
-    }
-  }
-  return result;
 }
 
 /**
@@ -173,11 +217,7 @@ export async function fetchContextWithPrompt(
     agentName?: string;
   } & Options &
     Config,
-): Promise<{
-  messages: ModelMessage[];
-  order: number | undefined;
-  stepOrder: number | undefined;
-}> {
+) {
   const { threadId, userId } = args;
   const promptArray = getPromptArray(args.prompt);
 
@@ -188,22 +228,14 @@ export async function fetchContextWithPrompt(
     contextOptions: args.contextOptions ?? {},
   });
 
-  const promptMessageIndex = args.promptMessageId
-    ? recentMessages.findIndex((m) => m._id === args.promptMessageId)
-    : -1;
-  const promptMessage =
-    promptMessageIndex !== -1 ? recentMessages[promptMessageIndex] : undefined;
-  let prePromptDocs = recentMessages;
-  const messages = args.messages ?? [];
-  let existingResponseDocs: MessageDoc[] = [];
-  if (promptMessage) {
-    prePromptDocs = recentMessages.slice(0, promptMessageIndex);
-    existingResponseDocs = recentMessages.slice(promptMessageIndex + 1);
-    if (promptArray.length === 0 && promptMessage.message) {
-      promptArray.push(promptMessage.message);
-    }
+  const { prePromptDocs, existingResponseDocs, promptMessage } =
+    splitAroundPromptMessage(recentMessages, args.promptMessageId);
+
+  if (promptMessage && promptArray.length === 0 && promptMessage.message) {
+    promptArray.push(promptMessage.message);
   }
 
+  const messages = args.messages ?? [];
   const recent = docsToModelMessages(prePromptDocs);
   const inputMessages = messages.map(toModelMessage);
   const inputPrompt = promptArray.map(toModelMessage);
@@ -215,7 +247,7 @@ export async function fetchContextWithPrompt(
     ...inputPrompt,
     ...existingResponses,
   ];
-  let processedMessages = args.contextHandler
+  const processed = args.contextHandler
     ? await args.contextHandler(ctx, {
         allMessages,
         search: [],
@@ -228,21 +260,18 @@ export async function fetchContextWithPrompt(
       })
     : allMessages;
 
-  processedMessages = autoDenyUnresolvedApprovals(processedMessages);
-
   return {
-    messages: processedMessages,
+    messages: autoDenyUnresolvedApprovals(processed),
     order: promptMessage?.order,
     stepOrder: promptMessage?.stepOrder,
   };
 }
 
+// eslint-disable-next-line no-restricted-syntax -- explicit return type widens the literal so callers can push other ModelMessage variants
 export function getPromptArray(
   prompt: string | (ModelMessage | Message)[] | undefined,
 ): (ModelMessage | Message)[] {
-  return !prompt
-    ? []
-    : Array.isArray(prompt)
-      ? prompt
-      : [{ role: "user", content: prompt }];
+  if (!prompt) return [];
+  if (Array.isArray(prompt)) return prompt;
+  return [{ role: "user", content: prompt }];
 }

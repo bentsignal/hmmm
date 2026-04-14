@@ -1,19 +1,17 @@
 "use client";
 
 import type { BetterOmit, ErrorMessage, Expand } from "convex-helpers";
+import type { PaginatedQueryArgs, UsePaginatedQueryResult } from "convex/react";
 import type {
   FunctionArgs,
   FunctionReference,
   PaginationOptions,
   PaginationResult,
 } from "convex/server";
+// eslint-disable-next-line no-restricted-imports -- useMemo needed to keep merged paginated/streaming results array stable across renders so consumers don't see new identities every tick
 import { useEffect, useMemo, useRef, useState } from "react";
 import { omit } from "convex-helpers";
 import { usePaginatedQuery } from "convex-helpers/react";
-import {
-  type PaginatedQueryArgs,
-  type UsePaginatedQueryResult,
-} from "convex/react";
 
 import type {
   Message,
@@ -22,7 +20,7 @@ import type {
   StreamArgs,
 } from "@acme/db/agent/validators";
 import { sorted } from "@acme/db/agent/shared";
-import { fromUIMessages } from "@acme/db/agent/UIMessages";
+import { fromUIMessages } from "@acme/db/agent/ui";
 
 import type {
   StreamQuery,
@@ -31,12 +29,12 @@ import type {
 } from "./types";
 import { useStreamingUIMessages } from "./useStreamingUIMessages";
 
-export type MessageDocLike = {
+export interface MessageDocLike {
   order: number;
   stepOrder: number;
   status: MessageStatus | "streaming";
   message?: Message;
-};
+}
 
 export type ThreadMessagesQuery<
   Args = unknown,
@@ -56,16 +54,59 @@ export type ThreadMessagesQuery<
   PaginationResult<M> & { streams?: SyncStreamsReturnValue }
 >;
 
-export type ThreadMessagesArgs<
-  Query extends ThreadMessagesQuery<unknown, MessageDocLike>,
-> =
-  Query extends ThreadMessagesQuery<unknown, MessageDocLike>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- ThreadMessagesQuery generics are biconditional helpers; constraining tighter would over-constrain consumers
+export type ThreadMessagesArgs<Query extends ThreadMessagesQuery<any, any>> =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- biconditional inference helper
+  Query extends ThreadMessagesQuery<any, any>
     ? Expand<BetterOmit<FunctionArgs<Query>, "paginationOpts" | "streamArgs">>
     : never;
 
-export type ThreadMessagesResult<
-  Query extends ThreadMessagesQuery<unknown, MessageDocLike>,
-> = Query extends ThreadMessagesQuery<unknown, infer M> ? M : never;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- biconditional inference helper
+export type ThreadMessagesResult<Query extends ThreadMessagesQuery<any, any>> =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- biconditional inference helper
+  Query extends ThreadMessagesQuery<any, infer M> ? M : never;
+
+type MergedMessage = MessageDocLike & { streaming: boolean; key: string };
+
+function computeStartOrder(results: readonly MessageDocLike[]) {
+  let startOrder = results.at(-1)?.order ?? 0;
+  for (let i = results.length - 1; i >= 0; i--) {
+    const m = results[i];
+    // The "streaming" flag only exists on already-merged results; raw
+    // paginated results never set it.
+    if (m?.status === "pending") {
+      // round down to the nearest 10 for some cache benefits
+      startOrder = m.order - (m.order % 10);
+      break;
+    }
+  }
+  return startOrder;
+}
+
+function reduceMergedMessages(
+  threadId: string | undefined,
+  msgs: MergedMessage[],
+) {
+  // eslint-disable-next-line no-restricted-syntax -- reduce seed needs the element type on an empty array initializer
+  const initial: MergedMessage[] = [];
+  return msgs.reduce((acc, msg) => {
+    msg.key = `${threadId ?? ""}-${msg.order}-${msg.stepOrder}`;
+    const last = acc.at(-1);
+    if (!last) return [msg];
+    if (last.order !== msg.order || last.stepOrder !== msg.stepOrder) {
+      return [...acc, msg];
+    }
+    if (
+      last.status === "pending" &&
+      (msg.streaming || msg.status !== "pending")
+    ) {
+      // Let's prefer a streaming or finalized message over a pending one.
+      return [...acc.slice(0, -1), msg];
+    }
+    // skip the new one if the previous one (listed) was finalized
+    return acc;
+  }, initial);
+}
 
 /**
  * A hook that fetches messages from a thread.
@@ -74,51 +115,14 @@ export type ThreadMessagesResult<
  * It will fetch both full messages and streaming messages, and merge them together.
  *
  * The query must take as arguments `{ threadId, paginationOpts }` and return a
- * pagination result of objects that extend `MessageDoc`.
- *
- * For streaming, it should look like this:
- * ```ts
- * export const listThreadMessages = query({
- *   args: {
- *     threadId: v.string(),
- *     paginationOpts: paginationOptsValidator,
- *     streamArgs: vStreamArgs,
- *     ... other arguments you want
- *   },
- *   handler: async (ctx, args) => {
- *     // await authorizeThreadAccess(ctx, threadId);
- *     // NOTE: listMessages returns MessageDocs, not UIMessages.
- *     const paginated = await listMessages(ctx, components.agent, args);
- *     const streams = await syncStreams(ctx, components.agent, args);
- *     // Here you could filter out / modify the documents & stream deltas.
- *     return { ...paginated, streams };
- *   },
- * });
- * ```
- *
- * Then the hook can be used like this:
- * ```ts
- * const { results, status, loadMore } = useThreadMessages(
- *   api.myModule.listThreadMessages,
- *   { threadId },
- *   { initialNumItems: 10, stream: true }
- * );
- * ```
- *
- * @param query The query to use to fetch messages.
- * It must take as arguments `{ threadId, paginationOpts }` and return a
- * pagination result of objects that extend `MessageDoc`.
- * To support streaming, it must also take in `streamArgs: vStreamArgs` and
- * return a `streams` object returned from `agent.syncStreams`.
- * @param args The arguments to pass to the query other than `paginationOpts`
- * and `streamArgs`. So `{ threadId }` at minimum, plus any other arguments that
- * you want to pass to the query.
- * @param options The options for the query. Similar to usePaginatedQuery.
- * To enable streaming, pass `stream: true`.
- * @returns The messages. If stream is true, it will return a list of messages
- *   that includes both full messages and streaming messages.
+ * pagination result of objects that extend `MessageDoc`. To support streaming,
+ * it must also take in `streamArgs: vStreamArgs` and return a `streams` object
+ * returned from `agent.syncStreams`.
  */
-export function useThreadMessages<Query extends ThreadMessagesQuery<any, any>>(
+export function useThreadMessages<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference relies on biconditional matching here; using `unknown, MessageDocLike` would over-constrain consumers whose docs are wider than MessageDocLike
+  Query extends ThreadMessagesQuery<any, any>,
+>(
   query: Query,
   args: ThreadMessagesArgs<Query> | "skip",
   options: {
@@ -127,100 +131,77 @@ export function useThreadMessages<Query extends ThreadMessagesQuery<any, any>>(
       ? boolean
       : ErrorMessage<"To enable streaming, your query must take in streamArgs: vStreamArgs and return a streams object returned from syncStreams. See docs.">;
   },
-): UsePaginatedQueryResult<
-  ThreadMessagesResult<Query> & { streaming: boolean; key: string }
-> {
+) {
   // These are full messages
-  const paginated = usePaginatedQuery(
-    query,
-    args as PaginatedQueryArgs<Query> | "skip",
-    { initialNumItems: options.initialNumItems },
-  );
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- usePaginatedQuery's argument type cannot be inferred from the constrained Query generic; widening at the boundary
+  const paginatedArgs = args as PaginatedQueryArgs<Query> | "skip";
+  const paginated = usePaginatedQuery(query, paginatedArgs, {
+    initialNumItems: options.initialNumItems,
+  });
 
-  let startOrder = paginated.results.at(-1)?.order ?? 0;
-  for (let i = paginated.results.length - 1; i >= 0; i--) {
-    const m = paginated.results[i];
-    if (m && !m.streaming && m.status === "pending") {
-      // round down to the nearest 10 for some cache benefits
-      startOrder = m.order - (m.order % 10);
-      break;
-    }
-  }
-  // These are streaming messages that will not include full messages.
-  const streamMessages = useStreamingThreadMessages(
-    query as StreamQuery<ThreadMessagesArgs<Query>>,
+  const startOrder = computeStartOrder(paginated.results);
+
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- query is structurally compatible with StreamQuery here; the constraint cannot be expressed at the type level
+  const streamQuery = query as unknown as StreamQuery<
+    ThreadMessagesArgs<Query>
+  >;
+  const shouldSkipStreaming =
     !options.stream ||
-      args === "skip" ||
-      paginated.status === "LoadingFirstPage"
-      ? "skip"
-      : ({ ...args, paginationOpts: { cursor: null, numItems: 0 } } as any),
-    { startOrder },
+    args === "skip" ||
+    paginated.status === "LoadingFirstPage";
+  // These are streaming messages that will not include full messages.
+  /* eslint-disable @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument -- ThreadMessagesArgs<Query>'s biconditional inference can't be narrowed to the stream-query's arg shape (which requires a paginationOpts intersection); runtime shape is identical */
+  const streamingArgs = shouldSkipStreaming
+    ? ("skip" as const)
+    : ({
+        ...args,
+        paginationOpts: { cursor: null, numItems: 0 },
+      } as any);
+  const streamMessages = useStreamingThreadMessages(
+    streamQuery,
+    streamingArgs,
+    {
+      startOrder,
+    },
   );
+  /* eslint-enable @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 
-  const threadId = args === "skip" ? undefined : args.threadId;
+  const threadId =
+    args === "skip"
+      ? undefined
+      : // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- args.threadId resolves to `any` through ThreadMessagesArgs<Query>'s conditional inference; at runtime it's always a string
+        (args.threadId as string);
 
   const merged = useMemo(() => {
     const streamListMessages =
       streamMessages?.map((m) => ({
         ...m,
-        streaming: !m.status || m.status === "pending",
+        streaming: m.status === "pending",
       })) ?? [];
+    const concatenated = paginated.results
+      .map((m) => ({ ...m, streaming: false }))
+      // Note: this is intentionally after paginated results.
+      .concat(streamListMessages);
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- concat unions paginated rows with derived stream rows; widening to the merged row shape so the reducer can mutate `key`
+    const widened = concatenated as MergedMessage[];
     return {
       ...paginated,
-      results: sorted(
-        paginated.results
-          .map((m) => ({ ...m, streaming: false }))
-          // Note: this is intentionally after paginated results.
-          .concat(streamListMessages) as (MessageDocLike & {
-          streaming: boolean;
-          key: string;
-        })[],
-      ).reduce(
-        (msgs, msg: MessageDocLike & { streaming: boolean; key: string }) => {
-          msg.key = `${threadId}-${msg.order}-${msg.stepOrder}`;
-          const last = msgs.at(-1);
-          if (!last) {
-            return [msg];
-          }
-          if (last.order !== msg.order || last.stepOrder !== msg.stepOrder) {
-            return [...msgs, msg];
-          }
-          if (
-            last.status === "pending" &&
-            (msg.streaming || msg.status !== "pending")
-          ) {
-            // Let's prefer a streaming or finalized message over a pending
-            // one.
-            return [...msgs.slice(0, -1), msg];
-          }
-          // skip the new one if the previous one (listed) was finalized
-          return msgs;
-        },
-        [] as (MessageDocLike & { streaming: boolean; key: string })[],
-      ),
+      results: reduceMergedMessages(threadId, sorted(widened)),
     };
   }, [paginated, streamMessages, threadId]);
 
-  return merged as ThreadMessagesResult<Query> & {
-    key: string;
-    streaming: boolean;
-  };
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the merged shape adds `streaming` and `key` to each row; widening at the boundary so callers see the documented return type
+  return merged as unknown as UsePaginatedQueryResult<
+    ThreadMessagesResult<Query> & { streaming: boolean; key: string }
+  >;
 }
 
 /**
  * @deprecated FYI `useStreamingUIMessages` is likely better for you.
  * A hook that fetches streaming messages from a thread.
  * This ONLY returns streaming messages. To get both, use `useThreadMessages`.
- *
- * @param query The query to use to fetch messages.
- * It must take as arguments `{ threadId, paginationOpts, streamArgs }` and
- * return a `streams` object returned from `agent.syncStreams`.
- * @param args The arguments to pass to the query other than `paginationOpts`
- * and `streamArgs`. So `{ threadId }` at minimum, plus any other arguments that
- * you want to pass to the query.
- * @returns The streaming messages.
  */
-export function useStreamingThreadMessages<Query extends StreamQuery<any>>(
+export function useStreamingThreadMessages<Query extends StreamQuery<unknown>>(
   query: Query,
   args:
     | (StreamQueryArgs<Query> & {
@@ -232,33 +213,38 @@ export function useStreamingThreadMessages<Query extends StreamQuery<any>>(
     startOrder?: number;
     skipStreamIds?: string[];
   },
-): Array<MessageDoc> | undefined {
+) {
   const queryArgs =
     args === "skip"
       ? args
-      : (omit(args, ["startOrder"]) as unknown as StreamQueryArgs<Query>);
+      : // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- omit() returns Omit<...>; we need to project the result back to the StreamQueryArgs<Query> shape
+        (omit(args, ["startOrder"]) as unknown as StreamQueryArgs<Query>);
   const startOrder =
     args === "skip" ? undefined : (args.startOrder ?? undefined);
   const queryOptions = { startOrder, ...options };
   const uiMessages = useStreamingUIMessages(query, queryArgs, queryOptions);
-  const [messages, setMessages] = useState<Array<MessageDoc> | undefined>();
+  const [derivedMessages, setDerivedMessages] = useState<
+    MessageDoc[] | undefined
+  >();
   const generationRef = useRef(0);
 
+  const argThreadId = args === "skip" ? undefined : args.threadId;
+  const active = argThreadId !== undefined && uiMessages !== undefined;
+
+  // eslint-disable-next-line no-restricted-syntax -- Effect needed to async-derive MessageDocs from streaming UIMessages via fromUIMessages()
   useEffect(() => {
-    if (args === "skip" || !uiMessages) {
-      setMessages(undefined);
-      return;
-    }
-    const currentGeneration = ++generationRef.current;
-    (async () => {
+    if (!active) return;
+    generationRef.current += 1;
+    const currentGeneration = generationRef.current;
+    void (async () => {
       const nested = await Promise.all(
-        uiMessages.map((m) => fromUIMessages([m], { threadId: args.threadId })),
+        uiMessages.map((m) => fromUIMessages([m], { threadId: argThreadId })),
       );
       if (generationRef.current === currentGeneration) {
-        setMessages(nested.flat());
+        setDerivedMessages(nested.flat());
       }
     })();
-  }, [uiMessages, args === "skip" ? undefined : args.threadId]);
+  }, [active, uiMessages, argThreadId]);
 
-  return messages;
+  return active ? derivedMessages : undefined;
 }

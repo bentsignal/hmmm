@@ -15,15 +15,12 @@ export async function createThread(
   component: AgentComponent,
   args?: { userId?: string | null; title?: string; summary?: string },
 ) {
-  const { _id: threadId } = await ctx.runMutation(
-    component.threads.createThread,
-    {
-      userId: args?.userId ?? undefined,
-      title: args?.title,
-      summary: args?.summary,
-    },
-  );
-  return threadId;
+  const result = await ctx.runMutation(component.threads.createThread, {
+    userId: args?.userId ?? undefined,
+    title: args?.title,
+    summary: args?.summary,
+  });
+  return result._id;
 }
 
 /**
@@ -36,7 +33,7 @@ export async function getThreadMetadata(
   ctx: QueryCtx | MutationCtx | ActionCtx,
   component: AgentComponent,
   args: { threadId: string },
-): Promise<ThreadDoc> {
+) {
   const thread = await ctx.runQuery(component.threads.getThread, {
     threadId: args.threadId,
   });
@@ -70,7 +67,7 @@ export async function searchThreadTitles(
     query,
     limit,
   }: { userId?: string | undefined; query: string; limit?: number },
-): Promise<ThreadDoc[]> {
+) {
   return ctx.runQuery(component.threads.searchThreadTitles, {
     userId,
     query,

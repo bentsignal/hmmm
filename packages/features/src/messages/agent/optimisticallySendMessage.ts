@@ -6,7 +6,7 @@ import type {
 } from "convex/server";
 import { insertAtTop } from "convex/react";
 
-import type { UIMessage } from "@acme/db/agent/UIMessages";
+import type { UIMessage } from "@acme/db/agent/ui";
 import type {
   MessageDoc,
   StreamArgs,
@@ -57,15 +57,15 @@ export function optimisticallySendMessage(
       streams?: SyncStreamsReturnValue;
     }
   >,
-): (
-  store: OptimisticLocalStore,
-  args: { threadId: string; prompt: string },
-) => void {
-  return (store, args) => {
+) {
+  return (
+    store: OptimisticLocalStore,
+    args: { threadId: string; prompt: string },
+  ) => {
     const queries = store.getAllQueries(query);
     let maxOrder = -1;
     for (const q of queries) {
-      if (q.args?.threadId !== args.threadId) continue;
+      if (q.args.threadId !== args.threadId) continue;
       if (q.args.streamArgs) continue;
       for (const m of q.value?.page ?? []) {
         maxOrder = Math.max(maxOrder, m.order);

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { SearchReturnType } from "./schemas";
-import { createTool } from "../../../agent/client/createTool";
+import { createTool } from "../../../agent/tools";
 import { kv } from "../../../kv";
 import { getCurrentDateTime } from "../../../lib/date_time_utils";
 import { tryCatch } from "../../../lib/utils";

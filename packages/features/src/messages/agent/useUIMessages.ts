@@ -1,38 +1,32 @@
 "use client";
 
+import type { BetterOmit, ErrorMessage, Expand } from "convex-helpers";
+import type { PaginatedQueryArgs, UsePaginatedQueryResult } from "convex/react";
 import type {
   FunctionArgs,
   FunctionReference,
   PaginationOptions,
   PaginationResult,
 } from "convex/server";
+// eslint-disable-next-line no-restricted-imports -- useMemo needed to keep merged paginated/streaming results array stable across renders so consumers don't see new identities every tick
 import { useMemo } from "react";
-import {
-  type BetterOmit,
-  type ErrorMessage,
-  type Expand,
-} from "convex-helpers";
 import { usePaginatedQuery } from "convex-helpers/react";
-import {
-  type PaginatedQueryArgs,
-  type UsePaginatedQueryResult,
-} from "convex/react";
 
-import type { UIMessage, UIStatus } from "@acme/db/agent/UIMessages";
+import type { UIMessage, UIStatus } from "@acme/db/agent/ui";
 import type { StreamArgs } from "@acme/db/agent/validators";
 import { sorted } from "@acme/db/agent/shared";
-import { combineUIMessages } from "@acme/db/agent/UIMessages";
+import { combineUIMessages } from "@acme/db/agent/ui";
 
 import type { StreamQuery, SyncStreamsReturnValue } from "./types";
 import { useStreamingUIMessages } from "./useStreamingUIMessages";
 
-export type UIMessageLike = {
+export interface UIMessageLike {
   order: number;
   stepOrder: number;
   status: UIStatus;
   parts: UIMessage["parts"];
   role: UIMessage["role"];
-};
+}
 
 export type UIMessagesQuery<
   Args = unknown,
@@ -70,58 +64,14 @@ export type UIMessagesQueryResult<
  * The streaming messages are materialized as UIMessages. The rest are passed
  * through from the query.
  *
- * This hook is a wrapper around `usePaginatedQuery` and `useStreamingUIMessages`.
- * It will fetch both full messages and streaming messages, and merge them together.
- *
  * The query must take as arguments `{ threadId, paginationOpts }` and return a
- * pagination result of objects similar to UIMessage:
- *
- * For streaming, it should look like this:
- * ```ts
- * export const listThreadMessages = query({
- *   args: {
- *     threadId: v.string(),
- *     paginationOpts: paginationOptsValidator,
- *     streamArgs: vStreamArgs,
- *     ... other arguments you want
- *   },
- *   handler: async (ctx, args) => {
- *     // await authorizeThreadAccess(ctx, threadId);
- *     // NOTE: listUIMessages returns UIMessages, not MessageDocs.
- *     const paginated = await listUIMessages(ctx, components.agent, args);
- *     const streams = await syncStreams(ctx, components.agent, args);
- *     // Here you could filter out / modify the documents & stream deltas.
- *     return { ...paginated, streams };
- *   },
- * });
- * ```
- *
- * Then the hook can be used like this:
- * ```ts
- * const { results, status, loadMore } = useUIMessages(
- *   api.myModule.listThreadMessages,
- *   { threadId },
- *   { initialNumItems: 10, stream: true }
- * );
- * ```
- *
- * @param query The query to use to fetch messages.
- * It must take as arguments `{ threadId, paginationOpts }` and return a
- * pagination result of objects similar to UIMessage:
- * Required fields: (role, parts, status, order, stepOrder).
- * To support streaming, it must also take in `streamArgs: vStreamArgs` and
- * return a `streams` object returned from `syncStreams`.
- * @param args The arguments to pass to the query other than `paginationOpts`
- * and `streamArgs`. So `{ threadId }` at minimum, plus any other arguments that
- * you want to pass to the query.
- * @param options The options for the query. Similar to usePaginatedQuery.
- * To enable streaming, pass `stream: true`.
- * @returns The messages. If stream is true, it will return a list of messages
- *   that includes both full messages and streaming messages.
- *   The streaming messages are materialized as UIMessages. The rest are passed
- *   through from the query.
+ * pagination result of objects similar to UIMessage. To support streaming, it
+ * must also take in `streamArgs: vStreamArgs` and return a `streams` object
+ * returned from `syncStreams`.
  */
-export function useUIMessages<Query extends UIMessagesQuery<any, any>>(
+export function useUIMessages<
+  Query extends UIMessagesQuery<unknown, UIMessageLike>,
+>(
   query: Query,
   args: UIMessagesQueryArgs<Query> | "skip",
   options: {
@@ -131,38 +81,55 @@ export function useUIMessages<Query extends UIMessagesQuery<any, any>>(
       : ErrorMessage<"To enable streaming, your query must take in streamArgs: vStreamArgs and return a streams object returned from syncStreams. See docs.">;
     skipStreamIds?: string[];
   },
-): UsePaginatedQueryResult<UIMessagesQueryResult<Query>> {
+) {
   // These are full messages
-  const paginated = usePaginatedQuery(
-    query,
-    args as PaginatedQueryArgs<Query> | "skip",
-    { initialNumItems: options.initialNumItems },
-  );
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- usePaginatedQuery's argument type cannot be inferred from the constrained Query generic; widening at the boundary
+  const paginatedArgs = args as PaginatedQueryArgs<Query> | "skip";
+  const paginated = usePaginatedQuery(query, paginatedArgs, {
+    initialNumItems: options.initialNumItems,
+  });
 
   const startOrder = paginated.results.length
     ? Math.min(...paginated.results.map((m) => m.order))
     : 0;
   // These are streaming messages that will not include full messages.
-  const streamMessages = useStreamingUIMessages(
-    query as StreamQuery<UIMessagesQueryArgs<Query>>,
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- query is structurally compatible with StreamQuery here; the constraint cannot be expressed at the type level
+  const streamQuery = query as unknown as StreamQuery<
+    UIMessagesQueryArgs<Query>
+  >;
+  const shouldSkipStreaming =
     !options.stream ||
-      args === "skip" ||
-      paginated.status === "LoadingFirstPage"
-      ? "skip"
-      : ({ ...args, paginationOpts: { cursor: null, numItems: 0 } } as any),
-    { startOrder, skipStreamIds: options.skipStreamIds },
-  );
+    args === "skip" ||
+    paginated.status === "LoadingFirstPage";
+  /* eslint-disable @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument -- UIMessagesQueryArgs<Query>'s biconditional inference can't be narrowed to the stream-query's arg shape (which requires a paginationOpts intersection); runtime shape is identical */
+  const streamingArgs = shouldSkipStreaming
+    ? ("skip" as const)
+    : ({
+        ...args,
+        paginationOpts: { cursor: null, numItems: 0 },
+      } as any);
+  const streamMessages = useStreamingUIMessages(streamQuery, streamingArgs, {
+    startOrder,
+    skipStreamIds: options.skipStreamIds,
+  });
+  /* eslint-enable @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 
   const merged = useMemo(() => {
     // Messages may have been split by pagination. Re-combine them here.
-    const combined = combineUIMessages(sorted(paginated.results));
+    const combined = combineUIMessages(
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- paginated.results is PaginatedQueryItem<Query>[] which structurally matches UIMessage; the constraint cannot be expressed at the type level
+      sorted(paginated.results) as UIMessage[],
+    );
     return {
       ...paginated,
       results: dedupeMessages(combined, streamMessages ?? []),
     };
   }, [paginated, streamMessages]);
 
-  return merged as UIMessagesQueryResult<Query>;
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- merged is typed as { ...paginated, results: combinedM[] }; the caller-facing UsePaginatedQueryResult shape needs widening here at the boundary
+  return merged as unknown as UsePaginatedQueryResult<
+    UIMessagesQueryResult<Query>
+  >;
 }
 
 export function dedupeMessages<
@@ -171,7 +138,9 @@ export function dedupeMessages<
     stepOrder: number;
     status: UIStatus;
   },
->(messages: M[], streamMessages: M[]): M[] {
+>(messages: M[], streamMessages: M[]) {
+  // eslint-disable-next-line no-restricted-syntax -- reduce seed needs the element type on an empty array initializer
+  const initial: M[] = [];
   return sorted(messages.concat(streamMessages)).reduce((msgs, msg) => {
     const last = msgs.at(-1);
     if (!last) {
@@ -190,5 +159,5 @@ export function dedupeMessages<
     }
     // skip the new one if the previous one (listed) was finalized
     return msgs;
-  }, [] as M[]);
+  }, initial);
 }
