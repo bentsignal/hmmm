@@ -1,6 +1,9 @@
+import { gateway } from "@ai-sdk/gateway";
 import { openrouter } from "@openrouter/ai-sdk-provider";
 
 import type { LanguageModel } from "./types";
+
+void gateway;
 
 export const languageModels = {
   "gemini-2.0-flash": {
@@ -174,7 +177,7 @@ export const languageModels = {
   "grok-4.20": {
     provider: "xAI",
     name: "Grok 4.20",
-    model: openrouter("x-ai/grok-4.20"),
+    model: gateway("xai/grok-4.20-reasoning-beta"),
     cost: { in: 2, out: 6, other: 0 },
     available: true,
   },

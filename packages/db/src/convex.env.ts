@@ -22,5 +22,6 @@ export const env = createEnv({
   GOOGLE_API_KEY: v.string(),
   OPENAI_API_KEY: v.string(),
   OPENROUTER_API_KEY: v.string(),
+  AI_GATEWAY_API_KEY: v.string(),
   NEXT_CONVEX_INTERNAL_KEY: v.string(),
 });
