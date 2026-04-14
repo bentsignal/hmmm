@@ -4,8 +4,8 @@ Guidance for coding agents working in `/Users/shawn/dev/projects/start-faster`.
 
 ## Repository Summary
 
-- Turborepo monorepo.
-- This project is very early on. Don't hestitate to make breaking changes. It has not yet been deployed to any users, so don't worry about things like migrations.
+- AI chat app
+- Uses turbo repo to house apps for various platforms + the convex database
 
 ## Required Validation After Changes
 
