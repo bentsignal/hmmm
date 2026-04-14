@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 const FPS = 100;
+const TICK_MS = 1000 / FPS;
 
 interface Snapshot {
   length: number;
@@ -16,43 +17,55 @@ export function useTypewriter({
 }) {
   const [visibleText, setVisibleText] = useState("");
 
+  // Keep the latest inputText available inside the interval without
+  // re-running the effect on every delta (which used to reset the snapshot
+  // before growth could ever be measured).
+  const inputRef = useRef(inputText);
   const snapshot = useRef<Snapshot | null>(null);
   const growthRate = useRef(0);
 
-  // eslint-disable-next-line no-restricted-syntax -- Effect needed to drive typewriter animation via requestAnimationFrame/setTimeout
+  // eslint-disable-next-line no-restricted-syntax -- Effect needed to sync latest inputText into ref read by the interval tick
+  useEffect(() => {
+    inputRef.current = inputText;
+  }, [inputText]);
+
+  // eslint-disable-next-line no-restricted-syntax -- Effect needed to drive typewriter animation via setInterval
   useEffect(() => {
     if (!streaming) {
+      snapshot.current = null;
       return;
     }
 
     snapshot.current = {
-      length: inputText.length,
+      length: inputRef.current.length,
       timestamp: Date.now(),
     };
 
     const interval = setInterval(() => {
-      if (snapshot.current && snapshot.current.length < inputText.length) {
-        const delta = Date.now() - snapshot.current.timestamp;
-        const growth = inputText.length - snapshot.current.length;
-        growthRate.current = (growth / delta) * (1000 / FPS);
-        snapshot.current.length = inputText.length;
-        snapshot.current.timestamp = Date.now();
+      const currentInput = inputRef.current;
+      const snap = snapshot.current;
+      if (snap && currentInput.length > snap.length) {
+        const delta = Date.now() - snap.timestamp;
+        if (delta > 0) {
+          const growth = currentInput.length - snap.length;
+          growthRate.current = (growth / delta) * TICK_MS;
+        }
+        snap.length = currentInput.length;
+        snap.timestamp = Date.now();
       }
 
       setVisibleText((current) => {
-        if (current.length < inputText.length) {
-          const nextIndex = Math.min(
-            current.length + growthRate.current,
-            inputText.length,
-          );
-          return inputText.slice(0, nextIndex);
+        if (current.length >= currentInput.length) {
+          return currentInput;
         }
-        return inputText;
+        const step = Math.max(growthRate.current, 1);
+        const nextIndex = Math.min(current.length + step, currentInput.length);
+        return currentInput.slice(0, nextIndex);
       });
-    }, 1000 / FPS);
+    }, TICK_MS);
 
     return () => clearInterval(interval);
-  }, [streaming, inputText]);
+  }, [streaming]);
 
   if (!streaming) {
     return { animatedText: inputText };
