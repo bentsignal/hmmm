@@ -88,9 +88,13 @@ export const currentEvents = createTool({
     }));
 
     // write to cache
-    await kv.set(cacheKey, sources, {
-      ex: 60 * 10, // 10 minutes
-    });
+    await kv.set(
+      cacheKey,
+      { sources },
+      {
+        ex: 60 * 10, // 10 minutes
+      },
+    );
 
     const dateTime = getCurrentDateTime({
       timezone: "America/New_York",

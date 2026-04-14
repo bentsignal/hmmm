@@ -70,18 +70,25 @@ export function isNoticeMessage(message: string) {
   return noticeCodes.get(message.replace(SystemNoticeLabel, "")) ?? null;
 }
 
+function isSource(value: unknown): value is Source {
+  if (typeof value !== "object" || value === null) return false;
+  if (!("url" in value)) return false;
+  return typeof value.url === "string";
+}
+
 export function extractSourcesFromMessage(message: MyUIMessage) {
   return message.parts.flatMap((part) => {
     if (
-      (part.type === "tool-currentEvents" ||
-        part.type === "tool-positionHolder") &&
-      part.output
+      part.type !== "tool-currentEvents" &&
+      part.type !== "tool-positionHolder"
     ) {
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- tool output is untyped, runtime shape is { sources: Source[] }
-      const { sources } = part.output as { sources: Source[] };
-      return sources;
+      return [];
     }
-    return [];
+    if (!part.output || typeof part.output !== "object") return [];
+    if (!("sources" in part.output)) return [];
+    const { sources } = part.output;
+    if (!Array.isArray(sources)) return [];
+    return sources.filter(isSource);
   });
 }
 
