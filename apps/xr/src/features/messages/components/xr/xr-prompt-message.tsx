@@ -1,5 +1,6 @@
-import type { UIMessage } from "@acme/features/messages";
 import { Text } from "@react-three/uikit";
+
+import type { UIMessage } from "@acme/features/messages";
 
 import { hexColors, xrStyles } from "~/styles/styles";
 

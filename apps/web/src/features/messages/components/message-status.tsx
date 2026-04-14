@@ -1,4 +1,3 @@
-import { useSmoothText } from "@acme/features/messages";
 import {
   Brain,
   Clock,
@@ -14,6 +13,7 @@ import type { MyUIMessage } from "@acme/features/messages";
 import {
   extractReasoningFromMessage,
   getStatusLabel,
+  useSmoothText,
 } from "@acme/features/messages";
 import {
   HoverCard,
