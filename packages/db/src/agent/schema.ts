@@ -37,12 +37,6 @@ export const agentTables = {
     pinned: v.optional(v.boolean()),
     updatedAt: v.optional(v.number()),
     followUpQuestions: v.optional(v.array(v.string())),
-    // Legacy id of this thread back when it lived in the `@convex-dev/agent`
-    // component. Set by the (now-deleted) cutover migration. Kept as an
-    // optional field so already-migrated rows in production continue to
-    // validate against the schema. Safe to drop in a future PR with a
-    // small backfill that nulls it out on every row.
-    legacyAgentThreadId: v.optional(v.string()),
   })
     .index("userId", ["userId"])
     .index("by_user_time", ["userId", "pinned", "updatedAt"])
