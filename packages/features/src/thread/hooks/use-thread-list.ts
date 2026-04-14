@@ -55,7 +55,10 @@ function groupThreads(threads: PureThread[]) {
       pinnedThreads.push(item);
       continue;
     }
-    const category = categorizeThread(new Date(item.updatedAt), boundaries);
+    const category = categorizeThread(
+      new Date(item.updatedAt ?? 0),
+      boundaries,
+    );
     if (category === "today") todaysThreads.push(item);
     else if (category === "yesterday") yesterdayThreads.push(item);
     else if (category === "lastWeek") lastWeekThreads.push(item);

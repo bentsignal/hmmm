@@ -1,10 +1,11 @@
 import { useMutation as useTanstackMutation } from "@tanstack/react-query";
-import { optimisticallySendMessage } from "@convex-dev/agent/react";
 import { useConvexMutation } from "@convex-dev/react-query";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
 
 import { api } from "@acme/db/api";
+
+import { optimisticallySendMessage } from "../../messages/agent";
 
 export function useThreadMutation() {
   const createThread = useMutation(api.ai.thread.mutations.create);

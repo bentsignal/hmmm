@@ -1,7 +1,7 @@
-import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 
 import { internal } from "../../_generated/api";
+import { createTool } from "../../agent/client/createTool";
 import { env } from "../../convex.env";
 import { kv } from "../../kv";
 import { tryCatch } from "../../lib/utils";

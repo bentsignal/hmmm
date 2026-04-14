@@ -1,6 +1,5 @@
 // eslint-disable-next-line no-restricted-imports -- useQuery needed for conditional fetching (isAuthenticated gate)
 import { useQuery } from "@tanstack/react-query";
-import { toUIMessages, useThreadMessages } from "@convex-dev/agent/react";
 import { useConvexAuth } from "convex/react";
 
 import { api } from "@acme/db/api";
@@ -12,6 +11,7 @@ import type {
   MyUIMessage,
 } from "../types/message-types";
 import { threadQueries } from "../../lib/queries";
+import { toUIMessages, useThreadMessages } from "../agent";
 import { INITIAL_PAGE_SIZE } from "../config/message-config";
 
 export function useMessages({

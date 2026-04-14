@@ -8,6 +8,26 @@
  * @module
  */
 
+import type * as agent_UIMessages from "../agent/UIMessages.js";
+import type * as agent_client_createTool from "../agent/client/createTool.js";
+import type * as agent_client_index from "../agent/client/index.js";
+import type * as agent_client_messages from "../agent/client/messages.js";
+import type * as agent_client_saveInputMessages from "../agent/client/saveInputMessages.js";
+import type * as agent_client_search from "../agent/client/search.js";
+import type * as agent_client_start from "../agent/client/start.js";
+import type * as agent_client_streamText from "../agent/client/streamText.js";
+import type * as agent_client_streaming from "../agent/client/streaming.js";
+import type * as agent_client_threads from "../agent/client/threads.js";
+import type * as agent_client_types from "../agent/client/types.js";
+import type * as agent_client_utils from "../agent/client/utils.js";
+import type * as agent_component from "../agent/component.js";
+import type * as agent_deltas from "../agent/deltas.js";
+import type * as agent_mapping from "../agent/mapping.js";
+import type * as agent_messages from "../agent/messages.js";
+import type * as agent_shared from "../agent/shared.js";
+import type * as agent_streams from "../agent/streams.js";
+import type * as agent_threads from "../agent/threads.js";
+import type * as agent_validators from "../agent/validators.js";
 import type * as ai_agents from "../ai/agents.js";
 import type * as ai_models_helpers from "../ai/models/helpers.js";
 import type * as ai_models_image from "../ai/models/image.js";
@@ -66,6 +86,26 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "agent/UIMessages": typeof agent_UIMessages;
+  "agent/client/createTool": typeof agent_client_createTool;
+  "agent/client/index": typeof agent_client_index;
+  "agent/client/messages": typeof agent_client_messages;
+  "agent/client/saveInputMessages": typeof agent_client_saveInputMessages;
+  "agent/client/search": typeof agent_client_search;
+  "agent/client/start": typeof agent_client_start;
+  "agent/client/streamText": typeof agent_client_streamText;
+  "agent/client/streaming": typeof agent_client_streaming;
+  "agent/client/threads": typeof agent_client_threads;
+  "agent/client/types": typeof agent_client_types;
+  "agent/client/utils": typeof agent_client_utils;
+  "agent/component": typeof agent_component;
+  "agent/deltas": typeof agent_deltas;
+  "agent/mapping": typeof agent_mapping;
+  "agent/messages": typeof agent_messages;
+  "agent/shared": typeof agent_shared;
+  "agent/streams": typeof agent_streams;
+  "agent/threads": typeof agent_threads;
+  "agent/validators": typeof agent_validators;
   "ai/agents": typeof ai_agents;
   "ai/models/helpers": typeof ai_models_helpers;
   "ai/models/image": typeof ai_models_image;

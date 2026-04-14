@@ -1,7 +1,7 @@
 import { generateText } from "ai";
 import { ConvexError, v } from "convex/values";
 
-import { components, internal } from "../../_generated/api";
+import { internal } from "../../_generated/api";
 import { internalAction, internalMutation } from "../../_generated/server";
 import { authedMutation } from "../../convex_helpers";
 import { tryCatch } from "../../lib/utils";
@@ -78,18 +78,24 @@ export const create = authedMutation({
       userId: ctx.user.subject,
       title: "New Chat",
     });
+    // Set initial state directly on the unified threads row.
+    const newThreadId = ctx.db.normalizeId("threads", threadId);
+    if (!newThreadId) {
+      throw new ConvexError("Just-created thread id failed to normalize");
+    }
+    await ctx.db.patch(newThreadId, {
+      state: "waiting",
+      pinned: false,
+      updatedAt: Date.now(),
+    });
     const userInfo = await getUserInfoHelper(ctx);
-    const [{ lastMessageId }] = await Promise.all([
-      saveUserMessage({ ctx, threadId, prompt, userInfo, attachments }),
-      ctx.db.insert("threadMetadata", {
-        userId: ctx.user.subject,
-        title: "New Chat",
-        threadId: threadId,
-        updatedAt: Date.now(),
-        state: "waiting",
-        pinned: false,
-      }),
-    ]);
+    const { lastMessageId } = await saveUserMessage({
+      ctx,
+      threadId,
+      prompt,
+      userInfo,
+      attachments,
+    });
     const model = await getPerferredModelIfAllowed(ctx, userInfo?.model);
     const { error } = await tryCatch(
       Promise.all([
@@ -127,22 +133,20 @@ export const sendMessage = authedMutation({
     const { threadId, prompt, attachments } = args;
     const numAttachments = attachments?.length ?? 0;
     await validateMessage(ctx, prompt, numAttachments);
-    const metadata = await authorizeAccess(ctx, threadId);
-    if (!metadata) {
+    const thread = await authorizeAccess(ctx, threadId);
+    if (!thread) {
       throw new ConvexError("Thread not found");
     }
-    if (metadata.state !== "idle") {
+    if (thread.state !== "idle") {
       throw new ConvexError("Thread is not idle");
     }
     const userInfo = await getUserInfoHelper(ctx);
     const model = await getPerferredModelIfAllowed(ctx, userInfo?.model);
     const [{ lastMessageId }] = await Promise.all([
       saveUserMessage({ ctx, threadId, prompt, userInfo, attachments }),
-      ctx.db.patch(metadata._id, {
+      ctx.db.patch(thread._id, {
         state: "waiting",
         updatedAt: Date.now(),
-      }),
-      ctx.db.patch(metadata._id, {
         followUpQuestions: [],
       }),
     ]);
@@ -166,20 +170,19 @@ export const deleteThread = authedMutation({
   },
   handler: async (ctx, args) => {
     const { threadId } = args;
-    const metadata = await authorizeAccess(ctx, threadId);
-    if (!metadata) {
+    const thread = await authorizeAccess(ctx, threadId);
+    if (!thread) {
       throw new ConvexError("Thread not found");
     }
-    if (metadata.state !== "idle") {
+    if (thread.state !== "idle") {
       throw new Error(
         "Cannot delete a thread while a response is being generated",
       );
     }
-    await ctx.db.delete(metadata._id);
     await ctx.scheduler.runAfter(
       0,
-      components.agent.threads.deleteAllForThreadIdAsync,
-      { threadId },
+      internal.agent.threads.deleteAllForThreadIdAsync,
+      { threadId: thread._id },
     );
   },
 });
@@ -195,11 +198,11 @@ export const setState = internalMutation({
   },
   handler: async (ctx, args) => {
     const { threadId, state } = args;
-    const metadata = await getMetadata(ctx, threadId);
-    if (!metadata) {
+    const thread = await getMetadata(ctx, threadId);
+    if (!thread) {
       throw new ConvexError("Thread not found");
     }
-    await ctx.db.patch(metadata._id, { state });
+    await ctx.db.patch(thread._id, { state });
   },
 });
 
@@ -209,12 +212,12 @@ export const togglePinned = authedMutation({
   },
   handler: async (ctx, args) => {
     const { threadId } = args;
-    const metadata = await authorizeAccess(ctx, threadId);
-    if (!metadata) {
+    const thread = await authorizeAccess(ctx, threadId);
+    if (!thread) {
       throw new ConvexError("Thread not found");
     }
-    await ctx.db.patch(metadata._id, {
-      pinned: !metadata.pinned,
+    await ctx.db.patch(thread._id, {
+      pinned: !(thread.pinned ?? false),
     });
   },
 });
@@ -226,10 +229,10 @@ export const saveFollowUpQuestions = internalMutation({
   },
   handler: async (ctx, args) => {
     const { threadId, followUpQuestions } = args;
-    const metadata = await getMetadata(ctx, threadId);
-    if (!metadata) {
+    const thread = await getMetadata(ctx, threadId);
+    if (!thread) {
       throw new ConvexError("Thread not found");
     }
-    await ctx.db.patch(metadata._id, { followUpQuestions });
+    await ctx.db.patch(thread._id, { followUpQuestions });
   },
 });

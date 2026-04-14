@@ -44,12 +44,14 @@
     "typescript": "catalog:"
   },
   "peerDependencies": {
+    "@ai-sdk/provider-utils": "^4.0.23",
     "@convex-dev/agent": "catalog:",
     "@convex-dev/react-query": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "catalog:",
     "ai": "catalog:",
     "convex": "catalog:",
+    "convex-helpers": "^0.1.114",
     "react": "catalog:react19",
     "sonner": "catalog:",
     "zustand": "catalog:"

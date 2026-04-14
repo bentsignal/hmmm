@@ -1,7 +1,7 @@
-import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 
 import { internal } from "../../../_generated/api";
+import { createTool } from "../../../agent/client/createTool";
 import { PlanTier } from "../../../user/subscription";
 import { zAspectRatio } from "./types";
 

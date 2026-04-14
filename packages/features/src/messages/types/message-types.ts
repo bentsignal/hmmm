@@ -1,7 +1,7 @@
-import type { UIMessage } from "@convex-dev/agent/react";
 import type { UIDataTypes, UIMessagePart, UITools } from "ai";
 
 import type { LibraryFile } from "../../library/types/library-types";
+import type { UIMessage } from "../agent";
 
 export type SystemErrorCode = "G1" | "G2" | "G3" | "G4";
 

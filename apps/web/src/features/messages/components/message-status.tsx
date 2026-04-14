@@ -1,4 +1,4 @@
-import { useSmoothText } from "@convex-dev/agent/react";
+import { useSmoothText } from "@acme/features/messages";
 import {
   Brain,
   Clock,

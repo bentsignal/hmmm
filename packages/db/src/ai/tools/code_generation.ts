@@ -1,8 +1,8 @@
-import { createTool } from "@convex-dev/agent";
 import { generateText } from "ai";
 import { z } from "zod";
 
 import { internal } from "../../_generated/api";
+import { createTool } from "../../agent/client/createTool";
 import { tryCatch } from "../../lib/utils";
 import { calculateModelCost } from "../../user/usage";
 import { modelPresets } from "../models/helpers";

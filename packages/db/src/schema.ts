@@ -1,8 +1,11 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
+import { agentTables } from "./agent/schema";
+
 export default defineSchema(
   {
+    ...agentTables,
     users: defineTable({
       userId: v.string(),
       email: v.string(),
@@ -32,33 +35,6 @@ export default defineSchema(
         searchField: "fileName",
         filterFields: ["userId"],
       }),
-    threadMetadata: defineTable({
-      title: v.string(),
-      threadId: v.string(),
-      userId: v.string(),
-      updatedAt: v.number(),
-      state: v.union(
-        v.literal("idle"),
-        v.literal("waiting"),
-        v.literal("streaming"),
-      ),
-      pinned: v.boolean(),
-      followUpQuestions: v.optional(v.array(v.string())),
-    })
-      .index("by_user_time", ["userId", "pinned", "updatedAt"])
-      .index("by_thread_id", ["threadId"])
-      .searchIndex("search_title", {
-        searchField: "title",
-        filterFields: ["userId"],
-      }),
-    messageMetadata: defineTable({
-      messageId: v.string(),
-      threadId: v.string(),
-      userId: v.string(),
-      attachments: v.optional(v.array(v.id("files"))),
-    })
-      .index("by_user", ["userId"])
-      .index("by_message_id", ["messageId"]),
     usage: defineTable({
       userId: v.string(),
       type: v.union(

@@ -1,6 +1,6 @@
-import type { ToolCtx } from "@convex-dev/agent";
 import { z } from "zod";
 
+import type { ToolCtx } from "../../agent/client/createTool";
 import { internal } from "../../_generated/api";
 import { env } from "../../convex.env";
 

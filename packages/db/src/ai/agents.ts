@@ -1,11 +1,12 @@
-import { Agent } from "@convex-dev/agent";
 import { generateObject } from "ai";
 import { v } from "convex/values";
 import z from "zod";
 
 import type { ActionCtx } from "../_generated/server";
-import { components, internal } from "../_generated/api";
+import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
+import { Agent } from "../agent/client";
+import { agentComponent } from "../agent/component";
 import { tryCatch } from "../lib/utils";
 import { calculateModelCost } from "../user/usage";
 import { getModel, modelPresets } from "./models/helpers";
@@ -13,7 +14,7 @@ import { agentPrompt, followUpGeneratorPrompt } from "./prompts";
 import { logSystemError } from "./thread/helpers";
 import { tools } from "./tools";
 
-export const agent = new Agent(components.agent, {
+export const agent = new Agent(agentComponent, {
   languageModel: modelPresets.default.model,
   name: "The Thinker",
   instructions: agentPrompt,

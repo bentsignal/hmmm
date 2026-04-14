@@ -1,19 +1,19 @@
 import type { Doc } from "@acme/db/model";
 
 export interface Thread {
-  title: Doc<"threadMetadata">["title"];
-  id: Doc<"threadMetadata">["threadId"];
+  title: Doc<"threads">["title"];
+  id: Doc<"threads">["_id"];
   active: boolean;
-  status: Doc<"threadMetadata">["state"];
+  status: Doc<"threads">["state"];
   pinned: boolean;
 }
 
 export interface PureThread {
-  id: Doc<"threadMetadata">["threadId"];
-  title: Doc<"threadMetadata">["title"];
-  updatedAt: Doc<"threadMetadata">["updatedAt"];
-  state: Doc<"threadMetadata">["state"];
-  pinned: Doc<"threadMetadata">["pinned"];
+  id: Doc<"threads">["_id"];
+  title: Doc<"threads">["title"];
+  updatedAt: Doc<"threads">["updatedAt"];
+  state: Doc<"threads">["state"];
+  pinned: Doc<"threads">["pinned"];
 }
 
 export interface ThreadGroup {

@@ -17,7 +17,13 @@
     "./tools": "./src/ai/tools/index.ts",
     "./tools/search": "./src/ai/tools/search/index.ts",
     "./subscription": "./src/user/subscription.ts",
-    "./library-types": "./src/types/library.ts"
+    "./library-types": "./src/types/library.ts",
+    "./agent/validators": "./src/agent/validators.ts",
+    "./agent/UIMessages": "./src/agent/UIMessages.ts",
+    "./agent/shared": "./src/agent/shared.ts",
+    "./agent/deltas": "./src/agent/deltas.ts",
+    "./agent/mapping": "./src/agent/mapping.ts",
+    "./agent/types": "./src/agent/client/types.ts"
   },
   "scripts": {
     "dev": "convex dev",

@@ -24,35 +24,37 @@ function formatNotice(code: SystemNoticeCode) {
   return `${SystemNoticeLabel}${code}`;
 }
 
+/**
+ * Look up a thread by its `_id`. After the inlining migration, threads are
+ * the authoritative source — there is no separate `threadMetadata` table.
+ * The string `threadId` flowing through host code is now an `Id<"threads">`.
+ */
 export async function getMetadata(ctx: QueryCtx, threadId: string) {
-  const metadata = await ctx.db
-    .query("threadMetadata")
-    .withIndex("by_thread_id", (q) => q.eq("threadId", threadId))
-    .first();
-  if (!metadata) {
+  const id = ctx.db.normalizeId("threads", threadId);
+  if (!id) {
     return null;
   }
-  return metadata;
+  return ctx.db.get(id);
 }
 
 export async function authorizeAccess(
   ctx: CustomCtx<typeof authedMutation> | CustomCtx<typeof authedQuery>,
   threadId: string,
 ) {
-  const [metadata, isAdminUser] = await Promise.all([
+  const [thread, isAdminUser] = await Promise.all([
     getMetadata(ctx, threadId),
     isAdmin(ctx, ctx.user.subject),
   ]);
-  if (!metadata) {
+  if (!thread) {
     return null;
   }
   if (isAdminUser) {
-    return metadata;
+    return thread;
   }
-  if (metadata.userId !== ctx.user.subject) {
+  if (thread.userId !== ctx.user.subject) {
     throw new Error("Unauthorized");
   }
-  return metadata;
+  return thread;
 }
 
 export async function logSystemError(
@@ -187,6 +189,8 @@ export async function saveUserMessage({
   if (!lastMessage) {
     throw new ConvexError("Failed to save message");
   }
+  // Resolve attachment Ids for the prompt message and patch them onto the
+  // unified messages row (no more parallel `messageMetadata` table).
   const results = await Promise.all(
     attachments?.map((attachment) =>
       ctx.db
@@ -202,12 +206,14 @@ export async function saveUserMessage({
   if (!lastPromptMessage) {
     throw new ConvexError("Failed to save message");
   }
-  await ctx.db.insert("messageMetadata", {
-    messageId: lastPromptMessage._id,
-    threadId: threadId,
-    userId: ctx.user.subject,
-    attachments: files.map((file) => file._id),
-  });
+  if (files.length > 0) {
+    const messageId = ctx.db.normalizeId("messages", lastPromptMessage._id);
+    if (messageId) {
+      await ctx.db.patch(messageId, {
+        attachments: files.map((file) => file._id),
+      });
+    }
+  }
   return { lastMessageId: lastMessage._id };
 }
 
@@ -220,20 +226,12 @@ export async function saveNewTitle({
   threadId: string;
   title: string;
 }) {
-  const metadata = await getMetadata(ctx, threadId);
-  if (!metadata) {
+  const thread = await getMetadata(ctx, threadId);
+  if (!thread) {
     throw new ConvexError("Thread not found");
   }
-  if ("user" in ctx && metadata.userId !== ctx.user.subject) {
+  if ("user" in ctx && thread.userId !== ctx.user.subject) {
     throw new Error("Unauthorized");
   }
-  await ctx.db.patch(metadata._id, {
-    title: title,
-  });
-  await agent.updateThreadMetadata(ctx, {
-    threadId: threadId,
-    patch: {
-      title: title,
-    },
-  });
+  await ctx.db.patch(thread._id, { title });
 }

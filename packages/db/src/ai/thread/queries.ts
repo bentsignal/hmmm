@@ -1,21 +1,45 @@
-import type { SyncStreamsReturnValue } from "@convex-dev/agent";
-import { vStreamArgs } from "@convex-dev/agent/validators";
+import type { CustomCtx } from "convex-helpers/server/customFunctions";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 
-import type { LibraryFile } from "../../types/library";
+import type { SyncStreamsReturnValue } from "../../agent/client/types";
+import { vStreamArgs } from "../../agent/validators";
 import { getPublicFile } from "../../app/file_helpers";
 import { authedQuery } from "../../convex_helpers";
 import { agent } from "../agents";
 import { authorizeAccess } from "./helpers";
+
+function isStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) && value.every((item) => typeof item === "string")
+  );
+}
+
+async function resolveAttachments(
+  ctx: CustomCtx<typeof authedQuery>,
+  raw: unknown,
+  userId: string,
+) {
+  if (!isStringArray(raw) || raw.length === 0) {
+    return [];
+  }
+  const fileIds = raw
+    .map((id) => ctx.db.normalizeId("files", id))
+    .filter((id): id is NonNullable<typeof id> => id !== null);
+  const files = await Promise.all(fileIds.map((id) => ctx.db.get(id)));
+  return files
+    .filter((file): file is NonNullable<typeof file> => file !== null)
+    .filter((file) => file.userId === userId)
+    .map((file) => getPublicFile(file));
+}
 
 export const getTitle = authedQuery({
   args: {
     threadId: v.string(),
   },
   handler: async (ctx, args) => {
-    const metadata = await authorizeAccess(ctx, args.threadId);
-    return metadata?.title;
+    const thread = await authorizeAccess(ctx, args.threadId);
+    return thread?.title;
   },
 });
 
@@ -28,8 +52,8 @@ export const getState = authedQuery({
     if (threadId.trim().length === 0) {
       return "idle";
     }
-    const metadata = await authorizeAccess(ctx, threadId);
-    return metadata?.state;
+    const thread = await authorizeAccess(ctx, threadId);
+    return thread?.state;
   },
 });
 
@@ -43,24 +67,24 @@ export const getThreadList = authedQuery({
     const threads =
       search.trim().length > 0
         ? await ctx.db
-            .query("threadMetadata")
-            .withSearchIndex("search_title", (q) =>
+            .query("threads")
+            .withSearchIndex("title", (q) =>
               q.search("title", search).eq("userId", ctx.user.subject),
             )
             .paginate(paginationOpts)
         : await ctx.db
-            .query("threadMetadata")
+            .query("threads")
             .withIndex("by_user_time", (q) => q.eq("userId", ctx.user.subject))
             .order("desc")
             .paginate(paginationOpts);
     return {
       ...threads,
       page: threads.page.map((thread) => ({
-        id: thread.threadId,
-        updatedAt: thread.updatedAt,
-        title: thread.title,
-        state: thread.state,
-        pinned: thread.pinned,
+        id: thread._id,
+        updatedAt: thread.updatedAt ?? thread._creationTime,
+        title: thread.title ?? "",
+        state: thread.state ?? "idle",
+        pinned: thread.pinned ?? false,
       })),
     };
   },
@@ -77,8 +101,8 @@ export const getThreadMessages = authedQuery({
     if (threadId.trim().length === 0) {
       throw new Error("Empty thread ID");
     }
-    const metadata = await authorizeAccess(ctx, threadId);
-    if (!metadata) {
+    const thread = await authorizeAccess(ctx, threadId);
+    if (!thread) {
       const streamsFallback =
         !streamArgs || streamArgs.kind === "list"
           ? ({ kind: "list", messages: [] } satisfies SyncStreamsReturnValue)
@@ -96,52 +120,38 @@ export const getThreadMessages = authedQuery({
       agent.syncStreams(ctx, { threadId, streamArgs }),
       agent.listMessages(ctx, { threadId, paginationOpts }),
     ]);
-    const dedupedMessageIds = paginated.page
-      .filter(
-        (message, index, self) =>
-          index === self.findIndex((t) => t._id === message._id),
-      )
-      .map((message) => message._id);
-    const messageAttachments = await Promise.all(
-      dedupedMessageIds.map(async (messageId) => {
-        const messageMetadata = await ctx.db
-          .query("messageMetadata")
-          .withIndex("by_message_id", (q) => q.eq("messageId", messageId))
-          .first();
-        if (!messageMetadata?.attachments) {
-          return { id: messageId, attachments: null };
-        }
-        const files = await Promise.all(
-          messageMetadata.attachments.map((attachment) =>
-            ctx.db.get(attachment),
-          ),
+    // Resolve attachments inline now that they live on the messages row.
+    const enriched = await Promise.all(
+      paginated.page.map(async (message) => {
+        const attachments = await resolveAttachments(
+          ctx,
+          message.attachments,
+          ctx.user.subject,
         );
-        const publicFiles = files
-          .filter((file) => file?.userId === ctx.user.subject)
-          .filter((file) => file !== null)
-          .map((file) => getPublicFile(file));
-        return { id: messageId, attachments: publicFiles };
+        return {
+          _id: message._id,
+          _creationTime: message._creationTime,
+          threadId: message.threadId,
+          order: message.order,
+          stepOrder: message.stepOrder,
+          status: message.status,
+          tool: message.tool,
+          message: message.message,
+          text: message.text,
+          reasoning: message.reasoning,
+          reasoningDetails: message.reasoningDetails,
+          sources: message.sources,
+          warnings: message.warnings,
+          finishReason: message.finishReason,
+          providerMetadata: message.providerMetadata,
+          error: message.error,
+          attachments,
+        };
       }),
     );
-    const attachmentMap = new Map<string, LibraryFile[]>();
-    for (const message of messageAttachments) {
-      if (message.attachments) {
-        attachmentMap.set(message.id, message.attachments);
-      }
-    }
     return {
       ...paginated,
-      page: paginated.page.map((message) => {
-        const {
-          userId: _userId,
-          model: _model,
-          provider: _provider,
-          usage: _usage,
-          ...rest
-        } = message;
-        const attachments = attachmentMap.get(message._id);
-        return { ...rest, attachments: attachments ?? [] };
-      }),
+      page: enriched,
       streams,
     };
   },
@@ -153,10 +163,10 @@ export const getFollowUpQuestions = authedQuery({
   },
   handler: async (ctx, args) => {
     const { threadId } = args;
-    const metadata = await authorizeAccess(ctx, threadId);
-    if (!metadata) {
+    const thread = await authorizeAccess(ctx, threadId);
+    if (!thread) {
       return [];
     }
-    return metadata.followUpQuestions ?? [];
+    return thread.followUpQuestions ?? [];
   },
 });

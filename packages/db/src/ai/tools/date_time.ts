@@ -1,7 +1,7 @@
-import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 
 import type { CurrentDateTime } from "../../lib/date_time_utils";
+import { createTool } from "../../agent/client/createTool";
 import { getCurrentDateTime } from "../../lib/date_time_utils";
 
 export const dateTime = createTool({

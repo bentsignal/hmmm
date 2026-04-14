@@ -71,28 +71,33 @@ export const requestDelete = mutation({
     }
 
     // delete all threads, messages, and files
-    const [threadMetadata, messageMetadata, files] = await Promise.all([
+    const [threads, files] = await Promise.all([
       ctx.db
-        .query("threadMetadata")
-        .withIndex("by_user_time", (q) => q.eq("userId", userId.subject))
-        .collect(),
-      ctx.db
-        .query("messageMetadata")
-        .withIndex("by_user", (q) => q.eq("userId", userId.subject))
+        .query("threads")
+        .withIndex("userId", (q) => q.eq("userId", userId.subject))
         .collect(),
       ctx.db
         .query("files")
         .withIndex("by_user", (q) => q.eq("userId", userId.subject))
         .collect(),
     ]);
+    // For each thread, schedule the inlined async delete to clean up all
+    // messages + streams + the thread row itself in pages.
     await Promise.all([
-      ...threadMetadata.map((metadata) => ctx.db.delete(metadata._id)),
-      ...messageMetadata.map((metadata) => ctx.db.delete(metadata._id)),
+      ...threads.map((thread) =>
+        ctx.scheduler.runAfter(
+          0,
+          internal.agent.threads.deleteAllForThreadIdAsync,
+          { threadId: thread._id },
+        ),
+      ),
       ...files.map((file) => ctx.db.delete(file._id)),
     ]);
 
-    // delete all user info from agent component
-
+    // Old data still living in the legacy `@convex-dev/agent` component is
+    // wiped via its own users.deleteAllForUserIdAsync. After the cutover
+    // migration runs and the component is removed, this call becomes a no-op
+    // and can be deleted in the cleanup PR.
     await ctx.runMutation(components.agent.users.deleteAllForUserIdAsync, {
       userId: userId.subject,
     });
