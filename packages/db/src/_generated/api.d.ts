@@ -185,7 +185,6 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
-  agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
   polar: import("@convex-dev/polar/_generated/component.js").ComponentApi<"polar">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;

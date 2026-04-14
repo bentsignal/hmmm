@@ -45,7 +45,6 @@
   },
   "peerDependencies": {
     "@ai-sdk/provider-utils": "^4.0.23",
-    "@convex-dev/agent": "catalog:",
     "@convex-dev/react-query": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "catalog:",

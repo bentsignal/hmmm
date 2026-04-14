@@ -38,13 +38,14 @@ export const agentTables = {
     updatedAt: v.optional(v.number()),
     followUpQuestions: v.optional(v.array(v.string())),
     // Legacy id of this thread back when it lived in the `@convex-dev/agent`
-    // component. Set by the cutover migration so it can run incrementally and
-    // idempotently. Safe to drop once the migration + component are gone.
+    // component. Set by the (now-deleted) cutover migration. Kept as an
+    // optional field so already-migrated rows in production continue to
+    // validate against the schema. Safe to drop in a future PR with a
+    // small backfill that nulls it out on every row.
     legacyAgentThreadId: v.optional(v.string()),
   })
     .index("userId", ["userId"])
     .index("by_user_time", ["userId", "pinned", "updatedAt"])
-    .index("by_legacy_agent_thread_id", ["legacyAgentThreadId"])
     .searchIndex("title", { searchField: "title", filterFields: ["userId"] }),
 
   messages: defineTable({

@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 
 import type { QueryCtx } from "../_generated/server";
-import { components, internal } from "../_generated/api";
+import { internal } from "../_generated/api";
 import { internalMutation, mutation } from "../_generated/server";
 import { authedQuery } from "../convex_helpers";
 
@@ -93,14 +93,6 @@ export const requestDelete = mutation({
       ),
       ...files.map((file) => ctx.db.delete(file._id)),
     ]);
-
-    // Old data still living in the legacy `@convex-dev/agent` component is
-    // wiped via its own users.deleteAllForUserIdAsync. After the cutover
-    // migration runs and the component is removed, this call becomes a no-op
-    // and can be deleted in the cleanup PR.
-    await ctx.runMutation(components.agent.users.deleteAllForUserIdAsync, {
-      userId: userId.subject,
-    });
 
     // delete user from convex
     const user = await getUserByUserId(ctx, userId.subject);
