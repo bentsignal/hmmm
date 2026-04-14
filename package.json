@@ -20,7 +20,8 @@
     "typecheck": "turbo run typecheck",
     "check": "pnpm run lint && pnpm run typecheck",
     "ui-add": "turbo run ui-add",
-    "create-package": "turbo gen init"
+    "create-package": "turbo gen init",
+    "loc": "cloc apps/*/src packages/*/src"
   },
   "devDependencies": {
     "@acme/prettier-config": "workspace:*",
