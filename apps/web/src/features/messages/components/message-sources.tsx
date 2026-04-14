@@ -86,6 +86,7 @@ function ExpandedSources({ sources }: { sources: Source[] }) {
                   width={640}
                   height={384}
                   className="max-h-96 w-full rounded-lg object-cover"
+                  errorClassName="h-64"
                 />
               </div>
             ) : null}
@@ -99,6 +100,7 @@ function ExpandedSources({ sources }: { sources: Source[] }) {
                       width={16}
                       height={16}
                       className="h-4 w-4 rounded"
+                      errorMode="icon"
                     />
                   ) : null}
                   <span className="truncate">{hostname}</span>

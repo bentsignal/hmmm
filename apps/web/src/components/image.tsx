@@ -14,6 +14,7 @@ export interface ImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   disableReveal?: boolean;
   errorMode?: ImageErrorMode;
   errorFallbackText?: string;
+  errorClassName?: string;
 }
 
 type ImageLoadState = "loading" | "ready" | "error";
@@ -109,14 +110,16 @@ function useImageLoadState(imageSignature: string, shouldReveal: boolean) {
   return { currentState, setImageRef, handleLoad, handleError };
 }
 
-function renderError({
+function ImageError({
   errorMode = "text",
   errorFallbackText,
+  errorClassName,
   className,
 }: {
-  errorMode: ImageErrorMode | undefined;
+  errorMode?: ImageErrorMode;
   errorFallbackText: string;
-  className: string | undefined;
+  errorClassName?: string;
+  className?: string;
 }) {
   if (errorMode === "none") return null;
   if (errorMode === "icon") {
@@ -129,8 +132,9 @@ function renderError({
   return (
     <div
       className={cn(
-        "bg-muted/60 text-muted-foreground flex items-center justify-center text-center text-sm",
+        "bg-muted/60 text-muted-foreground flex h-20 items-center justify-center text-center text-sm",
         className,
+        errorClassName,
       )}
     >
       {errorFallbackText}
@@ -147,6 +151,7 @@ export function Image({
   disableReveal = false,
   errorMode,
   errorFallbackText = "Failed to load image",
+  errorClassName,
   className,
   onLoad,
   onError,
@@ -162,7 +167,14 @@ export function Image({
   const hideImage = shouldReveal && currentState !== "ready";
 
   if (shouldReveal && currentState === "error") {
-    return renderError({ errorMode, errorFallbackText, className });
+    return (
+      <ImageError
+        errorMode={errorMode}
+        errorFallbackText={errorFallbackText}
+        className={className}
+        errorClassName={errorClassName}
+      />
+    );
   }
 
   return (
