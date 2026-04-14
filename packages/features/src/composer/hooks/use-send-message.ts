@@ -122,11 +122,9 @@ export function useSendMessage({
   const storeIsTranscribing = useComposerStore(
     (state) => state.storeIsTranscribing,
   );
-  const listening = useComposerStore(
-    (state) => state.storeIsListening || state.storeIsRecording,
-  );
+  const isRecording = useComposerStore((state) => state.storeIsRecording);
 
-  const blockSend = !isThreadIdle || listening || usage?.limitHit;
+  const blockSend = !isThreadIdle || isRecording || usage?.limitHit;
   const isLoading = !isThreadIdle || storeIsTranscribing;
 
   const setNumMessagesSent = useMessageStore(

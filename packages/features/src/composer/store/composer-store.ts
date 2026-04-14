@@ -6,8 +6,7 @@ import { MAX_ATTACHMENTS_PER_MESSAGE } from "../../library/config/library-config
 interface ComposerStore {
   prompt: string;
   setPrompt: (prompt: string) => void;
-  storeIsListening: boolean;
-  setStoreIsListening: (isListening: boolean) => void;
+  appendPrompt: (text: string) => void;
   storeIsRecording: boolean;
   setStoreIsRecording: (isRecording: boolean) => void;
   storeIsTranscribing: boolean;
@@ -23,8 +22,11 @@ interface ComposerStore {
 export const useComposerStore = create<ComposerStore>((set, get) => ({
   prompt: "",
   setPrompt: (prompt) => set({ prompt }),
-  storeIsListening: false,
-  setStoreIsListening: (storeIsListening) => set({ storeIsListening }),
+  appendPrompt: (text) => {
+    const { prompt } = get();
+    const separator = prompt && !prompt.endsWith(" ") ? " " : "";
+    set({ prompt: prompt + separator + text });
+  },
   storeIsRecording: false,
   setStoreIsRecording: (storeIsRecording) => set({ storeIsRecording }),
   storeIsTranscribing: false,
