@@ -1,7 +1,7 @@
 // eslint-disable-next-line no-restricted-imports -- manual memo needed: deep-equal check prevents thread list item re-renders
 import { memo } from "react";
 import equal from "fast-deep-equal";
-import { Brain } from "lucide-react";
+import { Brain, Pin } from "lucide-react";
 
 import type { Thread } from "@acme/features/thread";
 import { useThreadStore } from "@acme/features/thread";
@@ -46,6 +46,9 @@ function ThreadListItemImpl({ thread }: { thread: Thread }) {
         >
           {
             <div className="flex items-center gap-2">
+              {thread.pinned && (
+                <Pin className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
+              )}
               {(thread.status === "streaming" ||
                 thread.status === "waiting") && (
                 <Brain className="text-muted-foreground h-4 w-4 animate-pulse" />

@@ -24,7 +24,7 @@ function ChatPage() {
 
   return (
     <>
-      <Thread threadId={id} />
+      <Thread key={id} threadId={id} />
       <div className="absolute right-0 bottom-0 left-0 z-50">
         <Composer authed={true} />
       </div>

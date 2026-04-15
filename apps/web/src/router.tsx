@@ -48,6 +48,7 @@ export function getRouter() {
   const router = createRouter({
     routeTree,
     defaultPreload: "intent",
+    scrollRestoration: false,
     context: {
       convex,
       convexHttpClient,

@@ -1,33 +1,43 @@
-// eslint-disable-next-line no-restricted-imports -- manual memo needed: deep-equal check prevents message re-renders during streaming
-import { memo, useEffect } from "react";
+import type { Ref } from "react";
+import { useRef, useState } from "react";
 
 import "@/features/messages/styles/github-dark.min.css";
 import "@/features/messages/styles/message-styles.css";
 
-import equal from "fast-deep-equal";
+import type { LegendListRef } from "@legendapp/list/react";
+import { LegendList } from "@legendapp/list/react";
 
-import type { MyUIMessage } from "@acme/features/messages";
 import {
-  INVISIBLE_PAGE_LOADER_INDEX,
   PAGE_SIZE,
   responseHasNoContent,
   useMessages,
 } from "@acme/features/messages";
 import { Loader } from "@acme/ui/loader";
 
-import { PageLoader } from "~/components/page-loader";
+import { UsageChatCallout } from "~/features/billing/components/usage-chat-callout";
 import { ThreadFollowUps } from "../thread/components/thread-follow-ups";
-import { PromptMessage } from "./components/prompt-message";
-import { ResponseMessage } from "./components/response-message";
+import { Message } from "./components/message";
+
+const AT_END_THRESHOLD_PX = 2000;
+
+// Explicit MVCP config: anchor on data changes (so older messages prepended by
+// `loadMore` don't yank scroll position) AND stabilize through item size
+// changes (streaming content). JSX-shorthand `true` would also do both, but
+// passing `true` toggles RN's own MVCP which we don't want here.
+const MVCP_CONFIG = { data: true, size: true } as const;
 
 export function Messages({
   threadId,
-  triggerMessagesLoaded,
   isThreadIdle,
+  hasSent,
+  ref,
+  onIsAtEndChange,
 }: {
   threadId: string;
-  triggerMessagesLoaded: () => void;
   isThreadIdle: boolean;
+  hasSent: boolean;
+  ref?: Ref<LegendListRef>;
+  onIsAtEndChange: (atEnd: boolean) => void;
 }) {
   const {
     messages: pureMessages,
@@ -40,83 +50,135 @@ export function Messages({
 
   const messages = pureMessages.filter((item) => item.role !== "system");
 
-  // eslint-disable-next-line no-restricted-syntax -- effect needed to notify parent to scroll after messages load (DOM sync)
-  useEffect(() => {
-    if (messages.length > 0) {
-      triggerMessagesLoaded();
-    }
-  }, [messages.length, triggerMessagesLoaded]);
-
-  // show a loading spinner when the user has sent a prompt and is waiting for a response
   const lastMessage = messages[messages.length - 1];
   const waiting =
     messages.length > 0 &&
     lastMessage !== undefined &&
     (lastMessage.role === "user" || responseHasNoContent(lastMessage));
 
+  const canLoadMore = status === "CanLoadMore";
+
+  // Why this is split into `onLoad` + imperative scroll instead of
+  // `initialScrollAtEnd`: on web, `initialScrollAtEnd` activates LegendList's
+  // "bootstrap initial scroll" session which keeps `state.initialScroll` set,
+  // and LegendList's internal `checkAtTop` bails out whenever that's set —
+  // meaning `onStartReached` never fires and infinite-scroll-to-top is dead.
+  //
+  // Instead:
+  //   - Mount with opacity 0 (list is invisible).
+  //   - When LegendList's `onLoad` fires (containers are laid out and the
+  //     list is ready), synchronously call `scrollToEnd({ animated: false })`.
+  //     On web this maps to a DOM `scrollTo` which commits `scrollTop`
+  //     synchronously, *before* the next browser paint.
+  //   - In the same `onLoad` callback, flip `visible` to true. React's
+  //     commit happens on the same tick, so the browser's next paint shows
+  //     the list already at the bottom, fading in from opacity 0 → 1.
+  const listRef = useRef<LegendListRef>(null);
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <LegendList
+      ref={(instance: LegendListRef | null) => {
+        listRef.current = instance;
+        if (typeof ref === "function") {
+          ref(instance);
+        } else if (ref) {
+          ref.current = instance;
+        }
+      }}
+      data={messages}
+      keyExtractor={(item, index) => {
+        const isLast = index === messages.length - 1;
+        const isStreaming = isLast && !isThreadIdle;
+        return isStreaming ? "last-streaming-message" : item.id;
+      }}
+      estimatedItemSize={240}
+      recycleItems
+      maintainVisibleContentPosition={MVCP_CONFIG}
+      onLoad={() => {
+        void listRef.current?.scrollToEnd({ animated: false });
+        setVisible(true);
+      }}
+      onStartReached={() => {
+        if (canLoadMore) loadMore(PAGE_SIZE);
+      }}
+      onStartReachedThreshold={1.5}
+      onEndReachedThreshold={0.5}
+      style={{
+        flex: 1,
+        minHeight: 0,
+        width: "100%",
+        opacity: visible ? 1 : 0,
+        transition: "opacity 300ms ease",
+      }}
+      onScroll={(e) => {
+        const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+        const distanceFromEnd =
+          contentSize.height - (contentOffset.y + layoutMeasurement.height);
+        onIsAtEndChange(distanceFromEnd <= AT_END_THRESHOLD_PX);
+      }}
+      ListHeaderComponent={<div style={{ height: 96 }} />}
+      ListFooterComponent={
+        <MessagesFooter
+          waiting={waiting}
+          isThreadIdle={isThreadIdle}
+          hasSent={hasSent}
+          threadId={threadId}
+        />
+      }
+      renderItem={({ item, index }) => (
+        <MessageRow
+          item={item}
+          isLast={index === messages.length - 1}
+          isThreadIdle={isThreadIdle}
+        />
+      )}
+    />
+  );
+}
+
+function MessageRow({
+  item,
+  isLast,
+  isThreadIdle,
+}: {
+  item: ReturnType<typeof useMessages>["messages"][number];
+  isLast: boolean;
+  isThreadIdle: boolean;
+}) {
+  const isStreaming = isLast && !isThreadIdle;
+  return (
+    <div
+      className={`mx-auto w-full max-w-4xl px-8 ${isLast ? "pb-6" : "pb-16"}`}
+    >
+      <Message message={item} isActive={isStreaming} />
+    </div>
+  );
+}
+
+function MessagesFooter({
+  waiting,
+  isThreadIdle,
+  hasSent,
+  threadId,
+}: {
+  waiting: boolean;
+  isThreadIdle: boolean;
+  hasSent: boolean;
+  threadId: string;
+}) {
   return (
     <>
-      <div className="flex flex-col gap-16">
-        {messages.map((item, index) => {
-          // message id can change while a message is streaming, so we need a stable
-          // key to prevent the message from re-rendering.
-          const isLast = index === messages.length - 1;
-          const isStreaming = isLast && !isThreadIdle;
-          const stableKey = isStreaming ? "last-streaming-message" : item.id;
-          // add invisible wrapper 5th message down from the top of the page. When this
-          // message comes into view, the next page of messages will be fetched.
-          if (index === INVISIBLE_PAGE_LOADER_INDEX) {
-            return (
-              <PageLoader
-                status={status}
-                loadMore={() => loadMore(PAGE_SIZE)}
-                singleUse={true}
-                key={stableKey}
-              >
-                <Message
-                  message={item}
-                  isActive={index === messages.length - 1 && !isThreadIdle}
-                />
-              </PageLoader>
-            );
-          }
-          return (
-            <Message key={stableKey} message={item} isActive={isStreaming} />
-          );
-        })}
+      <div className="mx-auto w-full max-w-4xl px-8 pb-32">
         {waiting && (
           <div className="flex items-start justify-start">
             <Loader variant="typing" size="md" />
           </div>
         )}
+        <UsageChatCallout hide={!isThreadIdle} />
+        {!waiting && <ThreadFollowUps threadId={threadId} />}
       </div>
-      {!waiting && <ThreadFollowUps threadId={threadId} />}
+      {hasSent && <div style={{ minHeight: "50vh" }} />}
     </>
   );
 }
-
-function PureMessage({
-  message,
-  isActive,
-}: {
-  message: MyUIMessage;
-  isActive: boolean;
-}) {
-  if (message.role === "assistant" && responseHasNoContent(message)) {
-    return null;
-  }
-
-  return (
-    <div className="w-full max-w-full">
-      {message.role === "user" ? (
-        <PromptMessage message={message} />
-      ) : message.role === "assistant" && message.parts.length > 0 ? (
-        <ResponseMessage message={message} isActive={isActive} />
-      ) : null}
-    </div>
-  );
-}
-
-const Message = memo(PureMessage, (prev, next) => {
-  return prev.isActive === next.isActive && equal(prev.message, next.message);
-});

@@ -1,29 +1,21 @@
+import type { LegendListRef } from "@legendapp/list/react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 
+import { useMessageStore } from "@acme/features/messages";
+import { useThreadStatus, useThreadStore } from "@acme/features/thread";
 import { Button } from "@acme/ui/button";
-import { ScrollArea } from "@acme/ui/scroll-area";
-
-import { useThreadScroll } from "./hooks/use-thread-scroll";
 
 import "@/features/messages/styles/github-dark.min.css";
 import "@/features/messages/styles/message-styles.css";
 
-import { useEffect, useState } from "react";
-
-import { useMessageStore } from "@acme/features/messages";
-import { useThreadStatus, useThreadStore } from "@acme/features/thread";
-
 import { Abyss } from "~/components/abyss";
-import { UsageChatCallout } from "~/features/billing/components/usage-chat-callout";
 import { Messages } from "~/features/messages/messages";
 import { ThreadTitleUpdater } from "./components/thread-title-updater";
 
-export function Thread({ threadId }: { threadId: string }) {
-  const [messagesLoaded, setMessagesLoaded] = useState(false);
-
-  // auto scroll when new messages are sent, show/hide/handle scroll to bottom button
-  const { scrollAreaRef, messagesEndRef, isAtBottom, scrollToBottom } =
-    useThreadScroll({ messagesLoaded });
+function useThread(threadId: string) {
+  const listRef = useRef<LegendListRef>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
   // set active thread when component mounts
   const setActiveThread = useThreadStore((state) => state.setActiveThread);
@@ -39,29 +31,48 @@ export function Thread({ threadId }: { threadId: string }) {
   const { isThreadIdle: isThreadIdleRaw } = useThreadStatus({ threadId });
   const isThreadIdle = isThreadIdleRaw ?? false;
 
+  // track new-message sends so we can (a) add a 50vh bumper for the response to
+  // stream into and (b) explicitly scroll to the bottom when the user sends
+  const numMessagesSent = useMessageStore((state) => state.numMessagesSent);
+  const [initialSent] = useState(() => numMessagesSent);
+  const hasSent = numMessagesSent > initialSent;
+  // eslint-disable-next-line no-restricted-syntax -- Syncs list scroll position with a user-driven send event
+  useEffect(() => {
+    if (numMessagesSent > initialSent) {
+      void listRef.current?.scrollToEnd({ animated: true });
+    }
+  }, [numMessagesSent, initialSent]);
+
+  return {
+    listRef,
+    isThreadIdle,
+    hasSent,
+    isAtBottom,
+    setIsAtBottom,
+  };
+}
+
+export function Thread({ threadId }: { threadId: string }) {
+  const { listRef, isThreadIdle, hasSent, isAtBottom, setIsAtBottom } =
+    useThread(threadId);
+
   return (
     <div className="relative flex h-full w-full flex-1 flex-col items-center justify-start">
       <ThreadTitleUpdater threadId={threadId} />
       <Abyss />
-      <ScrollArea
-        ref={scrollAreaRef}
-        className="h-full w-full mask-t-from-95% mask-b-from-90%"
-      >
-        <div className="mx-auto mb-8 flex h-full w-full max-w-4xl flex-col gap-3 place-self-center px-8 pt-24 pb-32 sm:mb-0">
-          <Messages
-            threadId={threadId}
-            triggerMessagesLoaded={() => setMessagesLoaded(true)}
-            isThreadIdle={isThreadIdle}
-          />
-          <UsageChatCallout hide={!isThreadIdle} />
-          <Bumper />
-          <div ref={messagesEndRef} />
-        </div>
-      </ScrollArea>
+      <Messages
+        ref={listRef}
+        threadId={threadId}
+        isThreadIdle={isThreadIdle}
+        hasSent={hasSent}
+        onIsAtEndChange={setIsAtBottom}
+      />
       {!isAtBottom && (
         <div className="absolute right-0 bottom-36 z-10 flex w-full items-center justify-center rounded-full p-0 sm:bottom-24">
           <Button
-            onClick={() => scrollToBottom()}
+            onClick={() =>
+              void listRef.current?.scrollToEnd({ animated: true })
+            }
             className="font-semibold shadow-lg"
             variant="default"
           >
@@ -71,15 +82,4 @@ export function Thread({ threadId }: { threadId: string }) {
       )}
     </div>
   );
-}
-
-// if a new message has been sent since the thread has been opened, add whitespace to
-// the bottom of the page. that way when a new message is sent, we can autoscroll up
-// the page a bit, and have more of the response shown when it arrives
-function Bumper() {
-  const numMessagesSent = useMessageStore((state) => state.numMessagesSent);
-  const [initialLength] = useState(() => numMessagesSent);
-  const hasNewMessages = numMessagesSent != initialLength;
-  if (!hasNewMessages) return null;
-  return <div className="min-h-[50vh] w-full max-w-full" />;
 }

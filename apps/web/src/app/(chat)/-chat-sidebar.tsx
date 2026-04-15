@@ -26,14 +26,7 @@ import { ThreadRenameModal } from "~/features/thread/components/thread-rename-mo
 export function ChatSidebar() {
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const {
-    threads,
-    threadGroups,
-    setSearch,
-    loadMoreThreads,
-    status,
-    loaderId,
-  } = useThreadList();
+  const { threads, setSearch, loadMoreThreads, status } = useThreadList();
 
   // switch between threads with tab and shift tab
   // useThreadSwitch({
@@ -66,14 +59,13 @@ export function ChatSidebar() {
         <LibraryButton />
         <NewThreadButton />
       </SidebarHeader>
-      <SidebarContent className="scrollbar-thin scrollbar-thumb-secondary scrollbar-track-transparent overflow-y-auto mask-b-from-95%">
-        <SidebarMenu>
+      <SidebarContent className="flex min-h-0 flex-1 flex-col overflow-hidden mask-b-from-95%">
+        <SidebarMenu className="flex min-h-0 flex-1 flex-col">
           <ThreadList
-            threadGroups={threadGroups}
+            threads={threads}
             status={status}
             loadMore={loadMoreThreads}
             noThreads={noThreads}
-            loaderId={loaderId}
           />
         </SidebarMenu>
         <ThreadDeleteModal />

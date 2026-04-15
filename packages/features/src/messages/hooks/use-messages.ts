@@ -1,4 +1,4 @@
-// eslint-disable-next-line no-restricted-imports -- useQuery needed for conditional fetching (isAuthenticated gate)
+// eslint-disable-next-line no-restricted-imports -- useQuery reads the SSR-prefetched first page so messages are in hand on the first client render, avoiding an extra Convex round trip before the list fades in at the bottom
 import { useQuery } from "@tanstack/react-query";
 import { useConvexAuth } from "convex/react";
 
@@ -40,7 +40,12 @@ export function useMessages({
     stream: streaming,
   });
 
-  const shouldUseLiveResults = !isLoading && messages.length > 0;
+  // Only fall back to the prefetched first page while the live paginated
+  // query is fetching its *first* page. `isLoading` from usePaginatedQuery is
+  // also true during `LoadingMore`, so using it here would make the messages
+  // array shrink back to the first 10 mid-pagination and break scroll anchoring.
+  const isFirstPageLoading = status === "LoadingFirstPage";
+  const shouldUseLiveResults = !isFirstPageLoading && messages.length > 0;
   const activeMessages = shouldUseLiveResults
     ? messages
     : (firstPageQuery.data ?? messages);

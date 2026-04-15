@@ -25,6 +25,7 @@
     "@convex-dev/react-query": "catalog:",
     "@fontsource-variable/inter": "catalog:",
     "@fontsource-variable/roboto-mono": "catalog:",
+    "@legendapp/list": "3.0.0-beta.44",
     "@t3-oss/env-core": "catalog:",
     "@tanstack/devtools-vite": "catalog:",
     "@tanstack/react-devtools": "catalog:",
