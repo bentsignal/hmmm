@@ -1,3 +1,5 @@
+import { Activity, useState } from "react";
+import { LegendList } from "@legendapp/list/react";
 import { useConvexAuth, usePaginatedQuery } from "convex/react";
 
 import type {
@@ -12,7 +14,7 @@ import { libraryPagination, useLibraryStore } from "@acme/features/library";
 import { ContextMenu, ContextMenuTrigger } from "@acme/ui/context-menu";
 import { Loader } from "@acme/ui/loader";
 
-import { PageLoader } from "~/components/page-loader";
+import { useScreenSize } from "~/hooks/use-screen-size";
 import { LibraryGridFile, LibraryListFile } from "./library-file";
 import { LibraryFileContextItems } from "./library-file-context-items";
 
@@ -22,7 +24,14 @@ type PaginatedStatus =
   | "CanLoadMore"
   | "Exhausted";
 
-interface FileViewProps {
+function useGridColumnCount() {
+  const screenSize = useScreenSize();
+  if (screenSize === "mobile") return 1;
+  if (screenSize === "tablet") return 3;
+  return 4;
+}
+
+interface FileListViewProps {
   files: LibraryFile[];
   status: PaginatedStatus;
   loadMore: (numItems: number) => void;
@@ -30,91 +39,89 @@ interface FileViewProps {
   selectedFiles: LibraryFile[];
 }
 
-function GridView({
+function GridFileList({
   files,
   status,
   loadMore,
   libraryMode,
   selectedFiles,
-}: FileViewProps) {
+}: FileListViewProps) {
+  const numColumns = useGridColumnCount();
+  const [visible, setVisible] = useState(false);
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 xl:grid-cols-4">
-      {files.map((file, index) => {
-        const activationIndex = Math.max(
-          0,
-          files.length - libraryPagination.loaderIndex,
-        );
-        if (index === activationIndex) {
-          return (
-            <PageLoader
-              status={status}
-              loadMore={() => loadMore(libraryPagination.pageSize)}
-              singleUse={true}
-              key={file.url}
-            >
-              <LibraryGridFile
-                key={file.url}
-                file={file}
-                mode={libraryMode}
-                selected={selectedFiles.some((f) => f.id === file.id)}
-              />
-            </PageLoader>
-          );
+    <LegendList
+      data={files}
+      keyExtractor={(item: LibraryFile) => `${numColumns}-${item.id}`}
+      estimatedItemSize={180}
+      numColumns={numColumns}
+      recycleItems
+      extraData={{ libraryMode, selectedFiles }}
+      onEndReached={() => {
+        if (status === "CanLoadMore") {
+          loadMore(libraryPagination.pageSize);
         }
-        return (
+      }}
+      onEndReachedThreshold={2}
+      onLoad={() => setVisible(true)}
+      style={{
+        flex: 1,
+        minHeight: 0,
+        opacity: visible ? 1 : 0,
+        transition: "opacity 300ms ease",
+      }}
+      renderItem={({ item }) => (
+        <div className="p-2">
           <LibraryGridFile
-            key={file.url}
-            file={file}
+            file={item}
             mode={libraryMode}
-            selected={selectedFiles.some((f) => f.id === file.id)}
+            selected={selectedFiles.some((f) => f.id === item.id)}
           />
-        );
-      })}
-    </div>
+        </div>
+      )}
+    />
   );
 }
 
-function ListView({
+function ListFileList({
   files,
   status,
   loadMore,
   libraryMode,
   selectedFiles,
-}: FileViewProps) {
+}: FileListViewProps) {
+  const [visible, setVisible] = useState(false);
+
   return (
-    <div className="flex flex-col gap-4">
-      {files.map((file, index) => {
-        const activationIndex = Math.max(
-          0,
-          files.length - libraryPagination.loaderIndex,
-        );
-        if (index === activationIndex) {
-          return (
-            <PageLoader
-              status={status}
-              loadMore={() => loadMore(libraryPagination.pageSize)}
-              singleUse={true}
-              key={file.url}
-            >
-              <LibraryListFile
-                key={file.url}
-                file={file}
-                mode={libraryMode}
-                selected={selectedFiles.some((f) => f.id === file.id)}
-              />
-            </PageLoader>
-          );
+    <LegendList
+      data={files}
+      keyExtractor={(item: LibraryFile) => item.id}
+      estimatedItemSize={88}
+      recycleItems
+      extraData={{ libraryMode, selectedFiles }}
+      onEndReached={() => {
+        if (status === "CanLoadMore") {
+          loadMore(libraryPagination.pageSize);
         }
-        return (
+      }}
+      onEndReachedThreshold={2}
+      onLoad={() => setVisible(true)}
+      style={{
+        flex: 1,
+        minHeight: 0,
+        opacity: visible ? 1 : 0,
+        transition: "opacity 300ms ease",
+      }}
+      renderItem={({ item }) => (
+        <div className="py-1">
           <LibraryListFile
-            key={file.url}
-            file={file}
+            file={item}
             mode={libraryMode}
-            selected={selectedFiles.some((f) => f.id === file.id)}
+            selected={selectedFiles.some((f) => f.id === item.id)}
           />
-        );
-      })}
-    </div>
+        </div>
+      )}
+    />
   );
 }
 
@@ -167,26 +174,23 @@ export function LibraryFileList({
     );
   }
 
+  const viewProps = {
+    files,
+    status,
+    loadMore,
+    libraryMode,
+    selectedFiles,
+  } satisfies FileListViewProps;
+
   return (
     <ContextMenu>
-      <ContextMenuTrigger>
-        {view === "grid" ? (
-          <GridView
-            files={files}
-            status={status}
-            loadMore={loadMore}
-            libraryMode={libraryMode}
-            selectedFiles={selectedFiles}
-          />
-        ) : (
-          <ListView
-            files={files}
-            status={status}
-            loadMore={loadMore}
-            libraryMode={libraryMode}
-            selectedFiles={selectedFiles}
-          />
-        )}
+      <ContextMenuTrigger className="flex min-h-0 flex-1 flex-col">
+        <Activity mode={view === "grid" ? "visible" : "hidden"}>
+          <GridFileList {...viewProps} />
+        </Activity>
+        <Activity mode={view === "list" ? "visible" : "hidden"}>
+          <ListFileList {...viewProps} />
+        </Activity>
       </ContextMenuTrigger>
       <LibraryFileContextItems />
     </ContextMenu>
