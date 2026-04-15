@@ -40,7 +40,7 @@
     "@ai-sdk/gateway": "^3.0.97",
     "@ai-sdk/openai": "^3.0.52",
     "@ai-sdk/provider-utils": "^4.0.23",
-    "@clerk/nextjs": "^6.25.4",
+    "@clerk/nextjs": "^7.2.1",
     "@convex-dev/aggregate": "^0.2.1",
     "@convex-dev/migrations": "^0.3.3",
     "@convex-dev/polar": "catalog:",
