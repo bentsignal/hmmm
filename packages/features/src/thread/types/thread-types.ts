@@ -15,8 +15,3 @@ export interface PureThread {
   state: Doc<"threads">["state"];
   pinned: Doc<"threads">["pinned"];
 }
-
-export interface ThreadGroup {
-  label: string;
-  threads: PureThread[];
-}

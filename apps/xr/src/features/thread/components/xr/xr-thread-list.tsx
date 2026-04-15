@@ -37,7 +37,7 @@ function NewThreadButton() {
 }
 
 export function XRThreadList() {
-  const { threads, threadGroups, status, loadMoreThreads } = useThreadList();
+  const { threads, status, loadMoreThreads } = useThreadList();
   return (
     <group rotation={[0, 0.4, 0]} position={[-0.4, 0.3, 0.08]}>
       <Grabbable>
@@ -47,39 +47,24 @@ export function XRThreadList() {
               <Text color={hexColors.foreground}>No threads found</Text>
             </Container>
           )}
-          {threadGroups.map(
-            (group) =>
-              group.threads.length > 0 && (
-                <Container
-                  key={group.label}
-                  marginBottom={xrStyles.spacingLg}
-                  flexDirection="column"
-                  flexShrink={0}
-                  gap={xrStyles.spacingSm}
-                >
-                  <Text
-                    color={hexColors.foreground}
-                    fontWeight="bold"
-                    fontSize={xrStyles.textMd - 2}
-                    paddingX={xrStyles.spacingMd}
-                    marginBottom={xrStyles.spacingSm}
-                  >
-                    {group.label}
-                  </Text>
-                  {group.threads.map((item) => (
-                    <ThreadListItem
-                      key={item.id}
-                      thread={{
-                        ...item,
-                        active: false,
-                        pinned: item.pinned ?? false,
-                        status: item.state,
-                      }}
-                    />
-                  ))}
-                </Container>
-              ),
-          )}
+          <Container
+            marginBottom={xrStyles.spacingLg}
+            flexDirection="column"
+            flexShrink={0}
+            gap={xrStyles.spacingSm}
+          >
+            {threads.map((item) => (
+              <ThreadListItem
+                key={item.id}
+                thread={{
+                  ...item,
+                  active: false,
+                  pinned: item.pinned,
+                  status: item.state,
+                }}
+              />
+            ))}
+          </Container>
           {status !== "Exhausted" && status !== "LoadingFirstPage" && (
             <Button onClick={loadMoreThreads} borderRadius={xrStyles.radiusLg}>
               <TextElement color={hexColors.card} textAlign="center">
