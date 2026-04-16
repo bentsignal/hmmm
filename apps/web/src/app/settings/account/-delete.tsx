@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { useClerk } from "@clerk/tanstack-react-start";
 import { useConvexMutation } from "@convex-dev/react-query";
 import { toast } from "sonner";
 
@@ -12,12 +13,18 @@ import { InfoCard } from "~/components/info-card";
 
 export function DeleteAccount() {
   const navigate = useNavigate();
+  const clerk = useClerk();
   const [isOpen, setIsOpen] = useState(false);
 
   const { mutate: deleteAccount, isPending } = useMutation({
     mutationFn: useConvexMutation(api.user.account.requestDelete),
-    onSuccess: () => {
-      void navigate({ to: "/goodbye" });
+    onSuccess: async () => {
+      await navigate({ to: "/goodbye" });
+      setTimeout(() => {
+        void clerk.signOut({ redirectUrl: "/goodbye" }).then(() => {
+          window.location.replace("/goodbye");
+        });
+      }, 1000);
     },
     onError: (error) => {
       console.error(error);
