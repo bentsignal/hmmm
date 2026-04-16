@@ -19,19 +19,12 @@ import { SignInButton } from "./sign-in-button";
 
 const TITLE = "Welcome to hmmm!";
 const DESCRIPTION = "Please choose your preferred sign in method";
-const LINK_CLASS =
-  "underline-offset-4 hover:underline focus-visible:underline";
+const LINK_CLASS = "underline-offset-4 hover:underline focus-visible:underline";
 
 const GLASS_CONTAINER =
   "bg-card supports-[backdrop-filter]:bg-card/50 backdrop-blur-lg border";
 
-function Terms({
-  tosURL,
-  privacyURL,
-}: {
-  tosURL: string;
-  privacyURL: string;
-}) {
+function Terms({ tosURL, privacyURL }: { tosURL: string; privacyURL: string }) {
   return (
     <span className="text-muted-foreground text-center text-sm">
       By continuing, you agree to our{" "}
