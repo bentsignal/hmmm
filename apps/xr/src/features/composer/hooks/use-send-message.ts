@@ -8,11 +8,10 @@ export function useSendMessage() {
     navigateToThread: (threadId) => {
       void navigate({ to: `/chat/${threadId}` });
     },
-    navigateToSignUp: (rawPrompt) => {
-      const redirectParams = new URLSearchParams();
-      redirectParams.set("q", rawPrompt);
+    navigateToSignUp: () => {
       void navigate({
-        to: "/sign-up?redirect_url=/new?" + redirectParams.toString(),
+        to: "/",
+        search: { signin: true },
       });
     },
   });

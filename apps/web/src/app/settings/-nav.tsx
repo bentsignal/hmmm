@@ -1,6 +1,5 @@
 import { Fragment, useState } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { SignOutButton } from "@clerk/tanstack-react-start";
 import { LogOut, MoveLeft } from "lucide-react";
 
 import {
@@ -21,12 +20,16 @@ import {
 } from "@acme/ui/sidebar";
 
 import { settingsTabs } from "~/app/settings/-tabs";
+import { useSignOut } from "~/features/auth/hooks/use-sign-out";
 import { QuickLink } from "~/features/quick-link/quick-link";
 import { cn } from "~/lib/utils";
+
+const SIGN_OUT_VALUE = "__sign_out__";
 
 export function SettingsNavMobile() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const signOut = useSignOut();
 
   const [isOpen, setIsOpen] = useState(false);
   const [value, setValue] = useState(pathname);
@@ -34,10 +37,14 @@ export function SettingsNavMobile() {
   return (
     <div className="mb-4 flex flex-col items-center justify-center gap-4 md:hidden">
       <Select
-        onValueChange={(value) => {
+        onValueChange={(next) => {
           setIsOpen(false);
-          setValue(value);
-          void navigate({ to: value });
+          if (next === SIGN_OUT_VALUE) {
+            void signOut();
+            return;
+          }
+          setValue(next);
+          void navigate({ to: next });
         }}
         value={value}
         open={isOpen}
@@ -60,14 +67,12 @@ export function SettingsNavMobile() {
               {groupIndex !== settingsTabs.length - 1 && <SelectSeparator />}
             </Fragment>
           ))}
-          <SignOutButton>
-            <SelectItem value="/">
-              <span className="flex items-center gap-2 text-sm">
-                <LogOut className="h-4 w-4" />
-                <span>Sign out</span>
-              </span>
-            </SelectItem>
-          </SignOutButton>
+          <SelectItem value={SIGN_OUT_VALUE}>
+            <span className="flex items-center gap-2 text-sm">
+              <LogOut className="h-4 w-4" />
+              <span>Sign out</span>
+            </span>
+          </SelectItem>
         </SelectContent>
       </Select>
       <QuickLink to="/" className="text-muted-foreground text-sm">
@@ -82,6 +87,7 @@ export function SettingsNavMobile() {
 
 export function SettingsNavDesktop() {
   const { pathname } = useLocation();
+  const signOut = useSignOut();
 
   return (
     <Sidebar collapsible="none" variant="floating" className="hidden md:flex">
@@ -129,14 +135,13 @@ export function SettingsNavDesktop() {
             </Fragment>
           ))}
           <SidebarMenuItem>
-            <SignOutButton>
-              <SidebarMenuButton asChild className="text-muted-foreground">
-                <span className="flex items-center gap-2 hover:cursor-pointer">
-                  <LogOut />
-                  <span>Sign out</span>
-                </span>
-              </SidebarMenuButton>
-            </SignOutButton>
+            <SidebarMenuButton
+              onClick={() => void signOut()}
+              className="text-muted-foreground hover:cursor-pointer"
+            >
+              <LogOut />
+              <span>Sign out</span>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>

@@ -78,8 +78,8 @@ function RootComponent() {
     <ClerkProvider
       appearance={{ baseTheme: dark }}
       afterSignOutUrl="/"
-      signInUrl="/login"
-      signUpUrl="/sign-up"
+      signInUrl="/?signin=true"
+      signUpUrl="/?signin=true"
       signInFallbackRedirectUrl="/"
       signUpFallbackRedirectUrl="/"
     >

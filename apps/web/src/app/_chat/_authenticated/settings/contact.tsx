@@ -21,10 +21,10 @@ function ContactPage() {
         </span>
         <div className="flex flex-col gap-2">
           <span className="text-primary text-sm font-bold underline">
-            <QuickLink to="/policy/privacy">Privacy Policy</QuickLink>
+            <QuickLink to="/privacy-policy">Privacy Policy</QuickLink>
           </span>
           <span className="text-primary text-sm font-bold underline">
-            <QuickLink to="/policy/terms">Terms of Service</QuickLink>
+            <QuickLink to="/terms-of-service">Terms of Service</QuickLink>
           </span>
         </div>
       </InfoCard>

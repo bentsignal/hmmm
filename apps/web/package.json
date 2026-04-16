@@ -13,7 +13,7 @@
     "format": "prettier --check . --ignore-path ../../.gitignore --ignore-path .prettierignore",
     "format:fix": "prettier --write . --ignore-path ../../.gitignore --ignore-path .prettierignore",
     "clean": "git clean -xdf node_modules .cache .tanstack .turbo",
-    "with-env": "dotenv -e ./.env.local -e ./.env -e ../../.env --"
+    "with-env": "dotenv -e ./.env -e ../../.env --"
   },
   "dependencies": {
     "@acme/db": "workspace:*",
@@ -24,6 +24,7 @@
     "@convex-dev/polar": "catalog:",
     "@convex-dev/react-query": "catalog:",
     "@fontsource-variable/inter": "catalog:",
+    "@fontsource-variable/roboto": "catalog:",
     "@fontsource-variable/roboto-mono": "catalog:",
     "@legendapp/list": "3.0.0-beta.44",
     "@t3-oss/env-core": "catalog:",

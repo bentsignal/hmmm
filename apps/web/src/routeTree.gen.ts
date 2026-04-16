@@ -9,19 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './app/__root'
-import { Route as PolicyRouteImport } from './app/policy'
+import { Route as TermsOfServiceRouteImport } from './app/terms-of-service'
+import { Route as SsoCallbackRouteImport } from './app/sso-callback'
+import { Route as PrivacyPolicyRouteImport } from './app/privacy-policy'
 import { Route as GoodbyeRouteImport } from './app/goodbye'
 import { Route as ChatRouteImport } from './app/_chat'
-import { Route as AuthRouteImport } from './app/_auth'
 import { Route as ChatIndexRouteImport } from './app/_chat/index'
-import { Route as PolicyTermsRouteImport } from './app/policy/terms'
-import { Route as PolicyPrivacyRouteImport } from './app/policy/privacy'
 import { Route as ApiUploadthingRouteImport } from './app/api/uploadthing'
 import { Route as ApiMailRouteImport } from './app/api/mail'
 import { Route as ChatPricingRouteImport } from './app/_chat/pricing'
 import { Route as ChatAuthenticatedRouteImport } from './app/_chat/_authenticated'
-import { Route as AuthSignUpRouteImport } from './app/_auth/sign-up'
-import { Route as AuthLoginRouteImport } from './app/_auth/login'
 import { Route as ChatAuthenticatedSettingsRouteImport } from './app/_chat/_authenticated/settings'
 import { Route as ChatAuthenticatedNewRouteImport } from './app/_chat/_authenticated/new'
 import { Route as ChatAuthenticatedSettingsIndexRouteImport } from './app/_chat/_authenticated/settings/index'
@@ -30,9 +27,19 @@ import { Route as ChatAuthenticatedSettingsContactRouteImport } from './app/_cha
 import { Route as ChatAuthenticatedSettingsAccountRouteImport } from './app/_chat/_authenticated/settings/account'
 import { Route as ChatAuthenticatedChatIdRouteImport } from './app/_chat/_authenticated/chat.$id'
 
-const PolicyRoute = PolicyRouteImport.update({
-  id: '/policy',
-  path: '/policy',
+const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
+  id: '/terms-of-service',
+  path: '/terms-of-service',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SsoCallbackRoute = SsoCallbackRouteImport.update({
+  id: '/sso-callback',
+  path: '/sso-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GoodbyeRoute = GoodbyeRouteImport.update({
@@ -44,24 +51,10 @@ const ChatRoute = ChatRouteImport.update({
   id: '/_chat',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/_auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ChatIndexRoute = ChatIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => ChatRoute,
-} as any)
-const PolicyTermsRoute = PolicyTermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => PolicyRoute,
-} as any)
-const PolicyPrivacyRoute = PolicyPrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => PolicyRoute,
 } as any)
 const ApiUploadthingRoute = ApiUploadthingRouteImport.update({
   id: '/api/uploadthing',
@@ -81,16 +74,6 @@ const ChatPricingRoute = ChatPricingRouteImport.update({
 const ChatAuthenticatedRoute = ChatAuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => ChatRoute,
-} as any)
-const AuthSignUpRoute = AuthSignUpRouteImport.update({
-  id: '/sign-up',
-  path: '/sign-up',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthLoginRoute = AuthLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => AuthRoute,
 } as any)
 const ChatAuthenticatedSettingsRoute =
   ChatAuthenticatedSettingsRouteImport.update({
@@ -136,14 +119,12 @@ const ChatAuthenticatedChatIdRoute = ChatAuthenticatedChatIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof ChatIndexRoute
   '/goodbye': typeof GoodbyeRoute
-  '/policy': typeof PolicyRouteWithChildren
-  '/login': typeof AuthLoginRoute
-  '/sign-up': typeof AuthSignUpRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/sso-callback': typeof SsoCallbackRoute
+  '/terms-of-service': typeof TermsOfServiceRoute
   '/pricing': typeof ChatPricingRoute
   '/api/mail': typeof ApiMailRoute
   '/api/uploadthing': typeof ApiUploadthingRoute
-  '/policy/privacy': typeof PolicyPrivacyRoute
-  '/policy/terms': typeof PolicyTermsRoute
   '/new': typeof ChatAuthenticatedNewRoute
   '/settings': typeof ChatAuthenticatedSettingsRouteWithChildren
   '/chat/$id': typeof ChatAuthenticatedChatIdRoute
@@ -153,16 +134,14 @@ export interface FileRoutesByFullPath {
   '/settings/': typeof ChatAuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof ChatIndexRoute
   '/goodbye': typeof GoodbyeRoute
-  '/policy': typeof PolicyRouteWithChildren
-  '/login': typeof AuthLoginRoute
-  '/sign-up': typeof AuthSignUpRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/sso-callback': typeof SsoCallbackRoute
+  '/terms-of-service': typeof TermsOfServiceRoute
+  '/': typeof ChatIndexRoute
   '/pricing': typeof ChatPricingRoute
   '/api/mail': typeof ApiMailRoute
   '/api/uploadthing': typeof ApiUploadthingRoute
-  '/policy/privacy': typeof PolicyPrivacyRoute
-  '/policy/terms': typeof PolicyTermsRoute
   '/new': typeof ChatAuthenticatedNewRoute
   '/chat/$id': typeof ChatAuthenticatedChatIdRoute
   '/settings/account': typeof ChatAuthenticatedSettingsAccountRoute
@@ -172,18 +151,15 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_auth': typeof AuthRouteWithChildren
   '/_chat': typeof ChatRouteWithChildren
   '/goodbye': typeof GoodbyeRoute
-  '/policy': typeof PolicyRouteWithChildren
-  '/_auth/login': typeof AuthLoginRoute
-  '/_auth/sign-up': typeof AuthSignUpRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/sso-callback': typeof SsoCallbackRoute
+  '/terms-of-service': typeof TermsOfServiceRoute
   '/_chat/_authenticated': typeof ChatAuthenticatedRouteWithChildren
   '/_chat/pricing': typeof ChatPricingRoute
   '/api/mail': typeof ApiMailRoute
   '/api/uploadthing': typeof ApiUploadthingRoute
-  '/policy/privacy': typeof PolicyPrivacyRoute
-  '/policy/terms': typeof PolicyTermsRoute
   '/_chat/': typeof ChatIndexRoute
   '/_chat/_authenticated/new': typeof ChatAuthenticatedNewRoute
   '/_chat/_authenticated/settings': typeof ChatAuthenticatedSettingsRouteWithChildren
@@ -198,14 +174,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/goodbye'
-    | '/policy'
-    | '/login'
-    | '/sign-up'
+    | '/privacy-policy'
+    | '/sso-callback'
+    | '/terms-of-service'
     | '/pricing'
     | '/api/mail'
     | '/api/uploadthing'
-    | '/policy/privacy'
-    | '/policy/terms'
     | '/new'
     | '/settings'
     | '/chat/$id'
@@ -215,16 +189,14 @@ export interface FileRouteTypes {
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/goodbye'
-    | '/policy'
-    | '/login'
-    | '/sign-up'
+    | '/privacy-policy'
+    | '/sso-callback'
+    | '/terms-of-service'
+    | '/'
     | '/pricing'
     | '/api/mail'
     | '/api/uploadthing'
-    | '/policy/privacy'
-    | '/policy/terms'
     | '/new'
     | '/chat/$id'
     | '/settings/account'
@@ -233,18 +205,15 @@ export interface FileRouteTypes {
     | '/settings'
   id:
     | '__root__'
-    | '/_auth'
     | '/_chat'
     | '/goodbye'
-    | '/policy'
-    | '/_auth/login'
-    | '/_auth/sign-up'
+    | '/privacy-policy'
+    | '/sso-callback'
+    | '/terms-of-service'
     | '/_chat/_authenticated'
     | '/_chat/pricing'
     | '/api/mail'
     | '/api/uploadthing'
-    | '/policy/privacy'
-    | '/policy/terms'
     | '/_chat/'
     | '/_chat/_authenticated/new'
     | '/_chat/_authenticated/settings'
@@ -256,21 +225,36 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  AuthRoute: typeof AuthRouteWithChildren
   ChatRoute: typeof ChatRouteWithChildren
   GoodbyeRoute: typeof GoodbyeRoute
-  PolicyRoute: typeof PolicyRouteWithChildren
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
+  SsoCallbackRoute: typeof SsoCallbackRoute
+  TermsOfServiceRoute: typeof TermsOfServiceRoute
   ApiMailRoute: typeof ApiMailRoute
   ApiUploadthingRoute: typeof ApiUploadthingRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/policy': {
-      id: '/policy'
-      path: '/policy'
-      fullPath: '/policy'
-      preLoaderRoute: typeof PolicyRouteImport
+    '/terms-of-service': {
+      id: '/terms-of-service'
+      path: '/terms-of-service'
+      fullPath: '/terms-of-service'
+      preLoaderRoute: typeof TermsOfServiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sso-callback': {
+      id: '/sso-callback'
+      path: '/sso-callback'
+      fullPath: '/sso-callback'
+      preLoaderRoute: typeof SsoCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/goodbye': {
@@ -287,33 +271,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_auth': {
-      id: '/_auth'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_chat/': {
       id: '/_chat/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof ChatIndexRouteImport
       parentRoute: typeof ChatRoute
-    }
-    '/policy/terms': {
-      id: '/policy/terms'
-      path: '/terms'
-      fullPath: '/policy/terms'
-      preLoaderRoute: typeof PolicyTermsRouteImport
-      parentRoute: typeof PolicyRoute
-    }
-    '/policy/privacy': {
-      id: '/policy/privacy'
-      path: '/privacy'
-      fullPath: '/policy/privacy'
-      preLoaderRoute: typeof PolicyPrivacyRouteImport
-      parentRoute: typeof PolicyRoute
     }
     '/api/uploadthing': {
       id: '/api/uploadthing'
@@ -342,20 +305,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof ChatAuthenticatedRouteImport
       parentRoute: typeof ChatRoute
-    }
-    '/_auth/sign-up': {
-      id: '/_auth/sign-up'
-      path: '/sign-up'
-      fullPath: '/sign-up'
-      preLoaderRoute: typeof AuthSignUpRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_auth/login': {
-      id: '/_auth/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof AuthLoginRouteImport
-      parentRoute: typeof AuthRoute
     }
     '/_chat/_authenticated/settings': {
       id: '/_chat/_authenticated/settings'
@@ -409,18 +358,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthRouteChildren {
-  AuthLoginRoute: typeof AuthLoginRoute
-  AuthSignUpRoute: typeof AuthSignUpRoute
-}
-
-const AuthRouteChildren: AuthRouteChildren = {
-  AuthLoginRoute: AuthLoginRoute,
-  AuthSignUpRoute: AuthSignUpRoute,
-}
-
-const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
-
 interface ChatAuthenticatedSettingsRouteChildren {
   ChatAuthenticatedSettingsAccountRoute: typeof ChatAuthenticatedSettingsAccountRoute
   ChatAuthenticatedSettingsContactRoute: typeof ChatAuthenticatedSettingsContactRoute
@@ -473,24 +410,12 @@ const ChatRouteChildren: ChatRouteChildren = {
 
 const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
 
-interface PolicyRouteChildren {
-  PolicyPrivacyRoute: typeof PolicyPrivacyRoute
-  PolicyTermsRoute: typeof PolicyTermsRoute
-}
-
-const PolicyRouteChildren: PolicyRouteChildren = {
-  PolicyPrivacyRoute: PolicyPrivacyRoute,
-  PolicyTermsRoute: PolicyTermsRoute,
-}
-
-const PolicyRouteWithChildren =
-  PolicyRoute._addFileChildren(PolicyRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
-  AuthRoute: AuthRouteWithChildren,
   ChatRoute: ChatRouteWithChildren,
   GoodbyeRoute: GoodbyeRoute,
-  PolicyRoute: PolicyRouteWithChildren,
+  PrivacyPolicyRoute: PrivacyPolicyRoute,
+  SsoCallbackRoute: SsoCallbackRoute,
+  TermsOfServiceRoute: TermsOfServiceRoute,
   ApiMailRoute: ApiMailRoute,
   ApiUploadthingRoute: ApiUploadthingRoute,
 }

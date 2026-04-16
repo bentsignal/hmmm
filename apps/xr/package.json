@@ -13,7 +13,7 @@
     "format": "prettier --check . --ignore-path ../../.gitignore --ignore-path .prettierignore",
     "format:fix": "prettier --write . --ignore-path ../../.gitignore --ignore-path .prettierignore",
     "clean": "git clean -xdf node_modules .cache .tanstack .turbo",
-    "with-env": "dotenv -e ./.env.local -e ./.env -e ../../.env --"
+    "with-env": "dotenv -e ./.env -e ../../.env --"
   },
   "dependencies": {
     "@acme/db": "workspace:*",
@@ -23,6 +23,7 @@
     "@clerk/themes": "catalog:",
     "@convex-dev/react-query": "catalog:",
     "@fontsource-variable/inter": "catalog:",
+    "@fontsource-variable/roboto": "catalog:",
     "@fontsource-variable/roboto-mono": "catalog:",
     "@react-three/fiber": "^9.1.2",
     "@react-three/handle": "^6.6.17",

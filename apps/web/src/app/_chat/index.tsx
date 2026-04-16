@@ -68,7 +68,11 @@ function Home() {
       <UsageChatCallout />
       {!authed && (
         <Button asChild className="mt-2">
-          <QuickLink to="/sign-up" className="text-lg font-semibold">
+          <QuickLink
+            to="/"
+            search={{ signin: true }}
+            className="text-lg font-semibold"
+          >
             Get Started
           </QuickLink>
         </Button>

@@ -6,8 +6,8 @@ export const Route = createFileRoute("/_chat/_authenticated")({
     const { auth } = context;
     if (!auth.isSignedIn) {
       throw redirect({
-        to: "/login",
-        search: { redirect_url: location.href },
+        to: "/",
+        search: { signin: true, redirect_url: location.href },
       });
     }
 

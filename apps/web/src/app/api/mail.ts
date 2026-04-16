@@ -13,7 +13,7 @@ async function handleMailRequest(request: Request) {
 
   if (!userId) {
     console.error("No userId provided");
-    return Response.redirect(env.VITE_BASE_URL, 302);
+    return Response.redirect(env.VITE_APP_URL, 302);
   }
 
   const convex = getConvexHttpClient();
@@ -42,7 +42,7 @@ export const Route = createFileRoute("/api/mail")({
             { status: 500, headers: { "Content-Type": "application/json" } },
           );
         }
-        return Response.redirect(env.VITE_BASE_URL, 302);
+        return Response.redirect(env.VITE_APP_URL, 302);
       },
       POST: async ({ request }) => {
         const { error } = await tryCatch(handleMailRequest(request));

@@ -30,7 +30,8 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
-    "@acme/db": "workspace:*"
+    "@acme/db": "workspace:*",
+    "@acme/ui": "workspace:*"
   },
   "devDependencies": {
     "@acme/eslint-config": "workspace:*",
@@ -45,6 +46,7 @@
   },
   "peerDependencies": {
     "@ai-sdk/provider-utils": "^4.0.23",
+    "@clerk/tanstack-react-start": "catalog:",
     "@convex-dev/react-query": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "catalog:",

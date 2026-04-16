@@ -12,7 +12,11 @@ export function useSendMessage() {
       const redirectParams = new URLSearchParams();
       redirectParams.set("q", rawPrompt);
       void navigate({
-        to: "/sign-up?redirect_url=/new?" + redirectParams.toString(),
+        to: "/",
+        search: {
+          signin: true,
+          redirect_url: "/new?" + redirectParams.toString(),
+        },
       });
     },
   });

@@ -6,7 +6,7 @@ import { CopyButton } from "~/features/messages/components/copy-button";
 import { markdownComponents } from "~/features/messages/components/markdown-components";
 
 export function Bangs() {
-  const bangURL = `${env.VITE_BASE_URL}new?q=%s`;
+  const bangURL = `${env.VITE_APP_URL}new?q=%s`;
   const bang = `\`\n${bangURL}\n\`\n`;
   return (
     <InfoCard title="Search">
