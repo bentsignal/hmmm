@@ -20,18 +20,20 @@ function PolicyLayout() {
   });
 
   return (
-    <div className="mx-auto flex max-h-screen max-w-[800px] flex-col gap-4 overflow-y-auto px-4 py-8 sm:py-24">
-      <QuickLink to="/" className="flex items-center gap-2">
-        <MoveLeft className="h-4 w-4" />
-        Return to home
-      </QuickLink>
-      <div className="prose dark:prose-invert relative my-4 w-full max-w-full">
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeHighlight]}
-        >
-          {content}
-        </ReactMarkdown>
+    <div className="h-screen w-screen overflow-y-auto">
+      <div className="prose dark:prose-invert relative mx-auto my-4 mb-24 flex max-w-[800px] flex-col gap-8 px-4 py-8 sm:py-24">
+        <QuickLink to="/" className="flex items-center gap-2">
+          <MoveLeft className="size-4" />
+          Return to home
+        </QuickLink>
+        <div>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeHighlight]}
+          >
+            {content}
+          </ReactMarkdown>
+        </div>
       </div>
     </div>
   );
