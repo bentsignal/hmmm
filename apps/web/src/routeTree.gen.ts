@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './app/__root'
 import { Route as SsoCallbackRouteImport } from './app/sso-callback'
+import { Route as SigningOutRouteImport } from './app/signing-out'
+import { Route as SigningInRouteImport } from './app/signing-in'
 import { Route as GoodbyeRouteImport } from './app/goodbye'
 import { Route as PolicyRouteImport } from './app/_policy'
 import { Route as AuthenticatedRouteImport } from './app/_authenticated'
@@ -31,6 +33,16 @@ import { Route as AuthenticatedChatIdRouteImport } from './app/_authenticated/ch
 const SsoCallbackRoute = SsoCallbackRouteImport.update({
   id: '/sso-callback',
   path: '/sso-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SigningOutRoute = SigningOutRouteImport.update({
+  id: '/signing-out',
+  path: '/signing-out',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SigningInRoute = SigningInRouteImport.update({
+  id: '/signing-in',
+  path: '/signing-in',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GoodbyeRoute = GoodbyeRouteImport.update({
@@ -124,6 +136,8 @@ const AuthenticatedChatIdRoute = AuthenticatedChatIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/goodbye': typeof GoodbyeRoute
+  '/signing-in': typeof SigningInRoute
+  '/signing-out': typeof SigningOutRoute
   '/sso-callback': typeof SsoCallbackRoute
   '/home': typeof AuthenticatedHomeRoute
   '/new': typeof AuthenticatedNewRoute
@@ -142,6 +156,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/goodbye': typeof GoodbyeRoute
+  '/signing-in': typeof SigningInRoute
+  '/signing-out': typeof SigningOutRoute
   '/sso-callback': typeof SsoCallbackRoute
   '/home': typeof AuthenticatedHomeRoute
   '/new': typeof AuthenticatedNewRoute
@@ -162,6 +178,8 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_policy': typeof PolicyRouteWithChildren
   '/goodbye': typeof GoodbyeRoute
+  '/signing-in': typeof SigningInRoute
+  '/signing-out': typeof SigningOutRoute
   '/sso-callback': typeof SsoCallbackRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/new': typeof AuthenticatedNewRoute
@@ -182,6 +200,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/goodbye'
+    | '/signing-in'
+    | '/signing-out'
     | '/sso-callback'
     | '/home'
     | '/new'
@@ -200,6 +220,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/goodbye'
+    | '/signing-in'
+    | '/signing-out'
     | '/sso-callback'
     | '/home'
     | '/new'
@@ -219,6 +241,8 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/_policy'
     | '/goodbye'
+    | '/signing-in'
+    | '/signing-out'
     | '/sso-callback'
     | '/_authenticated/home'
     | '/_authenticated/new'
@@ -240,6 +264,8 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   PolicyRoute: typeof PolicyRouteWithChildren
   GoodbyeRoute: typeof GoodbyeRoute
+  SigningInRoute: typeof SigningInRoute
+  SigningOutRoute: typeof SigningOutRoute
   SsoCallbackRoute: typeof SsoCallbackRoute
   ApiMailRoute: typeof ApiMailRoute
   ApiUploadthingRoute: typeof ApiUploadthingRoute
@@ -252,6 +278,20 @@ declare module '@tanstack/react-router' {
       path: '/sso-callback'
       fullPath: '/sso-callback'
       preLoaderRoute: typeof SsoCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signing-out': {
+      id: '/signing-out'
+      path: '/signing-out'
+      fullPath: '/signing-out'
+      preLoaderRoute: typeof SigningOutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signing-in': {
+      id: '/signing-in'
+      path: '/signing-in'
+      fullPath: '/signing-in'
+      preLoaderRoute: typeof SigningInRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/goodbye': {
@@ -433,6 +473,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   PolicyRoute: PolicyRouteWithChildren,
   GoodbyeRoute: GoodbyeRoute,
+  SigningInRoute: SigningInRoute,
+  SigningOutRoute: SigningOutRoute,
   SsoCallbackRoute: SsoCallbackRoute,
   ApiMailRoute: ApiMailRoute,
   ApiUploadthingRoute: ApiUploadthingRoute,

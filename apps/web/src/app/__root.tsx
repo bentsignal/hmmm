@@ -13,7 +13,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { getCookie } from "@tanstack/react-start/server";
 import { ReactScan } from "@/components/react-scan";
 import { clerkAuthQueryOptions } from "@/features/auth/auth-utils";
-import { useClerkRouter } from "@/features/auth/hooks/use-clerk-router";
 import { ClerkProvider, useAuth } from "@clerk/tanstack-react-start";
 import { dark } from "@clerk/themes";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
@@ -106,7 +105,6 @@ function RootComponent() {
   const signin = Route.useSearch({ select: (s) => s.signin ?? false });
   const redirectUrl = Route.useSearch({ select: (s) => s.redirect_url });
   const navigate = useNavigate();
-  const { routerPush, routerReplace } = useClerkRouter();
 
   function closeLoginModal() {
     void navigate({
@@ -122,13 +120,11 @@ function RootComponent() {
   return (
     <ClerkProvider
       appearance={{ baseTheme: dark }}
-      afterSignOutUrl="/"
+      afterSignOutUrl="/signing-out"
       signInUrl="/?signin=true"
       signUpUrl="/?signin=true"
-      signInFallbackRedirectUrl="/"
-      signUpFallbackRedirectUrl="/"
-      routerPush={routerPush}
-      routerReplace={routerReplace}
+      signInFallbackRedirectUrl="/signing-in?to=/home"
+      signUpFallbackRedirectUrl="/signing-in?to=/home"
     >
       <ConvexClerkProvider>
         <html
@@ -151,7 +147,7 @@ function RootComponent() {
               <LoginModal
                 open={!auth.isSignedIn && signin}
                 onClose={closeLoginModal}
-                redirectUri={redirectUrl}
+                redirectUri={`/signing-in?to=${encodeURIComponent(redirectUrl ?? "/home")}`}
                 tosURL="/terms-of-service"
                 privacyURL="/privacy-policy"
               />
