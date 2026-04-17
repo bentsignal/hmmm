@@ -8,11 +8,5 @@ export function useSendMessage() {
     navigateToThread: (threadId) => {
       void navigate({ to: `/chat/${threadId}` });
     },
-    navigateToSignUp: () => {
-      void navigate({
-        to: "/",
-        search: { signin: true },
-      });
-    },
   });
 }

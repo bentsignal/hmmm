@@ -1,4 +1,3 @@
-import { useConvexAuth } from "convex/react";
 import { ConvexError } from "convex/values";
 import { toast } from "sonner";
 
@@ -102,15 +101,9 @@ async function handleSendToThread(
 
 interface UseSendMessageOptions {
   navigateToThread: (threadId: string) => void;
-  navigateToSignUp: (rawPrompt: string) => void;
 }
 
-export function useSendMessage({
-  navigateToThread,
-  navigateToSignUp,
-}: UseSendMessageOptions) {
-  const { isAuthenticated } = useConvexAuth();
-
+export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
   const setPrompt = useComposerStore((state) => state.setPrompt);
   const { createThread, sendMessageInThread } = useThreadMutation();
   const deps = { createThread, sendMessageInThread, navigateToThread };
@@ -143,11 +136,6 @@ export function useSendMessage({
     handleError?: () => void;
   }) {
     const rawPrompt = customPrompt ?? useComposerStore.getState().prompt;
-
-    if (!isAuthenticated) {
-      navigateToSignUp(rawPrompt);
-      return;
-    }
 
     if (blockSend) return;
 

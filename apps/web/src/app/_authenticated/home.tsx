@@ -40,11 +40,7 @@ function Home() {
     <div className="flex w-full flex-1 flex-col items-center justify-center gap-2">
       <HomeHero />
       <div className="w-full">
-        <Composer
-          showInstantLoad={showInstantLoad}
-          handleError={handleError}
-          authed={true}
-        />
+        <Composer showInstantLoad={showInstantLoad} handleError={handleError} />
       </div>
       <HomeSuggestions
         onSelect={(prompt) =>

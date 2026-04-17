@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useConvexAuth } from "convex/react";
 
 import { ComposerSendButton } from "~/features/composer/primitives/composer-send-button";
 import { useSendMessage } from "../hooks/use-send-message";
@@ -11,7 +10,6 @@ export function ComposerSend({
   showInstantLoad?: () => void;
   handleError?: () => void;
 }) {
-  const { isAuthenticated } = useConvexAuth();
   const { sendMessage, blockSend, isLoading } = useSendMessage();
 
   // prevent loading state from showing up immediately on page load
@@ -28,10 +26,8 @@ export function ComposerSend({
       onClick={() => {
         void sendMessage({ showInstantLoad, handleError });
       }}
-      disabled={
-        isAuthenticated && (blockSend ?? isLoading) && !optimisticEnable
-      }
-      loading={isLoading && isAuthenticated && !optimisticEnable}
+      disabled={(blockSend ?? isLoading) && !optimisticEnable}
+      loading={isLoading && !optimisticEnable}
     />
   );
 }

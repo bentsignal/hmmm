@@ -8,11 +8,9 @@ import { ComposerShell } from "./primitives/composer-shell";
 export function Composer({
   showInstantLoad,
   handleError,
-  authed,
 }: {
   showInstantLoad?: () => void;
   handleError?: () => void;
-  authed: boolean;
 }) {
   return (
     <ComposerShell
@@ -25,12 +23,10 @@ export function Composer({
       }
       actions={
         <>
-          {authed && (
-            <div className="flex flex-1 items-center justify-start gap-2">
-              <ComposerAddAttachments />
-              <ComposerSpeech />
-            </div>
-          )}
+          <div className="flex flex-1 items-center justify-start gap-2">
+            <ComposerAddAttachments />
+            <ComposerSpeech />
+          </div>
           <ComposerSend
             showInstantLoad={showInstantLoad}
             handleError={handleError}

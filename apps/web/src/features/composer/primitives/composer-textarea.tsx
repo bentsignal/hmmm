@@ -9,7 +9,7 @@ export function ComposerTextarea({
   value,
   onChange,
   onKeyDown,
-  placeholder,
+  placeholder = "Aa",
   disabled,
   autoFocus,
 }: {

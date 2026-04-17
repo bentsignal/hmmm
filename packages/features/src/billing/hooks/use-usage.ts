@@ -1,18 +1,16 @@
-// eslint-disable-next-line no-restricted-imports -- useQuery needed here because usage data is fetched conditionally based on auth state (hook renders on public home too), not preloaded in route loader
+// eslint-disable-next-line no-restricted-imports -- useQuery needed here because usage data is read outside of route loaders (nested components); route auth guard ensures the query only runs when signed in
 import { useQuery } from "@tanstack/react-query";
-import { convexQuery, useConvexAuth } from "@convex-dev/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 
 import { api } from "@acme/db/api";
 
 export function useUsage() {
-  const { isAuthenticated } = useConvexAuth();
-  const args = isAuthenticated ? {} : "skip";
   const {
     data: usage,
     isLoading: usageLoading,
     error: usageError,
   } = useQuery({
-    ...convexQuery(api.user.usage.getUsage, args),
+    ...convexQuery(api.user.usage.getUsage, {}),
     select: ({ endOfPeriod, percentageUsed, limitHit, range, unlimited }) => ({
       endOfPeriod,
       percentageUsed,

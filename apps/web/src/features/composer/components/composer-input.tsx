@@ -1,5 +1,4 @@
 import { useRef } from "react";
-import { useConvexAuth } from "convex/react";
 
 import { useComposerInput } from "@acme/features/composer";
 import { shortcuts } from "@acme/features/shortcuts";
@@ -16,7 +15,6 @@ export function ComposerInput({
   showInstantLoad?: () => void;
   handleError?: () => void;
 }) {
-  const { isAuthenticated } = useConvexAuth();
   const { value, setPrompt, disabled, placeholder } = useComposerInput();
   const { sendMessage } = useSendMessage();
 
@@ -41,7 +39,7 @@ export function ComposerInput({
       onChange={setPrompt}
       onKeyDown={handleKeyDown}
       placeholder={placeholder}
-      disabled={isAuthenticated && disabled}
+      disabled={disabled}
       autoFocus
     />
   );

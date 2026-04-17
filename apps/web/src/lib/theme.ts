@@ -13,3 +13,7 @@ export const defaultTheme = "nebula";
 export function getThemeClass(theme: Theme) {
   return `theme-${theme}`;
 }
+
+export function isTheme(value: string): value is Theme {
+  return themes.some((t) => t === value);
+}

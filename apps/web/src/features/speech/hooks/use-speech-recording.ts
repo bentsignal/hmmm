@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useConvexAuth } from "convex/react";
 import { toast } from "sonner";
 
 import { MAX_RECORDING_DURATION } from "@acme/features/speech";
@@ -73,7 +72,6 @@ async function processTranscription(options: {
 export function useSpeechRecording() {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const { isAuthenticated } = useConvexAuth();
   const [stream, setStream] = useState<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -97,11 +95,6 @@ export function useSpeechRecording() {
 
   async function startRecording() {
     setTranscribedAudio(null);
-
-    if (!isAuthenticated) {
-      toast.error("Please sign in to use the microphone");
-      return;
-    }
 
     let userStream: MediaStream;
     try {

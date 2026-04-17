@@ -29,7 +29,9 @@ export interface RouterContext {
 }
 
 export function getRouter() {
-  const convex = new ConvexReactClient(env.VITE_CONVEX_URL);
+  const convex = new ConvexReactClient(env.VITE_CONVEX_URL, {
+    expectAuth: true,
+  });
   const convexQueryClient = new ConvexQueryClient(convex);
   const queryClient = new QueryClient({
     defaultOptions: {

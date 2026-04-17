@@ -1,6 +1,4 @@
-import type { ReactNode } from "react";
 import { TanStackDevtools } from "@tanstack/react-devtools";
-import { queryOptions } from "@tanstack/react-query";
 import {
   createRootRouteWithContext,
   HeadContent,
@@ -9,45 +7,21 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { createServerFn } from "@tanstack/react-start";
-import { getCookie } from "@tanstack/react-start/server";
 import { ReactScan } from "@/components/react-scan";
 import { clerkAuthQueryOptions } from "@/features/auth/auth-utils";
-import { ClerkProvider, useAuth } from "@clerk/tanstack-react-start";
+import { ConvexClerkProvider } from "@/providers/convex-clerk-provider";
+import { ClerkProvider } from "@clerk/tanstack-react-start";
 import { dark } from "@clerk/themes";
-import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { Toaster } from "sonner";
 import { z } from "zod";
 
 import { LoginModal } from "@acme/features/auth";
 
-import type { Theme } from "~/lib/theme";
 import type { RouterContext } from "~/router";
 import appStyles from "~/app/styles.css?url";
-import { SIDEBAR_COOKIE_NAME } from "~/lib/cookies";
-import { defaultTheme, getThemeClass, themes } from "~/lib/theme";
+import { cookiesQueryOptions } from "~/lib/cookies";
+import { getThemeClass } from "~/lib/theme";
 import { ThemeProvider } from "~/providers/theme-provider";
-
-function isTheme(value: string): value is Theme {
-  return themes.some((t) => t === value);
-}
-
-const fetchCookies = createServerFn({ method: "GET" }).handler(() => {
-  const themeCookie = getCookie("theme");
-  const theme =
-    themeCookie && isTheme(themeCookie) ? themeCookie : defaultTheme;
-  const stars = getCookie("stars") === "true";
-  const sidebarOpen = getCookie(SIDEBAR_COOKIE_NAME) === "true";
-
-  return { theme, stars, sidebarOpen };
-});
-
-const cookiesQueryOptions = queryOptions({
-  queryKey: ["__root", "cookies"],
-  queryFn: () => fetchCookies(),
-  staleTime: Infinity,
-  gcTime: Infinity,
-});
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   validateSearch: z.object({
@@ -86,18 +60,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
 });
 
-function ConvexClerkProvider({ children }: { children: ReactNode }) {
-  const { convex } = Route.useRouteContext({
-    select: (ctx) => ({ convex: ctx.convex }),
-  });
-  const authState = useAuth();
-  return (
-    <ConvexProviderWithClerk client={convex} useAuth={() => authState}>
-      {children}
-    </ConvexProviderWithClerk>
-  );
-}
-
 function RootComponent() {
   const { auth, cookies } = Route.useRouteContext({
     select: (ctx) => ({ auth: ctx.auth, cookies: ctx.cookies }),
@@ -120,7 +82,7 @@ function RootComponent() {
   return (
     <ClerkProvider
       appearance={{ baseTheme: dark }}
-      afterSignOutUrl="/signing-out"
+      afterSignOutUrl="/"
       signInUrl="/?signin=true"
       signUpUrl="/?signin=true"
       signInFallbackRedirectUrl="/signing-in?to=/home"
