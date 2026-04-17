@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { SettingsWrapper } from "~/app/settings/-wrapper";
 import { InfoCard } from "~/components/info-card";
 import { Socials } from "~/components/socials";
 import { QuickLink } from "~/features/quick-link/quick-link";
+import { SettingsWrapper } from "./-wrapper";
 
-export const Route = createFileRoute("/_chat/_authenticated/settings/contact")({
+export const Route = createFileRoute("/_authenticated/settings/contact")({
   component: ContactPage,
 });
 

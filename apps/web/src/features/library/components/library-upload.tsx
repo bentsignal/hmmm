@@ -1,7 +1,7 @@
 import { useState } from "react";
-// eslint-disable-next-line no-restricted-imports -- useQuery needed here because storage data is fetched conditionally based on auth state, not preloaded in route loader
+// eslint-disable-next-line no-restricted-imports -- useQuery needed here because storage data is not preloaded in route loader
 import { useQuery } from "@tanstack/react-query";
-import { convexQuery, useConvexAuth } from "@convex-dev/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
@@ -14,10 +14,8 @@ import { LibraryUploadProgress } from "./library-upload-progress";
 export function LibraryUpload() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
-  const { isAuthenticated } = useConvexAuth();
-  const args = isAuthenticated ? {} : "skip";
   const { data: storageStatus } = useQuery({
-    ...convexQuery(api.app.library.getStorageStatus, args),
+    ...convexQuery(api.app.library.getStorageStatus, {}),
     select: (data) => ({
       storageUsed: data.storageUsed,
       storageLimit: data.storageLimit,

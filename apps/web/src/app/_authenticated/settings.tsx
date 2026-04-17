@@ -2,9 +2,9 @@ import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 import { SidebarProvider } from "@acme/ui/sidebar";
 
-import { SettingsNavDesktop, SettingsNavMobile } from "~/app/settings/-nav";
+import { SettingsNavDesktop, SettingsNavMobile } from "./settings/-nav";
 
-export const Route = createFileRoute("/_chat/_authenticated/settings")({
+export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsLayout,
 });
 

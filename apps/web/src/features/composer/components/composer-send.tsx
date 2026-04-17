@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { useConvexAuth } from "convex/react";
-import { Loader2, Send } from "lucide-react";
 
-import { Button } from "@acme/ui/button";
-
+import { ComposerSendButton } from "~/features/composer/primitives/composer-send-button";
 import { useSendMessage } from "../hooks/use-send-message";
 
 export function ComposerSend({
@@ -26,21 +24,14 @@ export function ComposerSend({
   }, []);
 
   return (
-    <Button
+    <ComposerSendButton
       onClick={() => {
         void sendMessage({ showInstantLoad, handleError });
       }}
       disabled={
         isAuthenticated && (blockSend ?? isLoading) && !optimisticEnable
       }
-      size="icon"
-      className="shrink-0"
-    >
-      {isLoading && isAuthenticated && !optimisticEnable ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Send className="h-4 w-4" />
-      )}
-    </Button>
+      loading={isLoading && isAuthenticated && !optimisticEnable}
+    />
   );
 }

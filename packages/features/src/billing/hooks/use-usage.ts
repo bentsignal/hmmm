@@ -1,4 +1,4 @@
-// eslint-disable-next-line no-restricted-imports -- useQuery needed here because usage data is fetched conditionally based on auth state, not preloaded in route loader
+// eslint-disable-next-line no-restricted-imports -- useQuery needed here because usage data is fetched conditionally based on auth state (hook renders on public home too), not preloaded in route loader
 import { useQuery } from "@tanstack/react-query";
 import { convexQuery, useConvexAuth } from "@convex-dev/react-query";
 

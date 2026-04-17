@@ -19,10 +19,10 @@ import {
   SidebarMenuItem,
 } from "@acme/ui/sidebar";
 
-import { settingsTabs } from "~/app/settings/-tabs";
 import { useSignOut } from "~/features/auth/hooks/use-sign-out";
 import { QuickLink } from "~/features/quick-link/quick-link";
 import { cn } from "~/lib/utils";
+import { settingsTabs } from "./-tabs";
 
 const SIGN_OUT_VALUE = "__sign_out__";
 
@@ -75,7 +75,7 @@ export function SettingsNavMobile() {
           </SelectItem>
         </SelectContent>
       </Select>
-      <QuickLink to="/" className="text-muted-foreground text-sm">
+      <QuickLink to="/home" className="text-muted-foreground text-sm">
         <div className="flex items-center gap-2">
           <MoveLeft className="h-4 w-4" />
           <span>Back to chat</span>
@@ -98,7 +98,7 @@ export function SettingsNavDesktop() {
               asChild
               className="hover:text-primary hover:bg-card/50"
             >
-              <QuickLink to="/" preload="render">
+              <QuickLink to="/home" preload="render">
                 <div className="flex items-center gap-2">
                   <MoveLeft className="h-4 w-4" />
                   <span>Back</span>

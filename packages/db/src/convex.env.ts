@@ -17,7 +17,6 @@ export const env = createEnv({
   ...polar,
   ...clerk,
   CLERK_SECRET_KEY: v.string(),
-  CLERK_WEBHOOK_SECRET: v.string(),
   EXA_API_KEY: v.string(),
   FAL_KEY: v.string(),
   GOOGLE_API_KEY: v.string(),

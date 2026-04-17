@@ -21,19 +21,11 @@ import { ThreadDeleteModal } from "~/features/thread/components/thread-delete-mo
 import { ThreadList } from "~/features/thread/components/thread-list";
 import { ThreadRenameModal } from "~/features/thread/components/thread-rename-modal";
 
-// import useThreadSwitch from "~/features/thread/hooks/use-thread-switch";
-
 export function ChatSidebar() {
   const searchRef = useRef<HTMLInputElement>(null);
 
   const { threads, setSearch, loadMoreThreads, status } = useThreadList();
 
-  // switch between threads with tab and shift tab
-  // useThreadSwitch({
-  //   threads,
-  // });
-
-  // focus search on "ctrl/cmd + shift + ?"
   useShortcut({
     hotkey: shortcuts.search.hotkey,
     callback: () => {

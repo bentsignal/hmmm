@@ -2,13 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { pricingQueries, userQueries } from "@acme/features/lib/queries";
 
-import { SettingsWrapper } from "~/app/settings/-wrapper";
-import { AccountInfo } from "~/app/settings/account/-account-info";
-import { Billing } from "~/app/settings/account/-billing";
-import { DeleteAccount } from "~/app/settings/account/-delete";
-import { Usage } from "~/app/settings/account/-usage";
+import { SettingsWrapper } from "./-wrapper";
+import { AccountInfo } from "./account/-account-info";
+import { Billing } from "./account/-billing";
+import { DeleteAccount } from "./account/-delete";
+import { Usage } from "./account/-usage";
 
-export const Route = createFileRoute("/_chat/_authenticated/settings/account")({
+export const Route = createFileRoute("/_authenticated/settings/account")({
   component: AccountPage,
   loader: async ({ context }) => {
     await Promise.all([

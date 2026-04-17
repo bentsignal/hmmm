@@ -2,16 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { userQueries } from "@acme/features/lib/queries";
 
-import { SettingsWrapper } from "~/app/settings/-wrapper";
-import { Appearance } from "~/app/settings/preferences/-appearance";
-import { Bangs } from "~/app/settings/preferences/-bangs";
-import { Notifications } from "~/app/settings/preferences/-notifications";
-import { Personalization } from "~/app/settings/preferences/-personalization";
 import { Shortcuts } from "~/features/shortcuts/components/shortcuts";
+import { SettingsWrapper } from "./-wrapper";
+import { Appearance } from "./preferences/-appearance";
+import { Bangs } from "./preferences/-bangs";
+import { Notifications } from "./preferences/-notifications";
+import { Personalization } from "./preferences/-personalization";
 
-export const Route = createFileRoute(
-  "/_chat/_authenticated/settings/preferences",
-)({
+export const Route = createFileRoute("/_authenticated/settings/preferences")({
   component: PreferencesPage,
   loader: async ({ context }) => {
     await Promise.all([

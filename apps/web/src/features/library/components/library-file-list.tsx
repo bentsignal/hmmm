@@ -1,6 +1,6 @@
 import { Activity, useState } from "react";
 import { LegendList } from "@legendapp/list/react";
-import { useConvexAuth, usePaginatedQuery } from "convex/react";
+import { usePaginatedQuery } from "convex/react";
 
 import type {
   LibraryFile,
@@ -138,22 +138,22 @@ export function LibraryFileList({
   searchTerm: string;
   tab: LibraryTab;
 }) {
-  const { isAuthenticated } = useConvexAuth();
-  const args = isAuthenticated
-    ? {
-        direction: sortDirection,
-        tab,
-        sort,
-        searchTerm: searchTerm.trim().length > 0 ? searchTerm : undefined,
-      }
-    : "skip";
   const {
     results: files,
     status,
     loadMore,
-  } = usePaginatedQuery(api.app.library.getUserFiles, args, {
-    initialNumItems: libraryPagination.initialSize,
-  });
+  } = usePaginatedQuery(
+    api.app.library.getUserFiles,
+    {
+      direction: sortDirection,
+      tab,
+      sort,
+      searchTerm: searchTerm.trim().length > 0 ? searchTerm : undefined,
+    },
+    {
+      initialNumItems: libraryPagination.initialSize,
+    },
+  );
 
   const libraryMode = useLibraryStore((state) => state.libraryMode);
   const selectedFiles = useLibraryStore((state) => state.selectedFiles);

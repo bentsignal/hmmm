@@ -1,4 +1,4 @@
-import { useConvexAuth, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { ImageIcon } from "lucide-react";
 
 import { api } from "@acme/db/api";
@@ -18,17 +18,9 @@ export function MessageImage({ image }: { image?: string | null }) {
 
 function Generated({ fileKey }: { fileKey: string }) {
   const { handleFileClick, handleFileHover } = useFileInteraction();
-  const { isAuthenticated } = useConvexAuth();
 
-  // eslint-disable-next-line no-restricted-syntax -- convex useQuery doesn't support select; conditional fetch via "skip"
-  const image = useQuery(
-    api.app.library.getFileByKey,
-    isAuthenticated
-      ? {
-          key: fileKey,
-        }
-      : "skip",
-  );
+  // eslint-disable-next-line no-restricted-syntax -- convex useQuery doesn't support select
+  const image = useQuery(api.app.library.getFileByKey, { key: fileKey });
 
   if (!image) return null;
 

@@ -5,7 +5,7 @@ import { threadQueries } from "@acme/features/lib/queries";
 import { Composer } from "~/features/composer/composer";
 import { Thread } from "~/features/thread/thread";
 
-export const Route = createFileRoute("/_chat/_authenticated/chat/$id")({
+export const Route = createFileRoute("/_authenticated/chat/$id")({
   component: ChatPage,
   loader: async ({ context, params }) => {
     await Promise.all([

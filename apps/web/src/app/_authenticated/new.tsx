@@ -4,7 +4,7 @@ import { z } from "zod";
 import { api } from "@acme/db/api";
 import { validatePrompt } from "@acme/features/lib/prompt";
 
-export const Route = createFileRoute("/_chat/_authenticated/new")({
+export const Route = createFileRoute("/_authenticated/new")({
   validateSearch: z.object({
     q: z.string(),
   }),
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_chat/_authenticated/new")({
     const prompt = validatePrompt(deps.q);
 
     if (!prompt) {
-      throw redirect({ to: "/" });
+      throw redirect({ to: "/home" });
     }
 
     const threadId = await context.convexHttpClient.mutation(

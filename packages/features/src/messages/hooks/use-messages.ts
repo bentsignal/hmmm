@@ -1,6 +1,5 @@
 // eslint-disable-next-line no-restricted-imports -- useQuery reads the SSR-prefetched first page so messages are in hand on the first client render, avoiding an extra Convex round trip before the list fades in at the bottom
 import { useQuery } from "@tanstack/react-query";
-import { useConvexAuth } from "convex/react";
 
 import { api } from "@acme/db/api";
 
@@ -21,12 +20,8 @@ export function useMessages({
   threadId: string;
   streaming?: boolean;
 }) {
-  const { isAuthenticated } = useConvexAuth();
-  const args = isAuthenticated ? { threadId } : "skip";
-
   const firstPageQuery = useQuery({
     ...threadQueries.messagesFirstPage(threadId),
-    enabled: isAuthenticated,
     select: (data) => data.page,
   });
 
@@ -35,10 +30,14 @@ export function useMessages({
     loadMore,
     isLoading,
     status,
-  } = useThreadMessages(api.ai.thread.queries.getThreadMessages, args, {
-    initialNumItems: INITIAL_PAGE_SIZE,
-    stream: streaming,
-  });
+  } = useThreadMessages(
+    api.ai.thread.queries.getThreadMessages,
+    { threadId },
+    {
+      initialNumItems: INITIAL_PAGE_SIZE,
+      stream: streaming,
+    },
+  );
 
   // Only fall back to the prefetched first page while the live paginated
   // query is fetching its *first* page. `isLoading` from usePaginatedQuery is
@@ -70,7 +69,6 @@ export function useMessages({
   });
 
   return {
-    isAuthenticated,
     messages: uiMessages,
     totalCount: activeMessages.length,
     loadMore,

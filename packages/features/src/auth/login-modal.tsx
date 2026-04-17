@@ -17,7 +17,7 @@ import { useIsMobile } from "@acme/ui/hooks/use-mobile";
 
 import { SignInButton } from "./sign-in-button";
 
-const TITLE = "Welcome to hmmm!";
+const TITLE = "Welcome to hmmm";
 const DESCRIPTION = "Please choose your preferred sign in method";
 const LINK_CLASS = "underline-offset-4 hover:underline focus-visible:underline";
 

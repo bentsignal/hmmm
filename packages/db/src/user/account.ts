@@ -1,8 +1,8 @@
-import { v } from "convex/values";
+import { ConvexError } from "convex/values";
 
 import type { QueryCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { internalMutation, mutation } from "../_generated/server";
+import { mutation } from "../_generated/server";
 import { authedQuery } from "../convex_helpers";
 
 /**
@@ -46,16 +46,19 @@ export const getEmail = authedQuery({
   },
 });
 
-export const create = internalMutation({
-  args: {
-    userId: v.string(),
-    email: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { userId, email } = args;
+export const ensureUserExists = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError("Unauthenticated");
+    }
+    const existing = await getUserByUserId(ctx, identity.subject);
+    if (existing) return;
+
     await ctx.db.insert("users", {
-      userId,
-      email,
+      userId: identity.subject,
+      email: identity.email ?? "",
       newsletter: true,
     });
   },

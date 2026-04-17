@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 // eslint-disable-next-line no-restricted-imports -- useQuery reads the SSR-prefetched first page so the sidebar renders real threads on first paint instead of the skeleton
 import { useQuery } from "@tanstack/react-query";
-import { useConvexAuth, usePaginatedQuery } from "convex/react";
+import { usePaginatedQuery } from "convex/react";
 
 import { api } from "@acme/db/api";
 
@@ -13,17 +13,14 @@ export function useThreadList() {
   const { setValue: setSearch, debouncedValue: debouncedSearch } =
     useDebouncedInput();
 
-  const { isAuthenticated } = useConvexAuth();
-
   const firstPageQuery = useQuery({
     ...threadQueries.listFirstPage(debouncedSearch),
     select: (data) => ({ page: data.page, isDone: data.isDone }),
   });
 
-  const args = isAuthenticated ? { search: debouncedSearch } : "skip";
   const liveQuery = usePaginatedQuery(
     api.ai.thread.queries.getThreadList,
-    args,
+    { search: debouncedSearch },
     {
       initialNumItems: INITIAL_PAGE_SIZE,
     },

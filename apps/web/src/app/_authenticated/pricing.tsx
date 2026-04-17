@@ -1,16 +1,24 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 import { CheckoutLink, CustomerPortalLink } from "@convex-dev/polar/react";
-import { X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 import { api } from "@acme/db/api";
 import { useCurrentPlan } from "@acme/features/billing";
+import { pricingQueries } from "@acme/features/lib/queries";
 import { Button } from "@acme/ui/button";
 import * as Card from "@acme/ui/card";
 
 import { DefaultLoading } from "~/components/default-loading";
 import { markdownComponents } from "~/features/messages/components/markdown-components";
-import { QuickLink as Link } from "~/features/quick-link/quick-link";
 import { cn } from "~/lib/utils";
+
+export const Route = createFileRoute("/_authenticated/pricing")({
+  component: PricingCards,
+  loader: async ({ context }) => {
+    await context.queryClient.ensureQueryData(pricingQueries.listAllProducts());
+  },
+});
 
 interface Product {
   name: string;
@@ -88,8 +96,37 @@ function ProductCard({
   );
 }
 
-export function PricingCards({ products }: { products: Product[] }) {
-  const { plan, planLoading } = useCurrentPlan();
+function usePlans() {
+  const { data: allPlans } = useSuspenseQuery({
+    ...pricingQueries.listAllProducts(),
+    select: (data) =>
+      data.map((plan) => ({
+        id: plan.id,
+        name: plan.name,
+        description: plan.description,
+        prices: plan.prices,
+        recurringInterval: plan.recurringInterval,
+        isArchived: plan.isArchived,
+      })),
+  });
+
+  const plans = allPlans
+    .filter((plan) => plan.isArchived === false)
+    .map((plan) => ({
+      id: plan.id,
+      name: plan.name,
+      description: plan.description ?? "",
+      price: plan.prices[0]?.priceAmount ?? 0,
+      period: plan.recurringInterval,
+    }))
+    .sort((a, b) => a.price - b.price);
+
+  return { plans };
+}
+
+export function PricingCards() {
+  const { plans } = usePlans();
+  const { myPlan, planLoading } = useCurrentPlan();
 
   if (planLoading) {
     return (
@@ -101,17 +138,12 @@ export function PricingCards({ products }: { products: Product[] }) {
 
   return (
     <div className="my-8 flex min-h-screen w-full flex-col items-center justify-center gap-4 xl:my-0">
-      <div className="absolute top-4 right-4 p-2 sm:p-4">
-        <Link to="/">
-          <X className="h-6 w-6" />
-        </Link>
-      </div>
       <span className="text-2xl font-bold">Pricing</span>
-      {plan && plan.name !== "Free" ? (
+      {myPlan && myPlan.name !== "Free" ? (
         <div className="flex min-h-20 flex-col items-center gap-2">
           <span>
             Current plan:{" "}
-            <span className="text-primary font-bold">{plan.name}</span>
+            <span className="text-primary font-bold">{myPlan.name}</span>
           </span>
           <CustomerPortalLink
             polarApi={{
@@ -130,11 +162,11 @@ export function PricingCards({ products }: { products: Product[] }) {
       )}
       <div className="flex flex-col items-center gap-6">
         <div className="mx-4 flex flex-col gap-4 xl:flex-row">
-          {products.map((product) => (
+          {plans.map((plan) => (
             <ProductCard
-              key={product.id}
-              product={product}
-              showUpgrade={plan?.name === "Free"}
+              key={plan.id}
+              product={plan}
+              showUpgrade={plan.name === "Free"}
             />
           ))}
         </div>

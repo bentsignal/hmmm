@@ -12,21 +12,21 @@ import { Route as rootRouteImport } from './app/__root'
 import { Route as SsoCallbackRouteImport } from './app/sso-callback'
 import { Route as GoodbyeRouteImport } from './app/goodbye'
 import { Route as PolicyRouteImport } from './app/_policy'
-import { Route as ChatRouteImport } from './app/_chat'
-import { Route as ChatIndexRouteImport } from './app/_chat/index'
+import { Route as AuthenticatedRouteImport } from './app/_authenticated'
+import { Route as IndexRouteImport } from './app/index'
 import { Route as ApiUploadthingRouteImport } from './app/api/uploadthing'
 import { Route as ApiMailRouteImport } from './app/api/mail'
 import { Route as PolicyTermsOfServiceRouteImport } from './app/_policy/terms-of-service'
 import { Route as PolicyPrivacyPolicyRouteImport } from './app/_policy/privacy-policy'
-import { Route as ChatPricingRouteImport } from './app/_chat/pricing'
-import { Route as ChatAuthenticatedRouteImport } from './app/_chat/_authenticated'
-import { Route as ChatAuthenticatedSettingsRouteImport } from './app/_chat/_authenticated/settings'
-import { Route as ChatAuthenticatedNewRouteImport } from './app/_chat/_authenticated/new'
-import { Route as ChatAuthenticatedSettingsIndexRouteImport } from './app/_chat/_authenticated/settings/index'
-import { Route as ChatAuthenticatedSettingsPreferencesRouteImport } from './app/_chat/_authenticated/settings/preferences'
-import { Route as ChatAuthenticatedSettingsContactRouteImport } from './app/_chat/_authenticated/settings/contact'
-import { Route as ChatAuthenticatedSettingsAccountRouteImport } from './app/_chat/_authenticated/settings/account'
-import { Route as ChatAuthenticatedChatIdRouteImport } from './app/_chat/_authenticated/chat.$id'
+import { Route as AuthenticatedSettingsRouteImport } from './app/_authenticated/settings'
+import { Route as AuthenticatedPricingRouteImport } from './app/_authenticated/pricing'
+import { Route as AuthenticatedNewRouteImport } from './app/_authenticated/new'
+import { Route as AuthenticatedHomeRouteImport } from './app/_authenticated/home'
+import { Route as AuthenticatedSettingsIndexRouteImport } from './app/_authenticated/settings/index'
+import { Route as AuthenticatedSettingsPreferencesRouteImport } from './app/_authenticated/settings/preferences'
+import { Route as AuthenticatedSettingsContactRouteImport } from './app/_authenticated/settings/contact'
+import { Route as AuthenticatedSettingsAccountRouteImport } from './app/_authenticated/settings/account'
+import { Route as AuthenticatedChatIdRouteImport } from './app/_authenticated/chat.$id'
 
 const SsoCallbackRoute = SsoCallbackRouteImport.update({
   id: '/sso-callback',
@@ -42,14 +42,14 @@ const PolicyRoute = PolicyRouteImport.update({
   id: '/_policy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChatRoute = ChatRouteImport.update({
-  id: '/_chat',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChatIndexRoute = ChatIndexRouteImport.update({
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => ChatRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiUploadthingRoute = ApiUploadthingRouteImport.update({
   id: '/api/uploadthing',
@@ -71,109 +71,111 @@ const PolicyPrivacyPolicyRoute = PolicyPrivacyPolicyRouteImport.update({
   path: '/privacy-policy',
   getParentRoute: () => PolicyRoute,
 } as any)
-const ChatPricingRoute = ChatPricingRouteImport.update({
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedPricingRoute = AuthenticatedPricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
-  getParentRoute: () => ChatRoute,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const ChatAuthenticatedRoute = ChatAuthenticatedRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => ChatRoute,
-} as any)
-const ChatAuthenticatedSettingsRoute =
-  ChatAuthenticatedSettingsRouteImport.update({
-    id: '/settings',
-    path: '/settings',
-    getParentRoute: () => ChatAuthenticatedRoute,
-  } as any)
-const ChatAuthenticatedNewRoute = ChatAuthenticatedNewRouteImport.update({
+const AuthenticatedNewRoute = AuthenticatedNewRouteImport.update({
   id: '/new',
   path: '/new',
-  getParentRoute: () => ChatAuthenticatedRoute,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const ChatAuthenticatedSettingsIndexRoute =
-  ChatAuthenticatedSettingsIndexRouteImport.update({
+const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSettingsIndexRoute =
+  AuthenticatedSettingsIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => ChatAuthenticatedSettingsRoute,
+    getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
-const ChatAuthenticatedSettingsPreferencesRoute =
-  ChatAuthenticatedSettingsPreferencesRouteImport.update({
+const AuthenticatedSettingsPreferencesRoute =
+  AuthenticatedSettingsPreferencesRouteImport.update({
     id: '/preferences',
     path: '/preferences',
-    getParentRoute: () => ChatAuthenticatedSettingsRoute,
+    getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
-const ChatAuthenticatedSettingsContactRoute =
-  ChatAuthenticatedSettingsContactRouteImport.update({
+const AuthenticatedSettingsContactRoute =
+  AuthenticatedSettingsContactRouteImport.update({
     id: '/contact',
     path: '/contact',
-    getParentRoute: () => ChatAuthenticatedSettingsRoute,
+    getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
-const ChatAuthenticatedSettingsAccountRoute =
-  ChatAuthenticatedSettingsAccountRouteImport.update({
+const AuthenticatedSettingsAccountRoute =
+  AuthenticatedSettingsAccountRouteImport.update({
     id: '/account',
     path: '/account',
-    getParentRoute: () => ChatAuthenticatedSettingsRoute,
+    getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
-const ChatAuthenticatedChatIdRoute = ChatAuthenticatedChatIdRouteImport.update({
+const AuthenticatedChatIdRoute = AuthenticatedChatIdRouteImport.update({
   id: '/chat/$id',
   path: '/chat/$id',
-  getParentRoute: () => ChatAuthenticatedRoute,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof ChatIndexRoute
+  '/': typeof IndexRoute
   '/goodbye': typeof GoodbyeRoute
   '/sso-callback': typeof SsoCallbackRoute
-  '/pricing': typeof ChatPricingRoute
+  '/home': typeof AuthenticatedHomeRoute
+  '/new': typeof AuthenticatedNewRoute
+  '/pricing': typeof AuthenticatedPricingRoute
+  '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/privacy-policy': typeof PolicyPrivacyPolicyRoute
   '/terms-of-service': typeof PolicyTermsOfServiceRoute
   '/api/mail': typeof ApiMailRoute
   '/api/uploadthing': typeof ApiUploadthingRoute
-  '/new': typeof ChatAuthenticatedNewRoute
-  '/settings': typeof ChatAuthenticatedSettingsRouteWithChildren
-  '/chat/$id': typeof ChatAuthenticatedChatIdRoute
-  '/settings/account': typeof ChatAuthenticatedSettingsAccountRoute
-  '/settings/contact': typeof ChatAuthenticatedSettingsContactRoute
-  '/settings/preferences': typeof ChatAuthenticatedSettingsPreferencesRoute
-  '/settings/': typeof ChatAuthenticatedSettingsIndexRoute
+  '/chat/$id': typeof AuthenticatedChatIdRoute
+  '/settings/account': typeof AuthenticatedSettingsAccountRoute
+  '/settings/contact': typeof AuthenticatedSettingsContactRoute
+  '/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
+  '/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof ChatIndexRoute
+  '/': typeof IndexRoute
   '/goodbye': typeof GoodbyeRoute
   '/sso-callback': typeof SsoCallbackRoute
-  '/pricing': typeof ChatPricingRoute
+  '/home': typeof AuthenticatedHomeRoute
+  '/new': typeof AuthenticatedNewRoute
+  '/pricing': typeof AuthenticatedPricingRoute
   '/privacy-policy': typeof PolicyPrivacyPolicyRoute
   '/terms-of-service': typeof PolicyTermsOfServiceRoute
   '/api/mail': typeof ApiMailRoute
   '/api/uploadthing': typeof ApiUploadthingRoute
-  '/new': typeof ChatAuthenticatedNewRoute
-  '/chat/$id': typeof ChatAuthenticatedChatIdRoute
-  '/settings/account': typeof ChatAuthenticatedSettingsAccountRoute
-  '/settings/contact': typeof ChatAuthenticatedSettingsContactRoute
-  '/settings/preferences': typeof ChatAuthenticatedSettingsPreferencesRoute
-  '/settings': typeof ChatAuthenticatedSettingsIndexRoute
+  '/chat/$id': typeof AuthenticatedChatIdRoute
+  '/settings/account': typeof AuthenticatedSettingsAccountRoute
+  '/settings/contact': typeof AuthenticatedSettingsContactRoute
+  '/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
+  '/settings': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_chat': typeof ChatRouteWithChildren
+  '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_policy': typeof PolicyRouteWithChildren
   '/goodbye': typeof GoodbyeRoute
   '/sso-callback': typeof SsoCallbackRoute
-  '/_chat/_authenticated': typeof ChatAuthenticatedRouteWithChildren
-  '/_chat/pricing': typeof ChatPricingRoute
+  '/_authenticated/home': typeof AuthenticatedHomeRoute
+  '/_authenticated/new': typeof AuthenticatedNewRoute
+  '/_authenticated/pricing': typeof AuthenticatedPricingRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/_policy/privacy-policy': typeof PolicyPrivacyPolicyRoute
   '/_policy/terms-of-service': typeof PolicyTermsOfServiceRoute
   '/api/mail': typeof ApiMailRoute
   '/api/uploadthing': typeof ApiUploadthingRoute
-  '/_chat/': typeof ChatIndexRoute
-  '/_chat/_authenticated/new': typeof ChatAuthenticatedNewRoute
-  '/_chat/_authenticated/settings': typeof ChatAuthenticatedSettingsRouteWithChildren
-  '/_chat/_authenticated/chat/$id': typeof ChatAuthenticatedChatIdRoute
-  '/_chat/_authenticated/settings/account': typeof ChatAuthenticatedSettingsAccountRoute
-  '/_chat/_authenticated/settings/contact': typeof ChatAuthenticatedSettingsContactRoute
-  '/_chat/_authenticated/settings/preferences': typeof ChatAuthenticatedSettingsPreferencesRoute
-  '/_chat/_authenticated/settings/': typeof ChatAuthenticatedSettingsIndexRoute
+  '/_authenticated/chat/$id': typeof AuthenticatedChatIdRoute
+  '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
+  '/_authenticated/settings/contact': typeof AuthenticatedSettingsContactRoute
+  '/_authenticated/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
+  '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,13 +183,14 @@ export interface FileRouteTypes {
     | '/'
     | '/goodbye'
     | '/sso-callback'
+    | '/home'
+    | '/new'
     | '/pricing'
+    | '/settings'
     | '/privacy-policy'
     | '/terms-of-service'
     | '/api/mail'
     | '/api/uploadthing'
-    | '/new'
-    | '/settings'
     | '/chat/$id'
     | '/settings/account'
     | '/settings/contact'
@@ -198,12 +201,13 @@ export interface FileRouteTypes {
     | '/'
     | '/goodbye'
     | '/sso-callback'
+    | '/home'
+    | '/new'
     | '/pricing'
     | '/privacy-policy'
     | '/terms-of-service'
     | '/api/mail'
     | '/api/uploadthing'
-    | '/new'
     | '/chat/$id'
     | '/settings/account'
     | '/settings/contact'
@@ -211,28 +215,29 @@ export interface FileRouteTypes {
     | '/settings'
   id:
     | '__root__'
-    | '/_chat'
+    | '/'
+    | '/_authenticated'
     | '/_policy'
     | '/goodbye'
     | '/sso-callback'
-    | '/_chat/_authenticated'
-    | '/_chat/pricing'
+    | '/_authenticated/home'
+    | '/_authenticated/new'
+    | '/_authenticated/pricing'
+    | '/_authenticated/settings'
     | '/_policy/privacy-policy'
     | '/_policy/terms-of-service'
     | '/api/mail'
     | '/api/uploadthing'
-    | '/_chat/'
-    | '/_chat/_authenticated/new'
-    | '/_chat/_authenticated/settings'
-    | '/_chat/_authenticated/chat/$id'
-    | '/_chat/_authenticated/settings/account'
-    | '/_chat/_authenticated/settings/contact'
-    | '/_chat/_authenticated/settings/preferences'
-    | '/_chat/_authenticated/settings/'
+    | '/_authenticated/chat/$id'
+    | '/_authenticated/settings/account'
+    | '/_authenticated/settings/contact'
+    | '/_authenticated/settings/preferences'
+    | '/_authenticated/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  ChatRoute: typeof ChatRouteWithChildren
+  IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   PolicyRoute: typeof PolicyRouteWithChildren
   GoodbyeRoute: typeof GoodbyeRoute
   SsoCallbackRoute: typeof SsoCallbackRoute
@@ -263,19 +268,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_chat': {
-      id: '/_chat'
+    '/_authenticated': {
+      id: '/_authenticated'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof ChatRouteImport
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_chat/': {
-      id: '/_chat/'
+    '/': {
+      id: '/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof ChatIndexRouteImport
-      parentRoute: typeof ChatRoute
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/uploadthing': {
       id: '/api/uploadthing'
@@ -305,123 +310,110 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PolicyPrivacyPolicyRouteImport
       parentRoute: typeof PolicyRoute
     }
-    '/_chat/pricing': {
-      id: '/_chat/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof ChatPricingRouteImport
-      parentRoute: typeof ChatRoute
-    }
-    '/_chat/_authenticated': {
-      id: '/_chat/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof ChatAuthenticatedRouteImport
-      parentRoute: typeof ChatRoute
-    }
-    '/_chat/_authenticated/settings': {
-      id: '/_chat/_authenticated/settings'
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
       path: '/settings'
       fullPath: '/settings'
-      preLoaderRoute: typeof ChatAuthenticatedSettingsRouteImport
-      parentRoute: typeof ChatAuthenticatedRoute
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/_chat/_authenticated/new': {
-      id: '/_chat/_authenticated/new'
+    '/_authenticated/pricing': {
+      id: '/_authenticated/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof AuthenticatedPricingRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/new': {
+      id: '/_authenticated/new'
       path: '/new'
       fullPath: '/new'
-      preLoaderRoute: typeof ChatAuthenticatedNewRouteImport
-      parentRoute: typeof ChatAuthenticatedRoute
+      preLoaderRoute: typeof AuthenticatedNewRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/_chat/_authenticated/settings/': {
-      id: '/_chat/_authenticated/settings/'
+    '/_authenticated/home': {
+      id: '/_authenticated/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AuthenticatedHomeRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/settings/': {
+      id: '/_authenticated/settings/'
       path: '/'
       fullPath: '/settings/'
-      preLoaderRoute: typeof ChatAuthenticatedSettingsIndexRouteImport
-      parentRoute: typeof ChatAuthenticatedSettingsRoute
+      preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
     }
-    '/_chat/_authenticated/settings/preferences': {
-      id: '/_chat/_authenticated/settings/preferences'
+    '/_authenticated/settings/preferences': {
+      id: '/_authenticated/settings/preferences'
       path: '/preferences'
       fullPath: '/settings/preferences'
-      preLoaderRoute: typeof ChatAuthenticatedSettingsPreferencesRouteImport
-      parentRoute: typeof ChatAuthenticatedSettingsRoute
+      preLoaderRoute: typeof AuthenticatedSettingsPreferencesRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
     }
-    '/_chat/_authenticated/settings/contact': {
-      id: '/_chat/_authenticated/settings/contact'
+    '/_authenticated/settings/contact': {
+      id: '/_authenticated/settings/contact'
       path: '/contact'
       fullPath: '/settings/contact'
-      preLoaderRoute: typeof ChatAuthenticatedSettingsContactRouteImport
-      parentRoute: typeof ChatAuthenticatedSettingsRoute
+      preLoaderRoute: typeof AuthenticatedSettingsContactRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
     }
-    '/_chat/_authenticated/settings/account': {
-      id: '/_chat/_authenticated/settings/account'
+    '/_authenticated/settings/account': {
+      id: '/_authenticated/settings/account'
       path: '/account'
       fullPath: '/settings/account'
-      preLoaderRoute: typeof ChatAuthenticatedSettingsAccountRouteImport
-      parentRoute: typeof ChatAuthenticatedSettingsRoute
+      preLoaderRoute: typeof AuthenticatedSettingsAccountRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
     }
-    '/_chat/_authenticated/chat/$id': {
-      id: '/_chat/_authenticated/chat/$id'
+    '/_authenticated/chat/$id': {
+      id: '/_authenticated/chat/$id'
       path: '/chat/$id'
       fullPath: '/chat/$id'
-      preLoaderRoute: typeof ChatAuthenticatedChatIdRouteImport
-      parentRoute: typeof ChatAuthenticatedRoute
+      preLoaderRoute: typeof AuthenticatedChatIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
   }
 }
 
-interface ChatAuthenticatedSettingsRouteChildren {
-  ChatAuthenticatedSettingsAccountRoute: typeof ChatAuthenticatedSettingsAccountRoute
-  ChatAuthenticatedSettingsContactRoute: typeof ChatAuthenticatedSettingsContactRoute
-  ChatAuthenticatedSettingsPreferencesRoute: typeof ChatAuthenticatedSettingsPreferencesRoute
-  ChatAuthenticatedSettingsIndexRoute: typeof ChatAuthenticatedSettingsIndexRoute
+interface AuthenticatedSettingsRouteChildren {
+  AuthenticatedSettingsAccountRoute: typeof AuthenticatedSettingsAccountRoute
+  AuthenticatedSettingsContactRoute: typeof AuthenticatedSettingsContactRoute
+  AuthenticatedSettingsPreferencesRoute: typeof AuthenticatedSettingsPreferencesRoute
+  AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
 }
 
-const ChatAuthenticatedSettingsRouteChildren: ChatAuthenticatedSettingsRouteChildren =
-  {
-    ChatAuthenticatedSettingsAccountRoute:
-      ChatAuthenticatedSettingsAccountRoute,
-    ChatAuthenticatedSettingsContactRoute:
-      ChatAuthenticatedSettingsContactRoute,
-    ChatAuthenticatedSettingsPreferencesRoute:
-      ChatAuthenticatedSettingsPreferencesRoute,
-    ChatAuthenticatedSettingsIndexRoute: ChatAuthenticatedSettingsIndexRoute,
-  }
+const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
+  AuthenticatedSettingsAccountRoute: AuthenticatedSettingsAccountRoute,
+  AuthenticatedSettingsContactRoute: AuthenticatedSettingsContactRoute,
+  AuthenticatedSettingsPreferencesRoute: AuthenticatedSettingsPreferencesRoute,
+  AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
+}
 
-const ChatAuthenticatedSettingsRouteWithChildren =
-  ChatAuthenticatedSettingsRoute._addFileChildren(
-    ChatAuthenticatedSettingsRouteChildren,
+const AuthenticatedSettingsRouteWithChildren =
+  AuthenticatedSettingsRoute._addFileChildren(
+    AuthenticatedSettingsRouteChildren,
   )
 
-interface ChatAuthenticatedRouteChildren {
-  ChatAuthenticatedNewRoute: typeof ChatAuthenticatedNewRoute
-  ChatAuthenticatedSettingsRoute: typeof ChatAuthenticatedSettingsRouteWithChildren
-  ChatAuthenticatedChatIdRoute: typeof ChatAuthenticatedChatIdRoute
+interface AuthenticatedRouteChildren {
+  AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
+  AuthenticatedNewRoute: typeof AuthenticatedNewRoute
+  AuthenticatedPricingRoute: typeof AuthenticatedPricingRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
+  AuthenticatedChatIdRoute: typeof AuthenticatedChatIdRoute
 }
 
-const ChatAuthenticatedRouteChildren: ChatAuthenticatedRouteChildren = {
-  ChatAuthenticatedNewRoute: ChatAuthenticatedNewRoute,
-  ChatAuthenticatedSettingsRoute: ChatAuthenticatedSettingsRouteWithChildren,
-  ChatAuthenticatedChatIdRoute: ChatAuthenticatedChatIdRoute,
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedHomeRoute: AuthenticatedHomeRoute,
+  AuthenticatedNewRoute: AuthenticatedNewRoute,
+  AuthenticatedPricingRoute: AuthenticatedPricingRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
+  AuthenticatedChatIdRoute: AuthenticatedChatIdRoute,
 }
 
-const ChatAuthenticatedRouteWithChildren =
-  ChatAuthenticatedRoute._addFileChildren(ChatAuthenticatedRouteChildren)
-
-interface ChatRouteChildren {
-  ChatAuthenticatedRoute: typeof ChatAuthenticatedRouteWithChildren
-  ChatPricingRoute: typeof ChatPricingRoute
-  ChatIndexRoute: typeof ChatIndexRoute
-}
-
-const ChatRouteChildren: ChatRouteChildren = {
-  ChatAuthenticatedRoute: ChatAuthenticatedRouteWithChildren,
-  ChatPricingRoute: ChatPricingRoute,
-  ChatIndexRoute: ChatIndexRoute,
-}
-
-const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
 
 interface PolicyRouteChildren {
   PolicyPrivacyPolicyRoute: typeof PolicyPrivacyPolicyRoute
@@ -437,7 +429,8 @@ const PolicyRouteWithChildren =
   PolicyRoute._addFileChildren(PolicyRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  ChatRoute: ChatRouteWithChildren,
+  IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
   PolicyRoute: PolicyRouteWithChildren,
   GoodbyeRoute: GoodbyeRoute,
   SsoCallbackRoute: SsoCallbackRoute,

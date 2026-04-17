@@ -4,6 +4,7 @@ import {
   HeadContent,
   Outlet,
   Scripts,
+  useNavigate,
 } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { ClerkProvider, useAuth } from "@clerk/tanstack-react-start";
@@ -11,9 +12,13 @@ import { auth } from "@clerk/tanstack-react-start/server";
 import { dark } from "@clerk/themes";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { Toaster } from "sonner";
+import { z } from "zod";
+
+import { LoginModal } from "@acme/features/auth";
 
 import type { RouterContext } from "~/router";
 import appStyles from "~/app/styles.css?url";
+import { env } from "~/env";
 
 const fetchClerkAuth = createServerFn({ method: "GET" }).handler(async () => {
   const { userId, getToken, isAuthenticated } = await auth();
@@ -34,6 +39,10 @@ const fetchClerkAuth = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const Route = createRootRouteWithContext<RouterContext>()({
+  validateSearch: z.object({
+    signin: z.boolean().optional(),
+    redirect_url: z.string().optional(),
+  }),
   head: () => ({
     links: [{ rel: "stylesheet", href: appStyles }],
     meta: [
@@ -56,7 +65,9 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       context.convexHttpClient.clearAuth();
     }
 
-    return { auth: authState };
+    const { token: _token, ...auth } = authState;
+
+    return { auth };
   },
   component: RootComponent,
 });
@@ -74,12 +85,30 @@ function ConvexClerkProvider({ children }: { children: ReactNode }) {
 }
 
 function RootComponent() {
+  const { auth: authState } = Route.useRouteContext({
+    select: (ctx) => ({ auth: ctx.auth }),
+  });
+  const signin = Route.useSearch({ select: (s) => s.signin ?? false });
+  const redirectUrl = Route.useSearch({ select: (s) => s.redirect_url });
+  const navigate = useNavigate();
+
+  function closeLoginModal() {
+    void navigate({
+      to: ".",
+      search: (prev) => ({
+        ...prev,
+        signin: undefined,
+        redirect_url: undefined,
+      }),
+    });
+  }
+
   return (
     <ClerkProvider
       appearance={{ baseTheme: dark }}
-      afterSignOutUrl="/"
-      signInUrl="/?signin=true"
-      signUpUrl="/?signin=true"
+      afterSignOutUrl="/sign-in"
+      signInUrl="/sign-in?signin=true"
+      signUpUrl="/sign-in?signin=true"
       signInFallbackRedirectUrl="/"
       signUpFallbackRedirectUrl="/"
     >
@@ -95,6 +124,13 @@ function RootComponent() {
           </head>
           <body className="font-main relative overflow-hidden antialiased">
             <Outlet />
+            <LoginModal
+              open={!authState.isSignedIn && signin}
+              onClose={closeLoginModal}
+              redirectUri={redirectUrl}
+              tosURL={`${env.VITE_WEB_APP_URL}/terms-of-service`}
+              privacyURL={`${env.VITE_WEB_APP_URL}/privacy-policy`}
+            />
             <Toaster />
             <Scripts />
           </body>

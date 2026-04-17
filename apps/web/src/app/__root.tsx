@@ -6,16 +6,21 @@ import {
   HeadContent,
   Outlet,
   Scripts,
+  useNavigate,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
 import { getCookie } from "@tanstack/react-start/server";
 import { ReactScan } from "@/components/react-scan";
+import { clerkAuthQueryOptions } from "@/features/auth/auth-utils";
+import { useClerkRouter } from "@/features/auth/hooks/use-clerk-router";
 import { ClerkProvider, useAuth } from "@clerk/tanstack-react-start";
-import { auth } from "@clerk/tanstack-react-start/server";
 import { dark } from "@clerk/themes";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { Toaster } from "sonner";
+import { z } from "zod";
+
+import { LoginModal } from "@acme/features/auth";
 
 import type { Theme } from "~/lib/theme";
 import type { RouterContext } from "~/router";
@@ -23,24 +28,6 @@ import appStyles from "~/app/styles.css?url";
 import { SIDEBAR_COOKIE_NAME } from "~/lib/cookies";
 import { defaultTheme, getThemeClass, themes } from "~/lib/theme";
 import { ThemeProvider } from "~/providers/theme-provider";
-
-const fetchClerkAuth = createServerFn({ method: "GET" }).handler(async () => {
-  const { userId, getToken, isAuthenticated } = await auth();
-  const token = userId
-    ? ((await getToken({ template: "convex" })) ?? null)
-    : null;
-
-  if (isAuthenticated && token) {
-    return {
-      isSignedIn: true,
-      userId,
-      token,
-    };
-  }
-  return {
-    isSignedIn: false,
-  };
-});
 
 function isTheme(value: string): value is Theme {
   return themes.some((t) => t === value);
@@ -56,13 +43,6 @@ const fetchCookies = createServerFn({ method: "GET" }).handler(() => {
   return { theme, stars, sidebarOpen };
 });
 
-const clerkAuthQueryOptions = queryOptions({
-  queryKey: ["__root", "clerkAuth"],
-  queryFn: () => fetchClerkAuth(),
-  staleTime: Infinity,
-  gcTime: Infinity,
-});
-
 const cookiesQueryOptions = queryOptions({
   queryKey: ["__root", "cookies"],
   queryFn: () => fetchCookies(),
@@ -71,6 +51,10 @@ const cookiesQueryOptions = queryOptions({
 });
 
 export const Route = createRootRouteWithContext<RouterContext>()({
+  validateSearch: z.object({
+    signin: z.boolean().optional(),
+    redirect_url: z.string().optional(),
+  }),
   head: () => ({
     links: [{ rel: "stylesheet", href: appStyles }],
     meta: [
@@ -96,7 +80,9 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       context.convexHttpClient.clearAuth();
     }
 
-    return { auth: authState, cookies };
+    const { token: _token, ...auth } = authState;
+
+    return { auth, cookies };
   },
   component: RootComponent,
 });
@@ -114,9 +100,24 @@ function ConvexClerkProvider({ children }: { children: ReactNode }) {
 }
 
 function RootComponent() {
-  const { cookies } = Route.useRouteContext({
-    select: (ctx) => ({ cookies: ctx.cookies }),
+  const { auth, cookies } = Route.useRouteContext({
+    select: (ctx) => ({ auth: ctx.auth, cookies: ctx.cookies }),
   });
+  const signin = Route.useSearch({ select: (s) => s.signin ?? false });
+  const redirectUrl = Route.useSearch({ select: (s) => s.redirect_url });
+  const navigate = useNavigate();
+  const { routerPush, routerReplace } = useClerkRouter();
+
+  function closeLoginModal() {
+    void navigate({
+      to: ".",
+      search: (prev) => ({
+        ...prev,
+        signin: undefined,
+        redirect_url: undefined,
+      }),
+    });
+  }
 
   return (
     <ClerkProvider
@@ -126,6 +127,8 @@ function RootComponent() {
       signUpUrl="/?signin=true"
       signInFallbackRedirectUrl="/"
       signUpFallbackRedirectUrl="/"
+      routerPush={routerPush}
+      routerReplace={routerReplace}
     >
       <ConvexClerkProvider>
         <html
@@ -145,6 +148,13 @@ function RootComponent() {
               initialStars={cookies.stars}
             >
               <Outlet />
+              <LoginModal
+                open={!auth.isSignedIn && signin}
+                onClose={closeLoginModal}
+                redirectUri={redirectUrl}
+                tosURL="/terms-of-service"
+                privacyURL="/privacy-policy"
+              />
             </ThemeProvider>
             <TanStackDevtools
               config={{
