@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { QuickLink } from "@/features/quick-link/quick-link";
 import { Cog } from "lucide-react";
 
 import { shortcuts } from "@acme/features/shortcuts";
@@ -68,17 +68,14 @@ export function ChatSidebar() {
 }
 
 function SettingsButton() {
-  const navigate = useNavigate();
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button
-          variant="outline"
-          onClick={() => navigate({ to: "/settings/preferences" })}
-          size="icon"
-        >
-          <Cog className="h-4 w-4" />
-        </Button>
+        <QuickLink to="/settings/preferences" preload="render">
+          <Button variant="outline" size="icon">
+            <Cog className="h-4 w-4" />
+          </Button>
+        </QuickLink>
       </TooltipTrigger>
       <TooltipContent>Settings</TooltipContent>
     </Tooltip>
