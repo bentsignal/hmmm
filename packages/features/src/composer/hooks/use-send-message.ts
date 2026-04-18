@@ -117,6 +117,7 @@ export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
   );
   const isRecording = useComposerStore((state) => state.storeIsRecording);
 
+  const isGenerating = !isThreadIdle;
   const blockSend = !isThreadIdle || isRecording || usage?.limitHit;
   const isLoading = !isThreadIdle || storeIsTranscribing;
 
@@ -169,5 +170,5 @@ export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
     });
   }
 
-  return { blockSend, sendMessage, isLoading };
+  return { blockSend, sendMessage, isLoading, isGenerating };
 }

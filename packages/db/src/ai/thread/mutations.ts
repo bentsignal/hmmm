@@ -2,12 +2,17 @@ import { generateText } from "ai";
 import { ConvexError, v } from "convex/values";
 
 import { internal } from "../../_generated/api";
-import { internalAction, internalMutation } from "../../_generated/server";
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from "../../_generated/server";
+import { abortById } from "../../agent/handlers/streams";
 import { authedMutation } from "../../convex_helpers";
 import { tryCatch } from "../../lib/utils";
 import { getPerferredModelIfAllowed, getUserInfoHelper } from "../../user/info";
 import { agent } from "../agents";
-import { modelPresets } from "../models/helpers";
+import { modelPresets } from "../models/presets";
 import { titleGeneratorPrompt } from "../prompts";
 import {
   authorizeAccess,
@@ -97,7 +102,7 @@ export const create = authedMutation({
       attachments,
     });
     const model = await getPerferredModelIfAllowed(ctx, userInfo?.model);
-    const { error } = await tryCatch(
+    const { data: scheduledIds, error } = await tryCatch(
       Promise.all([
         ctx.scheduler.runAfter(0, internal.ai.thread.mutations.generateTitle, {
           threadId: threadId,
@@ -118,6 +123,8 @@ export const create = authedMutation({
         "G4",
         "Failed to generate title or response",
       );
+    } else {
+      await ctx.db.patch(newThreadId, { generationFnId: scheduledIds[1] });
     }
     return threadId;
   },
@@ -150,7 +157,7 @@ export const sendMessage = authedMutation({
         followUpQuestions: [],
       }),
     ]);
-    const { error } = await tryCatch(
+    const { data: scheduledId, error } = await tryCatch(
       ctx.scheduler.runAfter(0, internal.ai.agents.streamResponse, {
         threadId: args.threadId,
         promptMessageId: lastMessageId,
@@ -160,7 +167,42 @@ export const sendMessage = authedMutation({
     if (error) {
       console.error(error);
       await logSystemError(ctx, threadId, "G4", "Failed to generate response");
+    } else {
+      await ctx.db.patch(thread._id, { generationFnId: scheduledId });
     }
+  },
+});
+
+export const abortGeneration = authedMutation({
+  args: {
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const thread = await authorizeAccess(ctx, args.threadId);
+    if (!thread) {
+      throw new ConvexError("Thread not found");
+    }
+    // If the scheduled streamResponse hasn't started yet, cancel it so it
+    // never calls the LLM — zero cost, no G1/G2 error written afterward.
+    if (thread.generationFnId) {
+      const fn = await ctx.db.system.get(thread.generationFnId);
+      if (fn?.state.kind === "pending") {
+        await ctx.scheduler.cancel(thread.generationFnId);
+      }
+    }
+    const streams = await ctx.db
+      .query("streamingMessages")
+      .withIndex("threadId_state_order_stepOrder", (q) =>
+        q.eq("threadId", thread._id).eq("state.kind", "streaming"),
+      )
+      .take(100);
+    for (const s of streams) {
+      await abortById(ctx, { streamId: s._id, reason: "user-aborted" });
+    }
+    await ctx.db.patch(thread._id, {
+      state: "idle",
+      generationFnId: undefined,
+    });
   },
 });
 
@@ -203,6 +245,31 @@ export const setState = internalMutation({
       throw new ConvexError("Thread not found");
     }
     await ctx.db.patch(thread._id, { state });
+  },
+});
+
+export const wasAborted = internalQuery({
+  args: { threadId: v.string() },
+  handler: async (ctx, args) => {
+    const thread = await getMetadata(ctx, args.threadId);
+    if (!thread) return true;
+    // If the thread is already idle while our action is running, the user
+    // aborted (or the row is otherwise reset). Caller should suppress
+    // error logging that would leak into the UI.
+    return thread.state === "idle";
+  },
+});
+
+export const resetIdleIfStreaming = internalMutation({
+  args: { threadId: v.string() },
+  handler: async (ctx, args) => {
+    const thread = await getMetadata(ctx, args.threadId);
+    if (!thread) return;
+    if (thread.state !== "streaming") return;
+    await ctx.db.patch(thread._id, {
+      state: "idle",
+      generationFnId: undefined,
+    });
   },
 });
 

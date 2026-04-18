@@ -25,6 +25,10 @@ export const agentTables = {
     state: v.optional(
       v.union(v.literal("idle"), v.literal("waiting"), v.literal("streaming")),
     ),
+    // Id of the scheduled `streamResponse` action for the currently-active
+    // generation. Used to cancel the action when the user aborts before it
+    // starts running. Cleared when the action terminates or the user aborts.
+    generationFnId: v.optional(v.id("_scheduled_functions")),
     pinned: v.optional(v.boolean()),
     updatedAt: v.optional(v.number()),
     followUpQuestions: v.optional(v.array(v.string())),

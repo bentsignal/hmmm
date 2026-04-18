@@ -101,16 +101,22 @@ export const streamResponse = internalAction({
       ),
     );
     if (streamInitError) {
-      await logSystemError(
-        ctx,
-        threadId,
-        "G1",
-        "Failed to initialize stream generation.",
+      const aborted = await ctx.runQuery(
+        internal.ai.thread.mutations.wasAborted,
+        { threadId },
       );
-      await ctx.runMutation(internal.ai.thread.mutations.setState, {
-        threadId: threadId,
-        state: "idle",
-      });
+      if (!aborted) {
+        await logSystemError(
+          ctx,
+          threadId,
+          "G1",
+          "Failed to initialize stream generation.",
+        );
+        await ctx.runMutation(internal.ai.thread.mutations.setState, {
+          threadId: threadId,
+          state: "idle",
+        });
+      }
       return;
     }
     // stream response back to user
@@ -124,22 +130,35 @@ export const streamResponse = internalAction({
       ]),
     );
     if (streamError) {
-      await logSystemError(
-        ctx,
-        threadId,
-        "G2",
-        "Failed to stream response back to user.",
+      const aborted = await ctx.runQuery(
+        internal.ai.thread.mutations.wasAborted,
+        { threadId },
       );
+      if (!aborted) {
+        await logSystemError(
+          ctx,
+          threadId,
+          "G2",
+          "Failed to stream response back to user.",
+        );
+      }
     }
     // stream has completed
     await Promise.allSettled([
-      // set thread back to idle
-      ctx.runMutation(internal.ai.thread.mutations.setState, {
+      // set thread back to idle — only if we're still the active stream;
+      // a user-triggered abort (or a subsequent generation) will have already
+      // moved the thread out of the "streaming" state.
+      ctx.runMutation(internal.ai.thread.mutations.resetIdleIfStreaming, {
         threadId: threadId,
-        state: "idle",
       }),
-      // generate follow up questions
+      // generate follow up questions — skip if the user aborted, since
+      // running another LLM call on an abandoned response wastes tokens.
       (async () => {
+        const aborted = await ctx.runQuery(
+          internal.ai.thread.mutations.wasAborted,
+          { threadId },
+        );
+        if (aborted) return;
         const responseMessage = await result.text;
         const { object: followUpQuestions } = await generateObject({
           model: modelPresets.followUp.model,

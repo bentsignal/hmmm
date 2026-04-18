@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Brain,
   Clock,
@@ -34,15 +35,20 @@ export function MessageStatus({
   message: MyUIMessage;
   isActive: boolean;
 }) {
+  const [open, setOpen] = useState(false);
   const content = extractReasoningFromMessage(message);
-  const [text] = useSmoothText(content);
   if (content.length === 0) return null;
 
   const statusLabel = getStatusLabel(message.parts);
 
   return (
     <div className="flex w-full flex-col items-start gap-2">
-      <HoverCard openDelay={200} closeDelay={200}>
+      <HoverCard
+        openDelay={200}
+        closeDelay={200}
+        open={open}
+        onOpenChange={setOpen}
+      >
         <HoverCardTrigger>
           <div className="flex cursor-pointer items-center gap-2 py-0.5 select-none">
             {statusLabel === "Checking the time" ? (
@@ -65,30 +71,39 @@ export function MessageStatus({
             <TextShimmer active={isActive} text={statusLabel} />
           </div>
         </HoverCardTrigger>
-        <HoverCardContent
-          className={cn(
-            "bg-card supports-[backdrop-filter]:bg-card/50 prose dark:prose-invert relative backdrop-blur-lg",
-            "w-lg rounded-md border",
-            "overflow-hidden rounded-4xl p-0",
-          )}
-          align="start"
-        >
-          <Abyss height={50} blur="sm" />
-          <div
+        {open && (
+          <HoverCardContent
             className={cn(
-              "scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent",
-              "h-64 w-full overflow-y-auto mask-t-from-70% mask-b-from-70% p-8",
+              "bg-card supports-[backdrop-filter]:bg-card/50 prose dark:prose-invert relative backdrop-blur-lg",
+              "w-lg rounded-md border",
+              "overflow-hidden rounded-4xl p-0",
             )}
+            align="start"
           >
-            <Markdown
-              className="prose dark:prose-invert relative w-full max-w-full text-sm"
-              components={markdownComponents}
-            >
-              {text}
-            </Markdown>
-          </div>
-        </HoverCardContent>
+            <Abyss height={50} blur="sm" />
+            <ReasoningBody content={content} />
+          </HoverCardContent>
+        )}
       </HoverCard>
+    </div>
+  );
+}
+
+function ReasoningBody({ content }: { content: string }) {
+  const [text] = useSmoothText(content);
+  return (
+    <div
+      className={cn(
+        "scrollbar-thin scrollbar-thumb-transparent scrollbar-track-transparent",
+        "h-64 w-full overflow-y-auto mask-t-from-70% mask-b-from-70% p-8",
+      )}
+    >
+      <Markdown
+        className="prose dark:prose-invert relative w-full max-w-full text-sm"
+        components={markdownComponents}
+      >
+        {text}
+      </Markdown>
     </div>
   );
 }

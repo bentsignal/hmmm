@@ -35,11 +35,19 @@ export function useThreadMutation() {
       toast.error("Failed to toggle thread pin");
     },
   });
+  const { mutate: abortGeneration } = useTanstackMutation({
+    mutationFn: useConvexMutation(api.ai.thread.mutations.abortGeneration),
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to stop generation");
+    },
+  });
   return {
     createThread,
     sendMessageInThread: sendMessage,
     deleteThread,
     renameThread,
     togglePinned,
+    abortGeneration,
   };
 }

@@ -1,15 +1,15 @@
-import { Loader2, Send } from "lucide-react";
+import { Send, Square } from "lucide-react";
 
 import { Button } from "@acme/ui/button";
 
 export function ComposerSendButton({
   onClick,
   disabled,
-  loading,
+  mode = "send",
 }: {
   onClick: () => void;
   disabled?: boolean;
-  loading?: boolean;
+  mode?: "send" | "stop";
 }) {
   return (
     <Button
@@ -17,9 +17,10 @@ export function ComposerSendButton({
       disabled={disabled}
       size="icon"
       className="shrink-0"
+      aria-label={mode === "stop" ? "Stop generating" : "Send message"}
     >
-      {loading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+      {mode === "stop" ? (
+        <Square className="h-4 w-4 fill-current" />
       ) : (
         <Send className="h-4 w-4" />
       )}
