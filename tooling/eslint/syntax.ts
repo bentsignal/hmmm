@@ -76,7 +76,7 @@ const strictReactSyntaxSelectors = [
     selector:
       "CallExpression:matches([callee.name='useQuery'], [callee.property.name='useQuery']):not(:has(Property[key.name='select']))",
     message:
-      "useQuery must include a `select` option so the component only subscribes to the data it needs.",
+      "useQuery must include a `select` option so the component only subscribes to the data it needs. ",
   },
   {
     selector:
@@ -120,6 +120,12 @@ const reactImportRestrictions = [
     importNames: ["useQuery"],
     message:
       "Prefer `useSuspenseQuery` with data preloaded via `ensureQueryData` in the route loader. If `useQuery` is genuinely needed (e.g. conditional fetching), add an eslint-disable comment explaining why.",
+  },
+  {
+    name: "convex/react",
+    importNames: ["useQuery"],
+    message:
+      "Use TanStack Query's `useQuery` with `convexQuery` instead (`import { useQuery } from '@tanstack/react-query'` + `import { convexQuery } from '@convex-dev/react-query'`). This integrates with the route loader cache and supports `select`.",
   },
   {
     name: "@tanstack/react-router",

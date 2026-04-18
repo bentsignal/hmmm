@@ -3,6 +3,7 @@
 import type { FunctionArgs } from "convex/server";
 import { useRef, useState } from "react";
 import { assert } from "convex-helpers";
+// eslint-disable-next-line no-restricted-imports -- this hook drives delta streaming over convex's reactive subscription with a generic Query passed by the caller; convexQuery + tanstack useQuery can't express the dynamic FunctionArgs<Query>/"skip" sentinel pattern this hook needs
 import { useQuery } from "convex/react";
 
 import type {

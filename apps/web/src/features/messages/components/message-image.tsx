@@ -1,4 +1,6 @@
-import { useQuery } from "convex/react";
+// eslint-disable-next-line no-restricted-imports -- useQuery needed here because file lookup is keyed off a runtime fileKey from message content (not a route param), so it can't be preloaded by a route loader
+import { useQuery } from "@tanstack/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 import { ImageIcon } from "lucide-react";
 
 import { api } from "@acme/db/api";
@@ -19,8 +21,18 @@ export function MessageImage({ image }: { image?: string | null }) {
 function Generated({ fileKey }: { fileKey: string }) {
   const { handleFileClick, handleFileHover } = useFileInteraction();
 
-  // eslint-disable-next-line no-restricted-syntax -- convex useQuery doesn't support select
-  const image = useQuery(api.app.library.getFileByKey, { key: fileKey });
+  const { data: image } = useQuery({
+    ...convexQuery(api.app.library.getFileByKey, { key: fileKey }),
+    select: (file) =>
+      file && {
+        id: file.id,
+        url: file.url,
+        key: file.key,
+        fileName: file.fileName,
+        mimeType: file.mimeType,
+        size: file.size,
+      },
+  });
 
   if (!image) return null;
 
