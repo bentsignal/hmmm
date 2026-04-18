@@ -96,7 +96,7 @@ export function SettingsNavDesktop() {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="hover:text-primary hover:bg-card/50"
+              className="text-muted-foreground hover:text-primary active:bg-transparent"
             >
               <QuickLink to="/home" preload="render">
                 <div className="flex items-center gap-2">
@@ -110,13 +110,13 @@ export function SettingsNavDesktop() {
           {settingsTabs.map((group, index) => (
             <Fragment key={index}>
               {group.map((tab) => (
-                <SidebarMenuItem
-                  key={tab.label}
-                  className="hover:bg-card/50 rounded-md"
-                >
+                <SidebarMenuItem key={tab.label} className="rounded-md">
                   <SidebarMenuButton
                     asChild
-                    className={`${pathname === tab.href && "bg-card/50"}`}
+                    className={cn(
+                      "active:bg-transparent",
+                      pathname === tab.href && "bg-card/50",
+                    )}
                   >
                     <QuickLink
                       to={tab.href}
@@ -137,7 +137,7 @@ export function SettingsNavDesktop() {
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() => void signOut()}
-              className="text-muted-foreground hover:cursor-pointer"
+              className="text-muted-foreground hover:cursor-pointer active:bg-transparent"
             >
               <LogOut />
               <span>Sign out</span>
