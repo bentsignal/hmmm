@@ -1,8 +1,6 @@
-import type { CustomCtx } from "convex-helpers/server/customFunctions";
 import { v } from "convex/values";
 
 import type { QueryCtx } from "../_generated/server";
-import type { authedMutation } from "../convex_helpers";
 import { internalQuery } from "../_generated/server";
 import { authedQuery } from "../convex_helpers";
 import { polar } from "../polar";
@@ -93,8 +91,7 @@ export const getPlan = authedQuery({
   },
 });
 
-export async function getPlanTierHelper(ctx: QueryCtx, userId: string) {
-  const plan = await getUserPlanHelper(ctx, userId);
+export function getPlanTierFromPlan(plan: Plan) {
   switch (plan.name) {
     case "Free":
       return PlanTier.Free;
@@ -111,6 +108,11 @@ export async function getPlanTierHelper(ctx: QueryCtx, userId: string) {
   }
 }
 
+export async function getPlanTierHelper(ctx: QueryCtx, userId: string) {
+  const plan = await getUserPlanHelper(ctx, userId);
+  return getPlanTierFromPlan(plan);
+}
+
 export const getPlanTier = internalQuery({
   args: {
     userId: v.string(),
@@ -120,17 +122,14 @@ export const getPlanTier = internalQuery({
   },
 });
 
-export async function allowModelSelection(
-  ctx: CustomCtx<typeof authedQuery> | CustomCtx<typeof authedMutation>,
-  userId: string,
-) {
-  const planTier = await getPlanTierHelper(ctx, userId);
-  return planTier >= MODEL_SELECTION_TIER;
+export function isModelSelectionAllowed(plan: Plan) {
+  return getPlanTierFromPlan(plan) >= MODEL_SELECTION_TIER;
 }
 
 export const showModelSelector = authedQuery({
   args: {},
   handler: async (ctx) => {
-    return await allowModelSelection(ctx, ctx.user.subject);
+    const plan = await getUserPlanHelper(ctx, ctx.user.subject);
+    return isModelSelectionAllowed(plan);
   },
 });

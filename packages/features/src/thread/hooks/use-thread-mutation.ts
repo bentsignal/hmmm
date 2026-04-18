@@ -21,13 +21,6 @@ export function useThreadMutation() {
       toast.error("Failed to delete thread");
     },
   });
-  const { mutate: renameThread } = useTanstackMutation({
-    mutationFn: useConvexMutation(api.ai.thread.mutations.rename),
-    onError: (error) => {
-      console.error(error);
-      toast.error("Failed to rename thread");
-    },
-  });
   const { mutate: togglePinned } = useTanstackMutation({
     mutationFn: useConvexMutation(api.ai.thread.mutations.togglePinned),
     onError: (error) => {
@@ -46,7 +39,6 @@ export function useThreadMutation() {
     createThread,
     sendMessageInThread: sendMessage,
     deleteThread,
-    renameThread,
     togglePinned,
     abortGeneration,
   };

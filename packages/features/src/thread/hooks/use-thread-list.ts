@@ -6,8 +6,8 @@ import { usePaginatedQuery } from "convex/react";
 import { api } from "@acme/db/api";
 
 import { useDebouncedInput } from "../../hooks/use-debounced-input";
-import { threadQueries } from "../../lib/queries";
 import { INITIAL_PAGE_SIZE, PAGE_SIZE } from "../config/thread-config";
+import { threadQueries } from "../lib/queries";
 
 export function useThreadList() {
   const { setValue: setSearch, debouncedValue: debouncedSearch } =

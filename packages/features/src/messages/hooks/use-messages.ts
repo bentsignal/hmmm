@@ -9,7 +9,7 @@ import type {
   MyTools,
   MyUIMessage,
 } from "../types/message-types";
-import { threadQueries } from "../../lib/queries";
+import { threadQueries } from "../../thread/lib/queries";
 import { toUIMessages, useThreadMessages } from "../agent";
 import { INITIAL_PAGE_SIZE } from "../config/message-config";
 

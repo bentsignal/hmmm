@@ -1,9 +1,11 @@
 import type { LegendListRef } from "@legendapp/list/react";
 import { useEffect, useRef, useState } from "react";
+// eslint-disable-next-line no-restricted-imports -- non-suspending useQuery so the thread view reacts to state flips without a suspense boundary while a response streams
+import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 
 import { useMessageStore } from "@acme/features/messages";
-import { useThreadStatus, useThreadStore } from "@acme/features/thread";
+import { threadQueries, useThreadStore } from "@acme/features/thread";
 import { Button } from "@acme/ui/button";
 
 import "@/features/messages/styles/github-dark.min.css";
@@ -28,8 +30,10 @@ function useThread(threadId: string) {
   }, [threadId, setActiveThread]);
 
   // thread is not idle if waiting for a response, or if a response is streaming in
-  const { isThreadIdle: isThreadIdleRaw } = useThreadStatus({ threadId });
-  const isThreadIdle = isThreadIdleRaw ?? false;
+  const { data: isThreadIdle = false } = useQuery({
+    ...threadQueries.state(threadId),
+    select: (state) => state === "idle",
+  });
 
   // track new-message sends so we can (a) add a 50vh bumper for the response to
   // stream into and (b) explicitly scroll to the bottom when the user sends

@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 
-import { useThreadMutation, useThreadStore } from "@acme/features/thread";
+import { useThreadMutations, useThreadStore } from "@acme/features/thread";
 import * as Alert from "@acme/ui/alert-dialog";
 import { Input } from "@acme/ui/input";
 
@@ -11,7 +13,14 @@ export function ThreadRenameModal() {
     (state) => state.setRenameModalOpen,
   );
 
-  const { renameThread } = useThreadMutation();
+  const threadMutations = useThreadMutations();
+  const { mutate: renameThread } = useMutation({
+    ...threadMutations.rename,
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to rename thread");
+    },
+  });
 
   const [newThreadName, setNewThreadName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);

@@ -133,6 +133,7 @@ import type * as polar from "../polar.js";
 import type * as resend from "../resend.js";
 import type * as types_library from "../types/library.js";
 import type * as uploadthing from "../uploadthing.js";
+import type * as usage_checked_helpers from "../usage_checked_helpers.js";
 import type * as user_account from "../user/account.js";
 import type * as user_clerk from "../user/clerk.js";
 import type * as user_info from "../user/info.js";
@@ -271,6 +272,7 @@ declare const fullApi: ApiFromModules<{
   resend: typeof resend;
   "types/library": typeof types_library;
   uploadthing: typeof uploadthing;
+  usage_checked_helpers: typeof usage_checked_helpers;
   "user/account": typeof user_account;
   "user/clerk": typeof user_clerk;
   "user/info": typeof user_info;

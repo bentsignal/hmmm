@@ -1,5 +1,4 @@
 import type { LanguageModelUsage } from "ai";
-import type { CustomCtx } from "convex-helpers/server/customFunctions";
 import { TableAggregate } from "@convex-dev/aggregate";
 import {
   customCtx,
@@ -9,8 +8,9 @@ import { Triggers } from "convex-helpers/server/triggers";
 import { v } from "convex/values";
 
 import type { DataModel } from "../_generated/dataModel";
+import type { QueryCtx } from "../_generated/server";
 import type { LanguageModel } from "../ai/models/types";
-import type { authedMutation } from "../convex_helpers";
+import type { Plan } from "../user/subscription";
 import { components } from "../_generated/api";
 import { internalMutation, mutation } from "../_generated/server";
 import { modelPresets } from "../ai/models/presets";
@@ -70,17 +70,18 @@ const apiAuthedUsageTriggerMutation = customMutation(mutation, {
 });
 
 export async function getUsageHelper(
-  ctx: CustomCtx<typeof authedQuery | typeof authedMutation>,
+  ctx: QueryCtx,
+  userId: string,
+  plan?: Plan,
 ) {
-  const userId = ctx.user.subject;
-  const plan = await getUserPlanHelper(ctx, userId);
+  const resolvedPlan = plan ?? (await getUserPlanHelper(ctx, userId));
 
   // free tier gets set amount per day, paid users get % of their price per month
   const limit =
-    plan.price === 0
+    resolvedPlan.price === 0
       ? FREE_TIER_MAX_USAGE
-      : plan.price * ALLOWED_USAGE_PERCENTAGE;
-  const range = plan.price === 0 ? "daily" : "monthly";
+      : resolvedPlan.price * ALLOWED_USAGE_PERCENTAGE;
+  const range = resolvedPlan.price === 0 ? "daily" : "monthly";
 
   // first and last day of the current month
   let start, end;
@@ -101,7 +102,7 @@ export async function getUsageHelper(
     bounds,
   });
 
-  const unlimited = plan.name === "Unlimited";
+  const unlimited = resolvedPlan.name === "Unlimited";
 
   return {
     endOfPeriod: end.toISOString(),
@@ -178,7 +179,7 @@ export const logTranscription = apiAuthedUsageTriggerMutation({
 
 export const getUsage = authedQuery({
   handler: async (ctx) => {
-    const usage = await getUsageHelper(ctx);
+    const usage = await getUsageHelper(ctx, ctx.user.subject);
     return usage;
   },
 });

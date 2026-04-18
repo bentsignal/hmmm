@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 import { api } from "@acme/db/api";
-import { threadQueries } from "@acme/features/lib/queries";
+import { threadQueries } from "@acme/features/thread";
 import {
   SidebarInset,
   SidebarProvider,

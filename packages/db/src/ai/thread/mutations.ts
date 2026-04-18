@@ -10,7 +10,8 @@ import {
 import { abortById } from "../../agent/handlers/streams";
 import { authedMutation } from "../../convex_helpers";
 import { tryCatch } from "../../lib/utils";
-import { getPerferredModelIfAllowed, getUserInfoHelper } from "../../user/info";
+import { usageCheckedMutation } from "../../usage_checked_helpers";
+import { getPerferredModelIfAllowed } from "../../user/info";
 import { agent } from "../agents";
 import { modelPresets } from "../models/presets";
 import { titleGeneratorPrompt } from "../prompts";
@@ -70,7 +71,7 @@ export const rename = authedMutation({
   },
 });
 
-export const create = authedMutation({
+export const create = usageCheckedMutation({
   args: {
     prompt: v.string(),
     attachments: v.optional(v.array(vAttachment)),
@@ -93,15 +94,14 @@ export const create = authedMutation({
       pinned: false,
       updatedAt: Date.now(),
     });
-    const userInfo = await getUserInfoHelper(ctx);
     const { lastMessageId } = await saveUserMessage({
       ctx,
       threadId,
       prompt,
-      userInfo,
+      userInfo: ctx.userInfo,
       attachments,
     });
-    const model = await getPerferredModelIfAllowed(ctx, userInfo?.model);
+    const model = getPerferredModelIfAllowed(ctx.userPlan, ctx.userInfo?.model);
     const { data: scheduledIds, error } = await tryCatch(
       Promise.all([
         ctx.scheduler.runAfter(0, internal.ai.thread.mutations.generateTitle, {
@@ -130,7 +130,7 @@ export const create = authedMutation({
   },
 });
 
-export const sendMessage = authedMutation({
+export const sendMessage = usageCheckedMutation({
   args: {
     threadId: v.string(),
     prompt: v.string(),
@@ -147,10 +147,15 @@ export const sendMessage = authedMutation({
     if (thread.state !== "idle") {
       throw new ConvexError("Thread is not idle");
     }
-    const userInfo = await getUserInfoHelper(ctx);
-    const model = await getPerferredModelIfAllowed(ctx, userInfo?.model);
+    const model = getPerferredModelIfAllowed(ctx.userPlan, ctx.userInfo?.model);
     const [{ lastMessageId }] = await Promise.all([
-      saveUserMessage({ ctx, threadId, prompt, userInfo, attachments }),
+      saveUserMessage({
+        ctx,
+        threadId,
+        prompt,
+        userInfo: ctx.userInfo,
+        attachments,
+      }),
       ctx.db.patch(thread._id, {
         state: "waiting",
         updatedAt: Date.now(),

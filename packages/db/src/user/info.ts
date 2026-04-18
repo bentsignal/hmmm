@@ -1,16 +1,15 @@
-import type { CustomCtx } from "convex-helpers/server/customFunctions";
 import { ConvexError, v } from "convex/values";
 
+import type { QueryCtx } from "../_generated/server";
+import type { Plan } from "./subscription";
 import { getPublicLanguageModels } from "../ai/models/helpers";
 import { authedMutation, authedQuery } from "../convex_helpers";
-import { allowModelSelection } from "./subscription";
+import { isModelSelectionAllowed } from "./subscription";
 
-export async function getUserInfoHelper(
-  ctx: CustomCtx<typeof authedQuery> | CustomCtx<typeof authedMutation>,
-) {
+export async function getUserInfoHelper(ctx: QueryCtx, userId: string) {
   const doc = await ctx.db
     .query("personalInfo")
-    .withIndex("by_user_id", (q) => q.eq("userId", ctx.user.subject))
+    .withIndex("by_user_id", (q) => q.eq("userId", userId))
     .first();
   return doc;
 }
@@ -101,15 +100,11 @@ export const update = authedMutation({
   },
 });
 
-export async function getPerferredModelIfAllowed(
-  ctx: CustomCtx<typeof authedMutation>,
-  modelId?: string,
-) {
+export function getPerferredModelIfAllowed(plan: Plan, modelId?: string) {
   if (!modelId) {
     return undefined;
   }
-  const allowed = await allowModelSelection(ctx, ctx.user.subject);
-  if (!allowed) {
+  if (!isModelSelectionAllowed(plan)) {
     return undefined;
   }
   const publicModels = getPublicLanguageModels();

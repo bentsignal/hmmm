@@ -1,3 +1,5 @@
+// eslint-disable-next-line no-restricted-imports -- non-suspending useQuery is intentional so this hook reacts to activeThread changes without triggering a suspense boundary on every thread switch
+import { useQuery } from "@tanstack/react-query";
 import { ConvexError } from "convex/values";
 import { toast } from "sonner";
 
@@ -7,7 +9,7 @@ import { validatePrompt } from "../../lib/prompt";
 import { tryCatch } from "../../lib/result";
 import { useMessageStore } from "../../messages/store/message-store";
 import { useThreadMutation } from "../../thread/hooks/use-thread-mutation";
-import { useThreadStatus } from "../../thread/hooks/use-thread-status";
+import { threadQueries } from "../../thread/lib/queries";
 import { useThreadStore } from "../../thread/store/thread-store";
 import { useComposerStore } from "../store/composer-store";
 
@@ -109,7 +111,10 @@ export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
   const deps = { createThread, sendMessageInThread, navigateToThread };
 
   const activeThread = useThreadStore((state) => state.activeThread);
-  const { isThreadIdle } = useThreadStatus({ threadId: activeThread ?? "" });
+  const { data: isThreadIdle } = useQuery({
+    ...threadQueries.state(activeThread ?? ""),
+    select: (state) => state === "idle",
+  });
   const { usage } = useUsage();
 
   const storeIsTranscribing = useComposerStore(

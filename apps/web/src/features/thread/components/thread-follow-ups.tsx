@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { useUsage } from "@acme/features/billing";
-import { threadQueries } from "@acme/features/lib/queries";
+import { threadQueries } from "@acme/features/thread";
 
 import { useSendMessage } from "~/features/composer/hooks/use-send-message";
 

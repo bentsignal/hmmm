@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { threadQueries } from "@acme/features/lib/queries";
+import { threadQueries } from "@acme/features/thread";
 
 import { Composer } from "~/features/composer/composer";
 import { Thread } from "~/features/thread/thread";

@@ -4,9 +4,9 @@ import { ConvexError } from "convex/values";
 import type { Doc } from "../../_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "../../_generated/server";
 import type { authedMutation, authedQuery } from "../../convex_helpers";
+import type { usageCheckedMutation } from "../../usage_checked_helpers";
 import { messageSendRateLimit } from "../../limiter";
 import { isAdmin } from "../../user/account";
-import { getUsageHelper } from "../../user/usage";
 import { agent } from "../agents";
 
 const MAX_ATTACHMENTS_PER_MESSAGE = 10;
@@ -38,7 +38,10 @@ export async function getMetadata(ctx: QueryCtx, threadId: string) {
 }
 
 export async function authorizeAccess(
-  ctx: CustomCtx<typeof authedMutation> | CustomCtx<typeof authedQuery>,
+  ctx:
+    | CustomCtx<typeof authedMutation>
+    | CustomCtx<typeof authedQuery>
+    | CustomCtx<typeof usageCheckedMutation>,
   threadId: string,
 ) {
   const [thread, isAdminUser] = await Promise.all([
@@ -93,7 +96,7 @@ export async function logSystemNotice(
 }
 
 export async function validateMessage(
-  ctx: CustomCtx<typeof authedMutation>,
+  ctx: CustomCtx<typeof usageCheckedMutation>,
   message: string,
   attachmentLength: number,
 ) {
@@ -103,11 +106,8 @@ export async function validateMessage(
   if (attachmentLength > MAX_ATTACHMENTS_PER_MESSAGE) {
     throw new ConvexError("You can only attach up to 20 files per message.");
   }
-  const [usage] = await Promise.all([
-    getUsageHelper(ctx),
-    messageSendRateLimit(ctx),
-  ]);
-  if (usage.limitHit) {
+  await messageSendRateLimit(ctx);
+  if (ctx.usage.limitHit) {
     throw new ConvexError("User has reached usage limit");
   }
 }
@@ -119,7 +119,9 @@ interface Attachment {
 }
 
 interface SaveUserMessageArgs {
-  ctx: CustomCtx<typeof authedMutation>;
+  ctx:
+    | CustomCtx<typeof authedMutation>
+    | CustomCtx<typeof usageCheckedMutation>;
   threadId: string;
   prompt: string;
   userInfo: Doc<"personalInfo"> | null;
