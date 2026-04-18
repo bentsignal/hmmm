@@ -62,9 +62,11 @@ export const analysis = internalAction({
       },
     ];
 
+    const model = languageModels["gemini-2.5-flash"];
+
     const analysis = await tryCatch(
       generateText({
-        model: languageModels["gemini-2.5-flash"].model,
+        model: model.model,
         messages: messages,
       }),
     );
@@ -75,11 +77,11 @@ export const analysis = internalAction({
 
     // log usage
     if (userId) {
-      const cost = calculateModelCost(
-        languageModels["gemini-2.5-flash"],
-        analysis.data.usage,
-        analysis.data.providerMetadata,
-      );
+      const cost = calculateModelCost({
+        model,
+        usage: analysis.data.usage,
+        providerMetadata: analysis.data.providerMetadata,
+      });
       await ctx.runMutation(internal.user.usage.log, {
         userId: userId,
         type: "tool_call",

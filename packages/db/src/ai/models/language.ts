@@ -3,8 +3,6 @@ import { openrouter } from "@openrouter/ai-sdk-provider";
 
 import type { LanguageModel } from "./types";
 
-void gateway;
-
 export const languageModels = {
   "gemini-2.0-flash": {
     provider: "Google",

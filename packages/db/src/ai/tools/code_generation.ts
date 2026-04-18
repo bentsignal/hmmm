@@ -5,7 +5,7 @@ import { internal } from "../../_generated/api";
 import { createTool } from "../../agent/tools";
 import { tryCatch } from "../../lib/utils";
 import { calculateModelCost } from "../../user/usage";
-import { modelPresets } from "../models/helpers";
+import { modelPresets } from "../models/presets";
 import { codeGenerationPrompt } from "../prompts";
 
 interface CodeGenerationOutput {
@@ -27,10 +27,12 @@ export const codeGeneration = createTool({
   execute: async (ctx, args, options): Promise<CodeGenerationOutput> => {
     const messages = options.messages;
 
+    const model = modelPresets.code;
+
     const result = await tryCatch(
       generateText({
         system: codeGenerationPrompt,
-        model: modelPresets.code.model,
+        model: model.model,
         messages: messages,
         temperature: 1,
       }),
@@ -47,11 +49,11 @@ export const codeGeneration = createTool({
 
     // log usage
     if (ctx.userId) {
-      const cost = calculateModelCost(
-        modelPresets.code,
-        data.usage,
-        data.providerMetadata,
-      );
+      const cost = calculateModelCost({
+        model,
+        usage: data.usage,
+        providerMetadata: data.providerMetadata,
+      });
       await ctx.runMutation(internal.user.usage.log, {
         userId: ctx.userId,
         type: "tool_call",

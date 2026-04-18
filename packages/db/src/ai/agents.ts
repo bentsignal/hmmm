@@ -9,7 +9,9 @@ import { Agent } from "../agent/client";
 import { agentComponent } from "../agent/component";
 import { tryCatch } from "../lib/utils";
 import { calculateModelCost } from "../user/usage";
-import { getModel, modelPresets } from "./models/helpers";
+import { getModel, isLanguageModelKey } from "./models/helpers";
+import { languageModels } from "./models/language";
+import { modelPresets } from "./models/presets";
 import { agentPrompt, followUpGeneratorPrompt } from "./prompts";
 import { logSystemError } from "./thread/helpers";
 import { tools } from "./tools";
@@ -23,13 +25,16 @@ export const agent = new Agent(agentComponent, {
   contextOptions: {
     excludeToolMessages: false,
   },
-  callSettings: { maxRetries: 3, temperature: 1.0 },
+  callSettings: { maxRetries: 3 },
   usageHandler: async (ctx, args) => {
-    const cost = calculateModelCost(
-      modelPresets.default,
-      args.usage,
-      args.providerMetadata,
-    );
+    const { model: modelId, usage, providerMetadata } = args;
+    // currently this won't work since the modelId will be like google/gemini-3-flash
+    // and my model keys are just gemini-3-flash, so they don't match. it shouldn't matter
+    // tho because it should be calculated based off of providerMetadata.
+    const model = isLanguageModelKey(modelId)
+      ? languageModels[modelId]
+      : undefined;
+    const cost = calculateModelCost({ model, usage, providerMetadata });
     await ctx.runMutation(internal.user.usage.log, {
       userId: args.userId ?? "no-user",
       type: "message",

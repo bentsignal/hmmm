@@ -23,6 +23,12 @@ export const OpenRouterProviderMetadata = z.object({
   }),
 });
 
+export const GatewayProviderMetadata = z.object({
+  gateway: z.object({
+    cost: z.string(),
+  }),
+});
+
 export interface LanguageModel extends Model {
   available: boolean;
   model: LanguageModelV2;

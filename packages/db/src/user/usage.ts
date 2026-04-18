@@ -13,8 +13,11 @@ import type { LanguageModel } from "../ai/models/types";
 import type { authedMutation } from "../convex_helpers";
 import { components } from "../_generated/api";
 import { internalMutation, mutation } from "../_generated/server";
-import { modelPresets } from "../ai/models/helpers";
-import { OpenRouterProviderMetadata } from "../ai/models/types";
+import { modelPresets } from "../ai/models/presets";
+import {
+  GatewayProviderMetadata,
+  OpenRouterProviderMetadata,
+} from "../ai/models/types";
 import { authedQuery, checkApiKey, checkAuth } from "../convex_helpers";
 import * as timeHelpers from "../lib/date_time_utils";
 import {
@@ -109,25 +112,32 @@ export async function getUsageHelper(
   };
 }
 
-export function calculateModelCost(
-  model: LanguageModel,
-  usage: LanguageModelUsage,
-  providerMetadata?: Record<string, Record<string, unknown>>,
-) {
+export function calculateModelCost({
+  model,
+  usage,
+  providerMetadata,
+}: {
+  model?: LanguageModel;
+  usage: LanguageModelUsage;
+  providerMetadata?: Record<string, Record<string, unknown>>;
+}) {
   // attempt to get exact cost from provider metadata. if not available,
   // calculate cost based on usage and model pricing. this fallback will
   // not account for cached token discounts, but its better than nothing.
-  const parsedProviderMetadata =
+  const openRouterMetadata =
     OpenRouterProviderMetadata.safeParse(providerMetadata);
-  if (parsedProviderMetadata.success) {
-    return parsedProviderMetadata.data.openrouter.usage.cost;
+  if (openRouterMetadata.success) {
+    return openRouterMetadata.data.openrouter.usage.cost;
   }
-  const million = 1000000;
-  const fallbackModel = modelPresets.default;
+  const gatewayMetadata = GatewayProviderMetadata.safeParse(providerMetadata);
+  if (gatewayMetadata.success) {
+    return Number(gatewayMetadata.data.gateway.cost);
+  }
+  const fallbackModel = model ?? modelPresets.default;
   const inputCost =
-    fallbackModel.cost.in * ((usage.inputTokens ?? 0) / million);
+    fallbackModel.cost.in * ((usage.inputTokens ?? 0) / 1_000_000);
   const outputCost =
-    fallbackModel.cost.out * ((usage.outputTokens ?? 0) / million);
+    fallbackModel.cost.out * ((usage.outputTokens ?? 0) / 1_000_000);
   const totalCost = inputCost + outputCost + fallbackModel.cost.other;
   return totalCost;
 }
