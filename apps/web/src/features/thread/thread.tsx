@@ -29,10 +29,10 @@ function useThread(threadId: string) {
     };
   }, [threadId, setActiveThread]);
 
-  // thread is not idle if waiting for a response, or if a response is streaming in
+  // thread is idle when no in-flight event exists for it
   const { data: isThreadIdle = false } = useQuery({
     ...threadQueries.state(threadId),
-    select: (state) => state === "idle",
+    select: (latestEvent) => latestEvent === null,
   });
 
   // track new-message sends so we can (a) add a 50vh bumper for the response to

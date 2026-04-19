@@ -54,9 +54,6 @@ export const vThreadDoc = v.object({
   title: v.optional(v.string()),
   summary: v.optional(v.string()),
   status: vThreadStatus,
-  state: v.optional(
-    v.union(v.literal("idle"), v.literal("waiting"), v.literal("streaming")),
-  ),
   pinned: v.optional(v.boolean()),
   updatedAt: v.optional(v.number()),
   followUpQuestions: v.optional(v.array(v.string())),

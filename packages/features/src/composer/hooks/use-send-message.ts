@@ -124,7 +124,7 @@ export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
 
   // Treat pending (undefined) as idle so the composer doesn't spuriously
   // flag "generating" while the query is still loading on first mount.
-  const isGenerating = threadState === "waiting" || threadState === "streaming";
+  const isGenerating = threadState != null;
   const blockSend = isGenerating || isRecording || usage?.limitHit;
   const isLoading = isGenerating || storeIsTranscribing;
 

@@ -49,8 +49,7 @@ function ThreadListItemImpl({ thread }: { thread: Thread }) {
               {thread.pinned && (
                 <Pin className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
               )}
-              {(thread.status === "streaming" ||
-                thread.status === "waiting") && (
+              {thread.latestEvent !== null && (
                 <Brain className="text-muted-foreground h-4 w-4 animate-pulse" />
               )}
               {thread.title !== "New Chat" && thread.title}

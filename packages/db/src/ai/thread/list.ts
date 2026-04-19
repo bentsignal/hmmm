@@ -2,7 +2,7 @@ import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 
 import { authedQuery } from "../../convex_helpers";
-import { getStateForThread } from "./state";
+import { getLatestEvent } from "./state";
 
 export const get = authedQuery({
   args: {
@@ -29,7 +29,7 @@ export const get = authedQuery({
         id: thread._id,
         updatedAt: thread.updatedAt ?? thread._creationTime,
         title: thread.title ?? "",
-        state: await getStateForThread(ctx, thread._id),
+        latestEvent: await getLatestEvent(ctx, thread._id),
         pinned: thread.pinned ?? false,
       })),
     );

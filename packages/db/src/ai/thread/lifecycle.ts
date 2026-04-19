@@ -14,7 +14,7 @@ import {
   validateMessage,
 } from "./helpers";
 import { vAttachment } from "./shared";
-import { getStateForThread } from "./state";
+import { getLatestEvent } from "./state";
 
 export const create = usageCheckedMutation({
   args: {
@@ -95,8 +95,8 @@ export const remove = authedMutation({
     if (!thread) {
       throw new ConvexError("Thread not found");
     }
-    const state = await getStateForThread(ctx, thread._id);
-    if (state !== "idle") {
+    const latestEvent = await getLatestEvent(ctx, thread._id);
+    if (latestEvent !== null) {
       throw new Error(
         "Cannot delete a thread while a response is being generated",
       );

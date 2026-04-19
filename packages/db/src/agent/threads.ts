@@ -31,7 +31,6 @@ function publicThread(thread: Doc<"threads">) {
     title: thread.title,
     summary: thread.summary,
     status: thread.status,
-    state: thread.state,
     pinned: thread.pinned,
     updatedAt: thread.updatedAt,
     followUpQuestions: thread.followUpQuestions,

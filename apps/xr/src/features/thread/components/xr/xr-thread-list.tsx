@@ -60,7 +60,7 @@ export function XRThreadList() {
                   ...item,
                   active: false,
                   pinned: item.pinned,
-                  status: item.state,
+                  latestEvent: item.latestEvent,
                 }}
               />
             ))}

@@ -23,13 +23,6 @@ export const agentTables = {
     status: vThreadStatus,
     parentThreadIds: v.optional(v.array(v.id("threads"))),
 
-    // Legacy dead field — thread state is now derived from `threadEvents`
-    // (see ai/thread/state.ts). Left here as optional so existing rows pass
-    // schema validation; run `ai/thread/state:clearLegacyState` to unset it
-    // everywhere, then drop this line in a follow-up.
-    state: v.optional(
-      v.union(v.literal("idle"), v.literal("waiting"), v.literal("streaming")),
-    ),
     // Id of the scheduled `streamResponse` action for the currently-active
     // generation. Used to cancel the action when the user aborts before it
     // starts running. Cleared when the action terminates or the user aborts.

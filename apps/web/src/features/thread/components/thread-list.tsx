@@ -82,7 +82,7 @@ export function ThreadList({
                   title: item.title,
                   id: item.id,
                   active: pathname.includes(item.id),
-                  status: item.state,
+                  latestEvent: item.latestEvent,
                   pinned: item.pinned === true,
                 }}
               />

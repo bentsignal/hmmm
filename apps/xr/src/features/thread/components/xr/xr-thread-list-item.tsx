@@ -35,7 +35,7 @@ function XRThreadListItemImpl({ thread }: { thread: Thread }) {
           setMainThread(thread);
         }}
       >
-        {(thread.status === "streaming" || thread.status === "waiting") && (
+        {thread.latestEvent !== null && (
           <Brain
             width={xrStyles.textMd}
             height={xrStyles.textMd}
