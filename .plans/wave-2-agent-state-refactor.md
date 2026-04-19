@@ -69,7 +69,7 @@ The agent-integration subagent counted **5+ mutation hops per stream delta** via
 - **Agent code root:** `/packages/db/src/agent/` — ~78 files, ~9,400 LOC.
 - **The component shim:** `/packages/db/src/agent/component.ts` (around line 5):
   > `export const agentComponent: AgentComponent = internal.agent as any;`
-  All agent calls go through `ctx.runMutation/runQuery/runAction(agentComponent.*)` even though it now lives in the same Convex environment.
+  > All agent calls go through `ctx.runMutation/runQuery/runAction(agentComponent.*)` even though it now lives in the same Convex environment.
 - **Hottest hop sites:**
   - `/packages/db/src/agent/client/start/save.ts` (around lines 38–40) — `ctx.runMutation(component.messages.addMessages)` per step.
   - `/packages/db/src/agent/client/delta_streamer.ts` (around lines 148, 161, 222, 274, 288) — **5 separate stream-related mutations per stream lifecycle.**
@@ -94,14 +94,18 @@ Land the `threadEvents` table as a **write-only audit trail**. Nothing reads it 
 
 ### Steps
 
-1. **Design the event taxonomy.** Recommended starting set (confirm with user — see Q1):
+1. **Event taxonomy (decided).** Minimal set — events exist only to drive the UI state shown to the user, not for debugging (Effect logging to Axiom will cover that later):
    - `user_message_sent`
-   - `generation_scheduled`
    - `streaming_started`
    - `streaming_completed`
    - `streaming_aborted`
    - `generation_failed` (with error code metadata, e.g. G1/G2)
-   - `thread_created`
+
+   Dropped from earlier draft:
+   - `generation_scheduled` — redundant with `user_message_sent` for state derivation ("waiting" = `user_message_sent` exists with no `streaming_started` yet).
+   - `thread_created` — `create` always comes with a first message, so `user_message_sent` handles the new-thread case.
+   - `tool_call_*` / `step_completed` — not needed for UI state; debug info lives in Effect logs later.
+
 2. **Schema change** in `/packages/db/src/agent/schema.ts`:
    ```
    threadEvents: defineTable({
@@ -110,22 +114,30 @@ Land the `threadEvents` table as a **write-only audit trail**. Nothing reads it 
      timestamp: number,
      eventType: union of literals above,
      metadata: optional(any),       // e.g. { errorCode: "G1", reason: "user-aborted" }
-     generationId: optional(string), // groups events from one generation cycle
+     generationId: string,          // groups events from one generation cycle (required — see Q2 decision)
    }).index("threadId_timestamp", ["threadId", "timestamp"])
+    .index("generationId", ["generationId"])  // needed for aggressive prune (see step 4)
    ```
-3. **Emit events from existing call sites** without removing any existing `setState` calls (dual-write):
-   - `sendMessage` mutation → `user_message_sent`, `generation_scheduled`.
-   - `create` mutation → `thread_created`, `user_message_sent`, `generation_scheduled`.
-   - `streamResponse` action → `streaming_started`, `streaming_completed` or `generation_failed`.
-   - `abortGeneration` mutation → `streaming_aborted`.
-4. **Soak in production for at least a few days.** Manually inspect the events table; verify the taxonomy captures all real-world cases. **Do not proceed to Phase 2b/2c until confident.**
+3. **Emit events from existing call sites** without removing any existing `setState` calls (dual-write). All events for one generation cycle share a `generationId` (UUID minted at the cycle's entry point — `sendMessage` / `create`):
+   - `sendMessage` mutation → `user_message_sent` (mints new `generationId`).
+   - `create` mutation → `user_message_sent` (mints new `generationId`).
+   - `streamResponse` action → `streaming_started`, then `streaming_completed` or `generation_failed` (reuses the `generationId` passed from the scheduling mutation).
+   - `abortGeneration` mutation → `streaming_aborted` (reuses the active `generationId`).
+4. **Aggressive prune (decided).** Keep table size bounded — at steady state a thread holds ~1 event row. Two prune points:
+   - On each terminal event (`streaming_completed` / `streaming_aborted` / `generation_failed`), in the same mutation, delete all prior events for the same `generationId`.
+   - On the next `user_message_sent` for a thread, delete the previous terminal event for that thread.
 
-### Open questions
+   Net: active generation = 2 rows briefly (user_message_sent + streaming_started), idle = 1 row (the latest terminal or user_message_sent). Zero historical audit — intentional; Effect + Axiom covers debugging in Wave 4.
 
-- **Q1.** Confirm the starting event taxonomy. Are these the right names? Are there events missing (e.g., `tool_call_started`, `tool_call_completed`, `step_completed`)? The Notion doc lists "New User Message", "Streaming Started", "Response Completed", "Triggered Message Abortion" as examples — confirm these are exhaustive enough.
-- **Q2.** Should events carry a `generationId` (UUID grouping events from one generation cycle)? Recommended yes — makes derivation trivial. Confirm.
-- **Q3.** Retention: do events live forever, or do we plan to prune? (Probably forever for now; ask anyway.)
-- **Q4.** Do XR / mobile apps need to also write events from the client side, or are events strictly a backend concern derived from server actions? Recommended: backend-only writes.
+5. **Backend-only writes (decided).** XR / mobile apps do NOT write events; events are strictly emitted from server mutations/actions. Clients only read derived state.
+6. **Soak in production for at least a few days.** Manually inspect the events table; verify the taxonomy captures all real-world cases. **Do not proceed to Phase 2b/2c until confident.**
+
+### Resolved questions (Phase 2a)
+
+- **Q1 → resolved.** Taxonomy trimmed to 5 events (see step 1).
+- **Q2 → resolved.** `generationId` is required on every event row (not optional). UUID minted at the cycle entry point.
+- **Q3 → resolved.** Aggressive prune (see step 4). No long-term audit retention; Effect logging to Axiom will cover debugging needs in Wave 4.
+- **Q4 → resolved.** Backend-only event writes.
 
 ### Done criteria
 
@@ -141,6 +153,7 @@ Land the `threadEvents` table as a **write-only audit trail**. Nothing reads it 
 ### Goal
 
 Reduce the per-generation mutation count dramatically by:
+
 1. Batching `streams.create / addDelta / finish` calls into a buffered mutation per stream lifecycle.
 2. Batching `messages.addMessages` saves at step boundaries.
 3. Replacing `ctx.runMutation(component.X)` indirections with direct function calls where possible.
@@ -149,20 +162,19 @@ This is the part that addresses the user's Notion intent: "we should be able to 
 
 ### Steps
 
-1. **Design the batching layer.** This is a separate concern from Wave 1 Track B's `usageCheckedMutation` — that wrapper pre-fetches user/plan/usage for the two entry-point mutations; batching happens later, inside agent *actions* (different Convex function type). The batching layer is a write-through buffer (e.g. a `StreamWriter` helper class or a context-scoped object passed through the agent pipeline) that queues mutation calls and flushes them in batches. Decide buffering granularity (per-step? per-stream? — see Q5). Do NOT try to reuse `usageCheckedMutation`'s context shape for this; they serve different purposes.
-2. **Convert delta-streamer writes** in `/packages/db/src/agent/client/delta_streamer.ts` (lines ~148, 161, 222, 274, 288) to batched writes flushed at stream-end (or at periodic intervals if the stream is long — the deltas need to land in the DB visibly during streaming for the UI; balance latency vs. write count — see Q6).
-3. **Convert message saves** in `/packages/db/src/agent/client/start/save.ts` (lines ~38–40) to batch per step rather than per message.
-4. **Inline the component shim** where the function is in the same environment. Replace `ctx.runMutation(agentComponent.threads.updateThread, args)` with a direct import of the function from `/packages/db/src/agent/handlers/threads.ts` (or wherever it lives) and call it directly. Same for `messages` and `streams` handlers.
-5. **Audit `agents.ts`** (lines ~104–118, 125, 151, 157, 173–175) for `runMutation/runQuery` calls that can become direct calls now that the agent code is in-app.
+1. **Design the batching layer.** This is a separate concern from Wave 1 Track B's `usageCheckedMutation` — that wrapper pre-fetches user/plan/usage for the two entry-point mutations; batching happens later, inside agent _actions_ (different Convex function type). The batching layer is a write-through buffer (e.g. a `StreamWriter` helper class or a context-scoped object passed through the agent pipeline) that queues mutation calls and flushes them in batches. Buffering granularity is time/count-based (see Q5 resolution). Do NOT try to reuse `usageCheckedMutation`'s context shape for this; they serve different purposes.
+2. **Convert delta-streamer writes** in `/packages/db/src/agent/client/delta_streamer.ts` (lines ~148, 161, 222, 274, 288) to batched writes. Policy (per Q5/Q6 resolution): flush on whichever comes first — every ~100ms OR every ~10 deltas — so the user sees smooth streaming without one write per token. First delta of a response flushes immediately so the user sees "something is happening" fast. Tune the exact thresholds during implementation against real latency measurements.
+3. **Convert message saves** in `/packages/db/src/agent/client/start/save.ts` (lines ~38–40) to batch per step rather than per message. Note the comment at lines 88-89: the AI SDK may append extra tool-result messages between steps (general SDK behavior, not specifically tied to a human-approval flow — no tools currently require user approval). The step-boundary batch naturally handles this; no special flush logic needed.
+4. **Inline the component shim fully (decided — remove it).** The `component.ts` shim exists only because the agent was originally a Convex Component (separate NPM package). Now that it lives in-app, the abstraction is pure cost. Delete `/packages/db/src/agent/component.ts` and replace every `ctx.runMutation(agentComponent.X, args)` call site with a direct import of the handler from `/packages/db/src/agent/handlers/*`. For mutation-from-mutation calls, this collapses to a zero-hop direct function call in the same transaction. For action-from-action or action-to-mutation calls, preserve `ctx.runMutation` (required by Convex's action model) but point at the real function directly.
+5. **Audit `agents.ts`** (lines ~104–118, 125, 151, 157, 173–175) for `runMutation/runQuery` calls. Per Q7 resolution: any `ctx.runMutation(component.X)` called from _inside another mutation_ is pure overhead — replace with a direct handler call. Action→mutation hops stay (forced by Convex) but can be batched.
 6. **Re-run the instrumentation from Wave 1 Track B** for `sendMessage` end-to-end (mutation → action → first delta visible to client). Report numbers.
 
-### Open questions
+### Resolved questions (Phase 2b)
 
-- **Q5.** Batching granularity for stream deltas. Two extremes: (a) write every delta immediately (current behavior, 5+ writes per stream) vs. (b) buffer all deltas and write at stream end (1 write but UI sees nothing until stream ends). The reasonable middle: write every N deltas or every M ms. **What latency is acceptable for the streaming UI? 50ms? 100ms?**
-- **Q6.** During streaming, the UI subscribes to `streamingMessages` and renders deltas as they arrive. If we batch deltas, we trade DB-write count for UI smoothness. **Confirm this tradeoff is acceptable**, or insist on per-delta writes and only batch other things.
-- **Q7.** Are there places where `ctx.runMutation(component.X)` is intentional because of transactional boundaries (e.g., a mutation needs its own transaction)? If yes, we cannot inline those. Need to audit case-by-case.
-- **Q8.** Approval flows insert extra tool-results mid-stream (per a comment in `save.ts` around lines 88–89). Confirm with user how the batching should interact with these mid-stream inserts. May need a flush-before-insert.
-- **Q9.** Does the user want this phase to also remove the `component.ts` shim entirely, or keep it as a thin alias for backwards-compat in case they ever extract the agent back into a Convex Component?
+- **Q5/Q6 → resolved.** Batch deltas with a time-or-count policy: flush every ~100ms OR every ~10 deltas, whichever comes first. First delta of a response flushes immediately (fast TTI). Exact thresholds tunable during implementation — the goal stated by the user: "balance, leaning toward performance, without everything showing up at once at the end."
+- **Q7 → resolved.** `ctx.runMutation(component.X)` called from within another mutation is unnecessary overhead; inline to direct handler call (same transaction). Action→mutation boundaries stay (Convex requires `ctx.runMutation` from actions); reduce their count via batching rather than by trying to inline.
+- **Q8 → resolved.** No human-approval flow exists for any tool (including image gen). The save.ts:88-89 comment documents general SDK behavior (message list grows between steps); the step-boundary batch already handles it.
+- **Q9 → resolved.** Remove the `component.ts` shim entirely. Goal is full integration; no need to preserve the component-style boundary.
 
 ### Validation
 
@@ -188,22 +200,26 @@ Make events the source of truth. Stop reading `thread.state`. Drop the field.
 
 ### Steps
 
-1. **Add `getStateFromEvents` query** in `/packages/db/src/ai/thread/queries.ts`. Implementation strategies:
-   - Naive: query latest event for thread, derive state from event type. O(1) read with the `threadId_timestamp` index.
-   - Cached: denormalize a `lastEventType` + `lastEventAt` on the `threads` row, validate against recent events. Required if we worry about long event lists slowing things down (subagent flagged this — see Q10).
+1. **Add `getStateFromEvents` query** in `/packages/db/src/ai/thread/queries.ts`. Implementation: query the latest event for the thread and map its `eventType` to the `"idle" | "waiting" | "streaming"` union. O(1) with the `threadId_timestamp` index. Because of the aggressive prune (Phase 2a step 4), a thread holds 1–2 event rows at any time, so no pagination / no denormalized cache needed. Mapping:
+   - Latest event is `user_message_sent` → `"waiting"`.
+   - Latest event is `streaming_started` → `"streaming"`.
+   - Latest event is `streaming_completed` / `streaming_aborted` / `generation_failed` → `"idle"`.
+   - No events at all → `"idle"` (covers pre-existing threads with no events yet; see step 3).
 2. **Feature-flag the switch** inside the backend `getState` query (which `threadQueries.state(threadId)` points at) so we can flip back if the new derivation has a bug.
-3. **No hook to update** — Wave 1 Track A already deleted `useThreadStatus`. Call sites use `useQuery(threadQueries.state(threadId))` directly and will automatically see the derived-from-events value once the backend query is switched. The only client-side change in this step is verifying the `threadQueries.state(...)` shape (defined in `/packages/features/src/thread/lib/queries.ts`) still matches what call sites expect after the derivation change — if the event-derived state returns the same `"idle" | "waiting" | "streaming"` union, no client edits are needed.
-4. **Soak for a week** in production with the flag on. Watch for any "stuck thread" reports — if they go to zero, the events derivation is doing its job.
-5. **Remove the dual-write.** Stop calling `setState` from mutations and `streamResponse`. State is now purely derived.
-6. **Drop the `state` field** from the `threads` schema. Drop `setState`, `resetIdleIfStreaming`, `wasAborted` queries (or rewrite `wasAborted` to derive from events).
-7. **Migrate UI consumers** (already done as part of Wave 1 Track A pilot for `useThreadStatus`; the rest of the consumers should already use derived state via the hook).
+3. **No backfill (decided).** Pre-existing threads have no event rows. They will derive to `"idle"` by default, which is correct — if they were mid-generation when the deploy happened, they'd already be stuck, and a manual abort path handles recovery. First new generation on any thread will emit events normally and derive correctly from then on.
+4. **No hook to update** — Wave 1 Track A already deleted `useThreadStatus`. Call sites use `useQuery(threadQueries.state(threadId))` directly and will automatically see the derived-from-events value once the backend query is switched. The only client-side change in this step is verifying the `threadQueries.state(...)` shape (defined in `/packages/features/src/thread/lib/queries.ts`) still matches what call sites expect after the derivation change — if the event-derived state returns the same `"idle" | "waiting" | "streaming"` union, no client edits are needed.
+5. **Soak for a week** in production with the flag on. Watch for any "stuck thread" reports — if they go to zero, the events derivation is doing its job.
+6. **Remove the dual-write.** Stop calling `setState` from mutations and `streamResponse`. State is now purely derived.
+7. **Drop the `state` field** from the `threads` schema. Drop `setState`, `resetIdleIfStreaming`. Rewrite `wasAborted` as: "is there a `streaming_aborted` event for this thread's current `generationId` (i.e. in the active/most-recent generation cycle)?"
+8. **Keep `streamingMessages.state` and `messages.status` (decided).** They have genuinely distinct semantics (per-stream lifecycle and per-message status respectively) and are load-bearing for the delta pipeline and message rendering. Not stragglers. Revisit in a future wave if they ever start feeling like cruft.
+9. **Migrate UI consumers** (already done as part of Wave 1 Track A pilot for `useThreadStatus`; the rest of the consumers should already use derived state via the hook).
 
-### Open questions
+### Resolved questions (Phase 2c)
 
-- **Q10.** Long-thread perf: if a thread has thousands of events, deriving state by querying the latest event should still be O(1) with the right index. But if we need to derive *full* historical state, we might need pagination. **Confirm the only thing we need to derive is "current state", not full history.**
-- **Q11.** Data migration for existing threads. Two options: (a) backfill events from existing `messages` history (subagent estimated 2–3 hours for the script), (b) accept that existing threads won't have events before this date and derive their state lazily from current `thread.state` on first read until the next generation. **Pick one.**
-- **Q12.** What happens to `wasAborted`? Rewrite to "is there a `streaming_aborted` event after the last `generation_scheduled`?" Confirm.
-- **Q13.** Should we keep the `streamingMessages.state` and `messages.status` fields, or do those also move to events? Recommend keeping for now — they have different semantics from thread-level state. Confirm.
+- **Q10 → resolved.** Only "current state" is needed for the UI; full history is not required. Combined with aggressive pruning, a single latest-event lookup is always O(1).
+- **Q11 → resolved.** No backfill. Pre-existing threads derive to `"idle"` by default; next generation emits events normally.
+- **Q12 → resolved.** Rewrite `wasAborted` as "is there a `streaming_aborted` event in this thread's current `generationId`?" (Note: we dropped `generation_scheduled` in Phase 2a, so the anchor is `user_message_sent` / `generationId`, not `generation_scheduled`.)
+- **Q13 → resolved.** Keep `streamingMessages.state` and `messages.status`. Different semantics; integral to delta/message pipelines.
 
 ### Validation
 
@@ -219,12 +235,72 @@ Make events the source of truth. Stop reading `thread.state`. Drop the field.
 
 ---
 
+## Phase 2d — Typed system-event messages (replace string-prefix trick) (~0.5 days, low risk)
+
+### Goal
+
+Replace the `--SYSTEM_ERROR--G1` / `--SYSTEM_NOTICE--N1` string-prefix encoding with a typed `systemEvent` field on the `messages` table. End state: error/notice messages carry structured `{ kind, code }` data instead of magic-prefixed text; frontend dispatches on the field instead of parsing strings.
+
+### Why this is in Wave 2 (not Wave 4)
+
+The prefix trick is a holdover from when the agent code was a separate NPM package — text was the only escape hatch into the messages table. Now that the agent lives in-app, the `messages` schema is fully ours and can hold structured data. Wave 4 (Effect) touches some of the same call sites (`logSystemError`, `message-util.ts`) but is optional and scoped to one action; the refactor is simpler and more valuable as a standalone structural change here.
+
+### Steps
+
+1. **Schema change** in `/packages/db/src/agent/schema.ts`: add an optional `systemEvent` field to `messages`:
+   ```
+   systemEvent: v.optional(v.union(
+     v.object({
+       kind: v.literal("error"),
+       code: v.union(v.literal("G1"), v.literal("G2"), v.literal("G3"), v.literal("G4")),
+     }),
+     v.object({
+       kind: v.literal("notice"),
+       code: v.union(v.literal("N1"), v.literal("N2")),
+     }),
+   )),
+   ```
+   Kept minimal on purpose — no `subtype`, no `data`. Human-readable strings stay in the frontend `NOTICE_MESSAGES` / new `ERROR_MESSAGES` map, keyed by code. Add dynamic fields later only if a specific code actually needs them.
+2. **Rewrite `logSystemError` / `logSystemNotice`** in `/packages/db/src/ai/thread/helpers.ts` (lines ~110–137) to populate `systemEvent` instead of stuffing a prefix into `content`. The assistant role stays; `content` can be empty or carry a fallback plain-text so old clients still render something readable.
+3. **Update the write sites** that currently pass codes as text (all now type-checked against the union):
+   - `/packages/db/src/ai/agents.ts` (G1, G2).
+   - `/packages/db/src/ai/thread/mutations.ts` (G4 twice, N2 once).
+4. **Rewrite the render dispatch** in `/apps/web/src/features/messages/components/response-message.tsx` (lines ~44–53). Replace the `isErrorMessage(animatedText)` / `isNoticeMessage(animatedText)` string-parsing guards with a direct check on `message.systemEvent`. Route to `ErrorMessage` / `NoticeMessage` based on `kind`.
+5. **Delete `formatError`, `formatNotice`, `isErrorMessage`, `isNoticeMessage`** and the `SystemErrorLabel` / `SystemNoticeLabel` constants from `/packages/features/src/messages/util/message-util.ts` and `/packages/features/src/messages/types/message-types.ts`. `SystemErrorCode` / `SystemNoticeCode` can stay (or be rederived from the schema validators for a single source of truth — nice-to-have).
+6. **Pre-existing message handling (no migration — decided).** Old rows in production have `--SYSTEM_ERROR--G1` sitting in `text` with no `systemEvent`. After this refactor, the dispatch path checks `systemEvent` first; absent that, the message falls through to the normal markdown render path and the raw prefixed string is shown to the user. Cosmetic weirdness on old messages is acceptable (small user base, short-lived issue). **Do not** backfill, do not wipe, do not rename the `text` field. First new generation on any thread emits the new shape.
+7. **Optional short-term fallback (skip unless cheap):** if the cosmetic weirdness on old rows bothers us, keep the old `isErrorMessage` / `isNoticeMessage` parsers alive for one release as a second fallback in the render dispatch (check `systemEvent` first, then parse legacy prefix). Delete after the user is satisfied. Default: skip this and just accept the cosmetic issue.
+
+### Resolved questions (Phase 2d)
+
+- **Q14 → resolved.** No subtype / data field. Kind + code is enough; human-readable strings live on the frontend keyed by code. Add per-code structured fields later only when a specific code genuinely needs one.
+- **Q15 → resolved.** No migration. Old prefixed rows render as raw text. No data touched.
+- **Q16 → resolved.** Legacy parser fallback during transition: skip. Accept cosmetic weirdness on pre-existing rows.
+
+### Validation
+
+- New error / notice messages render correctly with no prefix visible anywhere in the UI.
+- Old messages (create one pre-deploy with a G1 prefix, then deploy) still appear in the thread — may look a bit ugly but do not break the thread view.
+- `pnpm run lint` catches every unhandled code in the union when a new code is added (verify by temporarily adding `G5` to the union and confirming TS errors at every write site).
+- `pnpm run lint`, `pnpm run typecheck`, `pnpm run format:fix`.
+
+### Done criteria
+
+- No references to `SystemErrorLabel`, `SystemNoticeLabel`, `formatError`, `formatNotice`, `isErrorMessage`, `isNoticeMessage` remain (grep returns zero hits).
+- All new error/notice writes go through a typed `systemEvent` on the message row.
+- Frontend dispatch reads `message.systemEvent`, not `message.text`.
+
+### Interaction with Wave 4
+
+If Wave 4 is pursued later, its step 6 ("Replace `logSystemError` calls in this one action with Effect-based error tagging") and step 7 ("Update user-facing message mapping in `message-util.ts`") become simpler: Effect's error tags map directly onto `systemEvent.code` values, and the `message-util.ts` self-mapping is already gone. No re-plumbing required.
+
+---
+
 ## Risks specific to this wave
 
 - **Schema migration in a live system.** Phase 2c drops a field. Coordinate carefully.
-- **Race conditions in stream abort.** The current code has guards (`resetIdleIfStreaming` only resets if state is `"streaming"`). With events, multiple `streaming_completed` events should be idempotent, but the abort path needs to be tested heavily.
+- **Race conditions in stream abort.** The current code has guards (`resetIdleIfStreaming` only resets if state is `"streaming"`). With events, multiple terminal events within the same `generationId` must be idempotent (the prune deletes prior events, so a late-arriving second terminal should be a no-op or an append that doesn't break derivation). Abort path needs heavy testing.
 - **Mapping layer fragility.** `/packages/db/src/agent/mapping/` has 8 files of message format conversion. Touching this in Phase 2b can break message rendering. Prefer changes that don't go through this layer.
-- **Approval flows.** Mid-stream tool-result inserts (see Q8) interact with batching in subtle ways.
+- **Prune races.** Phase 2a's aggressive prune deletes prior events for a `generationId` in the same mutation as the terminal event. Concurrent writers (e.g. abort landing at the same time as streaming_completed) must not corrupt state — prune logic should be idempotent and safe under the abort-vs-complete race.
 
 ## Cross-wave dependencies
 

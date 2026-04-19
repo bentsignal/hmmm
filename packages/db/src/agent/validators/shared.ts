@@ -102,3 +102,11 @@ export function vPaginationResult<
     ),
   });
 }
+
+export const vEventType = v.union(
+  v.literal("user_message_sent"),
+  v.literal("agent_working"),
+  v.literal("response_streaming"),
+);
+
+export type EventType = Infer<typeof vEventType>;

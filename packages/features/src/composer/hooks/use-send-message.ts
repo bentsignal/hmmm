@@ -111,9 +111,9 @@ export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
   const deps = { createThread, sendMessageInThread, navigateToThread };
 
   const activeThread = useThreadStore((state) => state.activeThread);
-  const { data: isThreadIdle } = useQuery({
+  const { data: threadState } = useQuery({
     ...threadQueries.state(activeThread ?? ""),
-    select: (state) => state === "idle",
+    select: (state) => state,
   });
   const { usage } = useUsage();
 
@@ -122,9 +122,11 @@ export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
   );
   const isRecording = useComposerStore((state) => state.storeIsRecording);
 
-  const isGenerating = !isThreadIdle;
-  const blockSend = !isThreadIdle || isRecording || usage?.limitHit;
-  const isLoading = !isThreadIdle || storeIsTranscribing;
+  // Treat pending (undefined) as idle so the composer doesn't spuriously
+  // flag "generating" while the query is still loading on first mount.
+  const isGenerating = threadState === "waiting" || threadState === "streaming";
+  const blockSend = isGenerating || isRecording || usage?.limitHit;
+  const isLoading = isGenerating || storeIsTranscribing;
 
   const setNumMessagesSent = useMessageStore(
     (state) => state.setNumMessagesSent,

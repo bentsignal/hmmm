@@ -3,10 +3,10 @@ import { v } from "convex/values";
 import z from "zod";
 
 import type { ActionCtx } from "../_generated/server";
+import type { AgentComponent } from "../agent/client";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import { Agent } from "../agent/client";
-import { agentComponent } from "../agent/component";
 import { tryCatch } from "../lib/utils";
 import { calculateModelCost } from "../user/usage";
 import { getModel, isLanguageModelKey } from "./models/helpers";
@@ -15,6 +15,13 @@ import { modelPresets } from "./models/presets";
 import { agentPrompt, followUpGeneratorPrompt } from "./prompts";
 import { logSystemError } from "./thread/helpers";
 import { tools } from "./tools";
+
+// Former `agentComponent` shim lived in /packages/db/src/agent/component.ts
+// solely because the agent used to be a separate Convex Component. Now that
+// it lives in-app, we just reference `internal.agent` directly. The cast
+// bridges the concrete generated FunctionReference shape to AgentComponent.
+// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+const agentComponent = internal.agent as unknown as AgentComponent;
 
 export const agent = new Agent(agentComponent, {
   languageModel: modelPresets.default.model,
@@ -25,7 +32,12 @@ export const agent = new Agent(agentComponent, {
   contextOptions: {
     excludeToolMessages: false,
   },
-  callSettings: { maxRetries: 3 },
+  // maxRetries intentionally omitted: AI SDK replays the whole generation on
+  // transient errors, including after a user abort (since abortById doesn't
+  // throw — it silently stops writes). A replay re-streams text the user
+  // already cancelled. If we ever need retries, gate them on a predicate that
+  // returns false once wasAborted(ctx, threadId, generationId) is true.
+  callSettings: { maxRetries: 0 },
   usageHandler: async (ctx, args) => {
     const { model: modelId, usage, providerMetadata } = args;
     // currently this won't work since the modelId will be like google/gemini-3-flash
@@ -70,19 +82,49 @@ export async function generateResponse(
   return result.text;
 }
 
+async function generateFollowUps(
+  ctx: ActionCtx,
+  args: { threadId: string; responseText: PromiseLike<string> },
+) {
+  const responseMessage = await args.responseText;
+  const { object: followUpQuestions } = await generateObject({
+    model: modelPresets.followUp.model,
+    prompt: responseMessage,
+    system: followUpGeneratorPrompt,
+    schema: z.object({
+      questions: z.array(z.string().max(300)).max(3),
+    }),
+    maxOutputTokens: 1000,
+    maxRetries: 3,
+  });
+  await ctx.runMutation(internal.ai.thread.followUps.save, {
+    threadId: args.threadId,
+    followUpQuestions: followUpQuestions.questions,
+  });
+}
+
 export const streamResponse = internalAction({
   args: {
     threadId: v.string(),
     promptMessageId: v.string(),
     model: v.optional(v.string()),
+    generationId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { threadId, promptMessageId } = args;
-    const { thread } = agent.continueThread(ctx, {
-      threadId: threadId,
-    });
+    const { threadId, promptMessageId, generationId } = args;
+    const { thread } = agent.continueThread(ctx, { threadId });
     const model = getModel(args.model);
-    // initiate response
+    // Two event emits driven by chunk types:
+    //   - `agent_working`: first chunk of any kind (reasoning, tool-call,
+    //     source, etc.) — signals the LLM has actually started producing
+    //     output. This used to fire at stream setup, but that was before
+    //     the LLM emitted anything, so tool sources could render in the UI
+    //     via the delta pipeline before the event landed.
+    //   - `response_streaming`: first text-delta chunk — the agent has
+    //     moved past reasoning/tools and is streaming the final response.
+    // If the first chunk IS a text-delta, both fire in sequence.
+    let agentWorkingEmitted = false;
+    let responseStreamingEmitted = false;
     const { data: result, error: streamInitError } = await tryCatch(
       thread.streamText(
         {
@@ -90,21 +132,35 @@ export const streamResponse = internalAction({
           promptMessageId,
           maxOutputTokens: 64000,
           providerOptions: {
-            openrouter: {
-              reasoning: {
-                max_tokens: 32000,
-              },
-            },
+            openrouter: { reasoning: { max_tokens: 32000 } },
+          },
+          onChunk: async ({ chunk }) => {
+            if (!agentWorkingEmitted) {
+              agentWorkingEmitted = true;
+              await ctx.runMutation(internal.ai.thread.events.emit, {
+                threadId,
+                eventType: "agent_working",
+                generationId,
+              });
+            }
+            if (responseStreamingEmitted) return;
+            if (chunk.type !== "text-delta") return;
+            responseStreamingEmitted = true;
+            await ctx.runMutation(internal.ai.thread.events.emit, {
+              threadId,
+              eventType: "response_streaming",
+              generationId,
+            });
           },
         },
         { saveStreamDeltas: true },
       ),
     );
     if (streamInitError) {
-      const aborted = await ctx.runQuery(
-        internal.ai.thread.mutations.wasAborted,
-        { threadId },
-      );
+      const aborted = await ctx.runQuery(internal.ai.thread.state.wasAborted, {
+        threadId,
+        generationId,
+      });
       if (!aborted) {
         await logSystemError(
           ctx,
@@ -112,28 +168,20 @@ export const streamResponse = internalAction({
           "G1",
           "Failed to initialize stream generation.",
         );
-        await ctx.runMutation(internal.ai.thread.mutations.setState, {
-          threadId: threadId,
-          state: "idle",
-        });
       }
+      await ctx.runMutation(internal.ai.thread.events.clearForGeneration, {
+        generationId,
+      });
       return;
     }
-    // stream response back to user
     const { error: streamError } = await tryCatch(
-      Promise.all([
-        ctx.runMutation(internal.ai.thread.mutations.setState, {
-          threadId: threadId,
-          state: "streaming",
-        }),
-        result.consumeStream(),
-      ]),
+      Promise.resolve(result.consumeStream()),
     );
     if (streamError) {
-      const aborted = await ctx.runQuery(
-        internal.ai.thread.mutations.wasAborted,
-        { threadId },
-      );
+      const aborted = await ctx.runQuery(internal.ai.thread.state.wasAborted, {
+        threadId,
+        generationId,
+      });
       if (!aborted) {
         await logSystemError(
           ctx,
@@ -143,41 +191,18 @@ export const streamResponse = internalAction({
         );
       }
     }
-    // stream has completed
-    await Promise.allSettled([
-      // set thread back to idle — only if we're still the active stream;
-      // a user-triggered abort (or a subsequent generation) will have already
-      // moved the thread out of the "streaming" state.
-      ctx.runMutation(internal.ai.thread.mutations.resetIdleIfStreaming, {
-        threadId: threadId,
-      }),
-      // generate follow up questions — skip if the user aborted, since
-      // running another LLM call on an abandoned response wastes tokens.
-      (async () => {
-        const aborted = await ctx.runQuery(
-          internal.ai.thread.mutations.wasAborted,
-          { threadId },
-        );
-        if (aborted) return;
-        const responseMessage = await result.text;
-        const { object: followUpQuestions } = await generateObject({
-          model: modelPresets.followUp.model,
-          prompt: responseMessage,
-          system: followUpGeneratorPrompt,
-          schema: z.object({
-            questions: z.array(z.string().max(300)).max(3),
-          }),
-          maxOutputTokens: 1000,
-          maxRetries: 3,
-        });
-        await ctx.runMutation(
-          internal.ai.thread.mutations.saveFollowUpQuestions,
-          {
-            threadId: threadId,
-            followUpQuestions: followUpQuestions.questions,
-          },
-        );
-      })(),
-    ]);
+    // Check wasAborted BEFORE clearing events so the completion path can
+    // distinguish natural completion from a user abort that already wiped
+    // the cycle's rows.
+    const aborted = await ctx.runQuery(internal.ai.thread.state.wasAborted, {
+      threadId,
+      generationId,
+    });
+    await ctx.runMutation(internal.ai.thread.events.clearForGeneration, {
+      generationId,
+    });
+    if (!aborted) {
+      await generateFollowUps(ctx, { threadId, responseText: result.text });
+    }
   },
 });

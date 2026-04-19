@@ -31,7 +31,7 @@ export function useMessages({
     isLoading,
     status,
   } = useThreadMessages(
-    api.ai.thread.queries.getThreadMessages,
+    api.ai.thread.messages.list,
     { threadId },
     {
       initialNumItems: INITIAL_PAGE_SIZE,

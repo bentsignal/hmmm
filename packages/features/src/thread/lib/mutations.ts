@@ -7,7 +7,7 @@ export function useThreadMutations() {
   return {
     rename: mutationOptions({
       mutationKey: ["thread-rename"],
-      mutationFn: useConvexMutation(api.ai.thread.mutations.rename),
+      mutationFn: useConvexMutation(api.ai.thread.title.rename),
     }),
   };
 }

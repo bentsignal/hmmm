@@ -1,13 +1,25 @@
 import type { CustomCtx } from "convex-helpers/server/customFunctions";
 import { paginationOptsValidator } from "convex/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 
 import type { SyncStreamsReturnValue } from "../../agent/client/types";
+import { internal } from "../../_generated/api";
 import { vStreamArgs } from "../../agent/validators";
 import { getPublicFile } from "../../app/file_helpers";
 import { authedQuery } from "../../convex_helpers";
+import { tryCatch } from "../../lib/utils";
+import { usageCheckedMutation } from "../../usage_checked_helpers";
+import { getPerferredModelIfAllowed } from "../../user/info";
 import { agent } from "../agents";
-import { authorizeAccess } from "./helpers";
+import { emitThreadEvent, generateGenerationId } from "./events";
+import {
+  authorizeAccess,
+  logSystemError,
+  saveUserMessage,
+  validateMessage,
+} from "./helpers";
+import { vAttachment } from "./shared";
+import { getStateForThread } from "./state";
 
 function isStringArray(value: unknown): value is string[] {
   return (
@@ -33,64 +45,7 @@ async function resolveAttachments(
     .map((file) => getPublicFile(file));
 }
 
-export const getTitle = authedQuery({
-  args: {
-    threadId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const thread = await authorizeAccess(ctx, args.threadId);
-    return thread?.title;
-  },
-});
-
-export const getState = authedQuery({
-  args: {
-    threadId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { threadId } = args;
-    if (threadId.trim().length === 0) {
-      return "idle";
-    }
-    const thread = await authorizeAccess(ctx, threadId);
-    return thread?.state;
-  },
-});
-
-export const getThreadList = authedQuery({
-  args: {
-    paginationOpts: paginationOptsValidator,
-    search: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { paginationOpts, search } = args;
-    const threads =
-      search.trim().length > 0
-        ? await ctx.db
-            .query("threads")
-            .withSearchIndex("title", (q) =>
-              q.search("title", search).eq("userId", ctx.user.subject),
-            )
-            .paginate(paginationOpts)
-        : await ctx.db
-            .query("threads")
-            .withIndex("by_user_time", (q) => q.eq("userId", ctx.user.subject))
-            .order("desc")
-            .paginate(paginationOpts);
-    return {
-      ...threads,
-      page: threads.page.map((thread) => ({
-        id: thread._id,
-        updatedAt: thread.updatedAt ?? thread._creationTime,
-        title: thread.title ?? "",
-        state: thread.state ?? "idle",
-        pinned: thread.pinned ?? false,
-      })),
-    };
-  },
-});
-
-export const getThreadMessages = authedQuery({
+export const list = authedQuery({
   args: {
     threadId: v.string(),
     paginationOpts: paginationOptsValidator,
@@ -157,16 +112,58 @@ export const getThreadMessages = authedQuery({
   },
 });
 
-export const getFollowUpQuestions = authedQuery({
+export const send = usageCheckedMutation({
   args: {
     threadId: v.string(),
+    prompt: v.string(),
+    attachments: v.optional(v.array(vAttachment)),
   },
   handler: async (ctx, args) => {
-    const { threadId } = args;
+    const { threadId, prompt, attachments } = args;
+    const numAttachments = attachments?.length ?? 0;
+    await validateMessage(ctx, prompt, numAttachments);
     const thread = await authorizeAccess(ctx, threadId);
     if (!thread) {
-      return [];
+      throw new ConvexError("Thread not found");
     }
-    return thread.followUpQuestions ?? [];
+    const state = await getStateForThread(ctx, thread._id);
+    if (state !== "idle") {
+      throw new ConvexError("Thread is not idle");
+    }
+    const model = getPerferredModelIfAllowed(ctx.userPlan, ctx.userInfo?.model);
+    const generationId = generateGenerationId();
+    const [{ lastMessageId }] = await Promise.all([
+      saveUserMessage({
+        ctx,
+        threadId,
+        prompt,
+        userInfo: ctx.userInfo,
+        attachments,
+      }),
+      ctx.db.patch(thread._id, {
+        updatedAt: Date.now(),
+        followUpQuestions: [],
+      }),
+      emitThreadEvent(ctx, {
+        threadId: thread._id,
+        userId: ctx.user.subject,
+        eventType: "user_message_sent",
+        generationId,
+      }),
+    ]);
+    const { data: scheduledId, error } = await tryCatch(
+      ctx.scheduler.runAfter(0, internal.ai.agents.streamResponse, {
+        threadId,
+        promptMessageId: lastMessageId,
+        model,
+        generationId,
+      }),
+    );
+    if (error) {
+      console.error(error);
+      await logSystemError(ctx, threadId, "G4", "Failed to generate response");
+    } else {
+      await ctx.db.patch(thread._id, { generationFnId: scheduledId });
+    }
   },
 });

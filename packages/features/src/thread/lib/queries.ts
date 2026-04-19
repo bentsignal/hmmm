@@ -9,7 +9,7 @@ import { INITIAL_PAGE_SIZE as THREAD_LIST_PAGE_SIZE } from "../config/thread-con
 export const threadQueries = {
   listFirstPage: (search = "") =>
     queryOptions({
-      ...convexQuery(api.ai.thread.queries.getThreadList, {
+      ...convexQuery(api.ai.thread.list.get, {
         search,
         paginationOpts: {
           numItems: THREAD_LIST_PAGE_SIZE,
@@ -19,7 +19,7 @@ export const threadQueries = {
     }),
   messagesFirstPage: (threadId: string) =>
     queryOptions({
-      ...convexQuery(api.ai.thread.queries.getThreadMessages, {
+      ...convexQuery(api.ai.thread.messages.list, {
         threadId,
         paginationOpts: {
           numItems: MESSAGE_PAGE_SIZE,
@@ -30,14 +30,14 @@ export const threadQueries = {
     }),
   state: (threadId: string) =>
     queryOptions({
-      ...convexQuery(api.ai.thread.queries.getState, { threadId }),
+      ...convexQuery(api.ai.thread.state.get, { threadId }),
     }),
   title: (threadId: string) =>
     queryOptions({
-      ...convexQuery(api.ai.thread.queries.getTitle, { threadId }),
+      ...convexQuery(api.ai.thread.title.get, { threadId }),
     }),
   followUps: (threadId: string) =>
     queryOptions({
-      ...convexQuery(api.ai.thread.queries.getFollowUpQuestions, { threadId }),
+      ...convexQuery(api.ai.thread.followUps.get, { threadId }),
     }),
 };

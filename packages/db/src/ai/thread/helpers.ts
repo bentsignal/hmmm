@@ -1,10 +1,16 @@
+import type { ModelMessage } from "ai";
 import type { CustomCtx } from "convex-helpers/server/customFunctions";
+import { parse } from "convex-helpers/validators";
 import { ConvexError } from "convex/values";
 
 import type { Doc } from "../../_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "../../_generated/server";
+import type { Message } from "../../agent/validators";
 import type { authedMutation, authedQuery } from "../../convex_helpers";
 import type { usageCheckedMutation } from "../../usage_checked_helpers";
+import { addMessagesHandler } from "../../agent/handlers/add_messages";
+import { serializeOrThrow } from "../../agent/mapping";
+import { vMessageWithMetadata } from "../../agent/validators";
 import { messageSendRateLimit } from "../../limiter";
 import { isAdmin } from "../../user/account";
 import { agent } from "../agents";
@@ -12,7 +18,7 @@ import { agent } from "../agents";
 const MAX_ATTACHMENTS_PER_MESSAGE = 10;
 
 export type SystemErrorCode = "G1" | "G2" | "G3" | "G4";
-type SystemNoticeCode = "N1";
+type SystemNoticeCode = "N1" | "N2";
 const SystemErrorLabel = "--SYSTEM_ERROR--";
 const SystemNoticeLabel = "--SYSTEM_NOTICE--";
 
@@ -60,6 +66,31 @@ export async function authorizeAccess(
   return thread;
 }
 
+/**
+ * Save messages directly in mutation context — no runMutation hop. Uses
+ * `serializeOrThrow` (sync, no ctx/component deps) so the path is clean.
+ * Action-context callers must go through `agent.saveMessage` / `.saveMessages`
+ * (Convex requires the action→mutation boundary).
+ */
+async function saveMessagesDirect(
+  ctx: MutationCtx,
+  threadId: string,
+  messages: (ModelMessage | Message)[],
+) {
+  const normalized = ctx.db.normalizeId("threads", threadId);
+  if (!normalized) {
+    throw new ConvexError(`Thread id ${threadId} failed to normalize`);
+  }
+  const serialized = messages.map((m) =>
+    parse(vMessageWithMetadata, { message: serializeOrThrow(m) }),
+  );
+  return addMessagesHandler(ctx, {
+    threadId: normalized,
+    messages: serialized,
+    failPendingSteps: false,
+  });
+}
+
 export async function logSystemError(
   ctx: ActionCtx | MutationCtx,
   threadId: string,
@@ -72,27 +103,25 @@ export async function logSystemError(
     "Error message:",
     message,
   );
-  await agent.saveMessage(ctx, {
-    threadId: threadId,
-    message: {
-      role: "assistant",
-      content: formatError(code),
-    },
-  });
+  const assistantMessage = {
+    role: "assistant" as const,
+    content: formatError(code),
+  };
+  if ("db" in ctx) {
+    await saveMessagesDirect(ctx, threadId, [assistantMessage]);
+    return;
+  }
+  await agent.saveMessage(ctx, { threadId, message: assistantMessage });
 }
 
 export async function logSystemNotice(
-  ctx: ActionCtx,
+  ctx: MutationCtx,
   threadId: string,
   code: SystemNoticeCode,
 ) {
-  await agent.saveMessage(ctx, {
-    threadId: threadId,
-    message: {
-      role: "assistant",
-      content: formatNotice(code),
-    },
-  });
+  await saveMessagesDirect(ctx, threadId, [
+    { role: "assistant", content: formatNotice(code) },
+  ]);
 }
 
 export async function validateMessage(
@@ -179,14 +208,11 @@ export async function saveUserMessage({
 }: SaveUserMessageArgs) {
   const systemParts = userInfo ? buildUserProfileParts(userInfo) : [];
   const attachmentParts = buildAttachmentMessages(attachments);
-  const { messages } = await agent.saveMessages(ctx, {
-    threadId: threadId,
-    messages: [
-      ...systemParts,
-      { role: "user", content: prompt },
-      ...attachmentParts,
-    ],
-  });
+  const { messages } = await saveMessagesDirect(ctx, threadId, [
+    ...systemParts,
+    { role: "user", content: prompt },
+    ...attachmentParts,
+  ]);
   const lastMessage = messages.at(-1);
   if (!lastMessage) {
     throw new ConvexError("Failed to save message");

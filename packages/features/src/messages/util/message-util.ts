@@ -55,10 +55,10 @@ const errorCodes = new Map([
   ["G4", "G4"],
 ] satisfies [string, SystemErrorCode][]);
 
-const noticeCodes = new Map([["N1", "N1"]] satisfies [
-  string,
-  SystemNoticeCode,
-][]);
+const noticeCodes = new Map([
+  ["N1", "N1"],
+  ["N2", "N2"],
+] satisfies [string, SystemNoticeCode][]);
 
 export function isErrorMessage(message: string) {
   if (!message.startsWith(SystemErrorLabel)) return null;

@@ -19,7 +19,7 @@ export function useThreadList() {
   });
 
   const liveQuery = usePaginatedQuery(
-    api.ai.thread.queries.getThreadList,
+    api.ai.thread.list.get,
     { search: debouncedSearch },
     {
       initialNumItems: INITIAL_PAGE_SIZE,

@@ -8,10 +8,15 @@ export function NoticeMessage({ code }: { code: SystemNoticeCode }) {
     <div className="flex w-full items-center gap-1">
       <div className="flex justify-start gap-2">
         <span className="text-muted-foreground">
-          {NOTICE_MESSAGES[code]}{" "}
-          <Link to="/pricing" className="text-premium underline">
-            View Plans.
-          </Link>
+          {NOTICE_MESSAGES[code]}
+          {code === "N1" ? (
+            <>
+              {" "}
+              <Link to="/pricing" className="text-premium underline">
+                View Plans.
+              </Link>
+            </>
+          ) : null}
         </span>
       </div>
     </div>

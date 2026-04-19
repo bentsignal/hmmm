@@ -8,28 +8,28 @@ import { api } from "@acme/db/api";
 import { optimisticallySendMessage } from "../../messages/agent";
 
 export function useThreadMutation() {
-  const createThread = useMutation(api.ai.thread.mutations.create);
+  const createThread = useMutation(api.ai.thread.lifecycle.create);
   const sendMessage = useMutation(
-    api.ai.thread.mutations.sendMessage,
+    api.ai.thread.messages.send,
   ).withOptimisticUpdate(
-    optimisticallySendMessage(api.ai.thread.queries.getThreadMessages),
+    optimisticallySendMessage(api.ai.thread.messages.list),
   );
   const { mutate: deleteThread } = useTanstackMutation({
-    mutationFn: useConvexMutation(api.ai.thread.mutations.deleteThread),
+    mutationFn: useConvexMutation(api.ai.thread.lifecycle.remove),
     onError: (error) => {
       console.error(error);
       toast.error("Failed to delete thread");
     },
   });
   const { mutate: togglePinned } = useTanstackMutation({
-    mutationFn: useConvexMutation(api.ai.thread.mutations.togglePinned),
+    mutationFn: useConvexMutation(api.ai.thread.pinned.toggle),
     onError: (error) => {
       console.error(error);
       toast.error("Failed to toggle thread pin");
     },
   });
   const { mutate: abortGeneration } = useTanstackMutation({
-    mutationFn: useConvexMutation(api.ai.thread.mutations.abortGeneration),
+    mutationFn: useConvexMutation(api.ai.thread.generation.abort),
     onError: (error) => {
       console.error(error);
       toast.error("Failed to stop generation");

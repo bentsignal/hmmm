@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_authenticated/new")({
     }
 
     const threadId = await context.convexHttpClient.mutation(
-      api.ai.thread.mutations.create,
+      api.ai.thread.lifecycle.create,
       { prompt },
     );
 

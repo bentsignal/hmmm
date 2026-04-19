@@ -101,8 +101,8 @@ Add Effect as a dep. Use it to model:
    - Wrap the streaming consumption in an Effect that fails with `StreamConsumptionError`.
    - Race against the abort signal so cancellation produces `AbortedByUser`.
    - At the end, use `.pipe(Effect.catchTag(...))` to emit the right event (per Wave 2's events table) and return a sensible result.
-6. **Replace `logSystemError` calls** in this one action with Effect-based error tagging that emits a `generation_failed` event (Wave 2 taxonomy) with the structured `StreamError` as metadata.
-7. **Update the user-facing message mapping** in `/packages/features/src/messages/util/message-util.ts` for the codes touched by this wave (G1, G2). Replace self-mapping with human-readable text. Other codes can stay as-is until those callers are also migrated.
+6. **Replace `logSystemError` calls** in this one action with Effect-based error tagging that emits a `generation_failed` event (Wave 2 taxonomy) with the structured `StreamError` as metadata. (After Wave 2 Phase 2d, `logSystemError` already writes a typed `systemEvent: { kind: "error", code }` field — Effect's error tags map directly onto those codes, no string formatting involved.)
+7. **User-facing message mapping:** after Wave 2 Phase 2d, the old self-mapping in `message-util.ts` is gone; error strings live in a frontend `ERROR_MESSAGES` map keyed by code. If any code needs richer human-readable text as a result of this Effect work, update that map. No `message-util.ts` rewrite needed.
 8. **Test heavily**: stream init failures (force a bad model id), stream mid-flight failures (kill network), user abort (mid-stream), abort + immediate resend, abort + retry-on-backend (if applicable). All should produce sensible events + clear UI errors.
 
 ---

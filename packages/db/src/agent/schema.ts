@@ -2,6 +2,7 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
 import {
+  vEventType,
   vFinishReason,
   vLanguageModelCallWarning,
   vMessage,
@@ -22,6 +23,10 @@ export const agentTables = {
     status: vThreadStatus,
     parentThreadIds: v.optional(v.array(v.id("threads"))),
 
+    // Legacy dead field — thread state is now derived from `threadEvents`
+    // (see ai/thread/state.ts). Left here as optional so existing rows pass
+    // schema validation; run `ai/thread/state:clearLegacyState` to unset it
+    // everywhere, then drop this line in a follow-up.
     state: v.optional(
       v.union(v.literal("idle"), v.literal("waiting"), v.literal("streaming")),
     ),
@@ -117,4 +122,20 @@ export const agentTables = {
     end: v.number(),
     parts: v.array(v.any()),
   }).index("streamId_start_end", ["streamId", "start", "end"]),
+
+  // In-flight-only event log. Rows exist only while a generation cycle is
+  // active (waiting/streaming); terminal paths (complete, abort, error)
+  // delete the cycle's rows. Steady-state idle = 0 rows per thread. Thread
+  // state derivation (Phase 2c) maps latest event → waiting/streaming, or
+  // idle when no event exists. `generationId` scopes deletes so a late
+  // terminal from an old cycle can't wipe a newer cycle's rows.
+  threadEvents: defineTable({
+    userId: v.optional(v.string()),
+    threadId: v.id("threads"),
+    timestamp: v.number(),
+    eventType: vEventType,
+    generationId: v.string(),
+  })
+    .index("threadId_timestamp", ["threadId", "timestamp"])
+    .index("generationId", ["generationId"]),
 };

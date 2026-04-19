@@ -5,7 +5,7 @@ import type { UIMessage } from "../agent";
 
 export type SystemErrorCode = "G1" | "G2" | "G3" | "G4";
 
-export type SystemNoticeCode = "N1";
+export type SystemNoticeCode = "N1" | "N2";
 
 export const SystemErrorLabel = "--SYSTEM_ERROR--";
 export const SystemNoticeLabel = "--SYSTEM_NOTICE--";

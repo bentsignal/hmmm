@@ -20,9 +20,14 @@ export interface StreamingOptions {
   chunking?: "word" | "line" | RegExp | ChunkDetector;
   /**
    * The minimum number of milliseconds to wait between saving deltas.
-   * Defaults to 250.
+   * Defaults to 100.
    */
   throttleMs?: number;
+  /**
+   * Count-based flush: if this many parts accumulate before the throttle
+   * window elapses, flush anyway. Defaults to 10.
+   */
+  maxPartsPerFlush?: number;
   /**
    * If set to true, this will return immediately, as it would if you weren't
    * saving the deltas. Otherwise, the call will "consume" the stream with
@@ -36,7 +41,8 @@ export interface StreamingOptions {
 export const DEFAULT_STREAMING_OPTIONS = {
   // This chunks by sentences / clauses. Punctuation followed by whitespace.
   chunking: /[\p{P}\s]/u,
-  throttleMs: 250,
+  throttleMs: 100,
+  maxPartsPerFlush: 10,
   returnImmediately: false,
 } satisfies StreamingOptions;
 
@@ -72,6 +78,7 @@ export function mergeTransforms<TOOLS extends ToolSet>(
 
 interface DeltaStreamerConfig<T> {
   throttleMs: number | undefined;
+  maxPartsPerFlush?: number | undefined;
   onAsyncAbort: (reason: string) => Promise<void>;
   abortSignal: AbortSignal | undefined;
   compress: ((parts: T[]) => T[]) | null;
@@ -100,6 +107,7 @@ export class DeltaStreamer<T> {
   streamId: string | undefined;
   public readonly config: {
     throttleMs: number;
+    maxPartsPerFlush: number;
     onAsyncAbort: (reason: string) => Promise<void>;
     compress: ((parts: T[]) => T[]) | null;
   };
@@ -122,6 +130,8 @@ export class DeltaStreamer<T> {
   ) {
     this.config = {
       throttleMs: config.throttleMs ?? DEFAULT_STREAMING_OPTIONS.throttleMs,
+      maxPartsPerFlush:
+        config.maxPartsPerFlush ?? DEFAULT_STREAMING_OPTIONS.maxPartsPerFlush,
       onAsyncAbort: config.onAsyncAbort,
       compress: config.compress,
     };
@@ -173,10 +183,12 @@ export class DeltaStreamer<T> {
     }
     await this.getStreamId();
     this.#nextParts.push(...parts);
-    if (
-      !this.#ongoingWrite &&
-      Date.now() - this.#latestWrite >= this.config.throttleMs
-    ) {
+    if (this.#ongoingWrite) return;
+    const elapsed = Date.now() - this.#latestWrite;
+    const shouldFlush =
+      elapsed >= this.config.throttleMs ||
+      this.#nextParts.length >= this.config.maxPartsPerFlush;
+    if (shouldFlush) {
       this.#ongoingWrite = this.#sendDelta();
     }
   }
@@ -235,10 +247,15 @@ export class DeltaStreamer<T> {
       this.abortController.abort();
       return;
     }
-    if (
-      this.#nextParts.length > 0 &&
-      Date.now() - this.#latestWrite >= this.config.throttleMs
-    ) {
+    if (this.#nextParts.length === 0) {
+      this.#ongoingWrite = undefined;
+      return;
+    }
+    const elapsed = Date.now() - this.#latestWrite;
+    const shouldChain =
+      elapsed >= this.config.throttleMs ||
+      this.#nextParts.length >= this.config.maxPartsPerFlush;
+    if (shouldChain) {
       this.#ongoingWrite = this.#sendDelta();
     } else {
       this.#ongoingWrite = undefined;
