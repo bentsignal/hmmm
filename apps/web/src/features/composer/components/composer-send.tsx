@@ -42,7 +42,7 @@ export function ComposerSend({
       onClick={() => {
         void sendMessage({ showInstantLoad, handleError });
       }}
-      disabled={blockSend ?? isLoading}
+      disabled={blockSend || isLoading}
     />
   );
 }
