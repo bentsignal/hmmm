@@ -34,7 +34,7 @@ export const abort = authedMutation({
     const activeGenerationId = await getActiveGenerationId(ctx, thread._id);
     if (activeGenerationId) {
       await clearEventsForGeneration(ctx, activeGenerationId);
-      await logSystemNotice(ctx, args.threadId, "N2");
+      await logSystemNotice(ctx, thread._id, "N2");
     }
     await ctx.db.patch(thread._id, {
       generationFnId: undefined,

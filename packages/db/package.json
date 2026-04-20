@@ -22,6 +22,7 @@
     "./subscription": "./src/user/subscription.ts",
     "./library-types": "./src/types/library.ts",
     "./agent/validators": "./src/agent/validators/index.ts",
+    "./thread/shared": "./src/ai/thread/shared.ts",
     "./agent/ui": "./src/agent/ui/index.ts",
     "./agent/shared": "./src/agent/shared.ts",
     "./agent/deltas": "./src/agent/deltas/index.ts",

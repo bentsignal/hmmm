@@ -201,7 +201,7 @@ export const send = usageCheckedMutation({
     const [{ lastMessageId }] = await Promise.all([
       saveUserMessage({
         ctx,
-        threadId,
+        threadId: thread._id,
         prompt,
         userInfo: ctx.userInfo,
         attachments,
@@ -219,7 +219,7 @@ export const send = usageCheckedMutation({
     ]);
     const { data: scheduledId, error } = await tryCatch(
       ctx.scheduler.runAfter(0, internal.ai.agents.streamResponse, {
-        threadId,
+        threadId: thread._id,
         promptMessageId: lastMessageId,
         model,
         generationId,
@@ -227,7 +227,12 @@ export const send = usageCheckedMutation({
     );
     if (error) {
       console.error(error);
-      await logSystemError(ctx, threadId, "G4", "Failed to generate response");
+      await logSystemError(
+        ctx,
+        thread._id,
+        "G4",
+        "Failed to generate response",
+      );
     } else {
       await ctx.db.patch(thread._id, { generationFnId: scheduledId });
     }

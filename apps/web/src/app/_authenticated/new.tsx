@@ -17,11 +17,12 @@ export const Route = createFileRoute("/_authenticated/new")({
       throw redirect({ to: "/home" });
     }
 
-    const threadId = await context.convexHttpClient.mutation(
-      api.ai.thread.lifecycle.create,
-      { prompt },
-    );
+    const clientId = crypto.randomUUID();
+    await context.convexHttpClient.mutation(api.ai.thread.lifecycle.create, {
+      prompt,
+      clientId,
+    });
 
-    throw redirect({ to: "/chat/$id", params: { id: threadId } });
+    throw redirect({ to: "/chat/$id", params: { id: clientId } });
   },
 });

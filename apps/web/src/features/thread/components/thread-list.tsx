@@ -75,13 +75,16 @@ export function ThreadList({
             paddingTop: 6,
             paddingBottom: 8,
           }}
-          renderItem={({ item }) => (
+          renderItem={({ item }: { item: PureThread }) => (
             <div className="pb-0.5">
               <ThreadListItem
                 thread={{
                   title: item.title,
                   id: item.id,
-                  active: pathname.includes(item.id),
+                  active:
+                    pathname.includes(item.id) ||
+                    (item.clientId !== undefined &&
+                      pathname.includes(item.clientId)),
                   latestEvent: item.latestEvent,
                   pinned: item.pinned === true,
                 }}

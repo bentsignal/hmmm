@@ -31,16 +31,22 @@ function formatNotice(code: SystemNoticeCode) {
 }
 
 /**
- * Look up a thread by its `_id`. After the inlining migration, threads are
- * the authoritative source — there is no separate `threadMetadata` table.
- * The string `threadId` flowing through host code is now an `Id<"threads">`.
+ * Look up a thread by either its server `_id` or its client-generated
+ * `clientId`. The `/chat/$id` route URL can hold either: clientId during the
+ * optimistic window immediately after submit, `_id` once the sidebar thread
+ * list points to the real row. Accepting both here means downstream queries
+ * (`state.get`, `title.get`, `messages.list`, `followUps.get`, etc.) don't
+ * have to branch.
  */
 export async function getMetadata(ctx: QueryCtx, threadId: string) {
   const id = ctx.db.normalizeId("threads", threadId);
-  if (!id) {
-    return null;
+  if (id) {
+    return ctx.db.get(id);
   }
-  return ctx.db.get(id);
+  return ctx.db
+    .query("threads")
+    .withIndex("clientId", (q) => q.eq("clientId", threadId))
+    .first();
 }
 
 export async function authorizeAccess(

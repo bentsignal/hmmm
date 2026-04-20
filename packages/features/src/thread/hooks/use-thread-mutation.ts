@@ -6,14 +6,33 @@ import { toast } from "sonner";
 import { api } from "@acme/db/api";
 
 import { optimisticallySendMessage } from "../../messages/agent";
+import { optimisticallyCreateThread } from "../lib/mutations";
 
 export function useThreadMutation() {
-  const createThread = useMutation(api.ai.thread.lifecycle.create);
+  const createThread = useMutation(
+    api.ai.thread.lifecycle.create,
+  ).withOptimisticUpdate(optimisticallyCreateThread);
   const sendMessage = useMutation(
     api.ai.thread.messages.send,
-  ).withOptimisticUpdate(
-    optimisticallySendMessage(api.ai.thread.messages.list),
-  );
+  ).withOptimisticUpdate((store, args) => {
+    optimisticallySendMessage(api.ai.thread.messages.list)(store, args);
+    store.setQuery(
+      api.ai.thread.state.get,
+      { threadId: args.threadId },
+      "user_message_sent",
+    );
+  });
+  const abortMutation = useMutation(
+    api.ai.thread.generation.abort,
+  ).withOptimisticUpdate((store, args) => {
+    store.setQuery(api.ai.thread.state.get, { threadId: args.threadId }, null);
+  });
+  function abortGeneration(args: { threadId: string }) {
+    abortMutation(args).catch((error) => {
+      console.error(error);
+      toast.error("Failed to stop generation");
+    });
+  }
   const { mutate: deleteThread } = useTanstackMutation({
     mutationFn: useConvexMutation(api.ai.thread.lifecycle.remove),
     onError: (error) => {
@@ -26,13 +45,6 @@ export function useThreadMutation() {
     onError: (error) => {
       console.error(error);
       toast.error("Failed to toggle thread pin");
-    },
-  });
-  const { mutate: abortGeneration } = useTanstackMutation({
-    mutationFn: useConvexMutation(api.ai.thread.generation.abort),
-    onError: (error) => {
-      console.error(error);
-      toast.error("Failed to stop generation");
     },
   });
   return {

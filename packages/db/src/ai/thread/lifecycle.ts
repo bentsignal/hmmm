@@ -19,9 +19,10 @@ export const create = usageCheckedMutation({
   args: {
     prompt: v.string(),
     attachments: v.optional(v.array(vAttachment)),
+    clientId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { prompt, attachments } = args;
+    const { prompt, attachments, clientId } = args;
     const numAttachments = attachments?.length ?? 0;
     await validateMessage(ctx, prompt, numAttachments);
     const threadId = await ctx.db.insert("threads", {
@@ -30,6 +31,7 @@ export const create = usageCheckedMutation({
       status: "active",
       pinned: false,
       updatedAt: Date.now(),
+      clientId,
     });
     const generationId = generateGenerationId();
     await emitThreadEvent(ctx, {

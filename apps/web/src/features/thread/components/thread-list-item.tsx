@@ -52,7 +52,11 @@ function ThreadListItemImpl({ thread }: { thread: Thread }) {
               {thread.latestEvent !== null && (
                 <Brain className="text-muted-foreground h-4 w-4 animate-pulse" />
               )}
-              {thread.title !== "New Chat" && thread.title}
+              {thread.title === "New Chat" ? (
+                <span className="bg-muted-foreground/30 h-3 flex-1 animate-pulse rounded" />
+              ) : (
+                thread.title
+              )}
             </div>
           }
         </Link>

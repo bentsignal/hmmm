@@ -7,6 +7,7 @@ import type { LibraryFile } from "../../library/types/library-types";
 import { useUsage } from "../../billing/hooks/use-usage";
 import { validatePrompt } from "../../lib/prompt";
 import { tryCatch } from "../../lib/result";
+import { randomUUID } from "../../messages/agent/optimisticallySendMessage";
 import { useMessageStore } from "../../messages/store/message-store";
 import { useThreadMutation } from "../../thread/hooks/use-thread-mutation";
 import { threadQueries } from "../../thread/lib/queries";
@@ -18,11 +19,13 @@ function mapAttachments(files: LibraryFile[]) {
     key: file.key,
     name: file.fileName,
     mimeType: file.mimeType,
+    id: file.id,
+    url: file.url,
+    size: file.size,
   }));
 }
 
-function handleConvexError(error: unknown, handleError?: () => void) {
-  handleError?.();
+function handleConvexError(error: unknown) {
   if (error instanceof ConvexError) {
     toast.error(String(error.data));
     return;
@@ -45,30 +48,33 @@ async function handleCreateThread(
     attachedFiles,
     clearAttachments,
     navigateToNewThread,
-    handleError,
   }: {
     prompt: string;
     attachedFiles: LibraryFile[];
     clearAttachments: () => void;
     navigateToNewThread: boolean;
-    handleError?: () => void;
   },
 ) {
-  const { data: threadId, error: threadCreationError } = await tryCatch(
-    deps.createThread({
-      prompt,
-      attachments: mapAttachments(attachedFiles),
-    }),
-  );
+  // Generate a client-side id, fire the mutation FIRST so its optimistic
+  // update seeds sidebar + thread queries synchronously, then navigate.
+  // Navigating before the mutation call would let the route transition
+  // paint a frame before the optimistic entry lands in the sidebar cache.
+  const clientId = randomUUID();
+  clearAttachments();
+  const mutationPromise = deps.createThread({
+    clientId,
+    prompt,
+    attachments: mapAttachments(attachedFiles),
+  });
+  if (navigateToNewThread) {
+    deps.navigateToThread(clientId);
+  }
+  const { error: threadCreationError } = await tryCatch(mutationPromise);
   if (threadCreationError) {
-    handleConvexError(threadCreationError, handleError);
+    handleConvexError(threadCreationError);
     return;
   }
-  clearAttachments();
-  if (navigateToNewThread && threadId) {
-    deps.navigateToThread(threadId);
-  }
-  return threadId;
+  return clientId;
 }
 
 async function handleSendToThread(
@@ -78,13 +84,11 @@ async function handleSendToThread(
     prompt,
     attachedFiles,
     clearAttachments,
-    handleError,
   }: {
     threadId: string;
     prompt: string;
     attachedFiles: LibraryFile[];
     clearAttachments: () => void;
-    handleError?: () => void;
   },
 ) {
   const { error: newThreadMessageError } = await tryCatch(
@@ -95,7 +99,7 @@ async function handleSendToThread(
     }),
   );
   if (newThreadMessageError) {
-    handleConvexError(newThreadMessageError, handleError);
+    handleConvexError(newThreadMessageError);
     return;
   }
   clearAttachments();
@@ -135,14 +139,10 @@ export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
   async function sendMessage({
     customPrompt,
     navigateToNewThread = true,
-    showInstantLoad,
-    handleError,
   }: {
     customPrompt?: string;
     navigateToNewThread?: boolean;
-    showInstantLoad?: () => void;
-    handleError?: () => void;
-  }) {
+  } = {}) {
     const rawPrompt = customPrompt ?? useComposerStore.getState().prompt;
 
     if (blockSend) return;
@@ -151,7 +151,6 @@ export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
     if (!prompt) return;
 
     setPrompt("");
-    showInstantLoad?.();
 
     const currentThread = useThreadStore.getState().activeThread;
     setNumMessagesSent(useMessageStore.getState().numMessagesSent + 1);
@@ -164,7 +163,6 @@ export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
         attachedFiles,
         clearAttachments,
         navigateToNewThread,
-        handleError,
       });
     }
 
@@ -173,7 +171,6 @@ export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
       prompt,
       attachedFiles,
       clearAttachments,
-      handleError,
     });
   }
 

@@ -138,6 +138,49 @@ Wave 3 open question Q7 is already decided by this workflow: new
 
 ---
 
+## Phase 3a shipped — context for 3b/3c
+
+- Phase 3a step 1 (delete 3s `setTimeout` in `composer-send.tsx`) was
+  already done before 3a started — Wave 2's event-derived state removed
+  the flash the timeout was hiding. File is clean.
+- Phase 3a step 2 was **not** implemented as a local pending flag. User
+  rejected that approach. Instead, the optimistic Convex update on
+  `api.ai.thread.messages.send` also writes `"user_message_sent"` to
+  `threadQueries.state(threadId)` via `store.setQuery`, and the
+  optimistic update on `api.ai.thread.generation.abort` clears it to
+  `null`. The send button flips to abort-mode on the next frame,
+  driven entirely by the existing state query. Both live in
+  `packages/features/src/thread/hooks/use-thread-mutation.ts`.
+- `abortGeneration` was switched from `useTanstackMutation` to Convex's
+  native `useMutation` (needed for `.withOptimisticUpdate`). Error
+  toast kept via a local `.catch`. Phase 3c will move the optimistic
+  logic into `threadMutations.*` in `lib/mutations.ts` — preserve the
+  `store.setQuery(state.get, { threadId }, ...)` calls when migrating.
+
+## Phase 3b decisions (from user, 2026-04-20)
+
+- **Q3 UUID**: reuse `randomUUID()` at
+  `packages/features/src/messages/agent/optimisticallySendMessage.ts:101`.
+- **Q4 route shape**: single `/chat/$id`, loader disambiguates clientId
+  vs server `_id`.
+- **Q5 URL**: while the user is on the composer page, URL stays on the
+  clientId. Once they navigate away and come back via the thread list,
+  use the server `_id`. Implication: thread-list entries link to the
+  real `_id`, not the clientId. Do not `router.replace` the URL while
+  the user is actively on the thread.
+- **Q7 backfill**: new `clientId` is `v.optional`. Existing rows stay
+  null. No backfill.
+- **Q8 abort during optimistic window**: abort must work from the next
+  frame after send. Clicking stop before `createThread` resolves must
+  behave as if the user aborted post-stream-start. Non-trivial — the
+  thread doesn't exist server-side yet. Options to consider: queue the
+  abort locally and fire it once `createThread` resolves; or send
+  abort with clientId and have the server resolve clientId → threadId.
+- **Q9 create failure**: stay on the URL, show a retry UI.
+
+Still open for 3b: Q6 (keep clientId on row forever — default yes,
+disk-cheap).
+
 ## Parked (still outstanding after Wave 2)
 
 - **Mid-generation delete.** `lifecycle.remove` on a non-idle thread

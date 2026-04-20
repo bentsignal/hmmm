@@ -30,9 +30,16 @@ export const agentTables = {
     pinned: v.optional(v.boolean()),
     updatedAt: v.optional(v.number()),
     followUpQuestions: v.optional(v.array(v.string())),
+
+    // Client-generated UUID for instant-navigation UX. The URL lands on
+    // `/chat/<clientId>` before the server has assigned `_id`. Route-path
+    // queries resolve via `getMetadata`, which tries `normalizeId` first,
+    // then this index.
+    clientId: v.optional(v.string()),
   })
     .index("userId", ["userId"])
     .index("by_user_time", ["userId", "pinned", "updatedAt"])
+    .index("clientId", ["clientId"])
     .searchIndex("title", { searchField: "title", filterFields: ["userId"] }),
 
   messages: defineTable({

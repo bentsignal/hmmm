@@ -95,6 +95,60 @@ async function generateFollowUps(
   });
 }
 
+// Two event emits driven by chunk types:
+//   - `agent_working`: first chunk of any kind (reasoning, tool-call,
+//     source, etc.) — signals the LLM has actually started producing
+//     output. This used to fire at stream setup, but that was before
+//     the LLM emitted anything, so tool sources could render in the UI
+//     via the delta pipeline before the event landed.
+//   - `response_streaming`: first text-delta chunk — the agent has
+//     moved past reasoning/tools and is streaming the final response.
+// The handler also polls `wasAborted` (throttled) so a client-initiated
+// stop that commits mid-stream can halt the upstream LLM call.
+function makeOnChunk(
+  ctx: ActionCtx,
+  args: {
+    threadId: string;
+    generationId: string;
+    abortController: AbortController;
+  },
+) {
+  const { threadId, generationId, abortController } = args;
+  let agentWorkingEmitted = false;
+  let responseStreamingEmitted = false;
+  let lastAbortCheck = 0;
+  return async ({ chunk }: { chunk: { type: string } }) => {
+    const now = Date.now();
+    if (now - lastAbortCheck >= 500) {
+      lastAbortCheck = now;
+      const aborted = await ctx.runQuery(internal.ai.thread.state.wasAborted, {
+        threadId,
+        generationId,
+      });
+      if (aborted) {
+        abortController.abort();
+        return;
+      }
+    }
+    if (!agentWorkingEmitted) {
+      agentWorkingEmitted = true;
+      await ctx.runMutation(internal.ai.thread.events.emit, {
+        threadId,
+        eventType: "agent_working",
+        generationId,
+      });
+    }
+    if (responseStreamingEmitted) return;
+    if (chunk.type !== "text-delta") return;
+    responseStreamingEmitted = true;
+    await ctx.runMutation(internal.ai.thread.events.emit, {
+      threadId,
+      eventType: "response_streaming",
+      generationId,
+    });
+  };
+}
+
 export const streamResponse = internalAction({
   args: {
     threadId: v.string(),
@@ -105,46 +159,34 @@ export const streamResponse = internalAction({
   returns: v.null(),
   handler: async (ctx, args) => {
     const { threadId, promptMessageId, generationId } = args;
+    // If abort committed before the scheduler picked us up (too late to
+    // cancel via scheduler.cancel because we were already inProgress), the
+    // abort mutation will have cleared this generation's events. Bail
+    // before we hit the LLM so no response is produced.
+    const abortedEarly = await ctx.runQuery(
+      internal.ai.thread.state.wasAborted,
+      { threadId, generationId },
+    );
+    if (abortedEarly) return;
     const { thread } = agent.continueThread(ctx, { threadId });
     const model = getModel(args.model);
-    // Two event emits driven by chunk types:
-    //   - `agent_working`: first chunk of any kind (reasoning, tool-call,
-    //     source, etc.) — signals the LLM has actually started producing
-    //     output. This used to fire at stream setup, but that was before
-    //     the LLM emitted anything, so tool sources could render in the UI
-    //     via the delta pipeline before the event landed.
-    //   - `response_streaming`: first text-delta chunk — the agent has
-    //     moved past reasoning/tools and is streaming the final response.
-    // If the first chunk IS a text-delta, both fire in sequence.
-    let agentWorkingEmitted = false;
-    let responseStreamingEmitted = false;
+    const abortController = new AbortController();
+    const onChunk = makeOnChunk(ctx, {
+      threadId,
+      generationId,
+      abortController,
+    });
     const { data: result, error: streamInitError } = await tryCatch(
       thread.streamText(
         {
           model: model.model,
           promptMessageId,
           maxOutputTokens: 64000,
+          abortSignal: abortController.signal,
           providerOptions: {
             openrouter: { reasoning: { max_tokens: 32000 } },
           },
-          onChunk: async ({ chunk }) => {
-            if (!agentWorkingEmitted) {
-              agentWorkingEmitted = true;
-              await ctx.runMutation(internal.ai.thread.events.emit, {
-                threadId,
-                eventType: "agent_working",
-                generationId,
-              });
-            }
-            if (responseStreamingEmitted) return;
-            if (chunk.type !== "text-delta") return;
-            responseStreamingEmitted = true;
-            await ctx.runMutation(internal.ai.thread.events.emit, {
-              threadId,
-              eventType: "response_streaming",
-              generationId,
-            });
-          },
+          onChunk,
         },
         { saveStreamDeltas: true },
       ),

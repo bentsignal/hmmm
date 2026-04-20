@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { vReasoningDetails, vSource } from "../../agent/validators/content";
 import { vMessage } from "../../agent/validators/message";
 import {
+  vEventType,
   vFinishReason,
   vLanguageModelCallWarning,
   vMessageStatus,
@@ -10,10 +11,16 @@ import {
 } from "../../agent/validators/shared";
 import { vStreamDelta, vStreamMessage } from "../../agent/validators/stream";
 
+// Server only reads `key` (file lookup via `by_key`). The remaining fields
+// are optional passthroughs so the client can seed rich optimistic message
+// attachments without a second lookup.
 export const vAttachment = v.object({
   key: v.string(),
   name: v.string(),
   mimeType: v.string(),
+  id: v.optional(v.id("files")),
+  url: v.optional(v.string()),
+  size: v.optional(v.number()),
 });
 
 /**
@@ -92,4 +99,32 @@ export const vListThreadReturn = v.object({
     ),
   ),
   streams: vListThreadStreams,
+});
+
+/**
+ * One row in the thread-sidebar list. `id` is typed as `v.string()` so
+ * optimistic updates can insert a clientId-keyed entry before the server
+ * has assigned a real `Id<"threads">`.
+ */
+export const vThreadListEntry = v.object({
+  id: v.string(),
+  clientId: v.optional(v.string()),
+  updatedAt: v.number(),
+  title: v.string(),
+  latestEvent: v.union(vEventType, v.null()),
+  pinned: v.boolean(),
+});
+
+export const vThreadListReturn = v.object({
+  page: v.array(vThreadListEntry),
+  continueCursor: v.string(),
+  isDone: v.boolean(),
+  splitCursor: v.optional(v.union(v.string(), v.null())),
+  pageStatus: v.optional(
+    v.union(
+      v.literal("SplitRecommended"),
+      v.literal("SplitRequired"),
+      v.null(),
+    ),
+  ),
 });
