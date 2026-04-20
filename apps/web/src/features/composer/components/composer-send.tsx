@@ -3,7 +3,13 @@ import { useThreadMutation, useThreadStore } from "@acme/features/thread";
 import { ComposerSendButton } from "~/features/composer/primitives/composer-send-button";
 import { useSendMessage } from "../hooks/use-send-message";
 
-export function ComposerSend() {
+export function ComposerSend({
+  showInstantLoad,
+  handleError,
+}: {
+  showInstantLoad?: () => void;
+  handleError?: () => void;
+}) {
   const { sendMessage, blockSend, isLoading, isGenerating } = useSendMessage();
   const { abortGeneration } = useThreadMutation();
   const activeThread = useThreadStore((state) => state.activeThread);
@@ -24,7 +30,7 @@ export function ComposerSend() {
   return (
     <ComposerSendButton
       onClick={() => {
-        void sendMessage();
+        void sendMessage({ showInstantLoad, handleError });
       }}
       disabled={blockSend ?? isLoading}
     />

@@ -8,7 +8,13 @@ import { ComposerTextarea } from "~/features/composer/primitives/composer-textar
 import { useShortcut as useHotkey } from "~/features/shortcuts/hooks/use-shortcut";
 import { useSendMessage } from "../hooks/use-send-message";
 
-export function ComposerInput() {
+export function ComposerInput({
+  showInstantLoad,
+  handleError,
+}: {
+  showInstantLoad?: () => void;
+  handleError?: () => void;
+}) {
   const { value, setPrompt, disabled, placeholder } = useComposerInput();
   const { sendMessage } = useSendMessage();
 
@@ -17,7 +23,7 @@ export function ComposerInput() {
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      void sendMessage();
+      void sendMessage({ showInstantLoad, handleError });
     }
   }
 

@@ -25,7 +25,8 @@ function mapAttachments(files: LibraryFile[]) {
   }));
 }
 
-function handleConvexError(error: unknown) {
+function handleConvexError(error: unknown, handleError?: () => void) {
+  handleError?.();
   if (error instanceof ConvexError) {
     toast.error(String(error.data));
     return;
@@ -48,11 +49,13 @@ async function handleCreateThread(
     attachedFiles,
     clearAttachments,
     navigateToNewThread,
+    handleError,
   }: {
     prompt: string;
     attachedFiles: LibraryFile[];
     clearAttachments: () => void;
     navigateToNewThread: boolean;
+    handleError?: () => void;
   },
 ) {
   // Generate a client-side id, fire the mutation FIRST so its optimistic
@@ -71,7 +74,7 @@ async function handleCreateThread(
   }
   const { error: threadCreationError } = await tryCatch(mutationPromise);
   if (threadCreationError) {
-    handleConvexError(threadCreationError);
+    handleConvexError(threadCreationError, handleError);
     return;
   }
   return clientId;
@@ -84,11 +87,13 @@ async function handleSendToThread(
     prompt,
     attachedFiles,
     clearAttachments,
+    handleError,
   }: {
     threadId: string;
     prompt: string;
     attachedFiles: LibraryFile[];
     clearAttachments: () => void;
+    handleError?: () => void;
   },
 ) {
   const { error: newThreadMessageError } = await tryCatch(
@@ -99,7 +104,7 @@ async function handleSendToThread(
     }),
   );
   if (newThreadMessageError) {
-    handleConvexError(newThreadMessageError);
+    handleConvexError(newThreadMessageError, handleError);
     return;
   }
   clearAttachments();
@@ -139,9 +144,13 @@ export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
   async function sendMessage({
     customPrompt,
     navigateToNewThread = true,
+    showInstantLoad,
+    handleError,
   }: {
     customPrompt?: string;
     navigateToNewThread?: boolean;
+    showInstantLoad?: () => void;
+    handleError?: () => void;
   } = {}) {
     const rawPrompt = customPrompt ?? useComposerStore.getState().prompt;
 
@@ -151,6 +160,7 @@ export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
     if (!prompt) return;
 
     setPrompt("");
+    showInstantLoad?.();
 
     const currentThread = useThreadStore.getState().activeThread;
     setNumMessagesSent(useMessageStore.getState().numMessagesSent + 1);
@@ -163,6 +173,7 @@ export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
         attachedFiles,
         clearAttachments,
         navigateToNewThread,
+        handleError,
       });
     }
 
@@ -171,6 +182,7 @@ export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
       prompt,
       attachedFiles,
       clearAttachments,
+      handleError,
     });
   }
 

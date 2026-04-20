@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { HomeHero } from "@/features/home/home-hero";
 import { HomeSuggestions } from "@/features/home/home-suggestions";
@@ -16,16 +17,32 @@ export const Route = createFileRoute("/_authenticated/home")({
 });
 
 function Home() {
+  const [pending, setPending] = useState(false);
   const { sendMessage } = useSendMessage();
+
+  function showInstantLoad() {
+    setPending(true);
+  }
+  function handleError() {
+    setPending(false);
+  }
+
+  if (pending) return null;
 
   return (
     <div className="flex w-full flex-1 flex-col items-center justify-center gap-2">
       <HomeHero />
       <div className="w-full">
-        <Composer />
+        <Composer showInstantLoad={showInstantLoad} handleError={handleError} />
       </div>
       <HomeSuggestions
-        onSelect={(prompt) => void sendMessage({ customPrompt: prompt })}
+        onSelect={(prompt) =>
+          void sendMessage({
+            customPrompt: prompt,
+            showInstantLoad,
+            handleError,
+          })
+        }
       />
       <UsageChatCallout />
     </div>
