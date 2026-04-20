@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 
-import { userQueries } from "@acme/features/lib/queries";
+import { billingQueries } from "@acme/features/billing";
 import { Card, CardContent } from "@acme/ui/card";
 
 import { UsageCountdown } from "~/features/billing/components/usage-countdown";
@@ -8,21 +8,16 @@ import { UsageProgress } from "~/features/billing/components/usage-progress";
 import { UsageUpgradeCallout } from "~/features/billing/components/usage-upgrade-callout";
 
 export function Usage() {
-  const { data: usage } = useSuspenseQuery({
-    ...userQueries.usage(),
-    select: (data) => ({
-      unlimited: data.unlimited,
-      range: data.range,
-      percentageUsed: data.percentageUsed,
-      endOfPeriod: data.endOfPeriod,
-    }),
+  const { data: unlimited } = useSuspenseQuery({
+    ...billingQueries.usage(),
+    select: (data) => data.unlimited,
   });
 
   return (
     <Card className="w-full">
       <CardContent className="flex flex-col items-center gap-4 text-center">
         <h1 className="text-2xl font-bold">Usage</h1>
-        {usage.unlimited ? (
+        {unlimited ? (
           <div className="flex flex-col items-center gap-2">
             <p className="text-muted-foreground text-sm">
               You have unlimited usage.
@@ -30,12 +25,9 @@ export function Usage() {
           </div>
         ) : (
           <>
-            <UsageProgress
-              initialRange={usage.range}
-              initialPercentageUsed={usage.percentageUsed}
-            />
+            <UsageProgress />
             <div className="flex flex-col items-center gap-2">
-              <UsageCountdown initialTarget={new Date(usage.endOfPeriod)} />
+              <UsageCountdown />
               <UsageUpgradeCallout />
             </div>
           </>

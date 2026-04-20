@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 import { api } from "@acme/db/api";
+import { billingQueries } from "@acme/features/billing";
 import { threadQueries } from "@acme/features/thread";
 import {
   SidebarInset,
@@ -30,7 +31,11 @@ export const Route = createFileRoute("/_authenticated")({
     return { auth };
   },
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(threadQueries.listFirstPage());
+    await Promise.all([
+      context.queryClient.ensureQueryData(threadQueries.listFirstPage()),
+      context.queryClient.ensureQueryData(billingQueries.usage()),
+      context.queryClient.ensureQueryData(billingQueries.currentPlan()),
+    ]);
   },
 });
 

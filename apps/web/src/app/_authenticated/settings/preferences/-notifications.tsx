@@ -3,7 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useMutation } from "convex/react";
 
 import { api } from "@acme/db/api";
-import { userQueries } from "@acme/features/lib/queries";
+import { userQueries } from "@acme/features/user";
 import { Switch } from "@acme/ui/switch";
 
 import { InfoCard } from "~/components/info-card";

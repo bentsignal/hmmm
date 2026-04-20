@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { userQueries } from "@acme/features/lib/queries";
+import { userQueries } from "@acme/features/user";
 
 import { Shortcuts } from "~/features/shortcuts/components/shortcuts";
 import { SettingsWrapper } from "./-wrapper";

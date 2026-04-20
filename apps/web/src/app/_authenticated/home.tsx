@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { HomeHero } from "@/features/home/home-hero";
 import { HomeSuggestions } from "@/features/home/home-suggestions";
 
-import { suggestionQueries } from "@acme/features/lib/queries";
+import { homeQueries } from "@acme/features/home";
 
 import { UsageChatCallout } from "~/features/billing/components/usage-chat-callout";
 import { Composer } from "~/features/composer/composer";
@@ -12,7 +12,7 @@ import { useSendMessage } from "~/features/composer/hooks/use-send-message";
 export const Route = createFileRoute("/_authenticated/home")({
   component: Home,
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(suggestionQueries.getCurrent());
+    await context.queryClient.ensureQueryData(homeQueries.suggestions());
   },
 });
 

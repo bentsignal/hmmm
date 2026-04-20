@@ -1,11 +1,16 @@
-import { useUsage } from "@acme/features/billing";
+import { useSuspenseQuery } from "@tanstack/react-query";
+
+import { billingQueries } from "@acme/features/billing";
 import { useCountdown } from "@acme/features/hooks";
 import { formatCountdownString } from "@acme/features/lib/date-time-utils";
 
-export function UsageCountdown({ initialTarget }: { initialTarget: Date }) {
-  const { usage } = useUsage();
+export function UsageCountdown() {
+  const { data: endOfPeriod } = useSuspenseQuery({
+    ...billingQueries.usage(),
+    select: (data) => data.endOfPeriod,
+  });
   const { minutes, hours, days } = useCountdown({
-    target: new Date(usage?.endOfPeriod ?? initialTarget),
+    target: new Date(endOfPeriod),
     updateInterval: 1,
   });
   const timeRemaining = formatCountdownString(days, hours, minutes);

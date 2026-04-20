@@ -4,7 +4,7 @@ import { buildRedirectUrl } from "@/features/auth/auth-utils";
 import { HomeHero } from "@/features/home/home-hero";
 import { HomeSuggestions } from "@/features/home/home-suggestions";
 
-import { suggestionQueries } from "@acme/features/lib/queries";
+import { homeQueries } from "@acme/features/home";
 import { Button } from "@acme/ui/button";
 
 import { ComposerSendButton } from "~/features/composer/primitives/composer-send-button";
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/")({
     }
   },
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(suggestionQueries.getCurrent());
+    await context.queryClient.ensureQueryData(homeQueries.suggestions());
   },
 });
 

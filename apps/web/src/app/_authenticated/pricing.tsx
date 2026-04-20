@@ -4,19 +4,20 @@ import { CheckoutLink, CustomerPortalLink } from "@convex-dev/polar/react";
 import ReactMarkdown from "react-markdown";
 
 import { api } from "@acme/db/api";
-import { useCurrentPlan } from "@acme/features/billing";
-import { pricingQueries } from "@acme/features/lib/queries";
+import { billingQueries } from "@acme/features/billing";
 import { Button } from "@acme/ui/button";
 import * as Card from "@acme/ui/card";
 
-import { DefaultLoading } from "~/components/default-loading";
 import { markdownComponents } from "~/features/messages/components/markdown-components";
 import { cn } from "~/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/pricing")({
   component: PricingCards,
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(pricingQueries.listAllProducts());
+    await Promise.all([
+      context.queryClient.ensureQueryData(billingQueries.listAllProducts()),
+      context.queryClient.ensureQueryData(billingQueries.currentPlan()),
+    ]);
   },
 });
 
@@ -98,7 +99,7 @@ function ProductCard({
 
 function usePlans() {
   const { data: allPlans } = useSuspenseQuery({
-    ...pricingQueries.listAllProducts(),
+    ...billingQueries.listAllProducts(),
     select: (data) =>
       data.map((plan) => ({
         id: plan.id,
@@ -126,20 +127,15 @@ function usePlans() {
 
 export function PricingCards() {
   const { plans } = usePlans();
-  const { myPlan, planLoading } = useCurrentPlan();
-
-  if (planLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <DefaultLoading />
-      </div>
-    );
-  }
+  const { data: myPlan } = useSuspenseQuery({
+    ...billingQueries.currentPlan(),
+    select: (data) => data,
+  });
 
   return (
     <div className="my-8 flex min-h-screen w-full flex-col items-center justify-center gap-4 xl:my-0">
       <span className="text-2xl font-bold">Pricing</span>
-      {myPlan && myPlan.name !== "Free" ? (
+      {myPlan.name !== "Free" ? (
         <div className="flex min-h-20 flex-col items-center gap-2">
           <span>
             Current plan:{" "}

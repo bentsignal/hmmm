@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 
-import { userQueries } from "@acme/features/lib/queries";
+import { userQueries } from "@acme/features/user";
 
 import { InfoCard } from "~/components/info-card";
 

@@ -1,4 +1,7 @@
-import { useThreadMutation, useThreadStore } from "@acme/features/thread";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+
+import { useThreadMutations, useThreadStore } from "@acme/features/thread";
 
 import { ComposerSendButton } from "~/features/composer/primitives/composer-send-button";
 import { useSendMessage } from "../hooks/use-send-message";
@@ -11,7 +14,14 @@ export function ComposerSend({
   handleError?: () => void;
 }) {
   const { sendMessage, blockSend, isLoading, isGenerating } = useSendMessage();
-  const { abortGeneration } = useThreadMutation();
+  const mutations = useThreadMutations();
+  const { mutate: abort } = useMutation({
+    ...mutations.abort,
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to stop generation");
+    },
+  });
   const activeThread = useThreadStore((state) => state.activeThread);
 
   const showStop = isGenerating && activeThread !== null;
@@ -21,7 +31,7 @@ export function ComposerSend({
       <ComposerSendButton
         mode="stop"
         onClick={() => {
-          if (activeThread) abortGeneration({ threadId: activeThread });
+          if (activeThread) abort({ threadId: activeThread });
         }}
       />
     );

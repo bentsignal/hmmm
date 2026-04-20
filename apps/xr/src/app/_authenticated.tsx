@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 import { api } from "@acme/db/api";
+import { billingQueries } from "@acme/features/billing";
 
 export const Route = createFileRoute("/_authenticated")({
   component: () => <Outlet />,
@@ -19,5 +20,8 @@ export const Route = createFileRoute("/_authenticated")({
     );
 
     return { auth };
+  },
+  loader: async ({ context }) => {
+    await context.queryClient.ensureQueryData(billingQueries.usage());
   },
 });

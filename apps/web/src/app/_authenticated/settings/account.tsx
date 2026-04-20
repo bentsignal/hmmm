@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { pricingQueries, userQueries } from "@acme/features/lib/queries";
+import { billingQueries } from "@acme/features/billing";
+import { userQueries } from "@acme/features/user";
 
 import { SettingsWrapper } from "./-wrapper";
 import { AccountInfo } from "./account/-account-info";
@@ -12,10 +13,10 @@ export const Route = createFileRoute("/_authenticated/settings/account")({
   component: AccountPage,
   loader: async ({ context }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(userQueries.usage()),
-      context.queryClient.ensureQueryData(userQueries.plan()),
+      context.queryClient.ensureQueryData(billingQueries.usage()),
+      context.queryClient.ensureQueryData(billingQueries.currentPlan()),
       context.queryClient.ensureQueryData(userQueries.email()),
-      context.queryClient.ensureQueryData(pricingQueries.listAllProducts()),
+      context.queryClient.ensureQueryData(billingQueries.listAllProducts()),
     ]);
   },
 });

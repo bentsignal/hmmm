@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 
-import { useFileMutation, useLibraryStore } from "@acme/features/library";
+import { useFileMutations, useLibraryStore } from "@acme/features/library";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +28,14 @@ export function LibraryRenameModal() {
   const [newFileName, setNewFileName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { renameFile } = useFileMutation();
+  const mutations = useFileMutations();
+  const { mutate: renameFile } = useMutation({
+    ...mutations.renameFile,
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to rename file");
+    },
+  });
 
   return (
     <AlertDialog
@@ -58,7 +67,7 @@ export function LibraryRenameModal() {
           <AlertDialogAction
             onClick={() => {
               if (!selectedFile) return;
-              void renameFile(selectedFile.id, newFileName);
+              renameFile({ id: selectedFile.id, name: newFileName });
               setLibraryRenameModalOpen(false);
               setNewFileName("");
             }}

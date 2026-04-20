@@ -1,6 +1,7 @@
 import { useEffect } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 
-import { useUsage } from "@acme/features/billing";
+import { billingQueries } from "@acme/features/billing";
 import { useComposerStore } from "@acme/features/composer";
 
 import { useSpeechRecording } from "./use-speech-recording";
@@ -17,8 +18,11 @@ export function useSpeech() {
 
   // prevent users from starting a new transcription while
   // one is being processed, or after they have hit their limit
-  const { usage } = useUsage();
-  const disabled = usage?.limitHit ?? processing;
+  const { data: limitHit } = useSuspenseQuery({
+    ...billingQueries.usage(),
+    select: (data) => data.limitHit,
+  });
+  const disabled = limitHit || processing;
 
   const {
     transcribedAudio,

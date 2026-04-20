@@ -1,4 +1,7 @@
-import { useFileMutation, useLibraryStore } from "@acme/features/library";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+
+import { useFileMutations, useLibraryStore } from "@acme/features/library";
 
 import { CustomAlert } from "~/components/alert";
 
@@ -24,7 +27,14 @@ export function LibraryDeleteModal() {
   const setSelectedFile = useLibraryStore((state) => state.setSelectedFile);
   const setSelectedFiles = useLibraryStore((state) => state.setSelectedFiles);
 
-  const { deleteFile, deleteFiles } = useFileMutation();
+  const mutations = useFileMutations();
+  const { mutate: deleteFiles } = useMutation({
+    ...mutations.deleteFiles,
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to delete file");
+    },
+  });
 
   return (
     <CustomAlert
@@ -38,14 +48,14 @@ export function LibraryDeleteModal() {
         if (libraryMode === "select") {
           const selectedFiles = useLibraryStore.getState().selectedFiles;
           if (selectedFiles.length > 0) {
-            void deleteFiles(selectedFiles.map((f) => f.id));
+            deleteFiles({ ids: selectedFiles.map((f) => f.id) });
             setSelectedFiles([]);
             setLibraryDeleteModalOpen(false);
           }
         } else {
           const selectedFile = useLibraryStore.getState().selectedFile;
           if (selectedFile) {
-            void deleteFile(selectedFile.id);
+            deleteFiles({ ids: [selectedFile.id] });
             setSelectedFile(null);
             setLibraryDeleteModalOpen(false);
           }

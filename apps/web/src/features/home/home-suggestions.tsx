@@ -2,7 +2,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useMutation } from "convex/react";
 
 import { api } from "@acme/db/api";
-import { suggestionQueries } from "@acme/features/lib/queries";
+import { homeQueries } from "@acme/features/home";
 
 import { Abyss } from "~/components/abyss";
 import { cn } from "~/lib/utils";
@@ -13,7 +13,7 @@ export function HomeSuggestions({
   onSelect: (prompt: string) => void;
 }) {
   const { data: prompts } = useSuspenseQuery({
-    ...suggestionQueries.getCurrent(),
+    ...homeQueries.suggestions(),
     select: (data) => data.map((d) => ({ _id: d._id, prompt: d.prompt })),
   });
   const incrementClickCount = useMutation(

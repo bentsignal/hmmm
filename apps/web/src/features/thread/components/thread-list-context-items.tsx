@@ -1,10 +1,19 @@
+import { useMutation } from "@tanstack/react-query";
 import { Pencil, Pin, PinOff, Trash } from "lucide-react";
+import { toast } from "sonner";
 
-import { useThreadMutation, useThreadStore } from "@acme/features/thread";
+import { useThreadMutations, useThreadStore } from "@acme/features/thread";
 import * as ContextMenu from "@acme/ui/context-menu";
 
 export function ThreadListContextItems() {
-  const { togglePinned } = useThreadMutation();
+  const mutations = useThreadMutations();
+  const { mutate: togglePinned } = useMutation({
+    ...mutations.togglePinned,
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to toggle thread pin");
+    },
+  });
   const triggerRenameModal = useThreadStore(
     (state) => state.triggerRenameModal,
   );

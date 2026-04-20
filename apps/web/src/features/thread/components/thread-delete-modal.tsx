@@ -1,13 +1,22 @@
+import { useMutation } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 
-import { useThreadMutation, useThreadStore } from "@acme/features/thread";
+import { useThreadMutations, useThreadStore } from "@acme/features/thread";
 
 import { CustomAlert } from "~/components/alert";
 
 export function ThreadDeleteModal() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { deleteThread } = useThreadMutation();
+  const mutations = useThreadMutations();
+  const { mutate: deleteThread } = useMutation({
+    ...mutations.delete,
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to delete thread");
+    },
+  });
   const setHoveredThread = useThreadStore((state) => state.setHoveredThread);
   const deleteModalOpen = useThreadStore((state) => state.deleteModalOpen);
   const setDeleteModalOpen = useThreadStore(

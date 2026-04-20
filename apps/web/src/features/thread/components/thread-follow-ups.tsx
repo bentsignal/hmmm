@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 
-import { useUsage } from "@acme/features/billing";
+import { billingQueries } from "@acme/features/billing";
 import { threadQueries } from "@acme/features/thread";
 
 import { useSendMessage } from "~/features/composer/hooks/use-send-message";
@@ -13,9 +13,12 @@ export function ThreadFollowUps({ threadId }: { threadId: string }) {
   const { questions: followUpQuestions, empty } = followUpState;
 
   const { sendMessage } = useSendMessage();
-  const { usage } = useUsage();
+  const { data: limitHit } = useSuspenseQuery({
+    ...billingQueries.usage(),
+    select: (data) => data.limitHit,
+  });
 
-  if (usage?.limitHit) {
+  if (limitHit) {
     return null;
   }
 

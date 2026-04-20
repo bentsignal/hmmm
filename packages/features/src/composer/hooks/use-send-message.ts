@@ -1,15 +1,15 @@
-// eslint-disable-next-line no-restricted-imports -- non-suspending useQuery is intentional so this hook reacts to activeThread changes without triggering a suspense boundary on every thread switch
-import { useQuery } from "@tanstack/react-query";
+// eslint-disable-next-line no-restricted-imports -- non-suspending useQuery is intentional for threadQueries.state so this hook reacts to activeThread changes without triggering a suspense boundary on every thread switch
+import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { ConvexError } from "convex/values";
 import { toast } from "sonner";
 
 import type { LibraryFile } from "../../library/types/library-types";
-import { useUsage } from "../../billing/hooks/use-usage";
+import { billingQueries } from "../../billing/lib/queries";
 import { validatePrompt } from "../../lib/prompt";
 import { tryCatch } from "../../lib/result";
 import { randomUUID } from "../../messages/agent/optimisticallySendMessage";
 import { useMessageStore } from "../../messages/store/message-store";
-import { useThreadMutation } from "../../thread/hooks/use-thread-mutation";
+import { useThreadMutations } from "../../thread/lib/mutations";
 import { threadQueries } from "../../thread/lib/queries";
 import { useThreadStore } from "../../thread/store/thread-store";
 import { useComposerStore } from "../store/composer-store";
@@ -34,11 +34,21 @@ function handleConvexError(error: unknown, handleError?: () => void) {
   toast.error("An internal error occurred. Please try again.");
 }
 
+type CreateThreadFn = (args: {
+  clientId: string;
+  prompt: string;
+  attachments: ReturnType<typeof mapAttachments>;
+}) => Promise<unknown>;
+
+type SendMessageInThreadFn = (args: {
+  threadId: string;
+  prompt: string;
+  attachments: ReturnType<typeof mapAttachments>;
+}) => Promise<unknown>;
+
 interface ThreadActionDeps {
-  createThread: ReturnType<typeof useThreadMutation>["createThread"];
-  sendMessageInThread: ReturnType<
-    typeof useThreadMutation
-  >["sendMessageInThread"];
+  createThread: CreateThreadFn;
+  sendMessageInThread: SendMessageInThreadFn;
   navigateToThread: (threadId: string) => void;
 }
 
@@ -116,7 +126,11 @@ interface UseSendMessageOptions {
 
 export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
   const setPrompt = useComposerStore((state) => state.setPrompt);
-  const { createThread, sendMessageInThread } = useThreadMutation();
+  const mutations = useThreadMutations();
+  const { mutateAsync: createThread } = useMutation(mutations.create);
+  const { mutateAsync: sendMessageInThread } = useMutation(
+    mutations.sendMessageInThread,
+  );
   const deps = { createThread, sendMessageInThread, navigateToThread };
 
   const activeThread = useThreadStore((state) => state.activeThread);
@@ -124,7 +138,10 @@ export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
     ...threadQueries.state(activeThread ?? ""),
     select: (state) => state,
   });
-  const { usage } = useUsage();
+  const { data: limitHit } = useSuspenseQuery({
+    ...billingQueries.usage(),
+    select: (data) => data.limitHit,
+  });
 
   const storeIsTranscribing = useComposerStore(
     (state) => state.storeIsTranscribing,
@@ -134,7 +151,7 @@ export function useSendMessage({ navigateToThread }: UseSendMessageOptions) {
   // Treat pending (undefined) as idle so the composer doesn't spuriously
   // flag "generating" while the query is still loading on first mount.
   const isGenerating = threadState != null;
-  const blockSend = isGenerating || isRecording || usage?.limitHit;
+  const blockSend = isGenerating || isRecording || limitHit;
   const isLoading = isGenerating || storeIsTranscribing;
 
   const setNumMessagesSent = useMessageStore(

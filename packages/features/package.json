@@ -6,12 +6,12 @@
     "./auth": "./src/auth/index.ts",
     "./billing": "./src/billing/index.ts",
     "./composer": "./src/composer/index.ts",
+    "./home": "./src/home/index.ts",
     "./hooks": "./src/hooks/index.ts",
     "./library": "./src/library/index.ts",
     "./lib/color-utils": "./src/lib/color-utils.ts",
     "./lib/date-time-utils": "./src/lib/date-time-utils.ts",
     "./lib/prompt": "./src/lib/prompt.ts",
-    "./lib/queries": "./src/lib/queries.ts",
     "./lib/result": "./src/lib/result.ts",
     "./lib/theme": "./src/lib/theme.ts",
     "./messages": "./src/messages/index.ts",
@@ -19,7 +19,8 @@
     "./shortcuts": "./src/shortcuts/index.ts",
     "./speech": "./src/speech/index.ts",
     "./thread": "./src/thread/index.ts",
-    "./types/source": "./src/types/source.ts"
+    "./types/source": "./src/types/source.ts",
+    "./user": "./src/user/index.ts"
   },
   "license": "MIT",
   "scripts": {

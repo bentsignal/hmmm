@@ -1,26 +1,26 @@
-import { useUsage } from "@acme/features/billing";
+import { useSuspenseQuery } from "@tanstack/react-query";
+
+import { billingQueries } from "@acme/features/billing";
 import { Progress } from "@acme/ui/progress";
 
-export function UsageProgress({
-  initialRange,
-  initialPercentageUsed,
-}: {
-  initialRange: string;
-  initialPercentageUsed: number;
-}) {
-  const { usage } = useUsage();
-  const percentageUsed = usage?.percentageUsed ?? initialPercentageUsed;
-  const range = usage?.range ?? initialRange;
+export function UsageProgress() {
+  const { data: usage } = useSuspenseQuery({
+    ...billingQueries.usage(),
+    select: (data) => ({
+      percentageUsed: data.percentageUsed,
+      range: data.range,
+    }),
+  });
   return (
     <div className="flex flex-col items-center gap-4 py-4">
       <h3 className="text-muted-foreground">
         You have used{" "}
         <span className="text-foreground font-bold">
-          {percentageUsed.toFixed(2)}%
+          {usage.percentageUsed.toFixed(2)}%
         </span>{" "}
-        of your {range} limit
+        of your {usage.range} limit
       </h3>
-      <Progress value={percentageUsed} className="w-full max-w-[300px]" />
+      <Progress value={usage.percentageUsed} className="w-full max-w-[300px]" />
     </div>
   );
 }
