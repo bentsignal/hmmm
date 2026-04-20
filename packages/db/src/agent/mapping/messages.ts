@@ -1,6 +1,5 @@
 import type { ModelMessage } from "ai";
 
-import type { ActionCtx, AgentComponent, MutationCtx } from "../client/types";
 import type { Message, MessageDoc } from "../validators";
 import type { SerializedMessage } from "./types";
 import {
@@ -12,11 +11,7 @@ import {
 // Async signature retained because callers `await` the result; if/when file
 // uploads come back this hook is the natural place for them.
 // eslint-disable-next-line @typescript-eslint/require-await
-export async function serializeMessage(
-  _ctx: ActionCtx | MutationCtx,
-  _component: AgentComponent,
-  message: ModelMessage | Message,
-) {
+export async function serializeMessage(message: ModelMessage | Message) {
   const { content } = serializeContent(message.content);
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const serialized = {

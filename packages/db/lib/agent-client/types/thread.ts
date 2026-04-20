@@ -8,7 +8,7 @@ import type {
 } from "ai";
 import type { WithoutSystemFields } from "convex/server";
 
-import type { ThreadDoc } from "../../validators";
+import type { ThreadDoc } from "../../../src/agent/validators";
 import type { StreamingOptions } from "../delta_streamer";
 import type {
   GenerateObjectArgs,

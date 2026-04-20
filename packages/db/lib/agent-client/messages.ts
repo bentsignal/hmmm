@@ -6,18 +6,16 @@ import type {
   Message,
   MessageStatus,
   MessageWithMetadata,
-} from "../validators";
-import type { ActionCtx, AgentComponent, MutationCtx, QueryCtx } from "./types";
-import { serializeMessage } from "../mapping";
-import { toUIMessages } from "../ui/to_ui_messages";
-import { vMessageWithMetadata } from "../validators";
+} from "../../src/agent/validators";
+import type { ActionCtx, MutationCtx, QueryCtx } from "./types";
+import { internal } from "../../src/_generated/api";
+import { serializeMessage } from "../../src/agent/mapping";
+import { toUIMessages } from "../../src/agent/ui/to_ui_messages";
+import { vMessageWithMetadata } from "../../src/agent/validators";
+import { asId } from "./_ids";
 
-/**
- * List messages from a thread.
- */
 export async function listMessages(
   ctx: QueryCtx | MutationCtx | ActionCtx,
-  component: AgentComponent,
   {
     threadId,
     paginationOpts,
@@ -37,9 +35,9 @@ export async function listMessages(
       continueCursor: paginationOpts.cursor ?? "",
     };
   }
-  return ctx.runQuery(component.messages.listMessagesByThreadId, {
+  return ctx.runQuery(internal.agent.messages.listMessagesByThreadId, {
     order: "desc",
-    threadId,
+    threadId: asId<"threads">(threadId),
     paginationOpts,
     excludeToolMessages,
     statuses,
@@ -48,13 +46,12 @@ export async function listMessages(
 
 export async function listUIMessages(
   ctx: QueryCtx | MutationCtx | ActionCtx,
-  component: AgentComponent,
   args: {
     threadId: string;
     paginationOpts: PaginationOptions;
   },
 ) {
-  const result = await listMessages(ctx, component, args);
+  const result = await listMessages(ctx, args);
   return { ...result, page: toUIMessages(result.page) };
 }
 
@@ -70,20 +67,23 @@ export interface SaveMessagesArgs {
 
 export async function saveMessages(
   ctx: MutationCtx | ActionCtx,
-  component: AgentComponent,
   args: SaveMessagesArgs & {
     agentName?: string;
   },
 ) {
-  const result = await ctx.runMutation(component.messages.addMessages, {
-    threadId: args.threadId,
+  const result = await ctx.runMutation(internal.agent.messages.addMessages, {
+    threadId: asId<"threads">(args.threadId),
     userId: args.userId ?? undefined,
     agentName: args.agentName,
-    promptMessageId: args.promptMessageId,
-    pendingMessageId: args.pendingMessageId,
+    promptMessageId: args.promptMessageId
+      ? asId<"messages">(args.promptMessageId)
+      : undefined,
+    pendingMessageId: args.pendingMessageId
+      ? asId<"messages">(args.pendingMessageId)
+      : undefined,
     messages: await Promise.all(
       args.messages.map(async (m, i) => {
-        const { message } = await serializeMessage(ctx, component, m);
+        const { message } = await serializeMessage(m);
         const base = args.metadata?.[i];
         return parse(vMessageWithMetadata, {
           ...base,
@@ -115,12 +115,11 @@ export type SaveMessageArgs = {
 
 export async function saveMessage(
   ctx: MutationCtx | ActionCtx,
-  component: AgentComponent,
   args: SaveMessageArgs & {
     agentName?: string;
   },
 ) {
-  const { messages } = await saveMessages(ctx, component, {
+  const { messages } = await saveMessages(ctx, {
     threadId: args.threadId,
     userId: args.userId ?? undefined,
     agentName: args.agentName,

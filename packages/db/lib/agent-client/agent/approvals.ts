@@ -1,5 +1,5 @@
-import type { MessageDoc } from "../../validators";
-import type { AgentComponent, MutationCtx } from "../types";
+import type { MessageDoc } from "../../../src/agent/validators";
+import type { MutationCtx } from "../types";
 import { listMessages, saveMessage } from "../messages";
 import { agentUpdateMessage } from "./message_ops";
 
@@ -14,31 +14,28 @@ type ApprovalResponsePart = Extract<
 >;
 
 export async function agentApproveToolCall(
-  component: AgentComponent,
   agentName: string,
   ctx: MutationCtx,
   args: { threadId: string; approvalId: string; reason?: string },
 ) {
-  return agentRespondToToolCallApproval(component, agentName, ctx, {
+  return agentRespondToToolCallApproval(agentName, ctx, {
     ...args,
     approved: true,
   });
 }
 
 export async function agentDenyToolCall(
-  component: AgentComponent,
   agentName: string,
   ctx: MutationCtx,
   args: { threadId: string; approvalId: string; reason?: string },
 ) {
-  return agentRespondToToolCallApproval(component, agentName, ctx, {
+  return agentRespondToToolCallApproval(agentName, ctx, {
     ...args,
     approved: false,
   });
 }
 
 async function agentRespondToToolCallApproval(
-  component: AgentComponent,
   agentName: string,
   ctx: MutationCtx,
   args: {
@@ -49,7 +46,7 @@ async function agentRespondToToolCallApproval(
   },
 ) {
   const { promptMessageId, existingResponseMessage } =
-    await findApprovalContext(component, ctx, {
+    await findApprovalContext(ctx, {
       threadId: args.threadId,
       approvalId: args.approvalId,
     });
@@ -71,7 +68,7 @@ async function agentRespondToToolCallApproval(
         )
       : [];
     const mergedContent = [...existingResponses, newPart];
-    await agentUpdateMessage(component, ctx, {
+    await agentUpdateMessage(ctx, {
       messageId: existingResponseMessage._id,
       patch: {
         message: { role: "tool", content: mergedContent },
@@ -81,7 +78,7 @@ async function agentRespondToToolCallApproval(
     return { messageId: existingResponseMessage._id };
   }
 
-  const { messageId } = await saveMessage(ctx, component, {
+  const { messageId } = await saveMessage(ctx, {
     threadId: args.threadId,
     promptMessageId,
     agentName,
@@ -94,7 +91,6 @@ async function agentRespondToToolCallApproval(
 }
 
 async function findApprovalContext(
-  component: AgentComponent,
   ctx: MutationCtx,
   args: { threadId: string; approvalId: string },
 ) {
@@ -104,7 +100,7 @@ async function findApprovalContext(
   let existingResponseMessage: MessageDoc | undefined;
   // Limit the search to the most recent messages. Approvals should always
   // be near the end of the thread.
-  const page = await listMessages(ctx, component, {
+  const page = await listMessages(ctx, {
     threadId: args.threadId,
     paginationOpts: { cursor: null, numItems: 100 },
   });

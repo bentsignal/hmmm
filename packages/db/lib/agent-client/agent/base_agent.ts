@@ -11,15 +11,11 @@ import type {
   MessageWithMetadata,
   StreamArgs,
   ThreadDoc,
-} from "../../validators";
+} from "../../../src/agent/validators";
 import type { SaveMessageArgs, SaveMessagesArgs } from "../messages";
-import type {
-  ActionCtx,
-  AgentComponent,
-  Config,
-  MutationCtx,
-  QueryCtx,
-} from "../types";
+import type { ActionCtx, Config, MutationCtx, QueryCtx } from "../types";
+import { asId } from "../_ids";
+import { internal } from "../../../src/_generated/api";
 import { listMessages, saveMessage, saveMessages } from "../messages";
 import { syncStreams } from "../streaming";
 import { getThreadMetadata } from "../threads";
@@ -43,18 +39,17 @@ interface ApprovalArgs {
 }
 
 export abstract class AgentBase {
-  abstract component: AgentComponent;
   abstract options: Config & { name: string; languageModel: LanguageModel };
 
   async saveMessage(ctx: AnyCtx, args: SaveMessageArgs) {
-    return saveMessage(ctx, this.component, {
+    return saveMessage(ctx, {
       ...args,
       agentName: this.options.name,
     });
   }
 
   async saveMessages(ctx: AnyCtx, args: SaveMessagesArgs) {
-    return saveMessages(ctx, this.component, {
+    return saveMessages(ctx, {
       ...args,
       agentName: this.options.name,
     });
@@ -69,7 +64,7 @@ export abstract class AgentBase {
       statuses?: MessageStatus[];
     },
   ) {
-    return listMessages(ctx, this.component, args);
+    return listMessages(ctx, args);
   }
 
   async syncStreams(
@@ -80,11 +75,11 @@ export abstract class AgentBase {
       includeStatuses?: ("streaming" | "finished" | "aborted")[];
     },
   ) {
-    return syncStreams(ctx, this.component, args);
+    return syncStreams(ctx, args);
   }
 
   async getThreadMetadata(ctx: QueryCtx | AnyCtx, args: { threadId: string }) {
-    return getThreadMetadata(ctx, this.component, args);
+    return getThreadMetadata(ctx, args);
   }
 
   async updateThreadMetadata(
@@ -96,15 +91,18 @@ export abstract class AgentBase {
       >;
     },
   ) {
-    return ctx.runMutation(this.component.threads.updateThread, args);
+    return ctx.runMutation(internal.agent.threads.updateThread, {
+      threadId: asId<"threads">(args.threadId),
+      patch: args.patch,
+    });
   }
 
   async approveToolCall(ctx: MutationCtx, args: ApprovalArgs) {
-    return agentApproveToolCall(this.component, this.options.name, ctx, args);
+    return agentApproveToolCall(this.options.name, ctx, args);
   }
 
   async denyToolCall(ctx: MutationCtx, args: ApprovalArgs) {
-    return agentDenyToolCall(this.component, this.options.name, ctx, args);
+    return agentDenyToolCall(this.options.name, ctx, args);
   }
 
   async saveStep<TOOLS extends ToolSet>(
@@ -118,7 +116,7 @@ export abstract class AgentBase {
       provider?: string;
     },
   ) {
-    return agentSaveStep<TOOLS>(this.component, this.options, ctx, args);
+    return agentSaveStep<TOOLS>(this.options, ctx, args);
   }
 
   async saveObject(
@@ -133,7 +131,7 @@ export abstract class AgentBase {
       metadata?: Omit<MessageWithMetadata, "message">;
     },
   ) {
-    return agentSaveObject(this.component, this.options, ctx, args);
+    return agentSaveObject(this.options, ctx, args);
   }
 
   async finalizeMessage(
@@ -143,22 +141,22 @@ export abstract class AgentBase {
       result: { status: "failed"; error: string } | { status: "success" };
     },
   ) {
-    await agentFinalizeMessage(this.component, ctx, args);
+    await agentFinalizeMessage(ctx, args);
   }
 
   async updateMessage(
     ctx: AnyCtx,
-    args: Parameters<typeof agentUpdateMessage>[2],
+    args: Parameters<typeof agentUpdateMessage>[1],
   ) {
-    await agentUpdateMessage(this.component, ctx, args);
+    await agentUpdateMessage(ctx, args);
   }
 
   async deleteMessages(ctx: AnyCtx, args: { messageIds: string[] }) {
-    await agentDeleteMessages(this.component, ctx, args);
+    await agentDeleteMessages(ctx, args);
   }
 
   async deleteMessage(ctx: AnyCtx, args: { messageId: string }) {
-    await agentDeleteMessage(this.component, ctx, args);
+    await agentDeleteMessage(ctx, args);
   }
 
   async deleteMessageRange(
@@ -171,15 +169,15 @@ export abstract class AgentBase {
       endStepOrder?: number;
     },
   ) {
-    return agentDeleteMessageRange(this.component, ctx, args);
+    return agentDeleteMessageRange(ctx, args);
   }
 
   async deleteThreadAsync(
     ctx: AnyCtx,
     args: { threadId: string; pageSize?: number },
   ) {
-    await ctx.runMutation(this.component.threads.deleteAllForThreadIdAsync, {
-      threadId: args.threadId,
+    await ctx.runMutation(internal.agent.threads.deleteAllForThreadIdAsync, {
+      threadId: asId<"threads">(args.threadId),
       limit: args.pageSize,
     });
   }
@@ -188,8 +186,8 @@ export abstract class AgentBase {
     ctx: ActionCtx,
     args: { threadId: string; pageSize?: number },
   ) {
-    await ctx.runAction(this.component.threads.deleteAllForThreadIdSync, {
-      threadId: args.threadId,
+    await ctx.runAction(internal.agent.threads.deleteAllForThreadIdSync, {
+      threadId: asId<"threads">(args.threadId),
       limit: args.pageSize,
     });
   }

@@ -1,7 +1,7 @@
 import type { ModelMessage, ProviderOptions } from "@ai-sdk/provider-utils";
 import type { CallSettings, EmbeddingModel, LanguageModel } from "ai";
 
-import type { MessageDoc } from "../../validators";
+import type { MessageDoc } from "../../../src/agent/validators";
 import type {
   ContextHandler,
   RawRequestResponseHandler,

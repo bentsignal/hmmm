@@ -1,15 +1,13 @@
 import type { FlexibleSchema, IdGenerator } from "@ai-sdk/provider-utils";
 import type { LanguageModel, StopCondition, ToolSet } from "ai";
 
-import type { ProviderMetadata, StreamArgs } from "../validators";
+import type { ProviderMetadata, StreamArgs } from "../../src/agent/validators";
 import type {
   ActionCtx,
-  AgentComponent,
   AgentPrompt,
   Config,
   ContextOptions,
   GenerateObjectArgs,
-  MutationCtx,
   ObjectMode,
   Options,
   Output,
@@ -22,6 +20,8 @@ import type {
   Thread,
   UsageHandler,
 } from "./types";
+import { internal } from "../../src/_generated/api";
+import { asId } from "./_ids";
 import { agentStart } from "./agent/agent_start";
 import { AgentBase } from "./agent/base_agent";
 import {
@@ -39,8 +39,8 @@ export {
   serializeDataOrUrl,
   serializeMessage,
   toUIFilePart,
-} from "../mapping";
-export { extractText, isTool, sorted } from "../shared";
+} from "../../src/agent/mapping";
+export { extractText, isTool, sorted } from "../../src/agent/shared";
 export {
   vAssistantMessage,
   vContent,
@@ -62,8 +62,8 @@ export {
   type SourcePart,
   type ThreadDoc,
   type Usage,
-} from "../validators";
-export { createTool, type ToolCtx } from "../tools";
+} from "../../src/agent/validators";
+export { createTool, type ToolCtx } from "../../src/agent/tools";
 export {
   listMessages,
   listUIMessages,
@@ -88,12 +88,11 @@ export {
   updateThreadMetadata,
 } from "./threads";
 export type { ContextHandler } from "./types";
-export { fromUIMessages } from "../ui/from_ui_messages";
-export { toUIMessages } from "../ui/to_ui_messages";
-export type { UIMessage } from "../ui/types";
+export { fromUIMessages } from "../../src/agent/ui/from_ui_messages";
+export { toUIMessages } from "../../src/agent/ui/to_ui_messages";
+export type { UIMessage } from "../../src/agent/ui/types";
 
 export type {
-  AgentComponent,
   Config,
   ContextOptions,
   ProviderMetadata,
@@ -133,21 +132,15 @@ export class Agent<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   AgentTools extends ToolSet = any,
 > extends AgentBase {
-  constructor(
-    public component: AgentComponent,
-    public options: AgentOptions<AgentTools>,
-  ) {
+  constructor(public options: AgentOptions<AgentTools>) {
     super();
   }
 
   async createThread(
-    ctx: (ActionCtx & CustomCtx) | MutationCtx,
+    ctx: ActionCtx & CustomCtx,
     args?: { userId?: string | null; title?: string; summary?: string },
-  ): Promise<{ threadId: string; thread?: Thread<AgentTools> }> {
-    const threadId = await createThread(ctx, this.component, args);
-    if (!("runAction" in ctx) || "workflowId" in ctx) {
-      return { threadId };
-    }
+  ): Promise<{ threadId: string; thread: Thread<AgentTools> }> {
+    const threadId = await createThread(ctx, args);
     const { thread } = this.continueThread(ctx, {
       threadId,
       userId: args?.userId,
@@ -167,8 +160,8 @@ export class Agent<
           threadId: args.threadId,
         }),
         updateMetadata: (patch) =>
-          ctx.runMutation(this.component.threads.updateThread, {
-            threadId: args.threadId,
+          ctx.runMutation(internal.agent.threads.updateThread, {
+            threadId: asId<"threads">(args.threadId),
             patch,
           }),
         generateText: this.generateText.bind(this, ctx, args),
@@ -195,7 +188,6 @@ export class Agent<
     options?: Options & { userId?: string | null; threadId?: string },
   ) {
     return agentStart<AgentTools, CustomCtx, TOOLS, T>({
-      component: this.component,
       options: this.options,
       agentForToolCtx: this,
       ctx,
@@ -215,7 +207,6 @@ export class Agent<
     options?: Options,
   ) {
     return agentGenerateText<AgentTools, CustomCtx, TOOLS, OUTPUT>({
-      component: this.component,
       options: this.options,
       agentForToolCtx: this,
       ctx,
@@ -238,7 +229,6 @@ export class Agent<
     >[0]["callOptions"],
   ) {
     return agentStreamText<AgentTools, CustomCtx, TOOLS, OUTPUT>({
-      component: this.component,
       options: this.options,
       agentForToolCtx: this,
       ctx,
@@ -260,7 +250,6 @@ export class Agent<
     options?: Options,
   ) {
     return agentGenerateObject<AgentTools, CustomCtx, SCHEMA, OUTPUT, RESULT>({
-      component: this.component,
       options: this.options,
       agentForToolCtx: this,
       ctx,
@@ -281,7 +270,6 @@ export class Agent<
     options?: Options,
   ) {
     return agentStreamObject<AgentTools, CustomCtx, SCHEMA, OUTPUT, RESULT>({
-      component: this.component,
       options: this.options,
       agentForToolCtx: this,
       ctx,

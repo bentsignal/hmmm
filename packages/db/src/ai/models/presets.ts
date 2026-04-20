@@ -5,7 +5,7 @@ import { transcriptionModels } from "./voice";
 export const modelPresets = {
   default: languageModels["gemini-3-flash"],
   classifier: languageModels["gemini-2.5-flash-lite"],
-  followUp: languageModels["gemini-2.0-flash"],
+  followUp: languageModels["gemini-3-flash"],
   titleGenerator: languageModels["gemini-2.5-flash-lite"],
   transcription: transcriptionModels["whisper-1"],
   search: languageModels.sonar,

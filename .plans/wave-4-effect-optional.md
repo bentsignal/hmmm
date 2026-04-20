@@ -45,7 +45,7 @@ We are **explicitly choosing Option A** from the four options the research subag
 ### Pain points today (verify these still exist after Wave 2 — some may already be gone)
 
 - **`/packages/db/src/ai/agents.ts`** (around lines 86–146): `streamResponse` action uses a manual `tryCatch` wrapper; logs opaque error codes G1, G2 via `logSystemError`; stores errors as system messages. **This is the file Wave 4 wraps with Effect.**
-- **`/packages/db/src/ai/thread/mutations.ts`** (around lines 105–125): try-catch around scheduler calls; errors propagate via `console.error` + system error message.
+- **`/packages/db/src/ai/thread/lifecycle.ts` and `/packages/db/src/ai/thread/messages.ts`** (scheduler call sites in `create` / `send`): try-catch around scheduler calls; errors propagate via `console.error` + system error message.
 - **`/packages/db/src/ai/thread/helpers.ts`** (around lines 60–78): `logSystemError` writes a formatted string (e.g. `--SYSTEM_ERROR--G1`) as a message to the thread. Users see opaque codes.
 - **`/packages/features/src/composer/hooks/use-send-message.ts`** (around lines 22–28): client extracts `ConvexError` via `error.data` or falls back to a generic message. No error context / tracing.
 - **`/packages/features/src/messages/util/message-util.ts`** (around lines 51–56): error codes G1/G2 map to themselves rather than human-readable text.

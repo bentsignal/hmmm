@@ -6,7 +6,6 @@ import type {
 } from "ai";
 import { parse } from "convex-helpers/validators";
 
-import type { ActionCtx, AgentComponent } from "../client/types";
 import type { ModelOrMetadata } from "../shared";
 import type { MessageWithMetadata } from "../validators";
 import { getModelName, getProviderName } from "../shared";
@@ -15,16 +14,12 @@ import { serializeMessage } from "./messages";
 import { serializeUsage, serializeWarnings } from "./usage";
 
 interface SerializeStepArgs<TOOLS extends ToolSet> {
-  ctx: ActionCtx;
-  component: AgentComponent;
   step: StepResult<TOOLS>;
   model: ModelOrMetadata | undefined;
   messagesToSerialize: ModelMessage[];
 }
 
 interface SerializeNewMessagesArgs<TOOLS extends ToolSet> {
-  ctx: ActionCtx;
-  component: AgentComponent;
   step: StepResult<TOOLS>;
   model: ModelOrMetadata | undefined;
 }
@@ -75,7 +70,7 @@ function pickNewResponseMessages<TOOLS extends ToolSet>(
 async function serializeStepMessages<TOOLS extends ToolSet>(
   args: SerializeStepArgs<TOOLS>,
 ) {
-  const { ctx, step, model, messagesToSerialize, component } = args;
+  const { step, model, messagesToSerialize } = args;
   // ref: https://github.com/vercel/ai/blob/main/packages/ai/src/generate-text/to-response-messages.ts#L120
   const hasToolMessage = step.response.messages.at(-1)?.role === "tool";
   const assistantFields = {
@@ -95,7 +90,7 @@ async function serializeStepMessages<TOOLS extends ToolSet>(
   // eslint-disable-next-line no-restricted-syntax
   const messages: MessageWithMetadata[] = await Promise.all(
     messagesToSerialize.map(async (msg) => {
-      const { message } = await serializeMessage(ctx, component, msg);
+      const { message } = await serializeMessage(msg);
       return parse(vMessageWithMetadata, {
         message,
         ...(message.role === "tool" ? toolFields : assistantFields),
@@ -107,14 +102,12 @@ async function serializeStepMessages<TOOLS extends ToolSet>(
 }
 
 export async function serializeObjectResult(args: {
-  ctx: ActionCtx;
-  component: AgentComponent;
   result: GenerateObjectResult<unknown>;
   model: ModelOrMetadata | undefined;
 }) {
-  const { ctx, result, model, component } = args;
+  const { result, model } = args;
   const text = JSON.stringify(result.object);
-  const { message } = await serializeMessage(ctx, component, {
+  const { message } = await serializeMessage({
     role: "assistant",
     content: text,
   });

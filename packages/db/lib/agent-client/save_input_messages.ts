@@ -1,13 +1,12 @@
 import type { ModelMessage } from "ai";
 
-import type { Message } from "../validators";
-import type { ActionCtx, AgentComponent, Config, MutationCtx } from "./types";
+import type { Message } from "../../src/agent/validators";
+import type { ActionCtx, Config } from "./types";
 import { saveMessages } from "./messages";
 import { getPromptArray } from "./search";
 
 export async function saveInputMessages(
-  ctx: MutationCtx | ActionCtx,
-  component: AgentComponent,
+  ctx: ActionCtx,
   {
     threadId,
     userId,
@@ -35,7 +34,7 @@ export async function saveInputMessages(
     promptMessageId: args.promptMessageId,
     shouldSave,
   });
-  const saved = await saveMessages(ctx, component, {
+  const saved = await saveMessages(ctx, {
     threadId,
     userId,
     messages: [...toSave, { role: "assistant", content: [] }],

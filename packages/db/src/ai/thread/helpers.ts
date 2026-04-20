@@ -8,12 +8,12 @@ import type { ActionCtx, MutationCtx, QueryCtx } from "../../_generated/server";
 import type { Message } from "../../agent/validators";
 import type { authedMutation, authedQuery } from "../../convex_helpers";
 import type { usageCheckedMutation } from "../../usage_checked_helpers";
+import { saveMessage } from "../../../lib/agent-client";
 import { addMessagesHandler } from "../../agent/handlers/add_messages";
 import { serializeOrThrow } from "../../agent/mapping";
 import { vMessageWithMetadata } from "../../agent/validators";
 import { messageSendRateLimit } from "../../limiter";
 import { isAdmin } from "../../user/account";
-import { agent } from "../agents";
 
 const MAX_ATTACHMENTS_PER_MESSAGE = 10;
 
@@ -111,7 +111,7 @@ export async function logSystemError(
     await saveMessagesDirect(ctx, threadId, [assistantMessage]);
     return;
   }
-  await agent.saveMessage(ctx, { threadId, message: assistantMessage });
+  await saveMessage(ctx, { threadId, message: assistantMessage });
 }
 
 export async function logSystemNotice(

@@ -1,29 +1,29 @@
 import type { ModelMessage } from "ai";
 import { assert } from "convex-helpers";
 
-import type { Message, MessageDoc } from "../validators";
+import type { Message, MessageDoc } from "../../src/agent/validators";
 import type {
   ActionCtx,
-  AgentComponent,
   Config,
   ContextOptions,
   MutationCtx,
   Options,
   QueryCtx,
 } from "./types";
+import { internal } from "../../src/_generated/api";
 import {
   autoDenyUnresolvedApprovals,
   docsToModelMessages,
   toModelMessage,
-} from "../mapping";
-import { DEFAULT_RECENT_MESSAGES, sorted } from "../shared";
+} from "../../src/agent/mapping";
+import { DEFAULT_RECENT_MESSAGES, sorted } from "../../src/agent/shared";
+import { asId } from "./_ids";
 
 /**
  * Fetch the most recent N successful messages from a thread.
  */
 export async function fetchContextMessages(
   ctx: QueryCtx | MutationCtx | ActionCtx,
-  component: AgentComponent,
   args: {
     userId: string | undefined;
     threadId: string | undefined;
@@ -33,13 +33,12 @@ export async function fetchContextMessages(
     contextOptions: ContextOptions;
   },
 ) {
-  const { recentMessages } = await fetchRecentMessages(ctx, component, args);
+  const { recentMessages } = await fetchRecentMessages(ctx, args);
   return recentMessages;
 }
 
 async function fetchRecentMessages(
   ctx: QueryCtx | MutationCtx | ActionCtx,
-  component: AgentComponent,
   args: {
     userId: string | undefined;
     threadId: string | undefined;
@@ -56,15 +55,17 @@ async function fetchRecentMessages(
     args.targetMessageId ?? args.upToAndIncludingMessageId;
   if (args.threadId && opts.recentMessages !== 0) {
     const { page } = await ctx.runQuery(
-      component.messages.listMessagesByThreadId,
+      internal.agent.messages.listMessagesByThreadId,
       {
-        threadId: args.threadId,
+        threadId: asId<"threads">(args.threadId),
         excludeToolMessages: opts.excludeToolMessages,
         paginationOpts: {
           numItems: opts.recentMessages ?? DEFAULT_RECENT_MESSAGES,
           cursor: null,
         },
-        upToAndIncludingMessageId: targetMessageId,
+        upToAndIncludingMessageId: targetMessageId
+          ? asId<"messages">(targetMessageId)
+          : undefined,
         order: "desc",
         statuses: ["success"],
       },
@@ -207,7 +208,6 @@ function splitAroundPromptMessage(
  */
 export async function fetchContextWithPrompt(
   ctx: ActionCtx,
-  component: AgentComponent,
   args: {
     prompt: string | (ModelMessage | Message)[] | undefined;
     messages: (ModelMessage | Message)[] | undefined;
@@ -221,7 +221,7 @@ export async function fetchContextWithPrompt(
   const { threadId, userId } = args;
   const promptArray = getPromptArray(args.prompt);
 
-  const { recentMessages } = await fetchRecentMessages(ctx, component, {
+  const { recentMessages } = await fetchRecentMessages(ctx, {
     userId,
     threadId,
     targetMessageId: args.promptMessageId,

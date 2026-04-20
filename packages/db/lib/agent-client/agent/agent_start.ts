@@ -2,13 +2,7 @@ import type { IdGenerator } from "@ai-sdk/provider-utils";
 import type { LanguageModel, StopCondition, ToolSet } from "ai";
 
 import type { Agent } from "../index";
-import type {
-  ActionCtx,
-  AgentComponent,
-  AgentPrompt,
-  Config,
-  Options,
-} from "../types";
+import type { ActionCtx, AgentPrompt, Config, Options } from "../types";
 import { startGeneration } from "../start";
 
 export type AgentConfig<AgentTools extends ToolSet> = Config & {
@@ -30,7 +24,6 @@ export interface CommonParams<
   AgentTools extends ToolSet,
   CustomCtx extends object,
 > {
-  component: AgentComponent;
   options: AgentConfig<AgentTools>;
   agentForToolCtx: Agent | undefined;
   ctx: ActionCtx & CustomCtx;
@@ -44,7 +37,6 @@ export async function agentStart<
   TOOLS extends ToolSet | undefined,
   T extends { _internal?: { generateId?: IdGenerator } },
 >(params: {
-  component: AgentComponent;
   options: AgentConfig<AgentTools>;
   agentForToolCtx: Agent | undefined;
   ctx: ActionCtx & CustomCtx;
@@ -59,8 +51,7 @@ export async function agentStart<
   callOptions?: Options & { userId?: string | null; threadId?: string };
 }) {
   type Tools = TOOLS extends undefined ? AgentTools : TOOLS;
-  const { component, options, agentForToolCtx, ctx, args, callOptions } =
-    params;
+  const { options, agentForToolCtx, ctx, args, callOptions } = params;
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const stopWhen = (args.stopWhen ?? options.stopWhen) as
     | StopCondition<Tools>
@@ -70,7 +61,6 @@ export async function agentStart<
   const tools = (args.tools ?? options.tools) as Tools;
   return startGeneration<T, Tools, CustomCtx>(
     ctx,
-    component,
     {
       ...args,
       tools,

@@ -1,13 +1,15 @@
 import { v } from "convex/values";
 
-import type { StreamArgs } from "../validators";
-import type { ActionCtx, AgentComponent, MutationCtx, QueryCtx } from "./types";
+import type { StreamArgs } from "../../src/agent/validators";
+import type { ActionCtx, MutationCtx, QueryCtx } from "./types";
+import { internal } from "../../src/_generated/api";
 import {
   vMessageDoc,
   vPaginationResult,
   vStreamDelta,
   vStreamMessage,
-} from "../validators";
+} from "../../src/agent/validators";
+import { asId } from "./_ids";
 
 export const vStreamMessagesReturnValue = v.object({
   ...vPaginationResult(vMessageDoc).fields,
@@ -19,18 +21,8 @@ export const vStreamMessagesReturnValue = v.object({
   ),
 });
 
-/**
- * A function that handles fetching stream deltas, used with the React hooks
- * `useThreadMessages` or `useStreamingThreadMessages`.
- * @param ctx A ctx object from a query, mutation, or action.
- * @param component The agent component, usually `components.agent`.
- * @param args.threadId The thread to sync streams for.
- * @param args.streamArgs The stream arguments with per-stream cursors.
- * @returns The deltas for each stream from their existing cursor.
- */
 export async function syncStreams(
   ctx: QueryCtx | MutationCtx | ActionCtx,
-  component: AgentComponent,
   {
     threadId,
     streamArgs,
@@ -46,7 +38,7 @@ export async function syncStreams(
   if (streamArgs.kind === "list") {
     return {
       kind: "list" as const,
-      messages: await listStreams(ctx, component, {
+      messages: await listStreams(ctx, {
         threadId,
         startOrder: streamArgs.startOrder,
         includeStatuses,
@@ -55,46 +47,38 @@ export async function syncStreams(
   }
   return {
     kind: "deltas" as const,
-    deltas: await ctx.runQuery(component.streams.listDeltas, {
-      threadId,
-      cursors: streamArgs.cursors,
+    deltas: await ctx.runQuery(internal.agent.streams.listDeltas, {
+      threadId: asId<"threads">(threadId),
+      cursors: streamArgs.cursors.map((c) => ({
+        streamId: asId<"streamingMessages">(c.streamId),
+        cursor: c.cursor,
+      })),
     }),
   };
 }
 
 export async function abortStream(
   ctx: MutationCtx | ActionCtx,
-  component: AgentComponent,
   args: { reason: string } & (
     | { streamId: string }
     | { threadId: string; order: number }
   ),
 ) {
   if ("streamId" in args) {
-    return await ctx.runMutation(component.streams.abort, {
+    return await ctx.runMutation(internal.agent.streams.abort, {
       reason: args.reason,
-      streamId: args.streamId,
+      streamId: asId<"streamingMessages">(args.streamId),
     });
   }
-  return await ctx.runMutation(component.streams.abortByOrder, {
+  return await ctx.runMutation(internal.agent.streams.abortByOrder, {
     reason: args.reason,
-    threadId: args.threadId,
+    threadId: asId<"threads">(args.threadId),
     order: args.order,
   });
 }
 
-/**
- * List the streaming messages for a thread.
- * @param ctx A ctx object from a query, mutation, or action.
- * @param component The agent component, usually `components.agent`.
- * @param args.threadId The thread to list streams for.
- * @param args.startOrder The order of the messages in the thread to start listing from.
- * @param args.includeStatuses The statuses to include in the list.
- * @returns The streams for the thread.
- */
 export async function listStreams(
   ctx: QueryCtx | MutationCtx | ActionCtx,
-  component: AgentComponent,
   {
     threadId,
     startOrder,
@@ -105,8 +89,8 @@ export async function listStreams(
     includeStatuses?: ("streaming" | "finished" | "aborted")[];
   },
 ) {
-  return ctx.runQuery(component.streams.list, {
-    threadId,
+  return ctx.runQuery(internal.agent.streams.list, {
+    threadId: asId<"threads">(threadId),
     startOrder,
     statuses: includeStatuses,
   });

@@ -5,7 +5,6 @@ import { authedMutation } from "../../convex_helpers";
 import { tryCatch } from "../../lib/utils";
 import { usageCheckedMutation } from "../../usage_checked_helpers";
 import { getPerferredModelIfAllowed } from "../../user/info";
-import { agent } from "../agents";
 import { emitThreadEvent, generateGenerationId } from "./events";
 import {
   authorizeAccess,
@@ -25,21 +24,16 @@ export const create = usageCheckedMutation({
     const { prompt, attachments } = args;
     const numAttachments = attachments?.length ?? 0;
     await validateMessage(ctx, prompt, numAttachments);
-    const { threadId } = await agent.createThread(ctx, {
+    const threadId = await ctx.db.insert("threads", {
       userId: ctx.user.subject,
       title: "New Chat",
-    });
-    const newThreadId = ctx.db.normalizeId("threads", threadId);
-    if (!newThreadId) {
-      throw new ConvexError("Just-created thread id failed to normalize");
-    }
-    await ctx.db.patch(newThreadId, {
+      status: "active",
       pinned: false,
       updatedAt: Date.now(),
     });
     const generationId = generateGenerationId();
     await emitThreadEvent(ctx, {
-      threadId: newThreadId,
+      threadId,
       userId: ctx.user.subject,
       eventType: "user_message_sent",
       generationId,
@@ -75,7 +69,7 @@ export const create = usageCheckedMutation({
         "Failed to generate title or response",
       );
     } else {
-      await ctx.db.patch(newThreadId, { generationFnId: scheduledIds[1] });
+      await ctx.db.patch(threadId, { generationFnId: scheduledIds[1] });
     }
     return threadId;
   },

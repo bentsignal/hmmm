@@ -6,21 +6,25 @@ import type {
   ToolSet,
 } from "ai";
 
-import type { Message, MessageWithMetadata } from "../../validators";
-import type { ActionCtx, AgentComponent, MutationCtx } from "../types";
+import type {
+  Message,
+  MessageWithMetadata,
+} from "../../../src/agent/validators";
+import type { ActionCtx, MutationCtx } from "../types";
+import { asId } from "../_ids";
+import { internal } from "../../../src/_generated/api";
 import {
   serializeMessage,
   serializeNewMessagesInStep,
   serializeObjectResult,
-} from "../../mapping";
-import { getModelName, getProviderName } from "../../shared";
+} from "../../../src/agent/mapping";
+import { getModelName, getProviderName } from "../../../src/agent/shared";
 
 interface ModelOpts {
   languageModel: LanguageModel;
 }
 
 export async function agentSaveStep<TOOLS extends ToolSet>(
-  component: AgentComponent,
   options: ModelOpts & { name: string },
   ctx: ActionCtx,
   args: {
@@ -33,8 +37,6 @@ export async function agentSaveStep<TOOLS extends ToolSet>(
   },
 ) {
   const { messages } = await serializeNewMessagesInStep({
-    ctx,
-    component,
     step: args.step,
     model: {
       provider: args.provider ?? getProviderName(options.languageModel),
@@ -42,18 +44,17 @@ export async function agentSaveStep<TOOLS extends ToolSet>(
     },
   });
 
-  return ctx.runMutation(component.messages.addMessages, {
+  return ctx.runMutation(internal.agent.messages.addMessages, {
     userId: args.userId,
-    threadId: args.threadId,
+    threadId: asId<"threads">(args.threadId),
     agentName: options.name,
-    promptMessageId: args.promptMessageId,
+    promptMessageId: asId<"messages">(args.promptMessageId),
     messages,
     failPendingSteps: false,
   });
 }
 
 export async function agentSaveObject(
-  component: AgentComponent,
   options: ModelOpts & { name: string },
   ctx: ActionCtx,
   args: {
@@ -67,8 +68,6 @@ export async function agentSaveObject(
   },
 ) {
   const { messages } = await serializeObjectResult({
-    ctx,
-    component,
     result: args.result,
     model: {
       model:
@@ -82,10 +81,10 @@ export async function agentSaveObject(
     },
   });
 
-  return ctx.runMutation(component.messages.addMessages, {
+  return ctx.runMutation(internal.agent.messages.addMessages, {
     userId: args.userId,
-    threadId: args.threadId,
-    promptMessageId: args.promptMessageId,
+    threadId: asId<"threads">(args.threadId),
+    promptMessageId: asId<"messages">(args.promptMessageId),
     failPendingSteps: false,
     messages,
     agentName: options.name,
@@ -93,21 +92,19 @@ export async function agentSaveObject(
 }
 
 export async function agentFinalizeMessage(
-  component: AgentComponent,
   ctx: MutationCtx | ActionCtx,
   args: {
     messageId: string;
     result: { status: "failed"; error: string } | { status: "success" };
   },
 ) {
-  await ctx.runMutation(component.messages.finalizeMessage, {
-    messageId: args.messageId,
+  await ctx.runMutation(internal.agent.messages.finalizeMessage, {
+    messageId: asId<"messages">(args.messageId),
     result: args.result,
   });
 }
 
 export async function agentUpdateMessage(
-  component: AgentComponent,
   ctx: MutationCtx | ActionCtx,
   args: {
     messageId: string;
@@ -118,13 +115,9 @@ export async function agentUpdateMessage(
     };
   },
 ) {
-  const { message } = await serializeMessage(
-    ctx,
-    component,
-    args.patch.message,
-  );
-  await ctx.runMutation(component.messages.updateMessage, {
-    messageId: args.messageId,
+  const { message } = await serializeMessage(args.patch.message);
+  await ctx.runMutation(internal.agent.messages.updateMessage, {
+    messageId: asId<"messages">(args.messageId),
     patch: {
       message,
       status: args.patch.status === "success" ? "success" : "failed",
@@ -134,25 +127,24 @@ export async function agentUpdateMessage(
 }
 
 export async function agentDeleteMessages(
-  component: AgentComponent,
   ctx: MutationCtx | ActionCtx,
   args: { messageIds: string[] },
 ) {
-  await ctx.runMutation(component.messages.deleteByIds, args);
+  await ctx.runMutation(internal.agent.messages.deleteByIds, {
+    messageIds: args.messageIds.map((id) => asId<"messages">(id)),
+  });
 }
 
 export async function agentDeleteMessage(
-  component: AgentComponent,
   ctx: MutationCtx | ActionCtx,
   args: { messageId: string },
 ) {
-  await ctx.runMutation(component.messages.deleteByIds, {
-    messageIds: [args.messageId],
+  await ctx.runMutation(internal.agent.messages.deleteByIds, {
+    messageIds: [asId<"messages">(args.messageId)],
   });
 }
 
 export async function agentDeleteMessageRange(
-  component: AgentComponent,
   ctx: MutationCtx | ActionCtx,
   args: {
     threadId: string;
@@ -162,8 +154,8 @@ export async function agentDeleteMessageRange(
     endStepOrder?: number;
   },
 ) {
-  return ctx.runMutation(component.messages.deleteByOrder, {
-    threadId: args.threadId,
+  return ctx.runMutation(internal.agent.messages.deleteByOrder, {
+    threadId: asId<"threads">(args.threadId),
     startOrder: args.startOrder,
     startStepOrder: args.startStepOrder,
     endOrder: args.endOrder,

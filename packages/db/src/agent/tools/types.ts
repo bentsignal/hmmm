@@ -2,7 +2,7 @@ import type { FlexibleSchema, ModelMessage } from "@ai-sdk/provider-utils";
 import type { Tool, ToolExecutionOptions } from "ai";
 import type { GenericActionCtx, GenericDataModel } from "convex/server";
 
-import type { Agent } from "../client/index";
+import type { Agent } from "../../../lib/agent-client/index";
 
 export type ToolCtx<DataModel extends GenericDataModel = GenericDataModel> =
   GenericActionCtx<DataModel> & {

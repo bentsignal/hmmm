@@ -26,7 +26,6 @@ export async function agentStreamObject<
   },
 ) {
   const {
-    component,
     options,
     agentForToolCtx,
     ctx,
@@ -36,7 +35,6 @@ export async function agentStreamObject<
   } = params;
   const { args, promptMessageId, order, fail, save, getSavedMessages } =
     await agentStart({
-      component,
       options,
       agentForToolCtx,
       ctx,

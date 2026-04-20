@@ -26,7 +26,7 @@
     "./agent/shared": "./src/agent/shared.ts",
     "./agent/deltas": "./src/agent/deltas/index.ts",
     "./agent/mapping": "./src/agent/mapping/index.ts",
-    "./agent/types": "./src/agent/client/types/index.ts"
+    "./agent/types": "./lib/agent-client/types/index.ts"
   },
   "scripts": {
     "dev": "convex dev",

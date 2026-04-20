@@ -13,6 +13,6 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["*.ts", "src"],
+  "include": ["*.ts", "src", "lib"],
   "exclude": ["node_modules", "./src/_generated"]
 }

@@ -1,13 +1,18 @@
 import type { GenerateObjectResult, StepResult, ToolSet } from "ai";
 
-import type { ModelOrMetadata } from "../../shared";
-import type { MessageDoc, MessageWithMetadata } from "../../validators";
-import type { ActionCtx, AgentComponent, Config, Options } from "../types";
+import type { ModelOrMetadata } from "../../../src/agent/shared";
+import type {
+  MessageDoc,
+  MessageWithMetadata,
+} from "../../../src/agent/validators";
+import type { ActionCtx, Config, Options } from "../types";
+import { asId } from "../_ids";
+import { internal } from "../../../src/_generated/api";
 import {
   serializeObjectResult,
   serializeResponseMessages,
-} from "../../mapping";
-import { getModelName, getProviderName } from "../../shared";
+} from "../../../src/agent/mapping";
+import { getModelName, getProviderName } from "../../../src/agent/shared";
 
 export type SaveInput<TOOLS extends ToolSet> =
   | { step: StepResult<TOOLS> }
@@ -24,27 +29,24 @@ interface AddMessagesArgs {
   finishStreamId?: string;
 }
 
-/**
- * Type-narrowed wrapper around `component.messages.addMessages`. The
- * AgentComponent shim widens mutation returns to `any`; we assert the
- * concrete shape here so callers stay strongly typed.
- */
-async function addMessages(
-  ctx: ActionCtx,
-  component: AgentComponent,
-  args: AddMessagesArgs,
-) {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- AnyFn component shim returns `any`; narrow to the documented `addMessages` return shape.
-  const result = (await ctx.runMutation(
-    component.messages.addMessages,
-    args,
-  )) as { messages: MessageDoc[] };
-  return result;
+async function addMessages(ctx: ActionCtx, args: AddMessagesArgs) {
+  return ctx.runMutation(internal.agent.messages.addMessages, {
+    ...args,
+    threadId: asId<"threads">(args.threadId),
+    promptMessageId: args.promptMessageId
+      ? asId<"messages">(args.promptMessageId)
+      : undefined,
+    pendingMessageId: args.pendingMessageId
+      ? asId<"messages">(args.pendingMessageId)
+      : undefined,
+    finishStreamId: args.finishStreamId
+      ? asId<"streamingMessages">(args.finishStreamId)
+      : undefined,
+  });
 }
 
 export interface CreateSaveHandlerDeps {
   ctx: ActionCtx;
-  component: AgentComponent;
   threadId: string | undefined;
   userId: string | undefined;
   opts: Options &
@@ -71,7 +73,6 @@ export interface CreateSaveHandlerDeps {
 export function createSaveHandler(deps: CreateSaveHandlerDeps) {
   const {
     ctx,
-    component,
     threadId,
     userId,
     opts,
@@ -99,8 +100,6 @@ export function createSaveHandler(deps: CreateSaveHandlerDeps) {
   ) {
     if (threadId && saveMessages !== "none") {
       const serialized = await serializeToSave({
-        ctx,
-        component,
         toSave,
         model: getActiveModel(),
         takeNewResponseMessages: () => {
@@ -118,7 +117,7 @@ export function createSaveHandler(deps: CreateSaveHandlerDeps) {
           status: "pending",
         });
       }
-      const saved = await addMessages(ctx, component, {
+      const saved = await addMessages(ctx, {
         userId,
         threadId,
         agentName: opts.agentName,
@@ -161,8 +160,6 @@ export function createSaveHandler(deps: CreateSaveHandlerDeps) {
 }
 
 interface SerializeToSaveArgs<TOOLS extends ToolSet> {
-  ctx: ActionCtx;
-  component: AgentComponent;
   toSave: SaveInput<TOOLS>;
   model: ModelOrMetadata;
   takeNewResponseMessages: () =>
@@ -171,24 +168,18 @@ interface SerializeToSaveArgs<TOOLS extends ToolSet> {
 }
 
 async function serializeToSave<TOOLS extends ToolSet>({
-  ctx,
-  component,
   toSave,
   model,
   takeNewResponseMessages,
 }: SerializeToSaveArgs<TOOLS>) {
   if ("object" in toSave) {
     return serializeObjectResult({
-      ctx,
-      component,
       result: toSave.object,
       model,
     });
   }
   const newResponseMessages = takeNewResponseMessages() ?? [];
   return serializeResponseMessages({
-    ctx,
-    component,
     step: toSave.step,
     model,
     responseMessages: newResponseMessages,

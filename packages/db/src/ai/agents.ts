@@ -3,10 +3,9 @@ import { v } from "convex/values";
 import z from "zod";
 
 import type { ActionCtx } from "../_generated/server";
-import type { AgentComponent } from "../agent/client";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
-import { Agent } from "../agent/client";
+import { Agent } from "../../lib/agent-client";
 import { tryCatch } from "../lib/utils";
 import { calculateModelCost } from "../user/usage";
 import { getModel, isLanguageModelKey } from "./models/helpers";
@@ -16,14 +15,7 @@ import { agentPrompt, followUpGeneratorPrompt } from "./prompts";
 import { logSystemError } from "./thread/helpers";
 import { tools } from "./tools";
 
-// Former `agentComponent` shim lived in /packages/db/src/agent/component.ts
-// solely because the agent used to be a separate Convex Component. Now that
-// it lives in-app, we just reference `internal.agent` directly. The cast
-// bridges the concrete generated FunctionReference shape to AgentComponent.
-// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-const agentComponent = internal.agent as unknown as AgentComponent;
-
-export const agent = new Agent(agentComponent, {
+const agent = new Agent({
   languageModel: modelPresets.default.model,
   name: "The Thinker",
   instructions: agentPrompt,
@@ -110,6 +102,7 @@ export const streamResponse = internalAction({
     model: v.optional(v.string()),
     generationId: v.string(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const { threadId, promptMessageId, generationId } = args;
     const { thread } = agent.continueThread(ctx, { threadId });

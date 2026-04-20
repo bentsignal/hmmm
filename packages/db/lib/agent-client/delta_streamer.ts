@@ -6,8 +6,11 @@ import type {
 } from "ai";
 import { smoothStream } from "ai";
 
-import type { ProviderOptions, StreamDelta } from "../validators";
-import type { ActionCtx, AgentComponent, MutationCtx } from "./types";
+import type { Id } from "../../src/_generated/dataModel";
+import type { ProviderOptions, StreamDelta } from "../../src/agent/validators";
+import type { ActionCtx } from "./types";
+import { internal } from "../../src/_generated/api";
+import { asId } from "./_ids";
 
 export interface StreamingOptions {
   /**
@@ -104,7 +107,7 @@ interface DeltaStreamerMetadata {
  * optimize the data in transit.
  */
 export class DeltaStreamer<T> {
-  streamId: string | undefined;
+  streamId: Id<"streamingMessages"> | undefined;
   public readonly config: {
     throttleMs: number;
     maxPartsPerFlush: number;
@@ -120,11 +123,10 @@ export class DeltaStreamer<T> {
   // and consumeStream should skip calling finish().
   #finishedExternally = false;
   // Avoid race conditions by only creating once
-  #creatingStreamIdPromise: Promise<string> | undefined;
+  #creatingStreamIdPromise: Promise<Id<"streamingMessages">> | undefined;
 
   constructor(
-    public readonly component: AgentComponent,
-    public readonly ctx: MutationCtx | ActionCtx,
+    public readonly ctx: ActionCtx,
     config: DeltaStreamerConfig<T>,
     public readonly metadata: DeltaStreamerMetadata,
   ) {
@@ -155,7 +157,7 @@ export class DeltaStreamer<T> {
       }
       if (this.streamId) {
         await this.#ongoingWrite;
-        await this.ctx.runMutation(this.component.streams.abort, {
+        await this.ctx.runMutation(internal.agent.streams.abort, {
           streamId: this.streamId,
           reason: "abortSignal",
         });
@@ -169,8 +171,8 @@ export class DeltaStreamer<T> {
   public async getStreamId() {
     if (!this.streamId) {
       this.#creatingStreamIdPromise ??= this.ctx.runMutation(
-        this.component.streams.create,
-        this.metadata,
+        internal.agent.streams.create,
+        { ...this.metadata, threadId: asId<"threads">(this.metadata.threadId) },
       );
       this.streamId = await this.#creatingStreamIdPromise;
     }
@@ -232,8 +234,8 @@ export class DeltaStreamer<T> {
     this.#latestWrite = Date.now();
     try {
       const success = await this.ctx.runMutation(
-        this.component.streams.addDelta,
-        delta,
+        internal.agent.streams.addDelta,
+        { ...delta, streamId: asId<"streamingMessages">(delta.streamId) },
       );
       if (!success) {
         await this.config.onAsyncAbort("async abort");
@@ -288,7 +290,7 @@ export class DeltaStreamer<T> {
     if (this.abortController.signal.aborted) {
       return;
     }
-    await this.ctx.runMutation(this.component.streams.finish, {
+    await this.ctx.runMutation(internal.agent.streams.finish, {
       streamId: this.streamId,
     });
   }
@@ -302,7 +304,7 @@ export class DeltaStreamer<T> {
       return;
     }
     await this.#ongoingWrite;
-    await this.ctx.runMutation(this.component.streams.abort, {
+    await this.ctx.runMutation(internal.agent.streams.abort, {
       streamId: this.streamId,
       reason,
     });

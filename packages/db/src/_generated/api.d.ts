@@ -8,31 +8,6 @@
  * @module
  */
 
-import type * as agent_client_agent_agent_start from "../agent/client/agent/agent_start.js";
-import type * as agent_client_agent_approvals from "../agent/client/agent/approvals.js";
-import type * as agent_client_agent_base_agent from "../agent/client/agent/base_agent.js";
-import type * as agent_client_agent_generation from "../agent/client/agent/generation.js";
-import type * as agent_client_agent_message_ops from "../agent/client/agent/message_ops.js";
-import type * as agent_client_agent_stream_object from "../agent/client/agent/stream_object.js";
-import type * as agent_client_compress from "../agent/client/compress.js";
-import type * as agent_client_delta_streamer from "../agent/client/delta_streamer.js";
-import type * as agent_client_index from "../agent/client/index.js";
-import type * as agent_client_messages from "../agent/client/messages.js";
-import type * as agent_client_save_input_messages from "../agent/client/save_input_messages.js";
-import type * as agent_client_search from "../agent/client/search.js";
-import type * as agent_client_start from "../agent/client/start.js";
-import type * as agent_client_start_resolve from "../agent/client/start/resolve.js";
-import type * as agent_client_start_save from "../agent/client/start/save.js";
-import type * as agent_client_stream_text from "../agent/client/stream_text.js";
-import type * as agent_client_streaming from "../agent/client/streaming.js";
-import type * as agent_client_threads from "../agent/client/threads.js";
-import type * as agent_client_types_args from "../agent/client/types/args.js";
-import type * as agent_client_types_config from "../agent/client/types/config.js";
-import type * as agent_client_types_ctx from "../agent/client/types/ctx.js";
-import type * as agent_client_types_handlers from "../agent/client/types/handlers.js";
-import type * as agent_client_types_index from "../agent/client/types/index.js";
-import type * as agent_client_types_thread from "../agent/client/types/thread.js";
-import type * as agent_client_utils from "../agent/client/utils.js";
 import type * as agent_deltas_helpers from "../agent/deltas/helpers.js";
 import type * as agent_deltas_index from "../agent/deltas/index.js";
 import type * as agent_deltas_part_handlers from "../agent/deltas/part_handlers.js";
@@ -154,31 +129,6 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  "agent/client/agent/agent_start": typeof agent_client_agent_agent_start;
-  "agent/client/agent/approvals": typeof agent_client_agent_approvals;
-  "agent/client/agent/base_agent": typeof agent_client_agent_base_agent;
-  "agent/client/agent/generation": typeof agent_client_agent_generation;
-  "agent/client/agent/message_ops": typeof agent_client_agent_message_ops;
-  "agent/client/agent/stream_object": typeof agent_client_agent_stream_object;
-  "agent/client/compress": typeof agent_client_compress;
-  "agent/client/delta_streamer": typeof agent_client_delta_streamer;
-  "agent/client/index": typeof agent_client_index;
-  "agent/client/messages": typeof agent_client_messages;
-  "agent/client/save_input_messages": typeof agent_client_save_input_messages;
-  "agent/client/search": typeof agent_client_search;
-  "agent/client/start": typeof agent_client_start;
-  "agent/client/start/resolve": typeof agent_client_start_resolve;
-  "agent/client/start/save": typeof agent_client_start_save;
-  "agent/client/stream_text": typeof agent_client_stream_text;
-  "agent/client/streaming": typeof agent_client_streaming;
-  "agent/client/threads": typeof agent_client_threads;
-  "agent/client/types/args": typeof agent_client_types_args;
-  "agent/client/types/config": typeof agent_client_types_config;
-  "agent/client/types/ctx": typeof agent_client_types_ctx;
-  "agent/client/types/handlers": typeof agent_client_types_handlers;
-  "agent/client/types/index": typeof agent_client_types_index;
-  "agent/client/types/thread": typeof agent_client_types_thread;
-  "agent/client/utils": typeof agent_client_utils;
   "agent/deltas/helpers": typeof agent_deltas_helpers;
   "agent/deltas/index": typeof agent_deltas_index;
   "agent/deltas/part_handlers": typeof agent_deltas_part_handlers;

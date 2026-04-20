@@ -1,16 +1,19 @@
 import type { CustomCtx } from "convex-helpers/server/customFunctions";
+import type { Infer } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 
-import type { SyncStreamsReturnValue } from "../../agent/client/types";
+import type { Id } from "../../_generated/dataModel";
+import type { StreamArgs } from "../../agent/validators";
+import type { vListThreadStreams } from "./shared";
 import { internal } from "../../_generated/api";
+import { asId } from "../../../lib/agent-client/_ids";
 import { vStreamArgs } from "../../agent/validators";
 import { getPublicFile } from "../../app/file_helpers";
 import { authedQuery } from "../../convex_helpers";
 import { tryCatch } from "../../lib/utils";
 import { usageCheckedMutation } from "../../usage_checked_helpers";
 import { getPerferredModelIfAllowed } from "../../user/info";
-import { agent } from "../agents";
 import { emitThreadEvent, generateGenerationId } from "./events";
 import {
   authorizeAccess,
@@ -18,13 +21,51 @@ import {
   saveUserMessage,
   validateMessage,
 } from "./helpers";
-import { vAttachment } from "./shared";
+import { vAttachment, vListThreadReturn } from "./shared";
 import { getLatestEvent } from "./state";
 
 function isStringArray(value: unknown): value is string[] {
   return (
     Array.isArray(value) && value.every((item) => typeof item === "string")
   );
+}
+
+/**
+ * Inline replacement for `syncStreams` from `lib/agent-client/streaming.ts`.
+ * Kept here so the scanned `list` query's handler does not have to flow
+ * through that wrapper — the wrapper's body calls `internal.*`, and because
+ * the wrapper has no return annotation TS would have to infer its type via
+ * `fullApi`, which cycles back through this module. Result is routed
+ * through a variable declared with an explicit type (no init) so its
+ * inferred type does not propagate `internal.*` back up the cycle. When
+ * no `streamArgs` is provided we still emit the empty "list" variant so
+ * the validator can require the `streams` field unconditionally.
+ */
+async function resolveSyncStreams(
+  ctx: CustomCtx<typeof authedQuery>,
+  threadId: Id<"threads">,
+  streamArgs: StreamArgs,
+) {
+  let result: Infer<typeof vListThreadStreams>;
+  if (!streamArgs || streamArgs.kind === "list") {
+    const messages = streamArgs
+      ? await ctx.runQuery(internal.agent.streams.list, {
+          threadId,
+          startOrder: streamArgs.startOrder,
+        })
+      : [];
+    result = { kind: "list", messages };
+  } else {
+    const deltas = await ctx.runQuery(internal.agent.streams.listDeltas, {
+      threadId,
+      cursors: streamArgs.cursors.map((c) => ({
+        streamId: asId<"streamingMessages">(c.streamId),
+        cursor: c.cursor,
+      })),
+    });
+    result = { kind: "deltas", deltas };
+  }
+  return result;
 }
 
 async function resolveAttachments(
@@ -51,18 +92,28 @@ export const list = authedQuery({
     paginationOpts: paginationOptsValidator,
     streamArgs: vStreamArgs,
   },
+  returns: vListThreadReturn,
+  // The handler's return goes through a `let` declared with an explicit
+  // validator-derived type (no initializer, which keeps the eslint rule
+  // banning annotated initializers happy). Doing this pins the handler's
+  // inferred return type to `Infer<typeof vListThreadReturn>` instead of a
+  // shape that flows back through `internal.*` — which would cycle via
+  // `fullApi` → this module → handler's return type.
   handler: async (ctx, args) => {
+    let result: Infer<typeof vListThreadReturn>;
     const { threadId, paginationOpts, streamArgs } = args;
     if (threadId.trim().length === 0) {
       throw new Error("Empty thread ID");
     }
     const thread = await authorizeAccess(ctx, threadId);
     if (!thread) {
-      const streamsFallback =
-        !streamArgs || streamArgs.kind === "list"
-          ? ({ kind: "list", messages: [] } satisfies SyncStreamsReturnValue)
-          : ({ kind: "deltas", deltas: [] } satisfies SyncStreamsReturnValue);
-      return {
+      let streamsFallback: Infer<typeof vListThreadStreams>;
+      if (!streamArgs || streamArgs.kind === "list") {
+        streamsFallback = { kind: "list", messages: [] };
+      } else {
+        streamsFallback = { kind: "deltas", deltas: [] };
+      }
+      result = {
         continueCursor: "",
         isDone: true,
         page: [],
@@ -70,10 +121,24 @@ export const list = authedQuery({
         splitCursor: null,
         streams: streamsFallback,
       };
+      return result;
     }
+    const threadIdTyped = thread._id satisfies Id<"threads">;
     const [streams, paginated] = await Promise.all([
-      agent.syncStreams(ctx, { threadId, streamArgs }),
-      agent.listMessages(ctx, { threadId, paginationOpts }),
+      resolveSyncStreams(ctx, threadIdTyped, streamArgs),
+      paginationOpts.numItems === 0
+        ? Promise.resolve({
+            page: [],
+            isDone: true,
+            continueCursor: paginationOpts.cursor ?? "",
+            splitCursor: null,
+            pageStatus: null,
+          })
+        : ctx.runQuery(internal.agent.messages.listMessagesByThreadId, {
+            order: "desc",
+            threadId: threadIdTyped,
+            paginationOpts,
+          }),
     ]);
     // Resolve attachments inline now that they live on the messages row.
     const enriched = await Promise.all(
@@ -104,11 +169,12 @@ export const list = authedQuery({
         };
       }),
     );
-    return {
+    result = {
       ...paginated,
       page: enriched,
       streams,
     };
+    return result;
   },
 });
 

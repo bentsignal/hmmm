@@ -10,13 +10,12 @@ import type { StreamingOptions } from "./delta_streamer";
 import type { Agent } from "./index";
 import type {
   ActionCtx,
-  AgentComponent,
   AgentPrompt,
   GenerationOutputMetadata,
   Options,
   Output,
 } from "./types";
-import { getModelName, getProviderName } from "../shared";
+import { getModelName, getProviderName } from "../../src/agent/shared";
 import { compressUIMessageChunks } from "./compress";
 import { DeltaStreamer, mergeTransforms } from "./delta_streamer";
 import { startGeneration } from "./start";
@@ -52,7 +51,6 @@ export async function streamText<
   OUTPUT extends Output = never,
 >(
   ctx: ActionCtx,
-  component: AgentComponent,
   /**
    * The arguments to the streamText function, similar to the ai sdk's
    * {@link streamText} function, along with Agent prompt options.
@@ -76,7 +74,7 @@ export async function streamText<
 ) {
   const { threadId } = options;
   const { args, userId, order, stepOrder, promptMessageId, ...call } =
-    await startGeneration(ctx, component, streamTextArgs, options);
+    await startGeneration(ctx, streamTextArgs, options);
 
   // eslint-disable-next-line no-restricted-syntax -- empty array initializer needs annotation so push targets typecheck against StepResult<TOOLS>
   const steps: StepResult<TOOLS>[] = [];
@@ -87,7 +85,6 @@ export async function streamText<
     threadId,
     options,
     args,
-    component,
     ctx,
     userId,
     order,
@@ -222,7 +219,6 @@ interface CreateDeltaStreamerArgs {
     providerOptions?: Record<string, Record<string, unknown>> | undefined;
     abortSignal?: AbortSignal;
   };
-  component: AgentComponent;
   ctx: ActionCtx;
   userId: string | undefined;
   order: number;
@@ -234,7 +230,6 @@ function createDeltaStreamer<_TOOLS extends ToolSet>({
   threadId,
   options,
   args,
-  component,
   ctx,
   userId,
   order,
@@ -243,7 +238,6 @@ function createDeltaStreamer<_TOOLS extends ToolSet>({
 }: CreateDeltaStreamerArgs) {
   if (!threadId || !options.saveStreamDeltas) return undefined;
   return new DeltaStreamer(
-    component,
     ctx,
     {
       throttleMs:

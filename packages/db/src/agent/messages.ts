@@ -82,22 +82,20 @@ export const deleteByOrder = internalMutation({
   },
 });
 
-const addMessagesArgs = {
-  userId: v.optional(v.string()),
-  threadId: v.id("threads"),
-  promptMessageId: v.optional(v.id("messages")),
-  agentName: v.optional(v.string()),
-  messages: v.array(vMessageWithMetadata),
-  failPendingSteps: v.optional(v.boolean()),
-  pendingMessageId: v.optional(v.id("messages")),
-  hideFromUserIdSearch: v.optional(v.boolean()),
-  finishStreamId: v.optional(v.id("streamingMessages")),
-};
-
 export const addMessages = internalMutation({
-  args: addMessagesArgs,
-  handler: addMessagesHandler,
+  args: {
+    userId: v.optional(v.string()),
+    threadId: v.id("threads"),
+    promptMessageId: v.optional(v.id("messages")),
+    agentName: v.optional(v.string()),
+    messages: v.array(vMessageWithMetadata),
+    failPendingSteps: v.optional(v.boolean()),
+    pendingMessageId: v.optional(v.id("messages")),
+    hideFromUserIdSearch: v.optional(v.boolean()),
+    finishStreamId: v.optional(v.id("streamingMessages")),
+  },
   returns: v.object({ messages: v.array(vMessageDoc) }),
+  handler: async (ctx, args) => addMessagesHandler(ctx, args),
 });
 
 export const finalizeMessage = internalMutation({

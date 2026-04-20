@@ -10,12 +10,14 @@ import type { GenericActionCtx, GenericDataModel } from "convex/server";
 import { stepCountIs } from "ai";
 import { assert, omit } from "convex-helpers";
 
-import type { ModelOrMetadata } from "../shared";
-import type { ToolCtx } from "../tools";
-import type { Message } from "../validators";
+import type { ModelOrMetadata } from "../../src/agent/shared";
+import type { ToolCtx } from "../../src/agent/tools";
+import type { Message } from "../../src/agent/validators";
 import type { Agent } from "./index";
-import type { ActionCtx, AgentComponent, Config, Options } from "./types";
-import { wrapTools } from "../tools";
+import type { ActionCtx, Config, Options } from "./types";
+import { internal } from "../../src/_generated/api";
+import { wrapTools } from "../../src/agent/tools";
+import { asId } from "./_ids";
 import { fetchContextWithPrompt } from "./search";
 import { resolveInputs, resolveUserId } from "./start/resolve";
 import { createSaveHandler } from "./start/save";
@@ -162,7 +164,6 @@ export async function startGeneration<
   CustomCtx extends object = object,
 >(
   ctx: ActionCtx & CustomCtx,
-  component: AgentComponent,
   /**
    * These are the arguments you'll pass to the LLM call such as
    * `generateText` or `streamText`. This function looks up the context and
@@ -171,9 +172,9 @@ export async function startGeneration<
   args: T & StartGenerationArgs<Tools>,
   { threadId, ...opts }: StartGenerationOptions,
 ) {
-  const userId = await resolveUserId(ctx, component, opts, threadId);
+  const userId = await resolveUserId(ctx, opts, threadId);
 
-  const context = await fetchContextWithPrompt(ctx, component, {
+  const context = await fetchContextWithPrompt(ctx, {
     ...opts,
     userId,
     threadId,
@@ -185,7 +186,6 @@ export async function startGeneration<
   const { promptMessageId, pendingMessage, savedMessages } =
     await resolveInputs(
       ctx,
-      component,
       {
         prompt: args.prompt,
         messages: args.messages,
@@ -208,8 +208,8 @@ export async function startGeneration<
 
   async function fail(reason: string) {
     if (pendingRef.id) {
-      await ctx.runMutation(component.messages.finalizeMessage, {
-        messageId: pendingRef.id,
+      await ctx.runMutation(internal.agent.messages.finalizeMessage, {
+        messageId: asId<"messages">(pendingRef.id),
         result: { status: "failed", error: reason },
       });
     }
@@ -236,7 +236,6 @@ export async function startGeneration<
 
   const save = createSaveHandler({
     ctx,
-    component,
     threadId,
     userId,
     opts,

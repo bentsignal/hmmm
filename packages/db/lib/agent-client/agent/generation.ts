@@ -35,7 +35,6 @@ export async function agentGenerateText<
   },
 ) {
   const {
-    component,
     options,
     agentForToolCtx,
     ctx,
@@ -44,7 +43,6 @@ export async function agentGenerateText<
     generateTextArgs,
   } = params;
   const { args, promptMessageId, order, ...call } = await agentStart({
-    component,
     options,
     agentForToolCtx,
     ctx,
@@ -95,7 +93,6 @@ export async function agentStreamText<
 ) {
   type Tools = TOOLS extends undefined ? AgentTools : TOOLS;
   const {
-    component,
     options,
     agentForToolCtx,
     ctx,
@@ -112,7 +109,6 @@ export async function agentStreamText<
   const tools = (streamTextArgs.tools ?? options.tools) as Tools;
   return streamText<Tools, OUTPUT>(
     ctx,
-    component,
     {
       ...streamTextArgs,
       model: streamTextArgs.model ?? options.languageModel,
@@ -145,7 +141,6 @@ export async function agentGenerateObject<
   },
 ) {
   const {
-    component,
     options,
     agentForToolCtx,
     ctx,
@@ -155,7 +150,6 @@ export async function agentGenerateObject<
   } = params;
   const { args, promptMessageId, order, fail, save, getSavedMessages } =
     await agentStart({
-      component,
       options,
       agentForToolCtx,
       ctx,

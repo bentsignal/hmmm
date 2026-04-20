@@ -5,7 +5,7 @@ import type {
   LanguageModelUsage,
 } from "ai";
 
-import type { ProviderMetadata } from "../../validators";
+import type { ProviderMetadata } from "../../../src/agent/validators";
 import type { ActionCtx } from "./ctx";
 
 export type UsageHandler = (

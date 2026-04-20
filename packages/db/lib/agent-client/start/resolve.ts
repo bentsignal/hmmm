@@ -1,16 +1,13 @@
 import type { ModelMessage } from "ai";
 
-import type { Message, MessageDoc } from "../../validators";
-import type { ActionCtx, AgentComponent, Config, Options } from "../types";
+import type { Message, MessageDoc } from "../../../src/agent/validators";
+import type { ActionCtx, Config, Options } from "../types";
+import { asId } from "../_ids";
+import { internal } from "../../../src/_generated/api";
 import { saveInputMessages } from "../save_input_messages";
 
-/**
- * Resolve the effective userId for a generation call. Prefers the caller-
- * provided userId; otherwise falls back to the thread's owner.
- */
 export async function resolveUserId(
   ctx: ActionCtx,
-  component: AgentComponent,
   opts: { userId?: string | null },
   threadId: string | undefined,
 ) {
@@ -18,8 +15,8 @@ export async function resolveUserId(
     return opts.userId;
   }
   if (!threadId) return undefined;
-  const thread = await ctx.runQuery(component.threads.getThread, {
-    threadId,
+  const thread = await ctx.runQuery(internal.agent.threads.getThread, {
+    threadId: asId<"threads">(threadId),
   });
   return thread?.userId ?? undefined;
 }
@@ -32,13 +29,8 @@ function emptyInputs(
   return { promptMessageId, pendingMessage, savedMessages };
 }
 
-/**
- * If messages are to be persisted, run `saveInputMessages` to create/open a
- * pending assistant message. Otherwise return a stub with no pending state.
- */
 export async function resolveInputs(
   ctx: ActionCtx,
-  component: AgentComponent,
   args: {
     prompt: string | (ModelMessage | Message)[] | undefined;
     messages: (ModelMessage | Message)[] | undefined;
@@ -55,7 +47,7 @@ export async function resolveInputs(
   if (!opts.threadId || saveMessages === "none") {
     return emptyInputs(args.promptMessageId);
   }
-  return saveInputMessages(ctx, component, {
+  return saveInputMessages(ctx, {
     ...opts,
     threadId: opts.threadId,
     prompt: args.prompt,

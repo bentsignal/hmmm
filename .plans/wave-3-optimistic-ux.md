@@ -46,7 +46,7 @@ So the new shared-mutation files (built using the start-faster pattern) are the 
 - **Trigger files:** `/apps/web/src/app/_authenticated/new.tsx`, `/apps/web/src/app/_authenticated/home.tsx`.
 - **Send message hook:** `/packages/features/src/composer/hooks/use-send-message.ts`.
 - **Thread mutation hook:** `/packages/features/src/thread/hooks/use-thread-mutation.ts`.
-- **Backend create:** `/packages/db/src/ai/thread/mutations.ts` (lines ~73–131).
+- **Backend create:** `/packages/db/src/ai/thread/lifecycle.ts` (the `create` mutation). Path: `api.ai.thread.lifecycle.create`.
 - **Sequence today:**
   1. User submits → `useSendMessage()` calls `handleCreateThread()`.
   2. `handleCreateThread()` calls `createThread()` mutation, **awaits** the result.
@@ -69,7 +69,7 @@ So the new shared-mutation files (built using the start-faster pattern) are the 
 - **File:** `/apps/web/src/features/composer/components/composer-send.tsx` (lines ~19–28).
 - **Mechanism** (post-Wave-1-Track-A — `useThreadStatus` no longer exists; the component calls `useQuery(threadQueries.state(threadId))` directly, where `threadQueries` lives in `/packages/features/src/thread/lib/queries.ts`):
   1. `useQuery(threadQueries.state(threadId))` returns the server state.
-  2. Component derives `isGenerating = state !== "idle"` locally.
+  2. Component derives `isGenerating = latestEvent !== null` locally (query returns `EventType | null`).
   3. **A 3-second `setTimeout` hides the abort button** (`setOptimisticEnable(false)` after 3s).
   4. Button only renders when `isGenerating && !optimisticEnable && activeThread !== null`.
 - **Why the timeout exists:** on initial page load, the state briefly reports `"waiting"` before generation actually starts, causing a flash of the abort button. The 3s timeout was a heuristic to suppress the flash.
@@ -150,7 +150,7 @@ The user's Notion doc enumerated several options. We're picking **option (a) cli
 
 1. **VERIFY first**: confirm Convex doesn't support pre-generated `_id`s. The subagent claim is unverified. If it turns out Convex does support `Id<"threads">` generated client-side, we can simplify by skipping the `clientId` field and using the same id throughout. (5-minute docs check.)
 2. **Schema change**: add `clientId: v.string()` to `threads` table in `/packages/db/src/agent/schema.ts`. Index it for lookup: `index("clientId", ["clientId"])`.
-3. **Mutation change**: `create` mutation in `/packages/db/src/ai/thread/mutations.ts` accepts `clientId` arg, stores it on the row.
+3. **Mutation change**: `create` mutation in `/packages/db/src/ai/thread/lifecycle.ts` accepts `clientId` arg, stores it on the row.
 4. **Client change** in `/packages/features/src/composer/hooks/use-send-message.ts`:
    - Generate UUID synchronously in the click handler.
    - Navigate immediately to `/chat/$clientId` (use whatever the route shape is — current routes use `/chat/$id`).
