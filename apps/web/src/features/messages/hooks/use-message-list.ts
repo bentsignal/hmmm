@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { MyUIMessage } from "@acme/features/messages";
 import {
@@ -126,4 +126,36 @@ export function useSendTimeScroll({
       });
     });
   }, [isThreadIdle, messageCount, visible, scrollRef]);
+}
+
+export function useLoadMorePreservation({
+  scrollRef,
+  messageCount,
+}: {
+  scrollRef: RefObject<HTMLDivElement | null>;
+  messageCount: number;
+}) {
+  const pendingHeightRef = useRef<number | null>(null);
+
+  function beginLoadMore() {
+    const element = scrollRef.current;
+    if (!element) return;
+    pendingHeightRef.current = element.scrollHeight;
+  }
+
+  // Add the height delta to the *current* scrollTop (not a pre-fetch snapshot)
+  // so any scrolling the user did while the page was in flight is preserved.
+  useLayoutEffect(() => {
+    const previousHeight = pendingHeightRef.current;
+    if (previousHeight == null) return;
+    const element = scrollRef.current;
+    if (!element) return;
+    const delta = element.scrollHeight - previousHeight;
+    if (delta > 0) {
+      element.scrollTo({ top: element.scrollTop + delta, behavior: "auto" });
+      pendingHeightRef.current = null;
+    }
+  }, [messageCount, scrollRef]);
+
+  return { beginLoadMore };
 }

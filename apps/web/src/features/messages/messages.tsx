@@ -12,6 +12,7 @@ import { ThreadFollowUps } from "../thread/components/thread-follow-ups";
 import { Message } from "./components/message";
 import {
   useDisplayedMessages,
+  useLoadMorePreservation,
   useMessageListVisibility,
   useSendTimeScroll,
 } from "./hooks/use-message-list";
@@ -47,9 +48,14 @@ export function Messages({
     messageCount: messages.length,
     visible,
   });
+  const { beginLoadMore } = useLoadMorePreservation({
+    scrollRef,
+    messageCount: messages.length,
+  });
 
   function handleLoadMore() {
     if (!canLoadMore) return;
+    beginLoadMore();
     loadMore();
   }
 
@@ -84,7 +90,7 @@ export function Messages({
     <div
       ref={setCombinedRef}
       onScroll={onScroll}
-      className="w-full flex-1 overflow-y-auto"
+      className="messages-scroll w-full flex-1 overflow-y-auto"
       style={{
         minHeight: 0,
         opacity: visible ? 1 : 0,
