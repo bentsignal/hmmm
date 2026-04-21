@@ -126,9 +126,9 @@ export const agentTables = {
   // In-flight-only event log. Rows exist only while a generation cycle is
   // active (waiting/streaming); terminal paths (complete, abort, error)
   // delete the cycle's rows. Steady-state idle = 0 rows per thread. Thread
-  // state derivation (Phase 2c) maps latest event → waiting/streaming, or
-  // idle when no event exists. `generationId` scopes deletes so a late
-  // terminal from an old cycle can't wipe a newer cycle's rows.
+  // state derivation maps latest event → waiting/streaming, or idle when no
+  // event exists. `generationId` scopes deletes so a late terminal from an
+  // old cycle can't wipe a newer cycle's rows.
   threadEvents: defineTable({
     userId: v.optional(v.string()),
     threadId: v.id("threads"),

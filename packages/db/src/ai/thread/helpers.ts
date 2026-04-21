@@ -223,8 +223,6 @@ export async function saveUserMessage({
   if (!lastMessage) {
     throw new ConvexError("Failed to save message");
   }
-  // Resolve attachment Ids for the prompt message and patch them onto the
-  // unified messages row (no more parallel `messageMetadata` table).
   const results = await Promise.all(
     attachments?.map((attachment) =>
       ctx.db

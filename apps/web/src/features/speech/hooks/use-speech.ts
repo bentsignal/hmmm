@@ -32,7 +32,6 @@ export function useSpeech() {
     isTranscribing,
   } = useSpeechRecording();
 
-  // keep store in sync
   const setStoreIsTranscribing = useComposerStore(
     (state) => state.setStoreIsTranscribing,
   );
@@ -58,7 +57,6 @@ export function useSpeech() {
     stopRecording();
   }
 
-  // append transcription result to the existing prompt
   // eslint-disable-next-line no-restricted-syntax -- Syncs transcription result with the prompt
   useEffect(() => {
     if (transcribedAudio?.trim()) {

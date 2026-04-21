@@ -1,5 +1,4 @@
-import { Activity, useState } from "react";
-import { LegendList } from "@legendapp/list/react";
+import { Activity, useEffect, useRef, useState } from "react";
 import { usePaginatedQuery } from "convex/react";
 
 import type {
@@ -14,6 +13,7 @@ import { libraryPagination, useLibraryStore } from "@acme/features/library";
 import { ContextMenu, ContextMenuTrigger } from "@acme/ui/context-menu";
 import { Loader } from "@acme/ui/loader";
 
+import { useLoadMoreOnScroll } from "~/hooks/use-load-more-on-scroll";
 import { useScreenSize } from "~/hooks/use-screen-size";
 import { LibraryGridFile, LibraryListFile } from "./library-file";
 import { LibraryFileContextItems } from "./library-file-context-items";
@@ -24,11 +24,23 @@ type PaginatedStatus =
   | "CanLoadMore"
   | "Exhausted";
 
+const LOAD_MORE_THRESHOLD_PX = 800;
+
 function useGridColumnCount() {
   const screenSize = useScreenSize();
   if (screenSize === "mobile") return 1;
   if (screenSize === "tablet") return 3;
   return 4;
+}
+
+function useDelayedVisibility() {
+  const [visible, setVisible] = useState(false);
+  // eslint-disable-next-line no-restricted-syntax -- flip opacity on mount so the list fades in after layout settles; the fade replaces the LegendList `onLoad` signal we used to get
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return visible;
 }
 
 interface FileListViewProps {
@@ -47,39 +59,44 @@ function GridFileList({
   selectedFiles,
 }: FileListViewProps) {
   const numColumns = useGridColumnCount();
-  const [visible, setVisible] = useState(false);
+  const visible = useDelayedVisibility();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useLoadMoreOnScroll({
+    scrollRef,
+    edge: "bottom",
+    threshold: LOAD_MORE_THRESHOLD_PX,
+    status,
+    loadMore: () => loadMore(libraryPagination.pageSize),
+  });
 
   return (
-    <LegendList
-      data={files}
-      keyExtractor={(item: LibraryFile) => `${numColumns}-${item.id}`}
-      estimatedItemSize={180}
-      numColumns={numColumns}
-      recycleItems
-      extraData={{ libraryMode, selectedFiles }}
-      onEndReached={() => {
-        if (status === "CanLoadMore") {
-          loadMore(libraryPagination.pageSize);
-        }
-      }}
-      onEndReachedThreshold={2}
-      onLoad={() => setVisible(true)}
+    <div
+      ref={scrollRef}
+      className="flex-1 overflow-y-auto"
       style={{
-        flex: 1,
         minHeight: 0,
         opacity: visible ? 1 : 0,
         transition: "opacity 300ms ease",
       }}
-      renderItem={({ item }) => (
-        <div className="p-2">
-          <LibraryGridFile
-            file={item}
-            mode={libraryMode}
-            selected={selectedFiles.some((f) => f.id === item.id)}
-          />
-        </div>
-      )}
-    />
+    >
+      <div
+        className="grid"
+        style={{
+          gridTemplateColumns: `repeat(${numColumns}, minmax(0, 1fr))`,
+        }}
+      >
+        {files.map((file) => (
+          <div key={`${numColumns}-${file.id}`} className="p-2">
+            <LibraryGridFile
+              file={file}
+              mode={libraryMode}
+              selected={selectedFiles.some((f) => f.id === file.id)}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -90,38 +107,37 @@ function ListFileList({
   libraryMode,
   selectedFiles,
 }: FileListViewProps) {
-  const [visible, setVisible] = useState(false);
+  const visible = useDelayedVisibility();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useLoadMoreOnScroll({
+    scrollRef,
+    edge: "bottom",
+    threshold: LOAD_MORE_THRESHOLD_PX,
+    status,
+    loadMore: () => loadMore(libraryPagination.pageSize),
+  });
 
   return (
-    <LegendList
-      data={files}
-      keyExtractor={(item: LibraryFile) => item.id}
-      estimatedItemSize={88}
-      recycleItems
-      extraData={{ libraryMode, selectedFiles }}
-      onEndReached={() => {
-        if (status === "CanLoadMore") {
-          loadMore(libraryPagination.pageSize);
-        }
-      }}
-      onEndReachedThreshold={2}
-      onLoad={() => setVisible(true)}
+    <div
+      ref={scrollRef}
+      className="flex flex-1 flex-col overflow-y-auto"
       style={{
-        flex: 1,
         minHeight: 0,
         opacity: visible ? 1 : 0,
         transition: "opacity 300ms ease",
       }}
-      renderItem={({ item }) => (
-        <div className="py-1">
+    >
+      {files.map((file) => (
+        <div key={file.id} className="py-1">
           <LibraryListFile
-            file={item}
+            file={file}
             mode={libraryMode}
-            selected={selectedFiles.some((f) => f.id === item.id)}
+            selected={selectedFiles.some((f) => f.id === file.id)}
           />
         </div>
-      )}
-    />
+      ))}
+    </div>
   );
 }
 

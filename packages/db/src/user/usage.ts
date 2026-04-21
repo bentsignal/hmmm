@@ -32,7 +32,6 @@ const UsageType = v.union(
   v.literal("transcription"),
 );
 
-// aggregate usage per user
 export const usage = new TableAggregate<{
   Namespace: string;
   Key: number;
@@ -44,7 +43,6 @@ export const usage = new TableAggregate<{
   sumValue: (doc) => doc.cost,
 });
 
-// automatically update aggregate table whenever usage is logged
 const triggers = new Triggers<DataModel>();
 triggers.register("usage", usage.trigger());
 
@@ -83,16 +81,13 @@ export async function getUsageHelper(
       : resolvedPlan.price * ALLOWED_USAGE_PERCENTAGE;
   const range = resolvedPlan.price === 0 ? "daily" : "monthly";
 
-  // first and last day of the current month
   let start, end;
   if (range === "monthly") {
     ({ start, end } = timeHelpers.getMonthBounds());
   } else {
-    // start and end of current day
     ({ start, end } = timeHelpers.getDayBounds());
   }
 
-  // get the total usage for the period
   const bounds = {
     lower: { key: start.getTime(), inclusive: true },
     upper: { key: end.getTime(), inclusive: true },

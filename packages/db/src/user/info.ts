@@ -88,7 +88,6 @@ export const update = authedMutation({
       model: args.model,
     };
 
-    // update or create
     if (existing) {
       await ctx.db.patch(existing._id, data);
     } else {

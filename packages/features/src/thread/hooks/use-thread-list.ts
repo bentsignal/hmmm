@@ -38,13 +38,11 @@ export function useThreadList() {
         ? ("LoadingFirstPage" as const)
         : ("CanLoadMore" as const);
 
-  // `onEndReached` fires on LegendList's very first layout, which often lands
-  // before the live Convex query has exited `LoadingFirstPage`. Dropping that
-  // request would wedge infinite scroll: because the prefetched first page
-  // and the live query's first page are the same size, the handoff doesn't
-  // change `contentSize`/`dataLength`, so LegendList's sticky end-reached
-  // snapshot never invalidates and never re-fires. Stash the request and
-  // flush it once the live query is ready.
+  // The sidebar list's scroll-based loader can fire during hydration — before
+  // the live Convex query has exited `LoadingFirstPage` — whenever the
+  // prefetched first page already sits within the loader threshold (e.g. it
+  // fits on screen). Dropping that request would wedge infinite scroll; stash
+  // it and flush once the live query is ready.
   const pendingLoadMore = useRef(false);
   function loadMoreThreads() {
     if (shouldUseLiveResults) {

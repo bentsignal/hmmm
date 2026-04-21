@@ -19,3 +19,8 @@ If all of these succeed, run:
 4. `pnpm run format:fix`
 
 Then summarize changes for the user.
+
+## Preferences
+
+- Do **_NOT_** leave excessive comments when writing code. Only leave comments when
+  the code itself does not clearly explain what it does

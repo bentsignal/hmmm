@@ -140,7 +140,6 @@ export const list = authedQuery({
             paginationOpts,
           }),
     ]);
-    // Resolve attachments inline now that they live on the messages row.
     const enriched = await Promise.all(
       paginated.page.map(async (message) => {
         const attachments = await resolveAttachments(
