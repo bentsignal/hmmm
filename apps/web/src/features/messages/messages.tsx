@@ -7,16 +7,33 @@ import "@/features/messages/styles/message-styles.css";
 import type { LegendListRef } from "@legendapp/list/react";
 import { LegendList } from "@legendapp/list/react";
 
+import type { MyUIMessage } from "@acme/features/messages";
 import {
   PAGE_SIZE,
   responseHasNoContent,
   useMessages,
 } from "@acme/features/messages";
-import { Loader } from "@acme/ui/loader";
 
 import { UsageChatCallout } from "~/features/billing/components/usage-chat-callout";
 import { ThreadFollowUps } from "../thread/components/thread-follow-ups";
 import { Message } from "./components/message";
+
+// ghost message prevents layout shift of loader dots when empty reponse message is created
+const GHOST_ASSISTANT_ID = "__ghost_assistant__";
+
+function makeGhostAssistant(order: number) {
+  return {
+    id: GHOST_ASSISTANT_ID,
+    key: `ghost-${order}`,
+    order,
+    stepOrder: 0,
+    status: "pending",
+    role: "assistant",
+    text: "",
+    parts: [],
+    _creationTime: Date.now(),
+  } as const satisfies MyUIMessage;
+}
 
 const AT_END_THRESHOLD_PX = 2000;
 
@@ -48,13 +65,19 @@ export function Messages({
     streaming: true,
   });
 
-  const messages = pureMessages.filter((item) => item.role !== "system");
+  const realMessages = pureMessages.filter((item) => item.role !== "system");
 
-  const lastMessage = messages[messages.length - 1];
+  const lastRealMessage = realMessages[realMessages.length - 1];
   const waiting =
-    messages.length > 0 &&
-    lastMessage !== undefined &&
-    (lastMessage.role === "user" || responseHasNoContent(lastMessage));
+    realMessages.length > 0 &&
+    lastRealMessage !== undefined &&
+    (lastRealMessage.role === "user" || responseHasNoContent(lastRealMessage));
+
+  const needsGhostAssistant =
+    waiting && lastRealMessage.role === "user" && !isThreadIdle;
+  const messages = needsGhostAssistant
+    ? [...realMessages, makeGhostAssistant(lastRealMessage.order + 1)]
+    : realMessages;
 
   const canLoadMore = status === "CanLoadMore";
 
@@ -142,7 +165,7 @@ function MessageRow({
   isLast,
   isThreadIdle,
 }: {
-  item: ReturnType<typeof useMessages>["messages"][number];
+  item: MyUIMessage;
   isLast: boolean;
   isThreadIdle: boolean;
 }) {
@@ -151,7 +174,7 @@ function MessageRow({
     <div
       className={`mx-auto w-full max-w-4xl px-8 ${isLast ? "pb-6" : "pb-16"}`}
     >
-      <Message message={item} isActive={isStreaming} />
+      <Message message={item} isActive={isStreaming} isLast={isLast} />
     </div>
   );
 }
@@ -170,11 +193,6 @@ function MessagesFooter({
   return (
     <>
       <div className="mx-auto w-full max-w-4xl px-8 pb-32">
-        {waiting && (
-          <div className="flex items-start justify-start">
-            <Loader variant="typing" size="md" />
-          </div>
-        )}
         <UsageChatCallout hide={!isThreadIdle} />
         {!waiting && <ThreadFollowUps threadId={threadId} />}
       </div>
