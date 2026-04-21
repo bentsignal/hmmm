@@ -268,3 +268,72 @@ body {
 .cube-spin {
   animation: cube-spin 10s linear infinite;
 }
+
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes rotate-conic-border {
+  to {
+    --border-angle: 360deg;
+  }
+}
+
+.transcribing-glow {
+  position: relative;
+  isolation: isolate;
+}
+
+.transcribing-glow::before,
+.transcribing-glow::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--radius);
+  background: conic-gradient(
+    from var(--border-angle),
+    var(--nebula-blue) 0%,
+    oklch(0.5 0.2 289.46) 33%,
+    var(--nebula-pink) 66%,
+    var(--nebula-blue) 100%
+  );
+  animation: rotate-conic-border 2.5s linear infinite;
+  animation-play-state: paused;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 400ms ease-out;
+}
+
+.transcribing-glow::before {
+  padding: 2px;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+.transcribing-glow::after {
+  inset: -6px;
+  border-radius: calc(var(--radius) + 4px);
+  filter: blur(8px);
+}
+
+.transcribing-glow-active::before,
+.transcribing-glow-active::after {
+  animation-play-state: running;
+}
+
+.transcribing-glow-active::before {
+  opacity: 1;
+}
+
+.transcribing-glow-active::after {
+  opacity: 0.55;
+}

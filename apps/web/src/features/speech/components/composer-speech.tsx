@@ -13,7 +13,12 @@ export function ComposerSpeech() {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div>
+        <div
+          className={cn(
+            "transcribing-glow",
+            processing && "transcribing-glow-active",
+          )}
+        >
           <Button
             variant="outline"
             size="icon"
