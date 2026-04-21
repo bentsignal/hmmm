@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import type { PaginationStatus } from "convex/react";
+import { useEffect, useRef, useState } from "react";
 // eslint-disable-next-line no-restricted-imports -- useQuery reads the SSR-prefetched first page so the sidebar renders real threads on first paint instead of the skeleton
 import { useQuery } from "@tanstack/react-query";
 import { usePaginatedQuery } from "convex/react";
@@ -27,16 +28,22 @@ export function useThreadList() {
   );
 
   const shouldUseLiveResults = liveQuery.status !== "LoadingFirstPage";
-  const threads = shouldUseLiveResults
+  const liveThreads = shouldUseLiveResults
     ? liveQuery.results
     : (firstPageQuery.data?.page ?? []);
-  const status = shouldUseLiveResults
-    ? liveQuery.status
-    : firstPageQuery.data?.isDone
-      ? ("Exhausted" as const)
-      : firstPageQuery.isLoading
-        ? ("LoadingFirstPage" as const)
-        : ("CanLoadMore" as const);
+  const liveStatus = deriveLiveStatus(
+    shouldUseLiveResults,
+    liveQuery.status,
+    firstPageQuery,
+  );
+
+  // Keep the previous results on screen while a new search is loading so the
+  // list doesn't flash empty between the debounce firing and the new query
+  // resolving.
+  const { threads, status } = usePreviousResultsWhileLoading(
+    liveThreads,
+    liveStatus,
+  );
 
   // The sidebar list's scroll-based loader can fire during hydration — before
   // the live Convex query has exited `LoadingFirstPage` — whenever the
@@ -64,5 +71,42 @@ export function useThreadList() {
     loadMoreThreads,
     threads,
     setSearch,
+  };
+}
+
+function deriveLiveStatus(
+  shouldUseLiveResults: boolean,
+  liveQueryStatus: PaginationStatus,
+  firstPageQuery: {
+    data: { isDone: boolean } | undefined;
+    isLoading: boolean;
+  },
+) {
+  if (shouldUseLiveResults) return liveQueryStatus;
+  if (firstPageQuery.data?.isDone)
+    return "Exhausted" as const satisfies PaginationStatus;
+  if (firstPageQuery.isLoading)
+    return "LoadingFirstPage" as const satisfies PaginationStatus;
+  return "CanLoadMore" as const satisfies PaginationStatus;
+}
+
+function usePreviousResultsWhileLoading<T>(
+  liveThreads: T[],
+  liveStatus: PaginationStatus,
+) {
+  const [cachedThreads, setCachedThreads] = useState(liveThreads);
+  const [cachedStatus, setCachedStatus] = useState(liveStatus);
+  if (
+    liveStatus !== "LoadingFirstPage" &&
+    (liveThreads !== cachedThreads || liveStatus !== cachedStatus)
+  ) {
+    setCachedThreads(liveThreads);
+    setCachedStatus(liveStatus);
+  }
+  const isRefetching =
+    liveStatus === "LoadingFirstPage" && cachedThreads.length > 0;
+  return {
+    threads: isRefetching ? cachedThreads : liveThreads,
+    status: isRefetching ? cachedStatus : liveStatus,
   };
 }
