@@ -1,3 +1,5 @@
+import type { GatewayProviderOptions } from "@ai-sdk/gateway";
+import type { OpenRouterProviderOptions } from "@openrouter/ai-sdk-provider";
 import { Context, Effect, Layer } from "effect";
 
 import type { ActionCtx } from "../../../_generated/server";
@@ -85,7 +87,10 @@ export function agentRuntimeLayer(ctx: ActionCtx, agent: Agent) {
                 maxOutputTokens: 64000,
                 abortSignal: controller.signal,
                 providerOptions: {
-                  openrouter: { reasoning: { max_tokens: 32000 } },
+                  openrouter: {
+                    reasoning: { max_tokens: 32000 },
+                  } as const satisfies OpenRouterProviderOptions,
+                  gateway: {} as const satisfies GatewayProviderOptions,
                 },
                 onChunk,
               },
