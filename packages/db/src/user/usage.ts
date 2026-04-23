@@ -138,11 +138,6 @@ export function calculateModelCost({
   return totalCost;
 }
 
-export function calculateTranscriptionCost(duration: number) {
-  const cost = modelPresets.transcription.cost.other * Math.ceil(duration / 60);
-  return cost;
-}
-
 export const log = usageTriggerInternalMutation({
   args: v.object({
     cost: v.number(),
@@ -163,7 +158,8 @@ export const logTranscription = apiAuthedUsageTriggerMutation({
     duration: v.number(),
   }),
   handler: async (ctx, args) => {
-    const cost = calculateTranscriptionCost(args.duration);
+    const cost =
+      modelPresets.transcription.cost.other * Math.ceil(args.duration / 60);
     await ctx.db.insert("usage", {
       userId: ctx.user.subject,
       cost,

@@ -9,6 +9,8 @@ catalog:
   "@convex-dev/polar": ^0.5.0
   "@convex-dev/react-query": 0.1.0
   "@eslint/js": ^9.38.0
+  "@fal-ai/client": ^1.9.5
+  "@fal-ai/server-proxy": ^1.2.1
   "@fontsource-variable/inter": ^5.2.5
   "@fontsource-variable/roboto": ^5.2.1
   "@fontsource-variable/roboto-mono": ^5.2.1

@@ -18,6 +18,7 @@ export const env = createEnv({
     CONVEX_INTERNAL_KEY: z.string().min(1),
     OPENROUTER_API_KEY: z.string().min(1),
     OPENAI_API_KEY: z.string().min(1),
+    FAL_KEY: z.string().min(1),
     UPLOADTHING_TOKEN: z.string().min(1),
     CONVEX_DEPLOY_KEY: z.string().min(1).optional(),
   },

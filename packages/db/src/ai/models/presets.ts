@@ -7,7 +7,7 @@ export const modelPresets = {
   classifier: languageModels["gemini-2.5-flash-lite"],
   followUp: languageModels["gemini-3-flash"],
   titleGenerator: languageModels["gemini-2.5-flash-lite"],
-  transcription: transcriptionModels["whisper-1"],
+  transcription: transcriptionModels["scribe-v2"],
   search: languageModels.sonar,
   embedding: embeddingModels["text-embedding-3-small"],
   code: languageModels["gpt-5.2"],

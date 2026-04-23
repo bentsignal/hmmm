@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { modelPresets } from "@acme/db/models/presets";
 import { MAX_RECORDING_DURATION } from "@acme/features/speech";
 
-import { tryCatch } from "~/lib/utils";
-import { transcribeAudio } from "../server/transcribe-action";
+import { fal } from "~/lib/fal-client";
 
 function clearTimerRefs(
-  durationIntervalRef: React.MutableRefObject<NodeJS.Timeout | null>,
-  maxDurationTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>,
+  durationIntervalRef: React.RefObject<NodeJS.Timeout | null>,
+  maxDurationTimeoutRef: React.RefObject<NodeJS.Timeout | null>,
 ) {
   if (durationIntervalRef.current) {
     clearInterval(durationIntervalRef.current);
@@ -20,8 +20,72 @@ function clearTimerRefs(
   }
 }
 
+async function fileToDataUri(file: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== "string") {
+        reject(new Error("Unexpected FileReader result"));
+        return;
+      }
+      resolve(result);
+    };
+    reader.onerror = () =>
+      reject(reader.error ?? new Error("Failed to read audio file"));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function transcribeWithFal(audioFile: File) {
+  try {
+    // The preset decides how to shape the input — scribe-v2 inlines a data
+    // URI, wizper uploads to fal storage first, future models pick their own
+    // strategy. The proxy at /api/fal/proxy gates the submit with rate-limit
+    // + usage checks and logs usage on the result fetch.
+    const input = await modelPresets.transcription.getInput(audioFile, {
+      uploadToFal: (audio) => fal.storage.upload(audio),
+      toDataUri: fileToDataUri,
+    });
+    const response = await fal.subscribe(modelPresets.transcription.model, {
+      input,
+    });
+    const result = modelPresets.transcription.getResult(response);
+    if (result.error) {
+      return { data: null, error: result.error } as const;
+    }
+    return { data: result.text, error: null } as const;
+  } catch (error) {
+    return { data: null, error } as const;
+  }
+}
+
+// Scribe v2 accepts mp3/ogg/wav/m4a/aac. Pick a MediaRecorder MIME type whose
+// container Scribe will accept. Ogg is preferred because Scribe recognizes
+// its MIME unambiguously in a data URI; mp4/AAC is the Safari fallback.
+const SCRIBE_RECORDER_FORMATS = [
+  { mimeType: "audio/ogg;codecs=opus", extension: "ogg" },
+  { mimeType: "audio/ogg", extension: "ogg" },
+  { mimeType: "audio/mp4", extension: "m4a" },
+  { mimeType: "audio/wav", extension: "wav" },
+] as const;
+
+// 32 kbps is plenty for speech (Scribe downsamples to 16 kHz anyway) and
+// keeps the base64-encoded payload well under Vercel's 4.5 MB function body
+// cap across any sane MAX_RECORDING_DURATION.
+const RECORDER_BITRATE = 32_000;
+
+function pickRecorderFormat() {
+  if (typeof MediaRecorder === "undefined") return undefined;
+  return SCRIBE_RECORDER_FORMATS.find((format) =>
+    MediaRecorder.isTypeSupported(format.mimeType),
+  );
+}
+
 async function processTranscription(options: {
-  audioChunksRef: React.MutableRefObject<Blob[]>;
+  audioChunksRef: React.RefObject<Blob[]>;
+  extension: string;
+  mimeType: string;
   recordingDuration: number;
   setIsTranscribing: (v: boolean) => void;
   setRecordingDuration: (v: number) => void;
@@ -30,6 +94,8 @@ async function processTranscription(options: {
 }) {
   const {
     audioChunksRef,
+    extension,
+    mimeType,
     recordingDuration,
     setIsTranscribing,
     setRecordingDuration,
@@ -38,8 +104,8 @@ async function processTranscription(options: {
   } = options;
   setIsTranscribing(true);
 
-  const audioBlob = new Blob(audioChunksRef.current, {
-    type: "audio/webm",
+  const audioBlob = new File(audioChunksRef.current, `recording.${extension}`, {
+    type: mimeType,
   });
 
   const audioDurationSeconds = recordingDuration / 1000;
@@ -52,21 +118,139 @@ async function processTranscription(options: {
     return;
   }
 
-  const buffer = await audioBlob.arrayBuffer();
-  const uint8Array = new Uint8Array(buffer);
-  const { data: transcript, error: transcriptionError } = await tryCatch(
-    transcribeAudio({ data: uint8Array.buffer }),
-  );
-  if (transcriptionError) {
+  const { data: transcript, error: transcriptionError } =
+    await transcribeWithFal(audioBlob);
+  if (transcript === null) {
     console.error(transcriptionError);
     toast.error("Ran into an error while transcribing audio");
+    audioChunksRef.current = [];
+    setStream(null);
+    setIsTranscribing(false);
+    setRecordingDuration(0);
+    return;
   }
-  setTranscribedAudio(transcript ?? null);
+
+  setTranscribedAudio(transcript.length > 0 ? transcript : null);
 
   audioChunksRef.current = [];
   setStream(null);
   setIsTranscribing(false);
   setRecordingDuration(0);
+}
+
+interface BeginRecordingOptions {
+  audioChunksRef: React.RefObject<Blob[]>;
+  cancelRequestedRef: React.RefObject<boolean>;
+  mediaRecorderRef: React.RefObject<MediaRecorder | null>;
+  recordingDuration: number;
+  recordingStartTimeRef: React.RefObject<number | null>;
+  durationIntervalRef: React.RefObject<NodeJS.Timeout | null>;
+  maxDurationTimeoutRef: React.RefObject<NodeJS.Timeout | null>;
+  setIsRecording: (v: boolean) => void;
+  setIsTranscribing: (v: boolean) => void;
+  setRecordingDuration: (v: number) => void;
+  setStream: (v: MediaStream | null) => void;
+  setTranscribedAudio: (v: string | null) => void;
+  onExpiredCancel: () => void;
+}
+
+async function beginRecording(options: BeginRecordingOptions) {
+  const {
+    audioChunksRef,
+    cancelRequestedRef,
+    mediaRecorderRef,
+    recordingDuration,
+    recordingStartTimeRef,
+    durationIntervalRef,
+    maxDurationTimeoutRef,
+    setIsRecording,
+    setIsTranscribing,
+    setRecordingDuration,
+    setStream,
+    setTranscribedAudio,
+    onExpiredCancel,
+  } = options;
+
+  setTranscribedAudio(null);
+  cancelRequestedRef.current = false;
+  // Flip recording state synchronously so the mic lights up red before
+  // the browser's mic permission prompt resolves.
+  setIsRecording(true);
+
+  let userStream: MediaStream;
+  try {
+    userStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch {
+    toast.error("Failed to access microphone");
+    setIsRecording(false);
+    return;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ref mutated across the await by stopRecording/cancelRecording
+  if (cancelRequestedRef.current) {
+    cancelRequestedRef.current = false;
+    userStream.getTracks().forEach((track) => track.stop());
+    return;
+  }
+
+  setStream(userStream);
+  const recorderFormat = pickRecorderFormat();
+  if (!recorderFormat) {
+    toast.error("Your browser can't record audio in a supported format");
+    userStream.getTracks().forEach((track) => track.stop());
+    setStream(null);
+    setIsRecording(false);
+    return;
+  }
+
+  const mediaRecorder = new MediaRecorder(userStream, {
+    mimeType: recorderFormat.mimeType,
+    audioBitsPerSecond: RECORDER_BITRATE,
+  });
+  mediaRecorderRef.current = mediaRecorder;
+
+  mediaRecorder.ondataavailable = (event) => {
+    audioChunksRef.current.push(event.data);
+  };
+
+  mediaRecorder.onstop = () => {
+    clearTimerRefs(durationIntervalRef, maxDurationTimeoutRef);
+    if (cancelRequestedRef.current) {
+      cancelRequestedRef.current = false;
+      audioChunksRef.current = [];
+      setRecordingDuration(0);
+      return;
+    }
+    void processTranscription({
+      audioChunksRef,
+      extension: recorderFormat.extension,
+      mimeType: mediaRecorder.mimeType || recorderFormat.mimeType,
+      recordingDuration,
+      setIsTranscribing,
+      setRecordingDuration,
+      setStream,
+      setTranscribedAudio,
+    });
+  };
+
+  mediaRecorder.start();
+  recordingStartTimeRef.current = Date.now();
+
+  durationIntervalRef.current = setInterval(() => {
+    if (recordingStartTimeRef.current) {
+      const currentDuration = Date.now() - recordingStartTimeRef.current;
+      setRecordingDuration(currentDuration);
+    }
+  }, 100);
+
+  maxDurationTimeoutRef.current = setTimeout(
+    () => {
+      if (mediaRecorderRef.current?.state === "recording") {
+        onExpiredCancel();
+      }
+    },
+    (MAX_RECORDING_DURATION - 1) * 1000,
+  );
 }
 
 export function useSpeechRecording() {
@@ -75,6 +259,7 @@ export function useSpeechRecording() {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const cancelRequestedRef = useRef(false);
 
   const maxDurationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -90,73 +275,61 @@ export function useSpeechRecording() {
       stream?.getTracks().forEach((track) => track.stop());
       recordingStartTimeRef.current = null;
       clearTimerRefs(durationIntervalRef, maxDurationTimeoutRef);
+      return;
+    }
+    // User hit stop during the optimistic window before getUserMedia resolved —
+    // flag a cancel so the pending start aborts once permission returns.
+    if (isRecording) {
+      cancelRequestedRef.current = true;
+      setIsRecording(false);
     }
   }
 
-  async function startRecording() {
-    setTranscribedAudio(null);
-
-    let userStream: MediaStream;
-    try {
-      userStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
-      toast.error("Failed to access microphone");
-      return;
+  function cancelRecording() {
+    cancelRequestedRef.current = true;
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
     }
+    audioChunksRef.current = [];
+    stream?.getTracks().forEach((track) => track.stop());
+    setStream(null);
+    setIsRecording(false);
+    setRecordingDuration(0);
+    recordingStartTimeRef.current = null;
+    clearTimerRefs(durationIntervalRef, maxDurationTimeoutRef);
+  }
 
-    setStream(userStream);
-    const mediaRecorder = new MediaRecorder(userStream);
-    mediaRecorderRef.current = mediaRecorder;
-
-    mediaRecorder.ondataavailable = (event) => {
-      audioChunksRef.current.push(event.data);
-    };
-
-    mediaRecorder.onstop = () => {
-      clearTimerRefs(durationIntervalRef, maxDurationTimeoutRef);
-      void processTranscription({
-        audioChunksRef,
-        recordingDuration,
-        setIsTranscribing,
-        setRecordingDuration,
-        setStream,
-        setTranscribedAudio,
-      });
-    };
-
-    mediaRecorder.start();
-    setIsRecording(true);
-    const startTime = Date.now();
-    recordingStartTimeRef.current = startTime;
-
-    durationIntervalRef.current = setInterval(() => {
-      if (recordingStartTimeRef.current) {
-        const currentDuration = Date.now() - recordingStartTimeRef.current;
-        setRecordingDuration(currentDuration);
-      }
-    }, 100);
-
-    maxDurationTimeoutRef.current = setTimeout(
-      () => {
-        if (mediaRecorderRef.current?.state === "recording") {
-          stopRecording();
-        }
-      },
-      (MAX_RECORDING_DURATION - 1) * 1000,
-    );
+  function startRecording() {
+    void beginRecording({
+      audioChunksRef,
+      cancelRequestedRef,
+      mediaRecorderRef,
+      recordingDuration,
+      recordingStartTimeRef,
+      durationIntervalRef,
+      maxDurationTimeoutRef,
+      setIsRecording,
+      setIsTranscribing,
+      setRecordingDuration,
+      setStream,
+      setTranscribedAudio,
+      onExpiredCancel: stopRecording,
+    });
   }
 
   // eslint-disable-next-line no-restricted-syntax -- Cleanup effect syncs with MediaStream and timer APIs
   useEffect(() => {
     return () => {
+      const durationIntervalRefHolder = durationIntervalRef;
+      const maxDurationTimeoutRefHolder = maxDurationTimeoutRef;
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }
-      if (durationIntervalRef.current) {
-        clearInterval(durationIntervalRef.current);
+      if (durationIntervalRefHolder.current) {
+        clearInterval(durationIntervalRefHolder.current);
       }
-      if (maxDurationTimeoutRef.current) {
-        clearTimeout(maxDurationTimeoutRef.current);
+      if (maxDurationTimeoutRefHolder.current) {
+        clearTimeout(maxDurationTimeoutRefHolder.current);
       }
     };
   }, [stream]);
@@ -164,6 +337,7 @@ export function useSpeechRecording() {
   return {
     startRecording,
     stopRecording,
+    cancelRecording,
     isRecording,
     transcribedAudio,
     isTranscribing,

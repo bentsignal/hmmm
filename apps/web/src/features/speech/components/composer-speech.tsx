@@ -3,12 +3,11 @@ import { Mic } from "lucide-react";
 import { Button } from "@acme/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@acme/ui/tooltip";
 
-import { useSpeech } from "~/features/speech/hooks/use-speech";
+import type { SpeechApi } from "~/features/speech/hooks/use-speech";
 import { cn } from "~/lib/utils";
 
-export function ComposerSpeech() {
-  const { startSpeech, stopSpeech, inProgress, processing, disabled } =
-    useSpeech();
+export function ComposerSpeech({ speech }: { speech: SpeechApi }) {
+  const { startSpeech, stopSpeech, inProgress, processing, disabled } = speech;
 
   return (
     <Tooltip>
@@ -37,9 +36,9 @@ export function ComposerSpeech() {
         <TooltipContent>
           <p>
             {inProgress
-              ? "Listening..."
+              ? "Recording… press again to finish"
               : processing
-                ? "Processing..."
+                ? "Transcribing, one moment…"
                 : "Record your voice"}
           </p>
         </TooltipContent>

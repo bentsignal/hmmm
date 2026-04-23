@@ -1,4 +1,6 @@
 import { ComposerSpeech } from "~/features/speech/components/composer-speech";
+import { ComposerSpeechCancel } from "~/features/speech/components/composer-speech-cancel";
+import { useSpeech } from "~/features/speech/hooks/use-speech";
 import { ComposerAddAttachments } from "./components/composer-add-attachments";
 import { ComposerAttachmentsPreview } from "./components/composer-attachments-preview";
 import { ComposerInput } from "./components/composer-input";
@@ -12,6 +14,8 @@ export function Composer({
   showInstantLoad?: () => void;
   handleError?: () => void;
 }) {
+  const speech = useSpeech();
+
   return (
     <ComposerShell
       attachments={<ComposerAttachmentsPreview />}
@@ -24,13 +28,17 @@ export function Composer({
       actions={
         <>
           <div className="flex flex-1 items-center justify-start gap-2">
-            <ComposerAddAttachments />
-            <ComposerSpeech />
+            {!speech.inProgress && <ComposerAddAttachments />}
+            <ComposerSpeech speech={speech} />
           </div>
-          <ComposerSend
-            showInstantLoad={showInstantLoad}
-            handleError={handleError}
-          />
+          {speech.inProgress ? (
+            <ComposerSpeechCancel onClick={speech.cancelSpeech} />
+          ) : (
+            <ComposerSend
+              showInstantLoad={showInstantLoad}
+              handleError={handleError}
+            />
+          )}
         </>
       }
     />

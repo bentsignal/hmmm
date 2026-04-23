@@ -25,6 +25,7 @@ import { Route as AuthenticatedPricingRouteImport } from './app/_authenticated/p
 import { Route as AuthenticatedNewRouteImport } from './app/_authenticated/new'
 import { Route as AuthenticatedHomeRouteImport } from './app/_authenticated/home'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './app/_authenticated/settings/index'
+import { Route as ApiFalProxyRouteImport } from './app/api/fal/proxy'
 import { Route as AuthenticatedSettingsPreferencesRouteImport } from './app/_authenticated/settings/preferences'
 import { Route as AuthenticatedSettingsContactRouteImport } from './app/_authenticated/settings/contact'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './app/_authenticated/settings/account'
@@ -109,6 +110,11 @@ const AuthenticatedSettingsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const ApiFalProxyRoute = ApiFalProxyRouteImport.update({
+  id: '/api/fal/proxy',
+  path: '/api/fal/proxy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedSettingsPreferencesRoute =
   AuthenticatedSettingsPreferencesRouteImport.update({
     id: '/preferences',
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/contact': typeof AuthenticatedSettingsContactRoute
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
+  '/api/fal/proxy': typeof ApiFalProxyRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -170,6 +177,7 @@ export interface FileRoutesByTo {
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/contact': typeof AuthenticatedSettingsContactRoute
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
+  '/api/fal/proxy': typeof ApiFalProxyRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesById {
@@ -193,6 +201,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/contact': typeof AuthenticatedSettingsContactRoute
   '/_authenticated/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
+  '/api/fal/proxy': typeof ApiFalProxyRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -215,6 +224,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/contact'
     | '/settings/preferences'
+    | '/api/fal/proxy'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -234,6 +244,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/contact'
     | '/settings/preferences'
+    | '/api/fal/proxy'
     | '/settings'
   id:
     | '__root__'
@@ -256,6 +267,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/contact'
     | '/_authenticated/settings/preferences'
+    | '/api/fal/proxy'
     | '/_authenticated/settings/'
   fileRoutesById: FileRoutesById
 }
@@ -269,6 +281,7 @@ export interface RootRouteChildren {
   SsoCallbackRoute: typeof SsoCallbackRoute
   ApiMailRoute: typeof ApiMailRoute
   ApiUploadthingRoute: typeof ApiUploadthingRoute
+  ApiFalProxyRoute: typeof ApiFalProxyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -385,6 +398,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/api/fal/proxy': {
+      id: '/api/fal/proxy'
+      path: '/api/fal/proxy'
+      fullPath: '/api/fal/proxy'
+      preLoaderRoute: typeof ApiFalProxyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/settings/preferences': {
       id: '/_authenticated/settings/preferences'
       path: '/preferences'
@@ -478,6 +498,7 @@ const rootRouteChildren: RootRouteChildren = {
   SsoCallbackRoute: SsoCallbackRoute,
   ApiMailRoute: ApiMailRoute,
   ApiUploadthingRoute: ApiUploadthingRoute,
+  ApiFalProxyRoute: ApiFalProxyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

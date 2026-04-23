@@ -28,6 +28,7 @@ export function useSpeech() {
     transcribedAudio,
     startRecording,
     stopRecording,
+    cancelRecording,
     isRecording,
     isTranscribing,
   } = useSpeechRecording();
@@ -49,14 +50,6 @@ export function useSpeech() {
     setStoreIsTranscribing,
   ]);
 
-  function startSpeech() {
-    void startRecording();
-  }
-
-  function stopSpeech() {
-    stopRecording();
-  }
-
   // eslint-disable-next-line no-restricted-syntax -- Syncs transcription result with the prompt
   useEffect(() => {
     if (transcribedAudio?.trim()) {
@@ -65,10 +58,13 @@ export function useSpeech() {
   }, [transcribedAudio, appendPrompt]);
 
   return {
-    startSpeech,
-    stopSpeech,
+    startSpeech: startRecording,
+    stopSpeech: stopRecording,
+    cancelSpeech: cancelRecording,
     inProgress,
     processing,
     disabled,
   };
 }
+
+export type SpeechApi = ReturnType<typeof useSpeech>;

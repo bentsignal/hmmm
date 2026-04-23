@@ -1,7 +1,6 @@
 import type {
   EmbeddingModel as EmbeddingModelV2,
   LanguageModel as LanguageModelV2,
-  TranscriptionModel as TranscriptionModelV2,
 } from "ai";
 import z from "zod";
 
@@ -40,7 +39,21 @@ export type PublicLanguageModel = Omit<
 >;
 
 export interface TranscriptionModel extends Model {
-  model: TranscriptionModelV2;
+  model: `fal-ai/${string}`;
+  getInput: (
+    audio: Blob,
+    // Helpers for turning a raw audio blob into the `input` object that
+    // `fal.subscribe` expects. Each transcription model picks the helper that
+    // matches its backend's accepted input format — scribe-v2 takes inline data
+    // URIs, wizper only takes HTTP(S) URLs (i.e. pre-uploaded to fal storage).
+    helpers: {
+      uploadToFal: (audio: Blob) => Promise<string>;
+      toDataUri: (audio: Blob) => Promise<string>;
+    },
+  ) => Promise<{ audio_url: string }>;
+  getResult: (
+    data: unknown,
+  ) => { text: string; duration: number } | { error: Error };
 }
 
 export interface EmbeddingModel extends Model {
