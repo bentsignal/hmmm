@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@acme/prettier-config": "workspace:*",
+    "@effect/language-service": "0.85.1",
     "@turbo/gen": "2.8.17",
     "dotenv-cli": "10.0.0",
     "prettier": "catalog:",

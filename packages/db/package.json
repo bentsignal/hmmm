@@ -60,6 +60,7 @@
     "convex": "catalog:",
     "convex-env": "^2.5.0",
     "convex-helpers": "catalog:",
+    "effect": "4.0.0-beta.52",
     "react": "catalog:react19",
     "uploadthing": "catalog:",
     "zod": "catalog:"
