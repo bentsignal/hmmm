@@ -19,9 +19,16 @@ import { LoginModal } from "@acme/features/auth";
 
 import type { RouterContext } from "~/router";
 import appStyles from "~/app/styles.css?url";
+import { env } from "~/env";
 import { cookiesQueryOptions } from "~/lib/cookies";
 import { getThemeClass } from "~/lib/theme";
 import { ThemeProvider } from "~/providers/theme-provider";
+
+const SITE_TITLE = "hmmm...";
+const SITE_DESCRIPTION = "How can I help you today?";
+const SITE_URL = env.VITE_APP_URL.replace(/\/$/, "");
+const OG_IMAGE_URL = `${SITE_URL}/opengraph-image.jpg`;
+const TWITTER_IMAGE_URL = `${SITE_URL}/twitter-image.jpg`;
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   validateSearch: z.object({
@@ -29,15 +36,32 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     redirect_url: z.string().optional(),
   }),
   head: () => ({
-    links: [{ rel: "stylesheet", href: appStyles }],
+    links: [
+      { rel: "stylesheet", href: appStyles },
+      { rel: "icon", href: "/favicon.ico" },
+    ],
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "hmmm..." },
-      {
-        name: "description",
-        content: "How can I help you today?",
-      },
+      { title: SITE_TITLE },
+      { name: "description", content: SITE_DESCRIPTION },
+      // Open Graph
+      { property: "og:title", content: SITE_TITLE },
+      { property: "og:description", content: SITE_DESCRIPTION },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: SITE_URL },
+      { property: "og:site_name", content: SITE_TITLE },
+      { property: "og:image", content: OG_IMAGE_URL },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: SITE_TITLE },
+      // Twitter Card
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: SITE_TITLE },
+      { name: "twitter:description", content: SITE_DESCRIPTION },
+      { name: "twitter:image", content: TWITTER_IMAGE_URL },
+      { name: "twitter:image:alt", content: SITE_TITLE },
+      { name: "twitter:url", content: env.VITE_APP_URL },
     ],
   }),
   beforeLoad: async ({ context }) => {
