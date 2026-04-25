@@ -9,36 +9,19 @@ import {
   Drawer,
   DrawerContent,
   DrawerDescription,
-  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "@acme/ui/drawer";
 import { useIsMobile } from "@acme/ui/hooks/use-mobile";
+import { cn } from "@acme/ui/utils";
 
 import { SignInButton } from "./sign-in-button";
+import { Terms } from "./terms";
 
-const TITLE = "Welcome to hmmm";
-const DESCRIPTION = "Please choose your preferred sign in method";
-const LINK_CLASS = "underline-offset-4 hover:underline focus-visible:underline";
+const TITLE = "hmmm...";
 
 const GLASS_CONTAINER =
-  "bg-card supports-[backdrop-filter]:bg-card/50 backdrop-blur-lg border";
-
-function Terms({ tosURL, privacyURL }: { tosURL: string; privacyURL: string }) {
-  return (
-    <span className="text-muted-foreground text-center text-sm">
-      By continuing, you agree to our{" "}
-      <a href={tosURL} className={LINK_CLASS}>
-        Terms of Service
-      </a>
-      , and acknowledge that you have read our{" "}
-      <a href={privacyURL} className={LINK_CLASS}>
-        Privacy Policy
-      </a>
-      .
-    </span>
-  );
-}
+  "bg-card supports-[backdrop-filter]:bg-card/20 backdrop-blur-sm border";
 
 export function LoginModal({
   open,
@@ -63,17 +46,22 @@ export function LoginModal({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={handleOpenChange}>
-        <DrawerContent className={`mx-2 -mb-1 ${GLASS_CONTAINER} rounded-xl`}>
-          <DrawerHeader className="text-left">
-            <DrawerTitle className="text-center text-xl">{TITLE}</DrawerTitle>
-            <DrawerDescription>{DESCRIPTION}</DrawerDescription>
+        <DrawerContent
+          className={cn(
+            "bg-card mx-2 -mb-1 rounded-xl border",
+            GLASS_CONTAINER,
+          )}
+        >
+          <DrawerHeader className="items-center pb-2 text-center">
+            <DrawerTitle className="text-base font-medium">{TITLE}</DrawerTitle>
+            <DrawerDescription className="sr-only">
+              Sign in to hmmm
+            </DrawerDescription>
           </DrawerHeader>
-          <div className="mx-4 mt-2 mb-3 flex flex-col gap-4">
+          <div className="flex flex-col gap-3 px-5 pb-5">
             <SignInButton redirectUri={redirectUri} />
-          </div>
-          <DrawerFooter className="pt-2">
             <Terms tosURL={tosURL} privacyURL={privacyURL} />
-          </DrawerFooter>
+          </div>
         </DrawerContent>
       </Drawer>
     );
@@ -81,15 +69,17 @@ export function LoginModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className={`${GLASS_CONTAINER} sm:max-w-[425px]`}>
-        <DialogHeader>
-          <DialogTitle>{TITLE}</DialogTitle>
-          <DialogDescription>{DESCRIPTION}</DialogDescription>
-          <div className="mx-4 mt-3 mb-2 flex flex-col gap-4">
-            <SignInButton redirectUri={redirectUri} />
-          </div>
-          <Terms tosURL={tosURL} privacyURL={privacyURL} />
+      <DialogContent
+        className={cn("bg-card gap-3 p-5 sm:max-w-[340px]", GLASS_CONTAINER)}
+      >
+        <DialogHeader className="items-center text-center">
+          <DialogTitle className="text-base font-medium">{TITLE}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Sign in to hmmm
+          </DialogDescription>
         </DialogHeader>
+        <SignInButton redirectUri={redirectUri} />
+        <Terms tosURL={tosURL} privacyURL={privacyURL} />
       </DialogContent>
     </Dialog>
   );
