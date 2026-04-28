@@ -61,6 +61,8 @@ export function createAssistantUIMessage<
   applyExecutionDenied(allParts, executionDeniedResults);
 
   const status = lastMessage.streaming ? "streaming" : lastMessage.status;
+  const notices = group.flatMap((m) => m.notices ?? []);
+  const errors = group.flatMap((m) => m.errors ?? []);
   return {
     id: firstMessage._id,
     _creationTime: firstMessage._creationTime,
@@ -74,6 +76,8 @@ export function createAssistantUIMessage<
     status,
     parts: allParts,
     metadata: group.find((m) => m.metadata)?.metadata,
+    notices: notices.length > 0 ? notices : undefined,
+    errors: errors.length > 0 ? errors : undefined,
   } satisfies UIMessage<METADATA, DATA_PARTS, TOOLS>;
 }
 

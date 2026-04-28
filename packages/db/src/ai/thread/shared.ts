@@ -10,6 +10,7 @@ import {
   vProviderMetadata,
 } from "../../agent/validators/shared";
 import { vStreamDelta, vStreamMessage } from "../../agent/validators/stream";
+import { vSystemError, vSystemNotice } from "../../agent/validators/system";
 
 // Server only reads `key` (file lookup via `by_key`). The remaining fields
 // are optional passthroughs so the client can seed rich optimistic message
@@ -76,6 +77,8 @@ export const vEnrichedMessage = v.object({
   warnings: v.optional(v.array(vLanguageModelCallWarning)),
   finishReason: v.optional(vFinishReason),
   providerMetadata: v.optional(vProviderMetadata),
+  notices: v.optional(v.array(vSystemNotice)),
+  errors: v.optional(v.array(vSystemError)),
   error: v.optional(v.string()),
   attachments: v.array(vPublicFile),
 });

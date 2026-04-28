@@ -6,11 +6,12 @@ import { threadQueries } from "@acme/features/thread";
 import { useSendMessage } from "~/features/composer/hooks/use-send-message";
 
 export function ThreadFollowUps({ threadId }: { threadId: string }) {
-  const { data: followUpState } = useSuspenseQuery({
+  const {
+    data: { questions, isEmpty },
+  } = useSuspenseQuery({
     ...threadQueries.followUps(threadId),
-    select: (data) => ({ questions: data, empty: data.length === 0 }),
+    select: (data) => ({ questions: data, isEmpty: data.length === 0 }),
   });
-  const { questions: followUpQuestions, empty } = followUpState;
 
   const { sendMessage } = useSendMessage();
   const { data: limitHit } = useSuspenseQuery({
@@ -26,10 +27,10 @@ export function ThreadFollowUps({ threadId }: { threadId: string }) {
     <div
       className="flex max-w-[500px] flex-col gap-3 transition-opacity duration-1000"
       style={{
-        opacity: empty ? 0 : 1,
+        opacity: isEmpty ? 0 : 1,
       }}
     >
-      {followUpQuestions.map((question) => (
+      {questions.map((question) => (
         <div
           key={question}
           className="bg-card/50 hover:bg-card/70 rounded-xl p-4 text-sm shadow-md backdrop-blur-sm transition-all duration-300 select-none hover:cursor-pointer"

@@ -11,6 +11,8 @@ import {
   vProviderOptions,
   vReasoningDetails,
   vSource,
+  vSystemError,
+  vSystemNotice,
   vThreadStatus,
   vUsage,
 } from "./validators";
@@ -69,6 +71,8 @@ export const agentTables = {
     finishReason: v.optional(vFinishReason),
     reasoning: v.optional(v.string()),
     reasoningDetails: v.optional(vReasoningDetails),
+    notices: v.optional(v.array(vSystemNotice)),
+    errors: v.optional(v.array(vSystemError)),
 
     attachments: v.optional(v.array(v.id("files"))),
   })

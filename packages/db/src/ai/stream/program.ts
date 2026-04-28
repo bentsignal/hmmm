@@ -1,13 +1,13 @@
 import { Effect } from "effect";
 
-import type { SystemErrorCode } from "../thread/helpers";
 import type {
   ConvexCallError,
   StreamConsumeError,
   StreamInitError,
 } from "./errors";
 import { abortWatcher } from "./abort_watcher";
-import { EarlyAborted, systemErrorCodeFor } from "./errors";
+import { ErrorCode } from "./error_codes";
+import { EarlyAborted, errorCodeFor } from "./errors";
 import { AgentRuntime } from "./services/agent_runtime";
 import { FollowUps } from "./services/follow_ups";
 import { ThreadEvents } from "./services/thread_events";
@@ -25,8 +25,8 @@ export interface StreamResponseArgs {
 // original cause of the program exiting.
 function writeSystemError(args: {
   threadId: string;
-  code: SystemErrorCode;
-  message: string;
+  generationId: string;
+  code: ErrorCode;
 }) {
   return Effect.gen(function* () {
     const threadState = yield* ThreadState;
@@ -36,44 +36,43 @@ function writeSystemError(args: {
 
 function handleStreamError(
   threadId: string,
-  kind: "init" | "consume",
+  generationId: string,
   e: StreamInitError | StreamConsumeError,
 ) {
   return Effect.gen(function* () {
-    yield* Effect.logError(`stream-${kind} failed`, { cause: e.cause });
-    yield* writeSystemError({
-      threadId,
-      code: systemErrorCodeFor(e),
-      message:
-        kind === "init"
-          ? "Failed to initialize stream generation."
-          : "Failed to stream response back to user.",
-    });
-  });
-}
-
-function handleConvexCallError(threadId: string, e: ConvexCallError) {
-  return Effect.gen(function* () {
-    yield* Effect.logError("convex-call failed", {
+    const code = errorCodeFor(e);
+    yield* Effect.annotateCurrentSpan("error.code", code);
+    yield* Effect.logError("stream.generation failed", {
+      code,
       cause: e.cause,
-      op: e.op,
     });
-    yield* writeSystemError({
-      threadId,
-      code: "G3" satisfies SystemErrorCode,
-      message: "An unexpected error occurred.",
-    });
+    yield* writeSystemError({ threadId, generationId, code });
   });
 }
 
-function handleDefect(threadId: string, cause: unknown) {
+function handleConvexCallError(
+  threadId: string,
+  generationId: string,
+  e: ConvexCallError,
+) {
   return Effect.gen(function* () {
-    yield* Effect.logError("stream-response defect", { cause });
-    yield* writeSystemError({
-      threadId,
-      code: "G3" satisfies SystemErrorCode,
-      message: "An unexpected error occurred.",
+    const code = errorCodeFor(e);
+    yield* Effect.annotateCurrentSpan("error.code", code);
+    yield* Effect.logError("stream.generation failed", {
+      code,
+      op: e.op,
+      cause: e.cause,
     });
+    yield* writeSystemError({ threadId, generationId, code });
+  });
+}
+
+function handleDefect(threadId: string, generationId: string, cause: unknown) {
+  return Effect.gen(function* () {
+    const code = ErrorCode.InternalDefect;
+    yield* Effect.annotateCurrentSpan("error.code", code);
+    yield* Effect.logError("stream.generation failed", { code, cause });
+    yield* writeSystemError({ threadId, generationId, code });
   });
 }
 
@@ -123,7 +122,10 @@ function makeScoped(args: StreamResponseArgs) {
         yield* followUps.generate({ threadId, responseText: handle.text }).pipe(
           Effect.withSpan("stream.followups"),
           Effect.catchTag("FollowUpGenerationError", (e) =>
-            Effect.logWarning("follow-ups failed", { cause: e.cause }),
+            Effect.logWarning("stream.generation follow-ups failed", {
+              code: ErrorCode.FollowUpsFailed,
+              cause: e.cause,
+            }),
           ),
         );
       });
@@ -138,6 +140,8 @@ function makeScoped(args: StreamResponseArgs) {
           controller,
         }),
       );
+
+      yield* Effect.logInfo("stream.generation succeeded");
     }),
   );
 }
@@ -150,19 +154,19 @@ export function makeProgram(args: StreamResponseArgs) {
     }),
     Effect.annotateLogs({ threadId, generationId, model: model ?? "default" }),
     Effect.catchTag("StreamInitError", (e) =>
-      handleStreamError(threadId, "init", e),
+      handleStreamError(threadId, generationId, e),
     ),
     Effect.catchTag("StreamConsumeError", (e) =>
-      handleStreamError(threadId, "consume", e),
+      handleStreamError(threadId, generationId, e),
     ),
     Effect.catchTag("ConvexCallError", (e) =>
-      handleConvexCallError(threadId, e),
+      handleConvexCallError(threadId, generationId, e),
     ),
     Effect.catchTag("UserAborted", () => Effect.logInfo("user-abort")),
     Effect.catchTag("EarlyAborted", () => Effect.logDebug("early-abort")),
     // Anything unhandled here is a defect (or a tagged error we forgot to
     // catch). Log the cause and surface a generic system error so the UI
     // never silently reports success on a real bug.
-    Effect.catchCause((cause) => handleDefect(threadId, cause)),
+    Effect.catchCause((cause) => handleDefect(threadId, generationId, cause)),
   );
 }

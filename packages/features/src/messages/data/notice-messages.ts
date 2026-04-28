@@ -1,6 +1,10 @@
+import type { NoticeCode } from "../types/message-types";
+
 export const NOTICE_MESSAGES = {
-  N1: `Unfortunately, I was unable to obtain the information needed to answer
-  your question. To gain access to real time information from the web, upgrade
-  to a premium plan.`,
-  N2: `Response stopped early — you aborted the generation.`,
-};
+  "notice.premium_required": `Unfortunately, I was unable to complete this request. To gain access to this functionality, upgrade to a premium plan.`,
+  "notice.user_aborted": `Response stopped early.`,
+} as const satisfies Record<NoticeCode, string>;
+
+export function getNoticeMessage(code: NoticeCode) {
+  return NOTICE_MESSAGES[code];
+}

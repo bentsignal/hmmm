@@ -1,6 +1,6 @@
 import { Data } from "effect";
 
-import type { SystemErrorCode } from "../thread/helpers";
+import { ErrorCode } from "./error_codes";
 
 export class EarlyAborted extends Data.TaggedError("EarlyAborted") {}
 
@@ -43,11 +43,21 @@ export type StreamResponseError =
   | FollowUpGenerationError
   | ConvexCallError;
 
-// Maps tagged errors to legacy system error codes so the existing client
-// rendering pipeline in @acme/features (which parses `--SYSTEM_ERROR--G1` etc.)
-// keeps working. Client-side code is intentionally out of scope here.
-export function systemErrorCodeFor(e: StreamInitError | StreamConsumeError) {
-  return e._tag === "StreamInitError"
-    ? ("G1" satisfies SystemErrorCode)
-    : ("G2" satisfies SystemErrorCode);
+export function errorCodeFor(
+  e:
+    | StreamInitError
+    | StreamConsumeError
+    | FollowUpGenerationError
+    | ConvexCallError,
+) {
+  switch (e._tag) {
+    case "StreamInitError":
+      return ErrorCode.StreamInitFailed;
+    case "StreamConsumeError":
+      return ErrorCode.StreamConsumeFailed;
+    case "FollowUpGenerationError":
+      return ErrorCode.FollowUpsFailed;
+    case "ConvexCallError":
+      return ErrorCode.ConvexCallFailed;
+  }
 }

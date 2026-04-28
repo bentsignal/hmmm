@@ -27,7 +27,9 @@
     "./agent/shared": "./src/agent/shared.ts",
     "./agent/deltas": "./src/agent/deltas/index.ts",
     "./agent/mapping": "./src/agent/mapping/index.ts",
-    "./agent/types": "./lib/agent-client/types/index.ts"
+    "./agent/types": "./lib/agent-client/types/index.ts",
+    "./stream/error-codes": "./src/ai/stream/error_codes.ts",
+    "./stream/notice-codes": "./src/ai/stream/notice_codes.ts"
   },
   "scripts": {
     "dev": "convex dev",

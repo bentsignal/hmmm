@@ -14,6 +14,7 @@ import { authedQuery } from "../../convex_helpers";
 import { tryCatch } from "../../lib/utils";
 import { usageCheckedMutation } from "../../usage_checked_helpers";
 import { getPerferredModelIfAllowed } from "../../user/info";
+import { ErrorCode } from "../stream/error_codes";
 import { emitThreadEvent, generateGenerationId } from "./events";
 import {
   authorizeAccess,
@@ -163,6 +164,8 @@ export const list = authedQuery({
           warnings: message.warnings,
           finishReason: message.finishReason,
           providerMetadata: message.providerMetadata,
+          notices: message.notices,
+          errors: message.errors,
           error: message.error,
           attachments,
         };
@@ -226,12 +229,11 @@ export const send = usageCheckedMutation({
     );
     if (error) {
       console.error(error);
-      await logSystemError(
-        ctx,
-        thread._id,
-        "G4",
-        "Failed to generate response",
-      );
+      await logSystemError(ctx, thread._id, {
+        code: ErrorCode.InternalDefect,
+        generationId,
+        timestamp: Date.now(),
+      });
     } else {
       await ctx.db.patch(thread._id, { generationFnId: scheduledId });
     }

@@ -11,14 +11,14 @@ import {
 
 import type {
   MyUIMessage,
-  SystemErrorCode,
-  SystemNoticeCode,
+  NoticeCode,
+  SystemError,
 } from "@acme/features/messages";
 import {
+  getErrorMessage,
+  getNoticeMessage,
   getStatusLabel,
-  isErrorMessage,
-  isNoticeMessage,
-  NOTICE_MESSAGES,
+  getVisibleErrors,
 } from "@acme/features/messages";
 
 import { TextElement } from "~/components/xr/xr-text";
@@ -26,17 +26,9 @@ import { hexColors, xrStyles } from "~/styles/styles";
 import { XRMarkdown } from "./xr-markdown";
 
 export function XRResponseMessage({ message }: { message: MyUIMessage }) {
-  // error occured during repsonse generation, inform user
-  const errorCode = isErrorMessage(message.text);
-  if (errorCode) {
-    return <ErrorMessage code={errorCode} />;
-  }
-
-  // notices from server, currently just that you need premium for web results
-  const noticeCode = isNoticeMessage(message.text);
-  if (noticeCode) {
-    return <NoticeMessage code={noticeCode} />;
-  }
+  const visibleErrors = getVisibleErrors(message);
+  const notices = message.notices ?? [];
+  const hasTextContent = message.text.length > 0;
 
   return (
     <Container
@@ -46,7 +38,13 @@ export function XRResponseMessage({ message }: { message: MyUIMessage }) {
       flexWrap="wrap"
     >
       <MessageStatus message={message} />
-      <XRMarkdown content={message.text} />
+      {hasTextContent && <XRMarkdown content={message.text} />}
+      {notices.map((notice, i) => (
+        <NoticeMessage key={`notice-${i}`} code={notice.code} />
+      ))}
+      {visibleErrors.map((error, i) => (
+        <ErrorMessage key={`error-${i}`} error={error} />
+      ))}
     </Container>
   );
 }
@@ -84,15 +82,16 @@ function MessageStatus({ message }: { message: MyUIMessage }) {
   );
 }
 
-function NoticeMessage({ code }: { code: SystemNoticeCode }) {
-  return <TextElement>{NOTICE_MESSAGES[code]}</TextElement>;
+function NoticeMessage({ code }: { code: NoticeCode }) {
+  return <TextElement>{getNoticeMessage(code)}</TextElement>;
 }
 
-function ErrorMessage({ code }: { code: SystemErrorCode }) {
+function ErrorMessage({ error }: { error: SystemError }) {
   return (
     <TextElement color={hexColors.destructive}>
-      CODE: {code} An error occured while generating a response. Please try
-      again.
+      {getErrorMessage(error.code)}
+      {"\n"}
+      code: {error.code}
     </TextElement>
   );
 }

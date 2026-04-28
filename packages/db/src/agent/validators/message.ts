@@ -21,6 +21,7 @@ import {
   vMessageStatus,
   vUsage,
 } from "./shared";
+import { vSystemError, vSystemNotice } from "./system";
 import {
   vToolApprovalRequest,
   vToolCallPart,
@@ -102,6 +103,8 @@ export const vMessageWithMetadata = v.object({
   sources: v.optional(v.array(vSource)),
   reasoning: v.optional(v.string()),
   reasoningDetails: v.optional(vReasoningDetails),
+  notices: v.optional(v.array(vSystemNotice)),
+  errors: v.optional(v.array(vSystemError)),
   usage: v.optional(vUsage),
   warnings: v.optional(v.array(vLanguageModelCallWarning)),
   error: v.optional(v.string()),

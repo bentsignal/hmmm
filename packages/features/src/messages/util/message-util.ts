@@ -1,11 +1,6 @@
 import type { Source } from "../../types/source";
-import type {
-  MyUIMessage,
-  MyUIMessagePart,
-  SystemErrorCode,
-  SystemNoticeCode,
-} from "../types/message-types";
-import { SystemErrorLabel, SystemNoticeLabel } from "../types/message-types";
+import type { MyUIMessage, MyUIMessagePart } from "../types/message-types";
+import { isUserVisible } from "../types/message-types";
 
 export { extractTextFromChildren } from "./extract-text";
 
@@ -40,34 +35,9 @@ export function getStatusLabel(parts: MyUIMessagePart[]) {
   return statusLabels.get(part.type) ?? "Reasoning";
 }
 
-export function formatError(code: SystemErrorCode) {
-  return `${SystemErrorLabel}${code}`;
-}
-
-export function formatNotice(code: SystemNoticeCode) {
-  return `${SystemNoticeLabel}${code}`;
-}
-
-const errorCodes = new Map([
-  ["G1", "G1"],
-  ["G2", "G2"],
-  ["G3", "G3"],
-  ["G4", "G4"],
-] satisfies [string, SystemErrorCode][]);
-
-const noticeCodes = new Map([
-  ["N1", "N1"],
-  ["N2", "N2"],
-] satisfies [string, SystemNoticeCode][]);
-
-export function isErrorMessage(message: string) {
-  if (!message.startsWith(SystemErrorLabel)) return null;
-  return errorCodes.get(message.replace(SystemErrorLabel, "")) ?? null;
-}
-
-export function isNoticeMessage(message: string) {
-  if (!message.startsWith(SystemNoticeLabel)) return null;
-  return noticeCodes.get(message.replace(SystemNoticeLabel, "")) ?? null;
+export function getVisibleErrors(message: MyUIMessage) {
+  if (!message.errors) return [];
+  return message.errors.filter((e) => isUserVisible(e.code));
 }
 
 function isSource(value: unknown): value is Source {
@@ -117,5 +87,8 @@ export function responseHasNoContent(message: MyUIMessage) {
   if (sources.length > 0) return false;
   const image = extractImageFromMessage(message);
   if (image) return false;
+  const errors = getVisibleErrors(message);
+  if (errors.length > 0) return false;
+  if (message.notices && message.notices.length > 0) return false;
   return true;
 }

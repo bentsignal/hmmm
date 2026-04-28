@@ -3,12 +3,11 @@ import type { UIDataTypes, UIMessagePart, UITools } from "ai";
 import type { LibraryFile } from "../../library/types/library-types";
 import type { UIMessage } from "../agent";
 
-export type SystemErrorCode = "G1" | "G2" | "G3" | "G4";
+export { ErrorCode, isUserVisible } from "@acme/db/stream/error-codes";
 
-export type SystemNoticeCode = "N1" | "N2";
+export { NoticeCode } from "@acme/db/stream/notice-codes";
 
-export const SystemErrorLabel = "--SYSTEM_ERROR--";
-export const SystemNoticeLabel = "--SYSTEM_NOTICE--";
+export type { SystemError, SystemNotice } from "@acme/db/agent/validators";
 
 export type MyTools = UITools;
 export interface MyMetadata {

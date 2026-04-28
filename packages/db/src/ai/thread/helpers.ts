@@ -5,9 +5,14 @@ import { ConvexError } from "convex/values";
 
 import type { Doc } from "../../_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "../../_generated/server";
-import type { Message } from "../../agent/validators";
+import type {
+  Message,
+  MessageWithMetadata,
+  SystemError,
+} from "../../agent/validators";
 import type { authedMutation, authedQuery } from "../../convex_helpers";
 import type { usageCheckedMutation } from "../../usage_checked_helpers";
+import type { NoticeCode } from "../stream/notice_codes";
 import { saveMessage } from "../../../lib/agent-client";
 import { addMessagesHandler } from "../../agent/handlers/add_messages";
 import { serializeOrThrow } from "../../agent/mapping";
@@ -16,19 +21,6 @@ import { messageSendRateLimit } from "../../limiter";
 import { isAdmin } from "../../user/account";
 
 const MAX_ATTACHMENTS_PER_MESSAGE = 10;
-
-export type SystemErrorCode = "G1" | "G2" | "G3" | "G4";
-type SystemNoticeCode = "N1" | "N2";
-const SystemErrorLabel = "--SYSTEM_ERROR--";
-const SystemNoticeLabel = "--SYSTEM_NOTICE--";
-
-function formatError(code: SystemErrorCode) {
-  return `${SystemErrorLabel}${code}`;
-}
-
-function formatNotice(code: SystemNoticeCode) {
-  return `${SystemNoticeLabel}${code}`;
-}
 
 /**
  * Look up a thread by either its server `_id` or its client-generated
@@ -82,13 +74,17 @@ async function saveMessagesDirect(
   ctx: MutationCtx,
   threadId: string,
   messages: (ModelMessage | Message)[],
+  metadata?: Omit<MessageWithMetadata, "message">[],
 ) {
   const normalized = ctx.db.normalizeId("threads", threadId);
   if (!normalized) {
     throw new ConvexError(`Thread id ${threadId} failed to normalize`);
   }
-  const serialized = messages.map((m) =>
-    parse(vMessageWithMetadata, { message: serializeOrThrow(m) }),
+  const serialized = messages.map((m, i) =>
+    parse(vMessageWithMetadata, {
+      ...metadata?.[i],
+      message: serializeOrThrow(m),
+    }),
   );
   return addMessagesHandler(ctx, {
     threadId: normalized,
@@ -97,37 +93,46 @@ async function saveMessagesDirect(
   });
 }
 
+const EMPTY_ASSISTANT_MESSAGE = {
+  role: "assistant" as const,
+  content: "",
+};
+
+async function saveAnnotationMessage(
+  ctx: ActionCtx | MutationCtx,
+  threadId: string,
+  metadata: Omit<MessageWithMetadata, "message">,
+) {
+  if ("db" in ctx) {
+    await saveMessagesDirect(
+      ctx,
+      threadId,
+      [EMPTY_ASSISTANT_MESSAGE],
+      [metadata],
+    );
+    return;
+  }
+  await saveMessage(ctx, {
+    threadId,
+    message: EMPTY_ASSISTANT_MESSAGE,
+    metadata,
+  });
+}
+
 export async function logSystemError(
   ctx: ActionCtx | MutationCtx,
   threadId: string,
-  code: SystemErrorCode,
-  message: string,
+  error: SystemError,
 ) {
-  console.log(
-    "System Error during generation. Error code:",
-    code,
-    "Error message:",
-    message,
-  );
-  const assistantMessage = {
-    role: "assistant" as const,
-    content: formatError(code),
-  };
-  if ("db" in ctx) {
-    await saveMessagesDirect(ctx, threadId, [assistantMessage]);
-    return;
-  }
-  await saveMessage(ctx, { threadId, message: assistantMessage });
+  await saveAnnotationMessage(ctx, threadId, { errors: [error] });
 }
 
 export async function logSystemNotice(
   ctx: MutationCtx,
   threadId: string,
-  code: SystemNoticeCode,
+  code: NoticeCode,
 ) {
-  await saveMessagesDirect(ctx, threadId, [
-    { role: "assistant", content: formatNotice(code) },
-  ]);
+  await saveAnnotationMessage(ctx, threadId, { notices: [{ code }] });
 }
 
 export async function validateMessage(

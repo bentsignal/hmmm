@@ -1,6 +1,11 @@
 import type { UIMessage as AIUIMessage, UIDataTypes, UITools } from "ai";
 
-import type { MessageDoc, MessageStatus } from "../validators";
+import type {
+  MessageDoc,
+  MessageStatus,
+  SystemError,
+  SystemNotice,
+} from "../validators";
 
 export type UIStatus = "streaming" | MessageStatus;
 
@@ -17,6 +22,8 @@ export type UIMessage<
   userId?: string;
   text: string;
   _creationTime: number;
+  notices?: SystemNotice[];
+  errors?: SystemError[];
 };
 
 export interface ExtraFields<METADATA = unknown> {

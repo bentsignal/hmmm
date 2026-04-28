@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 
 import { abortById } from "../../agent/handlers/streams";
 import { authedMutation } from "../../convex_helpers";
+import { NoticeCode } from "../stream/notice_codes";
 import { clearEventsForGeneration, getActiveGenerationId } from "./events";
 import { authorizeAccess, logSystemNotice } from "./helpers";
 
@@ -15,7 +16,8 @@ export const abort = authedMutation({
       throw new ConvexError("Thread not found");
     }
     // If the scheduled streamResponse hasn't started yet, cancel it so it
-    // never calls the LLM — zero cost, no G1/G2 error written afterward.
+    // never calls the LLM — zero cost, no stream.init/consume error written
+    // afterward.
     if (thread.generationFnId) {
       const fn = await ctx.db.system.get(thread.generationFnId);
       if (fn?.state.kind === "pending") {
@@ -34,7 +36,7 @@ export const abort = authedMutation({
     const activeGenerationId = await getActiveGenerationId(ctx, thread._id);
     if (activeGenerationId) {
       await clearEventsForGeneration(ctx, activeGenerationId);
-      await logSystemNotice(ctx, thread._id, "N2");
+      await logSystemNotice(ctx, thread._id, NoticeCode.UserAborted);
     }
     await ctx.db.patch(thread._id, {
       generationFnId: undefined,

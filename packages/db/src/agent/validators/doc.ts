@@ -12,6 +12,7 @@ import {
   vThreadStatus,
   vUsage,
 } from "./shared";
+import { vSystemError, vSystemNotice } from "./system";
 
 export const vMessageDoc = v.object({
   _id: v.string(),
@@ -39,6 +40,8 @@ export const vMessageDoc = v.object({
   finishReason: v.optional(vFinishReason),
   reasoning: v.optional(v.string()),
   reasoningDetails: v.optional(vReasoningDetails),
+  notices: v.optional(v.array(vSystemNotice)),
+  errors: v.optional(v.array(vSystemError)),
   id: v.optional(v.string()),
   // Loose `v.any()` so host code is free to either pass through the raw
   // `Id<"files">[]` array (server-side) or replace it with a fully-resolved

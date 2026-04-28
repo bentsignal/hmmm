@@ -5,6 +5,7 @@ import { authedMutation } from "../../convex_helpers";
 import { tryCatch } from "../../lib/utils";
 import { usageCheckedMutation } from "../../usage_checked_helpers";
 import { getPerferredModelIfAllowed } from "../../user/info";
+import { ErrorCode } from "../stream/error_codes";
 import { emitThreadEvent, generateGenerationId } from "./events";
 import {
   authorizeAccess,
@@ -64,12 +65,11 @@ export const create = usageCheckedMutation({
     );
     if (error) {
       console.error(error);
-      await logSystemError(
-        ctx,
-        threadId,
-        "G4",
-        "Failed to generate title or response",
-      );
+      await logSystemError(ctx, threadId, {
+        code: ErrorCode.InternalDefect,
+        generationId,
+        timestamp: Date.now(),
+      });
     } else {
       await ctx.db.patch(threadId, { generationFnId: scheduledIds[1] });
     }

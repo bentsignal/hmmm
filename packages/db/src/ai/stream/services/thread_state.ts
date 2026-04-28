@@ -1,7 +1,7 @@
 import { Context, Effect, Layer } from "effect";
 
 import type { ActionCtx } from "../../../_generated/server";
-import type { SystemErrorCode } from "../../thread/helpers";
+import type { ErrorCode } from "../error_codes";
 import { internal } from "../../../_generated/api";
 import { logSystemError } from "../../thread/helpers";
 import { ConvexCallError } from "../errors";
@@ -13,8 +13,8 @@ interface ThreadStateShape {
   }) => Effect.Effect<boolean, ConvexCallError, never>;
   readonly writeSystemError: (args: {
     threadId: string;
-    code: SystemErrorCode;
-    message: string;
+    generationId: string;
+    code: ErrorCode;
   }) => Effect.Effect<void, ConvexCallError, never>;
 }
 
@@ -34,9 +34,14 @@ export function threadStateLayer(ctx: ActionCtx) {
           }),
         catch: (cause) => new ConvexCallError({ cause, op: "wasAborted" }),
       }),
-    writeSystemError: ({ threadId, code, message }) =>
+    writeSystemError: ({ threadId, generationId, code }) =>
       Effect.tryPromise({
-        try: () => logSystemError(ctx, threadId, code, message),
+        try: () =>
+          logSystemError(ctx, threadId, {
+            code,
+            generationId,
+            timestamp: Date.now(),
+          }),
         catch: (cause) =>
           new ConvexCallError({ cause, op: "writeSystemError" }),
       }),
