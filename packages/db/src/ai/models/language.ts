@@ -177,6 +177,13 @@ export const languageModels = {
     name: "Grok 4.20",
     model: gateway("xai/grok-4.20-reasoning-beta"),
     cost: { in: 2, out: 6, other: 0 },
+    available: false,
+  },
+  "grok-4.3": {
+    provider: "xAI",
+    name: "Grok 4.20",
+    model: gateway("xai/grok-4.3"),
+    cost: { in: 1.25, out: 2.5, other: 0 },
     available: true,
   },
   sonar: {
