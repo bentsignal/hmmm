@@ -79,6 +79,7 @@ import type * as ai_stream_services_agent_runtime from "../ai/stream/services/ag
 import type * as ai_stream_services_follow_ups from "../ai/stream/services/follow_ups.js";
 import type * as ai_stream_services_thread_events from "../ai/stream/services/thread_events.js";
 import type * as ai_stream_services_thread_state from "../ai/stream/services/thread_state.js";
+import type * as ai_stream_stream_event from "../ai/stream/stream_event.js";
 import type * as ai_suggestions from "../ai/suggestions.js";
 import type * as ai_thread_events from "../ai/thread/events.js";
 import type * as ai_thread_followUps from "../ai/thread/followUps.js";
@@ -211,6 +212,7 @@ declare const fullApi: ApiFromModules<{
   "ai/stream/services/follow_ups": typeof ai_stream_services_follow_ups;
   "ai/stream/services/thread_events": typeof ai_stream_services_thread_events;
   "ai/stream/services/thread_state": typeof ai_stream_services_thread_state;
+  "ai/stream/stream_event": typeof ai_stream_stream_event;
   "ai/suggestions": typeof ai_suggestions;
   "ai/thread/events": typeof ai_thread_events;
   "ai/thread/followUps": typeof ai_thread_followUps;

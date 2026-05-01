@@ -5,6 +5,7 @@ import type {
   StreamConsumeError,
   StreamInitError,
 } from "./errors";
+import type { EventRef } from "./stream_event";
 import { abortWatcher } from "./abort_watcher";
 import { ErrorCode } from "./error_codes";
 import { EarlyAborted, errorCodeFor } from "./errors";
@@ -12,17 +13,22 @@ import { AgentRuntime } from "./services/agent_runtime";
 import { FollowUps } from "./services/follow_ups";
 import { ThreadEvents } from "./services/thread_events";
 import { ThreadState } from "./services/thread_state";
+import {
+  emitStreamEvent,
+  makeEventRef,
+  timed,
+  updateEvent,
+} from "./stream_event";
 
 export interface StreamResponseArgs {
   readonly threadId: string;
   readonly promptMessageId: string;
   readonly generationId: string;
   readonly model?: string | undefined;
+  readonly userId: string;
+  readonly userPlan?: string | undefined;
 }
 
-// Writes a user-visible system error to the thread. Wrapped with
-// `Effect.ignore({ log: true })` so a Convex failure here never masks the
-// original cause of the program exiting.
 function writeSystemError(args: {
   threadId: string;
   generationId: string;
@@ -34,7 +40,14 @@ function writeSystemError(args: {
   }).pipe(Effect.ignore({ log: true }));
 }
 
+function causeMessage(cause: unknown) {
+  if (cause instanceof Error) return cause.message;
+  if (typeof cause === "string") return cause;
+  return String(cause);
+}
+
 function handleStreamError(
+  ref: EventRef,
   threadId: string,
   generationId: string,
   e: StreamInitError | StreamConsumeError,
@@ -42,15 +55,18 @@ function handleStreamError(
   return Effect.gen(function* () {
     const code = errorCodeFor(e);
     yield* Effect.annotateCurrentSpan("error.code", code);
-    yield* Effect.logError("stream.generation failed", {
-      code,
-      cause: e.cause,
+    yield* updateEvent(ref, {
+      outcome: "error",
+      errorCode: code,
+      errorTag: e._tag,
+      errorMessage: causeMessage(e.cause),
     });
     yield* writeSystemError({ threadId, generationId, code });
   });
 }
 
 function handleConvexCallError(
+  ref: EventRef,
   threadId: string,
   generationId: string,
   e: ConvexCallError,
@@ -58,25 +74,37 @@ function handleConvexCallError(
   return Effect.gen(function* () {
     const code = errorCodeFor(e);
     yield* Effect.annotateCurrentSpan("error.code", code);
-    yield* Effect.logError("stream.generation failed", {
-      code,
-      op: e.op,
-      cause: e.cause,
+    yield* updateEvent(ref, {
+      outcome: "error",
+      errorCode: code,
+      errorTag: e._tag,
+      errorMessage: causeMessage(e.cause),
+      errorOp: e.op,
     });
     yield* writeSystemError({ threadId, generationId, code });
   });
 }
 
-function handleDefect(threadId: string, generationId: string, cause: unknown) {
+function handleDefect(
+  ref: EventRef,
+  threadId: string,
+  generationId: string,
+  cause: unknown,
+) {
   return Effect.gen(function* () {
     const code = ErrorCode.InternalDefect;
     yield* Effect.annotateCurrentSpan("error.code", code);
-    yield* Effect.logError("stream.generation failed", { code, cause });
+    yield* updateEvent(ref, {
+      outcome: "error",
+      errorCode: code,
+      errorTag: "Defect",
+      errorMessage: causeMessage(cause),
+    });
     yield* writeSystemError({ threadId, generationId, code });
   });
 }
 
-function makeScoped(args: StreamResponseArgs) {
+function makeScoped(args: StreamResponseArgs, ref: EventRef) {
   const { threadId, promptMessageId, generationId, model } = args;
   return Effect.scoped(
     Effect.gen(function* () {
@@ -85,19 +113,14 @@ function makeScoped(args: StreamResponseArgs) {
       const agentRuntime = yield* AgentRuntime;
       const followUps = yield* FollowUps;
 
-      // If abort committed before the scheduler picked us up, bail before
-      // we hit the LLM so no response is produced.
       const abortedEarly = yield* threadState.wasAborted({
         threadId,
         generationId,
       });
       if (abortedEarly) return yield* new EarlyAborted();
 
-      // Always clear threadEvents for this generation on any exit path.
       yield* threadEvents.scopedGeneration(generationId);
 
-      // Controller is owned by this scope so both the stream work and the
-      // watcher coordinate through it; release aborts the signal if needed.
       const controller = yield* Effect.acquireRelease(
         Effect.sync(() => new AbortController()),
         (c) =>
@@ -107,31 +130,46 @@ function makeScoped(args: StreamResponseArgs) {
       );
 
       const mainWork = Effect.gen(function* () {
-        const handle = yield* agentRuntime
-          .streamText({
-            threadId,
-            promptMessageId,
-            generationId,
-            model,
-            controller,
-          })
-          .pipe(Effect.withSpan("stream.init"));
-        yield* agentRuntime
-          .consumeStream(handle)
-          .pipe(Effect.withSpan("stream.consume"));
-        yield* followUps.generate({ threadId, responseText: handle.text }).pipe(
-          Effect.withSpan("stream.followups"),
-          Effect.catchTag("FollowUpGenerationError", (e) =>
-            Effect.logWarning("stream.generation follow-ups failed", {
-              code: ErrorCode.FollowUpsFailed,
-              cause: e.cause,
-            }),
+        const handle = yield* timed(
+          ref,
+          "initDurationMs",
+          agentRuntime
+            .streamText({
+              threadId,
+              promptMessageId,
+              generationId,
+              model,
+              controller,
+            })
+            .pipe(Effect.withSpan("stream.init")),
+        );
+
+        yield* timed(
+          ref,
+          "consumeDurationMs",
+          agentRuntime
+            .consumeStream(handle)
+            .pipe(Effect.withSpan("stream.consume")),
+        );
+
+        yield* timed(
+          ref,
+          "followUpsDurationMs",
+          Effect.gen(function* () {
+            yield* updateEvent(ref, { followUpsAttempted: true });
+            yield* followUps.generate({ threadId, responseText: handle.text });
+            yield* updateEvent(ref, { followUpsSucceeded: true });
+          }).pipe(
+            Effect.withSpan("stream.followups"),
+            Effect.catchTag("FollowUpGenerationError", (e) =>
+              updateEvent(ref, {
+                followUpsErrorMessage: causeMessage(e.cause),
+              }),
+            ),
           ),
         );
       });
 
-      // Watcher wins → UserAborted fails the race, mainWork is interrupted,
-      // scope finalizers run. mainWork wins → watcher is interrupted.
       yield* Effect.raceFirst(
         mainWork,
         abortWatcher({
@@ -140,33 +178,53 @@ function makeScoped(args: StreamResponseArgs) {
           controller,
         }),
       );
-
-      yield* Effect.logInfo("stream.generation succeeded");
     }),
   );
 }
 
 export function makeProgram(args: StreamResponseArgs) {
-  const { threadId, generationId, model } = args;
-  return makeScoped(args).pipe(
+  const { threadId, generationId, model, userId, userPlan } = args;
+  const resolvedModel = model ?? "default";
+
+  return Effect.gen(function* () {
+    const ref = yield* makeEventRef({
+      threadId,
+      generationId,
+      userId,
+      userPlan: userPlan ?? null,
+      model: resolvedModel,
+    });
+
+    yield* makeScoped(args, ref).pipe(
+      Effect.catchTag("StreamInitError", (e) =>
+        handleStreamError(ref, threadId, generationId, e),
+      ),
+      Effect.catchTag("StreamConsumeError", (e) =>
+        handleStreamError(ref, threadId, generationId, e),
+      ),
+      Effect.catchTag("ConvexCallError", (e) =>
+        handleConvexCallError(ref, threadId, generationId, e),
+      ),
+      Effect.catchTag("UserAborted", () =>
+        updateEvent(ref, { outcome: "user_aborted" }),
+      ),
+      Effect.catchTag("EarlyAborted", () =>
+        updateEvent(ref, { outcome: "early_aborted" }),
+      ),
+      Effect.catchCause((cause) =>
+        handleDefect(ref, threadId, generationId, cause),
+      ),
+      Effect.ensuring(emitStreamEvent(ref)),
+    );
+  }).pipe(
     Effect.withSpan("stream.generation", {
-      attributes: { threadId, generationId, model: model ?? "default" },
+      attributes: { threadId, generationId, model: resolvedModel },
     }),
-    Effect.annotateLogs({ threadId, generationId, model: model ?? "default" }),
-    Effect.catchTag("StreamInitError", (e) =>
-      handleStreamError(threadId, generationId, e),
-    ),
-    Effect.catchTag("StreamConsumeError", (e) =>
-      handleStreamError(threadId, generationId, e),
-    ),
-    Effect.catchTag("ConvexCallError", (e) =>
-      handleConvexCallError(threadId, generationId, e),
-    ),
-    Effect.catchTag("UserAborted", () => Effect.logInfo("user-abort")),
-    Effect.catchTag("EarlyAborted", () => Effect.logDebug("early-abort")),
-    // Anything unhandled here is a defect (or a tagged error we forgot to
-    // catch). Log the cause and surface a generic system error so the UI
-    // never silently reports success on a real bug.
-    Effect.catchCause((cause) => handleDefect(threadId, generationId, cause)),
+    Effect.annotateLogs({
+      threadId,
+      generationId,
+      userId,
+      model: resolvedModel,
+    }),
   );
 }

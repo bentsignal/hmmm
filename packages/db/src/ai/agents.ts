@@ -89,6 +89,8 @@ export const streamResponse = internalAction({
     promptMessageId: v.string(),
     model: v.optional(v.string()),
     generationId: v.string(),
+    userId: v.string(),
+    userPlan: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {

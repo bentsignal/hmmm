@@ -225,6 +225,8 @@ export const send = usageCheckedMutation({
         promptMessageId: lastMessageId,
         model,
         generationId,
+        userId: ctx.user.subject,
+        userPlan: ctx.userPlan.name,
       }),
     );
     if (error) {
