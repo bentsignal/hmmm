@@ -181,7 +181,7 @@ export const languageModels = {
   },
   "grok-4.3": {
     provider: "xAI",
-    name: "Grok 4.20",
+    name: "Grok 4.3",
     model: gateway("xai/grok-4.3"),
     cost: { in: 1.25, out: 2.5, other: 0 },
     available: true,
