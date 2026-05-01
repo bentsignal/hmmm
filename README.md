@@ -2,9 +2,7 @@
 
 <br />
 <div align="center">
-  <a href="https://www.youtube.com/watch?v=0tyf2mZNXcs">
-    <img src="https://raw.githubusercontent.com/bentsignal/hmmm.docs/refs/heads/main/assets/hmm-bumper-1-optimized.gif" alt="Animated GIF of advertisement for hmmm, showing off its search capability." width="500px">
-  </a>
+  <img src="https://raw.githubusercontent.com/bentsignal/hmmm.docs/refs/heads/main/assets/hmm-bumper-1-optimized.gif" alt="Animated GIF of advertisement for hmmm, showing off its search capability." width="500px">
   <br />
   <br />
   <br />
