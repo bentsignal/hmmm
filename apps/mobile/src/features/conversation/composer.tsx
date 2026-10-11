@@ -65,15 +65,12 @@ function SendButton({
  */
 export function Composer({
   staged,
-  preparing,
   onSend,
   onPick,
   onRemoveStaged,
   onChangeText,
 }: {
   staged: readonly StagedFile[];
-  /** A picker is open or still handing over what was picked. */
-  preparing: boolean;
   /** Sends the text (possibly empty) with everything staged. */
   onSend: (text: string) => void;
   onPick: (source: AttachmentSource) => void;
@@ -114,11 +111,7 @@ export function Composer({
         className="flex-1 justify-center rounded-[20px]"
         style={{ minHeight: CONTROL }}
       >
-        <StagedAttachments
-          files={staged}
-          preparing={preparing}
-          onRemove={onRemoveStaged}
-        />
+        <StagedAttachments files={staged} onRemove={onRemoveStaged} />
         <StyledTextInput
           multiline
           value={draft}

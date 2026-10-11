@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { Keyboard, Pressable, Text, View } from "react-native";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -9,6 +9,7 @@ import Animated, {
   ZoomOut,
 } from "react-native-reanimated";
 import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 
 import type { StagedFile } from "~/features/messaging/attachments";
 import { SymbolIcon } from "~/components/symbol-icon";
@@ -44,11 +45,28 @@ function RemoveButton({
   );
 }
 
+/** A photo or video thumbnail; tapping it opens the full-screen viewer. */
 function MediaTile({ file }: { file: StagedFile }) {
+  const router = useRouter();
   const preview = file.kind === "video" ? file.poster?.uri : file.uri;
   return (
-    <View
-      className="bg-fill overflow-hidden rounded-xl"
+    <Pressable
+      accessibilityRole="imagebutton"
+      accessibilityLabel={file.kind === "video" ? "Video" : "Photo"}
+      onPress={() => {
+        // The keyboard would stay up over the viewer.
+        Keyboard.dismiss();
+        router.push({
+          params: {
+            height: file.height,
+            kind: file.kind,
+            url: file.uri,
+            width: file.width,
+          },
+          pathname: "/media",
+        });
+      }}
+      className="bg-fill overflow-hidden rounded-xl active:opacity-90"
       style={{ borderCurve: "continuous", height: TILE, width: TILE }}
     >
       {preview !== undefined && (
@@ -72,7 +90,7 @@ function MediaTile({ file }: { file: StagedFile }) {
           )}
         </View>
       )}
-    </View>
+    </Pressable>
   );
 }
 
@@ -134,45 +152,22 @@ function StagedTile({
 }
 
 /**
- * Holds a place while a picker hands over what was picked. iOS turns HEVC
- * videos into H.264 first, which takes a few seconds for a long video.
- */
-function PreparingTile() {
-  return (
-    <Animated.View
-      entering={FadeIn.duration(160)}
-      exiting={FadeOut.duration(120)}
-      accessibilityLabel="Adding attachments"
-      className="bg-fill items-center justify-center rounded-xl"
-      style={{ borderCurve: "continuous", height: TILE, width: TILE }}
-    >
-      <ActivityIndicator />
-    </Animated.View>
-  );
-}
-
-/**
  * What's attached to the message being written, above its text: photo and
  * video thumbnails and file chips, each with a remove button. It opens and
- * closes with its first and last item.
+ * closes with its first and last item, and shows nothing while a picker is
+ * open: items appear once they're ready to send.
  */
 export function StagedAttachments({
   files,
-  preparing,
   onRemove,
 }: {
   files: readonly StagedFile[];
-  /** A picker is open or still handing over files. */
-  preparing: boolean;
   onRemove: (id: string) => void;
 }) {
-  // Counting tiles, not just open or closed, restarts the animation when
-  // files arrive. On Android the picker pauses the app while the strip
-  // starts opening for the placeholder, and that first animation can stall.
-  const tiles = files.length + (preparing ? 1 : 0);
+  const open = files.length > 0;
   const style = useAnimatedStyle(() => ({
-    height: withTiming(tiles > 0 ? STRIP_HEIGHT : 0, { duration: 220 }),
-    opacity: withTiming(tiles > 0 ? 1 : 0, { duration: 180 }),
+    height: withTiming(open ? STRIP_HEIGHT : 0, { duration: 220 }),
+    opacity: withTiming(open ? 1 : 0, { duration: 180 }),
   }));
   return (
     <Animated.View style={[{ overflow: "hidden" }, style]}>
@@ -183,7 +178,6 @@ export function StagedAttachments({
         renderItem={({ item }) => (
           <StagedTile file={item} onRemove={() => onRemove(item.id)} />
         )}
-        ListFooterComponent={preparing ? <PreparingTile /> : null}
         itemLayoutAnimation={LinearTransition.duration(200)}
         showsHorizontalScrollIndicator={false}
         keyboardShouldPersistTaps="always"

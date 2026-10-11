@@ -9,8 +9,11 @@ export const MAX_UPLOAD_BYTES = {
   video: 500_000_000,
 };
 
-/** The longest video the app lets you send. */
-export const MAX_VIDEO_SECONDS = 120;
+/**
+ * The longest video the app lets you send. Only the app checks it, when a
+ * video is picked; the PDS limits uploads by size alone.
+ */
+export const MAX_VIDEO_SECONDS = 60;
 
 export type UploadKind = keyof typeof MAX_UPLOAD_BYTES;
 

@@ -31,7 +31,11 @@ export function AttachMenu({
 }) {
   const foreground = useCSSVariable("--color-foreground");
   return (
-    <NativeHost matchContents>
+    // SwiftUI otherwise keeps its content clear of the keyboard and the
+    // home indicator. The composer sits over both before it's moved up
+    // (the keyboard lifts it with a transform), so the "+" was pushed up
+    // out of line with the message field.
+    <NativeHost matchContents ignoreSafeArea="all">
       <Menu
         label={
           <Image
