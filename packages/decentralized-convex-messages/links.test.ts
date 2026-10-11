@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { previewedUrl, withoutPreviewedUrl } from "./links.ts";
+import {
+  MAX_LINK_PREVIEWS,
+  previewedUrl,
+  previewedUrls,
+  withoutPreviewedUrl,
+  withoutUrls,
+} from "./links.ts";
 
 void test("previews the first link, without trailing punctuation", () => {
   assert.equal(
@@ -29,5 +35,45 @@ void test("cuts the previewed link out of the body", () => {
   ];
   for (const [body, expected] of cases) {
     assert.equal(withoutPreviewedUrl(body), expected, body);
+  }
+});
+
+void test("previews each different link, up to the limit", () => {
+  assert.deepEqual(
+    previewedUrls("https://a.com, https://b.com. Again https://a.com"),
+    ["https://a.com", "https://b.com"],
+  );
+  const many = Array.from({ length: 6 }, (_, i) => `https://${i}.com`);
+  assert.deepEqual(
+    previewedUrls(many.join(" ")),
+    many.slice(0, MAX_LINK_PREVIEWS),
+  );
+  assert.deepEqual(previewedUrls(`https://a.com/${"x".repeat(3000)}`), []);
+  assert.deepEqual(previewedUrls("no links"), []);
+});
+
+void test("cuts every previewed link out of the body", () => {
+  const cases: [string, string[], string][] = [
+    [
+      "https://a.com and https://b.com",
+      ["https://a.com", "https://b.com"],
+      "and",
+    ],
+    [
+      "first https://a.com\nhttps://b.com\nlast",
+      ["https://a.com", "https://b.com"],
+      "first\nlast",
+    ],
+    ["https://a.com https://a.com twice", ["https://a.com"], "twice"],
+    [
+      "keep https://c.com, drop https://a.com.",
+      ["https://a.com"],
+      "keep https://c.com, drop.",
+    ],
+    ["https://a.com\n\nhttps://b.com", ["https://a.com", "https://b.com"], ""],
+    ["nothing to cut https://a.com", [], "nothing to cut https://a.com"],
+  ];
+  for (const [body, urls, expected] of cases) {
+    assert.equal(withoutUrls(body, urls), expected, body);
   }
 });

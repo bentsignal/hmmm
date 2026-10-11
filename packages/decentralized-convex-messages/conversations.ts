@@ -4,6 +4,8 @@ import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { MessagePage } from "./paging.ts";
 import type { Attachment, messagesProtocol } from "./protocol.ts";
 import { internal } from "./_generated/api.js";
+import { cardsForMessage, GIVE_UP_AFTER_MS } from "./linkCache.ts";
+import { previewedUrls } from "./links.ts";
 import {
   fail,
   findAccess,
@@ -22,6 +24,7 @@ import {
 } from "./model.ts";
 import { directConversationId } from "./naming.ts";
 import { around, newerThan, olderThan } from "./paging.ts";
+import { startFetches } from "./previews.ts";
 
 type Mutations = (typeof messagesProtocol)["mutations"];
 type Queries = (typeof messagesProtocol)["queries"];
@@ -144,6 +147,33 @@ export async function leaveConversation(
   return null;
 }
 
+/**
+ * A new message's link cards: they start out from what was prefetched while
+ * the message was typed, and the rest fill in as their fetches finish.
+ */
+async function startLinkCards(
+  ctx: MutationCtx,
+  messageId: string,
+  body: string,
+  now: number,
+) {
+  const links = previewedUrls(body);
+  if (links.length === 0) return undefined;
+  const { cards, toFetch, waiting } = await cardsForMessage(
+    ctx,
+    messageId,
+    links,
+    now,
+  );
+  if (waiting.length > 0) {
+    await startFetches(ctx, toFetch);
+    await ctx.scheduler.runAfter(GIVE_UP_AFTER_MS, internal.previews.giveUp, {
+      messageId,
+    });
+  }
+  return cards;
+}
+
 export async function send(
   ctx: MutationCtx,
   self: string,
@@ -165,12 +195,15 @@ export async function send(
   }
 
   const sentAt = Date.now();
+  const linkPreviews = await startLinkCards(ctx, args.messageId, body, sentAt);
   const message = {
     attachments: args.attachments,
     authorId: self,
     authorName,
     body,
     conversationId: args.conversationId,
+    linkPreview: linkPreviews?.[0]?.preview ?? undefined,
+    linkPreviews,
     messageId: args.messageId,
     sentAt,
   };
@@ -180,12 +213,7 @@ export async function send(
   await ctx.scheduler.runAfter(0, internal.notifications.send, {
     messageId: args.messageId,
   });
-  if (/https?:\/\//i.test(body)) {
-    await ctx.scheduler.runAfter(0, internal.previews.unfurl, {
-      messageId: args.messageId,
-    });
-  }
-  return { ...message, linkPreview: null };
+  return { ...message, linkPreview: message.linkPreview ?? null };
 }
 
 export async function markRead(

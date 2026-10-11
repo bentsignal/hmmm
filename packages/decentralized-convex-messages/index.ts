@@ -1,5 +1,11 @@
 export { decentralizedConvexPackage } from "./metadata.ts";
-export { previewedUrl, withoutPreviewedUrl } from "./links.ts";
+export {
+  MAX_LINK_PREVIEWS,
+  previewedUrl,
+  previewedUrls,
+  withoutPreviewedUrl,
+  withoutUrls,
+} from "./links.ts";
 export {
   channelName,
   createdId,
@@ -11,6 +17,7 @@ export {
   attachment,
   channel,
   conversation,
+  linkCard,
   linkPreview,
   MAX_INVITE_LINK_LIFETIME,
   MAX_REACTION_MESSAGES,
@@ -27,6 +34,7 @@ export type {
   Attachment,
   Channel,
   Conversation,
+  LinkCard,
   LinkPreview,
   Message,
   Reaction,

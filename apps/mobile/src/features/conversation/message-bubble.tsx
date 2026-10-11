@@ -7,10 +7,10 @@ import { Avatar } from "~/components/avatar";
 import { cn } from "~/lib/cn";
 import { AttachmentView } from "./attachment-view";
 import { BUBBLE_RADIUS, TAIL_DROP, TailedBubble } from "./bubble-shape";
-import { LinkPreviewCard } from "./link-preview-card";
+import { LinkCards } from "./link-preview-card";
 import { InteractiveMessage } from "./message-reactions";
 import { MessageMeta, SendingFade } from "./message-status";
-import { visibleBody } from "./message-text";
+import { linkCardsOf, visibleBody } from "./message-text";
 import { RevealedTime, SlideWithReveal } from "./reveal";
 
 /** Width of the avatar column beside incoming bubbles in group chats. */
@@ -86,6 +86,7 @@ function Content({
   endsGroup: boolean;
 }) {
   const body = visibleBody(message);
+  const cards = linkCardsOf(message);
   return (
     <SendingFade status={message.status}>
       <View className={cn("gap-0.5", isOwn ? "items-end" : "items-start")}>
@@ -96,12 +97,10 @@ function Content({
           <Body
             text={body}
             isOwn={isOwn}
-            tail={endsGroup && !message.linkPreview}
+            tail={endsGroup && cards.length === 0}
           />
         )}
-        {message.linkPreview && (
-          <LinkPreviewCard preview={message.linkPreview} />
-        )}
+        {cards.length > 0 && <LinkCards cards={cards} />}
       </View>
     </SendingFade>
   );

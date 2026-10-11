@@ -21,6 +21,18 @@ that metadata from home and discovers the current participant PDS deployments.
 import messages from "@decentralized-convex/messages/convex.config";
 ```
 
+Link previews: a sent message gets a card for each of its first four
+different links (`linkPreviews`, in order). Each card's `preview` is absent
+while the author's PDS fetches it and null when it has none, so an app can
+draw a placeholder from the start and cut the links out of the text
+(`withoutUrls`). Apps call `messages.prefetchLinkPreviews` once typing
+pauses and read the results with `messages.linkPreviews`. The PDS keeps
+fetched previews in a cache for six hours (ten minutes for a link with
+none), so a prefetched link's card is in the message when it's stored.
+`linkPreview` still carries the first link's preview for older apps. The
+server only fetches public http(s) hosts, with a 5 second timeout and at
+most 512 KB of each page.
+
 `messages.inbox` lists direct messages and groups. With `{ channels: true }`
 it also lists the channels of your spaces, each with its `spaceName`, so an
 app can show every conversation in one inbox. Per-account settings live on

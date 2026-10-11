@@ -9,6 +9,7 @@ import { decentralizedConvexPackage } from "./metadata.ts";
 import {
   attachment,
   conversation,
+  linkCard,
   message,
   messagePage,
   reaction,
@@ -61,6 +62,14 @@ export const messagesProtocol = definePluginProtocol({
         messageId: v.string(),
       }),
       returns: message,
+    }),
+    /**
+     * Starts fetching previews of links being typed, so they're ready when
+     * the message is sent. Read them with `linkPreviews`.
+     */
+    prefetchLinkPreviews: defineOperation({
+      args: v.object({ urls: v.array(v.string()) }),
+      returns: v.null(),
     }),
     /**
      * Adds (`on: true`) or removes your emoji reaction to a message. The
@@ -228,6 +237,14 @@ export const messagesProtocol = definePluginProtocol({
         messageIds: v.array(v.string()),
       }),
       returns: v.array(reaction),
+    }),
+    /**
+     * What this PDS has fetched of each link's preview so far (see
+     * `prefetchLinkPreviews`), at most `MAX_LINK_PREVIEWS` links.
+     */
+    linkPreviews: defineOperation({
+      args: v.object({ urls: v.array(v.string()) }),
+      returns: v.array(linkCard),
     }),
     spaces: defineOperation({
       args: v.object({}),

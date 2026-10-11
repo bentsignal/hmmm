@@ -7,7 +7,9 @@ import { mutation, query } from "./_generated/server.js";
 import * as conversations from "./conversations.ts";
 import * as inbox from "./inbox.ts";
 import * as invites from "./invites.ts";
+import { cachedCards } from "./linkCache.ts";
 import { requireAccountId } from "./model.ts";
+import { prefetch } from "./previews.ts";
 import { messagesProtocol } from "./protocol.ts";
 import * as push from "./pushTokens.ts";
 import * as reactions from "./reactions.ts";
@@ -44,6 +46,11 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
         conversations.markRead(ctx, requireAccountId(identity), args),
       openDirect: (ctx, { args, identity }) =>
         conversations.openDirect(ctx, requireAccountId(identity), args),
+      prefetchLinkPreviews: async (ctx, { args, identity }) => {
+        requireAccountId(identity);
+        await prefetch(ctx, args.urls);
+        return null;
+      },
       react: (ctx, { args, identity }) =>
         reactions.react(ctx, requireAccountId(identity), args),
       registerPushToken: (ctx, { args, identity }) =>
@@ -86,6 +93,10 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
           args,
         );
         return routedQueryResult(page, routes);
+      },
+      linkPreviews: (ctx, { args, identity }) => {
+        requireAccountId(identity);
+        return cachedCards(ctx, args.urls, Date.now());
       },
       reactions: async (ctx, { args, identity }) => {
         const found = await reactions.reactions(

@@ -11,6 +11,7 @@ import { GlassSurface } from "~/components/glass-surface";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { QUICK_REACTIONS } from "~/features/messaging/reactions";
 import { cn } from "~/lib/cn";
+import { TITLE_LINE_HEIGHT, TITLE_LINES } from "./menu-title";
 
 const EMOJI = 44;
 const BAR_PADDING = 5;
@@ -133,11 +134,14 @@ export function ActionMenu({
   progress,
   align,
   position,
+  title,
   actions,
 }: {
   progress: SharedValue<number>;
   align: TargetAlign;
   position: { left: number; top: number };
+  /** Shown above the actions in full, such as the link they're about. */
+  title?: string;
   actions: readonly MenuAction[];
 }) {
   const style = usePopStyle(progress, "bottom", align);
@@ -150,6 +154,17 @@ export function ActionMenu({
         className="overflow-hidden rounded-[24px] py-1.5"
         androidClassName="bg-background-elevated"
       >
+        {title !== undefined && (
+          <View className="border-separator border-b-hairline mx-1.5 mb-1 px-3.5 pt-1.5 pb-2.5">
+            <Text
+              numberOfLines={TITLE_LINES}
+              className="text-footnote text-muted"
+              style={{ lineHeight: TITLE_LINE_HEIGHT }}
+            >
+              {title}
+            </Text>
+          </View>
+        )}
         {actions.map((action) => (
           <Pressable
             key={action.label}

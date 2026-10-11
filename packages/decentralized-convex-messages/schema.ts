@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import {
   attachment,
   conversationKind,
+  linkCard,
   linkPreview,
   spaceRole,
 } from "./protocol.ts";
@@ -42,11 +43,28 @@ export default defineSchema({
     body: v.string(),
     conversationId: v.string(),
     linkPreview: v.optional(linkPreview),
+    linkPreviews: v.optional(v.array(linkCard)),
     messageId: v.string(),
     sentAt: v.number(),
   })
     .index("by_message", ["messageId"])
     .index("by_conversation_sent", ["conversationId", "sentAt"]),
+  // Link previews fetched recently, shared by everyone on this PDS, so a
+  // link prefetched while typing is ready when the message is sent.
+  linkPreviewCache: defineTable({
+    // Deleted once this passes; a fetch that never finished is retried.
+    expiresAt: v.number(),
+    // Set once fetched; null when the link had no preview.
+    preview: v.optional(v.union(v.null(), linkPreview)),
+    url: v.string(),
+  }).index("by_url", ["url"]),
+  // Messages whose card for `url` waits on a fetch in flight.
+  linkPreviewWaits: defineTable({
+    messageId: v.string(),
+    url: v.string(),
+  })
+    .index("by_url", ["url"])
+    .index("by_message", ["messageId"]),
   // Reactions by this PDS's accounts, to messages stored on any PDS.
   reactions: defineTable({
     accountId: v.string(),

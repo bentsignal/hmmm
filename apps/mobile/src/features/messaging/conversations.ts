@@ -1,10 +1,10 @@
 import type {
   Attachment,
   Conversation,
+  LinkCard,
   Message as PdsMessage,
 } from "@decentralized-convex/messages";
-import { useEffect, useRef, useState } from "react";
-import * as Crypto from "expo-crypto";
+import { useEffect, useRef } from "react";
 // eslint-disable-next-line no-restricted-imports -- Expo Router has no route loaders to preload suspense queries.
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { listNames } from "@decentralized-convex/messages";
@@ -16,6 +16,7 @@ import type { Message } from "~/features/conversation/types";
 import { useAccount } from "./account";
 import { useMessageWindow } from "./message-window";
 import * as optimistic from "./optimistic";
+import { usePendingMessages, withPrefetched } from "./pending-messages";
 import { useProfileState } from "./profiles";
 import { useReactions } from "./reactions";
 import { pdsResult } from "./results";
@@ -30,6 +31,7 @@ export function toMessage(
     body: message.body.length > 0 ? message.body : undefined,
     id: message.messageId,
     linkPreview: message.linkPreview ?? undefined,
+    linkPreviews: message.linkPreviews,
     reactions,
     sentAt: new Date(message.sentAt),
   } satisfies Message;
@@ -116,47 +118,6 @@ export function useConversationActions() {
   };
 }
 
-interface PendingMessage {
-  readonly attachments: Attachment[];
-  readonly body: string;
-  readonly failed: boolean;
-  readonly messageId: string;
-  readonly sentAt: number;
-}
-
-function usePendingMessages(conversationId: string) {
-  const { address } = useAccount();
-  const [pending, setPending] = useState<PendingMessage[]>([]);
-  const send = useMutation(
-    pdsMutation({ mutation: pds.messages.send, session: address }),
-  );
-
-  function markFailed(messageId: string) {
-    setPending((current) =>
-      current.map((item) =>
-        item.messageId === messageId ? { ...item, failed: true } : item,
-      ),
-    );
-  }
-
-  function sendMessage(body: string, attachments: Attachment[] = []) {
-    const message = {
-      attachments,
-      body,
-      failed: false,
-      messageId: Crypto.randomUUID(),
-      sentAt: Date.now(),
-    };
-    setPending((current) => [...current, message]);
-    send.mutate(
-      { attachments, body, conversationId, messageId: message.messageId },
-      { onError: () => markFailed(message.messageId) },
-    );
-  }
-
-  return { pending, sendMessage };
-}
-
 /**
  * Messages oldest first, opened at the latest message or around `anchor`,
  * with this device's unconfirmed sends at the end.
@@ -194,7 +155,13 @@ export function useMessages(conversationId: string, anchor?: string) {
     ...view,
     messages: [
       ...view.messages.map((message) =>
-        toMessage(message, reactionsOf(message.messageId)),
+        toMessage(
+          withPrefetched(
+            message,
+            pending.find((item) => item.messageId === message.messageId),
+          ),
+          reactionsOf(message.messageId),
+        ),
       ),
       ...unconfirmed,
     ],
@@ -202,9 +169,17 @@ export function useMessages(conversationId: string, anchor?: string) {
     toggleReaction: toggle,
     /** Only set when the newest loaded message is the newest there is. */
     newestSentAt: atLatest ? view.messages.at(-1)?.sentAt : undefined,
-    sendMessage: (body: string, attachments: Attachment[] = []) => {
+    /**
+     * Sends a message, shown right away. `linkPreviews` are the cards it
+     * starts with (see `useLinkPrefetch`).
+     */
+    sendMessage: (
+      body: string,
+      attachments: Attachment[] = [],
+      linkPreviews: readonly LinkCard[] = [],
+    ) => {
       if (!atLatest) view.jumpToLatest();
-      sendMessage(body, attachments);
+      sendMessage(body, attachments, linkPreviews);
     },
   };
 }

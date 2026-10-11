@@ -16,6 +16,7 @@ import type * as history from "../history.js";
 import type * as inbox from "../inbox.js";
 import type * as index from "../index.js";
 import type * as invites from "../invites.js";
+import type * as linkCache from "../linkCache.js";
 import type * as links from "../links.js";
 import type * as metadata from "../metadata.js";
 import type * as model from "../model.js";
@@ -45,6 +46,7 @@ const fullApi: ApiFromModules<{
   inbox: typeof inbox;
   index: typeof index;
   invites: typeof invites;
+  linkCache: typeof linkCache;
   links: typeof links;
   metadata: typeof metadata;
   model: typeof model;

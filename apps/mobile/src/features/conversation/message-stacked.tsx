@@ -5,10 +5,10 @@ import { Avatar } from "~/components/avatar";
 import { cn } from "~/lib/cn";
 import { formatTime } from "~/lib/format";
 import { AttachmentView } from "./attachment-view";
-import { LinkPreviewCard } from "./link-preview-card";
+import { LinkCards } from "./link-preview-card";
 import { InteractiveMessage } from "./message-reactions";
 import { MessageMeta, SendingFade } from "./message-status";
-import { visibleBody } from "./message-text";
+import { linkCardsOf, visibleBody } from "./message-text";
 
 const AVATAR_COLUMN = 36;
 
@@ -23,6 +23,7 @@ export function MessageStacked({
   startsGroup: boolean;
 }) {
   const body = visibleBody(message);
+  const cards = linkCardsOf(message);
   return (
     <View className={cn("flex-row gap-3 px-4", startsGroup ? "pt-5" : "pt-1")}>
       <View style={{ width: AVATAR_COLUMN }}>
@@ -52,9 +53,7 @@ export function MessageStacked({
               {message.attachments.map((attachment) => (
                 <AttachmentView key={attachment.url} attachment={attachment} />
               ))}
-              {message.linkPreview && (
-                <LinkPreviewCard preview={message.linkPreview} />
-              )}
+              {cards.length > 0 && <LinkCards cards={cards} />}
             </View>
           </SendingFade>
         </InteractiveMessage>

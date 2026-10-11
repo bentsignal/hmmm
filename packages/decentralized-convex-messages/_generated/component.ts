@@ -75,6 +75,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 };
                 type: "send";
               }
+            | { args: { urls: Array<string> }; type: "prefetchLinkPreviews" }
             | {
                 args: {
                   conversationId: string;
@@ -189,10 +190,21 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 title?: string;
                 url: string;
               };
+              linkPreviews?: Array<{
+                link: string;
+                preview?: null | {
+                  description?: string;
+                  imageUrl?: string;
+                  siteName?: string;
+                  title?: string;
+                  url: string;
+                };
+              }>;
               messageId: string;
               sentAt: number;
             };
           }
+        | { routes?: Array<string>; type: "prefetchLinkPreviews"; value: null }
         | { routes?: Array<string>; type: "react"; value: null }
         | { routes?: Array<string>; type: "markRead"; value: null }
         | { routes?: Array<string>; type: "setMuted"; value: null }
@@ -275,6 +287,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 args: { conversationId: string; messageIds: Array<string> };
                 type: "reactions";
               }
+            | { args: { urls: Array<string> }; type: "linkPreviews" }
             | { args: {}; type: "spaces" }
             | { args: { spaceId: string }; type: "space" }
             | { args: {}; type: "spaceInvites" }
@@ -311,6 +324,16 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   title?: string;
                   url: string;
                 };
+                linkPreviews?: Array<{
+                  link: string;
+                  preview?: null | {
+                    description?: string;
+                    imageUrl?: string;
+                    siteName?: string;
+                    title?: string;
+                    url: string;
+                  };
+                }>;
                 messageId: string;
                 sentAt: number;
               };
@@ -354,6 +377,16 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   title?: string;
                   url: string;
                 };
+                linkPreviews?: Array<{
+                  link: string;
+                  preview?: null | {
+                    description?: string;
+                    imageUrl?: string;
+                    siteName?: string;
+                    title?: string;
+                    url: string;
+                  };
+                }>;
                 messageId: string;
                 sentAt: number;
               };
@@ -397,6 +430,16 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   title?: string;
                   url: string;
                 };
+                linkPreviews?: Array<{
+                  link: string;
+                  preview?: null | {
+                    description?: string;
+                    imageUrl?: string;
+                    siteName?: string;
+                    title?: string;
+                    url: string;
+                  };
+                }>;
                 messageId: string;
                 sentAt: number;
               }>;
@@ -410,6 +453,20 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               emoji: string;
               messageId: string;
               reactedAt: number;
+            }>;
+          }
+        | {
+            routes?: Array<string>;
+            type: "linkPreviews";
+            value: Array<{
+              link: string;
+              preview?: null | {
+                description?: string;
+                imageUrl?: string;
+                siteName?: string;
+                title?: string;
+                url: string;
+              };
             }>;
           }
         | {
