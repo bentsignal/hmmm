@@ -9,7 +9,7 @@ import { filterInbox } from "~/features/inbox/filter";
 import { FilterToolbar } from "~/features/inbox/filter-toolbar";
 import { InboxRow } from "~/features/inbox/inbox-row";
 import { useVisibleAccounts } from "~/features/messaging/account";
-import { useInbox } from "~/features/messaging/conversations";
+import { useInbox } from "~/features/messaging/inbox";
 import { usePreference } from "~/features/preferences/store";
 import { AccountToolbar } from "~/features/session/account-toolbar";
 

@@ -1,7 +1,7 @@
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useCSSVariable } from "uniwind";
 
-import { useInbox } from "~/features/messaging/conversations";
+import { useInbox } from "~/features/messaging/inbox";
 import { useSpaceInvites } from "~/features/messaging/spaces";
 import {
   blurNativeSearch,

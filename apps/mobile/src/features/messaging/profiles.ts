@@ -41,6 +41,8 @@ export function useProfileState(addresses: readonly string[]) {
   );
   return {
     isLoading: profiles.some((profile) => profile.data === undefined),
+    /** Whether this address's profile (or its absence) is known. */
+    isLoaded: (address: string) => found.get(address) !== undefined,
     profileOf: (address: string) => {
       const profile = found.get(address);
       return {

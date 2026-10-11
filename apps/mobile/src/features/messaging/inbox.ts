@@ -1,0 +1,162 @@
+import type {
+  Conversation,
+  Message as PdsMessage,
+} from "@decentralized-convex/messages";
+import { useState } from "react";
+import { useQueries } from "@tanstack/react-query";
+import { pdsQuery } from "@decentralized-convex/tanstack-query";
+import { pds } from "@vera/backend/pds";
+
+import type { ConversationSummary } from "~/features/inbox/types";
+import { useVisibleAccounts } from "./account";
+import { conversationTitle } from "./conversations";
+import { useProfileState } from "./profiles";
+import { pdsResult } from "./results";
+
+/** The last message, led by its author where several people talk. */
+function preview(
+  message: PdsMessage | null,
+  self: string,
+  name: string,
+  shared: boolean,
+) {
+  if (message === null) return "No messages yet";
+  const prefix =
+    message.authorId === self ? "You: " : shared ? `${name}: ` : "";
+  if (message.body.length > 0) return `${prefix}${message.body}`;
+  const count = message.attachments.length;
+  const kind = message.attachments[0]?.kind ?? "file";
+  const noun = { file: "File", image: "Photo", video: "Video" }[kind];
+  return `${prefix || `${name}: `}${count > 1 ? `${count} attachments` : noun}`;
+}
+
+function summarize(
+  account: string,
+  conversation: Conversation,
+  profileOf: ReturnType<typeof useProfileState>["profileOf"],
+) {
+  function displayName(address: string) {
+    return profileOf(address).displayName;
+  }
+  const other =
+    conversation.kind === "direct"
+      ? conversation.members.find((member) => member !== account)
+      : undefined;
+  return {
+    account,
+    id: conversation.conversationId,
+    key: `${account} ${conversation.conversationId}`,
+    kind: conversation.kind,
+    avatarUrl: other === undefined ? null : profileOf(other).avatarUrl,
+    affiliated: other !== undefined && profileOf(other).affiliated,
+    lastActivityAt: new Date(
+      conversation.lastMessage?.sentAt ?? conversation.updatedAt,
+    ),
+    lastMessage: preview(
+      conversation.lastMessage,
+      account,
+      displayName(conversation.lastMessage?.authorId ?? ""),
+      conversation.kind !== "direct",
+    ),
+    hasMessages: conversation.lastMessage !== null,
+    memberIds: conversation.members,
+    muted: conversation.muted,
+    pinnedAt: conversation.pinnedAt ?? null,
+    spaceId: conversation.spaceId,
+    spaceName: conversation.spaceName ?? null,
+    title: conversationTitle(conversation, account, displayName),
+    unreadCount: conversation.unreadCount,
+  } satisfies ConversationSummary;
+}
+
+/**
+ * The people whose profiles a conversation's row shows: the other person
+ * in a direct conversation, an unnamed group's members (its title), and
+ * the last message's author.
+ */
+function rowProfiles(account: string, conversation: Conversation) {
+  const { kind, lastMessage, members, name } = conversation;
+  const others = members.filter((member) => member !== account);
+  const titled =
+    kind === "direct"
+      ? [others[0] ?? account]
+      : kind === "group" && name === null
+        ? others
+        : [];
+  const author = lastMessage?.authorId;
+  return author === undefined || author === account
+    ? titled
+    : [...titled, author];
+}
+
+/**
+ * Conversations across the visible accounts (or just `account`), newest
+ * first: direct messages, groups, and the space channels shown in the
+ * inbox. Each summary says which account it belongs to.
+ *
+ * It loads once: the first time, it waits for every name, so rows never
+ * switch from usernames to names. After that it never goes back to
+ * loading. A conversation that arrives later (someone starts one with
+ * you) joins once its row's names have loaded, and a row already showing
+ * stays put, so an update never empties or flashes the list.
+ */
+export function useInbox({ account }: { account?: string } = {}) {
+  const visible = useVisibleAccounts();
+  const accounts =
+    account === undefined ? visible.map((item) => item.address) : [account];
+  const inboxes = useQueries({
+    queries: accounts.map((session) =>
+      pdsQuery({
+        args: { channels: true },
+        options: { select: pdsResult },
+        query: pds.messages.inbox,
+        session,
+      }),
+    ),
+  });
+  const conversations = inboxes.flatMap((inbox, index) =>
+    (inbox.data ?? []).map((conversation) => {
+      const owner = accounts[index] ?? "";
+      return {
+        account: owner,
+        conversation,
+        shows: rowProfiles(owner, conversation),
+      };
+    }),
+  );
+  const profiles = useProfileState(
+    conversations.flatMap(({ conversation, shows }) => [
+      ...conversation.members,
+      ...shows,
+    ]),
+  );
+  const rows = conversations.map((item) => ({
+    ready: item.shows.every(profiles.isLoaded),
+    summary: summarize(item.account, item.conversation, profiles.profileOf),
+  }));
+  // Order by the last message, matching the times shown on each row.
+  rows.sort(
+    (left, right) =>
+      right.summary.lastActivityAt.getTime() -
+      left.summary.lastActivityAt.getTime(),
+  );
+  // The rows shown so far, by key; null until the first load finishes.
+  const [shown, setShown] = useState<ReadonlySet<string> | null>(null);
+  const loading =
+    inboxes.every((inbox) => inbox.data === undefined) || profiles.isLoading;
+  const known =
+    shown ?? (loading ? null : new Set(rows.map(({ summary }) => summary.key)));
+  const arrived = rows
+    .filter(({ ready, summary }) => ready && known?.has(summary.key) === false)
+    .map(({ summary }) => summary.key);
+  if (known !== null && (shown === null || arrived.length > 0)) {
+    setShown(new Set([...known, ...arrived]));
+  }
+  if (known === null) return { conversations: undefined, isLoading: true };
+  return {
+    conversations: rows
+      .filter(({ ready, summary }) => ready || known.has(summary.key))
+      .map(({ summary }) => summary),
+    isLoading: false,
+  };
+}
