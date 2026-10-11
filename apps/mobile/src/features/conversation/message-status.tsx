@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Text, View } from "react-native";
+import { Alert, Pressable, Text } from "react-native";
 import Animated, {
   FadeIn,
   useAnimatedStyle,
@@ -8,6 +8,24 @@ import Animated, {
 
 import type { Message } from "./types";
 import { SymbolIcon } from "~/components/symbol-icon";
+import { deleteOutgoing, retryOutgoing } from "~/features/messaging/outbox";
+
+function showNotSent(messageId: string) {
+  Alert.alert(
+    "Message Not Sent",
+    undefined,
+    [
+      { style: "cancel", text: "Cancel" },
+      {
+        onPress: () => deleteOutgoing(messageId),
+        style: "destructive",
+        text: "Delete",
+      },
+      { onPress: () => retryOutgoing(messageId), text: "Try Again" },
+    ],
+    { cancelable: true },
+  );
+}
 
 /**
  * Fades a message in from translucent while it is sending, so a confirmed
@@ -26,7 +44,10 @@ export function SendingFade({
   return <Animated.View style={style}>{children}</Animated.View>;
 }
 
-/** "Delivered" under your newest message, or why a message did not send. */
+/**
+ * "Delivered" under your newest message, or "Not sent", which you tap to
+ * try again or delete the message.
+ */
 export function MessageMeta({
   message,
   delivered,
@@ -36,14 +57,22 @@ export function MessageMeta({
 }) {
   if (message.status === "failed") {
     return (
-      <View className="flex-row items-center gap-1 px-1">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityHint="Try again or delete the message"
+        onPress={() => showNotSent(message.id)}
+        hitSlop={8}
+        className="flex-row items-center gap-1 px-1 active:opacity-60"
+      >
         <SymbolIcon
           name={{ android: "error", ios: "exclamationmark.circle.fill" }}
           size={12}
           tintColorClassName="accent-destructive"
         />
-        <Text className="text-caption text-destructive">Not sent</Text>
-      </View>
+        <Text className="text-caption text-destructive">
+          Not sent. Tap to try again.
+        </Text>
+      </Pressable>
     );
   }
   if (!delivered) return null;

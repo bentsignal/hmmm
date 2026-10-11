@@ -1,5 +1,10 @@
 {
   "extends": "./convex/tsconfig.json",
-  "include": ["./pds.ts", "./convex/**/*"],
+  "include": [
+    "./pds.ts",
+    "./upload-limits.ts",
+    "./upload-limits.test.ts",
+    "./convex/**/*"
+  ],
   "exclude": ["./convex/_generated"]
 }

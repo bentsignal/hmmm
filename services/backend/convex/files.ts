@@ -1,16 +1,12 @@
 import { ConvexError, v } from "convex/values";
 
 import type { ActionCtx, MutationCtx } from "./_generated/server";
+import { uploadSizeAllowed } from "../upload-limits";
 import { action, mutation } from "./_generated/server";
 import { bunnyStorageConfig, presignStorageUpload } from "./bunny";
 
 // Messages store only public URLs, so the provider can change without
 // touching message data.
-const MAX_UPLOAD_BYTES = {
-  file: 50 * 1024 * 1024,
-  image: 25 * 1024 * 1024,
-  video: 200 * 1024 * 1024,
-};
 
 async function requireAccount(ctx: ActionCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity();
@@ -25,7 +21,10 @@ function extensionOf(name: string) {
   return match?.[1]?.toLowerCase() ?? "bin";
 }
 
-/** Where and how the app should upload one attachment. */
+/**
+ * Where and how the app should upload one attachment. `size` is the file's
+ * length in bytes, or 0 when the app doesn't know it.
+ */
 export const createUpload = action({
   args: {
     kind: v.union(v.literal("image"), v.literal("video"), v.literal("file")),
@@ -35,7 +34,7 @@ export const createUpload = action({
   },
   handler: async (ctx, args) => {
     await requireAccount(ctx);
-    if (args.size <= 0 || args.size > MAX_UPLOAD_BYTES[args.kind]) {
+    if (!uploadSizeAllowed(args.kind, args.size)) {
       throw new ConvexError({ code: "UPLOAD_TOO_LARGE" });
     }
     const storage = bunnyStorageConfig();

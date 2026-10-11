@@ -6,7 +6,8 @@
   "exports": {
     "./api": "./convex/_generated/api.js",
     "./pds": "./pds.ts",
-    "./dataModel": "./convex/_generated/dataModel.d.ts"
+    "./dataModel": "./convex/_generated/dataModel.d.ts",
+    "./upload-limits": "./upload-limits.ts"
   },
   "scripts": {
     "clean": "git clean -xdf .cache .turbo node_modules",
@@ -15,6 +16,7 @@
     "format": "prettier --check . --ignore-path ../../.gitignore --ignore-path .prettierignore",
     "format:fix": "prettier --write . --ignore-path ../../.gitignore --ignore-path .prettierignore",
     "lint": "eslint --flag unstable_native_nodejs_ts_config",
+    "test": "node --experimental-strip-types --test '*.test.ts'",
     "typecheck": "tsgo --noEmit -p tsconfig.json"
   },
   "dependencies": {

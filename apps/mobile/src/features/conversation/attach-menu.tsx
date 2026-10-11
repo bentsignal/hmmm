@@ -1,0 +1,77 @@
+import { Button, Image, Menu } from "@expo/ui/swift-ui";
+import {
+  accessibilityLabel,
+  buttonStyle,
+  contentShape,
+  font,
+  frame,
+  glassEffect,
+  menuIndicator,
+  menuOrder,
+  menuStyle,
+  shapes,
+} from "@expo/ui/swift-ui/modifiers";
+import { useCSSVariable } from "uniwind";
+
+import type { AttachmentSource } from "~/features/messaging/attachments";
+import { NativeHost } from "~/components/native-host";
+
+/** As tall as the composer's other controls, so they line up. */
+const BUTTON = 40;
+
+/**
+ * The composer's "+": a glass button that opens a native menu anchored to
+ * it, like the Inbox's toolbar menus. `attach-menu.android.tsx` is the
+ * Material dropdown.
+ */
+export function AttachMenu({
+  onPick,
+}: {
+  onPick: (source: AttachmentSource) => void;
+}) {
+  const foreground = useCSSVariable("--color-foreground");
+  return (
+    <NativeHost matchContents>
+      <Menu
+        label={
+          <Image
+            systemName="plus"
+            color={typeof foreground === "string" ? foreground : undefined}
+            modifiers={[
+              font({ size: 18, weight: "semibold" }),
+              frame({ height: BUTTON, width: BUTTON }),
+              contentShape(shapes.circle()),
+              glassEffect({
+                glass: { interactive: true, variant: "regular" },
+                shape: "circle",
+              }),
+            ]}
+          />
+        }
+        modifiers={[
+          menuStyle("button"),
+          buttonStyle("plain"),
+          menuIndicator("hidden"),
+          menuOrder("fixed"),
+          accessibilityLabel("Add attachment"),
+        ]}
+      >
+        <Button
+          label="Photos & Videos"
+          systemImage="photo.on.rectangle"
+          onPress={() => onPick("library")}
+        />
+        <Button
+          label="Camera"
+          systemImage="camera"
+          onPress={() => onPick("camera")}
+        />
+        <Button
+          label="Files"
+          systemImage="doc"
+          onPress={() => onPick("files")}
+        />
+      </Menu>
+    </NativeHost>
+  );
+}

@@ -1,6 +1,6 @@
-import type { Attachment, LinkCard } from "@decentralized-convex/messages";
+import type { LinkCard } from "@decentralized-convex/messages";
 import { useState } from "react";
-import { ActivityIndicator, Alert, Text, View } from "react-native";
+import { Alert, Text, View } from "react-native";
 import {
   KeyboardGestureArea,
   KeyboardStickyView,
@@ -8,8 +8,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 
-import type { AttachmentSource } from "~/features/messaging/attachments";
-import { showActionSheet } from "~/components/action-sheet";
+import type {
+  AttachmentSource,
+  StagedFile,
+} from "~/features/messaging/attachments";
 import { Composer } from "~/features/conversation/composer";
 import {
   CONVERSATION_HEADER_HEIGHT,
@@ -19,8 +21,8 @@ import { MessageList } from "~/features/conversation/message-list";
 import { useDevTools } from "~/features/dev/dev-tools";
 import { AccountScope, useAccount } from "~/features/messaging/account";
 import {
-  AttachmentError,
-  useAttachmentUploader,
+  MAX_ATTACHMENTS,
+  pickAttachments,
 } from "~/features/messaging/attachments";
 import {
   useConversation,
@@ -31,15 +33,10 @@ import { useLinkPrefetch } from "~/features/messaging/link-previews";
 import { useActiveConversation } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
 
-const ATTACHMENT_SOURCES = [
-  { label: "Photos & Videos", source: "library" },
-  { label: "Camera", source: "camera" },
-  { label: "Files", source: "files" },
-] as const;
-
 /**
- * The composer floating over the bottom of the conversation, with
- * attachment uploads. Reports its height so messages can scroll under it.
+ * The composer floating over the bottom of the conversation, holding what's
+ * picked for the next message until it's sent. Reports its height so
+ * messages can scroll under it.
  */
 function FloatingComposer({
   conversationId,
@@ -50,30 +47,32 @@ function FloatingComposer({
   onHeight: (height: number) => void;
   onSend: (
     body: string,
-    attachments?: Attachment[],
-    linkPreviews?: readonly LinkCard[],
+    files: readonly StagedFile[],
+    linkPreviews: readonly LinkCard[],
   ) => void;
 }) {
   const insets = useSafeAreaInsets();
-  const uploadAttachments = useAttachmentUploader();
   const links = useLinkPrefetch();
   const devTools = useDevTools();
-  const [uploading, setUploading] = useState(false);
+  const [staged, setStaged] = useState<readonly StagedFile[]>([]);
+  const [picking, setPicking] = useState(false);
 
-  async function attach(source: AttachmentSource) {
-    setUploading(true);
-    const attachments = await uploadAttachments(source).catch(
-      (error: unknown) =>
-        error instanceof AttachmentError
-          ? error.message
-          : "Couldn't upload that. Try again.",
-    );
-    setUploading(false);
-    if (typeof attachments === "string") {
-      Alert.alert("Upload Failed", attachments);
-    } else if (attachments.length > 0) {
-      onSend("", attachments);
+  async function pick(source: AttachmentSource) {
+    if (staged.length >= MAX_ATTACHMENTS) {
+      Alert.alert(
+        "Too Many Attachments",
+        `You can send up to ${MAX_ATTACHMENTS} at a time.`,
+      );
+      return;
     }
+    // The placeholder opens behind the picker, so it's already there when
+    // the picker closes and the files take a moment to arrive.
+    setPicking(true);
+    const files = await pickAttachments(source, {
+      limit: MAX_ATTACHMENTS - staged.length,
+    });
+    setPicking(false);
+    setStaged((current) => [...current, ...files].slice(0, MAX_ATTACHMENTS));
   }
 
   return (
@@ -83,27 +82,20 @@ function FloatingComposer({
       style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
       onLayout={(event) => onHeight(event.nativeEvent.layout.height)}
     >
-      {uploading && (
-        <View className="flex-row items-center justify-center gap-2 py-1">
-          <ActivityIndicator size="small" />
-          <Text className="text-footnote text-muted">Uploading…</Text>
-        </View>
-      )}
       <View style={{ paddingBottom: insets.bottom }}>
         <Composer
+          staged={staged}
+          preparing={picking}
           onChangeText={links.onChangeText}
+          onPick={(source) => void pick(source)}
+          onRemoveStaged={(id) =>
+            setStaged((current) => current.filter((file) => file.id !== id))
+          }
           onSend={(body) => {
-            onSend(body, [], links.cardsFor(body));
+            onSend(body, staged, links.cardsFor(body));
+            setStaged([]);
             devTools.replyToMe(conversationId);
           }}
-          onAttach={() =>
-            showActionSheet(
-              ATTACHMENT_SOURCES.map(({ label, source }) => ({
-                label,
-                onPress: () => void attach(source),
-              })),
-            )
-          }
         />
       </View>
     </KeyboardStickyView>

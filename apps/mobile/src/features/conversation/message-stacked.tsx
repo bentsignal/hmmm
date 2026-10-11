@@ -4,6 +4,7 @@ import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
 import { cn } from "~/lib/cn";
 import { formatTime } from "~/lib/format";
+import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
 import { LinkCards } from "./link-preview-card";
 import { MenuTargetView } from "./message-actions";
@@ -54,7 +55,7 @@ export function MessageStacked({
                 </MenuTargetView>
               )}
               {message.attachments.map((attachment) => (
-                <MenuTargetView key={attachment.url} shape="plain">
+                <MenuTargetView key={attachmentKey(attachment)} shape="plain">
                   <AttachmentView attachment={attachment} />
                 </MenuTargetView>
               ))}

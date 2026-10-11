@@ -1,41 +1,195 @@
-import { Pressable, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
+import Svg, { Circle } from "react-native-svg";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import * as VideoThumbnails from "expo-video-thumbnails";
 import * as WebBrowser from "expo-web-browser";
+// eslint-disable-next-line no-restricted-imports -- A poster drawn from a video file has no route loader to preload it from.
+import { useQuery } from "@tanstack/react-query";
 
-import type { Attachment } from "./types";
+import type { AttachmentUpload, MessageAttachment } from "./types";
 import { SymbolIcon } from "~/components/symbol-icon";
+import {
+  removeOutgoingItem,
+  retryOutgoing,
+  useUploadProgress,
+} from "~/features/messaging/outbox";
 import { formatBytes, formatDuration } from "~/lib/format";
 
 const MEDIA_WIDTH = 240;
 const MAX_MEDIA_HEIGHT = 300;
+const RING = 44;
+const RING_STROKE = 3;
 
-function mediaHeight({ height, width }: Attachment) {
+function mediaHeight({ height, width }: MessageAttachment) {
   if (width === undefined || height === undefined || width === 0) {
     return MEDIA_WIDTH;
   }
   return Math.min(MAX_MEDIA_HEIGHT, (MEDIA_WIDTH * height) / width);
 }
 
-function Media({ attachment }: { attachment: Attachment }) {
+function isStuck(upload: AttachmentUpload | undefined) {
+  return upload?.state === "failed" || upload?.state === "too-large";
+}
+
+/** Retry or remove an attachment that didn't upload. */
+function showUploadProblem({ itemId, messageId, state }: AttachmentUpload) {
+  const remove = {
+    onPress: () => removeOutgoingItem(messageId, itemId),
+    style: "destructive" as const,
+    text: "Remove",
+  };
+  const cancel = { style: "cancel" as const, text: "Cancel" };
+  if (state === "too-large") {
+    Alert.alert(
+      "Too Big to Send",
+      "Remove it to send the rest of the message.",
+      [cancel, remove],
+      { cancelable: true },
+    );
+    return;
+  }
+  Alert.alert(
+    "Couldn't Upload",
+    "Check your connection and try again.",
+    [
+      cancel,
+      remove,
+      { onPress: () => retryOutgoing(messageId), text: "Try Again" },
+    ],
+    { cancelable: true },
+  );
+}
+
+/** A ring filling as the attachment uploads. */
+function UploadRing({
+  itemId,
+  size = RING,
+}: {
+  itemId: string;
+  size?: number;
+}) {
+  const fraction = useUploadProgress(itemId);
+  const radius = (size - RING_STROKE) / 2;
+  const circumference = 2 * Math.PI * radius;
+  // A sliver shows from the start, so it never looks stuck at nothing.
+  const shown = Math.max(0.04, fraction);
+  return (
+    <View
+      accessibilityRole="progressbar"
+      accessibilityLabel="Uploading"
+      accessibilityValue={{ max: 100, min: 0, now: Math.round(fraction * 100) }}
+    >
+      <Svg width={size} height={size}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="rgba(255,255,255,0.35)"
+          strokeWidth={RING_STROKE}
+          fill="rgba(0,0,0,0.35)"
+        />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="white"
+          strokeWidth={RING_STROKE}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={circumference * (1 - shown)}
+          // Starts at 12 o'clock.
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+    </View>
+  );
+}
+
+function RetryBadge() {
+  return (
+    <View className="size-11 items-center justify-center rounded-full bg-black/55">
+      <SymbolIcon
+        name={{ android: "refresh", ios: "arrow.clockwise" }}
+        size={20}
+        weight="semibold"
+        tintColorClassName="accent-white"
+      />
+    </View>
+  );
+}
+
+/** The first frame of a video sent without a poster, drawn on this device. */
+function useDrawnPoster(url: string, enabled: boolean) {
+  const { data } = useQuery({
+    enabled,
+    gcTime: Number.POSITIVE_INFINITY,
+    queryFn: () =>
+      VideoThumbnails.getThumbnailAsync(url, { quality: 0.7, time: 0 }),
+    queryKey: ["video-poster", url],
+    retry: false,
+    select: (frame) => frame.uri,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+  return data;
+}
+
+function mediaLabel(attachment: MessageAttachment) {
+  if (isStuck(attachment.upload)) return "Not uploaded. Try again or remove.";
+  return attachment.kind === "video" ? "Play video" : "View photo";
+}
+
+/** What covers the media: upload progress, a retry badge, or play. */
+function MediaBadge({ attachment }: { attachment: MessageAttachment }) {
+  const { upload } = attachment;
+  if (upload?.state === "uploading") {
+    return <UploadRing itemId={upload.itemId} />;
+  }
+  if (isStuck(upload)) return <RetryBadge />;
+  if (attachment.kind !== "video") return null;
+  return (
+    <View className="size-12 items-center justify-center rounded-full bg-black/40">
+      <SymbolIcon
+        name={{ android: "play_arrow", ios: "play.fill" }}
+        size={24}
+        tintColorClassName="accent-white"
+      />
+    </View>
+  );
+}
+
+function Media({ attachment }: { attachment: MessageAttachment }) {
   const router = useRouter();
+  const { upload } = attachment;
   const isVideo = attachment.kind === "video";
-  const poster = isVideo ? attachment.thumbnailUrl : attachment.url;
+  const savedPoster = isVideo
+    ? (attachment.localThumbnailUrl ?? attachment.thumbnailUrl)
+    : (attachment.localUrl ?? attachment.url);
+  const drawnPoster = useDrawnPoster(
+    attachment.url,
+    isVideo && savedPoster === undefined,
+  );
+  const poster = savedPoster ?? drawnPoster;
   return (
     <Pressable
       accessibilityRole="imagebutton"
-      accessibilityLabel={isVideo ? "Play video" : "View photo"}
-      onPress={() =>
+      accessibilityLabel={mediaLabel(attachment)}
+      onPress={() => {
+        if (upload !== undefined && isStuck(upload)) {
+          showUploadProblem(upload);
+          return;
+        }
         router.push({
           params: {
             height: attachment.height,
             kind: attachment.kind,
-            url: attachment.url,
+            url: attachment.localUrl ?? attachment.url,
             width: attachment.width,
           },
           pathname: "/media",
-        })
-      }
+        });
+      }}
       className="bg-fill items-center justify-center overflow-hidden rounded-2xl active:opacity-90"
       style={{
         borderCurve: "continuous",
@@ -51,38 +205,47 @@ function Media({ attachment }: { attachment: Attachment }) {
           style={{ height: "100%", position: "absolute", width: "100%" }}
         />
       )}
-      {isVideo && (
-        <>
-          <SymbolIcon
-            name={{ android: "play_circle", ios: "play.circle.fill" }}
-            size={48}
-            tintColorClassName="accent-white/90"
-          />
-          {attachment.durationMs !== undefined && (
-            <Text className="text-caption absolute bottom-2 left-2 rounded-full bg-black/50 px-2 py-0.5 font-semibold text-white">
-              {formatDuration(Math.round(attachment.durationMs / 1000))}
-            </Text>
-          )}
-        </>
+      <MediaBadge attachment={attachment} />
+      {isVideo && attachment.durationMs !== undefined && (
+        <Text className="text-caption absolute bottom-2 left-2 overflow-hidden rounded-full bg-black/50 px-2 py-0.5 font-semibold text-white">
+          {formatDuration(Math.round(attachment.durationMs / 1000))}
+        </Text>
       )}
     </Pressable>
   );
 }
 
-function FileCard({ attachment }: { attachment: Attachment }) {
+function FileCard({ attachment }: { attachment: MessageAttachment }) {
+  const { upload } = attachment;
+  const uploading = upload?.state === "uploading";
+  const stuck = isStuck(upload);
   return (
     <Pressable
       accessibilityRole="link"
-      onPress={() => void WebBrowser.openBrowserAsync(attachment.url)}
+      onPress={() => {
+        if (upload !== undefined && stuck) {
+          showUploadProblem(upload);
+        } else if (upload === undefined || upload.state === "uploaded") {
+          void WebBrowser.openBrowserAsync(attachment.url);
+        }
+      }}
       className="bg-bubble-incoming w-64 flex-row items-center gap-3 rounded-2xl p-3 active:opacity-80"
       style={{ borderCurve: "continuous" }}
     >
-      <View className="bg-accent size-10 items-center justify-center rounded-lg">
-        <SymbolIcon
-          name={{ android: "description", ios: "doc.fill" }}
-          size={20}
-          tintColorClassName="accent-on-accent"
-        />
+      <View className="bg-accent size-10 items-center justify-center overflow-hidden rounded-lg">
+        {uploading ? (
+          <UploadRing itemId={upload.itemId} size={32} />
+        ) : (
+          <SymbolIcon
+            name={
+              stuck
+                ? { android: "refresh", ios: "arrow.clockwise" }
+                : { android: "description", ios: "doc.fill" }
+            }
+            size={20}
+            tintColorClassName="accent-on-accent"
+          />
+        )}
       </View>
       <View className="flex-1">
         <Text
@@ -91,15 +254,25 @@ function FileCard({ attachment }: { attachment: Attachment }) {
         >
           {attachment.name}
         </Text>
-        <Text className="text-footnote text-muted">
-          {formatBytes(attachment.size)}
+        <Text
+          className={
+            stuck
+              ? "text-footnote text-destructive"
+              : "text-footnote text-muted"
+          }
+        >
+          {stuck ? "Not uploaded. Tap to retry." : formatBytes(attachment.size)}
         </Text>
       </View>
     </Pressable>
   );
 }
 
-export function AttachmentView({ attachment }: { attachment: Attachment }) {
+export function AttachmentView({
+  attachment,
+}: {
+  attachment: MessageAttachment;
+}) {
   return attachment.kind === "file" ? (
     <FileCard attachment={attachment} />
   ) : (

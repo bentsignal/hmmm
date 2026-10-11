@@ -24,14 +24,20 @@ export function showActionSheet(actions: readonly SheetAction[]) {
     );
     return;
   }
-  Alert.alert("", undefined, [
-    ...actions.map((action) => ({
-      onPress: action.onPress,
-      style: action.destructive
-        ? ("destructive" as const)
-        : ("default" as const),
-      text: action.label,
-    })),
-    { style: "cancel", text: "Cancel" },
-  ]);
+  Alert.alert(
+    "",
+    undefined,
+    [
+      ...actions.map((action) => ({
+        onPress: action.onPress,
+        style: action.destructive
+          ? ("destructive" as const)
+          : ("default" as const),
+        text: action.label,
+      })),
+      { style: "cancel", text: "Cancel" },
+      // Tapping outside or pressing back closes it, like Cancel.
+    ],
+    { cancelable: true },
+  );
 }
