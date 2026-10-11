@@ -29,6 +29,8 @@ import {
   menuHeight,
   ReactionBar,
 } from "./glass-menu-parts";
+import { linkActions } from "./link-actions";
+import { menuTitleHeight } from "./menu-title";
 
 export type TargetAlign = "end" | "start";
 
@@ -51,6 +53,8 @@ export interface MenuTarget {
   readonly shape: PreviewShape;
   /** The message as drawn in the list, lifted above the blur. */
   readonly preview: ReactNode;
+  /** The link whose card was held, which the menu is about. */
+  readonly link?: string;
 }
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
@@ -203,10 +207,14 @@ function Lifted({
   );
 }
 
-/** Copy for text, and View Reactions once anyone has reacted. */
+/**
+ * A held link's actions, then Copy for text (the whole message, links and
+ * all), and View Reactions once anyone has reacted.
+ */
 function menuActions(
   message: MenuTarget["message"],
   body: string | undefined,
+  link: string | undefined,
   {
     close,
     onViewReactions,
@@ -220,7 +228,8 @@ function menuActions(
       ? [
           {
             icon: { android: "content_copy", ios: "doc.on.doc" },
-            label: "Copy",
+            // Beside Copy Link, say which copy this is.
+            label: link === undefined ? "Copy" : "Copy Message",
             onPress: () => {
               copyText(body);
               close();
@@ -238,7 +247,7 @@ function menuActions(
           } satisfies MenuAction,
         ]
       : [];
-  return [...copy, ...viewReactions];
+  return [...linkActions(link, close), ...copy, ...viewReactions];
 }
 
 /**
@@ -261,11 +270,16 @@ export function GlassMessageMenu({
   const screen = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { body } = target.message;
-  const actions = menuActions(target.message, body, {
+  const actions = menuActions(target.message, body, target.link, {
     close: (then) => close(then),
     onViewReactions,
   });
-  const layout = layoutFor(target, screen, insets, menuHeight(actions.length));
+  const layout = layoutFor(
+    target,
+    screen,
+    insets,
+    menuHeight(actions.length) + menuTitleHeight(target.link),
+  );
   const progress = useSharedValue(0);
   useAnimatedReaction(
     () => true,
@@ -315,6 +329,7 @@ export function GlassMessageMenu({
           progress={progress}
           align={target.align}
           position={{ left: layout.menuLeft, top: layout.menuTop }}
+          title={target.link}
           actions={actions}
         />
       )}

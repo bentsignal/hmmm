@@ -66,7 +66,26 @@ export function MessageActionsProvider({
 
 /** Press-and-hold squeezes the message a little, as iOS does. */
 const PRESS_SCALE = 0.96;
-const LONG_PRESS_MS = 320;
+export const LONG_PRESS_MS = 320;
+
+/**
+ * Presses on something inside a message that handles its own taps, such as
+ * a link card, so they squeeze the message and open its menu like the rest
+ * of it does.
+ */
+interface MessagePress {
+  readonly pressIn: () => void;
+  readonly pressOut: () => void;
+  /** Opens the message's menu, about `link` when given. */
+  readonly longPress: (link?: string) => void;
+}
+
+const MessagePressContext = createContext<MessagePress | null>(null);
+
+/** Null outside a message, as in the copy lifted above the menu. */
+export function useMessagePress() {
+  return use(MessagePressContext);
+}
 
 /**
  * Opens the glass overlay on a long press, lifting a copy of `children`
@@ -89,32 +108,43 @@ function GlassLongPress({
   const style = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
+  const disabled = message.status !== undefined;
+  const press = {
+    longPress: (link?: string) => {
+      if (disabled) return;
+      impact();
+      scale.set(withSpring(1, { damping: 14, stiffness: 320 }));
+      ref.current?.measureInWindow((x, y, width, height) =>
+        open({
+          align,
+          link,
+          message,
+          preview: children,
+          rect: { height, width, x, y },
+          shape,
+        }),
+      );
+    },
+    pressIn: () => {
+      if (disabled) return;
+      scale.set(withTiming(PRESS_SCALE, { duration: LONG_PRESS_MS }));
+    },
+    pressOut: () => {
+      scale.set(withSpring(1, { damping: 14, stiffness: 320 }));
+    },
+  } satisfies MessagePress;
   return (
     <Pressable
       ref={ref}
       delayLongPress={LONG_PRESS_MS}
-      disabled={message.status !== undefined}
-      onPressIn={() => {
-        scale.set(withTiming(PRESS_SCALE, { duration: LONG_PRESS_MS }));
-      }}
-      onPressOut={() => {
-        scale.set(withSpring(1, { damping: 14, stiffness: 320 }));
-      }}
-      onLongPress={() => {
-        impact();
-        scale.set(withSpring(1, { damping: 14, stiffness: 320 }));
-        ref.current?.measureInWindow((x, y, width, height) =>
-          open({
-            align,
-            message,
-            preview: children,
-            rect: { height, width, x, y },
-            shape,
-          }),
-        );
-      }}
+      disabled={disabled}
+      onPressIn={press.pressIn}
+      onPressOut={press.pressOut}
+      onLongPress={() => press.longPress()}
     >
-      <Animated.View style={style}>{children}</Animated.View>
+      <MessagePressContext value={press}>
+        <Animated.View style={style}>{children}</Animated.View>
+      </MessagePressContext>
     </Pressable>
   );
 }

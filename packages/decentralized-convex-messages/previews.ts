@@ -1,67 +1,92 @@
 import { v } from "convex/values";
 
+import type { MutationCtx } from "./_generated/server.js";
+import type { Expiry } from "./linkCache.ts";
 import type { LinkPreview } from "./protocol.ts";
 import { internal } from "./_generated/api.js";
+import { internalAction, internalMutation } from "./_generated/server.js";
 import {
-  internalAction,
-  internalMutation,
-  internalQuery,
-} from "./_generated/server.js";
-import { previewedUrl } from "./links.ts";
+  claimFetches,
+  expire as expireEntry,
+  fetchableUrls,
+  giveUp as giveUpWaits,
+  isPublicWebUrl,
+  storeResult,
+} from "./linkCache.ts";
 import { linkPreview } from "./protocol.ts";
 
 const FETCH_TIMEOUT_MS = 5_000;
 const MAX_HTML_LENGTH = 512 * 1024;
 const MAX_TEXT_LENGTH = 300;
 
-export const messageBody = internalQuery({
-  args: { messageId: v.string() },
-  handler: async (ctx, { messageId }) => {
-    const message = await ctx.db
-      .query("messages")
-      .withIndex("by_message", (index) => index.eq("messageId", messageId))
-      .unique();
-    return message?.body ?? null;
+/** Schedules the deletion of cache entries once they expire. */
+export async function scheduleExpiries(
+  ctx: MutationCtx,
+  expiries: readonly Expiry[],
+) {
+  for (const { at, url } of expiries) {
+    await ctx.scheduler.runAt(at, internal.previews.expire, { url });
+  }
+}
+
+/** Fetches each claimed link (see `claimFetches`) in the background. */
+export async function startFetches(
+  ctx: MutationCtx,
+  claimed: readonly Expiry[],
+) {
+  for (const { url } of claimed) {
+    await ctx.scheduler.runAfter(0, internal.previews.fetchLink, { url });
+  }
+  await scheduleExpiries(ctx, claimed);
+}
+
+/** Starts fetching links someone is typing, unless they're cached. */
+export async function prefetch(ctx: MutationCtx, urls: readonly string[]) {
+  await startFetches(
+    ctx,
+    await claimFetches(ctx, fetchableUrls(urls), Date.now()),
+  );
+}
+
+export const store = internalMutation({
+  args: { preview: v.union(v.null(), linkPreview), url: v.string() },
+  handler: async (ctx, { preview, url }) => {
+    const expiry = await storeResult(ctx, url, preview, Date.now());
+    await scheduleExpiries(ctx, [expiry]);
   },
 });
 
-export const setLinkPreview = internalMutation({
-  args: { messageId: v.string(), preview: linkPreview },
-  handler: async (ctx, { messageId, preview }) => {
-    const message = await ctx.db
-      .query("messages")
-      .withIndex("by_message", (index) => index.eq("messageId", messageId))
-      .unique();
-    if (message !== null) {
-      await ctx.db.patch(message._id, { linkPreview: preview });
-    }
+export const expire = internalMutation({
+  args: { url: v.string() },
+  handler: async (ctx, { url }) => {
+    await expireEntry(ctx, url, Date.now());
   },
 });
 
-/** Fetches the first link in a message and stores its Open Graph preview. */
-export const unfurl = internalAction({
+/** A message's cards still waiting show just their links. */
+export const giveUp = internalMutation({
   args: { messageId: v.string() },
   handler: async (ctx, { messageId }) => {
-    const body = await ctx.runQuery(internal.previews.messageBody, {
-      messageId,
-    });
-    const url = body === null ? undefined : previewedUrl(body);
-    if (url === undefined) return;
+    await giveUpWaits(ctx, messageId);
+  },
+});
+
+/** Fetches a link's Open Graph preview into the cache. */
+export const fetchLink = internalAction({
+  args: { url: v.string() },
+  handler: async (ctx, { url }) => {
+    let preview: LinkPreview | null = null;
     try {
-      const preview = await fetchPreview(url);
-      if (preview !== null) {
-        await ctx.runMutation(internal.previews.setLinkPreview, {
-          messageId,
-          preview,
-        });
-      }
+      preview = await fetchPreview(url);
     } catch (error) {
       console.warn("Link preview failed", url, error);
     }
+    await ctx.runMutation(internal.previews.store, { preview, url });
   },
 });
 
 async function fetchPreview(url: string): Promise<LinkPreview | null> {
+  if (!isPublicWebUrl(url)) return null;
   const response = await fetch(url, {
     headers: {
       Accept: "text/html,application/xhtml+xml",
@@ -71,15 +96,37 @@ async function fetchPreview(url: string): Promise<LinkPreview | null> {
     redirect: "follow",
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
-  if (!response.ok) return null;
   const finalUrl = response.url || url;
+  // A redirect into the local network gets nothing back from it.
+  if (!response.ok || !isPublicWebUrl(finalUrl)) {
+    await response.body?.cancel();
+    return null;
+  }
   const contentType = response.headers.get("content-type") ?? "";
   if (contentType.startsWith("image/")) {
     return { imageUrl: finalUrl, url: finalUrl };
   }
-  if (!contentType.includes("html")) return null;
-  const html = (await response.text()).slice(0, MAX_HTML_LENGTH);
-  return previewFromHtml(html, finalUrl);
+  if (!contentType.includes("html")) {
+    await response.body?.cancel();
+    return null;
+  }
+  return previewFromHtml(await readHtml(response), finalUrl);
+}
+
+/** The start of a page, reading no more than `MAX_HTML_LENGTH` of it. */
+async function readHtml(response: Response) {
+  const reader: ReadableStreamDefaultReader<Uint8Array> | undefined =
+    response.body?.getReader();
+  if (reader === undefined) return "";
+  const decoder = new TextDecoder();
+  let html = "";
+  while (html.length < MAX_HTML_LENGTH) {
+    const chunk: { done: boolean; value?: Uint8Array } = await reader.read();
+    if (chunk.done || chunk.value === undefined) break;
+    html += decoder.decode(chunk.value, { stream: true });
+  }
+  await reader.cancel();
+  return html.slice(0, MAX_HTML_LENGTH);
 }
 
 function previewFromHtml(html: string, url: string): LinkPreview | null {

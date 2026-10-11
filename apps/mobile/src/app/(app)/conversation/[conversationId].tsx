@@ -1,4 +1,4 @@
-import type { Attachment } from "@decentralized-convex/messages";
+import type { Attachment, LinkCard } from "@decentralized-convex/messages";
 import { useState } from "react";
 import { ActivityIndicator, Alert, Text, View } from "react-native";
 import {
@@ -27,6 +27,7 @@ import {
   useMarkRead,
   useMessages,
 } from "~/features/messaging/conversations";
+import { useLinkPrefetch } from "~/features/messaging/link-previews";
 import { useActiveConversation } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
 
@@ -47,10 +48,15 @@ function FloatingComposer({
 }: {
   conversationId: string;
   onHeight: (height: number) => void;
-  onSend: (body: string, attachments?: Attachment[]) => void;
+  onSend: (
+    body: string,
+    attachments?: Attachment[],
+    linkPreviews?: readonly LinkCard[],
+  ) => void;
 }) {
   const insets = useSafeAreaInsets();
   const uploadAttachments = useAttachmentUploader();
+  const links = useLinkPrefetch();
   const devTools = useDevTools();
   const [uploading, setUploading] = useState(false);
 
@@ -85,8 +91,9 @@ function FloatingComposer({
       )}
       <View style={{ paddingBottom: insets.bottom }}>
         <Composer
+          onChangeText={links.onChangeText}
           onSend={(body) => {
-            onSend(body);
+            onSend(body, [], links.cardsFor(body));
             devTools.replyToMe(conversationId);
           }}
           onAttach={() =>

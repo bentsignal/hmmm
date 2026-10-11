@@ -248,6 +248,7 @@ export function toMessage(message: Doc<"messages">): Message {
     body: message.body,
     conversationId: message.conversationId,
     linkPreview: message.linkPreview ?? null,
+    linkPreviews: message.linkPreviews,
     messageId: message.messageId,
     sentAt: message.sentAt,
   };

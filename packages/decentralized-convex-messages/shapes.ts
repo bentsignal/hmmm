@@ -29,13 +29,33 @@ export const linkPreview = v.object({
 
 export type LinkPreview = Infer<typeof linkPreview>;
 
+/**
+ * A link in a message that gets a preview card. `link` is the URL as
+ * written in the message (a preview's `url` is where it led). `preview` is
+ * absent while the server fetches it and null when it couldn't, so the app
+ * shows a placeholder, then the card, or a card with just the link.
+ */
+export const linkCard = v.object({
+  link: v.string(),
+  preview: v.optional(v.union(v.null(), linkPreview)),
+});
+
+export type LinkCard = Infer<typeof linkCard>;
+
 export const message = v.object({
   attachments: v.array(attachment),
   authorId: v.string(),
   authorName: v.string(),
   body: v.string(),
   conversationId: v.string(),
+  /** The first link's preview, for apps from before `linkPreviews`. */
   linkPreview: v.union(v.null(), linkPreview),
+  /**
+   * A card for each previewed link, in order, set when the message is
+   * sent (absent from PDSs that predate it, which preview only the first
+   * link through `linkPreview`).
+   */
+  linkPreviews: v.optional(v.array(linkCard)),
   messageId: v.string(),
   sentAt: v.number(),
 });

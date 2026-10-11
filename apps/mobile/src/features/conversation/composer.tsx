@@ -56,17 +56,25 @@ function SendButton({
 export function Composer({
   onSend,
   onAttach,
+  onChangeText,
 }: {
   onSend: (text: string) => void;
   onAttach: () => void;
+  /** Every change to the text, including emptying it on send. */
+  onChangeText?: (text: string) => void;
 }) {
   const [draft, setDraft] = useState("");
   const canSend = draft.trim().length > 0;
 
+  function change(text: string) {
+    setDraft(text);
+    onChangeText?.(text);
+  }
+
   function send() {
     if (!canSend) return;
     onSend(draft.trim());
-    setDraft("");
+    change("");
   }
 
   return (
@@ -108,7 +116,7 @@ export function Composer({
         <StyledTextInput
           multiline
           value={draft}
-          onChangeText={setDraft}
+          onChangeText={change}
           placeholder="Message"
           accessibilityLabel="Message"
           // A message field never needs AutoFill suggestions.

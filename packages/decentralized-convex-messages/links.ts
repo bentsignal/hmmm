@@ -1,17 +1,40 @@
-const URL_PATTERN = /https?:\/\/[^\s<>"']+/i;
+const URL_PATTERN = /https?:\/\/[^\s<>"']+/gi;
 const TRAILING_PUNCTUATION = /[).,!?]+$/;
 
-/** Where the link a message's preview is made from sits in its body. */
-function previewedLink(body: string) {
-  const match = URL_PATTERN.exec(body);
-  if (match === null) return undefined;
-  const url = match[0].replace(TRAILING_PUNCTUATION, "");
-  return { end: match.index + url.length, start: match.index, url };
+/** At most this many links in a message get a preview card each. */
+export const MAX_LINK_PREVIEWS = 4;
+/** Longer links are left as text. */
+export const MAX_LINK_LENGTH = 2_048;
+
+interface Link {
+  readonly end: number;
+  readonly start: number;
+  readonly url: string;
+}
+
+function linksIn(body: string): Link[] {
+  return [...body.matchAll(URL_PATTERN)].map((match) => {
+    const url = match[0].replace(TRAILING_PUNCTUATION, "");
+    return { end: match.index + url.length, start: match.index, url };
+  });
 }
 
 /** The link a message's preview is made from: the first one in its body. */
 export function previewedUrl(body: string) {
-  return previewedLink(body)?.url;
+  return linksIn(body)[0]?.url;
+}
+
+/**
+ * The links a message gets preview cards for, in order: its first
+ * `MAX_LINK_PREVIEWS` different links.
+ */
+export function previewedUrls(body: string) {
+  const urls: string[] = [];
+  for (const { url } of linksIn(body)) {
+    if (urls.length === MAX_LINK_PREVIEWS) break;
+    if (url.length <= MAX_LINK_LENGTH && !urls.includes(url)) urls.push(url);
+  }
+  return urls;
 }
 
 /** Trims spaces and tabs, but keeps line breaks. */
@@ -46,23 +69,42 @@ function close(before: string, after: string): [string, string] {
   return [before, after];
 }
 
+function cut(body: string, link: Link) {
+  const [before, after] = close(
+    trimEnd(body.slice(0, link.start)),
+    trimStart(body.slice(link.end)),
+  );
+  return before === "" ||
+    after === "" ||
+    before.endsWith("\n") ||
+    after.startsWith("\n")
+    ? before + after
+    : `${before} ${after}`;
+}
+
+function tidy(text: string) {
+  return text.replace(/\n{3,}/g, "\n\n").trim();
+}
+
 /**
  * The body with its previewed link cut out, for showing beside the preview
  * card. Empty when the message was only the link.
  */
 export function withoutPreviewedUrl(body: string) {
-  const link = previewedLink(body);
-  if (link === undefined) return body;
-  const [before, after] = close(
-    trimEnd(body.slice(0, link.start)),
-    trimStart(body.slice(link.end)),
-  );
-  const joined =
-    before === "" ||
-    after === "" ||
-    before.endsWith("\n") ||
-    after.startsWith("\n")
-      ? before + after
-      : `${before} ${after}`;
-  return joined.replace(/\n{3,}/g, "\n\n").trim();
+  const link = linksIn(body)[0];
+  return link === undefined ? body : tidy(cut(body, link));
+}
+
+/**
+ * The body with every appearance of `urls` cut out, for showing above
+ * their preview cards. Empty when the message was only those links.
+ */
+export function withoutUrls(body: string, urls: readonly string[]) {
+  if (urls.length === 0) return body;
+  let text = body;
+  for (;;) {
+    const link = linksIn(text).find(({ url }) => urls.includes(url));
+    if (link === undefined) return tidy(text);
+    text = cut(text, link);
+  }
 }

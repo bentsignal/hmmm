@@ -15,10 +15,24 @@ import { createDebouncer, shownAnswer } from "./debounce";
  * search in the app goes through this hook, and server lookups through
  * `useSearchQuery`; lint flags PDS searches anywhere else.
  */
-export function useSearchText() {
+export function useSearchText({
+  onSettle,
+}: {
+  /**
+   * Called with the text each time typing pauses, for work that follows
+   * it, such as asking the server to prepare something. Read once, on the
+   * first render, so it must not depend on later renders' values.
+   */
+  onSettle?: (text: string) => void;
+} = {}) {
   const [query, setQuery] = useState("");
   const [{ cancel, push }] = useState(() =>
-    createDebouncer({ settle: setQuery }),
+    createDebouncer({
+      settle: (text) => {
+        setQuery(text);
+        onSettle?.(text);
+      },
+    }),
   );
   return {
     /** Empties the query now, for a field that was cleared. */
