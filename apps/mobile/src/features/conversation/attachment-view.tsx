@@ -19,13 +19,13 @@ const MAX_MEDIA_HEIGHT = 300;
  * full once they're sent, instead of showing a progress ring.
  */
 const FADE_MS = 300;
-const PULSE = { from: { opacity: 0.4 }, to: { opacity: 0.75 } };
+const PULSE = { from: { opacity: 0.6 }, to: { opacity: 0.85 } };
 
 function uploadFade(uploading: boolean) {
   if (uploading) {
     return {
       animationDirection: "alternate",
-      animationDuration: 900,
+      animationDuration: 1200,
       animationIterationCount: "infinite",
       animationName: PULSE,
       animationTimingFunction: "ease-in-out",
