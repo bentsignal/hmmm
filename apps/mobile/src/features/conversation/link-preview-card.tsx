@@ -1,3 +1,6 @@
+import type { ComponentProps, ReactNode } from "react";
+import type { View as NativeView } from "react-native";
+import { useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, {
   Easing,
@@ -8,9 +11,18 @@ import Animated, {
 import { Image } from "expo-image";
 import * as WebBrowser from "expo-web-browser";
 
+import type { CardFace, PlaceholderStage } from "./placeholder-timing";
 import type { LinkCard, LinkPreview } from "./types";
 import { SymbolIcon } from "~/components/symbol-icon";
-import { LONG_PRESS_MS, useMessagePress } from "./message-actions";
+import { useMenuTarget } from "./message-actions";
+import {
+  cardFace,
+  initialStage,
+  minElapsed,
+  resolveStage,
+  startMinClock,
+  startPendingClock,
+} from "./placeholder-timing";
 
 /** Every card is this wide, so swapping one for another never jumps. */
 const CARD_WIDTH = 256;
@@ -20,7 +32,8 @@ const IMAGE_HEIGHT = Math.round(CARD_WIDTH / 1.91);
 const EASE = Easing.inOut(Easing.cubic);
 /** A card that changes size (placeholder to card) eases to the new one. */
 const RESIZE = LinearTransition.duration(300).easing(EASE);
-const SHOW = FadeIn.duration(260).easing(EASE);
+const FADE_MS = 260;
+const SHOW = FadeIn.duration(FADE_MS).easing(EASE);
 const HIDE = FadeOut.duration(200).easing(EASE);
 
 /** "nytimes.com" for a link, without the "www.". */
@@ -133,46 +146,165 @@ function Preview({ preview }: { preview: LinkPreview }) {
 }
 
 /**
- * One link's card. It holds a placeholder until the preview arrives, then
- * the preview fades in as the card eases to its size; a link the server
- * couldn't preview settles into a small card with just the link. Tapping
- * opens the link; holding opens the message's menu about it.
+ * When a card shows its placeholder (see `placeholder-timing.ts`): it keeps
+ * its space empty for a moment, so a preview that arrives fast fades
+ * straight in, and a placeholder that does show stays long enough not to
+ * flicker. `appear` starts the wait once the card is laid out.
  */
-function LinkCardView({ card }: { card: LinkCard }) {
-  const press = useMessagePress();
-  const { link, preview } = card;
-  const url = preview?.url ?? link;
+function usePlaceholderTiming(loaded: boolean) {
+  const [stored, setStage] = useState<PlaceholderStage>(() =>
+    initialStage(loaded),
+  );
+  const [pendingDue, setPendingDue] = useState(false);
+  const started = useRef(false);
+  const held = useRef(false);
+  const stage = resolveStage({ loaded, pendingDue, stage: stored });
+  if (stage !== stored) setStage(stage);
+  return {
+    face: cardFace(loaded, stage),
+    /** The card was laid out: its wait starts. */
+    appear: () => {
+      if (started.current || stage !== "waiting") return;
+      started.current = true;
+      startPendingClock(() => setPendingDue(true));
+    },
+    /** The placeholder was laid out: its minimum time starts. */
+    placeholderShown: () => {
+      if (held.current) return;
+      held.current = true;
+      startMinClock(() => setStage(minElapsed));
+    },
+  };
+}
+
+/**
+ * A card's frame: it eases to the size of what it holds, and stays hidden,
+ * outline and all, while its space is kept.
+ */
+function CardFrame({
+  face,
+  style,
+  onLayout,
+  children,
+}: {
+  face: CardFace;
+  /** The squeeze while the card is held. */
+  style?: ComponentProps<typeof Animated.View>["style"];
+  onLayout?: () => void;
+  children: ReactNode;
+}) {
   return (
     <Animated.View
       layout={RESIZE}
+      onLayout={onLayout}
       className="border-hairline border-separator bg-background-elevated overflow-hidden rounded-2xl"
-      style={{ borderCurve: "continuous", width: CARD_WIDTH }}
+      style={[
+        {
+          borderCurve: "continuous",
+          opacity: face === "space" ? 0 : 1,
+          transitionDuration: FADE_MS,
+          transitionProperty: "opacity",
+          transitionTimingFunction: "ease-in-out",
+          width: CARD_WIDTH,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
+/** What a card shows, faded from what it showed before. */
+function CardContents({
+  card,
+  face,
+  onPlaceholderLayout,
+}: {
+  card: LinkCard;
+  face: CardFace;
+  onPlaceholderLayout?: () => void;
+}) {
+  const { link, preview } = card;
+  if (face === "space") {
+    // The placeholder's space, kept empty while the preview may still
+    // arrive in time to skip it.
+    return (
+      <View key="space" style={{ opacity: 0 }}>
+        <Placeholder link={link} />
+      </View>
+    );
+  }
+  if (face === "placeholder" || preview === undefined) {
+    return (
+      <Animated.View
+        key="loading"
+        entering={SHOW}
+        exiting={HIDE}
+        onLayout={onPlaceholderLayout}
+      >
+        <Placeholder link={link} />
+      </Animated.View>
+    );
+  }
+  if (preview === null) {
+    return (
+      <Animated.View key="link" entering={SHOW}>
+        <LinkOnly link={link} />
+      </Animated.View>
+    );
+  }
+  return (
+    <Animated.View key="preview" entering={SHOW}>
+      <Preview preview={preview} />
+    </Animated.View>
+  );
+}
+
+/**
+ * One link's card. Until the preview arrives it holds a placeholder (after
+ * a short wait), then the preview fades in as the card eases to its size; a
+ * link the server couldn't preview settles into a small card with just the
+ * link. Tapping opens the link; holding lifts just this card into the
+ * message's menu, about its link.
+ */
+function LinkCardView({ card }: { card: LinkCard }) {
+  const { link, preview } = card;
+  const url = preview?.url ?? link;
+  const timing = usePlaceholderTiming(preview !== undefined);
+  const ref = useRef<NativeView>(null);
+  const target = useMenuTarget({
+    link,
+    measured: ref,
+    preview: (
+      <CardFrame face={timing.face}>
+        <CardContents card={card} face={timing.face} />
+      </CardFrame>
+    ),
+    // A card lifts as it is, never on another card.
+    shape: "plain",
+  });
+  return (
+    <CardFrame
+      face={timing.face}
+      style={target?.style}
+      onLayout={timing.appear}
     >
       <Pressable
+        ref={ref}
         accessibilityRole="link"
         accessibilityHint={link}
-        delayLongPress={LONG_PRESS_MS}
         onPress={() => void WebBrowser.openBrowserAsync(url)}
-        onPressIn={press?.pressIn}
-        onPressOut={press?.pressOut}
-        onLongPress={() => press?.longPress(link)}
+        {...target?.press}
         className="active:opacity-80"
       >
-        {preview === undefined ? (
-          <Animated.View key="loading" exiting={HIDE}>
-            <Placeholder link={link} />
-          </Animated.View>
-        ) : preview === null ? (
-          <Animated.View key="link" entering={SHOW}>
-            <LinkOnly link={link} />
-          </Animated.View>
-        ) : (
-          <Animated.View key="preview" entering={SHOW}>
-            <Preview preview={preview} />
-          </Animated.View>
-        )}
+        <CardContents
+          card={card}
+          face={timing.face}
+          onPlaceholderLayout={timing.placeholderShown}
+        />
       </Pressable>
-    </Animated.View>
+    </CardFrame>
   );
 }
 

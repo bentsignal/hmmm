@@ -8,6 +8,7 @@ import { cn } from "~/lib/cn";
 import { AttachmentView } from "./attachment-view";
 import { BUBBLE_RADIUS, TAIL_DROP, TailedBubble } from "./bubble-shape";
 import { LinkCards } from "./link-preview-card";
+import { MenuTargetView } from "./message-actions";
 import { InteractiveMessage } from "./message-reactions";
 import { MessageMeta, SendingFade } from "./message-status";
 import { linkCardsOf, visibleBody } from "./message-text";
@@ -91,14 +92,18 @@ function Content({
     <SendingFade status={message.status}>
       <View className={cn("gap-0.5", isOwn ? "items-end" : "items-start")}>
         {message.attachments.map((attachment) => (
-          <AttachmentView key={attachment.url} attachment={attachment} />
+          <MenuTargetView key={attachment.url}>
+            <AttachmentView attachment={attachment} />
+          </MenuTargetView>
         ))}
         {body !== undefined && (
-          <Body
-            text={body}
-            isOwn={isOwn}
-            tail={endsGroup && cards.length === 0}
-          />
+          <MenuTargetView>
+            <Body
+              text={body}
+              isOwn={isOwn}
+              tail={endsGroup && cards.length === 0}
+            />
+          </MenuTargetView>
         )}
         {cards.length > 0 && <LinkCards cards={cards} />}
       </View>
@@ -148,7 +153,7 @@ function BubbleColumn({
       <InteractiveMessage
         message={message}
         align={isOwn ? "end" : "start"}
-        shape="bubble"
+        shape="plain"
       >
         <Content message={message} isOwn={isOwn} endsGroup={endsGroup} />
       </InteractiveMessage>

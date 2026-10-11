@@ -6,6 +6,7 @@ import { cn } from "~/lib/cn";
 import { formatTime } from "~/lib/format";
 import { AttachmentView } from "./attachment-view";
 import { LinkCards } from "./link-preview-card";
+import { MenuTargetView } from "./message-actions";
 import { InteractiveMessage } from "./message-reactions";
 import { MessageMeta, SendingFade } from "./message-status";
 import { linkCardsOf, visibleBody } from "./message-text";
@@ -48,10 +49,14 @@ export function MessageStacked({
           <SendingFade status={message.status}>
             <View className="items-start gap-1">
               {body !== undefined && (
-                <Text className="text-body text-foreground">{body}</Text>
+                <MenuTargetView>
+                  <Text className="text-body text-foreground">{body}</Text>
+                </MenuTargetView>
               )}
               {message.attachments.map((attachment) => (
-                <AttachmentView key={attachment.url} attachment={attachment} />
+                <MenuTargetView key={attachment.url} shape="plain">
+                  <AttachmentView attachment={attachment} />
+                </MenuTargetView>
               ))}
               {cards.length > 0 && <LinkCards cards={cards} />}
             </View>

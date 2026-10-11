@@ -4,6 +4,7 @@ import { Modal, Pressable, useWindowDimensions } from "react-native";
 import Animated, {
   clamp,
   Easing,
+  LayoutAnimationConfig,
   useAnimatedProps,
   useAnimatedReaction,
   useAnimatedStyle,
@@ -18,6 +19,7 @@ import { BlurView } from "expo-blur";
 import { useUniwind } from "uniwind";
 
 import type { MenuAction } from "./glass-menu-parts";
+import type { MenuLayout, Rect } from "./menu-layout";
 import type { Message } from "./types";
 import { cn } from "~/lib/cn";
 import { canCopy, copyText, selectionTick } from "~/lib/native-extras";
@@ -30,28 +32,22 @@ import {
   ReactionBar,
 } from "./glass-menu-parts";
 import { linkActions } from "./link-actions";
+import { menuLayout } from "./menu-layout";
 import { menuTitleHeight } from "./menu-title";
 
 export type TargetAlign = "end" | "start";
 
-/** Bubbles lift as they are; plain (stacked) text lifts on a card. */
-export type PreviewShape = "bubble" | "card";
+/** Most things lift as they are; plain (stacked) text lifts on a card. */
+export type PreviewShape = "card" | "plain";
 
-interface Rect {
-  readonly height: number;
-  readonly width: number;
-  readonly x: number;
-  readonly y: number;
-}
-
-/** The message a long press opened, and where it sits on screen. */
+/** What a long press opened, and where it sits on screen. */
 export interface MenuTarget {
   readonly message: Message;
+  /** Where the held element (a bubble, a link card) sits on screen. */
   readonly rect: Rect;
   readonly align: TargetAlign;
-  /** Bubbles lift as they are; plain text lifts on a card. */
   readonly shape: PreviewShape;
-  /** The message as drawn in the list, lifted above the blur. */
+  /** The held element as drawn in the list, lifted above the blur. */
   readonly preview: ReactNode;
   /** The link whose card was held, which the menu is about. */
   readonly link?: string;
@@ -61,65 +57,20 @@ const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 // Builds made before expo-blur was added dim the conversation instead.
 const canBlur = requireOptionalNativeModule("ExpoBlur") !== null;
 
-const GAP = 10;
-const EDGE = 12;
-/** How much the lifted message grows. */
-const LIFT = 0.035;
 /** The card around lifted plain text reaches this far past it. */
 const CARD_INSET = { x: 10, y: 8 };
 const OPEN_SPRING = { damping: 19, mass: 0.9, stiffness: 230 };
 
-interface Layout {
-  /** How far the message moves so the bar and menu fit on screen. */
-  readonly shift: number;
-  readonly barTop: number;
-  readonly barLeft: number;
-  readonly menuTop: number;
-  readonly menuLeft: number;
-}
-
-/** What lifts: the message, or the card around it. */
+/** What lifts: the element, or the card around it. */
 function frameOf(target: MenuTarget) {
   const { rect, shape } = target;
-  if (shape === "bubble") return rect;
+  if (shape === "plain") return rect;
   return {
     height: rect.height + CARD_INSET.y * 2,
     width: rect.width + CARD_INSET.x * 2,
     x: rect.x - CARD_INSET.x,
     y: rect.y - CARD_INSET.y,
   };
-}
-
-function layoutFor(
-  target: MenuTarget,
-  screen: { height: number; width: number },
-  insets: { bottom: number; top: number },
-  menuHeight: number,
-) {
-  const { align } = target;
-  const rect = frameOf(target);
-  const minTop = insets.top + EDGE + BAR_HEIGHT + GAP;
-  const maxBottom =
-    screen.height -
-    insets.bottom -
-    EDGE -
-    (menuHeight > 0 ? menuHeight + GAP : 0);
-  // Keep the message between the bar and the menu; the top wins when tall.
-  const top = Math.max(minTop, Math.min(rect.y, maxBottom - rect.height));
-  function side(width: number) {
-    return clamp(
-      align === "end" ? rect.x + rect.width - width : rect.x,
-      EDGE,
-      screen.width - width - EDGE,
-    );
-  }
-  return {
-    barLeft: side(BAR_WIDTH),
-    barTop: top - GAP - BAR_HEIGHT,
-    menuLeft: side(MENU_WIDTH),
-    menuTop: top + rect.height + GAP,
-    shift: top - rect.y,
-  } satisfies Layout;
 }
 
 /** The conversation behind the lifted message: blurred and dimmed. */
@@ -163,21 +114,26 @@ function Backdrop({
 
 function Lifted({
   target,
-  shift,
+  layout,
   progress,
 }: {
   target: MenuTarget;
-  shift: number;
+  layout: MenuLayout;
   progress: SharedValue<number>;
 }) {
   const rect = frameOf(target);
   const card = target.shape === "card";
+  const { scale, shift } = layout;
+  // Its top corner on its side stays put, so it lines up with the bar and
+  // the actions however much it grows or shrinks.
+  const origin = `${target.align === "end" ? "right" : "left"} top`;
   const style = useAnimatedStyle(() => ({
     shadowOpacity: clamp(progress.value, 0, 1) * 0.22,
     transform: [
       { translateY: shift * progress.value },
-      { scale: 1 + LIFT * progress.value },
+      { scale: 1 + (scale - 1) * progress.value },
     ],
+    transformOrigin: origin,
   }));
   return (
     <Animated.View
@@ -202,7 +158,10 @@ function Lifted({
         style,
       ]}
     >
-      {target.preview}
+      {/* Shown as it is in the list, without fading in again. */}
+      <LayoutAnimationConfig skipEntering>
+        {target.preview}
+      </LayoutAnimationConfig>
     </Animated.View>
   );
 }
@@ -274,12 +233,17 @@ export function GlassMessageMenu({
     close: (then) => close(then),
     onViewReactions,
   });
-  const layout = layoutFor(
-    target,
-    screen,
+  const layout = menuLayout({
+    align: target.align,
+    bar: { height: BAR_HEIGHT, width: BAR_WIDTH },
+    frame: frameOf(target),
     insets,
-    menuHeight(actions.length) + menuTitleHeight(target.link),
-  );
+    menu: {
+      height: menuHeight(actions.length) + menuTitleHeight(target.link),
+      width: MENU_WIDTH,
+    },
+    screen,
+  });
   const progress = useSharedValue(0);
   useAnimatedReaction(
     () => true,
@@ -313,7 +277,7 @@ export function GlassMessageMenu({
       onRequestClose={() => close()}
     >
       <Backdrop progress={progress} onPress={() => close()} />
-      <Lifted target={target} shift={layout.shift} progress={progress} />
+      <Lifted target={target} layout={layout} progress={progress} />
       <ReactionBar
         target={target}
         progress={progress}

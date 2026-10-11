@@ -6,12 +6,13 @@ import { LayoutAnimationConfig } from "react-native-reanimated";
 import type { PreviewShape } from "./glass-message-menu";
 import type { Message } from "./types";
 import { selectionTick } from "~/lib/native-extras";
-import { LongPressMessage, useMessageActions } from "./message-actions";
+import { MessageTargetProvider, useMessageActions } from "./message-actions";
 import { ChipRow } from "./reaction-chips";
 
 /**
- * A message that opens the glass reaction overlay on a long press, with its
- * reactions as glass chips underneath. Tapping a chip adds or takes back
+ * A message whose parts open the glass reaction overlay on a long press
+ * (each wraps itself in `MenuTargetView`), with its reactions as glass chips
+ * underneath the whole message. Tapping a chip adds or takes back
  * that reaction.
  */
 export function InteractiveMessage({
@@ -23,6 +24,7 @@ export function InteractiveMessage({
   message: Message;
   /** Which side the message sits on. */
   align: "end" | "start";
+  /** How its text lifts. */
   shape: PreviewShape;
   children: ReactNode;
 }) {
@@ -38,9 +40,9 @@ export function InteractiveMessage({
     // Reactions already there when the row mounts don't pop in on scroll.
     <LayoutAnimationConfig skipEntering>
       <View className={align === "end" ? "self-end" : "self-start"}>
-        <LongPressMessage message={message} align={align} shape={shape}>
+        <MessageTargetProvider message={message} align={align} shape={shape}>
           {children}
-        </LongPressMessage>
+        </MessageTargetProvider>
         {reactions !== undefined && (
           // Nor do the ones that load after the row: only a reaction added
           // while the thread is open pops in.
