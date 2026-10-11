@@ -1,21 +1,43 @@
-import { Pressable, View } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
+import Animated, {
+  FadeIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { scheduleOnRN } from "react-native-worklets";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 
 import { SymbolIcon } from "~/components/symbol-icon";
 import { PhotoViewer } from "~/features/conversation/photo-viewer";
 
-function Video({ url }: { url: string }) {
+/** The route has no animation of its own; the screen fades itself in. */
+const FADE_IN = FadeIn.duration(200);
+
+function Video({ url, onClose }: { url: string; onClose: () => void }) {
   const player = useVideoPlayer(url, (instance) => instance.play());
+  const opacity = useSharedValue(1);
+  const style = useAnimatedStyle(() => ({ opacity: opacity.get() }));
+  function close() {
+    opacity.set(
+      withTiming(0, { duration: 180 }, (finished) => {
+        if (finished === true) scheduleOnRN(onClose);
+      }),
+    );
+  }
   return (
-    <VideoView
-      player={player}
-      nativeControls
-      allowsPictureInPicture
-      contentFit="contain"
-      style={{ flex: 1 }}
-    />
+    <Animated.View className="flex-1 bg-black" style={style}>
+      <VideoView
+        player={player}
+        nativeControls
+        allowsPictureInPicture
+        contentFit="contain"
+        style={{ flex: 1 }}
+      />
+      <CloseButton onPress={close} />
+    </Animated.View>
   );
 }
 
@@ -53,22 +75,21 @@ export default function MediaScreen() {
     width?: string;
     height?: string;
   }>();
-  if (kind === "video") {
-    return (
-      <View className="flex-1 bg-black">
-        <Video url={url} />
-        <CloseButton onPress={() => router.back()} />
-      </View>
-    );
+  function onClose() {
+    router.back();
   }
   return (
-    <View className="flex-1">
-      <PhotoViewer
-        url={url}
-        size={photoSize(width, height)}
-        onClose={() => router.back()}
-        chrome={<CloseButton onPress={() => router.back()} />}
-      />
-    </View>
+    <Animated.View entering={FADE_IN} style={StyleSheet.absoluteFill}>
+      {kind === "video" ? (
+        <Video url={url} onClose={onClose} />
+      ) : (
+        <PhotoViewer
+          url={url}
+          size={photoSize(width, height)}
+          onClose={onClose}
+          chrome={(close) => <CloseButton onPress={close} />}
+        />
+      )}
+    </Animated.View>
   );
 }

@@ -89,7 +89,10 @@ function AppStack() {
       <Stack.Screen
         name="media"
         options={{
-          animation: "fade",
+          // The screen fades itself in and animates its own closing (a photo
+          // carries on off the screen after a swipe), then closes at once; a
+          // closing animation here would fight the swipe.
+          animation: "none",
           headerShown: false,
           // Transparent so the conversation shows through as a photo is
           // swiped away; the viewer draws its own black backdrop.
