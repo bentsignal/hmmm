@@ -1,13 +1,26 @@
 import { Pressable, Text, View } from "react-native";
-import Animated, { ZoomIn, ZoomOut } from "react-native-reanimated";
+import Animated, { Easing, Keyframe, ZoomOut } from "react-native-reanimated";
 
 import type { ReactionSummary } from "~/features/messaging/reactions";
 import { GlassSurface } from "~/components/glass-surface";
 import { cn } from "~/lib/cn";
 
-/** Reactions pop in when they arrive and shrink away when taken back. */
-export const POP_IN = ZoomIn.springify().damping(13).stiffness(260);
-export const POP_OUT = ZoomOut.duration(140);
+/**
+ * Reactions pop in when they arrive and shrink away when taken back. One
+ * brief bump, about as long as the glass press feedback when you add to a
+ * reaction someone else left, rather than a spring that wobbles for
+ * seconds.
+ */
+const POP_IN = new Keyframe({
+  0: { opacity: 0, transform: [{ scale: 0.6 }] },
+  60: {
+    easing: Easing.out(Easing.cubic),
+    opacity: 1,
+    transform: [{ scale: 1.06 }],
+  },
+  100: { easing: Easing.inOut(Easing.quad), transform: [{ scale: 1 }] },
+}).duration(280);
+const POP_OUT = ZoomOut.duration(140);
 
 function Chip({
   reaction,
