@@ -129,7 +129,15 @@ export function InboxRow({
                 onPress={open}
               >
                 <RNHostView>
-                  <View pointerEvents="none" className="flex-1 flex-row">
+                  {/* A fixed height, not flex: SwiftUI reports the host's
+                      size a few frames after a new row mounts, and until
+                      then a flexed row is laid out zero tall, with the
+                      photo and unread dot centered on its top edge. */}
+                  <View
+                    pointerEvents="none"
+                    className="flex-row"
+                    style={{ height: INBOX_ROW_HEIGHT }}
+                  >
                     <ConversationRowContent
                       conversation={conversation}
                       showAccount={showAccount}

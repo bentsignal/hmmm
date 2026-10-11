@@ -3,7 +3,7 @@ import { pds } from "@vera/backend/pds";
 
 import { env } from "~/env";
 import { useAccount } from "~/features/messaging/account";
-import { useInbox } from "~/features/messaging/conversations";
+import { useInbox } from "~/features/messaging/inbox";
 import { useProfiles } from "~/features/messaging/profiles";
 import { pdsResultOr } from "~/features/messaging/results";
 import {

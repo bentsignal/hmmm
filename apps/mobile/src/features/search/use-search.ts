@@ -1,5 +1,5 @@
 import { useAccounts } from "~/features/messaging/account";
-import { useInbox } from "~/features/messaging/conversations";
+import { useInbox } from "~/features/messaging/inbox";
 import { useDisplayNames } from "~/features/messaging/profiles";
 import { useSpaces } from "~/features/messaging/spaces";
 import { normalizeSearch } from "./debounce";

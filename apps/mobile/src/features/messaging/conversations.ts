@@ -6,15 +6,14 @@ import type {
 import { useEffect, useRef, useState } from "react";
 import * as Crypto from "expo-crypto";
 // eslint-disable-next-line no-restricted-imports -- Expo Router has no route loaders to preload suspense queries.
-import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { listNames } from "@decentralized-convex/messages";
 import { pdsMutation, pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
 import type { ReactionSummary } from "./reactions";
 import type { Message } from "~/features/conversation/types";
-import type { ConversationSummary } from "~/features/inbox/types";
-import { useAccount, useVisibleAccounts } from "./account";
+import { useAccount } from "./account";
 import { useMessageWindow } from "./message-window";
 import * as optimistic from "./optimistic";
 import { useProfileState } from "./profiles";
@@ -51,7 +50,7 @@ export function groupTitle(
   return others.length === 0 ? "Group" : listNames(others.map(displayName));
 }
 
-function conversationTitle(
+export function conversationTitle(
   conversation: Conversation,
   self: string,
   displayName: (id: string) => string,
@@ -61,104 +60,6 @@ function conversationTitle(
   if (kind === "group") return groupTitle(name, members, self, displayName);
   const other = members.find((member) => member !== self);
   return displayName(other ?? self);
-}
-
-/** The last message, led by its author where several people talk. */
-function preview(
-  message: PdsMessage | null,
-  self: string,
-  name: string,
-  shared: boolean,
-) {
-  if (message === null) return "No messages yet";
-  const prefix =
-    message.authorId === self ? "You: " : shared ? `${name}: ` : "";
-  if (message.body.length > 0) return `${prefix}${message.body}`;
-  const count = message.attachments.length;
-  const kind = message.attachments[0]?.kind ?? "file";
-  const noun = { file: "File", image: "Photo", video: "Video" }[kind];
-  return `${prefix || `${name}: `}${count > 1 ? `${count} attachments` : noun}`;
-}
-
-function summarize(
-  account: string,
-  conversation: Conversation,
-  profileOf: ReturnType<typeof useProfileState>["profileOf"],
-) {
-  function displayName(address: string) {
-    return profileOf(address).displayName;
-  }
-  const other =
-    conversation.kind === "direct"
-      ? conversation.members.find((member) => member !== account)
-      : undefined;
-  return {
-    account,
-    id: conversation.conversationId,
-    key: `${account} ${conversation.conversationId}`,
-    kind: conversation.kind,
-    avatarUrl: other === undefined ? null : profileOf(other).avatarUrl,
-    affiliated: other !== undefined && profileOf(other).affiliated,
-    lastActivityAt: new Date(
-      conversation.lastMessage?.sentAt ?? conversation.updatedAt,
-    ),
-    lastMessage: preview(
-      conversation.lastMessage,
-      account,
-      displayName(conversation.lastMessage?.authorId ?? ""),
-      conversation.kind !== "direct",
-    ),
-    hasMessages: conversation.lastMessage !== null,
-    memberIds: conversation.members,
-    muted: conversation.muted,
-    pinnedAt: conversation.pinnedAt ?? null,
-    spaceId: conversation.spaceId,
-    spaceName: conversation.spaceName ?? null,
-    title: conversationTitle(conversation, account, displayName),
-    unreadCount: conversation.unreadCount,
-  } satisfies ConversationSummary;
-}
-
-/**
- * Conversations across the visible accounts (or just `account`), newest
- * first: direct messages, groups, and the space channels shown in the
- * inbox. Each summary says which account it belongs to.
- */
-export function useInbox({ account }: { account?: string } = {}) {
-  const visible = useVisibleAccounts();
-  const accounts =
-    account === undefined ? visible.map((item) => item.address) : [account];
-  const inboxes = useQueries({
-    queries: accounts.map((session) =>
-      pdsQuery({
-        args: { channels: true },
-        options: { select: pdsResult },
-        query: pds.messages.inbox,
-        session,
-      }),
-    ),
-  });
-  const conversations = inboxes.flatMap((inbox, index) =>
-    (inbox.data ?? []).map((conversation) => ({
-      account: accounts[index] ?? "",
-      conversation,
-    })),
-  );
-  const profiles = useProfileState(
-    conversations.flatMap(({ conversation }) => conversation.members),
-  );
-  const summaries = conversations.map((item) =>
-    summarize(item.account, item.conversation, profiles.profileOf),
-  );
-  // Order by the last message, matching the times shown on each row.
-  summaries.sort(
-    (left, right) =>
-      right.lastActivityAt.getTime() - left.lastActivityAt.getTime(),
-  );
-  // Wait for names too, so rows never switch from usernames to names.
-  const isLoading =
-    inboxes.every((inbox) => inbox.data === undefined) || profiles.isLoading;
-  return { conversations: isLoading ? undefined : summaries, isLoading };
 }
 
 export function useConversation(conversationId: string) {
