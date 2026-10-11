@@ -1,0 +1,333 @@
+import type {
+  Attachment,
+  LinkCard,
+  Message as PdsMessage,
+} from "@decentralized-convex/messages";
+import { useSyncExternalStore } from "react";
+import * as Crypto from "expo-crypto";
+import { Image } from "expo-image";
+import { pds } from "@vera/backend/pds";
+
+import type { StagedFile } from "./attachments";
+import type { AccountSession } from "~/features/session/account-session";
+import { TooLargeError, uploadStaged } from "./attachments";
+
+// Messages this device sent that the PDS hasn't confirmed yet, with their
+// uploads. They live outside React, so leaving the conversation doesn't
+// stop an upload, and the message is still there when you come back.
+
+export type UploadState = "failed" | "too-large" | "uploaded" | "uploading";
+
+export interface OutgoingItem {
+  readonly id: string;
+  readonly file: StagedFile;
+  readonly state: UploadState;
+  /** Set once uploaded. */
+  readonly attachment?: Attachment;
+}
+
+export interface OutgoingMessage {
+  readonly account: string;
+  readonly conversationId: string;
+  readonly messageId: string;
+  readonly body: string;
+  readonly items: readonly OutgoingItem[];
+  /** Its link cards, with the previews prefetched while it was typed. */
+  readonly linkPreviews: LinkCard[] | undefined;
+  readonly sentAt: number;
+  /** "sent" once the PDS has it; it stays to keep showing local media. */
+  readonly status: "failed" | "sending" | "sent";
+}
+
+/** How many uploads run at once across every message. */
+const UPLOAD_CONCURRENCY = 3;
+/** Sent messages kept for their local media, newest first. */
+const KEEP_SENT = 50;
+
+let outbox = new Array<OutgoingMessage>();
+const listeners = new Set<() => void>();
+const sessions = new Map<string, AccountSession>();
+const running = new Set<string>();
+
+function emit() {
+  for (const listener of listeners) listener();
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function find(messageId: string) {
+  return outbox.find((message) => message.messageId === messageId);
+}
+
+function update(
+  messageId: string,
+  change: (message: OutgoingMessage) => OutgoingMessage | undefined,
+) {
+  outbox = outbox.flatMap((message) => {
+    if (message.messageId !== messageId) return [message];
+    const next = change(message);
+    return next === undefined ? [] : [next];
+  });
+  emit();
+}
+
+function updateItem(
+  messageId: string,
+  itemId: string,
+  change: Partial<OutgoingItem>,
+) {
+  update(messageId, (message) => ({
+    ...message,
+    items: message.items.map((item) =>
+      item.id === itemId ? { ...item, ...change } : item,
+    ),
+  }));
+}
+
+function pruneSent() {
+  const sent = outbox.filter((message) => message.status === "sent");
+  if (sent.length <= KEEP_SENT) return;
+  const dropped = new Set(
+    sent.slice(0, sent.length - KEEP_SENT).map((message) => message.messageId),
+  );
+  outbox = outbox.filter((message) => !dropped.has(message.messageId));
+  for (const messageId of dropped) sessions.delete(messageId);
+}
+
+// Upload progress changes many times a second, so it has its own store
+// that only the progress ring reads, instead of re-rendering the list.
+
+const progress = new Map<string, number>();
+const progressListeners = new Map<string, Set<() => void>>();
+
+function setProgress(itemId: string, fraction: number) {
+  // Whole percents, so a fast upload doesn't redraw for every packet.
+  const rounded = Math.round(fraction * 100) / 100;
+  if (progress.get(itemId) === rounded) return;
+  progress.set(itemId, rounded);
+  for (const listener of progressListeners.get(itemId) ?? []) listener();
+}
+
+/** How much of an attachment has uploaded, from 0 to 1. */
+export function useUploadProgress(itemId: string) {
+  return useSyncExternalStore(
+    (listener) => {
+      const set = progressListeners.get(itemId) ?? new Set();
+      set.add(listener);
+      progressListeners.set(itemId, set);
+      return () => set.delete(listener);
+    },
+    () => progress.get(itemId) ?? 0,
+  );
+}
+
+// A small queue, so ten videos don't all fight for the connection.
+
+let active = 0;
+const waiting = new Array<() => void>();
+
+function releaseUploadSlot() {
+  active -= 1;
+  waiting.shift()?.();
+}
+
+async function withUploadSlot<T>(work: () => Promise<T>) {
+  if (active >= UPLOAD_CONCURRENCY) {
+    await new Promise<void>((resolve) => waiting.push(resolve));
+  }
+  active += 1;
+  return work().then(
+    (value) => {
+      releaseUploadSlot();
+      return value;
+    },
+    (error: unknown) => {
+      releaseUploadSlot();
+      throw error;
+    },
+  );
+}
+
+async function upload(
+  session: AccountSession,
+  messageId: string,
+  item: OutgoingItem,
+) {
+  setProgress(item.id, 0);
+  const attachment = await withUploadSlot(() =>
+    uploadStaged(session, item.file, (fraction) =>
+      setProgress(item.id, fraction),
+    ),
+  ).catch((error: unknown) => {
+    updateItem(messageId, item.id, {
+      state: error instanceof TooLargeError ? "too-large" : "failed",
+    });
+    return undefined;
+  });
+  if (attachment === undefined) return;
+  updateItem(messageId, item.id, { attachment, state: "uploaded" });
+  // Warm the image cache, so switching from this device's copy to the
+  // uploaded one never shows a blank frame.
+  const preview =
+    attachment.kind === "video" ? attachment.thumbnailUrl : attachment.url;
+  if (attachment.kind !== "file" && preview !== undefined) {
+    void Image.prefetch(preview).catch(() => null);
+  }
+}
+
+/** Uploads whatever hasn't uploaded yet, then sends the message. */
+async function deliver(messageId: string) {
+  const session = sessions.get(messageId);
+  if (session === undefined || running.has(messageId)) return;
+  running.add(messageId);
+  update(messageId, (message) => ({
+    ...message,
+    items: message.items.map((item) =>
+      item.state === "failed" ? { ...item, state: "uploading" } : item,
+    ),
+    status: "sending",
+  }));
+  const toUpload =
+    find(messageId)?.items.filter((item) => item.state === "uploading") ?? [];
+  await Promise.all(toUpload.map((item) => upload(session, messageId, item)));
+
+  const message = find(messageId);
+  const attachments = message?.items.flatMap((item) =>
+    item.attachment === undefined ? [] : [item.attachment],
+  );
+  if (
+    message === undefined ||
+    attachments === undefined ||
+    attachments.length < message.items.length
+  ) {
+    running.delete(messageId);
+    if (message !== undefined) update(messageId, failed);
+    return;
+  }
+  await session.pds
+    .mutate(
+      pds.messages.send({
+        attachments,
+        body: message.body,
+        conversationId: message.conversationId,
+        messageId,
+      }),
+    )
+    .then(
+      () => update(messageId, (sent) => ({ ...sent, status: "sent" })),
+      () => update(messageId, failed),
+    );
+  running.delete(messageId);
+}
+
+function failed(message: OutgoingMessage) {
+  return { ...message, status: "failed" as const };
+}
+
+/**
+ * Sends a message, shown in the conversation right away with this
+ * device's copies of its attachments while they upload.
+ */
+export function sendOutgoing({
+  session,
+  conversationId,
+  body,
+  files,
+  linkPreviews,
+}: {
+  session: AccountSession;
+  conversationId: string;
+  body: string;
+  files: readonly StagedFile[];
+  linkPreviews: readonly LinkCard[];
+}) {
+  const messageId = Crypto.randomUUID();
+  sessions.set(messageId, session);
+  outbox = [
+    ...outbox,
+    {
+      account: session.address,
+      body,
+      conversationId,
+      items: files.map((file) => ({
+        file,
+        id: file.id,
+        state: "uploading" as const,
+      })),
+      linkPreviews: linkPreviews.length > 0 ? [...linkPreviews] : undefined,
+      messageId,
+      sentAt: Date.now(),
+      status: "sending",
+    },
+  ];
+  pruneSent();
+  emit();
+  void deliver(messageId);
+}
+
+/** Tries a failed message again, re-uploading only what failed. */
+export function retryOutgoing(messageId: string) {
+  void deliver(messageId);
+}
+
+/** Forgets a message that didn't send. */
+export function deleteOutgoing(messageId: string) {
+  if (running.has(messageId)) return;
+  update(messageId, () => undefined);
+  sessions.delete(messageId);
+}
+
+/**
+ * Takes one attachment out of a message that didn't send, then sends the
+ * rest (or forgets the message if nothing is left).
+ */
+export function removeOutgoingItem(messageId: string, itemId: string) {
+  if (running.has(messageId)) return;
+  update(messageId, (message) => {
+    const items = message.items.filter((item) => item.id !== itemId);
+    return items.length === 0 && message.body.length === 0
+      ? undefined
+      : { ...message, items };
+  });
+  if (find(messageId) === undefined) {
+    sessions.delete(messageId);
+  } else if (
+    find(messageId)?.items.every((item) => item.state === "uploaded") === true
+  ) {
+    void deliver(messageId);
+  }
+}
+
+/** This account's unconfirmed and recently sent messages in a conversation. */
+export function useOutbox(account: string, conversationId: string) {
+  const all = useSyncExternalStore(subscribe, () => outbox);
+  return all.filter(
+    (message) =>
+      message.account === account && message.conversationId === conversationId,
+  );
+}
+
+/**
+ * A sent message, with the link cards this device prefetched where the
+ * PDS is still fetching (so a card shown when it was sent stays up).
+ */
+export function withPrefetched(
+  message: PdsMessage,
+  sent: OutgoingMessage | undefined,
+) {
+  const prefetched = sent?.linkPreviews;
+  if (prefetched === undefined || message.linkPreviews === undefined) {
+    return message;
+  }
+  return {
+    ...message,
+    linkPreviews: message.linkPreviews.map((card) =>
+      card.preview === undefined
+        ? (prefetched.find(({ link }) => link === card.link) ?? card)
+        : card,
+    ),
+  };
+}

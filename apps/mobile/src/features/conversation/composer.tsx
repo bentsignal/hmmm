@@ -6,9 +6,15 @@ import Animated, {
 } from "react-native-reanimated";
 import { withUniwind } from "uniwind";
 
+import type {
+  AttachmentSource,
+  StagedFile,
+} from "~/features/messaging/attachments";
 import { GlassSurface } from "~/components/glass-surface";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { cn } from "~/lib/cn";
+import { AttachMenu } from "./attach-menu";
+import { StagedAttachments } from "./staged-attachments";
 
 const StyledTextInput = withUniwind(TextInput);
 /** Every control in the composer shares this height so they line up. */
@@ -53,18 +59,30 @@ function SendButton({
   );
 }
 
+/**
+ * The message field with its "+" menu and the attachments picked for the
+ * message, which upload only once it's sent.
+ */
 export function Composer({
+  staged,
+  preparing,
   onSend,
-  onAttach,
+  onPick,
+  onRemoveStaged,
   onChangeText,
 }: {
+  staged: readonly StagedFile[];
+  /** A picker is open or still handing over what was picked. */
+  preparing: boolean;
+  /** Sends the text (possibly empty) with everything staged. */
   onSend: (text: string) => void;
-  onAttach: () => void;
+  onPick: (source: AttachmentSource) => void;
+  onRemoveStaged: (id: string) => void;
   /** Every change to the text, including emptying it on send. */
   onChangeText?: (text: string) => void;
 }) {
   const [draft, setDraft] = useState("");
-  const canSend = draft.trim().length > 0;
+  const canSend = draft.trim().length > 0 || staged.length > 0;
 
   function change(text: string) {
     setDraft(text);
@@ -91,33 +109,21 @@ export function Composer({
           : undefined
       }
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Add attachment"
-        onPress={onAttach}
-      >
-        <GlassSurface
-          isInteractive
-          className="items-center justify-center rounded-full"
-          style={{ height: CONTROL, width: CONTROL }}
-        >
-          <SymbolIcon
-            name={{ android: "add", ios: "plus" }}
-            size={18}
-            weight="semibold"
-            tintColorClassName="accent-foreground"
-          />
-        </GlassSurface>
-      </Pressable>
+      <AttachMenu onPick={onPick} />
       <GlassSurface
         className="flex-1 justify-center rounded-[20px]"
         style={{ minHeight: CONTROL }}
       >
+        <StagedAttachments
+          files={staged}
+          preparing={preparing}
+          onRemove={onRemoveStaged}
+        />
         <StyledTextInput
           multiline
           value={draft}
           onChangeText={change}
-          placeholder="Message"
+          placeholder={staged.length > 0 ? "Add a message" : "Message"}
           accessibilityLabel="Message"
           // A message field never needs AutoFill suggestions.
           autoComplete="off"

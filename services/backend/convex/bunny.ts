@@ -39,7 +39,8 @@ export type BunnyStorageConfig = NonNullable<
 /**
  * A presigned PUT for one object path. bunny.net enforces the signature and
  * path, but not the signed length or content type, so the size limits in
- * files.ts are advisory for a malicious client.
+ * files.ts are advisory for a malicious client. A `size` of 0 (unknown)
+ * leaves the length out of the signed headers.
  */
 export async function presignStorageUpload(
   config: BunnyStorageConfig,
@@ -50,8 +51,8 @@ export async function presignStorageUpload(
   const url = new URL(`${config.endpoint}/${config.zone}/${path}`);
   url.searchParams.set("X-Amz-Expires", String(UPLOAD_URL_LIFETIME_SECONDS));
   const headers = {
-    "Content-Length": String(size),
     "Content-Type": contentType,
+    ...(size > 0 && { "Content-Length": String(size) }),
   };
   const signer = new AwsV4Signer({
     accessKeyId: config.zone,

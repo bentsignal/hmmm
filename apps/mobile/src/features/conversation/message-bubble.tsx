@@ -5,6 +5,7 @@ import { useCSSVariable } from "uniwind";
 import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
 import { cn } from "~/lib/cn";
+import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
 import { BUBBLE_RADIUS, TAIL_DROP, TailedBubble } from "./bubble-shape";
 import { LinkCards } from "./link-preview-card";
@@ -93,7 +94,7 @@ function Content({
       {/* 4pt between a message's parts, the same as between bubbles. */}
       <View className={cn("gap-1", isOwn ? "items-end" : "items-start")}>
         {message.attachments.map((attachment) => (
-          <MenuTargetView key={attachment.url}>
+          <MenuTargetView key={attachmentKey(attachment)}>
             <AttachmentView attachment={attachment} />
           </MenuTargetView>
         ))}

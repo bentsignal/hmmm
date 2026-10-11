@@ -1,5 +1,4 @@
 import type {
-  Attachment,
   Conversation,
   LinkCard,
   Message as PdsMessage,
@@ -11,12 +10,14 @@ import { listNames } from "@decentralized-convex/messages";
 import { pdsMutation, pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
+import type { StagedFile } from "./attachments";
+import type { OutgoingItem, OutgoingMessage } from "./outbox";
 import type { ReactionSummary } from "./reactions";
-import type { Message } from "~/features/conversation/types";
+import type { Message, MessageAttachment } from "~/features/conversation/types";
 import { useAccount } from "./account";
 import { useMessageWindow } from "./message-window";
 import * as optimistic from "./optimistic";
-import { usePendingMessages, withPrefetched } from "./pending-messages";
+import { sendOutgoing, useOutbox, withPrefetched } from "./outbox";
 import { useProfileState } from "./profiles";
 import { useReactions } from "./reactions";
 import { pdsResult } from "./results";
@@ -24,9 +25,10 @@ import { pdsResult } from "./results";
 export function toMessage(
   message: PdsMessage,
   reactions: readonly ReactionSummary[] | undefined,
+  attachments: readonly MessageAttachment[] = message.attachments,
 ) {
   return {
-    attachments: message.attachments,
+    attachments,
     authorId: message.authorId,
     body: message.body.length > 0 ? message.body : undefined,
     id: message.messageId,
@@ -118,51 +120,109 @@ export function useConversationActions() {
   };
 }
 
+/** An attachment still uploading, shown from this device's copy. */
+function localAttachment(messageId: string, item: OutgoingItem) {
+  const { file } = item;
+  return {
+    ...item.attachment,
+    durationMs: file.durationMs,
+    height: file.height,
+    kind: file.kind,
+    localThumbnailUrl: file.poster?.uri,
+    localUrl: file.uri,
+    mimeType: file.mimeType,
+    name: file.name,
+    size: file.size,
+    thumbnailUrl: item.attachment?.thumbnailUrl ?? file.poster?.uri,
+    upload: { itemId: item.id, messageId, state: item.state },
+    url: item.attachment?.url ?? file.uri,
+    width: file.width,
+  } satisfies MessageAttachment;
+}
+
+/**
+ * A confirmed message's attachments, still drawn from this device's
+ * copies when it sent them, so nothing reloads when the PDS confirms it.
+ */
+function withLocalMedia(
+  message: PdsMessage,
+  sent: OutgoingMessage | undefined,
+) {
+  if (sent === undefined) return message.attachments;
+  return message.attachments.map((attachment) => {
+    const item = sent.items.find(
+      ({ attachment: uploaded }) => uploaded?.url === attachment.url,
+    );
+    return item === undefined
+      ? attachment
+      : {
+          ...attachment,
+          localThumbnailUrl: item.file.poster?.uri,
+          localUrl: item.file.uri,
+        };
+  });
+}
+
+function unconfirmedMessage(
+  message: OutgoingMessage,
+  address: string,
+  conversationId: string,
+) {
+  return {
+    ...toMessage(
+      {
+        attachments: [],
+        authorId: address,
+        authorName: "",
+        body: message.body,
+        conversationId,
+        linkPreview: null,
+        linkPreviews: message.linkPreviews,
+        messageId: message.messageId,
+        sentAt: message.sentAt,
+      },
+      [],
+      message.items.map((item) => localAttachment(message.messageId, item)),
+    ),
+    status:
+      message.status === "failed" ? ("failed" as const) : ("sending" as const),
+  };
+}
+
 /**
  * Messages oldest first, opened at the latest message or around `anchor`,
  * with this device's unconfirmed sends at the end.
  */
 export function useMessages(conversationId: string, anchor?: string) {
-  const { address } = useAccount();
+  const { address, session } = useAccount();
   const view = useMessageWindow(address, conversationId, anchor);
   const { reactionsOf, toggle } = useReactions(
     address,
     conversationId,
     view.pageMessageIds,
   );
-  const { pending, sendMessage } = usePendingMessages(conversationId);
+  const outbox = useOutbox(address, conversationId);
   const confirmed = new Set(view.messages.map((message) => message.messageId));
   const atLatest = !view.hasNewer;
   const unconfirmed = atLatest
-    ? pending
+    ? outbox
         .filter((message) => !confirmed.has(message.messageId))
-        .map((message) => ({
-          ...toMessage(
-            {
-              ...message,
-              authorId: address,
-              authorName: "",
-              conversationId,
-              linkPreview: null,
-            },
-            [],
-          ),
-          status: message.failed ? ("failed" as const) : ("sending" as const),
-        }))
+        .map((message) => unconfirmedMessage(message, address, conversationId))
     : [];
 
   return {
     ...view,
     messages: [
-      ...view.messages.map((message) =>
-        toMessage(
-          withPrefetched(
-            message,
-            pending.find((item) => item.messageId === message.messageId),
-          ),
+      ...view.messages.map((message) => {
+        const sent = outbox.find(
+          (item) => item.messageId === message.messageId,
+        );
+        return toMessage(
+          withPrefetched(message, sent),
           reactionsOf(message.messageId),
-        ),
-      ),
+          withLocalMedia(message, sent),
+        );
+      }),
       ...unconfirmed,
     ],
     /** Adds or removes your reaction, showing it right away. */
@@ -170,16 +230,16 @@ export function useMessages(conversationId: string, anchor?: string) {
     /** Only set when the newest loaded message is the newest there is. */
     newestSentAt: atLatest ? view.messages.at(-1)?.sentAt : undefined,
     /**
-     * Sends a message, shown right away. `linkPreviews` are the cards it
-     * starts with (see `useLinkPrefetch`).
+     * Sends a message, shown right away; its files upload after that.
+     * `linkPreviews` are the cards it starts with (see `useLinkPrefetch`).
      */
     sendMessage: (
       body: string,
-      attachments: Attachment[] = [],
+      files: readonly StagedFile[] = [],
       linkPreviews: readonly LinkCard[] = [],
     ) => {
       if (!atLatest) view.jumpToLatest();
-      sendMessage(body, attachments, linkPreviews);
+      sendOutgoing({ body, conversationId, files, linkPreviews, session });
     },
   };
 }

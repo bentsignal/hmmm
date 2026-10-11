@@ -121,6 +121,10 @@ Environment variables on each deployment:
 | `BUNNY_CDN_URL`               | `https://media.vera.chat`            | Public base URL for media                     |
 | `BUNNY_PATH_PREFIX`           | `prod`                               | Folder for this deployment's uploads          |
 
+Attachment size limits (videos 500 MB, photos 50 MB, other files 100 MB) and
+the 2-minute video cap live in `upload-limits.ts`. The app imports the same
+file to turn away a file when it's picked, so change them there.
+
 ## Passkey domain
 
 Passkeys use the relying party `vera.chat`, and iOS and Android require that
