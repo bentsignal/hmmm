@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import type { View as NativeView } from "react-native";
 import { createContext, use, useRef, useState } from "react";
 import { Pressable } from "react-native";
@@ -64,107 +64,118 @@ export function MessageActionsProvider({
   );
 }
 
-/** Press-and-hold squeezes the message a little, as iOS does. */
+/** Press-and-hold squeezes the held element a little, as iOS does. */
 const PRESS_SCALE = 0.96;
-export const LONG_PRESS_MS = 320;
+const LONG_PRESS_MS = 320;
+const RELEASE_SPRING = { damping: 14, stiffness: 320 };
 
-/**
- * Presses on something inside a message that handles its own taps, such as
- * a link card, so they squeeze the message and open its menu like the rest
- * of it does.
- */
-interface MessagePress {
-  readonly pressIn: () => void;
-  readonly pressOut: () => void;
-  /** Opens the message's menu, about `link` when given. */
-  readonly longPress: (link?: string) => void;
+/** The message whose parts (bubble, link cards) open its menu. */
+interface MessageTarget {
+  readonly message: Message;
+  /** Which side the message sits on; the reaction bar lines up with it. */
+  readonly align: TargetAlign;
+  /** How its text lifts. */
+  readonly shape: PreviewShape;
 }
 
-const MessagePressContext = createContext<MessagePress | null>(null);
-
-/** Null outside a message, as in the copy lifted above the menu. */
-export function useMessagePress() {
-  return use(MessagePressContext);
-}
+const MessageTargetContext = createContext<MessageTarget | null>(null);
 
 /**
- * Opens the glass overlay on a long press, lifting a copy of `children`
- * from where the message sits.
+ * A message whose parts open its menu on a long press. Each part makes
+ * itself a target (`MenuTargetView`, `useMenuTarget`), so holding one lifts
+ * just that part.
  */
-function GlassLongPress({
+export function MessageTargetProvider({
   message,
   align,
   shape,
   children,
+}: MessageTarget & { children: ReactNode }) {
+  return (
+    <MessageTargetContext value={{ align, message, shape }}>
+      {children}
+    </MessageTargetContext>
+  );
+}
+
+/**
+ * Makes one part of a message (its text, an attachment, a link card) open
+ * the message's glass overlay on a long press, lifting `preview`, a copy of
+ * just this part, from where `measured` sits. So a message with several
+ * parts never lifts taller than it needs to; reactions picked there go to
+ * the whole message. Spread `press` on the Pressable `measured` refers to,
+ * and put `style` (the squeeze while held) on the part. Null outside a message, as
+ * in the lifted copy, where the part draws as is.
+ */
+export function useMenuTarget({
+  measured,
+  link,
+  shape,
+  preview,
 }: {
-  message: Message;
-  align: TargetAlign;
-  shape: PreviewShape;
-  children: ReactNode;
+  /** The part's Pressable, measured to lift the copy from where it sits. */
+  measured: RefObject<NativeView | null>;
+  /** The link of a held card, which the menu is then about. */
+  link?: string;
+  /** How this part lifts; the message's text shape by default. */
+  shape?: PreviewShape;
+  preview: ReactNode;
 }) {
+  const target = use(MessageTargetContext);
   const { open } = useMessageActions();
-  const ref = useRef<NativeView>(null);
   const scale = useSharedValue(1);
   const style = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
-  const disabled = message.status !== undefined;
-  const press = {
-    longPress: (link?: string) => {
-      if (disabled) return;
-      impact();
-      scale.set(withSpring(1, { damping: 14, stiffness: 320 }));
-      ref.current?.measureInWindow((x, y, width, height) =>
-        open({
-          align,
-          link,
-          message,
-          preview: children,
-          rect: { height, width, x, y },
-          shape,
-        }),
-      );
+  if (target === null) return null;
+  const { message, align } = target;
+  // A message still sending (or that failed) has no menu yet.
+  const holdable = message.status === undefined;
+  return {
+    press: {
+      delayLongPress: LONG_PRESS_MS,
+      onLongPress: () => {
+        if (!holdable) return;
+        impact();
+        scale.set(withSpring(1, RELEASE_SPRING));
+        measured.current?.measureInWindow((x, y, width, height) =>
+          open({
+            align,
+            link,
+            message,
+            preview,
+            rect: { height, width, x, y },
+            shape: shape ?? target.shape,
+          }),
+        );
+      },
+      onPressIn: () => {
+        if (!holdable) return;
+        scale.set(withTiming(PRESS_SCALE, { duration: LONG_PRESS_MS }));
+      },
+      onPressOut: () => {
+        scale.set(withSpring(1, RELEASE_SPRING));
+      },
     },
-    pressIn: () => {
-      if (disabled) return;
-      scale.set(withTiming(PRESS_SCALE, { duration: LONG_PRESS_MS }));
-    },
-    pressOut: () => {
-      scale.set(withSpring(1, { damping: 14, stiffness: 320 }));
-    },
-  } satisfies MessagePress;
-  return (
-    <Pressable
-      ref={ref}
-      delayLongPress={LONG_PRESS_MS}
-      disabled={disabled}
-      onPressIn={press.pressIn}
-      onPressOut={press.pressOut}
-      onLongPress={() => press.longPress()}
-    >
-      <MessagePressContext value={press}>
-        <Animated.View style={style}>{children}</Animated.View>
-      </MessagePressContext>
-    </Pressable>
-  );
+    style,
+  };
 }
 
-/** A message that opens the glass reaction overlay on a long press. */
-export function LongPressMessage({
-  message,
-  align,
+/** A part of a message that opens its menu on a long press, lifted as is. */
+export function MenuTargetView({
   shape,
   children,
 }: {
-  message: Message;
-  /** Which side the message sits on; the reaction bar lines up with it. */
-  align: TargetAlign;
-  shape: PreviewShape;
+  /** How this part lifts; the message's text shape by default. */
+  shape?: PreviewShape;
   children: ReactNode;
 }) {
+  const ref = useRef<NativeView>(null);
+  const target = useMenuTarget({ measured: ref, preview: children, shape });
+  if (target === null) return children;
   return (
-    <GlassLongPress message={message} align={align} shape={shape}>
-      {children}
-    </GlassLongPress>
+    <Pressable ref={ref} {...target.press}>
+      <Animated.View style={target.style}>{children}</Animated.View>
+    </Pressable>
   );
 }
