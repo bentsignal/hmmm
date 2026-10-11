@@ -40,16 +40,25 @@ export function useMessageActions() {
 export function MessageActionsProvider({
   onToggleReaction,
   onViewReactions,
+  onMenuChange,
   children,
 }: {
   onToggleReaction: (messageId: string, emoji: string) => void;
   onViewReactions: (messageId: string) => void;
+  /** Called just before the menu opens and as it starts to close. */
+  onMenuChange?: () => void;
   children: ReactNode;
 }) {
   const [target, setTarget] = useState<MenuTarget | null>(null);
   return (
     <MessageActionsContext
-      value={{ open: setTarget, toggleReaction: onToggleReaction }}
+      value={{
+        open: (next) => {
+          onMenuChange?.();
+          setTarget(next);
+        },
+        toggleReaction: onToggleReaction,
+      }}
     >
       {children}
       {target !== null && (
@@ -57,6 +66,7 @@ export function MessageActionsProvider({
           target={target}
           onReact={(emoji) => onToggleReaction(target.message.id, emoji)}
           onViewReactions={() => onViewReactions(target.message.id)}
+          onClosing={onMenuChange}
           onClosed={() => setTarget(null)}
         />
       )}
