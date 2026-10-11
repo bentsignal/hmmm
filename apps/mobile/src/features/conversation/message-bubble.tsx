@@ -95,7 +95,10 @@ function Content({
       <View className={cn("gap-1", isOwn ? "items-end" : "items-start")}>
         {message.attachments.map((attachment) => (
           <MenuTargetView key={attachmentKey(attachment)}>
-            <AttachmentView attachment={attachment} />
+            <AttachmentView
+              attachment={attachment}
+              sending={message.status === "sending"}
+            />
           </MenuTargetView>
         ))}
         {body !== undefined && (

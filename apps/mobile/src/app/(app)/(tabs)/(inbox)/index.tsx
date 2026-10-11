@@ -10,6 +10,7 @@ import { FilterToolbar } from "~/features/inbox/filter-toolbar";
 import { InboxRow } from "~/features/inbox/inbox-row";
 import { useVisibleAccounts } from "~/features/messaging/account";
 import { useInbox } from "~/features/messaging/inbox";
+import { useInboxOnScreen } from "~/features/notifications/push";
 import { usePreference } from "~/features/preferences/store";
 import { AccountToolbar } from "~/features/session/account-toolbar";
 
@@ -25,6 +26,7 @@ function Empty({ title, detail }: { title: string; detail: string }) {
 }
 
 export default function InboxScreen() {
+  useInboxOnScreen();
   const router = useRouter();
   const { conversations, isLoading } = useInbox();
   const showAccount = useVisibleAccounts().length > 1;

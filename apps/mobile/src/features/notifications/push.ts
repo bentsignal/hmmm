@@ -12,6 +12,8 @@ import { useAccount } from "~/features/messaging/account";
 import { stringField } from "./presented";
 
 let activeConversationId: string | undefined;
+/** Whether the Inbox is on screen, where new messages show in the list. */
+let inboxOnScreen = false;
 
 /**
  * Marks the conversation as the one on screen, which suppresses its banners
@@ -28,15 +30,28 @@ export function useActiveConversation(conversationId: string) {
   });
 }
 
+/** Marks the Inbox as on screen, which suppresses message banners. */
+export function useInboxOnScreen() {
+  useFocusEffect(() => {
+    inboxOnScreen = true;
+    return () => {
+      inboxOnScreen = false;
+    };
+  });
+}
+
 Notifications.setNotificationHandler({
   handleNotification: (notification) => {
     const conversationId = stringField(
       notification.request.content.data,
       "conversationId",
     );
-    // Space invitations have no conversation and always show.
+    // Space invitations have no conversation and always show. A message
+    // stays quiet in its own open conversation, and on the Inbox, where it
+    // shows up in the list.
     const visible =
-      conversationId === undefined || conversationId !== activeConversationId;
+      conversationId === undefined ||
+      (conversationId !== activeConversationId && !inboxOnScreen);
     return Promise.resolve({
       shouldPlaySound: visible,
       // A push's badge counts only its own account; `useAppBadge` sets the

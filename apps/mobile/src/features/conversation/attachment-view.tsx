@@ -15,17 +15,19 @@ import { formatBytes, formatDuration } from "~/lib/format";
 const MEDIA_WIDTH = 240;
 const MAX_MEDIA_HEIGHT = 300;
 /**
- * Media and file cards pulse gently while they upload, then fade up to
- * full once they're sent, instead of showing a progress ring.
+ * A message's media and files pulse gently, all together, until the whole
+ * message is sent, then fade up to full, instead of a progress ring per
+ * item. (The message as a whole is dimmed a little while sending too; see
+ * `SendingFade`.)
  */
 const FADE_MS = 300;
-const PULSE = { from: { opacity: 0.6 }, to: { opacity: 0.85 } };
+const PULSE = { from: { opacity: 0.8 }, to: { opacity: 1 } };
 
 function uploadFade(uploading: boolean) {
   if (uploading) {
     return {
       animationDirection: "alternate",
-      animationDuration: 1200,
+      animationDuration: 1400,
       animationIterationCount: "infinite",
       animationName: PULSE,
       animationTimingFunction: "ease-in-out",
@@ -129,7 +131,13 @@ function MediaBadge({ attachment }: { attachment: MessageAttachment }) {
   );
 }
 
-function Media({ attachment }: { attachment: MessageAttachment }) {
+function Media({
+  attachment,
+  sending,
+}: {
+  attachment: MessageAttachment;
+  sending: boolean;
+}) {
   const router = useRouter();
   const { upload } = attachment;
   const isVideo = attachment.kind === "video";
@@ -171,7 +179,7 @@ function Media({ attachment }: { attachment: MessageAttachment }) {
         <Animated.View
           style={[
             { height: "100%", position: "absolute", width: "100%" },
-            uploadFade(upload?.state === "uploading"),
+            uploadFade(sending),
           ]}
         >
           <Image
@@ -192,9 +200,14 @@ function Media({ attachment }: { attachment: MessageAttachment }) {
   );
 }
 
-function FileCard({ attachment }: { attachment: MessageAttachment }) {
+function FileCard({
+  attachment,
+  sending,
+}: {
+  attachment: MessageAttachment;
+  sending: boolean;
+}) {
   const { upload } = attachment;
-  const uploading = upload?.state === "uploading";
   const stuck = isStuck(upload);
   return (
     <Pressable
@@ -211,7 +224,7 @@ function FileCard({ attachment }: { attachment: MessageAttachment }) {
     >
       <Animated.View
         className="flex-row items-center gap-3"
-        style={uploadFade(uploading)}
+        style={uploadFade(sending)}
       >
         <View className="bg-accent size-10 items-center justify-center overflow-hidden rounded-lg">
           <SymbolIcon
@@ -250,12 +263,15 @@ function FileCard({ attachment }: { attachment: MessageAttachment }) {
 
 export function AttachmentView({
   attachment,
+  sending = false,
 }: {
   attachment: MessageAttachment;
+  /** Its message is still on the way; it pulses until then. */
+  sending?: boolean;
 }) {
   return attachment.kind === "file" ? (
-    <FileCard attachment={attachment} />
+    <FileCard attachment={attachment} sending={sending} />
   ) : (
-    <Media attachment={attachment} />
+    <Media attachment={attachment} sending={sending} />
   );
 }

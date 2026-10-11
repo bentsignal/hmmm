@@ -56,7 +56,10 @@ export function MessageStacked({
               )}
               {message.attachments.map((attachment) => (
                 <MenuTargetView key={attachmentKey(attachment)} shape="plain">
-                  <AttachmentView attachment={attachment} />
+                  <AttachmentView
+                    attachment={attachment}
+                    sending={message.status === "sending"}
+                  />
                 </MenuTargetView>
               ))}
               {cards.length > 0 && <LinkCards cards={cards} />}
