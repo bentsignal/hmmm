@@ -122,6 +122,32 @@ async function cameraAllowed() {
   return false;
 }
 
+/** A video longer than the app sends, allowing for rounding. */
+function tooLong(asset: ImagePicker.ImagePickerAsset) {
+  return (
+    asset.type === "video" &&
+    (asset.duration ?? 0) > MAX_VIDEO_SECONDS * 1000 + 500
+  );
+}
+
+function videoLimit() {
+  const minutes = MAX_VIDEO_SECONDS / 60;
+  return minutes === 1 ? "1 minute" : `${minutes} minutes`;
+}
+
+const TOO_LONG = {
+  message: `Videos can be up to ${videoLimit()} long.`,
+  title: "Video Too Long",
+};
+
+/** What a picker handed back, and why anything was left out. */
+function picked(
+  files: StagedFile[],
+  problem?: { message: string; title: string },
+) {
+  return { files, problem };
+}
+
 async function pickMedia(
   source: "camera" | "library",
   limit: number,
@@ -134,21 +160,32 @@ async function pickMedia(
     aspect: [1, 1],
     mediaTypes: imagesOnly ? ["images"] : ["images", "videos"],
     orderedSelection: true,
-    // HEIC photos arrive as JPEG and HEVC videos as H.264, so every phone
-    // and the web can show them.
+    // iOS hands over the library's own file instead of converting it.
+    // Turning an HEVC video into H.264 takes many seconds for a long
+    // video, and it ran before the app could see the video was too long
+    // to send. iPhones and Android 9 or later show HEIC photos and play
+    // HEVC videos. A profile photo goes through the crop editor, which
+    // saves a JPEG.
     preferredAssetRepresentationMode:
-      ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+      ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current,
     quality: imagesOnly ? 0.7 : 0.8,
     selectionLimit: limit,
+    // The camera stops recording here.
     videoMaxDuration: MAX_VIDEO_SECONDS,
   } satisfies ImagePicker.ImagePickerOptions;
-  if (source === "camera" && !(await cameraAllowed())) return [];
+  if (source === "camera" && !(await cameraAllowed())) return picked([]);
   const result =
     source === "camera"
       ? await ImagePicker.launchCameraAsync(options)
       : await ImagePicker.launchImageLibraryAsync(options);
-  if (result.canceled) return [];
-  return Promise.all(result.assets.map(fromMedia));
+  if (result.canceled) return picked([]);
+  // Turned away before anything else is read from them, such as a poster
+  // frame, so the alert comes up as the picker closes.
+  const sendable = result.assets.filter((asset) => !tooLong(asset));
+  return picked(
+    await Promise.all(sendable.map(fromMedia)),
+    sendable.length < result.assets.length ? TOO_LONG : undefined,
+  );
 }
 
 async function pickFiles() {
@@ -156,21 +193,12 @@ async function pickFiles() {
     copyToCacheDirectory: true,
     multiple: true,
   });
-  if (result.canceled) return [];
-  return Promise.all(result.assets.map(fromDocument));
+  if (result.canceled) return picked([]);
+  return picked(await Promise.all(result.assets.map(fromDocument)));
 }
 
 /** Why a picked file can't be sent, in words for the person. */
 function problemWith(file: StagedFile) {
-  if (
-    file.kind === "video" &&
-    (file.durationMs ?? 0) > MAX_VIDEO_SECONDS * 1000 + 500
-  ) {
-    return {
-      message: `Videos can be up to ${MAX_VIDEO_SECONDS / 60} minutes long.`,
-      title: "Video Too Long",
-    };
-  }
   if (file.size > MAX_UPLOAD_BYTES[file.kind]) {
     return {
       message: `This ${KIND_NOUN[file.kind]} is ${formatBytes(file.size)}. ${limitsSentence()}`,
@@ -189,15 +217,16 @@ export async function pickAttachments(
   source: AttachmentSource,
   { limit = MAX_ATTACHMENTS, imagesOnly = false } = {},
 ) {
-  const picked = await (
+  const { files, problem: pickProblem } = await (
     source === "files" ? pickFiles() : pickMedia(source, limit, imagesOnly)
   ).catch(() => {
     Alert.alert("Couldn't Add That", "Try picking it again.");
-    return [];
+    return picked([]);
   });
-  const problems = picked.map(problemWith);
-  const firstProblem = problems.find((problem) => problem !== undefined);
-  const sendable = picked.filter((_, index) => problems[index] === undefined);
+  const problems = files.map(problemWith);
+  const firstProblem =
+    pickProblem ?? problems.find((problem) => problem !== undefined);
+  const sendable = files.filter((_, index) => problems[index] === undefined);
   if (firstProblem !== undefined) {
     Alert.alert(firstProblem.title, firstProblem.message);
   } else if (sendable.length > limit) {

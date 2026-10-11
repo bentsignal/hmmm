@@ -1,5 +1,5 @@
 import type { LinkCard } from "@decentralized-convex/messages";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Alert, Text, View } from "react-native";
 import {
   KeyboardGestureArea,
@@ -55,9 +55,12 @@ function FloatingComposer({
   const links = useLinkPrefetch();
   const devTools = useDevTools();
   const [staged, setStaged] = useState<readonly StagedFile[]>([]);
-  const [picking, setPicking] = useState(false);
+  // One picker at a time: a second tap on the menu while one is still
+  // handing over files does nothing.
+  const picking = useRef(false);
 
   async function pick(source: AttachmentSource) {
+    if (picking.current) return;
     if (staged.length >= MAX_ATTACHMENTS) {
       Alert.alert(
         "Too Many Attachments",
@@ -65,13 +68,14 @@ function FloatingComposer({
       );
       return;
     }
-    // The placeholder opens behind the picker, so it's already there when
-    // the picker closes and the files take a moment to arrive.
-    setPicking(true);
+    // Nothing shows in the composer until the files are ready; then they
+    // animate in.
+    picking.current = true;
     const files = await pickAttachments(source, {
       limit: MAX_ATTACHMENTS - staged.length,
+    }).finally(() => {
+      picking.current = false;
     });
-    setPicking(false);
     setStaged((current) => [...current, ...files].slice(0, MAX_ATTACHMENTS));
   }
 
@@ -85,7 +89,6 @@ function FloatingComposer({
       <View style={{ paddingBottom: insets.bottom }}>
         <Composer
           staged={staged}
-          preparing={picking}
           onChangeText={links.onChangeText}
           onPick={(source) => void pick(source)}
           onRemoveStaged={(id) =>
