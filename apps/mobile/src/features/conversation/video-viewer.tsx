@@ -137,7 +137,12 @@ export function VideoViewer({
       />
       <GestureDetector gesture={drag}>
         <View
-          style={StyleSheet.absoluteFill}
+          // Clear of the status bar and the navigation buttons, so the
+          // player's controls aren't hidden under them.
+          style={[
+            StyleSheet.absoluteFill,
+            { paddingBottom: insets.bottom, paddingTop: insets.top },
+          ]}
           onLayout={(event) => frameHeight.set(event.nativeEvent.layout.height)}
         >
           <Animated.View style={[{ flex: 1 }, videoStyle]}>

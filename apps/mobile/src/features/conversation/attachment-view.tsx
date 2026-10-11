@@ -15,15 +15,24 @@ import { formatBytes, formatDuration } from "~/lib/format";
 const MEDIA_WIDTH = 240;
 const MAX_MEDIA_HEIGHT = 300;
 /**
- * Media and file cards sit dimmed until their upload finishes, then fade
- * up, instead of showing a progress ring.
+ * Media and file cards pulse gently while they upload, then fade up to
+ * full once they're sent, instead of showing a progress ring.
  */
-const UPLOADING_OPACITY = 0.45;
 const FADE_MS = 300;
+const PULSE = { from: { opacity: 0.4 }, to: { opacity: 0.75 } };
 
 function uploadFade(uploading: boolean) {
+  if (uploading) {
+    return {
+      animationDirection: "alternate",
+      animationDuration: 900,
+      animationIterationCount: "infinite",
+      animationName: PULSE,
+      animationTimingFunction: "ease-in-out",
+    } as const;
+  }
   return {
-    opacity: uploading ? UPLOADING_OPACITY : 1,
+    opacity: 1,
     transitionDuration: FADE_MS,
     transitionProperty: "opacity",
     transitionTimingFunction: "ease-in-out",
