@@ -218,12 +218,15 @@ export function GlassMessageMenu({
   target,
   onReact,
   onViewReactions,
+  onClosing,
   onClosed,
 }: {
   target: MenuTarget;
   onReact: (emoji: string) => void;
   /** Opens the sheet of who reacted with what. */
   onViewReactions: () => void;
+  /** The overlay starts playing back into place. */
+  onClosing?: () => void;
   onClosed: () => void;
 }) {
   const screen = useWindowDimensions();
@@ -258,6 +261,7 @@ export function GlassMessageMenu({
       onClosed();
       then?.();
     }
+    onClosing?.();
     progress.set(
       withTiming(
         0,

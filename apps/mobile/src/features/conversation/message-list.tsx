@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import Animated, {
   FadeInDown,
-  LinearTransition,
   useAnimatedProps,
   useAnimatedReaction,
   useAnimatedStyle,
@@ -24,6 +23,7 @@ import { DaySeparator, TimeHeader } from "./day-separator";
 import { MessageActionsProvider } from "./message-actions";
 import { MessageBubble } from "./message-bubble";
 import { MessageStacked } from "./message-stacked";
+import { useModalKeyboardFreeze } from "./modal-keyboard-freeze";
 import { RevealTimes } from "./reveal";
 
 type ProfileOf = (address: string) => {
@@ -217,11 +217,15 @@ export function MessageList({
   const [openedAt] = useState(Date.now);
   const anchorIndex =
     anchorId === undefined ? -1 : rows.findIndex((row) => row.key === anchorId);
+  const keyboard = useModalKeyboardFreeze();
 
   return (
     <MessageActionsProvider
       onToggleReaction={onToggleReaction}
       onViewReactions={onViewReactions}
+      // The menu is a modal, which would otherwise scroll the list on
+      // Android (see useModalKeyboardFreeze).
+      onMenuChange={keyboard.hold}
     >
       <RevealTimes>
         <View style={{ flex: 1 }}>
@@ -244,8 +248,11 @@ export function MessageList({
             estimatedItemSize={56}
             // Rows mount fresh, so arriving messages can animate in.
             recycleItems={false}
-            // Rows already on screen glide to their new places.
-            itemLayoutAnimation={LinearTransition.duration(240)}
+            // Rows move straight to where the list puts them. Animating that
+            // move (`itemLayoutAnimation`) kept rows drawn at their old or
+            // estimated places, over their neighbors, for as long as the list
+            // kept re-laying them out, as it does while a page of older
+            // messages (often tall ones with link cards) is measured.
             alignItemsAtEnd
             maintainScrollAtEnd={hasNewer ? false : { animated: true }}
             maintainVisibleContentPosition
@@ -262,6 +269,7 @@ export function MessageList({
             keyboardDismissMode="interactive"
             keyboardShouldPersistTaps="handled"
             keyboardOffset={bottomInset}
+            freeze={keyboard.freeze}
             contentInsetAdjustmentBehavior="automatic"
             // Messages scroll under the floating header and composer.
             contentContainerStyle={{

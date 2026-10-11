@@ -2,12 +2,7 @@ import type { ComponentProps, ReactNode } from "react";
 import type { View as NativeView } from "react-native";
 import { useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import Animated, {
-  Easing,
-  FadeIn,
-  FadeOut,
-  LinearTransition,
-} from "react-native-reanimated";
+import Animated, { Easing, FadeIn, FadeOut } from "react-native-reanimated";
 import { Image } from "expo-image";
 import * as WebBrowser from "expo-web-browser";
 
@@ -30,8 +25,6 @@ const CARD_WIDTH = 256;
 const IMAGE_HEIGHT = Math.round(CARD_WIDTH / 1.91);
 
 const EASE = Easing.inOut(Easing.cubic);
-/** A card that changes size (placeholder to card) eases to the new one. */
-const RESIZE = LinearTransition.duration(300).easing(EASE);
 const FADE_MS = 260;
 const SHOW = FadeIn.duration(FADE_MS).easing(EASE);
 const HIDE = FadeOut.duration(200).easing(EASE);
@@ -178,8 +171,11 @@ function usePlaceholderTiming(loaded: boolean) {
 }
 
 /**
- * A card's frame: it eases to the size of what it holds, and stays hidden,
- * outline and all, while its space is kept.
+ * A card's frame: the size of what it holds, hidden, outline and all, while
+ * its space is kept. It takes a new size at once rather than easing to it,
+ * so the list moves the messages below with it: an eased frame drew over
+ * the next message while it shrank, or while the list put that message
+ * where the card's final size left room for.
  */
 function CardFrame({
   face,
@@ -195,7 +191,6 @@ function CardFrame({
 }) {
   return (
     <Animated.View
-      layout={RESIZE}
       onLayout={onLayout}
       className="border-hairline border-separator bg-background-elevated overflow-hidden rounded-2xl"
       style={[
@@ -263,7 +258,7 @@ function CardContents({
 
 /**
  * One link's card. Until the preview arrives it holds a placeholder (after
- * a short wait), then the preview fades in as the card eases to its size; a
+ * a short wait), then the preview fades in as the card takes its size; a
  * link the server couldn't preview settles into a small card with just the
  * link. Tapping opens the link; holding lifts just this card into the
  * message's menu, about its link.
