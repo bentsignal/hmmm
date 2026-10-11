@@ -1,5 +1,5 @@
 import { Alert, Pressable, Text, View } from "react-native";
-import Svg, { Circle } from "react-native-svg";
+import Animated from "react-native-reanimated";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import * as VideoThumbnails from "expo-video-thumbnails";
@@ -9,17 +9,26 @@ import { useQuery } from "@tanstack/react-query";
 
 import type { AttachmentUpload, MessageAttachment } from "./types";
 import { SymbolIcon } from "~/components/symbol-icon";
-import {
-  removeOutgoingItem,
-  retryOutgoing,
-  useUploadProgress,
-} from "~/features/messaging/outbox";
+import { removeOutgoingItem, retryOutgoing } from "~/features/messaging/outbox";
 import { formatBytes, formatDuration } from "~/lib/format";
 
 const MEDIA_WIDTH = 240;
 const MAX_MEDIA_HEIGHT = 300;
-const RING = 44;
-const RING_STROKE = 3;
+/**
+ * Media and file cards sit dimmed until their upload finishes, then fade
+ * up, instead of showing a progress ring.
+ */
+const UPLOADING_OPACITY = 0.45;
+const FADE_MS = 300;
+
+function uploadFade(uploading: boolean) {
+  return {
+    opacity: uploading ? UPLOADING_OPACITY : 1,
+    transitionDuration: FADE_MS,
+    transitionProperty: "opacity",
+    transitionTimingFunction: "ease-in-out",
+  } as const;
+}
 
 function mediaHeight({ height, width }: MessageAttachment) {
   if (width === undefined || height === undefined || width === 0) {
@@ -61,52 +70,6 @@ function showUploadProblem({ itemId, messageId, state }: AttachmentUpload) {
   );
 }
 
-/** A ring filling as the attachment uploads. */
-function UploadRing({
-  itemId,
-  size = RING,
-}: {
-  itemId: string;
-  size?: number;
-}) {
-  const fraction = useUploadProgress(itemId);
-  const radius = (size - RING_STROKE) / 2;
-  const circumference = 2 * Math.PI * radius;
-  // A sliver shows from the start, so it never looks stuck at nothing.
-  const shown = Math.max(0.04, fraction);
-  return (
-    <View
-      accessibilityRole="progressbar"
-      accessibilityLabel="Uploading"
-      accessibilityValue={{ max: 100, min: 0, now: Math.round(fraction * 100) }}
-    >
-      <Svg width={size} height={size}>
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="rgba(255,255,255,0.35)"
-          strokeWidth={RING_STROKE}
-          fill="rgba(0,0,0,0.35)"
-        />
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="white"
-          strokeWidth={RING_STROKE}
-          strokeLinecap="round"
-          fill="none"
-          strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={circumference * (1 - shown)}
-          // Starts at 12 o'clock.
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </Svg>
-    </View>
-  );
-}
-
 function RetryBadge() {
   return (
     <View className="size-11 items-center justify-center rounded-full bg-black/55">
@@ -140,12 +103,10 @@ function mediaLabel(attachment: MessageAttachment) {
   return attachment.kind === "video" ? "Play video" : "View photo";
 }
 
-/** What covers the media: upload progress, a retry badge, or play. */
+/** What covers the media: a retry badge, or play once it's sent. */
 function MediaBadge({ attachment }: { attachment: MessageAttachment }) {
   const { upload } = attachment;
-  if (upload?.state === "uploading") {
-    return <UploadRing itemId={upload.itemId} />;
-  }
+  if (upload?.state === "uploading") return null;
   if (isStuck(upload)) return <RetryBadge />;
   if (attachment.kind !== "video") return null;
   return (
@@ -198,12 +159,19 @@ function Media({ attachment }: { attachment: MessageAttachment }) {
       }}
     >
       {poster !== undefined && (
-        <Image
-          source={{ uri: poster }}
-          contentFit="cover"
-          transition={150}
-          style={{ height: "100%", position: "absolute", width: "100%" }}
-        />
+        <Animated.View
+          style={[
+            { height: "100%", position: "absolute", width: "100%" },
+            uploadFade(upload?.state === "uploading"),
+          ]}
+        >
+          <Image
+            source={{ uri: poster }}
+            contentFit="cover"
+            transition={150}
+            style={{ height: "100%", width: "100%" }}
+          />
+        </Animated.View>
       )}
       <MediaBadge attachment={attachment} />
       {isVideo && attachment.durationMs !== undefined && (
@@ -229,13 +197,14 @@ function FileCard({ attachment }: { attachment: MessageAttachment }) {
           void WebBrowser.openBrowserAsync(attachment.url);
         }
       }}
-      className="bg-bubble-incoming w-64 flex-row items-center gap-3 rounded-2xl p-3 active:opacity-80"
+      className="bg-bubble-incoming w-64 rounded-2xl p-3 active:opacity-80"
       style={{ borderCurve: "continuous" }}
     >
-      <View className="bg-accent size-10 items-center justify-center overflow-hidden rounded-lg">
-        {uploading ? (
-          <UploadRing itemId={upload.itemId} size={32} />
-        ) : (
+      <Animated.View
+        className="flex-row items-center gap-3"
+        style={uploadFade(uploading)}
+      >
+        <View className="bg-accent size-10 items-center justify-center overflow-hidden rounded-lg">
           <SymbolIcon
             name={
               stuck
@@ -245,25 +214,27 @@ function FileCard({ attachment }: { attachment: MessageAttachment }) {
             size={20}
             tintColorClassName="accent-on-accent"
           />
-        )}
-      </View>
-      <View className="flex-1">
-        <Text
-          numberOfLines={1}
-          className="text-subhead text-foreground font-semibold"
-        >
-          {attachment.name}
-        </Text>
-        <Text
-          className={
-            stuck
-              ? "text-footnote text-destructive"
-              : "text-footnote text-muted"
-          }
-        >
-          {stuck ? "Not uploaded. Tap to retry." : formatBytes(attachment.size)}
-        </Text>
-      </View>
+        </View>
+        <View className="flex-1">
+          <Text
+            numberOfLines={1}
+            className="text-subhead text-foreground font-semibold"
+          >
+            {attachment.name}
+          </Text>
+          <Text
+            className={
+              stuck
+                ? "text-footnote text-destructive"
+                : "text-footnote text-muted"
+            }
+          >
+            {stuck
+              ? "Not uploaded. Tap to retry."
+              : formatBytes(attachment.size)}
+          </Text>
+        </View>
+      </Animated.View>
     </Pressable>
   );
 }

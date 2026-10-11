@@ -20,8 +20,6 @@ import {
 } from "./photo-transform";
 import { ViewerCloseButton } from "./viewer-close-button";
 
-/** Room above the player for the close button, below the status bar. */
-const TOP_BAR = 64;
 const SETTLE_SPRING = { dampingRatio: 1, duration: 350 } as const;
 
 /**
@@ -78,10 +76,11 @@ function dragToClose(
 }
 
 /**
- * A full-screen video with the platform's own player controls. The close
- * button sits in a bar above the player, so it never covers the player's
- * controls. Dragging down closes it, like a photo; the drag only starts on
- * a vertical move, so scrubbing and the player's buttons still work.
+ * Android's full-screen video, with the platform's own player controls and
+ * the close button over the top of the video. Dragging down closes it,
+ * like a photo; the drag only starts on a vertical move, so scrubbing and
+ * the player's buttons still work. iOS uses its own full-screen player
+ * (`video-viewer.ios.tsx`).
  *
  * Like `PhotoViewer`, it animates its own closing and then calls
  * `onClose`.
@@ -138,10 +137,7 @@ export function VideoViewer({
       />
       <GestureDetector gesture={drag}>
         <View
-          style={[
-            StyleSheet.absoluteFill,
-            { paddingTop: insets.top + TOP_BAR },
-          ]}
+          style={StyleSheet.absoluteFill}
           onLayout={(event) => frameHeight.set(event.nativeEvent.layout.height)}
         >
           <Animated.View style={[{ flex: 1 }, videoStyle]}>
