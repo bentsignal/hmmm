@@ -60,6 +60,11 @@ export function accountSession(stored: StoredAccount, home: DiscoveredPds) {
   return session;
 }
 
+/** The live session of a signed-in address, if there is one. */
+export function liveSession(address: string) {
+  return [...sessions.values()].find((session) => session.address === address);
+}
+
 /** Forgets an account on this device and drops its cached data. */
 export function closeAccountSession(session: AccountSession) {
   removeStoredAccount(session.address);

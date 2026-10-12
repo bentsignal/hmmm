@@ -1,6 +1,7 @@
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useCSSVariable } from "uniwind";
 
+import { useActivityBadge } from "~/features/activity/activity";
 import { useInbox } from "~/features/messaging/inbox";
 import { useSpaceInvites } from "~/features/messaging/spaces";
 import {
@@ -16,6 +17,8 @@ export default function TabsLayout() {
   const unread = (conversations ?? []).filter(
     ({ unreadCount }) => unreadCount > 0,
   ).length;
+  // Unseen reactions; unread messages already count on the Inbox.
+  const activity = useActivityBadge();
   return (
     <NativeTabs tintColor={typeof accent === "string" ? accent : undefined}>
       <NativeTabs.Trigger name="(inbox)">
@@ -36,6 +39,18 @@ export default function TabsLayout() {
         />
         {invites > 0 && (
           <NativeTabs.Trigger.Badge>{String(invites)}</NativeTabs.Trigger.Badge>
+        )}
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="activity">
+        <NativeTabs.Trigger.Label>Activity</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={{ default: "bell", selected: "bell.fill" }}
+          md="notifications"
+        />
+        {activity > 0 && (
+          <NativeTabs.Trigger.Badge>
+            {String(activity)}
+          </NativeTabs.Trigger.Badge>
         )}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="settings">

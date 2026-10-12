@@ -1,4 +1,8 @@
-import type { LegendListProps } from "@legendapp/list/react-native";
+import type {
+  LegendListProps,
+  LegendListRef,
+} from "@legendapp/list/react-native";
+import type { Ref } from "react";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { LegendList } from "@legendapp/list/react-native";
 import { useCSSVariable } from "uniwind";
@@ -10,13 +14,15 @@ import { useCSSVariable } from "uniwind";
  */
 export function ScreenList<Item>({
   ready = true,
+  ref,
   ...props
-}: LegendListProps<Item> & { ready?: boolean }) {
+}: LegendListProps<Item> & { ready?: boolean; ref?: Ref<LegendListRef> }) {
   const background = useCSSVariable("--color-background");
   if (!ready) return null;
   return (
     <Animated.View entering={FadeIn.duration(260)} style={{ flex: 1 }}>
       <LegendList
+        ref={ref}
         contentInsetAdjustmentBehavior="automatic"
         keyboardDismissMode="on-drag"
         estimatedItemSize={72}

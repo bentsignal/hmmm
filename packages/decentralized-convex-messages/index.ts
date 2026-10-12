@@ -14,11 +14,18 @@ export {
 } from "./naming.ts";
 export type { CreatedKind } from "./naming.ts";
 export {
+  ACTIVITY_HORIZON,
+  ACTIVITY_SEEN_LIFETIME,
+  activityConversation,
+  activityItem,
+  activitySighting,
   attachment,
   channel,
   conversation,
   linkCard,
   linkPreview,
+  MAX_ACTIVITY_MESSAGES,
+  MAX_ACTIVITY_SIGHTINGS,
   MAX_INVITE_LINK_LIFETIME,
   MAX_REACTION_MESSAGES,
   MESSAGE_PAGE_SIZE,
@@ -31,6 +38,8 @@ export {
   spaceInviteLinkPreview,
 } from "./protocol.ts";
 export type {
+  ActivityConversation,
+  ActivityItem,
   Attachment,
   Channel,
   Conversation,

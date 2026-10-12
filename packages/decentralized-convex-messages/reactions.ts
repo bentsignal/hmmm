@@ -41,11 +41,21 @@ export async function react(
   }
   if (existing !== undefined) return null;
   if (mine.length >= MAX_REACTIONS_PER_ACCOUNT) fail("TOO_MANY_REACTIONS");
+  // Messages live on their author's home PDS; one stored here names its
+  // author, whose activity lists the reaction.
+  const message = await ctx.db
+    .query("messages")
+    .withIndex("by_message", (index) => index.eq("messageId", args.messageId))
+    .unique();
   await ctx.db.insert("reactions", {
     accountId: self,
     conversationId: args.conversationId,
     emoji: args.emoji,
     messageId: args.messageId,
+    messageAuthorId:
+      message?.conversationId === args.conversationId
+        ? message.authorId
+        : undefined,
     reactedAt: Date.now(),
   });
   return null;

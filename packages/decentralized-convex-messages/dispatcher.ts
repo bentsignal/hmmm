@@ -4,6 +4,7 @@ import {
 } from "@decentralized-convex/server";
 
 import { mutation, query } from "./_generated/server.js";
+import * as activity from "./activity.ts";
 import * as conversations from "./conversations.ts";
 import * as inbox from "./inbox.ts";
 import * as invites from "./invites.ts";
@@ -42,6 +43,8 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
         invites.joinSpaceWithLink(ctx, requireAccountId(identity), args),
       leaveConversation: (ctx, { args, identity }) =>
         conversations.leaveConversation(ctx, requireAccountId(identity), args),
+      markActivitySeen: (ctx, { args, identity }) =>
+        activity.markActivitySeen(ctx, requireAccountId(identity), args),
       markRead: (ctx, { args, identity }) =>
         conversations.markRead(ctx, requireAccountId(identity), args),
       openDirect: (ctx, { args, identity }) =>
@@ -82,6 +85,8 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
         push.unregisterPushToken(ctx, requireAccountId(identity), args.token),
     },
     queries: {
+      activity: (ctx, { identity }) =>
+        activity.activity(ctx, requireAccountId(identity)),
       conversation: (ctx, { args, identity }) =>
         conversations.conversation(ctx, requireAccountId(identity), args),
       inbox: (ctx, { args, identity }) =>

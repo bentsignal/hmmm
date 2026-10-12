@@ -71,10 +71,25 @@ export default defineSchema({
     conversationId: v.string(),
     emoji: v.string(),
     messageId: v.string(),
+    // Who wrote the message, when it's stored here too, so its author's
+    // activity can list reactions to it.
+    messageAuthorId: v.optional(v.string()),
     reactedAt: v.number(),
   })
     .index("by_message", ["messageId"])
-    .index("by_message_account", ["messageId", "accountId"]),
+    .index("by_message_account", ["messageId", "accountId"])
+    .index("by_author_reacted", ["messageAuthorId", "reactedAt"]),
+  // Each time an account saw an activity item (`key`) on screen, through
+  // the newest activity in it then. Only the newest sighting older than a
+  // day matters, so older ones are deleted.
+  activitySightings: defineTable({
+    accountId: v.string(),
+    key: v.string(),
+    seenAt: v.number(),
+    through: v.number(),
+  })
+    .index("by_account_key", ["accountId", "key", "seenAt"])
+    .index("by_account_seen", ["accountId", "seenAt"]),
   spaces: defineTable({
     createdBy: v.string(),
     name: v.string(),

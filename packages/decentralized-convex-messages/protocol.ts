@@ -7,6 +7,8 @@ import { v } from "convex/values";
 
 import { decentralizedConvexPackage } from "./metadata.ts";
 import {
+  activityItem,
+  activitySighting,
   attachment,
   conversation,
   linkCard,
@@ -82,6 +84,15 @@ export const messagesProtocol = definePluginProtocol({
         messageId: v.string(),
         on: v.boolean(),
       }),
+      returns: v.null(),
+    }),
+    /**
+     * Records that activity items came into view (see `activity`). Each
+     * stays for `ACTIVITY_SEEN_LIFETIME` after it's seen, then goes, until
+     * something newer happens in it.
+     */
+    markActivitySeen: defineOperation({
+      args: v.object({ items: v.array(activitySighting) }),
       returns: v.null(),
     }),
     markRead: defineOperation({
@@ -211,6 +222,17 @@ export const messagesProtocol = definePluginProtocol({
     inbox: defineOperation({
       args: v.object({ channels: v.optional(v.boolean()) }),
       returns: v.array(conversation),
+    }),
+    /**
+     * What happened while you were away, newest first: messages from others
+     * (one item per conversation) and others' reactions to your messages
+     * (one per message). Muted conversations and channels left out of the
+     * inbox don't appear. An item lasts until a day after you saw it (see
+     * `markActivitySeen`), and nothing older than `ACTIVITY_HORIZON` shows.
+     */
+    activity: defineOperation({
+      args: v.object({}),
+      returns: v.array(activityItem),
     }),
     conversation: defineOperation({
       args: v.object({ conversationId: v.string() }),

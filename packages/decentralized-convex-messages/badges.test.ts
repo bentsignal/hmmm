@@ -1,117 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type { QueryCtx } from "./_generated/server.js";
 import { badgeCount } from "./badges.ts";
-
-type Row = Record<string, unknown> & { _creationTime: number; _id: string };
-
-const INDEXES: Record<string, Record<string, string[]>> = {
-  conversations: {
-    by_conversation: ["conversationId"],
-    by_space: ["spaceId"],
-  },
-  members: {
-    by_account: ["accountId"],
-    by_conversation_account: ["conversationId", "accountId"],
-  },
-  messages: { by_conversation_sent: ["conversationId", "sentAt"] },
-  spaceInvites: {
-    by_account: ["accountId"],
-    by_space_account: ["spaceId", "accountId"],
-  },
-  spaceMembers: {
-    by_account: ["accountId"],
-    by_space_account: ["spaceId", "accountId"],
-  },
-  spaces: { by_space: ["spaceId"] },
-};
-
-function compare(left: unknown, right: unknown) {
-  if (typeof left === "number" && typeof right === "number") {
-    return left - right;
-  }
-  return String(left).localeCompare(String(right));
-}
-
-/** Just enough of Convex's reader for the badge count's queries. */
-function fakeCtx(tables: Record<string, Record<string, unknown>[]>) {
-  let clock = 0;
-  const rows: Record<string, Row[]> = {};
-  for (const [table, values] of Object.entries(tables)) {
-    rows[table] = values.map((value) => ({
-      _creationTime: (clock += 1),
-      _id: `${table}:${clock}`,
-      ...value,
-    }));
-  }
-
-  function select(table: string, index: string, filters: Filter[]) {
-    const fields = INDEXES[table]?.[index];
-    if (fields === undefined) throw new Error(`No index ${table}.${index}`);
-    return (rows[table] ?? [])
-      .filter((row) => filters.every((filter) => filter(row)))
-      .sort((left, right) => {
-        for (const field of [...fields, "_creationTime"]) {
-          const order = compare(left[field], right[field]);
-          if (order !== 0) return order;
-        }
-        return 0;
-      });
-  }
-
-  type Filter = (row: Row) => boolean;
-  function range() {
-    const filters: Filter[] = [];
-    const builder = {
-      eq: (field: string, value: unknown) => {
-        filters.push((row) => row[field] === value);
-        return builder;
-      },
-      gt: (field: string, value: number) => {
-        filters.push((row) => Number(row[field]) > value);
-        return builder;
-      },
-      filters,
-    };
-    return builder;
-  }
-
-  function results(found: Row[]) {
-    return {
-      [Symbol.asyncIterator]: async function* () {
-        yield* found;
-        await Promise.resolve();
-      },
-      collect: () => Promise.resolve(found),
-      first: () => Promise.resolve(found[0] ?? null),
-      order: (direction: "asc" | "desc") =>
-        results(direction === "desc" ? [...found].reverse() : found),
-      take: (count: number) => Promise.resolve(found.slice(0, count)),
-      unique: () => {
-        if (found.length > 1) throw new Error("Not unique");
-        return Promise.resolve(found[0] ?? null);
-      },
-    };
-  }
-
-  const ctx = {
-    db: {
-      query: (table: string) => ({
-        withIndex: (
-          index: string,
-          build: (builder: ReturnType<typeof range>) => unknown,
-        ) => {
-          const builder = range();
-          build(builder);
-          return results(select(table, index, builder.filters));
-        },
-      }),
-    },
-  };
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- A partial fake of the Convex reader.
-  return ctx as unknown as QueryCtx;
-}
+import { fakeCtx } from "./fakeCtx.ts";
 
 const ME = "me@vera.chat";
 const FRIEND = "friend@vera.chat";
@@ -150,7 +41,7 @@ function conversation(conversationId: string, kind: string, spaceId?: string) {
 }
 
 void test("counts conversations with unread messages, not messages", async () => {
-  const ctx = fakeCtx({
+  const { ctx } = fakeCtx({
     conversations: [
       conversation("direct:a", "direct"),
       conversation("direct:b", "direct"),
@@ -176,7 +67,7 @@ void test("counts conversations with unread messages, not messages", async () =>
 });
 
 void test("ignores your own messages", async () => {
-  const ctx = fakeCtx({
+  const { ctx } = fakeCtx({
     conversations: [conversation("direct:a", "direct")],
     members: [member("direct:a", 10)],
     messages: [message("direct:a", ME, 11), message("direct:a", ME, 12)],
@@ -185,7 +76,7 @@ void test("ignores your own messages", async () => {
 });
 
 void test("counts channels shown in the inbox", async () => {
-  const ctx = fakeCtx({
+  const { ctx } = fakeCtx({
     conversations: [
       conversation("channel:general", "channel", "space:1"),
       conversation("channel:hidden", "channel", "space:1"),
@@ -209,7 +100,7 @@ void test("counts channels shown in the inbox", async () => {
 });
 
 void test("adds pending invitations to spaces that still exist", async () => {
-  const ctx = fakeCtx({
+  const { ctx } = fakeCtx({
     conversations: [conversation("direct:a", "direct")],
     members: [member("direct:a", 0)],
     messages: [message("direct:a", FRIEND, 1)],
@@ -229,5 +120,5 @@ void test("adds pending invitations to spaces that still exist", async () => {
 });
 
 void test("is zero with nothing waiting", async () => {
-  assert.equal(await badgeCount(fakeCtx({}), ME), 0);
+  assert.equal(await badgeCount(fakeCtx({}).ctx, ME), 0);
 });

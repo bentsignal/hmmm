@@ -283,8 +283,13 @@ with `development: true`) and send to that token through the Expo push API.
 ## Layout
 
 - `src/app`: routes. `(auth)` holds welcome, create account, and sign in;
-  `(app)/(tabs)` holds Inbox, Spaces, Settings, and Search, each with its own
-  native stack; conversations and the new-message sheet sit above the tabs.
+  `(app)/(tabs)` holds Inbox, Spaces, Activity, Settings, and Search, each
+  with its own native stack; conversations and the new-message sheet sit
+  above the tabs.
+- `src/features/activity`: the Activity tab (see `.plans/activity.md`). A
+  row counts as seen once it has been entirely on screen, clear of the
+  header and tab bar, for 0.6 seconds (`seen.ts`); a native safe-area
+  probe gives that area, since the list scrolls under both bars on iOS.
 - `src/features`: screen building blocks grouped by feature.
 - `src/components`, `src/lib`: shared components and helpers.
   `lib/ui-modifiers` holds per-platform `@expo/ui` modifier presets.

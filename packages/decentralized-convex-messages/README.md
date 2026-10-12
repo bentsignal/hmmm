@@ -69,6 +69,20 @@ Reactions follow the same author-home rule as messages: `messages.react`
 stores your reaction on your home PDS, and `messages.reactions` (given the
 message IDs on screen) gathers reactions from every member's PDS.
 
+Activity: `messages.activity` lists what happened while the caller was
+away, newest first: messages others sent (one item per conversation, with
+the newest, a count, and the authors) and others' reactions to the caller's
+messages (one item per message). Muted conversations and channels left out
+of the inbox don't appear. Apps report items that came into view with
+`messages.markActivitySeen` (each item's `key`, through its newest activity
+`at`); an item stays for a day after it's seen (`ACTIVITY_SEEN_LIFETIME`),
+then goes until something newer happens in it. Nothing older than a week
+(`ACTIVITY_HORIZON`) shows, seen or not. Reactions name the message's
+author (`messageAuthorId`) when the message is stored on the reactor's
+PDS, which is how its author's activity finds them; reactions from before
+that field don't appear. Like the inbox, only this PDS's messages and
+reactions are listed.
+
 ## Push notifications
 
 Each new message sends one Expo push per recipient device (muted
