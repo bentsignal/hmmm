@@ -6,6 +6,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useQueries } from "@tanstack/react-query";
 
 import type { AccountSession } from "./account-session";
+import type { StoredAccount } from "./account-store";
 import { env } from "~/env";
 import { accountSession, verifyAccountSession } from "./account-session";
 import { useStoredAccounts } from "./account-store";
@@ -18,6 +19,13 @@ interface Session {
   readonly filter: string | null;
   /** This build's home PDS, where new accounts sign in. */
   readonly home: DiscoveredPds;
+  /**
+   * Signed-in accounts whose home PDS can't be found, such as one whose
+   * server is down or gone. They sit out until it's back or they're removed.
+   */
+  readonly unreachable: readonly StoredAccount[];
+  /** Looks for the unreachable accounts' home PDSes again. */
+  readonly retryUnreachable: () => void;
 }
 
 const SessionContext = createContext<Session | null>(null);
@@ -33,6 +41,8 @@ export function useSession() {
 /**
  * Finds the home PDS of every signed-in account (and of this build, for new
  * sign-ins), then provides each account's live session to everything below.
+ * An account whose home PDS can't be found sits out (Settings lists it)
+ * rather than taking the other accounts down with it.
  */
 export function SessionProvider({
   children,
@@ -63,18 +73,27 @@ export function SessionProvider({
     ),
   );
   const home = homeByDomain.get(env.veraDomain);
-  if (homes.some((query) => query.isError)) {
-    return (
-      <Unreachable
-        onRetry={() => {
-          for (const query of homes) {
-            if (query.isError) void query.refetch();
-          }
-        }}
-      />
-    );
+  const failed = new Set(
+    domains.filter((_, index) => homes[index]?.isError === true),
+  );
+  const unreachable = stored.accounts.filter((account) =>
+    failed.has(account.domain),
+  );
+  function retry() {
+    for (const query of homes) {
+      if (query.isError) void query.refetch();
+    }
   }
-  if (home === undefined || homeByDomain.size < domains.length) {
+  // Without this build's home there's nowhere to sign in, and with every
+  // account unreachable the app would look signed out, so both take the
+  // whole app to the Unreachable screen.
+  if (
+    failed.has(env.veraDomain) ||
+    (unreachable.length > 0 && unreachable.length === stored.accounts.length)
+  ) {
+    return <Unreachable onRetry={retry} />;
+  }
+  if (home === undefined || homes.some((query) => query.isPending)) {
     return fallback;
   }
   const accounts = stored.accounts.flatMap((account) => {
@@ -83,8 +102,16 @@ export function SessionProvider({
       ? []
       : [accountSession(account, accountHome)];
   });
+  // A filter on an account that's sitting out would leave the Inbox empty.
+  const filter = unreachable.some(
+    (account) => account.address === stored.filter,
+  )
+    ? null
+    : stored.filter;
   return (
-    <SessionContext value={{ accounts, filter: stored.filter, home }}>
+    <SessionContext
+      value={{ accounts, filter, home, retryUnreachable: retry, unreachable }}
+    >
       <HideSplash />
       <VerifySessions accounts={accounts} />
       {children}
