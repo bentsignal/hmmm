@@ -194,6 +194,12 @@ with Google's key; its SHA-256 is in the passkey variables and
   photos) shows nothing until it is ready and then fades in.
   `ScreenList`'s `ready` prop, the message list's `onLoad` fade, and
   `expo-image` transitions do this; new screens follow the same pattern.
+- Liquid Glass never sits under a parent whose opacity is below 1: no fade,
+  no `active:opacity-*`. iOS can't draw glass there, and a `GlassView` that
+  misses its first draw or fades out with a parent can stay blank until it
+  remounts. Fade the content inside the glass instead, and bring the glass
+  in and out with `GlassSurface`'s `materialize` and `shown`, which use
+  iOS's own glass animation.
 
 ## Message notifications
 
