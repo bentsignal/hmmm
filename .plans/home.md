@@ -9,10 +9,16 @@ Home replaced the separate Inbox and Spaces tabs. Tabs are now
 - The page names sit in the header's title spot over an accent bar that
   tracks the swipe. Tapping a name goes to that page. Each change of page
   gives a light haptic tap.
-- The header's buttons follow the page. Inbox: the filter menu (left), the
-  account menu and compose (right). Spaces: the sort menu (left), the
-  account menu and New Space (right). The account menu narrows both pages
-  to one account, as before.
+- One button on each side keeps the tabs centered and leaves room in the
+  header. Left: an ellipsis menu of submenus: **Filter** (Inbox page only),
+  **Sort By** (Spaces page only), and **Accounts** (both pages, with two or
+  more accounts; it narrows both to one account). Its icon fills while the
+  page showing is narrowed. Right: compose on Inbox, New Space on Spaces,
+  one button whose icon changes so it never shifts.
+- The lists inside the pager get fixed insets measured outside it
+  (`ScreenListInsets`). iOS works out the insets of a list inside a
+  horizontal scroll view late, which left the last row under the tab bar
+  until a second scroll.
 - Spaces sort by **Name**, **Recently Joined**, or **First Joined**, saved
   with the other preferences. Spaces from every account are sorted as one
   list. `joinedAt` comes from the caller's membership row; spaces from

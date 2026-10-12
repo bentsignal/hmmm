@@ -1,5 +1,12 @@
 import type { SpacesSort } from "~/features/preferences/store";
 
+/** The Spaces page's orders, as its sort menu names them. */
+export const SPACE_ORDERS = [
+  { label: "Name", value: "name" },
+  { label: "Recently Joined", value: "newest" },
+  { label: "First Joined", value: "oldest" },
+] as const satisfies readonly { label: string; value: SpacesSort }[];
+
 interface Sortable {
   readonly joinedAt?: number;
   readonly name: string;

@@ -5,10 +5,23 @@ import Animated, {
   useAnimatedReaction,
   useAnimatedScrollHandler,
 } from "react-native-reanimated";
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
 import { useCSSVariable } from "uniwind";
 
+import { ScreenListInsets } from "~/components/screen-list-insets";
+
 export type PagerRef = RefObject<Animated.ScrollView | null>;
+
+/** Hands the screen's insets, measured outside the pager, to its lists. */
+function PagerInsets({ children }: { children: ReactNode }) {
+  return (
+    <ScreenListInsets value={useSafeAreaInsets()}>{children}</ScreenListInsets>
+  );
+}
 
 /** One of `HomePager`'s pages, as wide as the screen. */
 export function PagerPage({ children }: { children: ReactNode }) {
@@ -46,25 +59,31 @@ export function HomePager({
     },
   );
   return (
-    <Animated.ScrollView
-      ref={pagerRef}
-      horizontal
-      pagingEnabled
-      // Each page's list takes the header and tab bar insets itself.
-      contentInsetAdjustmentBehavior="never"
-      bounces={false}
-      overScrollMode="never"
-      directionalLockEnabled
-      showsHorizontalScrollIndicator={false}
-      scrollEventThrottle={16}
-      onScroll={onScroll}
-      style={{
-        backgroundColor:
-          typeof background === "string" ? background : undefined,
-        flex: 1,
-      }}
-    >
-      {children}
-    </Animated.ScrollView>
+    // Its own provider measures this screen (under the header, over the
+    // tab bar), not the window.
+    <SafeAreaProvider style={{ flex: 1 }}>
+      <PagerInsets>
+        <Animated.ScrollView
+          ref={pagerRef}
+          horizontal
+          pagingEnabled
+          // Its lists take the insets instead (`PagerInsets`).
+          contentInsetAdjustmentBehavior="never"
+          bounces={false}
+          overScrollMode="never"
+          directionalLockEnabled
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={onScroll}
+          style={{
+            backgroundColor:
+              typeof background === "string" ? background : undefined,
+            flex: 1,
+          }}
+        >
+          {children}
+        </Animated.ScrollView>
+      </PagerInsets>
+    </SafeAreaProvider>
   );
 }

@@ -8,22 +8,20 @@ import EditSquare from "@expo/material-symbols/edit_square.xml";
 import { useCSSVariable } from "uniwind";
 
 import { PreloadIcons } from "~/components/preload-icons";
+import { HomeMenu } from "~/features/home/home-menu";
 import { HomePager, PagerPage } from "~/features/home/home-pager";
 import { HomeTabs } from "~/features/home/home-tabs";
 import { HOME_PAGES } from "~/features/home/pages";
-import { FilterToolbar } from "~/features/inbox/filter-toolbar";
 import { InboxList } from "~/features/inbox/inbox-list";
 import { useInboxOnScreen } from "~/features/notifications/push";
-import { usePreference } from "~/features/preferences/store";
-import { AccountToolbar } from "~/features/session/account-toolbar";
-import { SORT_ICON, SortToolbar } from "~/features/spaces/sort-toolbar";
 import { SpacesList } from "~/features/spaces/spaces-list";
 import { lightImpact } from "~/lib/native-extras";
 
 /**
  * Home: the Inbox and Spaces side by side, swiped between (or picked from
- * the tabs in the header). The header's buttons follow the page: the
- * Inbox filter and compose, or the Spaces sort and New Space.
+ * the tabs in the header). One button on each side keeps the tabs
+ * centered: the options menu (`HomeMenu`) on the left, and compose or New
+ * Space on the right, by page.
  */
 export default function HomeScreen() {
   const router = useRouter();
@@ -32,11 +30,9 @@ export default function HomeScreen() {
   const pagerRef = useRef<Animated.ScrollView>(null);
   const position = useSharedValue(0);
   const [page, setPage] = useState(0);
-  const isInbox = HOME_PAGES[page]?.key === "inbox";
+  const current = HOME_PAGES[page]?.key ?? "inbox";
+  const isInbox = current === "inbox";
   useInboxOnScreen(isInbox);
-  const show = usePreference("inboxShow");
-  const from = usePreference("inboxFrom");
-  const sort = usePreference("spacesSort");
 
   function changePage(index: number) {
     setPage(index);
@@ -67,28 +63,26 @@ export default function HomeScreen() {
           title: HOME_PAGES[page]?.label ?? "Home",
         }}
       />
-      {isInbox ? (
-        <FilterToolbar show={show} from={from} />
-      ) : (
-        <SortToolbar sort={sort} />
-      )}
-      <AccountToolbar>
-        {isInbox ? (
-          <Stack.Toolbar.Button
-            icon={Platform.OS === "ios" ? "square.and.pencil" : EditSquare}
-            accessibilityLabel="New message"
-            onPress={() => router.push("/new-message")}
-          />
-        ) : (
-          <Stack.Toolbar.Button
-            icon={Platform.OS === "ios" ? "plus" : Add}
-            accessibilityLabel="New space"
-            onPress={() => router.push("/new-space")}
-          />
-        )}
-      </AccountToolbar>
-      {/* The Spaces page's buttons, which only mount once it shows. */}
-      <PreloadIcons icons={{ add: Add, sort: SORT_ICON }} />
+      <HomeMenu page={current} />
+      {/* One button whose look and action follow the page, so it never
+          changes size or remounts mid-swipe. */}
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          icon={
+            Platform.OS === "ios"
+              ? isInbox
+                ? "square.and.pencil"
+                : "plus"
+              : isInbox
+                ? EditSquare
+                : Add
+          }
+          accessibilityLabel={isInbox ? "New message" : "New space"}
+          onPress={() => router.push(isInbox ? "/new-message" : "/new-space")}
+        />
+      </Stack.Toolbar>
+      {/* The Spaces page's icon, which only shows once it's swiped to. */}
+      <PreloadIcons icons={{ add: Add }} />
       <HomePager
         pagerRef={pagerRef}
         position={position}
