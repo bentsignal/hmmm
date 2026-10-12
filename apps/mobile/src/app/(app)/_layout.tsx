@@ -78,7 +78,10 @@ function AppStack() {
       />
       <Stack.Screen
         name="reactions"
+        // The sheet draws its own title and tabs: a native header floats
+        // over the top of a sheet's content and hid the tabs.
         options={{
+          headerShown: false,
           presentation: "formSheet",
           sheetAllowedDetents: [0.5, 1],
           sheetGrabberVisible: true,

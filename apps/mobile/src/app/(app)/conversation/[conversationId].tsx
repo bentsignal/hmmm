@@ -176,9 +176,9 @@ function Conversation({
             topInset={CONVERSATION_HEADER_HEIGHT}
             composerHeight={composerHeight}
             onToggleReaction={messages.toggleReaction}
-            onViewReactions={(messageId) =>
+            onViewReactions={(messageId, emoji) =>
               router.push({
-                params: { account: address, conversationId, messageId },
+                params: { account: address, conversationId, emoji, messageId },
                 pathname: "/reactions",
               })
             }
