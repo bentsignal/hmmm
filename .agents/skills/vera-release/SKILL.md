@@ -208,8 +208,8 @@ Chat", Apple ID 6818656155):
 - Category, age rating (`ageRatingDeclarations`), price (free), and
   availability.
 - App Privacy answers. The API can't set these, so use Codex in the web UI.
-- The review contact and notes, with the "Apple App Review" invite code from
-  the `invite-codes` skill.
+- The review contact and notes. Reviewers create their own account (sign-up
+  needs no code).
 
 Use `pnpm release asc <METHOD> <path> [json]` for API calls. Use
 `codex exec -m gpt-6.1-sol -s danger-full-access "<task>" < /dev/null` only
