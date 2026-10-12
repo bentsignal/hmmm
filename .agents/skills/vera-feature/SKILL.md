@@ -228,6 +228,27 @@ Don't start the dev server until he asks (step 4b), and don't merge.
   scripts/phone.sh down         # if it's still serving his phone
   ```
 
+  `gh pr merge` may print that it can't switch to `main` (another checkout
+  has it). The merge on GitHub still happened; check with
+  `gh pr view <number> --json state`, and delete the remote branch with
+  `git push origin --delete <branch>` if it's still there.
+
+- **If the PR changed the backend** (it had an isolated backend), push
+  main's backend to the shared dev deployment right after merging, so
+  `dev.vera.chat` matches main for every worktree and for main's app:
+
+  ```sh
+  git fetch origin && git checkout --detach origin/main
+  pnpm install --frozen-lockfile
+  pnpm release backend dev      # refuses while the worktree is isolated
+  ```
+
+  Then check the change on the shared deployment: call what changed (an
+  `npx convex run` from `services/backend`, or a `curl` to
+  `https://perceptive-magpie-29.convex.site` for HTTP routes) and tell
+  Shawn it's live on dev. Backend changes must stay compatible with older
+  app builds, which keep using it.
+
   Merging does not release anything. Releases are separate (the
   `vera-release` skill).
 
