@@ -9,6 +9,7 @@ import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
 import { BUBBLE_RADIUS, TAIL_DROP, TailedBubble } from "./bubble-shape";
 import { LinkCards } from "./link-preview-card";
+import { LinkedText } from "./linked-text";
 import { MenuTargetView } from "./message-actions";
 import { InteractiveMessage } from "./message-reactions";
 import { MessageMeta, SendingFade } from "./message-status";
@@ -66,14 +67,13 @@ function Body({
           isOwn={isOwn}
         />
       )}
-      <Text
+      <LinkedText
+        text={text}
         className={cn(
           "text-body leading-[22px]",
           isOwn ? "text-on-accent" : "text-foreground",
         )}
-      >
-        {text}
-      </Text>
+      />
     </View>
   );
 }

@@ -1,5 +1,20 @@
-const URL_PATTERN = /https?:\/\/[^\s<>"']+/gi;
-const TRAILING_PUNCTUATION = /[).,!?]+$/;
+/**
+ * Endings a bare domain ("maptap.gg") counts as a link with. Without a
+ * protocol or "www." a link needs one of these, so "e.g." and "node.js"
+ * stay text.
+ */
+const BARE_DOMAIN_ENDINGS =
+  "com|org|net|edu|gov|io|co|gg|app|dev|me|tv|us|uk|ca|ai|xyz|ly|fm|so|to|chat|news|info|link|live|blog|page|site|store|shop";
+
+/**
+ * A link: with its protocol, from "www.", or a bare domain with a common
+ * ending. Never inside a word or an email address.
+ */
+const URL_PATTERN = new RegExp(
+  `(?<![\\w@./-])(?:https?://[^\\s<>"']+|www\\.[^\\s<>"']+|(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+(?:${BARE_DOMAIN_ENDINGS})(?![\\w-])(?:[/?#][^\\s<>"']*)?)`,
+  "gi",
+);
+const TRAILING_PUNCTUATION = /[).,!?:;'"]+$/;
 
 /** At most this many links in a message get a preview card each. */
 export const MAX_LINK_PREVIEWS = 4;
@@ -9,13 +24,33 @@ export const MAX_LINK_LENGTH = 2_048;
 interface Link {
   readonly end: number;
   readonly start: number;
+  /** The link as written. */
+  readonly text: string;
+  /** Where it goes: as written, with "https://" when it had no protocol. */
   readonly url: string;
+}
+
+/**
+ * The link without the punctuation after it, keeping a closing bracket
+ * that belongs to it ("…/Foo_(bar)").
+ */
+function trimPunctuation(match: string) {
+  let text = match.replace(TRAILING_PUNCTUATION, "");
+  while (
+    match.length > text.length &&
+    match[text.length] === ")" &&
+    text.split("(").length > text.split(")").length
+  ) {
+    text = match.slice(0, text.length + 1);
+  }
+  return text;
 }
 
 function linksIn(body: string): Link[] {
   return [...body.matchAll(URL_PATTERN)].map((match) => {
-    const url = match[0].replace(TRAILING_PUNCTUATION, "");
-    return { end: match.index + url.length, start: match.index, url };
+    const text = trimPunctuation(match[0]);
+    const url = /^https?:\/\//i.test(text) ? text : `https://${text}`;
+    return { end: match.index + text.length, start: match.index, text, url };
   });
 }
 
@@ -87,24 +122,84 @@ function tidy(text: string) {
 }
 
 /**
- * The body with its previewed link cut out, for showing beside the preview
- * card. Empty when the message was only the link.
+ * Whether a link ends its text: nothing but space and sentence punctuation
+ * after it.
  */
-export function withoutPreviewedUrl(body: string) {
-  const link = linksIn(body)[0];
-  return link === undefined ? body : tidy(cut(body, link));
+function endsText(text: string, link: Link) {
+  return /^[\s.,!?]*$/.test(text.slice(link.end));
 }
 
 /**
- * The body with every appearance of `urls` cut out, for showing above
- * their preview cards. Empty when the message was only those links.
+ * The body with its previewed link cut out when it ends the message, for
+ * showing beside the preview card. Empty when the message was only the
+ * link. (A PDS from before `linkPreviews` previews only the first link.)
+ */
+export function withoutPreviewedUrl(body: string) {
+  const links = linksIn(body);
+  const link = links[0];
+  return link === undefined || links.length > 1 || !endsText(body, link)
+    ? body
+    : tidy(cut(body, link));
+}
+
+/**
+ * The body with the links in `urls` cut from its end, for showing above
+ * their preview cards: a link the message ends with (or is only) is left
+ * to its card, and one with words after it stays in the text. Empty when
+ * the message was only those links.
  */
 export function withoutUrls(body: string, urls: readonly string[]) {
-  if (urls.length === 0) return body;
   let text = body;
   for (;;) {
-    const link = linksIn(text).find(({ url }) => urls.includes(url));
-    if (link === undefined) return tidy(text);
+    const link = linksIn(text).at(-1);
+    if (
+      link === undefined ||
+      !urls.includes(link.url) ||
+      !endsText(text, link)
+    ) {
+      return text === body ? body : tidy(text);
+    }
     text = cut(text, link);
   }
+}
+
+/** Inline links longer than this show shortened. */
+const MAX_SHOWN_LINK_LENGTH = 40;
+
+/** A long link without its protocol and "www.", cut short. */
+function shownLink(text: string) {
+  if (text.length <= MAX_SHOWN_LINK_LENGTH) return text;
+  const bare = text.replace(/^https?:\/\/(?:www\.)?/i, "");
+  return bare.length <= MAX_SHOWN_LINK_LENGTH
+    ? bare
+    : `${bare.slice(0, MAX_SHOWN_LINK_LENGTH - 1)}…`;
+}
+
+/** A run of a message's text, or a link in it to show tappable. */
+export interface TextPart {
+  /** Where it starts in the message's text. */
+  readonly start: number;
+  /** What to show. */
+  readonly text: string;
+  /** Where a link goes; absent for plain text. */
+  readonly url?: string;
+}
+
+/** A message's text split into plain runs and its links, in order. */
+export function textParts(body: string): TextPart[] {
+  const parts: TextPart[] = [];
+  let at = 0;
+  for (const link of linksIn(body)) {
+    if (link.start > at) {
+      parts.push({ start: at, text: body.slice(at, link.start) });
+    }
+    parts.push({
+      start: link.start,
+      text: shownLink(link.text),
+      url: link.url,
+    });
+    at = link.end;
+  }
+  if (at < body.length) parts.push({ start: at, text: body.slice(at) });
+  return parts;
 }

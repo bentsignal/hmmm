@@ -62,9 +62,11 @@ The phone holds one Vera Dev at a time:
 
 - **The dev client, day to day.** `scripts/phone.sh up` builds it (once per
   native fingerprint, cached in `~/Library/Caches/vera` for every worktree),
-  starts the worktree's Metro, and prints an install link and an open link,
-  each with a QR code PNG. The open link
-  (`vera-dev://expo-development-client/?url=http://<Mac's Wi-Fi IP>:<port>`)
+  starts the worktree's Metro, and prints its server address
+  (`http://<Mac's Wi-Fi IP>:<port>`), an install link, and an open link. In
+  Vera Dev, pick that server from the list (every running worktree's Metro
+  shows up there by address), or use the open link
+  (`vera-dev://expo-development-client/?url=...`). It
   loads the worktree's JavaScript over the local network, so the phone has to
   be on the same Wi-Fi as the Mac, and edits hot-reload. It's a plain IP, not
   a tailnet address: iOS's App Transport Security blocks plain HTTP to
@@ -193,6 +195,12 @@ with Google's key; its SHA-256 is in the passkey variables and
   photos) shows nothing until it is ready and then fades in.
   `ScreenList`'s `ready` prop, the message list's `onLoad` fade, and
   `expo-image` transitions do this; new screens follow the same pattern.
+- Liquid Glass never sits under a parent whose opacity is below 1: no fade,
+  no `active:opacity-*`. iOS can't draw glass there, and a `GlassView` that
+  misses its first draw or fades out with a parent can stay blank until it
+  remounts. Fade the content inside the glass instead, and bring the glass
+  in and out with `GlassSurface`'s `materialize` and `shown`, which use
+  iOS's own glass animation.
 
 ## Message notifications
 
@@ -310,6 +318,12 @@ with `development: true`) and send to that token through the Expo push API.
   Alerts, leaving a group).
 - `src/features/notifications`: Expo push registration and notification
   routing.
+- `modules/open-in-app` (a local Expo module, autolinked from `modules/`):
+  `src/lib/open-link.ts` opens a link in the installed app that claims it
+  (Reddit, Instagram, X, a news app), with no list of apps: iOS opens it
+  with `universalLinksOnly`, Android with `FLAG_ACTIVITY_REQUIRE_NON_BROWSER`
+  (Android 11 and newer). When no app takes it, it opens in the in-app
+  browser, as it does on builds from before the module.
 - `plugins/with-ios-scene-lifecycle.cjs`: adopts the UIScene life cycle that
   the iOS 27 SDK requires. Expo SDK 58 does this in its template; remove the
   plugin when upgrading.

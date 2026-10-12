@@ -25,6 +25,18 @@ export const linkPreview = v.object({
   siteName: v.optional(v.string()),
   title: v.optional(v.string()),
   url: v.string(),
+  /**
+   * A video the link's post holds (a tweet's, say), playable in the app.
+   * `imageUrl` is its poster.
+   */
+  video: v.optional(
+    v.object({
+      durationMs: v.optional(v.number()),
+      height: v.optional(v.number()),
+      url: v.string(),
+      width: v.optional(v.number()),
+    }),
+  ),
 });
 
 export type LinkPreview = Infer<typeof linkPreview>;
@@ -106,6 +118,8 @@ export const space = v.object({
   channels: v.array(channel),
   /** People invited who haven't accepted yet (absent from older PDSs). */
   invited: v.optional(v.array(v.string())),
+  /** When the caller joined or created it (absent from older PDSs). */
+  joinedAt: v.optional(v.number()),
   members: v.array(v.object({ accountId: v.string(), role: spaceRole })),
   name: v.string(),
   role: spaceRole,

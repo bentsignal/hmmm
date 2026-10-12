@@ -5,7 +5,7 @@ import { LayoutAnimationConfig } from "react-native-reanimated";
 
 import type { PreviewShape } from "./glass-message-menu";
 import type { Message } from "./types";
-import { selectionTick } from "~/lib/native-extras";
+import { impact, selectionTick } from "~/lib/native-extras";
 import { MessageTargetProvider, useMessageActions } from "./message-actions";
 import { ChipRow } from "./reaction-chips";
 
@@ -13,7 +13,7 @@ import { ChipRow } from "./reaction-chips";
  * A message whose parts open the glass reaction overlay on a long press
  * (each wraps itself in `MenuTargetView`), with its reactions as glass chips
  * underneath the whole message. Tapping a chip adds or takes back
- * that reaction.
+ * that reaction; holding one shows who reacted with it.
  */
 export function InteractiveMessage({
   message,
@@ -28,7 +28,7 @@ export function InteractiveMessage({
   shape: PreviewShape;
   children: ReactNode;
 }) {
-  const { toggleReaction } = useMessageActions();
+  const { toggleReaction, viewReactions } = useMessageActions();
   // New messages change which reactions a page asks for, so they reload.
   // Keep the last ones on screen meanwhile instead of dropping them.
   const [lastLoaded, setLastLoaded] = useState(message.reactions);
@@ -54,6 +54,10 @@ export function InteractiveMessage({
                 onToggle={(emoji) => {
                   selectionTick();
                   toggleReaction(message.id, emoji);
+                }}
+                onHold={(emoji) => {
+                  impact();
+                  viewReactions(message.id, emoji);
                 }}
               />
             )}

@@ -30,9 +30,13 @@ export function useActiveConversation(conversationId: string) {
   });
 }
 
-/** Marks the Inbox as on screen, which suppresses message banners. */
-export function useInboxOnScreen() {
+/**
+ * Marks the Inbox as on screen, which suppresses message banners: while
+ * Home is focused and `onScreen` (its Inbox page is the one showing).
+ */
+export function useInboxOnScreen(onScreen: boolean) {
   useFocusEffect(() => {
+    if (!onScreen) return;
     inboxOnScreen = true;
     return () => {
       inboxOnScreen = false;

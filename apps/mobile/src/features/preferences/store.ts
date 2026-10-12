@@ -14,6 +14,8 @@ export type MessageLayout = "bubbles" | "stacked";
 export type InboxShow = "all" | "unread";
 /** Which conversations the Inbox lists, by kind. */
 export type InboxFrom = "channels" | "chats" | "everything";
+/** The order Home's Spaces page lists spaces in. */
+export type SpacesSort = "name" | "newest" | "oldest";
 
 export interface Preferences {
   readonly appearance: Appearance;
@@ -23,6 +25,7 @@ export interface Preferences {
   readonly channelLayout: MessageLayout;
   readonly inboxFrom: InboxFrom;
   readonly inboxShow: InboxShow;
+  readonly spacesSort: SpacesSort;
   readonly theme: ThemeId;
 }
 
@@ -33,6 +36,7 @@ const DEFAULTS = {
   channelLayout: "stacked",
   inboxFrom: "everything",
   inboxShow: "all",
+  spacesSort: "name",
   theme: "blue",
 } satisfies Preferences;
 
@@ -90,6 +94,11 @@ function fromStored(stored: unknown) {
       Reflect.get(stored, "inboxShow"),
       ["all", "unread"],
       DEFAULTS.inboxShow,
+    ),
+    spacesSort: pick(
+      Reflect.get(stored, "spacesSort"),
+      ["name", "newest", "oldest"],
+      DEFAULTS.spacesSort,
     ),
     theme: themeOr(Reflect.get(stored, "theme"), DEFAULTS.theme),
   } satisfies Preferences;

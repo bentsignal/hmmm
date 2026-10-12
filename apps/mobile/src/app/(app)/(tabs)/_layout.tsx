@@ -11,31 +11,24 @@ import {
 export default function TabsLayout() {
   const accent = useCSSVariable("--color-accent");
   const { conversations } = useInbox();
-  // Channel unreads count here, so Spaces badges only invitations.
+  // Channel unreads are conversations here; space invitations add to them.
   const invites = useSpaceInvites().invites.length;
   const unread = (conversations ?? []).filter(
     ({ unreadCount }) => unreadCount > 0,
   ).length;
+  const badge = unread + invites;
   return (
     <NativeTabs tintColor={typeof accent === "string" ? accent : undefined}>
-      <NativeTabs.Trigger name="(inbox)">
-        <NativeTabs.Trigger.Label>Inbox</NativeTabs.Trigger.Label>
+      {/* Native tabs give a tab's first scroll view the tab bar's inset;
+          on Home that's the pager, whose lists take the insets instead. */}
+      <NativeTabs.Trigger name="(home)" disableAutomaticContentInsets>
+        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          sf={{ default: "tray", selected: "tray.fill" }}
-          md="inbox"
+          sf={{ default: "house", selected: "house.fill" }}
+          md="home"
         />
-        {unread > 0 && (
-          <NativeTabs.Trigger.Badge>{String(unread)}</NativeTabs.Trigger.Badge>
-        )}
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="spaces">
-        <NativeTabs.Trigger.Label>Spaces</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf={{ default: "square.grid.2x2", selected: "square.grid.2x2.fill" }}
-          md="grid_view"
-        />
-        {invites > 0 && (
-          <NativeTabs.Trigger.Badge>{String(invites)}</NativeTabs.Trigger.Badge>
+        {badge > 0 && (
+          <NativeTabs.Trigger.Badge>{String(badge)}</NativeTabs.Trigger.Badge>
         )}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="settings">

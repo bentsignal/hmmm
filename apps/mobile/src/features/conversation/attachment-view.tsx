@@ -3,7 +3,6 @@ import Animated from "react-native-reanimated";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import * as VideoThumbnails from "expo-video-thumbnails";
-import * as WebBrowser from "expo-web-browser";
 // eslint-disable-next-line no-restricted-imports -- A poster drawn from a video file has no route loader to preload it from.
 import { useQuery } from "@tanstack/react-query";
 
@@ -11,6 +10,7 @@ import type { AttachmentUpload, MessageAttachment } from "./types";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { removeOutgoingItem, retryOutgoing } from "~/features/messaging/outbox";
 import { formatBytes, formatDuration } from "~/lib/format";
+import { openLink } from "~/lib/open-link";
 
 const MEDIA_WIDTH = 240;
 const MAX_MEDIA_HEIGHT = 300;
@@ -120,6 +120,11 @@ function MediaBadge({ attachment }: { attachment: MessageAttachment }) {
   if (upload?.state === "uploading") return null;
   if (isStuck(upload)) return <RetryBadge />;
   if (attachment.kind !== "video") return null;
+  return <PlayBadge />;
+}
+
+/** The play button over a video's poster. */
+export function PlayBadge() {
   return (
     <View className="size-12 items-center justify-center rounded-full bg-black/40">
       <SymbolIcon
@@ -128,6 +133,15 @@ function MediaBadge({ attachment }: { attachment: MessageAttachment }) {
         tintColorClassName="accent-white"
       />
     </View>
+  );
+}
+
+/** A video's length, in the poster's corner. */
+export function DurationBadge({ durationMs }: { durationMs: number }) {
+  return (
+    <Text className="text-caption absolute bottom-2 left-2 overflow-hidden rounded-full bg-black/50 px-2 py-0.5 font-semibold text-white">
+      {formatDuration(Math.round(durationMs / 1000))}
+    </Text>
   );
 }
 
@@ -192,9 +206,7 @@ function Media({
       )}
       <MediaBadge attachment={attachment} />
       {isVideo && attachment.durationMs !== undefined && (
-        <Text className="text-caption absolute bottom-2 left-2 overflow-hidden rounded-full bg-black/50 px-2 py-0.5 font-semibold text-white">
-          {formatDuration(Math.round(attachment.durationMs / 1000))}
-        </Text>
+        <DurationBadge durationMs={attachment.durationMs} />
       )}
     </Pressable>
   );
@@ -216,7 +228,7 @@ function FileCard({
         if (upload !== undefined && stuck) {
           showUploadProblem(upload);
         } else if (upload === undefined || upload.state === "uploaded") {
-          void WebBrowser.openBrowserAsync(attachment.url);
+          openLink(attachment.url);
         }
       }}
       className="bg-bubble-incoming w-64 rounded-2xl p-3 active:opacity-80"
