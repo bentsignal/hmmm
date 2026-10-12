@@ -14,7 +14,7 @@ the heading and intro so the file stays in place for the next release).
 Adding steps: any PR whose release needs something beyond `pnpm release`
 adds a section here in that PR (see AGENTS.md → Releases).
 
-## From PR #NN: open sign-up
+## From PR #97: open sign-up
 
 Sign-up no longer takes an invite code, so the "Apple App Review" code that
 the TestFlight review notes give Apple's reviewers no longer means anything.
