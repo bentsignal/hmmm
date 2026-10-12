@@ -118,6 +118,8 @@ export const space = v.object({
   channels: v.array(channel),
   /** People invited who haven't accepted yet (absent from older PDSs). */
   invited: v.optional(v.array(v.string())),
+  /** When the caller joined or created it (absent from older PDSs). */
+  joinedAt: v.optional(v.number()),
   members: v.array(v.object({ accountId: v.string(), role: spaceRole })),
   name: v.string(),
   role: spaceRole,

@@ -1,5 +1,8 @@
 # Inbox and Spaces (decided with Shawn, 2026-10-04)
 
+> Home has since replaced the Inbox and Spaces tabs, and row swipe actions
+> moved to the long-press menu. See [home.md](home.md).
+
 Chats and Spaces were separate tabs, so reading a space's #general took three
 taps (Spaces, the space, the channel). The app moves to one Inbox for
 everything you read and a Spaces tab for browsing and managing spaces.

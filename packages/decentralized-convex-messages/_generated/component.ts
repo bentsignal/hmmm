@@ -535,6 +535,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 unreadCount: number;
               }>;
               invited?: Array<string>;
+              joinedAt?: number;
               members: Array<{ accountId: string; role: "owner" | "member" }>;
               name: string;
               role: "owner" | "member";
@@ -554,6 +555,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 unreadCount: number;
               }>;
               invited?: Array<string>;
+              joinedAt?: number;
               members: Array<{ accountId: string; role: "owner" | "member" }>;
               name: string;
               role: "owner" | "member";
