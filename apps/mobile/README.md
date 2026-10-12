@@ -171,9 +171,8 @@ xcrun altool --upload-app -f /tmp/vera-production.ipa -t ios \
 (`eas submit --non-interactive` refuses an API key from the environment.)
 TestFlight groups: **Team** (internal, Shawn; every build, no review) and
 **Friends** (external, public link `https://testflight.apple.com/join/CqpKDW25`;
-each build goes through Beta App Review). Reviewers sign up with the
-production invite code labeled "Apple App Review", which the review notes
-in Test Information give them.
+each build goes through Beta App Review). Reviewers create their own
+account; sign-up needs no code.
 
 ### Google Play
 
