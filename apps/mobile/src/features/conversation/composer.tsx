@@ -4,6 +4,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { withUniwind } from "uniwind";
 
 import type {
@@ -20,6 +21,25 @@ const StyledTextInput = withUniwind(TextInput);
 /** Every control in the composer shares this height so they line up. */
 const CONTROL = 40;
 const SEND = 32;
+/**
+ * On iOS the controls sit this far from the screen's sides and, on phones
+ * with a home indicator, its bottom, like Messages: low and inside the
+ * rounded corners.
+ */
+const IOS_EDGE = 28;
+/** The bar's padding above and below the controls. */
+const PADDING = 8;
+
+/**
+ * Space to leave below the composer bar for the home indicator or the
+ * navigation bar. On iOS it tucks into the home indicator's inset, so the
+ * field ends `IOS_EDGE` from the bottom.
+ */
+export function useComposerBottomInset() {
+  const { bottom } = useSafeAreaInsets();
+  if (Platform.OS !== "ios") return bottom;
+  return bottom === 0 ? 0 : IOS_EDGE - PADDING;
+}
 
 function SendButton({
   visible,
@@ -69,6 +89,7 @@ export function Composer({
   onPick,
   onRemoveStaged,
   onChangeText,
+  bottomInset,
 }: {
   staged: readonly StagedFile[];
   /** Sends the text (possibly empty) with everything staged. */
@@ -77,6 +98,8 @@ export function Composer({
   onRemoveStaged: (id: string) => void;
   /** Every change to the text, including emptying it on send. */
   onChangeText?: (text: string) => void;
+  /** From `useComposerBottomInset`. */
+  bottomInset: number;
 }) {
   const [draft, setDraft] = useState("");
   const canSend = draft.trim().length > 0 || staged.length > 0;
@@ -95,16 +118,20 @@ export function Composer({
   return (
     <View
       className={cn(
-        "flex-row items-end gap-2 px-3 pt-2 pb-2",
-        // No glass on Android: a solid bar keeps messages from showing
-        // through behind the field.
+        "flex-row items-end gap-2",
+        // No glass on Android: a solid bar, down through the navigation
+        // bar, keeps messages from showing through behind the field or the
+        // system buttons.
         Platform.OS === "android" && "bg-background border-separator",
       )}
-      style={
-        Platform.OS === "android"
-          ? { borderTopWidth: StyleSheet.hairlineWidth }
-          : undefined
-      }
+      style={{
+        paddingBottom: PADDING + bottomInset,
+        paddingHorizontal: Platform.OS === "ios" ? IOS_EDGE : 12,
+        paddingTop: PADDING,
+        ...(Platform.OS === "android" && {
+          borderTopWidth: StyleSheet.hairlineWidth,
+        }),
+      }}
     >
       <AttachMenu onPick={onPick} />
       <GlassSurface
