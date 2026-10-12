@@ -4,6 +4,7 @@ import Animated, { Easing, Keyframe, ZoomOut } from "react-native-reanimated";
 import type { ReactionSummary } from "~/features/messaging/reactions";
 import { GlassSurface } from "~/components/glass-surface";
 import { cn } from "~/lib/cn";
+import { LONG_PRESS_MS } from "./message-actions";
 
 /**
  * Reactions pop in when they arrive and shrink away when taken back. One
@@ -25,9 +26,11 @@ const POP_OUT = ZoomOut.duration(140);
 function Chip({
   reaction,
   onPress,
+  onLongPress,
 }: {
   reaction: ReactionSummary;
   onPress: () => void;
+  onLongPress: () => void;
 }) {
   return (
     <Animated.View entering={POP_IN} exiting={POP_OUT}>
@@ -35,7 +38,10 @@ function Chip({
         accessibilityRole="button"
         accessibilityLabel={`${reaction.emoji} ${reaction.count}`}
         accessibilityState={{ selected: reaction.mine }}
+        accessibilityHint="Hold to see who reacted"
         onPress={onPress}
+        delayLongPress={LONG_PRESS_MS}
+        onLongPress={onLongPress}
       >
         <GlassSurface
           isInteractive
@@ -60,17 +66,19 @@ function Chip({
 
 /**
  * Slack's row, made quieter: small glass chips under the message, yours
- * tinted. Tap one to add or take back that reaction; long press the message
- * for more.
+ * tinted. Tap one to add or take back that reaction, hold it to see who
+ * reacted with it; long press the message for more.
  */
 export function ChipRow({
   reactions,
   align,
   onToggle,
+  onHold,
 }: {
   reactions: readonly ReactionSummary[];
   align: "end" | "start";
   onToggle: (emoji: string) => void;
+  onHold: (emoji: string) => void;
 }) {
   return (
     <View
@@ -84,6 +92,7 @@ export function ChipRow({
           key={reaction.emoji}
           reaction={reaction}
           onPress={() => onToggle(reaction.emoji)}
+          onLongPress={() => onHold(reaction.emoji)}
         />
       ))}
     </View>

@@ -177,8 +177,8 @@ interface MessageListProps {
   /** Height of the composer floating over the bottom of the list. */
   composerHeight: number;
   onToggleReaction: (messageId: string, emoji: string) => void;
-  /** Opens the sheet of who reacted to a message. */
-  onViewReactions: (messageId: string) => void;
+  /** Opens the sheet of who reacted to a message, on one emoji if given. */
+  onViewReactions: (messageId: string, emoji?: string) => void;
 }
 
 /**
