@@ -6,6 +6,7 @@ import Animated, {
   useAnimatedScrollHandler,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
+import { useCSSVariable } from "uniwind";
 
 export type PagerRef = RefObject<Animated.ScrollView | null>;
 
@@ -33,6 +34,8 @@ export function HomePager({
   children: ReactNode;
 }) {
   const { width } = useWindowDimensions();
+  // The lists' background, so a page that's still loading isn't gray.
+  const background = useCSSVariable("--color-background");
   const onScroll = useAnimatedScrollHandler((event) => {
     if (width > 0) position.set(event.contentOffset.x / width);
   });
@@ -55,7 +58,11 @@ export function HomePager({
       showsHorizontalScrollIndicator={false}
       scrollEventThrottle={16}
       onScroll={onScroll}
-      style={{ flex: 1 }}
+      style={{
+        backgroundColor:
+          typeof background === "string" ? background : undefined,
+        flex: 1,
+      }}
     >
       {children}
     </Animated.ScrollView>

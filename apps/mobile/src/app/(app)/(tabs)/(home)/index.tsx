@@ -7,6 +7,7 @@ import Add from "@expo/material-symbols/add.xml";
 import EditSquare from "@expo/material-symbols/edit_square.xml";
 import { useCSSVariable } from "uniwind";
 
+import { PreloadIcons } from "~/components/preload-icons";
 import { HomePager, PagerPage } from "~/features/home/home-pager";
 import { HomeTabs } from "~/features/home/home-tabs";
 import { HOME_PAGES } from "~/features/home/pages";
@@ -15,7 +16,7 @@ import { InboxList } from "~/features/inbox/inbox-list";
 import { useInboxOnScreen } from "~/features/notifications/push";
 import { usePreference } from "~/features/preferences/store";
 import { AccountToolbar } from "~/features/session/account-toolbar";
-import { SortToolbar } from "~/features/spaces/sort-toolbar";
+import { SORT_ICON, SortToolbar } from "~/features/spaces/sort-toolbar";
 import { SpacesList } from "~/features/spaces/spaces-list";
 import { lightImpact } from "~/lib/native-extras";
 
@@ -86,6 +87,8 @@ export default function HomeScreen() {
           />
         )}
       </AccountToolbar>
+      {/* The Spaces page's buttons, which only mount once it shows. */}
+      <PreloadIcons icons={{ add: Add, sort: SORT_ICON }} />
       <HomePager
         pagerRef={pagerRef}
         position={position}
