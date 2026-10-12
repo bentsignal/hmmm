@@ -1,6 +1,6 @@
 import type { ReactNode, RefObject } from "react";
 import type { SharedValue } from "react-native-reanimated";
-import { useWindowDimensions, View } from "react-native";
+import { Platform, useWindowDimensions, View } from "react-native";
 import Animated, {
   useAnimatedReaction,
   useAnimatedScrollHandler,
@@ -16,10 +16,16 @@ import { ScreenListInsets } from "~/components/screen-list-insets";
 
 export type PagerRef = RefObject<Animated.ScrollView | null>;
 
-/** Hands the screen's insets, measured outside the pager, to its lists. */
+/**
+ * Hands the screen's insets, measured outside the pager, to its lists on
+ * iOS, where they scroll under the tab bar. Android's lists end above it.
+ */
 function PagerInsets({ children }: { children: ReactNode }) {
+  const insets = useSafeAreaInsets();
   return (
-    <ScreenListInsets value={useSafeAreaInsets()}>{children}</ScreenListInsets>
+    <ScreenListInsets value={Platform.OS === "ios" ? insets : null}>
+      {children}
+    </ScreenListInsets>
   );
 }
 
@@ -67,12 +73,16 @@ export function HomePager({
           ref={pagerRef}
           horizontal
           pagingEnabled
-          // Its lists take the insets instead (`PagerInsets`).
+          // Its lists take the insets instead (`PagerInsets`). The Home tab
+          // keeps the tab bar from making this "automatic" (see the tabs
+          // layout): with the tab bar's inset it would scroll up and down.
           contentInsetAdjustmentBehavior="never"
           bounces={false}
           overScrollMode="never"
           directionalLockEnabled
+          alwaysBounceVertical={false}
           showsHorizontalScrollIndicator={false}
+          showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           onScroll={onScroll}
           style={{

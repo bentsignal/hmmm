@@ -19,7 +19,9 @@ export default function TabsLayout() {
   const badge = unread + invites;
   return (
     <NativeTabs tintColor={typeof accent === "string" ? accent : undefined}>
-      <NativeTabs.Trigger name="(home)">
+      {/* Native tabs give a tab's first scroll view the tab bar's inset;
+          on Home that's the pager, whose lists take the insets instead. */}
+      <NativeTabs.Trigger name="(home)" disableAutomaticContentInsets>
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           sf={{ default: "house", selected: "house.fill" }}

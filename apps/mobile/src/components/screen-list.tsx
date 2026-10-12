@@ -24,8 +24,16 @@ export function ScreenList<Item>({
     <Animated.View entering={FadeIn.duration(260)} style={{ flex: 1 }}>
       <LegendList
         contentInsetAdjustmentBehavior={insets === null ? "automatic" : "never"}
-        contentInset={inset}
+        // As padding, which Legend List measures, not a native content
+        // inset, which it counts again: a short list would scroll by it.
+        contentContainerStyle={
+          inset === undefined
+            ? undefined
+            : { paddingBottom: inset.bottom, paddingTop: inset.top }
+        }
         scrollIndicatorInsets={inset}
+        // A short list still gives under the finger, as a table view does.
+        alwaysBounceVertical={inset !== undefined}
         keyboardDismissMode="on-drag"
         estimatedItemSize={72}
         {...props}
