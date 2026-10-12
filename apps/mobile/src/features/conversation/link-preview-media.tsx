@@ -1,6 +1,7 @@
 import { Pressable, View } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import { LINK_PREVIEW_USER_AGENT } from "@decentralized-convex/messages";
 
 import type { useMenuTarget } from "./message-actions";
 import type { LinkPreview } from "./types";
@@ -19,7 +20,11 @@ export type MenuPress = Partial<
 >;
 type Video = NonNullable<LinkPreview["video"]>;
 
-/** Gray, where the image goes; images fade in over it. */
+/**
+ * Gray, where the image goes; images fade in over it. They load as the
+ * link expanders the server read the page as, since sites such as Reddit
+ * serve a generic image to anyone else.
+ */
 export function ImageArea({
   uri,
   height = IMAGE_HEIGHT,
@@ -31,7 +36,7 @@ export function ImageArea({
     <View className="bg-fill" style={{ height }}>
       {uri !== undefined && (
         <Image
-          source={{ uri }}
+          source={{ headers: { "User-Agent": LINK_PREVIEW_USER_AGENT }, uri }}
           contentFit="cover"
           transition={200}
           style={{ height, width: CARD_WIDTH }}
@@ -54,6 +59,16 @@ function videoHeight({ height, width }: Video) {
  * holding the video still lifts the card; without it (the lifted copy) it
  * only shows.
  */
+/** Plays a post's video full screen, like a sent video. */
+export function usePlayVideo() {
+  const router = useRouter();
+  return (video: Video) =>
+    router.push({
+      params: { kind: "video", url: video.url },
+      pathname: "/media",
+    });
+}
+
 export function VideoArea({
   video,
   poster,
@@ -63,18 +78,14 @@ export function VideoArea({
   poster?: string;
   press?: MenuPress;
 }) {
-  const router = useRouter();
+  const play = usePlayVideo();
   return (
     <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Play video"
+      // The card is one element to VoiceOver; it plays through the
+      // card's "Play video" action.
+      accessible={false}
       disabled={press === undefined}
-      onPress={() =>
-        router.push({
-          params: { kind: "video", url: video.url },
-          pathname: "/media",
-        })
-      }
+      onPress={() => play(video)}
       {...press}
     >
       <ImageArea uri={poster} height={videoHeight(video)} />

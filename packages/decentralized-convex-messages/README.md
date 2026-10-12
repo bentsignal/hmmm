@@ -32,8 +32,9 @@ none), so a prefetched link's card is in the message when it's stored.
 `linkPreview` still carries the first link's preview for older apps. The
 server only fetches public http(s) hosts, with a 5 second timeout and at
 most 512 KB of each page. It names the link expanders iMessage does in
-its user agent, since sites such as Reddit send other agents an empty
-page. A tweet (an x.com or twitter.com status link) comes from the API
+its user agent (`LINK_PREVIEW_USER_AGENT`), since sites such as Reddit
+send other agents an empty page; apps load preview images with it too,
+since Reddit's image is generic for anyone else. A tweet (an x.com or twitter.com status link) comes from the API
 Twitter's embeds use instead, and its card carries the tweet's `video`
 (an MP4 the app can play, with `imageUrl` as its poster).
 

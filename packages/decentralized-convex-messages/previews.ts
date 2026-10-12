@@ -16,6 +16,7 @@ import {
 import { linkPreview } from "./protocol.ts";
 import {
   decodeEntities,
+  LINK_PREVIEW_USER_AGENT,
   tidyReddit,
   tweetApiUrl,
   tweetId,
@@ -92,14 +93,6 @@ export const fetchLink = internalAction({
   },
 });
 
-/**
- * Many sites only serve Open Graph tags to the crawlers they know, and
- * Reddit sends anything else an empty page, so this names the same link
- * expanders iMessage's user agent does.
- */
-const USER_AGENT =
-  "Mozilla/5.0 (compatible; VeraBot/1.0; +https://vera.chat) facebookexternalhit/1.1 Facebot Twitterbot/1.0";
-
 async function fetchPreview(url: string): Promise<LinkPreview | null> {
   if (!isPublicWebUrl(url)) return null;
   const tweet = tweetId(url);
@@ -111,7 +104,7 @@ async function fetchPage(url: string): Promise<LinkPreview | null> {
   const response = await fetch(url, {
     headers: {
       Accept: "text/html,application/xhtml+xml",
-      "User-Agent": USER_AGENT,
+      "User-Agent": LINK_PREVIEW_USER_AGENT,
     },
     redirect: "follow",
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
@@ -139,7 +132,10 @@ async function fetchPage(url: string): Promise<LinkPreview | null> {
  */
 async function fetchTweet(id: string): Promise<LinkPreview | null> {
   const response = await fetch(tweetApiUrl(id), {
-    headers: { Accept: "application/json", "User-Agent": USER_AGENT },
+    headers: {
+      Accept: "application/json",
+      "User-Agent": LINK_PREVIEW_USER_AGENT,
+    },
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
   // A deleted or protected tweet is a 404 or an empty object.

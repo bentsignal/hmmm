@@ -9,7 +9,12 @@ import type { MenuPress } from "./link-preview-media";
 import type { CardFace, PlaceholderStage } from "./placeholder-timing";
 import type { LinkCard, LinkPreview } from "./types";
 import { SymbolIcon } from "~/components/symbol-icon";
-import { CARD_WIDTH, ImageArea, VideoArea } from "./link-preview-media";
+import {
+  CARD_WIDTH,
+  ImageArea,
+  usePlayVideo,
+  VideoArea,
+} from "./link-preview-media";
 import { useMenuTarget } from "./message-actions";
 import {
   cardFace,
@@ -263,6 +268,8 @@ function CardContents({
 function LinkCardView({ card }: { card: LinkCard }) {
   const { link, preview } = card;
   const url = preview?.url ?? link;
+  const video = preview?.video;
+  const play = usePlayVideo();
   const timing = usePlaceholderTiming(preview !== undefined);
   const ref = useRef<NativeView>(null);
   const target = useMenuTarget({
@@ -286,6 +293,8 @@ function LinkCardView({ card }: { card: LinkCard }) {
         ref={ref}
         accessibilityRole="link"
         accessibilityHint={link}
+        accessibilityActions={video && [{ label: "Play video", name: "play" }]}
+        onAccessibilityAction={() => video && play(video)}
         onPress={() => void WebBrowser.openBrowserAsync(url)}
         {...target?.press}
         className="active:opacity-80"

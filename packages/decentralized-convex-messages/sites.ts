@@ -2,6 +2,15 @@ import type { LinkPreview } from "./shapes.ts";
 
 // Sites whose Open Graph tags don't make a good card on their own.
 
+/**
+ * Who fetches a preview, and its image in the app. Many sites only serve
+ * Open Graph tags to the crawlers they know, and Reddit sends anything
+ * else an empty page and a generic image, so this names the same link
+ * expanders iMessage's user agent does.
+ */
+export const LINK_PREVIEW_USER_AGENT =
+  "Mozilla/5.0 (compatible; VeraBot/1.0; +https://vera.chat) facebookexternalhit/1.1 Facebot Twitterbot/1.0";
+
 /** The highest bitrate a tweet's video plays at in a card: about 720p. */
 const MAX_VIDEO_BITRATE = 2_500_000;
 
