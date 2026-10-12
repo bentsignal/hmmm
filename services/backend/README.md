@@ -48,26 +48,18 @@ in `convex.config.ts`, so the Better Auth Component is installed there through
 
 ## Accounts and sign-in
 
-Passkeys are the only credential. Sign-up sends the invite code and username as
-the passkey registration `context`; the server checks both when issuing
-registration options, checks again after the passkey is verified, then redeems
-the invite, creates the account, and starts a session. Invite codes are managed
-with the operator functions in `convex/invites.ts` (see the `invite-codes`
-agent skill).
+Passkeys are the only credential. Sign-up is open: it sends the username as
+the passkey registration `context`; the server checks it when issuing
+registration options, checks again after the passkey is verified, then creates
+the account and starts a session.
 
 Usernames that look official are reserved: `DEFAULT_RESERVED_USERNAMES` from
 `@decentralized-convex/address` (`admin`, `help`, `support`, `security`, and
 so on) plus Vera's own (`vera`, `vera_support`, ...) in `convex/auth.ts`. The
 check ignores case, dots, dashes, underscores, and trailing digits, so
 `Help_Desk2` is reserved too, and a reserved name fails with
-`USERNAME_TAKEN`. To create one of these accounts yourself, make an invite
-code for that username and sign up with it:
-
-```sh
-npx convex run invites:create '{"label":"support account","username":"support"}'
-```
-
-A code with a `username` signs up only that username.
+`USERNAME_TAKEN`. Nobody can sign up with one. Accounts that need one, such as
+`support`, are created on the server (`npx convex run support:setup`).
 
 Accounts that speak for Vera, such as `support@vera.chat`, can be marked
 affiliated. The app then shows a verified check next to their names, and

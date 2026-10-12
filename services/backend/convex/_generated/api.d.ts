@@ -18,7 +18,6 @@ import type * as devSeed from "../devSeed.js";
 import type * as devSignIn from "../devSignIn.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
-import type * as invites from "../invites.js";
 import type * as joinPage from "../joinPage.js";
 import type * as lib from "../lib.js";
 import type * as pds from "../pds.js";
@@ -41,7 +40,6 @@ declare const fullApi: ApiFromModules<{
   devSignIn: typeof devSignIn;
   files: typeof files;
   http: typeof http;
-  invites: typeof invites;
   joinPage: typeof joinPage;
   lib: typeof lib;
   pds: typeof pds;
