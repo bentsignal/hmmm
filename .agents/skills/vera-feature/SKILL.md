@@ -221,11 +221,16 @@ Don't start the dev server until he asks (step 4b), and don't merge.
   rounds; refining the change here is cheaper than finding it in the
   release.
 - Merge only when Shawn approves this PR in the thread ("merge it",
-  "approved", "ship it"), normally after testing it on his phone. Then:
+  "approved", "ship it"), normally after testing it on his phone. If this
+  worktree has an isolated backend and he signed in to it on his phone,
+  first ask him to sign out of that throwaway account in Vera Dev
+  (Settings > Accounts > the account > Sign Out), while its server still
+  exists. Vera Dev keeps one account list for every worktree, so an account
+  left on a deleted backend follows him into every thread. Then:
 
   ```sh
   gh pr merge <number> --merge --delete-branch
-  scripts/backend.sh teardown   # if isolated: deletes the deployment and DNS record
+  scripts/backend.sh teardown   # if isolated: deletes the deployment, DNS record, and its accounts
   scripts/sim.sh down           # if one is still up
   scripts/phone.sh down         # if it's still serving his phone
   ```
