@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -20,6 +20,8 @@ const StyledTextInput = withUniwind(TextInput);
 /** Every control in the composer shares this height so they line up. */
 const CONTROL = 40;
 const SEND = 32;
+/** How long after a send the keyboard may still apply an autocorrection. */
+const AUTOCORRECT_WINDOW_MS = 1000;
 
 function SendButton({
   visible,
@@ -79,9 +81,26 @@ export function Composer({
   onChangeText?: (text: string) => void;
 }) {
   const [draft, setDraft] = useState("");
+  const input = useRef<TextInput>(null);
+  /** When the field was last emptied by sending, until something is typed. */
+  const sentAt = useRef<number | null>(null);
   const canSend = draft.trim().length > 0 || staged.length > 0;
 
   function change(text: string) {
+    // Sending while iOS still offers an autocorrection for the last word
+    // (tapping send rather than space) lets the keyboard apply it after the
+    // field has cleared, putting that word back. Typing adds a letter at a
+    // time, so a whole word landing in the empty field just after a send
+    // is the keyboard's, and the field stays empty.
+    if (
+      sentAt.current !== null &&
+      text.length > 1 &&
+      Date.now() - sentAt.current < AUTOCORRECT_WINDOW_MS
+    ) {
+      input.current?.clear();
+      return;
+    }
+    if (text !== "") sentAt.current = null;
     setDraft(text);
     onChangeText?.(text);
   }
@@ -90,6 +109,7 @@ export function Composer({
     if (!canSend) return;
     onSend(draft.trim());
     change("");
+    sentAt.current = Date.now();
   }
 
   return (
@@ -113,6 +133,7 @@ export function Composer({
       >
         <StagedAttachments files={staged} onRemove={onRemoveStaged} />
         <StyledTextInput
+          ref={input}
           multiline
           value={draft}
           onChangeText={change}

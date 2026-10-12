@@ -21,6 +21,13 @@ interface View {
   readonly opened: PageCursor;
   /** Oldest page first. */
   readonly pages: readonly PageCursor[];
+  /** The pages it opened with, which must load before anything shows. */
+  readonly initial: readonly PageCursor[];
+}
+
+/** A page cursor's identity, stable across renders. */
+function pageKey(cursor: PageCursor) {
+  return JSON.stringify(cursor);
 }
 
 /**
@@ -45,17 +52,15 @@ function latestWindow(windowKey: string, reopen = false) {
       : Date.now();
   openedAtByConversation.set(windowKey, openedAt);
   const opened = { before: openedAt + 1 };
-  return {
-    anchor: undefined,
-    opened,
-    pages: [opened, { after: openedAt }],
-  } satisfies View;
+  const pages = [opened, { after: openedAt }];
+  return { anchor: undefined, initial: pages, opened, pages } satisfies View;
 }
 
 function anchoredWindow(messageId: string) {
   const opened = { around: messageId };
   return {
     anchor: messageId,
+    initial: [opened],
     opened,
     pages: [opened],
   } satisfies View;
@@ -120,6 +125,7 @@ export function useMessageWindow(
   });
 
   const messages = mergePages(pages);
+  const initial = new Set(view.initial);
   const first = pages[0]?.data;
   const last = pages.at(-1)?.data;
   const hasOlder = first?.hasOlder ?? false;
@@ -161,12 +167,21 @@ export function useMessageWindow(
     pageMessageIds: pages.map(
       (page) => page.data?.messages.map((message) => message.messageId) ?? [],
     ),
+    /**
+     * Each page by key, oldest first, with its message IDs once it has
+     * loaded, and whether it is one the window opened with.
+     */
+    pages: view.pages.map((cursor, index) => ({
+      initial: initial.has(cursor),
+      key: pageKey(cursor),
+      messageIds: pages[index]?.data?.messages.map(
+        (message) => message.messageId,
+      ),
+    })),
     /** Changes whenever the window reopens, so lists can remount. */
-    viewKey: JSON.stringify(view.opened),
+    viewKey: pageKey(view.opened),
     hasNewer,
     hasOlder,
-    isLoading:
-      pages.some((page) => page.data === undefined) && messages.length === 0,
     /** Drops the loaded pages and reopens at the latest message. */
     jumpToLatest: () => setView(latestWindow(windowKey, true)),
     loadNewer,

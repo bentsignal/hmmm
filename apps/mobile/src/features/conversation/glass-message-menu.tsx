@@ -20,7 +20,7 @@ import { useUniwind } from "uniwind";
 
 import type { MenuAction } from "./glass-menu-parts";
 import type { MenuLayout, Rect } from "./menu-layout";
-import type { Message } from "./types";
+import type { Message, MessageAttachment } from "./types";
 import { cn } from "~/lib/cn";
 import { canCopy, copyText, selectionTick } from "~/lib/native-extras";
 import {
@@ -34,6 +34,8 @@ import {
 import { linkActions } from "./link-actions";
 import { menuLayout } from "./menu-layout";
 import { menuTitleHeight } from "./menu-title";
+import { Reactors, REACTORS_WIDTH, reactorsHeight } from "./reactors";
+import { canSaveToPhotos, saveToPhotos } from "./save-media";
 
 export type TargetAlign = "end" | "start";
 
@@ -51,6 +53,13 @@ export interface MenuTarget {
   readonly preview: ReactNode;
   /** The link whose card was held, which the menu is about. */
   readonly link?: string;
+  /** The photo, video, or file that was held, which the menu can save. */
+  readonly attachment?: MessageAttachment;
+  /**
+   * `actions` under the message (a long press), or who reacted
+   * (`reactions`: a double tap, or tapping its tapbacks).
+   */
+  readonly mode: "actions" | "reactions";
 }
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
@@ -167,13 +176,12 @@ function Lifted({
 }
 
 /**
- * A held link's actions, then Copy for text (the whole message, links and
- * all), and View Reactions once anyone has reacted.
+ * A held link's actions, Save to Photos for a held photo or video, then
+ * Copy for text (the whole message, links and all), and View Reactions
+ * once anyone has reacted.
  */
 function menuActions(
-  message: MenuTarget["message"],
-  body: string | undefined,
-  link: string | undefined,
+  { attachment, link, message }: MenuTarget,
   {
     close,
     onViewReactions,
@@ -182,6 +190,22 @@ function menuActions(
     onViewReactions: () => void;
   },
 ) {
+  const { body } = message;
+  const save =
+    attachment !== undefined && canSaveToPhotos(attachment)
+      ? [
+          {
+            icon: { android: "download", ios: "square.and.arrow.down" },
+            label: "Save to Photos",
+            onPress: () => {
+              close();
+              void saveToPhotos(attachment).then((saved) => {
+                if (saved) selectionTick();
+              });
+            },
+          } satisfies MenuAction,
+        ]
+      : [];
   const copy =
     canCopy && body !== undefined && body !== ""
       ? [
@@ -206,13 +230,14 @@ function menuActions(
           } satisfies MenuAction,
         ]
       : [];
-  return [...linkActions(link, close), ...copy, ...viewReactions];
+  return [...linkActions(link, close), ...save, ...copy, ...viewReactions];
 }
 
 /**
- * The iMessage-style long-press overlay: the conversation blurs, the message
- * lifts, a Liquid Glass reaction bar springs out above it and the actions
- * below. Closing plays it all back into place.
+ * The iMessage-style overlay: the conversation blurs, the message lifts, a
+ * Liquid Glass reaction bar springs out above it, and below it the actions
+ * (a long press) or who reacted (a double tap, or its tapbacks). Closing
+ * plays it all back into place.
  */
 export function GlassMessageMenu({
   target,
@@ -231,20 +256,22 @@ export function GlassMessageMenu({
 }) {
   const screen = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { body } = target.message;
-  const actions = menuActions(target.message, body, target.link, {
-    close: (then) => close(then),
-    onViewReactions,
-  });
+  const showReactors = target.mode === "reactions";
+  const reactions = target.message.reactions ?? [];
+  const actions = showReactors
+    ? []
+    : menuActions(target, { close: (then) => close(then), onViewReactions });
   const layout = menuLayout({
     align: target.align,
     bar: { height: BAR_HEIGHT, width: BAR_WIDTH },
     frame: frameOf(target),
     insets,
-    menu: {
-      height: menuHeight(actions.length) + menuTitleHeight(target.link),
-      width: MENU_WIDTH,
-    },
+    menu: showReactors
+      ? { height: reactorsHeight(reactions), width: REACTORS_WIDTH }
+      : {
+          height: menuHeight(actions.length) + menuTitleHeight(target.link),
+          width: MENU_WIDTH,
+        },
     screen,
   });
   const progress = useSharedValue(0);
@@ -292,6 +319,14 @@ export function GlassMessageMenu({
           close();
         }}
       />
+      {showReactors && reactions.length > 0 && (
+        <Reactors
+          reactions={reactions}
+          progress={progress}
+          align={target.align}
+          position={{ left: layout.menuLeft, top: layout.menuTop }}
+        />
+      )}
       {actions.length > 0 && (
         <ActionMenu
           progress={progress}

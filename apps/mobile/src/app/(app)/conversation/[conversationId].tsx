@@ -8,10 +8,12 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 
+import type { MessageListHandle } from "~/features/conversation/message-list";
 import type {
   AttachmentSource,
   StagedFile,
 } from "~/features/messaging/attachments";
+import type { MessageLayout } from "~/features/preferences/store";
 import { Composer } from "~/features/conversation/composer";
 import {
   CONVERSATION_HEADER_HEIGHT,
@@ -114,6 +116,18 @@ function otherMember(
   return conversation.members.find((member) => member !== self);
 }
 
+/**
+ * The list shows once its messages, their reactions, and everyone's names
+ * and photos are in, so nothing changes size or swaps as it fades in.
+ */
+function listReady(
+  loadingMessages: boolean,
+  layout: MessageLayout | undefined,
+  profilesLoaded: boolean,
+): layout is MessageLayout {
+  return !loadingMessages && layout !== undefined && profilesLoaded;
+}
+
 /** The title from the opening screen shows until the conversation loads. */
 function headingFor(title: string, initialTitle: string | undefined) {
   return title === "" ? (initialTitle ?? "") : title;
@@ -131,11 +145,12 @@ function Conversation({
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { address } = useAccount();
-  const { conversation, isLoading, profileOf, title } =
+  const { conversation, isLoading, profileOf, profilesLoaded, title } =
     useConversation(conversationId);
   const layout = useMessageLayout(conversation?.kind);
   const messages = useMessages(conversationId, anchorId);
   const [composerHeight, setComposerHeight] = useState(56);
+  const list = useRef<MessageListHandle>(null);
   useMarkRead(conversationId, messages.newestSentAt);
   useActiveConversation(conversationId);
 
@@ -157,8 +172,9 @@ function Conversation({
     <View className="bg-background flex-1">
       <Stack.Title>{heading}</Stack.Title>
       <KeyboardGestureArea interpolator="ios" offset={60} style={{ flex: 1 }}>
-        {messages.isLoading || layout === undefined ? null : (
+        {listReady(messages.isLoading, layout, profilesLoaded) && (
           <MessageList
+            ref={list}
             key={messages.viewKey}
             messages={messages.messages}
             self={address}
@@ -167,8 +183,8 @@ function Conversation({
             showAuthors={conversation?.kind !== "direct"}
             anchorId={messages.anchor}
             hasNewer={messages.hasNewer}
-            onStartReached={messages.loadOlder}
-            onEndReached={messages.loadNewer}
+            onLoadOlder={messages.loadOlder}
+            onLoadNewer={messages.loadNewer}
             onJumpToLatest={messages.jumpToLatest}
             bottomInset={insets.bottom}
             topInset={CONVERSATION_HEADER_HEIGHT}
@@ -198,7 +214,10 @@ function Conversation({
       <FloatingComposer
         conversationId={conversationId}
         onHeight={setComposerHeight}
-        onSend={messages.sendMessage}
+        onSend={(body, files, linkPreviews) => {
+          messages.sendMessage(body, files, linkPreviews);
+          list.current?.scrollToLatest();
+        }}
       />
     </View>
   );

@@ -11,9 +11,10 @@ import { BUBBLE_RADIUS, TAIL_DROP, TailedBubble } from "./bubble-shape";
 import { LinkCards } from "./link-preview-card";
 import { MenuTargetView } from "./message-actions";
 import { InteractiveMessage } from "./message-reactions";
-import { MessageMeta, SendingFade } from "./message-status";
+import { NotSent, SendingFade } from "./message-status";
 import { linkCardsOf, visibleBody } from "./message-text";
 import { RevealedTime, SlideWithReveal } from "./reveal";
+import { TAPBACK_OVERLAP, TAPBACK_SIZE } from "./tapbacks";
 
 /** Width of the avatar column beside incoming bubbles in group chats. */
 const AVATAR_COLUMN = 28;
@@ -94,12 +95,11 @@ function Content({
       {/* 4pt between a message's parts, the same as between bubbles. */}
       <View className={cn("gap-1", isOwn ? "items-end" : "items-start")}>
         {message.attachments.map((attachment) => (
-          <MenuTargetView key={attachmentKey(attachment)}>
-            <AttachmentView
-              attachment={attachment}
-              sending={message.status === "sending"}
-            />
-          </MenuTargetView>
+          <AttachmentView
+            key={attachmentKey(attachment)}
+            attachment={attachment}
+            sending={message.status === "sending"}
+          />
         ))}
         {body !== undefined && (
           <MenuTargetView>
@@ -133,20 +133,18 @@ function AvatarColumn({
   );
 }
 
-/** A message's bubbles, with its sender's name, reactions, and status. */
+/** A message's bubbles, with its sender's name, tapbacks, and status. */
 function BubbleColumn({
   message,
   isOwn,
   name,
   endsGroup,
-  delivered,
 }: {
   message: Message;
   isOwn: boolean;
   /** The sender's name, above the first bubble of a run in group chats. */
   name?: string;
   endsGroup: boolean;
-  delivered: boolean;
 }) {
   return (
     <View
@@ -159,12 +157,21 @@ function BubbleColumn({
         message={message}
         align={isOwn ? "end" : "start"}
         shape="plain"
+        reactionStyle="tapbacks"
       >
         <Content message={message} isOwn={isOwn} endsGroup={endsGroup} />
       </InteractiveMessage>
-      <MessageMeta message={message} delivered={delivered} />
+      <NotSent message={message} />
     </View>
   );
+}
+
+/** What sits above the bubble: the sender's name, and the tapbacks. */
+function aboveBubble(message: Message, named: boolean) {
+  const name = named ? NAME_HEIGHT : 0;
+  const tapbacks =
+    (message.reactions?.length ?? 0) > 0 ? TAPBACK_SIZE - TAPBACK_OVERLAP : 0;
+  return name + tapbacks;
 }
 
 /**
@@ -178,7 +185,6 @@ export function MessageBubble({
   author,
   startsGroup,
   endsGroup,
-  delivered,
 }: {
   message: Message;
   isOwn: boolean;
@@ -186,7 +192,6 @@ export function MessageBubble({
   author?: { avatarUrl: string | null; displayName: string };
   startsGroup: boolean;
   endsGroup: boolean;
-  delivered: boolean;
 }) {
   const showAuthor = author !== undefined && !isOwn;
   return (
@@ -204,13 +209,12 @@ export function MessageBubble({
             isOwn={isOwn}
             name={startsGroup && showAuthor ? author.displayName : undefined}
             endsGroup={endsGroup}
-            delivered={delivered}
           />
         </View>
       </SlideWithReveal>
       <RevealedTime
         date={message.sentAt}
-        top={startsGroup && showAuthor ? NAME_HEIGHT : 0}
+        top={aboveBubble(message, startsGroup && showAuthor)}
       />
     </View>
   );

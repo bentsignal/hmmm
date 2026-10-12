@@ -18,8 +18,6 @@ export type MessageRow =
       startsGroup: boolean;
       /** Last message of a run; bubbles draw their tail here. */
       endsGroup: boolean;
-      /** Your newest message, when nothing has come in after it. */
-      delivered: boolean;
     };
 
 function needsHeader(
@@ -49,30 +47,64 @@ function continues(
   );
 }
 
+type MessageRowOf = Extract<MessageRow, { type: "message" }>;
+type HeaderRow = Exclude<MessageRow, { type: "message" }>;
+
+/**
+ * Each message's rows from the last build, reused while they come out the
+ * same, so the list only redraws rows that changed.
+ */
+const built = new WeakMap<
+  Message,
+  { readonly row: MessageRowOf; readonly header?: HeaderRow }
+>();
+
+function messageRow(
+  message: Message,
+  startsGroup: boolean,
+  endsGroup: boolean,
+) {
+  const last = built.get(message)?.row;
+  if (last?.startsGroup === startsGroup && last.endsGroup === endsGroup) {
+    return last;
+  }
+  return {
+    endsGroup,
+    key: message.id,
+    message,
+    startsGroup,
+    type: "message",
+  } satisfies MessageRowOf;
+}
+
+function headerRow(message: Message, type: HeaderRow["type"]) {
+  const last = built.get(message)?.header;
+  if (last?.type === type) return last;
+  return { date: message.sentAt, key: `${type}-${message.id}`, type };
+}
+
 /**
  * Interleaves headers with messages, oldest first: a time header after
  * each pause for bubbles, a day separator for stacked rows.
  */
 export function buildMessageRows(
   messages: readonly Message[],
-  { layout, self }: { layout: MessageLayout; self: string },
+  layout: MessageLayout,
 ) {
   return messages.flatMap((message, index): MessageRow[] => {
     const previous = messages[index - 1];
     const next = messages[index + 1];
-    const row = {
-      delivered:
-        next === undefined &&
-        message.authorId === self &&
-        message.status === undefined,
-      endsGroup: !continues(layout, message, next),
-      key: message.id,
+    const row = messageRow(
       message,
-      startsGroup: !continues(layout, previous, message),
-      type: "message",
-    } as const;
-    if (!needsHeader(layout, previous, message)) return [row];
-    const type = layout === "bubbles" ? "time" : "day";
-    return [{ date: message.sentAt, key: `${type}-${message.id}`, type }, row];
+      !continues(layout, previous, message),
+      !continues(layout, message, next),
+    );
+    if (!needsHeader(layout, previous, message)) {
+      built.set(message, { row });
+      return [row];
+    }
+    const header = headerRow(message, layout === "bubbles" ? "time" : "day");
+    built.set(message, { header, row });
+    return [header, row];
   });
 }

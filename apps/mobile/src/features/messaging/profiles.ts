@@ -4,10 +4,52 @@ import { pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
 import { useAccount } from "./account";
-import { pdsResult } from "./results";
+import { pdsResult, pdsResultOr } from "./results";
 
 export function usernameOf(address: string) {
   return address.slice(0, address.lastIndexOf("@")) || address;
+}
+
+/**
+ * Each profile as screens show it, the same object while the profile is,
+ * so rows that show it (every message in a conversation) don't redraw.
+ */
+const shownProfiles = new WeakMap<object, ShownProfile>();
+const fallbacks = new Map<string, ShownProfile>();
+
+interface ShownProfile {
+  readonly affiliated: boolean;
+  readonly avatarUrl: string | null;
+  readonly displayName: string;
+}
+
+function shownProfile(
+  address: string,
+  profile:
+    | {
+        readonly affiliated?: boolean;
+        readonly avatarUrl?: string | null;
+        readonly displayName?: string;
+      }
+    | null
+    | undefined,
+) {
+  if (profile == null) {
+    const fallback = fallbacks.get(address) ?? {
+      affiliated: false,
+      avatarUrl: null,
+      displayName: usernameOf(address),
+    };
+    fallbacks.set(address, fallback);
+    return fallback;
+  }
+  const shown = shownProfiles.get(profile) ?? {
+    affiliated: profile.affiliated === true,
+    avatarUrl: profile.avatarUrl ?? null,
+    displayName: profile.displayName ?? usernameOf(address),
+  };
+  shownProfiles.set(profile, shown);
+  return shown;
 }
 
 /**
@@ -23,9 +65,11 @@ export function useProfileState(addresses: readonly string[]) {
       pdsQuery({
         args: { accountId },
         options: {
-          // undefined while loading; null once known to have none.
+          // undefined while loading; null once known to have none, or once
+          // their PDS fails, so screens waiting on profiles don't wait on
+          // it forever.
           select: (result) => {
-            const sources = pdsResult(result);
+            const sources = pdsResultOr(result, []);
             return sources === undefined
               ? undefined
               : (sources.find((profile) => profile !== null) ?? null);
@@ -43,14 +87,7 @@ export function useProfileState(addresses: readonly string[]) {
     isLoading: profiles.some((profile) => profile.data === undefined),
     /** Whether this address's profile (or its absence) is known. */
     isLoaded: (address: string) => found.get(address) !== undefined,
-    profileOf: (address: string) => {
-      const profile = found.get(address);
-      return {
-        affiliated: profile?.affiliated === true,
-        avatarUrl: profile?.avatarUrl ?? null,
-        displayName: profile?.displayName ?? usernameOf(address),
-      };
-    },
+    profileOf: (address: string) => shownProfile(address, found.get(address)),
   };
 }
 

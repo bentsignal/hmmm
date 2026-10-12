@@ -1,3 +1,5 @@
+import type { View as NativeView } from "react-native";
+import { useRef } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { Image } from "expo-image";
@@ -11,6 +13,7 @@ import type { AttachmentUpload, MessageAttachment } from "./types";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { removeOutgoingItem, retryOutgoing } from "~/features/messaging/outbox";
 import { formatBytes, formatDuration } from "~/lib/format";
+import { useMenuTarget } from "./message-actions";
 
 const MEDIA_WIDTH = 240;
 const MAX_MEDIA_HEIGHT = 300;
@@ -109,6 +112,16 @@ function useDrawnPoster(url: string, enabled: boolean) {
   return data;
 }
 
+/** What a photo or video shows in the conversation. */
+function usePoster(attachment: MessageAttachment) {
+  const isVideo = attachment.kind === "video";
+  const saved = isVideo
+    ? (attachment.localThumbnailUrl ?? attachment.thumbnailUrl)
+    : (attachment.localUrl ?? attachment.url);
+  const drawn = useDrawnPoster(attachment.url, isVideo && saved === undefined);
+  return saved ?? drawn;
+}
+
 function mediaLabel(attachment: MessageAttachment) {
   if (isStuck(attachment.upload)) return "Not uploaded. Try again or remove.";
   return attachment.kind === "video" ? "Play video" : "View photo";
@@ -139,18 +152,20 @@ function Media({
   sending: boolean;
 }) {
   const router = useRouter();
+  const ref = useRef<NativeView>(null);
+  const target = useMenuTarget({
+    attachment,
+    measured: ref,
+    preview: <Media attachment={attachment} sending={sending} />,
+    shape: "plain",
+  });
   const { upload } = attachment;
   const isVideo = attachment.kind === "video";
-  const savedPoster = isVideo
-    ? (attachment.localThumbnailUrl ?? attachment.thumbnailUrl)
-    : (attachment.localUrl ?? attachment.url);
-  const drawnPoster = useDrawnPoster(
-    attachment.url,
-    isVideo && savedPoster === undefined,
-  );
-  const poster = savedPoster ?? drawnPoster;
+  const poster = usePoster(attachment);
   return (
     <Pressable
+      ref={ref}
+      {...target?.press}
       accessibilityRole="imagebutton"
       accessibilityLabel={mediaLabel(attachment)}
       onPress={() => {
@@ -168,34 +183,40 @@ function Media({
           pathname: "/media",
         });
       }}
-      className="bg-fill items-center justify-center overflow-hidden rounded-2xl active:opacity-90"
-      style={{
-        borderCurve: "continuous",
-        height: mediaHeight(attachment),
-        width: MEDIA_WIDTH,
-      }}
     >
-      {poster !== undefined && (
-        <Animated.View
-          style={[
-            { height: "100%", position: "absolute", width: "100%" },
-            uploadFade(sending),
-          ]}
-        >
-          <Image
-            source={{ uri: poster }}
-            contentFit="cover"
-            transition={150}
-            style={{ height: "100%", width: "100%" }}
-          />
-        </Animated.View>
-      )}
-      <MediaBadge attachment={attachment} />
-      {isVideo && attachment.durationMs !== undefined && (
-        <Text className="text-caption absolute bottom-2 left-2 overflow-hidden rounded-full bg-black/50 px-2 py-0.5 font-semibold text-white">
-          {formatDuration(Math.round(attachment.durationMs / 1000))}
-        </Text>
-      )}
+      <Animated.View
+        className="bg-fill items-center justify-center overflow-hidden rounded-2xl"
+        style={[
+          {
+            borderCurve: "continuous",
+            height: mediaHeight(attachment),
+            width: MEDIA_WIDTH,
+          },
+          target?.style,
+        ]}
+      >
+        {poster !== undefined && (
+          <Animated.View
+            style={[
+              { height: "100%", position: "absolute", width: "100%" },
+              uploadFade(sending),
+            ]}
+          >
+            <Image
+              source={{ uri: poster }}
+              contentFit="cover"
+              transition={150}
+              style={{ height: "100%", width: "100%" }}
+            />
+          </Animated.View>
+        )}
+        <MediaBadge attachment={attachment} />
+        {isVideo && attachment.durationMs !== undefined && (
+          <Text className="text-caption absolute bottom-2 left-2 overflow-hidden rounded-full bg-black/50 px-2 py-0.5 font-semibold text-white">
+            {formatDuration(Math.round(attachment.durationMs / 1000))}
+          </Text>
+        )}
+      </Animated.View>
     </Pressable>
   );
 }
@@ -207,10 +228,19 @@ function FileCard({
   attachment: MessageAttachment;
   sending: boolean;
 }) {
+  const ref = useRef<NativeView>(null);
+  const target = useMenuTarget({
+    attachment,
+    measured: ref,
+    preview: <FileCard attachment={attachment} sending={sending} />,
+    shape: "plain",
+  });
   const { upload } = attachment;
   const stuck = isStuck(upload);
   return (
     <Pressable
+      ref={ref}
+      {...target?.press}
       accessibilityRole="link"
       onPress={() => {
         if (upload !== undefined && stuck) {
@@ -219,43 +249,46 @@ function FileCard({
           void WebBrowser.openBrowserAsync(attachment.url);
         }
       }}
-      className="bg-bubble-incoming w-64 rounded-2xl p-3 active:opacity-80"
-      style={{ borderCurve: "continuous" }}
     >
       <Animated.View
-        className="flex-row items-center gap-3"
-        style={uploadFade(sending)}
+        className="bg-bubble-incoming w-64 rounded-2xl p-3"
+        style={[{ borderCurve: "continuous" }, target?.style]}
       >
-        <View className="bg-accent size-10 items-center justify-center overflow-hidden rounded-lg">
-          <SymbolIcon
-            name={
-              stuck
-                ? { android: "refresh", ios: "arrow.clockwise" }
-                : { android: "description", ios: "doc.fill" }
-            }
-            size={20}
-            tintColorClassName="accent-on-accent"
-          />
-        </View>
-        <View className="flex-1">
-          <Text
-            numberOfLines={1}
-            className="text-subhead text-foreground font-semibold"
-          >
-            {attachment.name}
-          </Text>
-          <Text
-            className={
-              stuck
-                ? "text-footnote text-destructive"
-                : "text-footnote text-muted"
-            }
-          >
-            {stuck
-              ? "Not uploaded. Tap to retry."
-              : formatBytes(attachment.size)}
-          </Text>
-        </View>
+        <Animated.View
+          className="flex-row items-center gap-3"
+          style={uploadFade(sending)}
+        >
+          <View className="bg-accent size-10 items-center justify-center overflow-hidden rounded-lg">
+            <SymbolIcon
+              name={
+                stuck
+                  ? { android: "refresh", ios: "arrow.clockwise" }
+                  : { android: "description", ios: "doc.fill" }
+              }
+              size={20}
+              tintColorClassName="accent-on-accent"
+            />
+          </View>
+          <View className="flex-1">
+            <Text
+              numberOfLines={1}
+              className="text-subhead text-foreground font-semibold"
+            >
+              {attachment.name}
+            </Text>
+            <Text
+              className={
+                stuck
+                  ? "text-footnote text-destructive"
+                  : "text-footnote text-muted"
+              }
+            >
+              {stuck
+                ? "Not uploaded. Tap to retry."
+                : formatBytes(attachment.size)}
+            </Text>
+          </View>
+        </Animated.View>
       </Animated.View>
     </Pressable>
   );
