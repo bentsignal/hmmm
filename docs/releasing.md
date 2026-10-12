@@ -9,7 +9,7 @@ the release with the `vera-release` skill and
 | Binary           | App      | Built with                              | PDS             | Update channel | Who has it                                      |
 | ---------------- | -------- | --------------------------------------- | --------------- | -------------- | ----------------------------------------------- |
 | Store build      | Vera     | `production` (App Store signing)        | `vera.chat`     | `production`   | TestFlight (Team, Friends), later the App Store |
-| Android APK      | Vera     | `production-apk` (EAS keystore)         | `vera.chat`     | `production`   | Android testers, by install link                |
+| Play build       | Vera     | `production` (app bundle, Play signing) | `vera.chat`     | `production`   | Play internal testing ("Vera testers")          |
 | Internal build   | Vera Dev | `eas.json` `internal` (Release, ad hoc) | `dev.vera.chat` | `internal`     | Shawn's phone, for update and channel checks    |
 | Android internal | Vera Dev | `internal` (APK)                        | `dev.vera.chat` | `internal`     | Shawn's Android phone, the same                 |
 | Dev client       | Vera Dev | `development` (`scripts/phone.sh`)      | worktree's      | none           | Shawn's phones between releases                 |
@@ -21,10 +21,15 @@ Dev holds one binary at a time: an internal build replaces the dev client,
 and Shawn reinstalls the dev client from its link (`scripts/phone.sh link`)
 afterwards.
 
-Android has no Play listing yet, so its testers install APKs from EAS links
-([android.md](android.md)). Over-the-air updates reach them the same way:
+Android testers use Google Play internal testing
+([android.md](android.md#getting-builds-to-android-testers)). They join
+from the opt-in link after Shawn adds them to the "Vera testers" list in
+Play Console (Test and release → Internal testing → Testers), and new
+builds arrive through the Play Store. Over-the-air updates reach them too:
 `pnpm release ota production` publishes for every platform whose latest
-production binary has the current runtime.
+production binary has the current runtime. Play re-signs builds with
+Google's key, whose SHA-256 is in the passkey variables and
+`assetlinks.json`.
 
 TestFlight and the App Store run the same binary: Apple promotes a TestFlight
 build to the App Store, so there is one store profile and one production
@@ -63,7 +68,8 @@ in the message:
 - `mobile/build/<n>`: iOS store build `n` uploaded to App Store Connect.
 - `mobile/internal/<n>`: an iOS internal build.
 - `mobile/android/build/<versionCode>` and `mobile/android/internal/<versionCode>`:
-  the Android equivalents (production APK and internal APK).
+  the Android equivalents (Play build and internal APK). Builds 3 and 4
+  were production APKs; Play builds start at 5.
 - `mobile/ota/<channel>/<yyyymmddThhmmss>` (UTC): an update, with its EAS
   update group and, per platform, the runtime and the update ID the app
   shows in Settings → About (`ios-update:`, `android-update:`).
@@ -109,7 +115,9 @@ the release a PR removes the finished steps.
    - Store: `pnpm release build production` (release Xcode, uploads to App
      Store Connect), then `pnpm release testflight <build> <notes.md>`. The
      Team group gets the build at once; Friends get it after Beta App
-     Review.
+     Review. On Android, `pnpm release build production --android` builds
+     an app bundle and submits it to Play internal testing, where testers
+     get it with no review.
 5. **App Store**, only when Shawn says so: `pnpm release appstore <build>`
    submits the TestFlight build for App Review. The first submission needs
    the store listing filled in first (see the skill).

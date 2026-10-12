@@ -168,6 +168,19 @@ each build goes through Beta App Review). Reviewers sign up with the
 production invite code labeled "Apple App Review", which the review notes
 in Test Information give them.
 
+### Google Play
+
+Android store builds (`production`, an app bundle) go to Google Play
+internal testing. `pnpm release build production --android` builds one,
+submits it with `eas submit` (track `internal`, from
+`submit.production.android` in `eas.json`), and tags it. Testers are the
+"Vera testers" list in Play Console (Test and release → Internal testing →
+Testers). They join from the opt-in link
+`https://play.google.com/apps/internaltest/4701256487800921587`, and
+updates arrive through the Play Store. Play App Signing re-signs builds
+with Google's key; its SHA-256 is in the passkey variables and
+`assetlinks.json` ([docs/android.md](../../docs/android.md#passkeys)).
+
 ## UI rules
 
 - Nothing pops in. Anything that loads (lists, conversations, screens,

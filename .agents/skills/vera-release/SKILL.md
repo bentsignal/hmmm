@@ -141,15 +141,22 @@ submission fails; don't tell Shawn Friends will get it unless it succeeded. The 
 every build without review. Tell Shawn the build number and that Friends
 will see it after Apple's review, usually within a day.
 
-**Android build** (when `plan` says Android needs one): until Play internal
-testing exists, testers install a production APK from an EAS link:
+**Android build** (when `plan` says Android needs one): testers get it
+through Google Play internal testing:
 
 ```sh
-pnpm release build production --android   # production-apk profile, vera.chat; prints the install link
+pnpm release build production --android   # app bundle (production profile), submitted to Play's internal track
 ```
 
-Send the link to the Android testers (Shawn forwards it). Internal Android
-builds for Shawn: `pnpm release build internal --android`.
+It checks the bundle's runtime, submits it with `eas submit` (track
+`internal`, release status `completed`, the service account key at
+`~/.config/vera/play-service-account.json`), and tags it. Testers get it
+from the Play Store with no review; there is no link to send. A new tester
+joins from the opt-in link
+`https://play.google.com/apps/internaltest/4701256487800921587` once Shawn
+adds their Google account to the "Vera testers" list (Play Console → Test
+and release → Internal testing → Testers). Internal Android builds for
+Shawn: `pnpm release build internal --android`.
 
 Every command tags the release (`mobile/build/<n>`,
 `mobile/android/build/<versionCode>`, `mobile/ota/production/...`) and pushes
@@ -207,11 +214,13 @@ After `ota production`:
   ```
 
 - On a device, Settings → About shows the running update's ID after the app
-  is opened twice (download, then run). Without a signed-in account, install
-  the production APK on a throwaway emulator, open it twice, and read
+  is opened twice (download, then run). Without a signed-in Vera account,
+  open the Play build twice on an Android device or emulator connected to
+  `adb` (installing it needs a Google account on the "Vera testers" list),
+  and read
   `adb logcat | grep dev.expo.updates`: the first launch logs
   "DownloadComplete" and "NEW_UPDATE_LOADED", the second "No update
-  available". Delete the emulator afterwards.
+  available".
 
 ## Rolling back
 
@@ -243,5 +252,10 @@ After `ota production`:
   `EXPO_PUBLIC_VERA_DOMAIN` (and `APP_VARIANT` for internal). Without the first the runtime doesn't match the
   store build; without the second the update points at the wrong PDS. Don't
   run `eas update` by hand.
+- Play builds are signed with Google's Play App Signing key, not the EAS
+  keystore (that one is only the upload key). Its SHA-256 is in
+  `PASSKEY_ANDROID_CERT_SHA256` and `PASSKEY_ORIGINS` on both deployments
+  and in `assetlinks.json`. If passkeys or invite links fail only on Play
+  builds, check those first (`docs/android.md` → Passkeys).
 - Signing problems: `expect apps/mobile/scripts/eas-credentials.exp production`
   with `source ~/.appstoreconnect/vera.env`; see `apps/mobile/README.md`.

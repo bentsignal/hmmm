@@ -102,14 +102,15 @@ keystore, SHA-256 `4E:FC:68:9E:…:79:3B`
 and both keys in `PASSKEY_ANDROID_CERT_SHA256` and `PASSKEY_ORIGINS`;
 `assetlinks.json` lists every package with every key.
 
+**Google Play App Signing** re-signs Play builds with Google's key, SHA-256
+`69:B5:52:E7:…:BB:EE`
+(`android:apk-key-hash:abVS58UNrnDIW3yM0Zizt9L_geW1KDZaxDsDbzXsu-4`). Since
+2026-10-11 both deployments list it in `PASSKEY_ANDROID_CERT_SHA256` and
+`PASSKEY_ORIGINS`, so `assetlinks.json` has it too. Passkeys and space invite
+links (`vera.chat/join/…`) both depend on it on Play builds.
+
 Other signing keys need both values added, on both deployments:
 
-- **Google Play App Signing** re-signs Play builds with Google's key. Copy its
-  SHA-256 from Play Console → Test and release → App integrity, then add it
-  to `PASSKEY_ANDROID_CERT_SHA256` and its `android:apk-key-hash:` form to
-  `PASSKEY_ORIGINS`. Space invite links (`vera.chat/join/…`) use the same
-  `assetlinks.json`, so until then Play builds open them in the browser
-  instead of the app.
 - **Local debug builds** (`expo run:android`) sign with
   `~/.android/debug.keystore`, which does not exist yet. Rather than trusting
   that key, sign emulators in with the dev deep link:
@@ -121,38 +122,34 @@ Play services (also needed for FCM).
 
 ## Getting builds to Android testers
 
-Two routes; run them in parallel.
+Testers use Google Play internal testing, the TestFlight equivalent. It was
+set up on 2026-10-11 and replaced the APK links.
 
-### APK link (fastest)
+- The Play Console app is `chat.vera.app`, with Play App Signing: Google
+  holds the app signing key, and the EAS keystore is the upload key.
+- To add a tester, add their Google account email to the "Vera testers" list
+  in Play Console → Test and release → Internal testing → Testers (up to
+  100). Then send them the opt-in link,
+  `https://play.google.com/apps/internaltest/4701256487800921587`. They
+  accept it and install Vera from the Play Store. Internal testing has no
+  review.
+- New builds arrive through the Play Store like any app update.
+  Over-the-air updates reach Play builds too.
+- `pnpm release build production --android` builds an app bundle with the
+  `production` profile, submits it to the `internal` track with
+  `eas submit`, and tags it. The track and release status are in `eas.json`
+  (`submit.production.android`).
+- `eas submit` signs in as the service account
+  `eas-play-submit@vera-c5690.iam.gserviceaccount.com`, which can only
+  release to testing tracks and manage them. Its JSON key is
+  `~/.config/vera/play-service-account.json` on Shawn's Mac, never in the
+  repo; `pnpm release` passes the path as `PLAY_SERVICE_ACCOUNT_KEY_PATH`.
+- versionCode 5 was the first Play build, uploaded by hand, since Google
+  requires one manual upload before the API can publish. Builds 3 and 4
+  were production APKs.
 
-EAS builds a signed APK and gives a link; the tester allows "install unknown
-apps" and installs it. No Google account is needed, and it is signed with
-the EAS key that `assetlinks.json` already lists.
-
-- Add an Android profile that targets production (`vera.chat`, like
-  `production`) with `android.buildType: "apk"` and `distribution: "internal"`,
-  so the friend joins the same server as the TestFlight group. Set
-  `buildType: "apk"` on `internal` too, for Shawn's own Android testing
-  against `dev.vera.chat`.
-- Every update means sending a new link.
-- Google's developer verification for sideloaded apps started enforcement on
-  2026-09-30 in Brazil, Indonesia, Singapore, and Thailand only, and goes
-  global in 2027. Check where the friend lives before relying on this route.
-
-### Google Play internal testing (the TestFlight equivalent)
-
-1. Shawn creates a Google Play developer account ($25 once, government ID
-   check, may take days).
-2. Create the app in Play Console with package `chat.vera.app`.
-3. Upload the first `.aab` by hand in Play Console; Google requires a manual
-   first upload before the API can publish.
-4. Create a service account with Play Console access, store its key with EAS,
-   and add `submit.production.android` to `eas.json` (track `internal`). After
-   that, `eas submit -p android` publishes.
-5. Add testers by email (up to 100). Internal testing has no review, and
-   updates arrive through the Play Store.
-6. Add the Play App Signing fingerprint to the passkey variables (see
-   Passkeys); passkeys and invite links both need it.
+Only Vera Dev internal builds are still APKs, on an install page for
+Shawn's phone.
 
 Personal accounts created after 2023-11-13 must run a closed test with 12
 testers for 14 days before public release. That only matters for the store
@@ -254,9 +251,7 @@ Done when:
       key (2026-10-04).
 - [ ] Fix the Android UI in small PRs: composer and glass surfaces, conversation
       header, message menu, search tab, themes.
-- [ ] Once Shawn's Play account is approved: Play internal testing,
-      `eas submit`, and the Play signing fingerprint for passkeys.
+- [x] Play internal testing, `eas submit`, and the Play signing fingerprint
+      for passkeys and invite links (2026-10-11; see Getting builds to
+      Android testers).
 - [ ] Later: `MessagingStyle` notifications.
-
-Open questions for Shawn: which country the Android friend is in, and the
-Google account email to add as a Play tester.
