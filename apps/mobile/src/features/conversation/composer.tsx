@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Platform, Pressable, StyleSheet, TextInput } from "react-native";
+import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import Animated, {
+  interpolate,
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
@@ -27,6 +29,12 @@ const SEND = 32;
  * rounded corners.
  */
 const IOS_EDGE = 28;
+/**
+ * While typing on iOS the controls widen to this, a little, moving with the
+ * keyboard so the change is barely noticed.
+ */
+const IOS_TYPING_EDGE = 16;
+const ANDROID_EDGE = 12;
 /** The bar's padding above and below the controls. */
 const PADDING = 8;
 
@@ -102,6 +110,17 @@ export function Composer({
   bottomInset: number;
 }) {
   const [draft, setDraft] = useState("");
+  const keyboard = useReanimatedKeyboardAnimation();
+  const sides = useAnimatedStyle(() => ({
+    paddingHorizontal:
+      Platform.OS === "ios"
+        ? interpolate(
+            keyboard.progress.value,
+            [0, 1],
+            [IOS_EDGE, IOS_TYPING_EDGE],
+          )
+        : ANDROID_EDGE,
+  }));
   const canSend = draft.trim().length > 0 || staged.length > 0;
 
   function change(text: string) {
@@ -116,7 +135,7 @@ export function Composer({
   }
 
   return (
-    <View
+    <Animated.View
       className={cn(
         "flex-row items-end gap-2",
         // No glass on Android: a solid bar, down through the navigation
@@ -124,14 +143,16 @@ export function Composer({
         // system buttons.
         Platform.OS === "android" && "bg-background border-separator",
       )}
-      style={{
-        paddingBottom: PADDING + bottomInset,
-        paddingHorizontal: Platform.OS === "ios" ? IOS_EDGE : 12,
-        paddingTop: PADDING,
-        ...(Platform.OS === "android" && {
-          borderTopWidth: StyleSheet.hairlineWidth,
-        }),
-      }}
+      style={[
+        {
+          paddingBottom: PADDING + bottomInset,
+          paddingTop: PADDING,
+          ...(Platform.OS === "android" && {
+            borderTopWidth: StyleSheet.hairlineWidth,
+          }),
+        },
+        sides,
+      ]}
     >
       <AttachMenu onPick={onPick} />
       <GlassSurface
@@ -156,6 +177,6 @@ export function Composer({
         />
         <SendButton visible={canSend} onPress={send} />
       </GlassSurface>
-    </View>
+    </Animated.View>
   );
 }
