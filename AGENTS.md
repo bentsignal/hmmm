@@ -99,17 +99,20 @@ See [apps/mobile/README.md](apps/mobile/README.md#vera-dev).
 - **Day to day, Vera Dev is main's dev client.** When Shawn comes to test
   your worktree, run `scripts/phone.sh up` (`--android` for his Android
   phone) in it. It serves the worktree's Metro on the Mac's Wi-Fi address
-  (the phone must be on the same network) and prints an open link and a
-  QR code: send both, with the QR PNG embedded. JavaScript changes then
-  hot-reload on his phone with no build. Never start it before he asks.
+  (the phone must be on the same network). Tell him the **server address**
+  it prints (`server: http://<IP>:<port>`), first and on its own line: he
+  opens Vera Dev and picks that one from its list, where several worktrees'
+  servers can show up at once. Don't send QR codes or the open link unless
+  he asks. JavaScript changes then hot-reload on his phone with no build.
+  Never start it before he asks.
 - **Native builds only when native code changed.** `phone.sh up` compares
   the worktree's native fingerprint with main's. A worktree that changed
   native code gets its own dev client (built once, about 15 minutes, and
   cached); he installs it from the install link, and when he's done,
   `phone.sh down` prints main's install link to put main's dev client back
   (`phone.sh main` any time). Tell Shawn when he has to install something;
-  otherwise he only opens the link. `phone.sh list` shows every cached dev
-  client.
+  otherwise he only picks the server. `phone.sh list` shows every cached
+  dev client.
 - **Releases are tested in the dev client too**, serving `main` (the
   `vera-release` skill), so fixes reach his phone without a build. The real
   app gets tested in TestFlight.

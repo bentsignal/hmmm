@@ -6,8 +6,9 @@
 #
 #   scripts/phone.sh [--android] <command>     (iPhone without --android)
 #
-#   up       build the dev client if needed, start Metro, print the links
-#   link     print the links and QR codes again
+#   up       build the dev client if needed, start Metro, print the server
+#            address (what Shawn picks in Vera Dev) and the links
+#   link     print the server address and links again
 #   status   the dev client for this fingerprint, Metro, and the Wi-Fi address
 #   down     stop serving the phone; Metro stops unless a simulator uses it
 #   main     the install link for main's dev client (building it if needed)
@@ -169,6 +170,9 @@ links() {
   open="$(open_url)"
   "$ROOT/scripts/qr.sh" "$install" "$STATE_DIR/phone-$PLATFORM-install.png" >/dev/null
   "$ROOT/scripts/qr.sh" "$open" "$STATE_DIR/phone-$PLATFORM-open.png" >/dev/null
+  # Shawn picks the server from Vera Dev's list, where every worktree's
+  # Metro shows up by address; this is the one to tell him.
+  echo "server:   http://$(address):$PORT"
   echo "install:  $install"
   echo "          $STATE_DIR/phone-$PLATFORM-install.png"
   echo "open:     $open"

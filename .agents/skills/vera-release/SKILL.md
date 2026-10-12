@@ -91,9 +91,10 @@ scripts/phone.sh up             # and again with --android for his Android phone
 
 Run `phone.sh up` from the release checkout (detached at `origin/main`, no
 isolated backend). It builds a dev client only when `main`'s native
-fingerprint has none yet (about 15 minutes); otherwise Shawn just opens the
-link. Send the open link and QR code, plus the install link when he needs
-one, as `phone.sh` prints them.
+fingerprint has none yet (about 15 minutes); otherwise Shawn just picks the
+server in Vera Dev. Tell him the server address `phone.sh` prints
+(`server: http://<IP>:<port>`), first and on its own line, plus the install
+link when he needs one. No QR codes or open link unless he asks.
 
 Make an internal build (`pnpm release build internal`, `--android`) or an
 internal OTA (`pnpm release ota internal "<summary>"`) only when Shawn asks

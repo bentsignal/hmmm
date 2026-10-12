@@ -89,7 +89,7 @@ server shows up in Vera Dev's list, and he tests one worktree at a time.
 
 ```sh
 scripts/phone.sh up             # iPhone; --android for his Android phone
-scripts/phone.sh link           # the links and QR codes again
+scripts/phone.sh link           # the server address and links again
 scripts/phone.sh down           # as soon as he reports back
 scripts/phone.sh main           # main's dev client, to put back on his phone
 scripts/phone.sh list           # every cached dev client, marking main's
@@ -100,29 +100,31 @@ scripts/phone.sh list           # every cached dev client, marking main's
 - Vera Dev on his phone is normally **main's dev client**, which runs every
   worktree that hasn't changed native code. `up` compares this worktree's
   native fingerprint with main's and says which case it is:
-  - **Main's dev client:** he only opens the link.
+  - **Main's dev client:** he only picks the server in Vera Dev.
   - **This worktree's own dev client** (native code changed): `up` builds
     it if needed (about 15 minutes, cached for every worktree) and he
     installs it first. Afterwards he needs main's back (see `down`).
   - **A new dev client for main** (main's native code changed since he last
     installed one): he installs it once; it serves every worktree after.
-- `up` starts the worktree's Metro (the same one the simulators use) and
-  prints an **open** link (`vera-dev://expo-development-client/?url=...`)
-  that points Vera Dev at it over the Mac's Wi-Fi (the phone must be on the
-  same network), and an **install** link. Send the open link with its QR
-  code embedded (`![open](/abs/path/.cache/sim/phone-ios-open.png)`, from
-  `up`'s output), plus the install link and its QR code when he has to
-  install. Say plainly whether he does.
+- `up` starts the worktree's Metro (the same one the simulators use),
+  served over the Mac's Wi-Fi (the phone must be on the same network), and
+  prints its **server** address (`server: http://<IP>:<port>`), an
+  **install** link, and an **open** link. Shawn opens Vera Dev himself and
+  picks the server from its list, where every running worktree's Metro
+  shows up by address, so the address is what he needs. Put it first, on
+  its own line, port included (`http://10.0.0.152:8892`). Add the install
+  link only when he has to install, and say plainly whether he does. Don't
+  send QR codes or the open link unless he asks for them.
 - JavaScript edits hot-reload on his phone. Re-run `up` after native
   changes, `app.config.ts`, or `.env.local`.
 - With an isolated backend, Vera Dev talks to this worktree's domain, which
   has no accounts. Tell Shawn to sign in with
-  `vera-dev:///dev-sign-in?username=<name>` (or make a QR code of it), and
-  that the account is a throwaway.
+  `vera-dev:///dev-sign-in?username=<name>`, and that the account is a
+  throwaway.
 - When he reports back, with feedback or an approval, run `down` right
   away, before you start on the feedback. If this worktree had its own dev
-  client, `down` also prints main's install link: send it with its QR code
-  so he can put main's dev client back. When he wants to retest a fix, he
+  client, `down` also prints main's install link: send it so he can put
+  main's dev client back. When he wants to retest a fix, he
   asks and you `up` again.
 - Never make an internal build for this. Those are only for when Shawn
   asks for one by name, or to check update or channel behavior, which a
