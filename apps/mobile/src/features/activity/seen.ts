@@ -8,7 +8,7 @@ import { useState } from "react";
 import { AppState } from "react-native";
 import { useFocusEffect } from "expo-router";
 
-import type { ActivityEntry } from "./activity";
+import type { ActivityEntry, ActivityListRow } from "./activity";
 import { markSeen } from "./activity";
 
 /** How long a row must stay entirely on screen to count as seen. */
@@ -111,10 +111,12 @@ function createSeenTracker() {
     onViewableItemsChanged: ({
       viewableItems,
     }: {
-      viewableItems: ViewToken<ActivityEntry>[];
+      viewableItems: ViewToken<ActivityListRow>[];
     }) => {
       candidates.clear();
-      for (const { item, key } of viewableItems) candidates.set(key, item);
+      for (const { item, key } of viewableItems) {
+        if (item.kind === "activity") candidates.set(key, item.entry);
+      }
       check();
     },
     focus: () => {

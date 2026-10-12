@@ -1,44 +1,10 @@
 import { Alert, Pressable, Text, View } from "react-native";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 
 import type { AccountSpaceInvite } from "~/features/messaging/spaces";
-import { SymbolIcon } from "~/components/symbol-icon";
-import { UnreadBadge } from "~/components/unread-badge";
 import { useProfile, usernameOf } from "~/features/messaging/profiles";
 import { useSpaceActions } from "~/features/messaging/spaces";
 import { cn } from "~/lib/cn";
-
-/** Heads the Spaces list while invitations are waiting. */
-export function InvitesRow({ count }: { count: number }) {
-  return (
-    <Link href="/spaces/invites" asChild>
-      <Pressable className="active:bg-fill flex-row items-center gap-3 pl-4">
-        <View
-          className="bg-fill size-12 items-center justify-center rounded-xl"
-          style={{ borderCurve: "continuous" }}
-        >
-          <SymbolIcon
-            name={{ android: "mail", ios: "envelope.fill" }}
-            size={22}
-            tintColorClassName="accent-accent"
-          />
-        </View>
-        <View className="border-b-hairline border-separator flex-1 flex-row items-center gap-2 py-3 pr-4">
-          <Text className="text-headline text-foreground flex-1 font-semibold">
-            Invites
-          </Text>
-          <UnreadBadge count={count} />
-          <SymbolIcon
-            name={{ android: "chevron_right", ios: "chevron.right" }}
-            size={14}
-            weight="semibold"
-            tintColorClassName="accent-subtle"
-          />
-        </View>
-      </Pressable>
-    </Link>
-  );
-}
 
 function PillButton({
   label,
@@ -71,18 +37,15 @@ function PillButton({
 }
 
 /**
- * One space you're invited to, with Accept and Decline. Both answer right
- * away: accepting opens the space in place of the invites; declining the
- * last one goes back.
+ * One space you're invited to, at the top of Activity, with Accept and
+ * Decline. Both answer right away: accepting opens the space, and
+ * declining takes the row away.
  */
 export function InviteRow({
   invite,
-  isLast,
   showAccount,
 }: {
   invite: AccountSpaceInvite;
-  /** The only invite left, so answering it empties the page. */
-  isLast: boolean;
   /** Names the invited account, when several show. */
   showAccount: boolean;
 }) {
@@ -97,7 +60,7 @@ export function InviteRow({
       .catch(() =>
         Alert.alert("Couldn't Join Space", "Try again in a moment."),
       );
-    router.replace({
+    router.push({
       params: { account: invite.account, name: invite.name, spaceId },
       pathname: "/spaces/[spaceId]",
     });
@@ -109,20 +72,22 @@ export function InviteRow({
       .catch(() =>
         Alert.alert("Couldn't Decline Invite", "Try again in a moment."),
       );
-    if (isLast) router.back();
   }
 
   return (
-    <View className="flex-row gap-3 pl-4">
+    // Lined up with the Activity rows below: the same gutter, photo size,
+    // and text column.
+    <View className="flex-row">
+      <View className="w-6" />
       <View
-        className="bg-accent mt-3 size-12 items-center justify-center rounded-xl"
+        className="bg-accent mt-3.5 size-[46px] items-center justify-center rounded-xl"
         style={{ borderCurve: "continuous" }}
       >
         <Text className="text-title text-on-accent font-bold">
           {invite.name.charAt(0).toUpperCase()}
         </Text>
       </View>
-      <View className="border-b-hairline border-separator flex-1 gap-2.5 py-3 pr-4">
+      <View className="border-b-hairline border-separator ml-3 flex-1 gap-3 pt-3.5 pr-4 pb-4">
         <View className="gap-0.5">
           <Text className="text-headline text-foreground font-semibold">
             {invite.name}

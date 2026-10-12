@@ -3,7 +3,6 @@ import { useCSSVariable } from "uniwind";
 
 import { useActivityBadge } from "~/features/activity/activity";
 import { useInbox } from "~/features/messaging/inbox";
-import { useSpaceInvites } from "~/features/messaging/spaces";
 import {
   blurNativeSearch,
   focusNativeSearch,
@@ -12,12 +11,11 @@ import {
 export default function TabsLayout() {
   const accent = useCSSVariable("--color-accent");
   const { conversations } = useInbox();
-  // Channel unreads count here, so Spaces badges only invitations.
-  const invites = useSpaceInvites().invites.length;
   const unread = (conversations ?? []).filter(
     ({ unreadCount }) => unreadCount > 0,
   ).length;
-  // Unseen reactions; unread messages already count on the Inbox.
+  // Invitations and unseen reactions; unread messages (channels too)
+  // count on the Inbox.
   const activity = useActivityBadge();
   return (
     <NativeTabs tintColor={typeof accent === "string" ? accent : undefined}>
@@ -37,9 +35,6 @@ export default function TabsLayout() {
           sf={{ default: "square.grid.2x2", selected: "square.grid.2x2.fill" }}
           md="grid_view"
         />
-        {invites > 0 && (
-          <NativeTabs.Trigger.Badge>{String(invites)}</NativeTabs.Trigger.Badge>
-        )}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="activity">
         <NativeTabs.Trigger.Label>Activity</NativeTabs.Trigger.Label>

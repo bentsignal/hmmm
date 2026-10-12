@@ -18,8 +18,14 @@ to your messages, in one list.
 - **A seen row goes a day later**, unless something new happens in it, which
   makes it unseen again. Rows nobody has seen stay; nothing older than a week
   shows (a backstop, so a first visit isn't the whole history).
-- The tab's **badge counts unseen reactions** only; unread messages already
-  count on the Inbox's badge. The app icon badge is unchanged.
+- **Space invitations** sit at the top under an "Invites" heading (the
+  activity follows under "Recent"), each with Accept and Decline, until
+  answered. They moved here from the Spaces tab, which no longer has an
+  Invites row or a badge. Tapping an invitation's notification opens
+  Activity.
+- The tab's **badge counts invitations and unseen reactions**; unread
+  messages already count on the Inbox's badge. The app icon badge is
+  unchanged.
 - **Muted conversations** and channels hidden from the Inbox are left out.
 - Tapping a row opens the conversation (at the message, for a reaction).
 

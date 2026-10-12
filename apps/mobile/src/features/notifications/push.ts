@@ -102,8 +102,9 @@ export function usePushRegistration() {
 }
 
 /**
- * Opens the conversation when someone taps a message notification, and the
- * invites when they tap a space invitation.
+ * Opens the conversation when someone taps a message notification, and
+ * Activity (where invitations are answered) when they tap a space
+ * invitation.
  */
 export function useNotificationRouting() {
   const router = useRouter();
@@ -112,7 +113,7 @@ export function useNotificationRouting() {
   useEffect(() => {
     const data = response?.notification.request.content.data;
     if (stringField(data, "kind") === "spaceInvite") {
-      router.push("/spaces/invites");
+      router.navigate("/activity");
       void Notifications.clearLastNotificationResponseAsync();
       return;
     }
