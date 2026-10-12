@@ -340,5 +340,7 @@ with `development: true`) and send to that token through the Expo push API.
   then run `pnpm install` and rebuild.
 - `assets/icons`: the app icon, a top-down aloe vera made as a Liquid Glass
   Icon Composer document, and the flat Android and fallback images rendered
-  from it. The splash screen has no logo, only the app's background color. Color themes don't change the icon. See
+  from it, plus one alternate icon per color theme that people pick in
+  Settings > App Icon (iOS), separately from the color theme. The splash
+  screen has no logo, only the app's background color. See
   `assets/icons/README.md`.

@@ -4,7 +4,10 @@ import { TabTitle } from "~/components/tab-title";
 import { AboutSection } from "~/features/settings/about-section";
 import { AccountsSection } from "~/features/settings/accounts-section";
 import { DisplaySection } from "~/features/settings/display-section";
-import { ThemesSection } from "~/features/settings/themes-section";
+import {
+  AppIconSection,
+  ThemesSection,
+} from "~/features/settings/themes-section";
 
 export default function SettingsScreen() {
   return (
@@ -15,6 +18,7 @@ export default function SettingsScreen() {
           <AccountsSection />
           <DisplaySection />
           <ThemesSection />
+          <AppIconSection />
           <AboutSection />
         </FieldList>
       </NativeHost>
