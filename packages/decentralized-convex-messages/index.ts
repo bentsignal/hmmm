@@ -3,9 +3,11 @@ export {
   MAX_LINK_PREVIEWS,
   previewedUrl,
   previewedUrls,
+  textParts,
   withoutPreviewedUrl,
   withoutUrls,
 } from "./links.ts";
+export type { TextPart } from "./links.ts";
 export { PREVIEW_IMAGE_USER_AGENT } from "./agents.ts";
 export {
   channelName,
