@@ -94,8 +94,8 @@ export const fetchLink = internalAction({
 
 /**
  * Many sites only serve Open Graph tags to the crawlers they know, and
- * Reddit sends anything else an empty page, so this names the link
- * expanders iMessage's does.
+ * Reddit sends anything else an empty page, so this names the same link
+ * expanders iMessage's user agent does.
  */
 const USER_AGENT =
   "Mozilla/5.0 (compatible; VeraBot/1.0; +https://vera.chat) facebookexternalhit/1.1 Facebot Twitterbot/1.0";
