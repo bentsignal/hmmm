@@ -10,8 +10,8 @@
 //   backend production                  deploy main's functions to production (tags backend/deploy/...)
 //   build internal [--android]          internal build (Vera Dev, dev PDS), uploaded for an install link
 //   build production                    iOS App Store build with release Xcode, uploaded to TestFlight
-//   build production --android          Android production APK (vera.chat), uploaded for an install link
-//   build ... --artifact <ipa|apk>      upload and tag an existing build of this commit instead of building
+//   build production --android          Android app bundle (vera.chat), submitted to Play internal testing
+//   build ... --artifact <ipa|apk|aab>  upload and tag an existing build of this commit instead of building
 //   ota internal|production "msg"       over-the-air update for every platform whose binary matches
 //   ... --next-release-done             production builds and updates refuse to run while
 //                                       docs/next-release.md lists steps, until this confirms
@@ -21,7 +21,8 @@
 //   asc <METHOD> <path> [json]     raw App Store Connect API call
 //
 // Secrets stay outside the repo: the App Store Connect key and its IDs come
-// from ~/.appstoreconnect/vera.env.
+// from ~/.appstoreconnect/vera.env, and the Play service account key is
+// ~/.config/vera/play-service-account.json.
 import { execFileSync, spawnSync } from "node:child_process";
 import { createSign } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
@@ -37,6 +38,12 @@ const FRIENDS_GROUP = "19b050f9-a1aa-4ee8-9c84-3ef3f8716fa4";
 // Every build (test and store) uses release Xcode, so Shawn tests what ships.
 const RELEASE_XCODE = "/Applications/Xcode-27.app/Contents/Developer";
 const SHARED_DEV_DEPLOYMENT = "dev:perceptive-magpie-29";
+// eas.json's submit.production.android reads it from
+// PLAY_SERVICE_ACCOUNT_KEY_PATH, so no home path is committed.
+const PLAY_SERVICE_ACCOUNT_KEY = join(
+  homedir(),
+  ".config/vera/play-service-account.json",
+);
 const BACKEND_PATHS = ["services/backend", "packages", "pnpm-lock.yaml"];
 // What each channel's binaries are built with (eas.json): internal builds
 // are Vera Dev, the dev variant (app.config.ts).
@@ -141,7 +148,7 @@ async function asc(method: string, path: string, body?: unknown) {
 type Platform = "android" | "ios";
 const PLATFORMS: readonly Platform[] = ["ios", "android"];
 
-/** Release tags of a platform's binaries: store (or production APK) and internal. */
+/** Release tags of a platform's binaries: store (App Store, Play) and internal. */
 function binaryTagPattern(platform: Platform, channel: Channel) {
   const kind = channel === "production" ? "build" : "internal";
   return platform === "ios" ? `mobile/${kind}/*` : `mobile/android/${kind}/*`;
@@ -396,7 +403,7 @@ function requireCleanMain() {
 function build(profile: string | undefined, flags: string[]) {
   if (profile !== "internal" && profile !== "production") {
     throw new Error(
-      "usage: build internal|production [--android] [--artifact <ipa|apk>]",
+      "usage: build internal|production [--android] [--artifact <ipa|apk|aab>]",
     );
   }
   requireCleanMain();
@@ -503,12 +510,19 @@ function aapt2() {
 }
 
 /**
- * Android builds are APKs for now (installed from an EAS link): `internal`
- * against the dev PDS, and `production-apk` against vera.chat for testers
- * until Play internal testing exists. See docs/android.md.
+ * Android `internal` builds are Vera Dev APKs on an install page; production
+ * builds are app bundles for Play internal testing. See docs/android.md.
  */
 function buildAndroid(profile: Channel, artifact: string | undefined) {
-  const apk = artifact ?? join(tmpdir(), `vera-${profile}-${Date.now()}.apk`);
+  const extension = profile === "internal" ? "apk" : "aab";
+  const archive =
+    artifact ?? join(tmpdir(), `vera-${profile}-${Date.now()}.${extension}`);
+  if (!archive.endsWith(`.${extension}`)) {
+    throw new Error(`${profile} Android builds are .${extension} files`);
+  }
+  if (profile === "production" && !existsSync(PLAY_SERVICE_ACCOUNT_KEY)) {
+    throw new Error(`${PLAY_SERVICE_ACCOUNT_KEY} is missing`);
+  }
   const androidHome =
     process.env.ANDROID_HOME ?? join(homedir(), "Library/Android/sdk");
   if (artifact === undefined)
@@ -519,11 +533,11 @@ function buildAndroid(profile: Channel, artifact: string | undefined) {
         "-p",
         "android",
         "--profile",
-        profile === "internal" ? "internal" : "production-apk",
+        profile,
         "--local",
         "--non-interactive",
         "--output",
-        apk,
+        archive,
       ],
       {
         cwd: MOBILE,
@@ -533,38 +547,127 @@ function buildAndroid(profile: Channel, artifact: string | undefined) {
         },
       },
     );
+  const { runtime: declared, versionCode } =
+    profile === "internal" ? apkInfo(archive) : bundleInfo(archive);
+  const runtime = requireRuntime(declared, "android", profile);
+  const name = binaryTagPattern("android", profile).replace("*", versionCode);
+  requireNewTag(name);
+  if (profile === "internal") {
+    installPage(
+      archive,
+      `internal/android/${versionCode}`,
+      `Internal build ${versionCode}.`,
+    );
+  } else {
+    // Track and release status: eas.json's submit.production.android.
+    run(
+      "eas",
+      [
+        "submit",
+        "-p",
+        "android",
+        "--profile",
+        "production",
+        "--path",
+        archive,
+        "--non-interactive",
+      ],
+      {
+        cwd: MOBILE,
+        env: { PLAY_SERVICE_ACCOUNT_KEY_PATH: PLAY_SERVICE_ACCOUNT_KEY },
+      },
+    );
+  }
+  tag(name, [`runtime: ${runtime}`, `commit: ${git("rev-parse", "HEAD")}`]);
+  console.log(
+    `${extension}: ${archive}\nversion code: ${versionCode}\nruntime: ${runtime}`,
+  );
+}
+
+/** An APK's runtime and versionCode, from aapt2. */
+function apkInfo(apk: string) {
   const resources = output(aapt2(), ["dump", "resources", apk]);
-  const runtime = requireRuntime(
-    resolveRuntime(
-      /expo_runtime_version[^\n]*\n\s*\(\) "([^"]+)"/.exec(resources)?.[1] ??
-        "unknown",
-      apk,
-      "assets/fingerprint",
-    ),
-    "android",
-    profile,
+  const runtime = resolveRuntime(
+    /expo_runtime_version[^\n]*\n\s*\(\) "([^"]+)"/.exec(resources)?.[1] ??
+      "unknown",
+    apk,
+    "assets/fingerprint",
   );
   const versionCode =
     /versionCode='(\d+)'/.exec(
       output(aapt2(), ["dump", "badging", apk]),
     )?.[1] ?? "unknown";
-  const name = binaryTagPattern("android", profile).replace("*", versionCode);
-  requireNewTag(name);
-  if (profile === "internal") {
-    installPage(
-      apk,
-      `internal/android/${versionCode}`,
-      `Internal build ${versionCode}.`,
-    );
-  } else {
-    run(
-      "eas",
-      ["upload", "-p", "android", "--build-path", apk, "--non-interactive"],
-      { cwd: MOBILE },
-    );
+  return { runtime, versionCode };
+}
+
+/**
+ * An app bundle's runtime and versionCode. aapt2 can't read an .aab, and
+ * bundletool isn't installed. The fingerprint policy declares
+ * `file:fingerprint` (see resolveRuntime), so the runtime is the hash in
+ * base/assets/fingerprint; requireRuntime catches anything else.
+ *
+ * The versionCode comes from the bundle's own manifest rather than EAS
+ * (whose remote counter may have moved on since the build, as with
+ * --artifact). In a bundle, base/manifest/AndroidManifest.xml is aapt2's
+ * protobuf XmlNode (Resources.proto): field 1 is the root <manifest>
+ * element, its field 4 the attributes, and each attribute has a name
+ * (field 2) and its value as written (field 3), "5" for versionCode 5.
+ */
+function bundleInfo(aab: string) {
+  const runtime = output("unzip", [
+    "-p",
+    aab,
+    "base/assets/fingerprint",
+  ]).trim();
+  const manifest = execFileSync(
+    "unzip",
+    ["-p", aab, "base/manifest/AndroidManifest.xml"],
+    { maxBuffer: 64 * 1024 * 1024 },
+  );
+  const [root] = protobufFields(manifest, 1);
+  const versionCode = protobufFields(root ?? Buffer.alloc(0), 4)
+    .map((attribute) => ({
+      name: protobufFields(attribute, 2)[0]?.toString(),
+      value: protobufFields(attribute, 3)[0]?.toString(),
+    }))
+    .find((attribute) => attribute.name === "versionCode")?.value;
+  if (versionCode === undefined || !/^\d+$/.test(versionCode)) {
+    throw new Error(`no versionCode in ${aab}'s manifest`);
   }
-  tag(name, [`runtime: ${runtime}`, `commit: ${git("rev-parse", "HEAD")}`]);
-  console.log(`apk: ${apk}\nversion code: ${versionCode}\nruntime: ${runtime}`);
+  return { runtime, versionCode };
+}
+
+/** The length-delimited values of one field in a protobuf message. */
+function protobufFields(message: Buffer, field: number) {
+  const values: Buffer[] = [];
+  let offset = 0;
+  const varint = () => {
+    let value = 0;
+    let shift = 0;
+    let byte: number;
+    do {
+      byte = message[offset] ?? 0;
+      offset += 1;
+      value += (byte & 0x7f) * 2 ** shift;
+      shift += 7;
+    } while (byte & 0x80 && offset < message.length);
+    return value;
+  };
+  while (offset < message.length) {
+    const key = varint();
+    const wireType = key & 7;
+    if (wireType === 0) varint();
+    else if (wireType === 1) offset += 8;
+    else if (wireType === 5) offset += 4;
+    else if (wireType === 2) {
+      const length = varint();
+      if (key >>> 3 === field) {
+        values.push(message.subarray(offset, offset + length));
+      }
+      offset += length;
+    } else throw new Error(`unsupported protobuf wire type ${wireType}`);
+  }
+  return values;
 }
 
 function ota(channel: string | undefined, message: string | undefined) {
