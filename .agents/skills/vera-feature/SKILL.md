@@ -89,7 +89,7 @@ server shows up in Vera Dev's list, and he tests one worktree at a time.
 
 ```sh
 scripts/phone.sh up             # iPhone; --android for his Android phone
-scripts/phone.sh link           # the links and QR codes again
+scripts/phone.sh link           # the server address and links again
 scripts/phone.sh down           # as soon as he reports back
 scripts/phone.sh main           # main's dev client, to put back on his phone
 scripts/phone.sh list           # every cached dev client, marking main's
@@ -100,29 +100,31 @@ scripts/phone.sh list           # every cached dev client, marking main's
 - Vera Dev on his phone is normally **main's dev client**, which runs every
   worktree that hasn't changed native code. `up` compares this worktree's
   native fingerprint with main's and says which case it is:
-  - **Main's dev client:** he only opens the link.
+  - **Main's dev client:** he only picks the server in Vera Dev.
   - **This worktree's own dev client** (native code changed): `up` builds
     it if needed (about 15 minutes, cached for every worktree) and he
     installs it first. Afterwards he needs main's back (see `down`).
   - **A new dev client for main** (main's native code changed since he last
     installed one): he installs it once; it serves every worktree after.
-- `up` starts the worktree's Metro (the same one the simulators use) and
-  prints an **open** link (`vera-dev://expo-development-client/?url=...`)
-  that points Vera Dev at it over the Mac's Wi-Fi (the phone must be on the
-  same network), and an **install** link. Send the open link with its QR
-  code embedded (`![open](/abs/path/.cache/sim/phone-ios-open.png)`, from
-  `up`'s output), plus the install link and its QR code when he has to
-  install. Say plainly whether he does.
+- `up` starts the worktree's Metro (the same one the simulators use),
+  served over the Mac's Wi-Fi (the phone must be on the same network), and
+  prints its **server** address (`server: http://<IP>:<port>`), an
+  **install** link, and an **open** link. Shawn opens Vera Dev himself and
+  picks the server from its list, where every running worktree's Metro
+  shows up by address, so the address is what he needs. Put it first, on
+  its own line, port included (`http://10.0.0.152:8892`). Add the install
+  link only when he has to install, and say plainly whether he does. Don't
+  send QR codes or the open link unless he asks for them.
 - JavaScript edits hot-reload on his phone. Re-run `up` after native
   changes, `app.config.ts`, or `.env.local`.
 - With an isolated backend, Vera Dev talks to this worktree's domain, which
   has no accounts. Tell Shawn to sign in with
-  `vera-dev:///dev-sign-in?username=<name>` (or make a QR code of it), and
-  that the account is a throwaway.
+  `vera-dev:///dev-sign-in?username=<name>`, and that the account is a
+  throwaway.
 - When he reports back, with feedback or an approval, run `down` right
   away, before you start on the feedback. If this worktree had its own dev
-  client, `down` also prints main's install link: send it with its QR code
-  so he can put main's dev client back. When he wants to retest a fix, he
+  client, `down` also prints main's install link: send it so he can put
+  main's dev client back. When he wants to retest a fix, he
   asks and you `up` again.
 - Never make an internal build for this. Those are only for when Shawn
   asks for one by name, or to check update or channel behavior, which a
@@ -219,14 +221,40 @@ Don't start the dev server until he asks (step 4b), and don't merge.
   rounds; refining the change here is cheaper than finding it in the
   release.
 - Merge only when Shawn approves this PR in the thread ("merge it",
-  "approved", "ship it"), normally after testing it on his phone. Then:
+  "approved", "ship it"), normally after testing it on his phone. If this
+  worktree has an isolated backend and he signed in to it on his phone,
+  first ask him to sign out of that throwaway account in Vera Dev
+  (Settings > Accounts > the account > Sign Out), while its server still
+  exists. Vera Dev keeps one account list for every worktree, so an account
+  left on a deleted backend follows him into every thread. Then:
 
   ```sh
   gh pr merge <number> --merge --delete-branch
-  scripts/backend.sh teardown   # if isolated: deletes the deployment and DNS record
+  scripts/backend.sh teardown   # if isolated: deletes the deployment, DNS record, and its accounts
   scripts/sim.sh down           # if one is still up
   scripts/phone.sh down         # if it's still serving his phone
   ```
+
+  `gh pr merge` may print that it can't switch to `main` (another checkout
+  has it). The merge on GitHub still happened; check with
+  `gh pr view <number> --json state`, and delete the remote branch with
+  `git push origin --delete <branch>` if it's still there.
+
+- **If the PR changed the backend** (it had an isolated backend), push
+  main's backend to the shared dev deployment right after merging, so
+  `dev.vera.chat` matches main for every worktree and for main's app:
+
+  ```sh
+  git fetch origin && git checkout --detach origin/main
+  pnpm install --frozen-lockfile
+  pnpm release backend dev      # refuses while the worktree is isolated
+  ```
+
+  Then check the change on the shared deployment: call what changed (an
+  `npx convex run` from `services/backend`, or a `curl` to
+  `https://perceptive-magpie-29.convex.site` for HTTP routes) and tell
+  Shawn it's live on dev. Backend changes must stay compatible with older
+  app builds, which keep using it.
 
   Merging does not release anything. Releases are separate (the
   `vera-release` skill).
