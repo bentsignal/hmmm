@@ -4,13 +4,13 @@ import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 
-import { ScreenList } from "~/components/screen-list";
-import { TabTitle } from "~/components/tab-title";
 import type {
   ActivityEntry,
   ActivityListRow,
 } from "~/features/activity/activity";
 import type { AccountSpaceInvite } from "~/features/messaging/spaces";
+import { ScreenList } from "~/components/screen-list";
+import { TabTitle } from "~/components/tab-title";
 import { useActivity } from "~/features/activity/activity";
 import { ActivityRow } from "~/features/activity/activity-row";
 import {

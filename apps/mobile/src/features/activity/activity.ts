@@ -6,12 +6,12 @@ import { ACTIVITY_SEEN_LIFETIME } from "@decentralized-convex/messages";
 import { pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
+import type { AccountSpaceInvite } from "~/features/messaging/spaces";
 import { useVisibleAccounts } from "~/features/messaging/account";
 import { conversationTitle } from "~/features/messaging/conversations";
 import { useProfileState } from "~/features/messaging/profiles";
-import type { AccountSpaceInvite } from "~/features/messaging/spaces";
-import { useSpaceInvites } from "~/features/messaging/spaces";
 import { pdsResult } from "~/features/messaging/results";
+import { useSpaceInvites } from "~/features/messaging/spaces";
 import { liveSession } from "~/features/session/account-session";
 
 /** One row of the Activity tab. */
