@@ -318,6 +318,12 @@ with `development: true`) and send to that token through the Expo push API.
   Alerts, leaving a group).
 - `src/features/notifications`: Expo push registration and notification
   routing.
+- `modules/open-in-app` (a local Expo module, autolinked from `modules/`):
+  `src/lib/open-link.ts` opens a link in the installed app that claims it
+  (Reddit, Instagram, X, a news app), with no list of apps: iOS opens it
+  with `universalLinksOnly`, Android with `FLAG_ACTIVITY_REQUIRE_NON_BROWSER`
+  (Android 11 and newer). When no app takes it, it opens in the in-app
+  browser, as it does on builds from before the module.
 - `plugins/with-ios-scene-lifecycle.cjs`: adopts the UIScene life cycle that
   the iOS 27 SDK requires. Expo SDK 58 does this in its template; remove the
   plugin when upgrading.

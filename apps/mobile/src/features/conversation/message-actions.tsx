@@ -188,7 +188,22 @@ export function MenuTargetView({
   if (target === null) return children;
   return (
     <Pressable ref={ref} {...target.press}>
-      <Animated.View style={target.style}>{children}</Animated.View>
+      <MenuPressContext value={target.press}>
+        <Animated.View style={target.style}>{children}</Animated.View>
+      </MenuPressContext>
     </Pressable>
   );
+}
+
+type MenuPress = NonNullable<ReturnType<typeof useMenuTarget>>["press"];
+
+const MenuPressContext = createContext<MenuPress | null>(null);
+
+/**
+ * The hold of the part around it, for a pressable inside it (a link in a
+ * message's text), which would otherwise take the hold from the part.
+ * Null in the lifted copy.
+ */
+export function useMenuPress() {
+  return use(MenuPressContext);
 }

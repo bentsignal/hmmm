@@ -25,6 +25,18 @@ export const linkPreview = v.object({
   siteName: v.optional(v.string()),
   title: v.optional(v.string()),
   url: v.string(),
+  /**
+   * A video the link's post holds (a tweet's, say), playable in the app.
+   * `imageUrl` is its poster.
+   */
+  video: v.optional(
+    v.object({
+      durationMs: v.optional(v.number()),
+      height: v.optional(v.number()),
+      url: v.string(),
+      width: v.optional(v.number()),
+    }),
+  ),
 });
 
 export type LinkPreview = Infer<typeof linkPreview>;
