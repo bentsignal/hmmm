@@ -140,39 +140,48 @@ function HeaderAvatar({
   );
 }
 
-/** The name in a glass capsule with a chevron, tucked under the photo. */
+/**
+ * The name in a glass capsule with a chevron, tucked under the photo. The
+ * name fades in when it loads after the screen opens, and the glass
+ * materializes around it (glass can't fade; see `GlassSurface`).
+ */
 function NameCapsule({
   title,
   affiliated,
+  pressed,
 }: {
   title: string;
   affiliated: boolean;
+  pressed: boolean;
 }) {
   if (title === "") return null;
   return (
-    <Animated.View
-      entering={FadeIn.duration(200)}
-      style={{ marginTop: -CAPSULE_OVERLAP }}
+    <GlassSurface
+      materialize
+      className="rounded-full"
+      style={{ height: CAPSULE, marginTop: -CAPSULE_OVERLAP, maxWidth: 220 }}
     >
-      <GlassSurface
-        className="flex-row items-center gap-1 rounded-full px-2.5"
-        style={{ height: CAPSULE, maxWidth: 220 }}
-      >
-        <Text
-          numberOfLines={1}
-          className="text-footnote text-foreground shrink font-semibold"
+      <Animated.View entering={FadeIn.duration(200)} className="flex-1">
+        <View
+          className="flex-1 flex-row items-center gap-1 px-2.5"
+          style={{ opacity: pressed ? 0.7 : 1 }}
         >
-          {title}
-        </Text>
-        {affiliated && <AffiliatedBadge size={12} />}
-        <SymbolIcon
-          name={{ android: "chevron_right", ios: "chevron.right" }}
-          size={9}
-          weight="bold"
-          tintColorClassName="accent-muted"
-        />
-      </GlassSurface>
-    </Animated.View>
+          <Text
+            numberOfLines={1}
+            className="text-footnote text-foreground shrink font-semibold"
+          >
+            {title}
+          </Text>
+          {affiliated && <AffiliatedBadge size={12} />}
+          <SymbolIcon
+            name={{ android: "chevron_right", ios: "chevron.right" }}
+            size={9}
+            weight="bold"
+            tintColorClassName="accent-muted"
+          />
+        </View>
+      </Animated.View>
+    </GlassSurface>
   );
 }
 
@@ -225,10 +234,26 @@ export function ConversationHeader({
             accessibilityLabel={`${title}, details`}
             disabled={onOpenInfo === undefined}
             onPress={onOpenInfo}
-            className="items-center active:opacity-70"
+            className="items-center"
           >
-            <HeaderAvatar title={title} kind={kind} avatarUrl={avatarUrl} />
-            <NameCapsule title={title} affiliated={affiliated} />
+            {({ pressed }) => (
+              // Dims what's on the glass, not the glass itself, which a
+              // parent's opacity breaks (see `GlassSurface`).
+              <>
+                <View style={{ opacity: pressed ? 0.7 : 1 }}>
+                  <HeaderAvatar
+                    title={title}
+                    kind={kind}
+                    avatarUrl={avatarUrl}
+                  />
+                </View>
+                <NameCapsule
+                  title={title}
+                  affiliated={affiliated}
+                  pressed={pressed}
+                />
+              </>
+            )}
           </Pressable>
           <View style={{ marginTop: (AVATAR - BUTTON) / 2, width: BUTTON }}>
             {onOpenInfo !== undefined && (
