@@ -1,9 +1,14 @@
 import { pds } from "@vera/backend/pds";
 
 import type { AccountSession } from "~/features/session/account-session";
+import type { StoredAccount } from "~/features/session/account-store";
+import { forgetAccountNotifications } from "~/features/notifications/presented";
 import { getPushToken } from "~/features/notifications/push";
 import { closeAccountSession } from "~/features/session/account-session";
-import { removeStoredAccount } from "~/features/session/account-store";
+import {
+  removeStoredAccount,
+  storedAccounts,
+} from "~/features/session/account-store";
 
 /**
  * Forgets the account here right away, so the accounts list is already
@@ -25,4 +30,16 @@ async function endSession(session: AccountSession) {
   }
   await session.authClient.signOut().catch(() => null);
   closeAccountSession(session);
+}
+
+/**
+ * Forgets an account whose home PDS can't be reached. Its session can't be
+ * ended there, so this only removes it from this device.
+ */
+export function removeUnreachableAccount(account: StoredAccount) {
+  removeStoredAccount(account.address);
+  void forgetAccountNotifications(
+    account.address,
+    storedAccounts().length,
+  ).catch(() => null);
 }

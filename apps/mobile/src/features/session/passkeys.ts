@@ -15,15 +15,10 @@ import { finishPendingSignIn } from "./pending-sign-in";
 const ERRORS = new Map([
   ["NoCredentials", "There's no Vera passkey on this device."],
   ["PASSKEY_NOT_FOUND", "Vera doesn't recognize that passkey."],
-  ["INVALID_SIGN_UP_REQUEST", "Enter an invite code and a username."],
+  ["INVALID_SIGN_UP_REQUEST", "Enter a username."],
   [
     "INVALID_USERNAME",
     "Usernames are 2–32 characters: letters, numbers, dots, dashes, or underscores.",
-  ],
-  ["INVITE_CODE_INACTIVE", "That invite code isn't valid."],
-  [
-    "INVITE_CODE_FOR_OTHER_USERNAME",
-    "That invite code is for a different username.",
   ],
   ["USERNAME_TAKEN", "That username is taken."],
 ]);
@@ -57,13 +52,13 @@ async function request<Result>(
 }
 
 /**
- * Passkey-first sign-up: the server checks the invite and username, the
+ * Passkey-first sign-up: the server checks the username, the
  * device creates a passkey, and verifying it creates the account and session.
  * Returns an error message, or null when cancelled or successful.
  */
 export async function createAccount(
   pending: PendingSignIn,
-  details: { inviteCode: string; username: string },
+  details: { username: string },
 ) {
   const { authClient } = pending;
   try {
