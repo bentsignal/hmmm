@@ -10,13 +10,12 @@ import { LONG_PRESS_MS } from "./message-actions";
  * Reactions pop in when they arrive and shrink away when taken back. One
  * brief bump, about as long as the glass press feedback when you add to a
  * reaction someone else left, rather than a spring that wobbles for
- * seconds.
+ * seconds. Only the size changes: glass can't fade (see `GlassSurface`).
  */
 const POP_IN = new Keyframe({
-  0: { opacity: 0, transform: [{ scale: 0.6 }] },
+  0: { transform: [{ scale: 0 }] },
   60: {
     easing: Easing.out(Easing.cubic),
-    opacity: 1,
     transform: [{ scale: 1.06 }],
   },
   100: { easing: Easing.inOut(Easing.quad), transform: [{ scale: 1 }] },
