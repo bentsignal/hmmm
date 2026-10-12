@@ -18,10 +18,10 @@ import type { ProfileOf } from "./message-row";
 import type { Message } from "./types";
 import type { MessageLayout } from "~/features/preferences/store";
 import { SymbolIcon } from "~/components/symbol-icon";
-import { buildMessageRows } from "./build-rows";
+import { arrivedAfter, buildMessageRows } from "./build-rows";
 import { useLatest, usePlacement } from "./list-position";
 import { MessageActionsProvider } from "./message-actions";
-import { arrivedAfter, Row } from "./message-row";
+import { Row } from "./message-row";
 import { useModalKeyboardFreeze } from "./modal-keyboard-freeze";
 import { RevealTimes } from "./reveal";
 

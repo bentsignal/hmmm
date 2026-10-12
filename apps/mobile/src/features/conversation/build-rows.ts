@@ -108,3 +108,9 @@ export function buildMessageRows(
     return [header, row];
   });
 }
+
+/** Whether a row came in after the conversation opened, at `openedAt`. */
+export function arrivedAfter(row: MessageRow, openedAt: number) {
+  const date = row.type === "message" ? row.message.sentAt : row.date;
+  return date.getTime() > openedAt;
+}

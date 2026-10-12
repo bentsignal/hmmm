@@ -1,5 +1,5 @@
 import type { SharedValue } from "react-native-reanimated";
-import { ScrollView, Text, View } from "react-native";
+import { FlatList, Text, View } from "react-native";
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -11,26 +11,13 @@ import { Avatar } from "~/components/avatar";
 import { GlassSurface } from "~/components/glass-surface";
 import { useAccount } from "~/features/messaging/account";
 import { useProfiles } from "~/features/messaging/profiles";
-
-const ROW_HEIGHT = 48;
-const PADDING = 6;
-/** Rows shown before the list scrolls. */
-const MAX_ROWS = 5.5;
-export const REACTORS_WIDTH = 260;
-
-/** Each reaction, one row per person, in the order they reacted. */
-function reactorRows(reactions: readonly ReactionSummary[]) {
-  return reactions.flatMap((reaction) =>
-    reaction.accounts.map((account) => ({ account, emoji: reaction.emoji })),
-  );
-}
-
-/** The panel's height for these reactions, so the menu can place it. */
-export function reactorsHeight(reactions: readonly ReactionSummary[]) {
-  const rows = reactorRows(reactions).length;
-  if (rows === 0) return 0;
-  return Math.min(rows, MAX_ROWS) * ROW_HEIGHT + PADDING * 2;
-}
+import {
+  REACTOR_ROW_HEIGHT,
+  reactorRows,
+  REACTORS_PADDING,
+  REACTORS_WIDTH,
+  reactorsHeight,
+} from "./reactor-rows";
 
 /**
  * Who reacted, iMessage-style: a glass panel under the lifted message with
@@ -66,19 +53,19 @@ export function Reactors({
         androidClassName="bg-background-elevated"
         style={{ height: reactorsHeight(reactions) }}
       >
-        <ScrollView
-          contentContainerStyle={{ paddingVertical: PADDING }}
+        <FlatList
+          data={rows}
+          keyExtractor={({ account, emoji }) => `${emoji} ${account}`}
+          contentContainerStyle={{ paddingVertical: REACTORS_PADDING }}
           showsVerticalScrollIndicator={false}
-        >
-          {rows.map(({ account, emoji }) => {
+          renderItem={({ item: { account, emoji } }) => {
             const { avatarUrl, displayName } = profileOf(account);
             return (
               <View
-                key={`${emoji} ${account}`}
                 accessible
                 accessibilityLabel={`${account === address ? "You" : displayName} reacted ${emoji}`}
                 className="flex-row items-center gap-3 px-4"
-                style={{ height: ROW_HEIGHT }}
+                style={{ height: REACTOR_ROW_HEIGHT }}
               >
                 <Avatar name={displayName} size="sm" uri={avatarUrl} />
                 <Text
@@ -90,8 +77,8 @@ export function Reactors({
                 <Text style={{ fontSize: 20 }}>{emoji}</Text>
               </View>
             );
-          })}
-        </ScrollView>
+          }}
+        />
       </GlassSurface>
     </Animated.View>
   );

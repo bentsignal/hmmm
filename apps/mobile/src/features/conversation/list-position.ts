@@ -73,6 +73,38 @@ export function useLatest(listRef: RefObject<FlatList<MessageRow> | null>) {
 
 export type Latest = ReturnType<typeof useLatest>;
 
+interface PlacementState {
+  /** The last scroll to the anchor missed: its row isn't measured yet. */
+  missed: boolean;
+  placed: boolean;
+  started: boolean;
+}
+
+/** Scrolls to the anchor's row, trying again each frame until it can. */
+function scrollToAnchor(attempt: {
+  listRef: RefObject<FlatList<MessageRow> | null>;
+  index: number;
+  state: PlacementState;
+  tries: number;
+  done: () => void;
+}) {
+  const { listRef, index, state, tries, done } = attempt;
+  state.missed = false;
+  listRef.current?.scrollToIndex({ animated: false, index, viewPosition: 0.5 });
+  if (missedAgain(state) && tries < ANCHOR_TRIES) {
+    requestAnimationFrame(() =>
+      scrollToAnchor({ ...attempt, tries: tries + 1 }),
+    );
+  } else {
+    done();
+  }
+}
+
+/** Read through a call: `onScrollToIndexFailed` sets it during the scroll. */
+function missedAgain(state: PlacementState) {
+  return state.missed;
+}
+
 /**
  * Puts the list at its starting place once it's laid out, then shows it:
  * the newest message, or centered on the message it opened on. The list
@@ -91,29 +123,14 @@ export function usePlacement({
   onReady: () => void;
   onLoadNewer: () => void;
 }) {
-  const state = useRef({ missed: false, placed: false, started: false });
+  const state = useRef<PlacementState>({
+    missed: false,
+    placed: false,
+    started: false,
+  });
   function place() {
     state.current.placed = true;
     onReady();
-  }
-  function placeAnchor(tries: number) {
-    state.current.missed = false;
-    listRef.current?.scrollToIndex({
-      animated: false,
-      index: anchorIndex,
-      viewPosition: 0.5,
-    });
-    if (didMiss() && tries < ANCHOR_TRIES) {
-      requestAnimationFrame(() => placeAnchor(tries + 1));
-      return;
-    }
-    place();
-    // Newer messages, in case it opened close enough to them that the
-    // list won't ask again.
-    onLoadNewer();
-  }
-  function didMiss() {
-    return state.current.missed;
   }
   return {
     isPlaced: () => state.current.placed,
@@ -121,8 +138,22 @@ export function usePlacement({
     onLaidOut: () => {
       if (state.current.started) return;
       state.current.started = true;
-      if (anchorIndex === -1) place();
-      else placeAnchor(0);
+      if (anchorIndex === -1) {
+        place();
+        return;
+      }
+      scrollToAnchor({
+        done: () => {
+          place();
+          // Newer messages, in case it opened close enough to them that
+          // the list won't ask again.
+          onLoadNewer();
+        },
+        index: anchorIndex,
+        listRef,
+        state: state.current,
+        tries: 0,
+      });
     },
     onMissed: () => {
       state.current.missed = true;

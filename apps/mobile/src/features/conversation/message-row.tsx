@@ -68,11 +68,6 @@ export function Row({
   );
 }
 
-export function arrivedAfter(row: MessageRow, openedAt: number) {
-  const date = row.type === "message" ? row.message.sentAt : row.date;
-  return date.getTime() > openedAt;
-}
-
 function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
   const stacked = layout === "stacked";
   if (row.type === "day") {

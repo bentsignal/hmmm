@@ -34,7 +34,8 @@ import {
 import { linkActions } from "./link-actions";
 import { menuLayout } from "./menu-layout";
 import { menuTitleHeight } from "./menu-title";
-import { Reactors, REACTORS_WIDTH, reactorsHeight } from "./reactors";
+import { REACTORS_WIDTH, reactorsHeight } from "./reactor-rows";
+import { Reactors } from "./reactors";
 import { canSaveToPhotos, saveToPhotos } from "./save-media";
 
 export type TargetAlign = "end" | "start";
