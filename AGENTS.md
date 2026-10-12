@@ -59,12 +59,19 @@ Shawn starts each feature or fix in its own T3 Code worktree and thread
 - Merge only after Shawn approves that PR in the thread ("merge it", "ship
   it", "approved"), with a merge commit, deleting the branch. Approval of
   one PR is not approval of another.
+- After merging a PR that changed the backend (Convex functions, schema, or
+  a plugin's server code; anything that got an isolated backend), push
+  main's backend to the shared dev deployment right away
+  (`pnpm release backend dev`, from `origin/main` after
+  `scripts/backend.sh teardown`). Otherwise main's app and every worktree on
+  `dev.vera.chat` run against an older backend until the next release.
 - Never commit directly to `main`. Do not leave work uncommitted between
   sessions; push it and note its state in the PR.
 
 ## Releases
 
-Merging does not release anything. When Shawn asks for a release, follow the
+Merging does not release anything (only the shared dev backend follows
+main, as above). When Shawn asks for a release, follow the
 `vera-release` skill ([docs/releasing.md](docs/releasing.md) explains the
 model): list what changed since the last release, and what to test where
 those changes overlap (each one was already tested on its own before it
@@ -92,17 +99,20 @@ See [apps/mobile/README.md](apps/mobile/README.md#vera-dev).
 - **Day to day, Vera Dev is main's dev client.** When Shawn comes to test
   your worktree, run `scripts/phone.sh up` (`--android` for his Android
   phone) in it. It serves the worktree's Metro on the Mac's Wi-Fi address
-  (the phone must be on the same network) and prints an open link and a
-  QR code: send both, with the QR PNG embedded. JavaScript changes then
-  hot-reload on his phone with no build. Never start it before he asks.
+  (the phone must be on the same network). Tell him the **server address**
+  it prints (`server: http://<IP>:<port>`), first and on its own line: he
+  opens Vera Dev and picks that one from its list, where several worktrees'
+  servers can show up at once. Don't send QR codes or the open link unless
+  he asks. JavaScript changes then hot-reload on his phone with no build.
+  Never start it before he asks.
 - **Native builds only when native code changed.** `phone.sh up` compares
   the worktree's native fingerprint with main's. A worktree that changed
   native code gets its own dev client (built once, about 15 minutes, and
   cached); he installs it from the install link, and when he's done,
   `phone.sh down` prints main's install link to put main's dev client back
   (`phone.sh main` any time). Tell Shawn when he has to install something;
-  otherwise he only opens the link. `phone.sh list` shows every cached dev
-  client.
+  otherwise he only picks the server. `phone.sh list` shows every cached
+  dev client.
 - **Releases are tested in the dev client too**, serving `main` (the
   `vera-release` skill), so fixes reach his phone without a build. The real
   app gets tested in TestFlight.

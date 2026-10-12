@@ -3,7 +3,6 @@ import Animated from "react-native-reanimated";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import * as VideoThumbnails from "expo-video-thumbnails";
-import * as WebBrowser from "expo-web-browser";
 // eslint-disable-next-line no-restricted-imports -- A poster drawn from a video file has no route loader to preload it from.
 import { useQuery } from "@tanstack/react-query";
 
@@ -11,6 +10,7 @@ import type { AttachmentUpload, MessageAttachment } from "./types";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { removeOutgoingItem, retryOutgoing } from "~/features/messaging/outbox";
 import { formatBytes, formatDuration } from "~/lib/format";
+import { openLink } from "~/lib/open-link";
 
 const MEDIA_WIDTH = 240;
 const MAX_MEDIA_HEIGHT = 300;
@@ -228,7 +228,7 @@ function FileCard({
         if (upload !== undefined && stuck) {
           showUploadProblem(upload);
         } else if (upload === undefined || upload.state === "uploaded") {
-          void WebBrowser.openBrowserAsync(attachment.url);
+          openLink(attachment.url);
         }
       }}
       className="bg-bubble-incoming w-64 rounded-2xl p-3 active:opacity-80"

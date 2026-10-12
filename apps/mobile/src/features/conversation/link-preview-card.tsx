@@ -3,12 +3,12 @@ import type { View as NativeView } from "react-native";
 import { useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut } from "react-native-reanimated";
-import * as WebBrowser from "expo-web-browser";
 
 import type { MenuPress } from "./link-preview-media";
 import type { CardFace, PlaceholderStage } from "./placeholder-timing";
 import type { LinkCard, LinkPreview } from "./types";
 import { SymbolIcon } from "~/components/symbol-icon";
+import { openLink } from "~/lib/open-link";
 import {
   CARD_WIDTH,
   ImageArea,
@@ -295,7 +295,7 @@ function LinkCardView({ card }: { card: LinkCard }) {
         accessibilityHint={link}
         accessibilityActions={video && [{ label: "Play video", name: "play" }]}
         onAccessibilityAction={() => video && play(video)}
-        onPress={() => void WebBrowser.openBrowserAsync(url)}
+        onPress={() => openLink(url)}
         {...target?.press}
         className="active:opacity-80"
       >

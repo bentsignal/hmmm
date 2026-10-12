@@ -91,9 +91,10 @@ scripts/phone.sh up             # and again with --android for his Android phone
 
 Run `phone.sh up` from the release checkout (detached at `origin/main`, no
 isolated backend). It builds a dev client only when `main`'s native
-fingerprint has none yet (about 15 minutes); otherwise Shawn just opens the
-link. Send the open link and QR code, plus the install link when he needs
-one, as `phone.sh` prints them.
+fingerprint has none yet (about 15 minutes); otherwise Shawn just picks the
+server in Vera Dev. Tell him the server address `phone.sh` prints
+(`server: http://<IP>:<port>`), first and on its own line, plus the install
+link when he needs one. No QR codes or open link unless he asks.
 
 Make an internal build (`pnpm release build internal`, `--android`) or an
 internal OTA (`pnpm release ota internal "<summary>"`) only when Shawn asks
@@ -208,8 +209,8 @@ Chat", Apple ID 6818656155):
 - Category, age rating (`ageRatingDeclarations`), price (free), and
   availability.
 - App Privacy answers. The API can't set these, so use Codex in the web UI.
-- The review contact and notes, with the "Apple App Review" invite code from
-  the `invite-codes` skill.
+- The review contact and notes. Reviewers create their own account (sign-up
+  needs no code).
 
 Use `pnpm release asc <METHOD> <path> [json]` for API calls. Use
 `codex exec -m gpt-6.1-sol -s danger-full-access "<task>" < /dev/null` only
