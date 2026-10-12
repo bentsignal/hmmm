@@ -50,9 +50,15 @@ Shawn starts each feature or fix in its own T3 Code worktree and thread
 - Keep each pull request to one coherent change, with a description covering
   the summary, the evidence, and the validation that was run.
 - Open the PR, review your own diff, wait for CI to pass, then tell Shawn it
-  is ready and **stop**. Merge only after Shawn approves that PR in the
-  thread ("merge it", "ship it", "approved"), with a merge commit, deleting
-  the branch. Approval of one PR is not approval of another.
+  is ready to test and **stop**. Shawn tests every change on his phone in
+  its worktree before it merges, and you refine it on the branch until he's
+  happy; the release doesn't re-test each change. Start the dev server
+  (`scripts/phone.sh up`) only when he comes to test, and stop it
+  (`scripts/phone.sh down`) as soon as he reports back, so one worktree
+  serves his phone at a time.
+- Merge only after Shawn approves that PR in the thread ("merge it", "ship
+  it", "approved"), with a merge commit, deleting the branch. Approval of
+  one PR is not approval of another.
 - Never commit directly to `main`. Do not leave work uncommitted between
   sessions; push it and note its state in the PR.
 
@@ -60,8 +66,9 @@ Shawn starts each feature or fix in its own T3 Code worktree and thread
 
 Merging does not release anything. When Shawn asks for a release, follow the
 `vera-release` skill ([docs/releasing.md](docs/releasing.md) explains the
-model): list what changed since the last release with a test plan, get a
-test build or update onto his phone, and ship only after he approves.
+model): list what changed since the last release, and what to test where
+those changes overlap (each one was already tested on its own before it
+merged), get main onto his phone, and ship only after he approves.
 Over-the-air updates are the default; a store build happens only when
 native code changed or Apple requires one.
 
@@ -82,15 +89,20 @@ App Store, production) and **Vera Dev** (`chat.vera.app.dev`, amber icon,
 dev PDS). Every development binary is Vera Dev; only store builds are Vera.
 See [apps/mobile/README.md](apps/mobile/README.md#vera-dev).
 
-- **Day to day, Vera Dev is the dev client.** To let Shawn try a change on
-  his phone, run `scripts/phone.sh up` (`--android` for his Android phone)
-  in your worktree. It serves the worktree's Metro on the Mac's Wi-Fi
-  address (the phone must be on the same network) and prints an open link and a QR code: send both, with the QR PNG embedded.
-  JavaScript changes then hot-reload on his phone with no build.
-- **Native builds only when native code changed.** `phone.sh up` builds a
-  new dev client (about 15 minutes) only when the worktree's native
-  fingerprint has none yet, and prints its install link. Tell Shawn when he
-  has to install one; otherwise he only opens the link.
+- **Day to day, Vera Dev is main's dev client.** When Shawn comes to test
+  your worktree, run `scripts/phone.sh up` (`--android` for his Android
+  phone) in it. It serves the worktree's Metro on the Mac's Wi-Fi address
+  (the phone must be on the same network) and prints an open link and a
+  QR code: send both, with the QR PNG embedded. JavaScript changes then
+  hot-reload on his phone with no build. Never start it before he asks.
+- **Native builds only when native code changed.** `phone.sh up` compares
+  the worktree's native fingerprint with main's. A worktree that changed
+  native code gets its own dev client (built once, about 15 minutes, and
+  cached); he installs it from the install link, and when he's done,
+  `phone.sh down` prints main's install link to put main's dev client back
+  (`phone.sh main` any time). Tell Shawn when he has to install something;
+  otherwise he only opens the link. `phone.sh list` shows every cached dev
+  client.
 - **Releases are tested in the dev client too**, serving `main` (the
   `vera-release` skill), so fixes reach his phone without a build. The real
   app gets tested in TestFlight.
@@ -98,9 +110,9 @@ See [apps/mobile/README.md](apps/mobile/README.md#vera-dev).
   that means `scripts/phone.sh up`, not an internal build. Make an internal
   build (`pnpm release build internal`) only when he asks for one by name,
   or to check update or channel behavior, which a dev client can't show.
-  It replaces the dev client in the Vera Dev slot; he reinstalls it from
-  `scripts/phone.sh link`.
-- `scripts/phone.sh down` when he's done with it, like the simulators.
+  It replaces the dev client in the Vera Dev slot; he reinstalls main's
+  from `scripts/phone.sh main`.
+- `scripts/phone.sh down` as soon as he's done with it, like the simulators.
 
 ## Required validation after changes
 

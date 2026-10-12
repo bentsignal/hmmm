@@ -18,7 +18,7 @@ Vera and Vera Dev are separate apps (`chat.vera.app`, `chat.vera.app.dev`;
 see [apps/mobile/README.md](../apps/mobile/README.md#vera-dev)), so Shawn's
 phone keeps the TestFlight app on production through a release test. Vera
 Dev holds one binary at a time: an internal build replaces the dev client,
-and Shawn reinstalls the dev client from its link (`scripts/phone.sh link`)
+and Shawn reinstalls main's dev client from its link (`scripts/phone.sh main`)
 afterwards.
 
 Android testers use Google Play internal testing
@@ -95,16 +95,21 @@ updates refuse to run until `--next-release-done` confirms them, and after
 the release a PR removes the finished steps.
 
 1. **Plan.** On an up-to-date `main`, run `pnpm release plan`. Write the
-   release notes from the merged PRs and a test plan of what to try on the
-   phone. Send both to Shawn.
+   release notes from the merged PRs. Each change was already tested on
+   Shawn's phone in its worktree before it merged, so the test list covers
+   only what merging could have broken: places where the changes overlap
+   or interact (shared files and screens, the same flow from two ends,
+   backend changes against the app and against old app versions, native
+   changes together in one store build). Send both to Shawn.
 2. **Test in the dev client.** Push `main`'s backend to the shared dev
    deployment (`pnpm release backend dev`), then serve `main` to Vera Dev
-   on Shawn's phones (`scripts/phone.sh up`). This test is for features
-   and rough edges: JavaScript fixes reach the phone without a build. The
+   on Shawn's phones (`scripts/phone.sh up`). This test is for how the
+   changes work together: JavaScript fixes reach the phone without a build. The
    real app gets tested in TestFlight. An internal build or internal OTA is
    only for checking update or channel behavior, or when Shawn asks.
-3. **Shawn tests** and approves, or asks for fixes (normal feature PRs, then
-   back to step 1).
+3. **Shawn tests** that list, plus his own quick use of the app, and
+   approves, or asks for fixes (straight to `main` when small, feature PRs
+   when not, then back to step 1).
 4. **Ship.**
    - If the backend changed, deploy it to production first
      (`pnpm release backend production`). Old app versions keep talking to

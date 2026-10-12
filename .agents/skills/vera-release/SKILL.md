@@ -1,6 +1,6 @@
 ---
 name: vera-release
-description: Run a Vera mobile release end to end, covering changes since the last release, a test plan, testing main in the Vera Dev dev client on Shawn's phone, then the over-the-air update or TestFlight store build, and an App Store submission when asked. Use when Shawn asks to release, ship, cut a build, push an update, put something on TestFlight, or submit to the App Store, or asks what changed since the last release.
+description: Run a Vera mobile release end to end, covering changes since the last release, the interactions between them worth testing, testing main in the Vera Dev dev client on Shawn's phone, then the over-the-air update or TestFlight store build, and an App Store submission when asked. Use when Shawn asks to release, ship, cut a build, push an update, put something on TestFlight, or submit to the App Store, or asks what changed since the last release.
 ---
 
 # Releasing Vera
@@ -50,9 +50,29 @@ Send Shawn:
 - **Backend:** whether production needs `npx convex deploy`.
 - **What's new:** a short list in his words, not PR titles. No internal
   refactors unless they change behavior.
-- **What to test:** concrete steps on the phone for each change, plus a quick
-  regression pass (sign in, open a chat, send a message and a photo, react,
-  notifications).
+- **What to test:** only what merging could have broken. Shawn already
+  tested each change on his phone in its own worktree before it merged
+  (the `vera-feature` skill), so don't list every change again, and don't
+  list a regression pass: he uses the app a bit himself before shipping.
+  Look for where the merged changes meet, and give him one ordered list of
+  concrete steps for those spots, each saying which changes it covers and
+  why it's at risk. Look at:
+  - files, components, hooks, or screens that more than one change touched
+    (`git log --format='%h %s' --name-only <last release tag>..origin/main`
+    shows the overlap), especially shared ones such as the message bubble,
+    the composer, lists, and navigation;
+  - changes that touch the same flow from different ends (one changes how a
+    message is sent, another how it's shown or notified);
+  - changes that each assumed the old behavior of something another one
+    changed;
+  - a backend change paired with app changes that didn't test against it,
+    and old app versions still talking to the new backend;
+  - native changes: the store build has every native change together for
+    the first time, so check each one there;
+  - changes merged without a phone test (a PR Shawn approved from its
+    evidence alone): those get their own steps.
+
+  If nothing overlaps, say so; the list can be short or empty.
 
 Then go straight to step 2 unless he says otherwise.
 
@@ -79,13 +99,13 @@ Make an internal build (`pnpm release build internal`, `--android`) or an
 internal OTA (`pnpm release ota internal "<summary>"`) only when Shawn asks
 for one by name, or when the release changes update or channel behavior,
 which a dev client can't show. Installing one replaces the dev client in the
-Vera Dev slot; he reinstalls it from `scripts/phone.sh link`.
+Vera Dev slot; he gets main's dev client back from `scripts/phone.sh main`.
 
 ## 3. Wait for Shawn
 
 He tests and either approves ("ship it", "release it", "looks good, send
-it") or asks for fixes. Go through the changes with him one at a time:
-send the steps for one, wait for his verdict, then the next.
+it") or asks for fixes. He works through the list at his own pace; don't
+send it again item by item.
 
 Fixes found during the release test happen in the release thread, not new
 T3 threads. Small batches go straight to `main` from the release checkout:
@@ -95,7 +115,7 @@ fixes are many or large; subagents in their own worktrees can take
 independent pieces in parallel. A fix that changes native code needs new
 dev clients (`phone.sh up` builds them). A backend fix goes to the dev PDS
 (`pnpm release backend dev`) before he retests. Once the fixes are in,
-update the release notes and test plan (step 1). Don't ship without an
+update the release notes and the list (step 1). Don't ship without an
 explicit approval of this release. `scripts/phone.sh down` once he's done.
 
 ## 4. Ship

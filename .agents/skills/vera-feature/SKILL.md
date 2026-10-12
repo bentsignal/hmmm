@@ -1,6 +1,6 @@
 ---
 name: vera-feature
-description: The end-to-end workflow for building a Vera feature or fix in a T3 Code worktree, from choosing a backend through simulator verification, PR evidence, and waiting for Shawn's approval to merge. Use at the start of any feature, bug fix, or UI change in this repo, and whenever you need an isolated Convex backend, screenshots or videos for a PR, or are about to open or merge a PR. Simulator and emulator use also requires the vera-simulator skill.
+description: The end-to-end workflow for building a Vera feature or fix in a T3 Code worktree, from choosing a backend through simulator verification, PR evidence, Shawn's test on his phone, and his approval to merge. Use at the start of any feature, bug fix, or UI change in this repo, and whenever you need an isolated Convex backend, screenshots or videos for a PR, or are about to open or merge a PR. Simulator and emulator use also requires the vera-simulator skill.
 ---
 
 # Building a Vera change
@@ -75,45 +75,58 @@ whenever a change touches layout, navigation, platform files
 (`.ios.tsx`/`.android.tsx`), or native config, and put Android screenshots
 in the PR next to iOS ones.
 
-## 4b. Put it on Shawn's phone
+## 4b. Shawn tests it on his phone
 
-The simulator is your check. Shawn checks on his phone, in Vera Dev (the dev
-variant, `chat.vera.app.dev`, amber icon; the TestFlight app stays beside
-it). Do this when he asks to try a change, and offer it whenever a change is
-something he should feel, not just see (gestures, keyboard, haptics,
-notifications, passkeys, performance on a device):
+The simulator is your check. Every change also gets Shawn's own test on his
+phone, in its worktree, before it merges: the release no longer re-tests
+each change, so this is where a change gets right. He tests in Vera Dev (the
+dev variant, `chat.vera.app.dev`, amber icon; the TestFlight app stays
+beside it).
+
+**Serve it only when he asks** ("let me test it", "start the dev server").
+Never run `phone.sh up` on your own when the work is done: every running
+server shows up in Vera Dev's list, and he tests one worktree at a time.
 
 ```sh
 scripts/phone.sh up             # iPhone; --android for his Android phone
 scripts/phone.sh link           # the links and QR codes again
-scripts/phone.sh down           # when he's done
+scripts/phone.sh down           # as soon as he reports back
+scripts/phone.sh main           # main's dev client, to put back on his phone
+scripts/phone.sh list           # every cached dev client, marking main's
 ```
 
-- `up` reuses the dev client for this worktree's native fingerprint, or
-  builds one (about 15 minutes, once per fingerprint, shared by every
-  worktree) when native code changed. Then it starts the worktree's Metro
-  (the same one the simulators use) and prints:
-  - an **install** link, which Shawn needs only when `up` built a new dev
-    client, or when an internal build or an older dev client is in the Vera
-    Dev slot;
-  - an **open** link (`vera-dev://expo-development-client/?url=...`) that
-    points Vera Dev at this worktree's Metro over the Mac's Wi-Fi (the
-    phone must be on the same network).
-- Send Shawn the open link with its QR code embedded
-  (`![open](/abs/path/.cache/sim/phone-ios-open.png)`, from `up`'s output),
-  plus the install link and its QR code when he needs it. Say plainly
-  whether he has to install something.
-- JavaScript edits then hot-reload on his phone. Re-run `up` after native
+- Before serving, merge `origin/main` into the branch (fix conflicts,
+  re-run the validation, push), so he tests what will merge.
+- Vera Dev on his phone is normally **main's dev client**, which runs every
+  worktree that hasn't changed native code. `up` compares this worktree's
+  native fingerprint with main's and says which case it is:
+  - **Main's dev client:** he only opens the link.
+  - **This worktree's own dev client** (native code changed): `up` builds
+    it if needed (about 15 minutes, cached for every worktree) and he
+    installs it first. Afterwards he needs main's back (see `down`).
+  - **A new dev client for main** (main's native code changed since he last
+    installed one): he installs it once; it serves every worktree after.
+- `up` starts the worktree's Metro (the same one the simulators use) and
+  prints an **open** link (`vera-dev://expo-development-client/?url=...`)
+  that points Vera Dev at it over the Mac's Wi-Fi (the phone must be on the
+  same network), and an **install** link. Send the open link with its QR
+  code embedded (`![open](/abs/path/.cache/sim/phone-ios-open.png)`, from
+  `up`'s output), plus the install link and its QR code when he has to
+  install. Say plainly whether he does.
+- JavaScript edits hot-reload on his phone. Re-run `up` after native
   changes, `app.config.ts`, or `.env.local`.
-- Never make an internal build for this. Those are only for when Shawn
-  asks for one by name, or to check update or channel behavior, which a
-  dev client can't show.
 - With an isolated backend, Vera Dev talks to this worktree's domain, which
   has no accounts. Tell Shawn to sign in with
   `vera-dev:///dev-sign-in?username=<name>` (or make a QR code of it), and
   that the account is a throwaway.
-- `down` before you report, unless Shawn is still trying it; it leaves
-  Metro to the simulators if one is up.
+- When he reports back, with feedback or an approval, run `down` right
+  away, before you start on the feedback. If this worktree had its own dev
+  client, `down` also prints main's install link: send it with its QR code
+  so he can put main's dev client back. When he wants to retest a fix, he
+  asks and you `up` again.
+- Never make an internal build for this. Those are only for when Shawn
+  asks for one by name, or to check update or channel behavior, which a
+  dev client can't show.
 
 ## 5. Capture evidence
 
@@ -193,21 +206,26 @@ actually ran (lint, typecheck, test, format, react-doctor, bundle), not just
 the fingerprint check. If the "📱 Native Change"
 label appears, say so: the next release then needs a store build.
 
-Then tell Shawn it's ready, with the PR link, a two-line summary, and
-anything he should look at closely. **Stop there.** Don't merge.
+Then tell Shawn it's ready to test, with the PR link, a two-line summary,
+what to try on his phone (concrete steps for this change), whether it needs
+its own dev client, and anything he should look at closely. **Stop there.**
+Don't start the dev server until he asks (step 4b), and don't merge.
 
 ## 8. Feedback and merge
 
-- Feedback: make the changes on the same branch, `scripts/sim.sh up` again,
-  refresh the evidence if the UI changed, `scripts/sim.sh down`, push, and
-  report again.
+- Feedback: `scripts/phone.sh down` first if it's up. Make the changes on
+  the same branch, `scripts/sim.sh up` again, refresh the evidence if the UI
+  changed, `scripts/sim.sh down`, push, and report again. Expect a few
+  rounds; refining the change here is cheaper than finding it in the
+  release.
 - Merge only when Shawn approves this PR in the thread ("merge it",
-  "approved", "ship it"). Then:
+  "approved", "ship it"), normally after testing it on his phone. Then:
 
   ```sh
   gh pr merge <number> --merge --delete-branch
   scripts/backend.sh teardown   # if isolated: deletes the deployment and DNS record
   scripts/sim.sh down           # if one is still up
+  scripts/phone.sh down         # if it's still serving his phone
   ```
 
   Merging does not release anything. Releases are separate (the

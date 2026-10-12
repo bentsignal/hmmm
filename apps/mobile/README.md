@@ -72,11 +72,18 @@ The phone holds one Vera Dev at a time:
   that backend's domain, which starts with no accounts: sign in there with
   `vera-dev:///dev-sign-in?username=<name>`.
   Release testing uses it too, serving `main`.
+- **Main's dev client is the one the phone keeps.** It runs every worktree
+  that hasn't changed native code. `up` says whether a worktree uses it or
+  needs its own (native changes); after testing one with its own,
+  `scripts/phone.sh main` prints main's install link to put it back.
+  `scripts/phone.sh list` shows every cached dev client and marks main's.
+  Main's fingerprint comes from a checkout of `origin/main` kept in
+  `~/Library/Caches/vera/main-checkout`.
 - **An internal build, when asked for** (`pnpm release build internal`):
   Release JavaScript bundled in and the `internal` update channel, for
   checking update or channel behavior. Installing it replaces the dev
-  client; Shawn reinstalls the dev client from its link afterwards
-  (`scripts/phone.sh link`).
+  client; Shawn reinstalls main's dev client from its link afterwards
+  (`scripts/phone.sh main`).
 
 Dev clients are Debug builds: slower, with the dev menu, and no update
 channel. Real performance gets checked in TestFlight; updates and channels
