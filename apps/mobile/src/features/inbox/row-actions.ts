@@ -9,7 +9,7 @@ type IconName = Extract<ComponentProps<typeof SymbolIcon>["name"], object>;
 
 type RunAs = ReturnType<typeof useRunAs>;
 
-/** One action on an Inbox row, shown by swiping or in its menu. */
+/** One action in an Inbox row's long-press menu. */
 export interface RowAction {
   key: string;
   label: string;
@@ -43,36 +43,10 @@ function pinAction(runAs: RunAs, conversation: ConversationSummary) {
 }
 
 /**
- * An Inbox row's swipe actions. Swipe right to Pin or Unpin; swipe left to
- * hide a channel from the Inbox (it stays in its space). Mark as Unread
- * and Delete join these lists later. The first action on each side is the
- * one a full swipe runs.
+ * An Inbox row's long-press menu: Pin, Mark as Read, Hide for a channel
+ * (it stays in its space), and Leave Group. Rows have no swipe actions:
+ * a sideways swipe on Home moves between its pages.
  */
-export function inboxSwipeActions(
-  runAs: RunAs,
-  conversation: ConversationSummary,
-) {
-  const hide = {
-    key: "hide",
-    label: "Hide",
-    icon: { android: "visibility_off", ios: "eye.slash.fill" },
-    tone: "gray",
-    onPress: () =>
-      void runAs(
-        conversation.account,
-        pds.messages.setShowInInbox({
-          conversationId: conversation.id,
-          show: false,
-        }),
-      ),
-  } satisfies RowAction;
-  return {
-    leading: [pinAction(runAs, conversation)],
-    trailing: conversation.kind === "channel" ? [hide] : [],
-  };
-}
-
-/** The long-press menu on iOS: Pin, Mark as Read, and Leave Group. */
 export function inboxMenuActions(
   runAs: RunAs,
   conversation: ConversationSummary,
@@ -91,6 +65,20 @@ export function inboxMenuActions(
         }),
       ),
   } satisfies RowAction;
+  const hide = {
+    key: "hide",
+    label: "Hide",
+    icon: { android: "visibility_off", ios: "eye.slash.fill" },
+    tone: "gray",
+    onPress: () =>
+      void runAs(
+        conversation.account,
+        pds.messages.setShowInInbox({
+          conversationId: conversation.id,
+          show: false,
+        }),
+      ),
+  } satisfies RowAction;
   const leave = {
     key: "leave",
     label: "Leave Group",
@@ -105,14 +93,15 @@ export function inboxMenuActions(
   return [
     pinAction(runAs, conversation),
     ...(conversation.unreadCount > 0 ? [markRead] : []),
+    ...(conversation.kind === "channel" ? [hide] : []),
     ...(conversation.kind === "group" ? [leave] : []),
   ];
 }
 
 /**
- * Runs an action once the row has slid shut, so the change it makes (a row
+ * Runs an action once the menu has closed, so the change it makes (a row
  * moving to the top, say) doesn't interrupt the animation.
  */
-export function afterSwipe(action: () => void) {
+export function afterMenuCloses(action: () => void) {
   setTimeout(action, 300);
 }

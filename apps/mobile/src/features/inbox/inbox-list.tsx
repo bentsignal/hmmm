@@ -1,18 +1,12 @@
-import { Platform, Text, View } from "react-native";
-import { Stack, useRouter } from "expo-router";
-import EditSquare from "@expo/material-symbols/edit_square.xml";
+import { Text, View } from "react-native";
 
 import { ScreenList } from "~/components/screen-list";
-import { TabTitle } from "~/components/tab-title";
 import { INBOX_ROW_HEIGHT } from "~/features/inbox/conversation-row";
 import { filterInbox } from "~/features/inbox/filter";
-import { FilterToolbar } from "~/features/inbox/filter-toolbar";
 import { InboxRow } from "~/features/inbox/inbox-row";
 import { useVisibleAccounts } from "~/features/messaging/account";
 import { useInbox } from "~/features/messaging/inbox";
-import { useInboxOnScreen } from "~/features/notifications/push";
 import { usePreference } from "~/features/preferences/store";
-import { AccountToolbar } from "~/features/session/account-toolbar";
 
 function Empty({ title, detail }: { title: string; detail: string }) {
   return (
@@ -25,9 +19,8 @@ function Empty({ title, detail }: { title: string; detail: string }) {
   );
 }
 
-export default function InboxScreen() {
-  useInboxOnScreen();
-  const router = useRouter();
+/** Home's Inbox page: every conversation, pinned first, as filtered. */
+export function InboxList() {
   const { conversations, isLoading } = useInbox();
   const showAccount = useVisibleAccounts().length > 1;
   const show = usePreference("inboxShow");
@@ -54,26 +47,15 @@ export default function InboxScreen() {
   }
 
   return (
-    <>
-      <TabTitle title="Inbox" />
-      <FilterToolbar show={show} from={from} />
-      <AccountToolbar>
-        <Stack.Toolbar.Button
-          icon={Platform.OS === "ios" ? "square.and.pencil" : EditSquare}
-          accessibilityLabel="New message"
-          onPress={() => router.push("/new-message")}
-        />
-      </AccountToolbar>
-      <ScreenList
-        ready={!isLoading}
-        data={items}
-        estimatedItemSize={INBOX_ROW_HEIGHT}
-        keyExtractor={(item) => item.key}
-        ListEmptyComponent={empty()}
-        renderItem={({ item }) => (
-          <InboxRow conversation={item} showAccount={showAccount} />
-        )}
-      />
-    </>
+    <ScreenList
+      ready={!isLoading}
+      data={items}
+      estimatedItemSize={INBOX_ROW_HEIGHT}
+      keyExtractor={(item) => item.key}
+      ListEmptyComponent={empty()}
+      renderItem={({ item }) => (
+        <InboxRow conversation={item} showAccount={showAccount} />
+      )}
+    />
   );
 }

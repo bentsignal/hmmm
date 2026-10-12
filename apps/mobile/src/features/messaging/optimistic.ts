@@ -224,6 +224,7 @@ export function createSpace(self: string) {
         },
       ],
       invited: [],
+      joinedAt: Date.now(),
       members: [{ accountId: self, role: "owner" }],
       name,
       role: "owner",
