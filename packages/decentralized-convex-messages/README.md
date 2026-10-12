@@ -31,7 +31,11 @@ fetched previews in a cache for six hours (ten minutes for a link with
 none), so a prefetched link's card is in the message when it's stored.
 `linkPreview` still carries the first link's preview for older apps. The
 server only fetches public http(s) hosts, with a 5 second timeout and at
-most 512 KB of each page.
+most 512 KB of each page. It names the link expanders iMessage does in
+its user agent, since sites such as Reddit send other agents an empty
+page. A tweet (an x.com or twitter.com status link) comes from the API
+Twitter's embeds use instead, and its card carries the tweet's `video`
+(an MP4 the app can play, with `imageUrl` as its poster).
 
 `messages.inbox` lists direct messages and groups. With `{ channels: true }`
 it also lists the channels of your spaces, each with its `spaceName`, so an

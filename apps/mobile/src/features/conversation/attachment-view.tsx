@@ -120,6 +120,11 @@ function MediaBadge({ attachment }: { attachment: MessageAttachment }) {
   if (upload?.state === "uploading") return null;
   if (isStuck(upload)) return <RetryBadge />;
   if (attachment.kind !== "video") return null;
+  return <PlayBadge />;
+}
+
+/** The play button over a video's poster. */
+export function PlayBadge() {
   return (
     <View className="size-12 items-center justify-center rounded-full bg-black/40">
       <SymbolIcon
@@ -128,6 +133,15 @@ function MediaBadge({ attachment }: { attachment: MessageAttachment }) {
         tintColorClassName="accent-white"
       />
     </View>
+  );
+}
+
+/** A video's length, in the poster's corner. */
+export function DurationBadge({ durationMs }: { durationMs: number }) {
+  return (
+    <Text className="text-caption absolute bottom-2 left-2 overflow-hidden rounded-full bg-black/50 px-2 py-0.5 font-semibold text-white">
+      {formatDuration(Math.round(durationMs / 1000))}
+    </Text>
   );
 }
 
@@ -192,9 +206,7 @@ function Media({
       )}
       <MediaBadge attachment={attachment} />
       {isVideo && attachment.durationMs !== undefined && (
-        <Text className="text-caption absolute bottom-2 left-2 overflow-hidden rounded-full bg-black/50 px-2 py-0.5 font-semibold text-white">
-          {formatDuration(Math.round(attachment.durationMs / 1000))}
-        </Text>
+        <DurationBadge durationMs={attachment.durationMs} />
       )}
     </Pressable>
   );

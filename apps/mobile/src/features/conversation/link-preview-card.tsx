@@ -3,12 +3,13 @@ import type { View as NativeView } from "react-native";
 import { useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut } from "react-native-reanimated";
-import { Image } from "expo-image";
 import * as WebBrowser from "expo-web-browser";
 
+import type { MenuPress } from "./link-preview-media";
 import type { CardFace, PlaceholderStage } from "./placeholder-timing";
 import type { LinkCard, LinkPreview } from "./types";
 import { SymbolIcon } from "~/components/symbol-icon";
+import { CARD_WIDTH, ImageArea, VideoArea } from "./link-preview-media";
 import { useMenuTarget } from "./message-actions";
 import {
   cardFace,
@@ -18,11 +19,6 @@ import {
   startMinClock,
   startPendingClock,
 } from "./placeholder-timing";
-
-/** Every card is this wide, so swapping one for another never jumps. */
-const CARD_WIDTH = 256;
-/** Open Graph images are 1.91:1. */
-const IMAGE_HEIGHT = Math.round(CARD_WIDTH / 1.91);
 
 const EASE = Easing.inOut(Easing.cubic);
 const FADE_MS = 260;
@@ -36,22 +32,6 @@ function hostOf(link: string) {
   } catch {
     return link;
   }
-}
-
-/** Gray, where the image goes; images fade in over it. */
-function ImageArea({ uri }: { uri?: string }) {
-  return (
-    <View className="bg-fill" style={{ height: IMAGE_HEIGHT }}>
-      {uri !== undefined && (
-        <Image
-          source={{ uri }}
-          contentFit="cover"
-          transition={200}
-          style={{ height: IMAGE_HEIGHT, width: CARD_WIDTH }}
-        />
-      )}
-    </View>
-  );
 }
 
 function SiteName({ children }: { children: string }) {
@@ -106,14 +86,29 @@ function LinkOnly({ link }: { link: string }) {
 }
 
 /** Open Graph preview fetched by the server. */
-function Preview({ preview }: { preview: LinkPreview }) {
+function Preview({
+  preview,
+  press,
+}: {
+  preview: LinkPreview;
+  /** The card's hold, for a video's own Pressable. */
+  press?: MenuPress;
+}) {
   const hasText =
     preview.siteName !== undefined ||
     preview.title !== undefined ||
     preview.description !== undefined;
   return (
     <View>
-      {preview.imageUrl !== undefined && <ImageArea uri={preview.imageUrl} />}
+      {preview.video !== undefined ? (
+        <VideoArea
+          video={preview.video}
+          poster={preview.imageUrl}
+          press={press}
+        />
+      ) : (
+        preview.imageUrl !== undefined && <ImageArea uri={preview.imageUrl} />
+      )}
       {hasText && (
         <View className="gap-0.5 px-3 py-2.5">
           {preview.siteName !== undefined && (
@@ -214,10 +209,12 @@ function CardFrame({
 function CardContents({
   card,
   face,
+  press,
   onPlaceholderLayout,
 }: {
   card: LinkCard;
   face: CardFace;
+  press?: MenuPress;
   onPlaceholderLayout?: () => void;
 }) {
   const { link, preview } = card;
@@ -251,7 +248,7 @@ function CardContents({
   }
   return (
     <Animated.View key="preview" entering={SHOW}>
-      <Preview preview={preview} />
+      <Preview preview={preview} press={press} />
     </Animated.View>
   );
 }
@@ -260,8 +257,8 @@ function CardContents({
  * One link's card. Until the preview arrives it holds a placeholder (after
  * a short wait), then the preview fades in as the card takes its size; a
  * link the server couldn't preview settles into a small card with just the
- * link. Tapping opens the link; holding lifts just this card into the
- * message's menu, about its link.
+ * link. Tapping opens the link (or plays the post's video, on the video);
+ * holding lifts just this card into the message's menu, about its link.
  */
 function LinkCardView({ card }: { card: LinkCard }) {
   const { link, preview } = card;
@@ -296,6 +293,8 @@ function LinkCardView({ card }: { card: LinkCard }) {
         <CardContents
           card={card}
           face={timing.face}
+          // Outside a message (no menu), a video still plays.
+          press={target?.press ?? {}}
           onPlaceholderLayout={timing.placeholderShown}
         />
       </Pressable>

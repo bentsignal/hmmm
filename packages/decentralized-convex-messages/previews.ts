@@ -14,6 +14,13 @@ import {
   storeResult,
 } from "./linkCache.ts";
 import { linkPreview } from "./protocol.ts";
+import {
+  decodeEntities,
+  tidyReddit,
+  tweetApiUrl,
+  tweetId,
+  tweetPreview,
+} from "./sites.ts";
 
 const FETCH_TIMEOUT_MS = 5_000;
 const MAX_HTML_LENGTH = 512 * 1024;
@@ -85,13 +92,26 @@ export const fetchLink = internalAction({
   },
 });
 
+/**
+ * Many sites only serve Open Graph tags to the crawlers they know, and
+ * Reddit sends anything else an empty page, so this names the link
+ * expanders iMessage's does.
+ */
+const USER_AGENT =
+  "Mozilla/5.0 (compatible; VeraBot/1.0; +https://vera.chat) facebookexternalhit/1.1 Facebot Twitterbot/1.0";
+
 async function fetchPreview(url: string): Promise<LinkPreview | null> {
   if (!isPublicWebUrl(url)) return null;
+  const tweet = tweetId(url);
+  return tweet === undefined ? fetchPage(url) : fetchTweet(tweet);
+}
+
+/** A page's Open Graph tags, or the image a link leads straight to. */
+async function fetchPage(url: string): Promise<LinkPreview | null> {
   const response = await fetch(url, {
     headers: {
       Accept: "text/html,application/xhtml+xml",
-      // Many sites only serve Open Graph tags to crawlers.
-      "User-Agent": "Mozilla/5.0 (compatible; VeraBot/1.0; +https://vera.chat)",
+      "User-Agent": USER_AGENT,
     },
     redirect: "follow",
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
@@ -111,6 +131,30 @@ async function fetchPreview(url: string): Promise<LinkPreview | null> {
     return null;
   }
   return previewFromHtml(await readHtml(response), finalUrl);
+}
+
+/**
+ * x.com sends crawlers a page with no tweet in it, so a tweet comes from
+ * the API Twitter's embeds use, which has its video too.
+ */
+async function fetchTweet(id: string): Promise<LinkPreview | null> {
+  const response = await fetch(tweetApiUrl(id), {
+    headers: { Accept: "application/json", "User-Agent": USER_AGENT },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
+  // A deleted or protected tweet is a 404 or an empty object.
+  if (!response.ok) {
+    await response.body?.cancel();
+    return null;
+  }
+  const preview = tweetPreview(await response.json());
+  return preview === null
+    ? null
+    : {
+        ...preview,
+        description: clean(preview.description),
+        title: clean(preview.title),
+      };
 }
 
 /** The start of a page, reading no more than `MAX_HTML_LENGTH` of it. */
@@ -138,13 +182,13 @@ function previewFromHtml(html: string, url: string): LinkPreview | null {
     "description",
   ]);
   const image = firstMeta(html, ["og:image", "twitter:image"]);
-  const preview: LinkPreview = {
+  const preview = tidyReddit({
     description: clean(description),
     imageUrl: image === undefined ? undefined : absoluteHttps(image, url),
     siteName: clean(firstMeta(html, ["og:site_name"])) ?? new URL(url).hostname,
     title: clean(title),
     url,
-  };
+  });
   return preview.title === undefined && preview.imageUrl === undefined
     ? null
     : preview;
@@ -174,21 +218,6 @@ function metaContent(html: string, name: string) {
 function titleTag(html: string) {
   const title = /<title[^>]*>([^<]*)<\/title>/i.exec(html)?.[1];
   return title === undefined ? undefined : decodeEntities(title);
-}
-
-function decodeEntities(value: string) {
-  return value
-    .replace(/&#(\d+);/g, (_, code: string) =>
-      String.fromCodePoint(Number(code)),
-    )
-    .replace(/&#x([0-9a-f]+);/gi, (_, code: string) =>
-      String.fromCodePoint(Number.parseInt(code, 16)),
-    )
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&");
 }
 
 function clean(value: string | undefined) {

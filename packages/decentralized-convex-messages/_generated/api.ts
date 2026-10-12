@@ -28,6 +28,7 @@ import type * as protocol from "../protocol.js";
 import type * as pushTokens from "../pushTokens.js";
 import type * as reactions from "../reactions.js";
 import type * as shapes from "../shapes.js";
+import type * as sites from "../sites.js";
 import type * as spaces from "../spaces.js";
 
 import type {
@@ -58,6 +59,7 @@ const fullApi: ApiFromModules<{
   pushTokens: typeof pushTokens;
   reactions: typeof reactions;
   shapes: typeof shapes;
+  sites: typeof sites;
   spaces: typeof spaces;
 }> = anyApi as any;
 
