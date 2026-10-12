@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { SharedValue } from "react-native-reanimated";
+import { useState } from "react";
 import { Modal, Pressable, useWindowDimensions } from "react-native";
 import Animated, {
   clamp,
@@ -248,6 +249,7 @@ export function GlassMessageMenu({
     screen,
   });
   const progress = useSharedValue(0);
+  const [closing, setClosing] = useState(false);
   useAnimatedReaction(
     () => true,
     (_, previous) => {
@@ -262,6 +264,7 @@ export function GlassMessageMenu({
       then?.();
     }
     onClosing?.();
+    setClosing(true);
     progress.set(
       withTiming(
         0,
@@ -285,6 +288,7 @@ export function GlassMessageMenu({
       <ReactionBar
         target={target}
         progress={progress}
+        closing={closing}
         position={{ left: layout.barLeft, top: layout.barTop }}
         onPick={(emoji) => {
           selectionTick();
@@ -295,6 +299,7 @@ export function GlassMessageMenu({
       {actions.length > 0 && (
         <ActionMenu
           progress={progress}
+          closing={closing}
           align={target.align}
           position={{ left: layout.menuLeft, top: layout.menuTop }}
           title={target.link}

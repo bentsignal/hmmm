@@ -7,6 +7,7 @@ import { formatTime } from "~/lib/format";
 import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
 import { LinkCards } from "./link-preview-card";
+import { LinkedText } from "./linked-text";
 import { MenuTargetView } from "./message-actions";
 import { InteractiveMessage } from "./message-reactions";
 import { MessageMeta, SendingFade } from "./message-status";
@@ -51,7 +52,10 @@ export function MessageStacked({
             <View className="items-start gap-1">
               {body !== undefined && (
                 <MenuTargetView>
-                  <Text className="text-body text-foreground">{body}</Text>
+                  <LinkedText
+                    text={body}
+                    className="text-body text-foreground"
+                  />
                 </MenuTargetView>
               )}
               {message.attachments.map((attachment) => (

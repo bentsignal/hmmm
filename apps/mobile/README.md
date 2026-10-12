@@ -195,6 +195,12 @@ with Google's key; its SHA-256 is in the passkey variables and
   photos) shows nothing until it is ready and then fades in.
   `ScreenList`'s `ready` prop, the message list's `onLoad` fade, and
   `expo-image` transitions do this; new screens follow the same pattern.
+- Liquid Glass never sits under a parent whose opacity is below 1: no fade,
+  no `active:opacity-*`. iOS can't draw glass there, and a `GlassView` that
+  misses its first draw or fades out with a parent can stay blank until it
+  remounts. Fade the content inside the glass instead, and bring the glass
+  in and out with `GlassSurface`'s `materialize` and `shown`, which use
+  iOS's own glass animation.
 
 ## Message notifications
 
@@ -312,6 +318,12 @@ with `development: true`) and send to that token through the Expo push API.
   Alerts, leaving a group).
 - `src/features/notifications`: Expo push registration and notification
   routing.
+- `modules/open-in-app` (a local Expo module, autolinked from `modules/`):
+  `src/lib/open-link.ts` opens a link in the installed app that claims it
+  (Reddit, Instagram, X, a news app), with no list of apps: iOS opens it
+  with `universalLinksOnly`, Android with `FLAG_ACTIVITY_REQUIRE_NON_BROWSER`
+  (Android 11 and newer). When no app takes it, it opens in the in-app
+  browser, as it does on builds from before the module.
 - `plugins/with-ios-scene-lifecycle.cjs`: adopts the UIScene life cycle that
   the iOS 27 SDK requires. Expo SDK 58 does this in its template; remove the
   plugin when upgrading.
