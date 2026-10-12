@@ -59,12 +59,19 @@ Shawn starts each feature or fix in its own T3 Code worktree and thread
 - Merge only after Shawn approves that PR in the thread ("merge it", "ship
   it", "approved"), with a merge commit, deleting the branch. Approval of
   one PR is not approval of another.
+- After merging a PR that changed the backend (Convex functions, schema, or
+  a plugin's server code; anything that got an isolated backend), push
+  main's backend to the shared dev deployment right away
+  (`pnpm release backend dev`, from `origin/main` after
+  `scripts/backend.sh teardown`). Otherwise main's app and every worktree on
+  `dev.vera.chat` run against an older backend until the next release.
 - Never commit directly to `main`. Do not leave work uncommitted between
   sessions; push it and note its state in the PR.
 
 ## Releases
 
-Merging does not release anything. When Shawn asks for a release, follow the
+Merging does not release anything (only the shared dev backend follows
+main, as above). When Shawn asks for a release, follow the
 `vera-release` skill ([docs/releasing.md](docs/releasing.md) explains the
 model): list what changed since the last release, and what to test where
 those changes overlap (each one was already tested on its own before it
