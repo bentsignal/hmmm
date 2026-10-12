@@ -1,7 +1,8 @@
 import type { DiscoveredPds } from "@decentralized-convex/client";
 import type { ReactNode } from "react";
-import { createContext, use } from "react";
+import { createContext, use, useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
+import * as SplashScreen from "expo-splash-screen";
 import { useQueries } from "@tanstack/react-query";
 
 import type { AccountSession } from "./account-session";
@@ -84,6 +85,7 @@ export function SessionProvider({
   });
   return (
     <SessionContext value={{ accounts, filter: stored.filter, home }}>
+      <HideSplash />
       <VerifySessions accounts={accounts} />
       {children}
     </SessionContext>
@@ -103,9 +105,23 @@ function VerifySessions({ accounts }: { accounts: readonly AccountSession[] }) {
   return null;
 }
 
+/**
+ * Hides the native splash screen (a plain background) once the session has
+ * something to show: the app, or the screen saying the server can't be
+ * reached. Until then the splash stays up so nothing flashes.
+ */
+function HideSplash() {
+  // eslint-disable-next-line no-restricted-syntax -- The native splash screen hides once, when the first real screen mounts.
+  useEffect(() => {
+    void SplashScreen.hideAsync();
+  }, []);
+  return null;
+}
+
 function Unreachable({ onRetry }: { onRetry: () => void }) {
   return (
     <View className="bg-background flex-1 items-center justify-center gap-3 px-8">
+      <HideSplash />
       <Text className="text-title3 text-foreground font-semibold">
         Can't reach Vera
       </Text>
