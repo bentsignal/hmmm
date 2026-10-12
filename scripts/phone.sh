@@ -209,7 +209,8 @@ main_client() {
   local main
   main="$(main_fingerprint)"
   echo "main's dev client (fingerprint ${main:0:12}):"
-  "$MAIN_CHECKOUT/scripts/phone.sh" $([ "$PLATFORM" = android ] && echo --android) client
+  # From inside it: the script finds its checkout from the working directory.
+  (cd "$MAIN_CHECKOUT" && scripts/phone.sh $([ "$PLATFORM" = android ] && echo --android) client)
 }
 
 list() {
