@@ -4,11 +4,11 @@ import { useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut } from "react-native-reanimated";
 import { Image } from "expo-image";
-import * as WebBrowser from "expo-web-browser";
 
 import type { CardFace, PlaceholderStage } from "./placeholder-timing";
 import type { LinkCard, LinkPreview } from "./types";
 import { SymbolIcon } from "~/components/symbol-icon";
+import { openLink } from "~/lib/open-link";
 import { useMenuTarget } from "./message-actions";
 import {
   cardFace,
@@ -289,7 +289,7 @@ function LinkCardView({ card }: { card: LinkCard }) {
         ref={ref}
         accessibilityRole="link"
         accessibilityHint={link}
-        onPress={() => void WebBrowser.openBrowserAsync(url)}
+        onPress={() => openLink(url)}
         {...target?.press}
         className="active:opacity-80"
       >

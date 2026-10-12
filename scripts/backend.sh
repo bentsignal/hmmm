@@ -134,6 +134,9 @@ teardown() {
   cp "$main/services/backend/.env.local" "$BACKEND/.env.local"
   rm -f "$STATE" "$MOBILE_ENV"
   status
+  # Vera Dev keeps one account list for every worktree, so an account on
+  # this domain left on Shawn's phone now points at nothing.
+  echo "accounts @$DOMAIN no longer exist: if Shawn still has one in Vera Dev, he removes it (Settings > Accounts)" >&2
 }
 
 case "${1:-status}" in

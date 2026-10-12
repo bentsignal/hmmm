@@ -1,8 +1,8 @@
 import { Platform, Share } from "react-native";
-import * as WebBrowser from "expo-web-browser";
 
 import type { MenuAction } from "./glass-menu-parts";
 import { canCopy, copyText } from "~/lib/native-extras";
+import { openLink } from "~/lib/open-link";
 
 /** Open, copy, and share a held link card's link. */
 export function linkActions(
@@ -13,7 +13,7 @@ export function linkActions(
   const open = {
     icon: { android: "open_in_browser", ios: "safari" },
     label: "Open Link",
-    onPress: () => close(() => void WebBrowser.openBrowserAsync(link)),
+    onPress: () => close(() => openLink(link)),
   } satisfies MenuAction;
   const copy = {
     icon: { android: "link", ios: "link" },
