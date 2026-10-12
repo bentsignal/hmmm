@@ -5,14 +5,16 @@ import {
   KeyboardGestureArea,
   KeyboardStickyView,
 } from "react-native-keyboard-controller";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 
 import type {
   AttachmentSource,
   StagedFile,
 } from "~/features/messaging/attachments";
-import { Composer } from "~/features/conversation/composer";
+import {
+  Composer,
+  useComposerBottomInset,
+} from "~/features/conversation/composer";
 import {
   CONVERSATION_HEADER_HEIGHT,
   ConversationHeader,
@@ -51,7 +53,7 @@ function FloatingComposer({
     linkPreviews: readonly LinkCard[],
   ) => void;
 }) {
-  const insets = useSafeAreaInsets();
+  const bottomInset = useComposerBottomInset();
   const links = useLinkPrefetch();
   const devTools = useDevTools();
   const [staged, setStaged] = useState<readonly StagedFile[]>([]);
@@ -81,26 +83,26 @@ function FloatingComposer({
 
   return (
     <KeyboardStickyView
-      offset={{ closed: 0, opened: insets.bottom }}
+      // With the keyboard up, the inset below the bar goes behind it.
+      offset={{ closed: 0, opened: bottomInset }}
       // Floats over the messages, which scroll all the way to the bottom.
       style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
       onLayout={(event) => onHeight(event.nativeEvent.layout.height)}
     >
-      <View style={{ paddingBottom: insets.bottom }}>
-        <Composer
-          staged={staged}
-          onChangeText={links.onChangeText}
-          onPick={(source) => void pick(source)}
-          onRemoveStaged={(id) =>
-            setStaged((current) => current.filter((file) => file.id !== id))
-          }
-          onSend={(body) => {
-            onSend(body, staged, links.cardsFor(body));
-            setStaged([]);
-            devTools.replyToMe(conversationId);
-          }}
-        />
-      </View>
+      <Composer
+        bottomInset={bottomInset}
+        staged={staged}
+        onChangeText={links.onChangeText}
+        onPick={(source) => void pick(source)}
+        onRemoveStaged={(id) =>
+          setStaged((current) => current.filter((file) => file.id !== id))
+        }
+        onSend={(body) => {
+          onSend(body, staged, links.cardsFor(body));
+          setStaged([]);
+          devTools.replyToMe(conversationId);
+        }}
+      />
     </KeyboardStickyView>
   );
 }
@@ -129,7 +131,7 @@ function Conversation({
   initialTitle?: string;
 }) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const composerBottomInset = useComposerBottomInset();
   const { address } = useAccount();
   const { conversation, isLoading, profileOf, title } =
     useConversation(conversationId);
@@ -170,7 +172,7 @@ function Conversation({
             onStartReached={messages.loadOlder}
             onEndReached={messages.loadNewer}
             onJumpToLatest={messages.jumpToLatest}
-            bottomInset={insets.bottom}
+            bottomInset={composerBottomInset}
             topInset={CONVERSATION_HEADER_HEIGHT}
             composerHeight={composerHeight}
             onToggleReaction={messages.toggleReaction}
