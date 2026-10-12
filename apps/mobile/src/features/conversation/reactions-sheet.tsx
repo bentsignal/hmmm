@@ -1,6 +1,6 @@
 import type { Reaction } from "@decentralized-convex/messages";
 import { useState } from "react";
-import { FlatList, Pressable, Text, View } from "react-native";
+import { FlatList, Platform, Pressable, Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 // eslint-disable-next-line no-restricted-imports -- Expo Router has no route loaders to preload suspense queries.
 import { useQuery } from "@tanstack/react-query";
@@ -16,6 +16,8 @@ import { selectionTick } from "~/lib/native-extras";
 
 /** The tab listing everyone, whatever they reacted with. */
 const ALL = "all";
+
+const IS_ANDROID = Platform.OS === "android";
 
 /** Everyone who reacted, earliest first, each with all their emoji in order. */
 function byPerson(reactions: readonly Reaction[]) {
@@ -124,6 +126,26 @@ function Person({
   );
 }
 
+/** The sheet's title, under a drag handle on Android (iOS draws its own). */
+function Title() {
+  return (
+    <>
+      {IS_ANDROID && (
+        <View className="bg-subtle mt-3 h-1 w-8 self-center rounded-full" />
+      )}
+      <Text
+        accessibilityRole="header"
+        className={cn(
+          "text-headline text-foreground pb-1 text-center font-semibold",
+          IS_ANDROID ? "pt-4" : "pt-6",
+        )}
+      >
+        Reactions
+      </Text>
+    </>
+  );
+}
+
 /**
  * Who reacted to a message, like Discord's sheet: a tab for everyone and
  * one per emoji with its count, and the people under the selected tab, each
@@ -173,15 +195,10 @@ export function ReactionsSheet({
   }
 
   return (
-    // Opaque, so the conversation doesn't show through the glass behind
-    // the names.
-    <View className="bg-background-elevated flex-1">
-      <Text
-        accessibilityRole="header"
-        className="text-headline text-foreground pt-6 pb-1 text-center font-semibold"
-      >
-        Reactions
-      </Text>
+    // iOS draws the sheet as glass, with its own grabber. Android's sheet
+    // has neither, so it gets a background and a handle that shows it drags.
+    <View className={cn("flex-1", IS_ANDROID && "bg-background-elevated")}>
+      <Title />
       {data !== undefined && (
         <Animated.View entering={FadeIn.duration(220)} className="flex-1">
           {tabs && (
