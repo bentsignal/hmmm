@@ -34,12 +34,11 @@ export function LinkedText({
 }) {
   return (
     <Text className={className}>
-      {textParts(text).map((part, index) =>
+      {textParts(text).map((part) =>
         part.url === undefined ? (
           part.text
         ) : (
-          // A message's text never changes, so its parts never move.
-          <Link key={index} text={part.text} url={part.url} />
+          <Link key={part.start} text={part.text} url={part.url} />
         ),
       )}
     </Text>

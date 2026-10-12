@@ -104,15 +104,15 @@ void test("cuts the previewed links the body ends with", () => {
 
 void test("splits text into plain runs and tappable links", () => {
   assert.deepEqual(textParts("www.maptap.gg October 12"), [
-    { text: "www.maptap.gg", url: "https://www.maptap.gg" },
-    { text: " October 12" },
+    { start: 0, text: "www.maptap.gg", url: "https://www.maptap.gg" },
+    { start: 13, text: " October 12" },
   ]);
-  assert.deepEqual(textParts("no links"), [{ text: "no links" }]);
+  assert.deepEqual(textParts("no links"), [{ start: 0, text: "no links" }]);
   const long =
     "https://www.reddit.com/r/soccer/comments/1x390rl/a_franchise_staff/";
   assert.deepEqual(textParts(`see ${long} lol`), [
-    { text: "see " },
-    { text: "reddit.com/r/soccer/comments/1x390rl/a_…", url: long },
-    { text: " lol" },
+    { start: 0, text: "see " },
+    { start: 4, text: "reddit.com/r/soccer/comments/1x390rl/a_…", url: long },
+    { start: 4 + long.length, text: " lol" },
   ]);
 });

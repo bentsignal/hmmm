@@ -177,6 +177,8 @@ function shownLink(text: string) {
 
 /** A run of a message's text, or a link in it to show tappable. */
 export interface TextPart {
+  /** Where it starts in the message's text. */
+  readonly start: number;
   /** What to show. */
   readonly text: string;
   /** Where a link goes; absent for plain text. */
@@ -188,10 +190,16 @@ export function textParts(body: string): TextPart[] {
   const parts: TextPart[] = [];
   let at = 0;
   for (const link of linksIn(body)) {
-    if (link.start > at) parts.push({ text: body.slice(at, link.start) });
-    parts.push({ text: shownLink(link.text), url: link.url });
+    if (link.start > at) {
+      parts.push({ start: at, text: body.slice(at, link.start) });
+    }
+    parts.push({
+      start: link.start,
+      text: shownLink(link.text),
+      url: link.url,
+    });
     at = link.end;
   }
-  if (at < body.length) parts.push({ text: body.slice(at) });
+  if (at < body.length) parts.push({ start: at, text: body.slice(at) });
   return parts;
 }
