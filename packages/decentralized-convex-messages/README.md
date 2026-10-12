@@ -30,13 +30,17 @@ pauses and read the results with `messages.linkPreviews`. The PDS keeps
 fetched previews in a cache for six hours (ten minutes for a link with
 none), so a prefetched link's card is in the message when it's stored.
 `linkPreview` still carries the first link's preview for older apps. The
-server only fetches public http(s) hosts, with a 5 second timeout and at
-most 512 KB of each page. It names the link expanders iMessage does in
-its user agent (`LINK_PREVIEW_USER_AGENT`), since sites such as Reddit
-send other agents an empty page; apps load preview images with it too,
-since Reddit's image is generic for anyone else. A tweet (an x.com or twitter.com status link) comes from the API
-Twitter's embeds use instead, and its card carries the tweet's `video`
-(an MP4 the app can play, with `imageUrl` as its poster).
+server only fetches public http(s) hosts, with a 5 second timeout per
+try and at most 512 KB of each page's head. Sites let different link
+expanders through, so a page that comes back blocked or without Open
+Graph tags is tried again as the next of `PAGE_AGENTS` (iMessage's, then
+WhatsApp's, Slack's, Discord's, and a browser's; see `agents.ts`), for
+up to 12 seconds in all. Apps load preview images as
+`PREVIEW_IMAGE_USER_AGENT`, since some image CDNs block other crawlers
+and Reddit only draws its real post image for link expanders. A tweet
+(an x.com or twitter.com status link) comes from the API Twitter's
+embeds use instead, and its card carries the tweet's `video` (an MP4 the
+app can play, with `imageUrl` as its poster).
 
 `messages.inbox` lists direct messages and groups. With `{ channels: true }`
 it also lists the channels of your spaces, each with its `spaceName`, so an

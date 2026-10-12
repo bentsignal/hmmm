@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as agents from "../agents.js";
 import type * as badges from "../badges.js";
 import type * as conversations from "../conversations.js";
 import type * as delivery from "../delivery.js";
@@ -22,6 +23,7 @@ import type * as metadata from "../metadata.js";
 import type * as model from "../model.js";
 import type * as naming from "../naming.js";
 import type * as notifications from "../notifications.js";
+import type * as opengraph from "../opengraph.js";
 import type * as paging from "../paging.js";
 import type * as previews from "../previews.js";
 import type * as protocol from "../protocol.js";
@@ -39,6 +41,7 @@ import type {
 import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
+  agents: typeof agents;
   badges: typeof badges;
   conversations: typeof conversations;
   delivery: typeof delivery;
@@ -53,6 +56,7 @@ const fullApi: ApiFromModules<{
   model: typeof model;
   naming: typeof naming;
   notifications: typeof notifications;
+  opengraph: typeof opengraph;
   paging: typeof paging;
   previews: typeof previews;
   protocol: typeof protocol;

@@ -6,7 +6,7 @@ export {
   withoutPreviewedUrl,
   withoutUrls,
 } from "./links.ts";
-export { LINK_PREVIEW_USER_AGENT } from "./sites.ts";
+export { PREVIEW_IMAGE_USER_AGENT } from "./agents.ts";
 export {
   channelName,
   createdId,

@@ -1,7 +1,7 @@
 import { Pressable, View } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { LINK_PREVIEW_USER_AGENT } from "@decentralized-convex/messages";
+import { PREVIEW_IMAGE_USER_AGENT } from "@decentralized-convex/messages";
 
 import type { useMenuTarget } from "./message-actions";
 import type { LinkPreview } from "./types";
@@ -21,9 +21,9 @@ export type MenuPress = Partial<
 type Video = NonNullable<LinkPreview["video"]>;
 
 /**
- * Gray, where the image goes; images fade in over it. They load as the
- * link expanders the server read the page as, since sites such as Reddit
- * serve a generic image to anyone else.
+ * Gray, where the image goes; images fade in over it. They load as a link
+ * expander (`PREVIEW_IMAGE_USER_AGENT`), since sites such as Reddit serve
+ * a generic image to anyone else.
  */
 export function ImageArea({
   uri,
@@ -36,7 +36,7 @@ export function ImageArea({
     <View className="bg-fill" style={{ height }}>
       {uri !== undefined && (
         <Image
-          source={{ headers: { "User-Agent": LINK_PREVIEW_USER_AGENT }, uri }}
+          source={{ headers: { "User-Agent": PREVIEW_IMAGE_USER_AGENT }, uri }}
           contentFit="cover"
           transition={200}
           style={{ height, width: CARD_WIDTH }}
