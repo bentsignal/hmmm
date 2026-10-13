@@ -142,7 +142,7 @@ export function useActivity(now: number) {
 /**
  * The Activity tab's badge: space invitations waiting for an answer, plus
  * reactions to your messages you haven't seen yet. Unread messages already
- * count on the Inbox's badge.
+ * count on Home's badge.
  */
 export function useActivityBadge() {
   const accounts = useVisibleAccounts().map(({ address }) => address);

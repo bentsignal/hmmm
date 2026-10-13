@@ -15,26 +15,21 @@ export default function TabsLayout() {
     ({ unreadCount }) => unreadCount > 0,
   ).length;
   // Invitations and unseen reactions; unread messages (channels too)
-  // count on the Inbox.
+  // count on Home.
   const activity = useActivityBadge();
   return (
     <NativeTabs tintColor={typeof accent === "string" ? accent : undefined}>
-      <NativeTabs.Trigger name="(inbox)">
-        <NativeTabs.Trigger.Label>Inbox</NativeTabs.Trigger.Label>
+      {/* Native tabs give a tab's first scroll view the tab bar's inset;
+          on Home that's the pager, whose lists take the insets instead. */}
+      <NativeTabs.Trigger name="(home)" disableAutomaticContentInsets>
+        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          sf={{ default: "tray", selected: "tray.fill" }}
-          md="inbox"
+          sf={{ default: "house", selected: "house.fill" }}
+          md="home"
         />
         {unread > 0 && (
           <NativeTabs.Trigger.Badge>{String(unread)}</NativeTabs.Trigger.Badge>
         )}
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="spaces">
-        <NativeTabs.Trigger.Label>Spaces</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf={{ default: "square.grid.2x2", selected: "square.grid.2x2.fill" }}
-          md="grid_view"
-        />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="activity">
         <NativeTabs.Trigger.Label>Activity</NativeTabs.Trigger.Label>

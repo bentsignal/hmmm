@@ -193,6 +193,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 siteName?: string;
                 title?: string;
                 url: string;
+                video?: {
+                  durationMs?: number;
+                  height?: number;
+                  url: string;
+                  width?: number;
+                };
               };
               linkPreviews?: Array<{
                 link: string;
@@ -202,6 +208,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   siteName?: string;
                   title?: string;
                   url: string;
+                  video?: {
+                    durationMs?: number;
+                    height?: number;
+                    url: string;
+                    width?: number;
+                  };
                 };
               }>;
               messageId: string;
@@ -329,6 +341,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   siteName?: string;
                   title?: string;
                   url: string;
+                  video?: {
+                    durationMs?: number;
+                    height?: number;
+                    url: string;
+                    width?: number;
+                  };
                 };
                 linkPreviews?: Array<{
                   link: string;
@@ -338,6 +356,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     siteName?: string;
                     title?: string;
                     url: string;
+                    video?: {
+                      durationMs?: number;
+                      height?: number;
+                      url: string;
+                      width?: number;
+                    };
                   };
                 }>;
                 messageId: string;
@@ -394,6 +418,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                       siteName?: string;
                       title?: string;
                       url: string;
+                      video?: {
+                        durationMs?: number;
+                        height?: number;
+                        url: string;
+                        width?: number;
+                      };
                     };
                     linkPreviews?: Array<{
                       link: string;
@@ -403,6 +433,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                         siteName?: string;
                         title?: string;
                         url: string;
+                        video?: {
+                          durationMs?: number;
+                          height?: number;
+                          url: string;
+                          width?: number;
+                        };
                       };
                     }>;
                     messageId: string;
@@ -445,6 +481,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                       siteName?: string;
                       title?: string;
                       url: string;
+                      video?: {
+                        durationMs?: number;
+                        height?: number;
+                        url: string;
+                        width?: number;
+                      };
                     };
                     linkPreviews?: Array<{
                       link: string;
@@ -454,6 +496,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                         siteName?: string;
                         title?: string;
                         url: string;
+                        video?: {
+                          durationMs?: number;
+                          height?: number;
+                          url: string;
+                          width?: number;
+                        };
                       };
                     }>;
                     messageId: string;
@@ -498,6 +546,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   siteName?: string;
                   title?: string;
                   url: string;
+                  video?: {
+                    durationMs?: number;
+                    height?: number;
+                    url: string;
+                    width?: number;
+                  };
                 };
                 linkPreviews?: Array<{
                   link: string;
@@ -507,6 +561,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     siteName?: string;
                     title?: string;
                     url: string;
+                    video?: {
+                      durationMs?: number;
+                      height?: number;
+                      url: string;
+                      width?: number;
+                    };
                   };
                 }>;
                 messageId: string;
@@ -551,6 +611,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   siteName?: string;
                   title?: string;
                   url: string;
+                  video?: {
+                    durationMs?: number;
+                    height?: number;
+                    url: string;
+                    width?: number;
+                  };
                 };
                 linkPreviews?: Array<{
                   link: string;
@@ -560,6 +626,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     siteName?: string;
                     title?: string;
                     url: string;
+                    video?: {
+                      durationMs?: number;
+                      height?: number;
+                      url: string;
+                      width?: number;
+                    };
                   };
                 }>;
                 messageId: string;
@@ -588,6 +660,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 siteName?: string;
                 title?: string;
                 url: string;
+                video?: {
+                  durationMs?: number;
+                  height?: number;
+                  url: string;
+                  width?: number;
+                };
               };
             }>;
           }
@@ -603,6 +681,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 unreadCount: number;
               }>;
               invited?: Array<string>;
+              joinedAt?: number;
               members: Array<{ accountId: string; role: "owner" | "member" }>;
               name: string;
               role: "owner" | "member";
@@ -622,6 +701,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 unreadCount: number;
               }>;
               invited?: Array<string>;
+              joinedAt?: number;
               members: Array<{ accountId: string; role: "owner" | "member" }>;
               name: string;
               role: "owner" | "member";

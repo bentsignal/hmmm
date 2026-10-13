@@ -5,8 +5,8 @@ to your messages, in one list.
 
 ## Decisions
 
-- Tabs: **Inbox · Spaces · Activity · Settings · Search**. Activity sits
-  between Spaces and Settings, with a bell icon.
+- Tabs: **Home · Activity · Settings · Search**. Activity sits between
+  Home (Inbox and Spaces) and Settings, with a bell icon.
 - One list, no sub-tabs. It shows **messages** from others in DMs, groups,
   and channels (one row per conversation: who wrote, the newest message, and
   how many) and **reactions** to your messages (one row per message: who
@@ -20,11 +20,11 @@ to your messages, in one list.
   shows (a backstop, so a first visit isn't the whole history).
 - **Space invitations** sit at the top under an "Invites" heading (the
   activity follows under "Recent"), each with Accept and Decline, until
-  answered. They moved here from the Spaces tab, which no longer has an
-  Invites row or a badge. Tapping an invitation's notification opens
+  answered. They moved here from Home's Spaces page, which no longer has an
+  Invites row; Home's badge no longer counts them. Tapping an invitation's notification opens
   Activity.
 - The tab's **badge counts invitations and unseen reactions**; unread
-  messages already count on the Inbox's badge. The app icon badge is
+  messages already count on Home's badge. The app icon badge is
   unchanged.
 - **Muted conversations** and channels hidden from the Inbox are left out.
 - Tapping a row opens the conversation (at the message, for a reaction).

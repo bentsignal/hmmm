@@ -23,6 +23,11 @@ export function impact() {
   void haptics?.impactAsync("medium").catch(() => undefined);
 }
 
+/** A soft tap, as when Home swipes to another page. */
+export function lightImpact() {
+  void haptics?.impactAsync("light").catch(() => undefined);
+}
+
 /** A light tick, as when a choice is made. */
 export function selectionTick() {
   void haptics?.selectionAsync().catch(() => undefined);

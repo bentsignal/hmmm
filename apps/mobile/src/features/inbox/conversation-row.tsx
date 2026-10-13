@@ -135,9 +135,12 @@ export function ConversationRowContent({
 export function ConversationRow({
   conversation,
   showAccount,
+  onLongPress,
 }: {
   conversation: ConversationSummary;
   showAccount: boolean;
+  /** Opens the row's menu. */
+  onLongPress?: () => void;
 }) {
   const { account, id, title } = conversation;
   return (
@@ -151,6 +154,7 @@ export function ConversationRow({
       <Pressable
         className="active:bg-fill flex-row"
         style={{ height: INBOX_ROW_HEIGHT }}
+        onLongPress={onLongPress}
       >
         <ConversationRowContent
           conversation={conversation}

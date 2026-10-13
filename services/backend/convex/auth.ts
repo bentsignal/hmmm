@@ -29,10 +29,7 @@ export const authComponent = createClient<DataModel, typeof betterAuthSchema>(
   { local: { schema: betterAuthSchema } },
 );
 
-/**
- * Names nobody can sign up with unless their invite code is for that name
- * (`invites:create` with `username`).
- */
+/** Names nobody can sign up with. */
 const RESERVED_USERNAMES = [
   ...DEFAULT_RESERVED_USERNAMES,
   "vera",
@@ -48,7 +45,6 @@ const RESERVED_USERNAMES = [
 /** Client-supplied context for passkey-first sign-up. */
 interface SignUpRequest {
   readonly address: string;
-  readonly inviteCode: string;
   readonly username: string;
 }
 
@@ -82,7 +78,7 @@ export function createAuth(ctx: GenericCtx<DataModel>) {
           // before the account exists.
           requireSession: false,
           resolveUser: async ({ context, ctx: endpoint }) => {
-            const request = await validateSignUp(ctx, endpoint, context);
+            const request = await validateSignUp(endpoint, context);
             return {
               displayName: request.username,
               id: crypto.randomUUID(),
@@ -90,13 +86,7 @@ export function createAuth(ctx: GenericCtx<DataModel>) {
             };
           },
           afterVerification: async ({ context, ctx: endpoint }) => {
-            const request = await validateSignUp(ctx, endpoint, context);
-            // Redeeming first rejects a code deactivated mid-ceremony before
-            // any account exists.
-            await requireActionCtx(ctx).runMutation(internal.invites.redeem, {
-              accountId: request.address,
-              code: request.inviteCode,
-            });
+            const request = await validateSignUp(endpoint, context);
             const user = await endpoint.context.internalAdapter.createUser({
               email: request.address,
               emailVerified: false,
@@ -133,11 +123,10 @@ export function createAuth(ctx: GenericCtx<DataModel>) {
 }
 
 async function validateSignUp(
-  ctx: GenericCtx<DataModel>,
   endpoint: GenericEndpointContext,
   context: string | null | undefined,
 ): Promise<SignUpRequest> {
-  const { inviteCode, username } = parseSignUpContext(context);
+  const username = parseSignUpContext(context);
   let address: string;
   try {
     address = formatAddress(
@@ -147,55 +136,34 @@ async function validateSignUp(
     throw new APIError("BAD_REQUEST", { code: "INVALID_USERNAME" });
   }
   const normalizedUsername = address.slice(0, address.lastIndexOf("@"));
-  const invite = await requireActionCtx(ctx).runQuery(
-    internal.invites.findActive,
-    { code: inviteCode },
-  );
-  if (invite === null) {
-    throw new APIError("FORBIDDEN", { code: "INVITE_CODE_INACTIVE" });
-  }
-  if (invite.username !== null && invite.username !== normalizedUsername) {
-    throw new APIError("FORBIDDEN", { code: "INVITE_CODE_FOR_OTHER_USERNAME" });
-  }
   if (
-    invite.username === null &&
-    isReservedUsername(normalizedUsername, RESERVED_USERNAMES)
-  ) {
-    throw new APIError("BAD_REQUEST", { code: "USERNAME_TAKEN" });
-  }
-  if (
+    isReservedUsername(normalizedUsername, RESERVED_USERNAMES) ||
     (await endpoint.context.internalAdapter.findUserByEmail(address)) !== null
   ) {
     throw new APIError("BAD_REQUEST", { code: "USERNAME_TAKEN" });
   }
-  return { address, inviteCode, username: normalizedUsername };
+  return { address, username: normalizedUsername };
 }
 
+/**
+ * The username from the sign-up context. Older app versions also send an
+ * invite code, which is ignored.
+ */
 function parseSignUpContext(context: string | null | undefined) {
   try {
     const value: unknown = JSON.parse(context ?? "");
     if (
       typeof value === "object" &&
       value !== null &&
-      "inviteCode" in value &&
       "username" in value &&
-      typeof value.inviteCode === "string" &&
       typeof value.username === "string"
     ) {
-      return { inviteCode: value.inviteCode, username: value.username.trim() };
+      return value.username.trim();
     }
   } catch {
     // Fall through to the shared error below.
   }
   throw new APIError("BAD_REQUEST", { code: "INVALID_SIGN_UP_REQUEST" });
-}
-
-/** Better Auth endpoints run inside Convex HTTP actions. */
-function requireActionCtx(ctx: GenericCtx<DataModel>) {
-  if (!("runMutation" in ctx)) {
-    throw new Error("Passkey sign-up must run inside a Convex action");
-  }
-  return ctx;
 }
 
 export const currentUser = query({

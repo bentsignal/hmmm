@@ -21,6 +21,8 @@ import { GlassMessageMenu } from "./glass-message-menu";
 interface MessageActions {
   readonly open: (target: MenuTarget) => void;
   readonly toggleReaction: (messageId: string, emoji: string) => void;
+  /** Opens who reacted, on the given emoji's tab when there is one. */
+  readonly viewReactions: (messageId: string, emoji?: string) => void;
 }
 
 const MessageActionsContext = createContext<MessageActions | null>(null);
@@ -44,7 +46,7 @@ export function MessageActionsProvider({
   children,
 }: {
   onToggleReaction: (messageId: string, emoji: string) => void;
-  onViewReactions: (messageId: string) => void;
+  onViewReactions: (messageId: string, emoji?: string) => void;
   /** Called just before the menu opens and as it starts to close. */
   onMenuChange?: () => void;
   children: ReactNode;
@@ -58,6 +60,7 @@ export function MessageActionsProvider({
           setTarget(next);
         },
         toggleReaction: onToggleReaction,
+        viewReactions: onViewReactions,
       }}
     >
       {children}
@@ -76,7 +79,7 @@ export function MessageActionsProvider({
 
 /** Press-and-hold squeezes the held element a little, as iOS does. */
 const PRESS_SCALE = 0.96;
-const LONG_PRESS_MS = 320;
+export const LONG_PRESS_MS = 320;
 const RELEASE_SPRING = { damping: 14, stiffness: 320 };
 
 /** The message whose parts (bubble, link cards) open its menu. */
@@ -185,7 +188,22 @@ export function MenuTargetView({
   if (target === null) return children;
   return (
     <Pressable ref={ref} {...target.press}>
-      <Animated.View style={target.style}>{children}</Animated.View>
+      <MenuPressContext value={target.press}>
+        <Animated.View style={target.style}>{children}</Animated.View>
+      </MenuPressContext>
     </Pressable>
   );
+}
+
+type MenuPress = NonNullable<ReturnType<typeof useMenuTarget>>["press"];
+
+const MenuPressContext = createContext<MenuPress | null>(null);
+
+/**
+ * The hold of the part around it, for a pressable inside it (a link in a
+ * message's text), which would otherwise take the hold from the part.
+ * Null in the lifted copy.
+ */
+export function useMenuPress() {
+  return use(MenuPressContext);
 }
