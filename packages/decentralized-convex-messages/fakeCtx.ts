@@ -23,6 +23,7 @@ const INDEXES: Record<string, Record<string, string[]>> = {
     by_conversation_sent: ["conversationId", "sentAt"],
     by_message: ["messageId"],
   },
+  notificationSettings: { by_account: ["accountId"] },
   reactions: {
     by_author_reacted: ["messageAuthorId", "reactedAt"],
     by_message: ["messageId"],
@@ -118,6 +119,13 @@ export function fakeCtx(tables: Record<string, Record<string, unknown>[]>) {
       delete: (id: string) => {
         const table = id.slice(0, id.indexOf(":"));
         rows[table] = (rows[table] ?? []).filter((row) => row._id !== id);
+        return Promise.resolve();
+      },
+      patch: (id: string, value: Record<string, unknown>) => {
+        const table = id.slice(0, id.indexOf(":"));
+        rows[table] = (rows[table] ?? []).map((row) =>
+          row._id === id ? { ...row, ...value } : row,
+        );
         return Promise.resolve();
       },
       insert: (table: string, value: Record<string, unknown>) =>

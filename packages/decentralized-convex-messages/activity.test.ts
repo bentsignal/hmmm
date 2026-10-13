@@ -120,6 +120,30 @@ void test("leaves out channels hidden from the inbox", async (t) => {
   );
 });
 
+void test("leaves out the channels of a muted space", async (t) => {
+  at(t, NOW);
+  const { ctx } = fakeCtx({
+    conversations: [
+      conversation("channel:quiet", "channel", "space:quiet"),
+      conversation("direct:a", "direct"),
+    ],
+    members: [member("direct:a")],
+    messages: [
+      message("channel:quiet", MAYA, NOW - HOUR),
+      message("direct:a", MAYA, NOW - HOUR),
+    ],
+    spaceMembers: [
+      { accountId: ME, muted: true, role: "member", spaceId: "space:quiet" },
+    ],
+    spaces: [{ createdBy: MAYA, name: "Quiet", spaceId: "space:quiet" }],
+  });
+  const items = await activity(ctx, ME);
+  assert.deepEqual(
+    items.map(({ key }) => key),
+    ["messages:direct:a"],
+  );
+});
+
 void test("groups others' reactions to your messages by message", async (t) => {
   at(t, NOW);
   const mine = "direct:a:1000";

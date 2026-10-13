@@ -111,6 +111,18 @@ function conversationDescriber(ctx: QueryCtx) {
 
 type Describe = ReturnType<typeof conversationDescriber>;
 
+/**
+ * Whether a conversation's activity shows: not muted (nor, for a channel,
+ * its space), and a channel still in the inbox.
+ */
+function isHeard(access: ConversationAccess) {
+  return (
+    !access.muted &&
+    !access.spaceMuted &&
+    access.member?.hiddenFromInbox !== true
+  );
+}
+
 /** Messages others sent in one conversation that still show, if any. */
 async function messagesItem(
   ctx: QueryCtx,
@@ -190,13 +202,7 @@ async function reactionItems(
       async ([messageId, reactions]): Promise<ActivityItem | null> => {
         const conversationId = reactions[0]?.conversationId ?? "";
         const found = await accessTo(conversationId);
-        if (
-          found === null ||
-          found.muted ||
-          found.member?.hiddenFromInbox === true
-        ) {
-          return null;
-        }
+        if (found === null || !isHeard(found)) return null;
         const key = reactionsKey(messageId);
         const { goneThrough, seen } = await seenState(ctx, self, key, now);
         const shown = reactions.filter(
@@ -231,8 +237,8 @@ async function reactionItems(
 /**
  * What happened while the caller was away, newest first: messages others
  * sent (an item per conversation) and others' reactions to the caller's
- * messages (an item per message). It skips muted conversations and
- * channels left out of the inbox, activity seen over a day ago, and
+ * messages (an item per message). It skips muted conversations (and
+ * muted spaces' channels), channels left out of the inbox, activity seen over a day ago, and
  * anything older than `ACTIVITY_HORIZON`.
  *
  * Only this PDS's messages and reactions are listed, like the inbox.
@@ -240,9 +246,7 @@ async function reactionItems(
 export async function activity(ctx: QueryCtx, self: string) {
   const now = Date.now();
   const describe = conversationDescriber(ctx);
-  const conversations = (await inboxAccess(ctx, self, true)).filter(
-    ({ muted }) => !muted,
-  );
+  const conversations = (await inboxAccess(ctx, self, true)).filter(isHeard);
   const [messages, reactions] = await Promise.all([
     Promise.all(
       conversations.map((access) =>

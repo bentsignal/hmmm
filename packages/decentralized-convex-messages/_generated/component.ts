@@ -98,6 +98,21 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 type: "setMuted";
               }
             | {
+                args: { muted: boolean; spaceId: string };
+                type: "setSpaceMuted";
+              }
+            | {
+                args: {
+                  channels?: boolean;
+                  directMessages?: boolean;
+                  enabled?: boolean;
+                  groups?: boolean;
+                  invites?: boolean;
+                  reactions?: boolean;
+                };
+                type: "setNotificationSettings";
+              }
+            | {
                 args: { conversationId: string; pinned: boolean };
                 type: "setPinned";
               }
@@ -225,6 +240,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         | { routes?: Array<string>; type: "markActivitySeen"; value: null }
         | { routes?: Array<string>; type: "markRead"; value: null }
         | { routes?: Array<string>; type: "setMuted"; value: null }
+        | { routes?: Array<string>; type: "setSpaceMuted"; value: null }
+        | {
+            routes?: Array<string>;
+            type: "setNotificationSettings";
+            value: null;
+          }
         | { routes?: Array<string>; type: "setPinned"; value: null }
         | { routes?: Array<string>; type: "setShowInInbox"; value: null }
         | {
@@ -291,6 +312,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           operation:
             | { args: { channels?: boolean }; type: "inbox" }
             | { args: {}; type: "activity" }
+            | { args: {}; type: "notificationSettings" }
             | { args: { conversationId: string }; type: "conversation" }
             | {
                 args: {
@@ -520,6 +542,18 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           }
         | {
             routes?: Array<string>;
+            type: "notificationSettings";
+            value: {
+              channels: boolean;
+              directMessages: boolean;
+              enabled: boolean;
+              groups: boolean;
+              invites: boolean;
+              reactions: boolean;
+            };
+          }
+        | {
+            routes?: Array<string>;
             type: "conversation";
             value: null | {
               conversationId: string;
@@ -675,6 +709,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             value: Array<{
               channels: Array<{
                 conversationId: string;
+                muted?: boolean;
                 name: string;
                 position: number;
                 showInInbox?: boolean;
@@ -683,6 +718,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               invited?: Array<string>;
               joinedAt?: number;
               members: Array<{ accountId: string; role: "owner" | "member" }>;
+              muted?: boolean;
               name: string;
               role: "owner" | "member";
               spaceId: string;
@@ -695,6 +731,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             value: null | {
               channels: Array<{
                 conversationId: string;
+                muted?: boolean;
                 name: string;
                 position: number;
                 showInInbox?: boolean;
@@ -703,6 +740,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               invited?: Array<string>;
               joinedAt?: number;
               members: Array<{ accountId: string; role: "owner" | "member" }>;
+              muted?: boolean;
               name: string;
               role: "owner" | "member";
               spaceId: string;

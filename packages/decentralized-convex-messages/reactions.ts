@@ -2,8 +2,12 @@ import type { OperationArgs } from "@decentralized-convex/plugin";
 
 import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { messagesProtocol } from "./protocol.ts";
+import { internal } from "./_generated/api.js";
 import { fail, memberAddresses, requireAccess } from "./model.ts";
 import { MAX_REACTION_MESSAGES } from "./protocol.ts";
+
+/** How long a new reaction waits before its push, in case it's undone. */
+const REACTION_PUSH_DELAY_MS = 3000;
 
 type Operations = (typeof messagesProtocol)["mutations"] &
   (typeof messagesProtocol)["queries"];
@@ -24,6 +28,7 @@ function validEmoji(emoji: string) {
 export async function react(
   ctx: MutationCtx,
   self: string,
+  selfName: string,
   args: Args<"react">,
 ) {
   await requireAccess(ctx, args.conversationId, self);
@@ -58,6 +63,18 @@ export async function react(
         : undefined,
     reactedAt: Date.now(),
   });
+  if (message !== null && message.authorId !== self) {
+    await ctx.scheduler.runAfter(
+      REACTION_PUSH_DELAY_MS,
+      internal.reactionPush.sendReaction,
+      {
+        emoji: args.emoji,
+        messageId: args.messageId,
+        reactorId: self,
+        reactorName: selfName,
+      },
+    );
+  }
   return null;
 }
 

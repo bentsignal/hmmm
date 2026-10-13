@@ -139,6 +139,8 @@ export interface ConversationAccess {
   readonly lastReadAt: number;
   readonly member: Doc<"members"> | null;
   readonly muted: boolean;
+  /** A channel whose whole space the caller muted. */
+  readonly spaceMuted: boolean;
 }
 
 /**
@@ -164,6 +166,7 @@ export async function findAccess(
           lastReadAt: member.lastReadAt,
           member,
           muted: member.muted,
+          spaceMuted: false,
         };
   }
   const spaceMember =
@@ -177,6 +180,7 @@ export async function findAccess(
     lastReadAt: member?.lastReadAt ?? spaceMember._creationTime,
     member,
     muted: member?.muted ?? false,
+    spaceMuted: spaceMember.muted === true,
   };
 }
 

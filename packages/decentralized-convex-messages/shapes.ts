@@ -103,6 +103,8 @@ export type Conversation = Infer<typeof conversation>;
 
 export const channel = v.object({
   conversationId: v.string(),
+  /** Whether the caller hid its alerts (absent from older PDSs: no). */
+  muted: v.optional(v.boolean()),
   name: v.string(),
   position: v.number(),
   /** Whether the caller's inbox lists it (absent from older PDSs: yes). */
@@ -121,6 +123,11 @@ export const space = v.object({
   /** When the caller joined or created it (absent from older PDSs). */
   joinedAt: v.optional(v.number()),
   members: v.array(v.object({ accountId: v.string(), role: spaceRole })),
+  /**
+   * Whether the caller hid alerts for the whole space, every channel in it
+   * (absent from older PDSs: no).
+   */
+  muted: v.optional(v.boolean()),
   name: v.string(),
   role: spaceRole,
   spaceId: v.string(),
@@ -258,3 +265,19 @@ export const ACTIVITY_SEEN_LIFETIME = 24 * 60 * 60 * 1000;
 
 /** Activity older than this never shows, seen or not: a week. */
 export const ACTIVITY_HORIZON = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Which pushes an account gets. `enabled` off silences all of them; the
+ * rest turn off one kind each. Muted conversations and spaces stay silent
+ * either way.
+ */
+export const notificationSettings = v.object({
+  channels: v.boolean(),
+  directMessages: v.boolean(),
+  enabled: v.boolean(),
+  groups: v.boolean(),
+  invites: v.boolean(),
+  reactions: v.boolean(),
+});
+
+export type NotificationSettings = Infer<typeof notificationSettings>;

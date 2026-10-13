@@ -31,15 +31,15 @@ export interface ActivityEntry {
 }
 
 /**
- * One row of the Activity list: a section heading, a space invitation, or
- * an activity entry. Only entries are tracked as seen.
+ * One row of the Activity list: the space invitations waiting (one row
+ * for all of them, at the top), or an activity entry. Only entries are
+ * tracked as seen.
  */
 export type ActivityListRow =
-  | { readonly kind: "heading"; readonly key: string; readonly title: string }
   | {
-      readonly invite: AccountSpaceInvite;
+      readonly invites: readonly AccountSpaceInvite[];
       readonly key: string;
-      readonly kind: "invite";
+      readonly kind: "invites";
     }
   | {
       readonly entry: ActivityEntry;

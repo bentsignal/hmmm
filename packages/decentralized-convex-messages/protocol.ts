@@ -14,6 +14,7 @@ import {
   linkCard,
   message,
   messagePage,
+  notificationSettings,
   reaction,
   space,
   spaceInvite,
@@ -101,6 +102,26 @@ export const messagesProtocol = definePluginProtocol({
     }),
     setMuted: defineOperation({
       args: v.object({ conversationId: v.string(), muted: v.boolean() }),
+      returns: v.null(),
+    }),
+    /**
+     * Hides alerts for every channel in a space, or shows them again. Each
+     * channel's own `setMuted` still applies.
+     */
+    setSpaceMuted: defineOperation({
+      args: v.object({ muted: v.boolean(), spaceId: v.string() }),
+      returns: v.null(),
+    }),
+    /** Turns kinds of pushes on or off; fields left out stay as they are. */
+    setNotificationSettings: defineOperation({
+      args: v.object({
+        channels: v.optional(v.boolean()),
+        directMessages: v.optional(v.boolean()),
+        enabled: v.optional(v.boolean()),
+        groups: v.optional(v.boolean()),
+        invites: v.optional(v.boolean()),
+        reactions: v.optional(v.boolean()),
+      }),
       returns: v.null(),
     }),
     /** Pins a conversation to the top of your inbox, or unpins it. */
@@ -233,6 +254,11 @@ export const messagesProtocol = definePluginProtocol({
     activity: defineOperation({
       args: v.object({}),
       returns: v.array(activityItem),
+    }),
+    /** Which pushes you get (see `setNotificationSettings`). */
+    notificationSettings: defineOperation({
+      args: v.object({}),
+      returns: notificationSettings,
     }),
     conversation: defineOperation({
       args: v.object({ conversationId: v.string() }),

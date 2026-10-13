@@ -97,6 +97,8 @@ export default defineSchema({
   }).index("by_space", ["spaceId"]),
   spaceMembers: defineTable({
     accountId: v.string(),
+    // Alerts hidden for every channel in the space.
+    muted: v.optional(v.boolean()),
     role: spaceRole,
     spaceId: v.string(),
   })
@@ -119,6 +121,16 @@ export default defineSchema({
   })
     .index("by_code", ["code"])
     .index("by_space", ["spaceId"]),
+  // Kinds of pushes an account turned off; absent fields are on.
+  notificationSettings: defineTable({
+    accountId: v.string(),
+    channels: v.optional(v.boolean()),
+    directMessages: v.optional(v.boolean()),
+    enabled: v.optional(v.boolean()),
+    groups: v.optional(v.boolean()),
+    invites: v.optional(v.boolean()),
+    reactions: v.optional(v.boolean()),
+  }).index("by_account", ["accountId"]),
   pushTokens: defineTable({
     accountId: v.string(),
     token: v.string(),

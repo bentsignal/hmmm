@@ -1,9 +1,10 @@
-# Activity tab (decided with Shawn, 2026-10-11)
+# Activity tab and notification settings (decided with Shawn, 2026-10-11/12)
 
-A tab for what you missed since you last looked: new messages and reactions
-to your messages, in one list.
+A tab for what you missed since you last looked: new messages, reactions to
+your messages, and space invitations, in one list. Alongside it, control
+over which notifications you get.
 
-## Decisions
+## Activity
 
 - Tabs: **Home · Activity · Settings · Search**. Activity sits between
   Home (Inbox and Spaces) and Settings, with a bell icon.
@@ -13,21 +14,40 @@ to your messages, in one list.
   reacted, with what, and your message).
 - **Seen means on screen.** A row counts as seen only once it has been
   entirely on screen (not under the header or tab bar, not a sliver at an
-  edge) for 0.6 seconds, with the tab focused and the app in front. Opening
-  the conversation elsewhere doesn't count. Unseen rows have the accent dot.
+  edge) for 1.1 seconds, with the tab focused and the app in front. Its dot
+  then fades out, so you see it go. Opening the conversation elsewhere
+  doesn't count.
 - **A seen row goes a day later**, unless something new happens in it, which
   makes it unseen again. Rows nobody has seen stay; nothing older than a week
   shows (a backstop, so a first visit isn't the whole history).
-- **Space invitations** sit at the top under an "Invites" heading (the
-  activity follows under "Recent"), each with Accept and Decline, until
-  answered. They moved here from Home's Spaces page, which no longer has an
-  Invites row; Home's badge no longer counts them. Tapping an invitation's notification opens
+- **Space invitations**: while any wait, a "Space Invites" row with their
+  count heads the list, and opens a page to accept or decline each. It
+  stays until every invitation is answered. Home's Spaces page no longer
+  has an Invites row, and tapping an invitation's notification opens
   Activity.
 - The tab's **badge counts invitations and unseen reactions**; unread
-  messages already count on Home's badge. The app icon badge is
-  unchanged.
-- **Muted conversations** and channels hidden from the Inbox are left out.
+  messages already count on Home's badge. The app icon badge is unchanged.
+- **Muted conversations**, channels of muted spaces, and channels hidden
+  from the Inbox are left out.
 - Tapping a row opens the conversation (at the message, for a reaction).
+
+## Notifications
+
+- **Reactions send a push** to the message's author: the reactor as the
+  sender (their photo on iOS), "Reacted ❤️ to “…”" as the body. It waits
+  3 seconds, so a reaction taken back straight away sends nothing. Tapping
+  it opens the message; it's cleared once the reaction is seen in Activity.
+  On screen, its banner stays quiet in the conversation and on Activity.
+- **Settings → Notifications**: Allow Notifications (off: no pushes at all),
+  then one switch each for Direct Messages, Group Chats, Space Channels,
+  Reactions, and Space Invites. They're stored on each account's server
+  (which sends the pushes) and set the same for every signed-in account.
+- **Muting**: Hide Alerts on any Inbox row's long-press menu (a person, a
+  group, or a channel), and on a space's screen for the whole space. Muted
+  things stay in the Inbox, quietly.
+- **Channels' settings live in a long-press menu** on the space's screen:
+  Show in Inbox / Hide from Inbox, Hide Alerts, and for owners Rename and
+  Delete. The space screen's "Show in Inbox" section is gone.
 
 ## How it works
 
@@ -36,10 +56,13 @@ inbox's conversations and from reactions that name their message's author
 (`messageAuthorId`, set when the message is on the reactor's PDS).
 `messages.markActivitySeen` stores a sighting per item: when it was seen
 and through which activity. Activity seen over a day ago is left out.
+Push settings are `messages.notificationSettings` /
+`setNotificationSettings`; a space's mute is `setSpaceMuted` (on the
+caller's space membership).
 
 ## Later
 
-- Mentions, replies, and space invitations as activity.
+- Mentions and replies as activity.
 - Federation: like the inbox, activity lists only the home PDS's messages
-  and reactions.
-- Push notifications for reactions.
+  and reactions, and a reaction's push goes out only when the message is on
+  the reactor's PDS.

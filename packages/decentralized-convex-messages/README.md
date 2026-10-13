@@ -116,6 +116,18 @@ PDS's own public root router (`pds:dispatchQuery` at `CONVEX_CLOUD_URL`), the
 same unauthenticated request any client makes. If that fails, the push uses
 the name stored on the message and no photo.
 
+A new reaction sends the message's author a push too, 3 seconds later (if
+it's still there): the reactor as the title and sender, "Reacted ❤️ to
+“…”" as the body, and `data` like a message's with `kind: "reaction"` and
+the `emoji`. It's skipped for reactions to your own messages.
+
+Each account chooses which pushes it gets with
+`messages.setNotificationSettings` (read with `messages.notificationSettings`):
+`enabled` off silences all of them, and `directMessages`, `groups`,
+`channels`, `reactions`, and `invites` turn off one kind each. Muting still
+applies on top: a conversation's (`setMuted`), or every channel of a space
+(`setSpaceMuted`, shown as `muted` on the space and on each channel).
+
 Inviting people to a space sends each invitee a push too: the space's name
 as the title, "<inviter> invited you to join <space>" as the body, a `badge`,
 and `data` of `accountId`, `invitedBy`, `kind: "spaceInvite"`, `spaceId`, and

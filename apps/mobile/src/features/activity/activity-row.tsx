@@ -1,5 +1,6 @@
 import type { Message } from "@decentralized-convex/messages";
 import { Pressable, Text, View } from "react-native";
+import Animated, { FadeOut } from "react-native-reanimated";
 import { Link } from "expo-router";
 import { MAX_ACTIVITY_MESSAGES } from "@decentralized-convex/messages";
 
@@ -130,8 +131,10 @@ export function ActivityRow({
     >
       <Pressable className="active:bg-fill flex-row">
         <View className="w-6 items-center pt-[28px]">
+          {/* Fades away once the row has been seen, rather than vanishing. */}
           {unseen && (
-            <View
+            <Animated.View
+              exiting={FadeOut.duration(400)}
               accessibilityLabel="New"
               className="bg-accent size-[10px] rounded-full"
             />

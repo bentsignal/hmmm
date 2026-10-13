@@ -293,9 +293,11 @@ with `development: true`) and send to that token through the Expo push API.
   `(app)/(tabs)` holds Home (the Inbox and Spaces pages), Activity,
   Settings, and Search, each with its own native stack; conversations and
   the new-message sheet sit above the tabs.
+- `src/features/settings/notification-settings.ts`: which pushes you get,
+  set the same on every signed-in account's server.
 - `src/features/activity`: the Activity tab (see `.plans/activity.md`). A
   row counts as seen once it has been entirely on screen, clear of the
-  header and tab bar, for 0.6 seconds (`seen.ts`); a native safe-area
+  header and tab bar, for 1.1 seconds (`seen.ts`); a native safe-area
   probe gives that area, since the list scrolls under both bars on iOS.
 - `src/features`: screen building blocks grouped by feature.
 - `src/components`, `src/lib`: shared components and helpers.

@@ -1,6 +1,6 @@
 import type { LayoutChangeEvent } from "react-native";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 
@@ -17,9 +17,10 @@ import {
   CANDIDATE_VIEWABILITY,
   useSeenTracking,
 } from "~/features/activity/seen";
-import { AccountScope, useVisibleAccounts } from "~/features/messaging/account";
+import { useVisibleAccounts } from "~/features/messaging/account";
 import { useSpaceInvites } from "~/features/messaging/spaces";
-import { InviteRow } from "~/features/spaces/invite-row";
+import { useActivityOnScreen } from "~/features/notifications/push";
+import { InvitesRow } from "~/features/spaces/invite-row";
 
 function Empty() {
   return (
@@ -34,25 +35,7 @@ function Empty() {
   );
 }
 
-/** Heads the invitations, and the activity under them. */
-function Heading({ title, first }: { title: string; first: boolean }) {
-  return (
-    <Text
-      className={`text-headline text-foreground px-4 pb-1 font-semibold ${first ? "pt-2" : "pt-6"}`}
-    >
-      {title}
-    </Text>
-  );
-}
-
-function heading(key: string, title: string) {
-  return { key, kind: "heading", title } satisfies ActivityListRow;
-}
-
-/**
- * The invitations under their heading, then the activity under its own;
- * without invitations, just the activity.
- */
+/** The invitations' row (while any wait), then the activity. */
 function listRows(
   invites: readonly AccountSpaceInvite[],
   entries: readonly ActivityEntry[],
@@ -63,23 +46,17 @@ function listRows(
   );
   if (invites.length === 0) return activity;
   return [
-    heading("heading invites", "Invites"),
-    ...invites.map(
-      (invite) =>
-        ({
-          invite,
-          key: `invite ${invite.key}`,
-          kind: "invite",
-        }) satisfies ActivityListRow,
-    ),
-    ...(activity.length === 0 ? [] : [heading("heading recent", "Recent")]),
+    { invites, key: "invites", kind: "invites" } satisfies ActivityListRow,
     ...activity,
   ];
 }
 
 /**
- * Fills the part of the screen clear of the header and tab bar: on iOS
- * the native safe area includes both bars, which the list scrolls under.
+ * Fills the part of the screen clear of the header and tab bar. On iOS
+ * the list scrolls under both, and the native safe area includes them.
+ * On Android the list sits between them already, and the safe area would
+ * take off the status and navigation bars too, hiding the top row from
+ * the seen tracking.
  */
 function SafeAreaProbe({
   onLayout,
@@ -88,7 +65,7 @@ function SafeAreaProbe({
 }) {
   return (
     <SafeAreaView
-      edges={["top", "bottom"]}
+      edges={Platform.OS === "ios" ? ["top", "bottom"] : []}
       pointerEvents="none"
       style={StyleSheet.absoluteFill}
     >
@@ -98,12 +75,14 @@ function SafeAreaProbe({
 }
 
 /**
- * What happened while you were away: space invitations to answer at the
- * top, then new messages (one row per conversation) and reactions to your
- * messages. An activity row stays until a day after it has really been on
- * screen (see `useSeenTracking`); an invitation stays until it's answered.
+ * What happened while you were away: a row for space invitations waiting
+ * to be answered (it opens them), then new messages (one row per
+ * conversation) and reactions to your messages. An activity row stays
+ * until a day after it has really been on screen (see `useSeenTracking`);
+ * the invitations' row stays while any wait.
  */
 export default function ActivityScreen() {
+  useActivityOnScreen();
   // Rows seen over a day ago drop off the next time the tab is opened.
   const [now, setNow] = useState(Date.now);
   useFocusEffect(() => {
@@ -128,16 +107,9 @@ export default function ActivityScreen() {
         onScroll={check}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={CANDIDATE_VIEWABILITY}
-        renderItem={({ index, item }) => {
-          if (item.kind === "heading") {
-            return <Heading title={item.title} first={index === 0} />;
-          }
-          if (item.kind === "invite") {
-            return (
-              <AccountScope address={item.invite.account}>
-                <InviteRow invite={item.invite} showAccount={showAccount} />
-              </AccountScope>
-            );
+        renderItem={({ item }) => {
+          if (item.kind === "invites") {
+            return <InvitesRow invites={item.invites} />;
           }
           return (
             <ActivityRow

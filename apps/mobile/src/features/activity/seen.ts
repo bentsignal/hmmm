@@ -11,8 +11,13 @@ import { useFocusEffect } from "expo-router";
 import type { ActivityEntry, ActivityListRow } from "./activity";
 import { markSeen } from "./activity";
 
-/** How long a row must stay entirely on screen to count as seen. */
-const DWELL_MS = 600;
+/**
+ * How long a row must stay entirely on screen to count as seen. Long
+ * enough that you see its dot before it fades.
+ */
+const DWELL_MS = 1100;
+/** How soon to look again at a row the list hasn't laid out yet. */
+const MEASURE_RETRY_MS = 200;
 /** Rounding slack, in points, when checking a row is entirely on screen. */
 const SLACK = 1;
 
@@ -40,23 +45,52 @@ function createSeenTracker() {
   // Rows already reported.
   const sent = new Set<string>();
 
-  /** Whether the row is entirely in `area`, by the list's layout. */
-  function isOnScreen(state: LegendListState, key: string) {
+  /**
+   * Whether the row is entirely in `area`, by the list's layout, or
+   * "unmeasured" while the list hasn't laid it out yet (a row that just
+   * arrived).
+   */
+  function placement(state: LegendListState, key: string) {
     const position = state.positionByKey(key);
     const size = state.sizes.get(key) ?? 0;
     if (area === undefined || position === undefined || size === 0) {
-      return false;
+      return "unmeasured";
     }
     // Positions are in content coordinates; the frame starts at the
     // scroll offset.
     const top = position - state.scroll;
-    return top >= area.top - SLACK && top + size <= area.bottom + SLACK;
+    return top >= area.top - SLACK && top + size <= area.bottom + SLACK
+      ? "on"
+      : "off";
   }
 
   /** The list's layout, while its rows can be seen. */
   function visibleState() {
     if (!focused || AppState.currentState !== "active") return undefined;
     return list?.getState();
+  }
+
+  /**
+   * Where one unseen row stands: seen (on screen long enough), or how long
+   * until it might be (Infinity when it's off screen).
+   */
+  function step(state: LegendListState, key: string, now: number) {
+    const where = placement(state, key);
+    if (where !== "on") {
+      since.delete(key);
+      // Nothing else tells us once it's laid out, so look again soon.
+      return {
+        seen: false,
+        wait: where === "unmeasured" ? MEASURE_RETRY_MS : Infinity,
+      };
+    }
+    const start = since.get(key) ?? now;
+    since.set(key, start);
+    if (now - start < DWELL_MS) {
+      return { seen: false, wait: start + DWELL_MS - now };
+    }
+    since.delete(key);
+    return { seen: true, wait: Infinity };
   }
 
   /** Reports rows that stayed on screen long enough; waits for the rest. */
@@ -73,17 +107,9 @@ function createSeenTracker() {
     let wait = Number.POSITIVE_INFINITY;
     for (const [key, entry] of candidates) {
       if (!entry.unseen || sent.has(key)) continue;
-      if (!isOnScreen(state, key)) {
-        since.delete(key);
-        continue;
-      }
-      const start = since.get(key) ?? now;
-      since.set(key, start);
-      if (now - start < DWELL_MS) {
-        wait = Math.min(wait, start + DWELL_MS - now);
-        continue;
-      }
-      since.delete(key);
+      const result = step(state, key, now);
+      wait = Math.min(wait, result.wait);
+      if (!result.seen) continue;
       sent.add(key);
       seen.push(entry);
     }

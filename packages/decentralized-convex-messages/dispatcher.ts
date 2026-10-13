@@ -14,6 +14,7 @@ import { prefetch } from "./previews.ts";
 import { messagesProtocol } from "./protocol.ts";
 import * as push from "./pushTokens.ts";
 import * as reactions from "./reactions.ts";
+import * as settings from "./settings.ts";
 import * as spaces from "./spaces.ts";
 
 export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
@@ -54,8 +55,11 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
         await prefetch(ctx, args.urls);
         return null;
       },
-      react: (ctx, { args, identity }) =>
-        reactions.react(ctx, requireAccountId(identity), args),
+      react: (ctx, { args, identity }) => {
+        const self = requireAccountId(identity);
+        const name = identity?.name?.trim() ?? self.split("@")[0] ?? self;
+        return reactions.react(ctx, self, name, args);
+      },
       registerPushToken: (ctx, { args, identity }) =>
         push.registerPushToken(ctx, requireAccountId(identity), args.token),
       removeSpaceMember: (ctx, { args, identity }) =>
@@ -77,6 +81,10 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
       },
       setMuted: (ctx, { args, identity }) =>
         conversations.setMuted(ctx, requireAccountId(identity), args),
+      setNotificationSettings: (ctx, { args, identity }) =>
+        settings.setNotificationSettings(ctx, requireAccountId(identity), args),
+      setSpaceMuted: (ctx, { args, identity }) =>
+        settings.setSpaceMuted(ctx, requireAccountId(identity), args),
       setPinned: (ctx, { args, identity }) =>
         inbox.setPinned(ctx, requireAccountId(identity), args),
       setShowInInbox: (ctx, { args, identity }) =>
@@ -99,6 +107,8 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
         );
         return routedQueryResult(page, routes);
       },
+      notificationSettings: (ctx, { identity }) =>
+        settings.notificationSettings(ctx, requireAccountId(identity)),
       linkPreviews: (ctx, { args, identity }) => {
         requireAccountId(identity);
         return cachedCards(ctx, args.urls, Date.now());

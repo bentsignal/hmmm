@@ -1,4 +1,7 @@
-import type { AnyPdsMutationRequest } from "@decentralized-convex/client";
+import type {
+  AnyPdsMutationRequest,
+  PdsMutationOptions,
+} from "@decentralized-convex/client";
 import type { ReactNode } from "react";
 import { createContext, use } from "react";
 
@@ -40,14 +43,19 @@ export function useAccounts() {
 
 /**
  * Runs PDS mutations as whichever signed-in account owns the thing being
- * changed, such as a row in the combined inbox. Failures are ignored.
+ * changed, such as a row in the combined inbox, optionally showing the
+ * change right away (`options.optimisticUpdate`). Failures are ignored.
  */
 export function useRunAs() {
   const accounts = useAccounts();
-  return (address: string, request: AnyPdsMutationRequest) =>
+  return (
+    address: string,
+    request: AnyPdsMutationRequest,
+    options?: PdsMutationOptions,
+  ) =>
     accounts
       .find((account) => account.address === address)
-      ?.pds.mutate(request)
+      ?.pds.mutate(request, options)
       .catch(() => null);
 }
 
