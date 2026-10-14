@@ -5,7 +5,7 @@ import { pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
 import { useAccounts } from "~/features/messaging/account";
-import { pdsResult } from "~/features/messaging/results";
+import { pdsResultOr } from "~/features/messaging/results";
 
 export type NotificationKind = keyof NotificationSettings;
 
@@ -21,7 +21,9 @@ function showSetting(
 /**
  * Which notifications you get. They're set the same for every signed-in
  * account (each account's server sends its own pushes), so the screen
- * shows the first account's and a change goes to all of them.
+ * shows the first account's and a change goes to all of them. Accounts on
+ * servers without these settings are left out; `settings` is null when no
+ * account has them.
  */
 export function useNotificationSettings() {
   const accounts = useAccounts();
@@ -29,21 +31,27 @@ export function useNotificationSettings() {
     queries: accounts.map((account) =>
       pdsQuery({
         args: {},
-        // The home PDS answers.
-        options: { select: (result) => pdsResult(result)?.[0] },
+        // The home PDS answers; null when it can't (an older server).
+        options: {
+          select: (result) => {
+            const answer = pdsResultOr(result, null);
+            return answer === undefined ? undefined : (answer?.[0] ?? null);
+          },
+        },
         query: pds.messages.notificationSettings,
         session: account.address,
       }),
     ),
   });
-  const settings = results[0]?.data;
+  const supported = accounts.filter((_, index) => results[index]?.data != null);
+  const settings = results.find((result) => result.data != null)?.data;
+  const answered = results.every((result) => result.data !== undefined);
   return {
-    isLoading: settings === undefined,
-    settings,
+    settings: settings ?? (answered ? null : undefined),
     /** Turns one kind on or off for every account, showing it right away. */
     set: (kind: NotificationKind, on: boolean) =>
       Promise.all(
-        accounts.map((account) =>
+        supported.map((account) =>
           account.pds.mutate(
             pds.messages.setNotificationSettings({ [kind]: on }),
             { optimisticUpdate: (store) => showSetting(store, { [kind]: on }) },

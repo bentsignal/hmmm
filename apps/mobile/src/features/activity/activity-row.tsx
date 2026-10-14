@@ -97,8 +97,8 @@ function footnote(entry: ActivityEntry, showAccount: boolean) {
 }
 
 /**
- * One Activity row: the person who acted (with the emoji, for a
- * reaction), what happened, and a dot until it's been seen. Tapping opens
+ * One Activity row: the person who acted, what happened (a reaction's
+ * emoji in its headline), and a dot until it's been seen. Tapping opens
  * the conversation, at the message for a reaction.
  */
 export function ActivityRow({
@@ -146,13 +146,6 @@ export function ActivityRow({
             size="list"
             uri={profile.avatarUrl}
           />
-          {item.kind === "reactions" && (
-            <View className="bg-background absolute -right-1 bottom-[-4px] size-[24px] items-center justify-center rounded-full">
-              <Text className="text-[14px]">
-                {item.reactions[0]?.emoji ?? ""}
-              </Text>
-            </View>
-          )}
         </View>
         <View className="border-b-hairline border-separator ml-3 flex-1 gap-0.5 py-2.5 pr-4">
           <View className="flex-row items-start gap-1.5">

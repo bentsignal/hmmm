@@ -25,15 +25,19 @@ over which notifications you get.
   stays until every invitation is answered. Home's Spaces page no longer
   has an Invites row, and tapping an invitation's notification opens
   Activity.
-- The tab's **badge counts invitations and unseen reactions**; unread
-  messages already count on Home's badge. The app icon badge is unchanged.
+- **Activity has the app's only badge** (decided 2026-10-13): pending
+  invitations plus every activity row not yet seen (new messages and new
+  reactions; muted conversations and spaces left out). Home has no badge;
+  its rows keep their unread dots, muted ones included. The app icon badge
+  (and each push's) is the same count.
 - **Muted conversations**, channels of muted spaces, and channels hidden
   from the Inbox are left out.
 - Tapping a row opens the conversation (at the message, for a reaction).
 
 ## Notifications
 
-- **Reactions send a push** to the message's author: the reactor as the
+- **Reactions send a push** to the message's author (not for reacting to
+  your own message): the reactor as the
   sender (their photo on iOS), "Reacted ❤️ to “…”" as the body. It waits
   3 seconds, so a reaction taken back straight away sends nothing. Tapping
   it opens the message; it's cleared once the reaction is seen in Activity.

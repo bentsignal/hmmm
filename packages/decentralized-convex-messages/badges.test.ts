@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { TestContext } from "node:test";
 
 import { badgeCount } from "./badges.ts";
 import { fakeCtx } from "./fakeCtx.ts";
 
 const ME = "me@vera.chat";
 const FRIEND = "friend@vera.chat";
+const HOUR = 60 * 60 * 1000;
+const NOW = 30 * 24 * HOUR;
 
 function message(conversationId: string, authorId: string, sentAt: number) {
   return {
@@ -19,11 +22,11 @@ function message(conversationId: string, authorId: string, sentAt: number) {
   };
 }
 
-function member(conversationId: string, lastReadAt: number, extra = {}) {
+function member(conversationId: string, extra = {}) {
   return {
     accountId: ME,
     conversationId,
-    lastReadAt,
+    lastReadAt: 0,
     muted: false,
     role: "member",
     ...extra,
@@ -40,58 +43,72 @@ function conversation(conversationId: string, kind: string, spaceId?: string) {
   };
 }
 
-void test("counts conversations with unread messages, not messages", async () => {
+function at(t: TestContext) {
+  t.mock.timers.enable({ apis: ["Date"], now: NOW });
+}
+
+void test("counts activity not yet seen, not messages", async (t) => {
+  at(t);
   const { ctx } = fakeCtx({
+    activitySightings: [
+      // Seen through its newest message.
+      {
+        accountId: ME,
+        key: "messages:direct:seen",
+        seenAt: NOW - HOUR,
+        through: NOW - 2 * HOUR,
+      },
+    ],
     conversations: [
       conversation("direct:a", "direct"),
-      conversation("direct:b", "direct"),
-      conversation("group:c", "group"),
+      conversation("direct:seen", "direct"),
+      conversation("group:muted", "group"),
     ],
     members: [
-      member("direct:a", 10),
-      member("direct:b", 10),
-      member("group:c", 10, { muted: true }),
+      member("direct:a"),
+      member("direct:seen"),
+      member("group:muted", { muted: true }),
     ],
     messages: [
-      // Three unread in one conversation count once.
-      message("direct:a", FRIEND, 11),
-      message("direct:a", FRIEND, 12),
-      message("direct:a", FRIEND, 13),
-      // Read already.
-      message("direct:b", FRIEND, 5),
-      // Muted conversations still count, as in the inbox.
-      message("group:c", FRIEND, 20),
+      // Three new in one conversation count once.
+      message("direct:a", FRIEND, NOW - 3 * HOUR),
+      message("direct:a", FRIEND, NOW - 2 * HOUR),
+      message("direct:a", FRIEND, NOW - HOUR),
+      message("direct:seen", FRIEND, NOW - 2 * HOUR),
+      // Muted conversations don't count.
+      message("group:muted", FRIEND, NOW - HOUR),
     ],
   });
-  assert.equal(await badgeCount(ctx, ME), 2);
+  assert.equal(await badgeCount(ctx, ME), 1);
 });
 
-void test("ignores your own messages", async () => {
+void test("ignores your own messages", async (t) => {
+  at(t);
   const { ctx } = fakeCtx({
     conversations: [conversation("direct:a", "direct")],
-    members: [member("direct:a", 10)],
-    messages: [message("direct:a", ME, 11), message("direct:a", ME, 12)],
+    members: [member("direct:a")],
+    messages: [
+      message("direct:a", ME, NOW - 2 * HOUR),
+      message("direct:a", ME, NOW - HOUR),
+    ],
   });
   assert.equal(await badgeCount(ctx, ME), 0);
 });
 
-void test("counts channels shown in the inbox", async () => {
+void test("counts channels shown in the inbox", async (t) => {
+  at(t);
   const { ctx } = fakeCtx({
     conversations: [
       conversation("channel:general", "channel", "space:1"),
       conversation("channel:hidden", "channel", "space:1"),
-      conversation("channel:fresh", "channel", "space:1"),
       conversation("channel:other", "channel", "space:2"),
     ],
-    // Read state is stored lazily: only the hidden channel has a row.
-    members: [member("channel:hidden", 0, { hiddenFromInbox: true })],
+    members: [member("channel:hidden", { hiddenFromInbox: true })],
     messages: [
-      // Before joining the space, so already read.
-      message("channel:general", FRIEND, 0),
-      message("channel:hidden", FRIEND, 50),
-      message("channel:fresh", FRIEND, 50),
+      message("channel:general", FRIEND, NOW - HOUR),
+      message("channel:hidden", FRIEND, NOW - HOUR),
       // Not your space.
-      message("channel:other", FRIEND, 50),
+      message("channel:other", FRIEND, NOW - HOUR),
     ],
     spaceMembers: [{ accountId: ME, role: "member", spaceId: "space:1" }],
     spaces: [{ createdBy: FRIEND, name: "One", spaceId: "space:1" }],
@@ -99,11 +116,31 @@ void test("counts channels shown in the inbox", async () => {
   assert.equal(await badgeCount(ctx, ME), 1);
 });
 
-void test("adds pending invitations to spaces that still exist", async () => {
+void test("counts new reactions to your messages", async (t) => {
+  at(t);
   const { ctx } = fakeCtx({
     conversations: [conversation("direct:a", "direct")],
-    members: [member("direct:a", 0)],
-    messages: [message("direct:a", FRIEND, 1)],
+    members: [member("direct:a")],
+    messages: [
+      { ...message("direct:a", ME, NOW - 2 * HOUR), messageId: "mine" },
+    ],
+    reactions: [
+      {
+        accountId: FRIEND,
+        conversationId: "direct:a",
+        emoji: "❤️",
+        messageAuthorId: ME,
+        messageId: "mine",
+        reactedAt: NOW - HOUR,
+      },
+    ],
+  });
+  assert.equal(await badgeCount(ctx, ME), 1);
+});
+
+void test("adds pending invitations to spaces that still exist", async (t) => {
+  at(t);
+  const { ctx } = fakeCtx({
     spaceInvites: [
       { accountId: ME, invitedBy: FRIEND, spaceId: "space:1" },
       { accountId: ME, invitedBy: FRIEND, spaceId: "space:2" },
@@ -116,9 +153,10 @@ void test("adds pending invitations to spaces that still exist", async () => {
       { createdBy: FRIEND, name: "Two", spaceId: "space:2" },
     ],
   });
-  assert.equal(await badgeCount(ctx, ME), 3);
+  assert.equal(await badgeCount(ctx, ME), 2);
 });
 
-void test("is zero with nothing waiting", async () => {
+void test("is zero with nothing waiting", async (t) => {
+  at(t);
   assert.equal(await badgeCount(fakeCtx({}).ctx, ME), 0);
 });

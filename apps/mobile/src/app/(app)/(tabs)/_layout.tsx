@@ -2,7 +2,6 @@ import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useCSSVariable } from "uniwind";
 
 import { useActivityBadge } from "~/features/activity/activity";
-import { useInbox } from "~/features/messaging/inbox";
 import {
   blurNativeSearch,
   focusNativeSearch,
@@ -10,12 +9,8 @@ import {
 
 export default function TabsLayout() {
   const accent = useCSSVariable("--color-accent");
-  const { conversations } = useInbox();
-  const unread = (conversations ?? []).filter(
-    ({ unreadCount }) => unreadCount > 0,
-  ).length;
-  // Invitations and unseen reactions; unread messages (channels too)
-  // count on Home.
+  // Only Activity has a badge: everything you haven't seen yet. Home's
+  // rows still show their own unread dots.
   const activity = useActivityBadge();
   return (
     <NativeTabs tintColor={typeof accent === "string" ? accent : undefined}>
@@ -27,9 +22,6 @@ export default function TabsLayout() {
           sf={{ default: "house", selected: "house.fill" }}
           md="home"
         />
-        {unread > 0 && (
-          <NativeTabs.Trigger.Badge>{String(unread)}</NativeTabs.Trigger.Badge>
-        )}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="activity">
         <NativeTabs.Trigger.Label>Activity</NativeTabs.Trigger.Label>

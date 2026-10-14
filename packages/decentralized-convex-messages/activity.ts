@@ -35,6 +35,11 @@ const MAX_KEY_LENGTH = 300;
 /** Old sightings deleted per `markActivitySeen`, so it stays quick. */
 const MAX_PRUNED = 20;
 
+/** Whether an item holds anything not yet seen on screen. */
+export function isUnseen(item: ActivityItem) {
+  return item.seenThrough === undefined || item.at > item.seenThrough;
+}
+
 /** The item for messages others sent in a conversation. */
 export function messagesKey(conversationId: string) {
   return `messages:${conversationId}`;

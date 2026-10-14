@@ -69,11 +69,11 @@ function isAnswered(
 }
 
 /**
- * Keeps the app icon badge equal to the tabs' badges: inbox conversations
- * with anything unread plus pending space invitations, summed over every
- * signed-in account (the tabs follow the account filter; the icon doesn't).
- * The inbox and invites are live queries, so reading a conversation or
- * answering an invite, here or on another device, updates it.
+ * Keeps the app icon badge equal to the Activity tab's: activity not yet
+ * seen plus pending space invitations, summed over every signed-in account
+ * (the tab follows the account filter; the icon doesn't). Activity and
+ * invites are live queries, so seeing a row or answering an invite, here
+ * or on another device, updates it.
  *
  * A push sets the badge to its own account's count, because the server
  * knows nothing of the device's other accounts. With several accounts the
@@ -82,8 +82,8 @@ function isAnswered(
  *
  * Also clears delivered notifications nobody needs anymore: a
  * conversation's once it has nothing unread, a reaction's once it's been
- * seen in Activity, and an invitation's once it's answered. Android launchers count notifications, so this is what clears
- * the badge there.
+ * seen in Activity, and an invitation's once it's answered. Android
+ * launchers count notifications, so this is what clears the badge there.
  */
 export function useAppBadge() {
   const accounts = useAccounts().map((account) => account.address);
@@ -108,7 +108,6 @@ export function useAppBadge() {
       }),
     ),
   });
-  // Only for settling reaction notifications; the badge leaves them out.
   const activity = useQueries({
     queries: accounts.map((session) =>
       pdsQuery({
@@ -120,17 +119,17 @@ export function useAppBadge() {
     ),
   });
 
-  const loaded = [...inboxes, ...invites].every(
+  const loaded = [...inboxes, ...invites, ...activity].every(
     (result) => result.data !== undefined,
   );
-  const unread = inboxes
+  const unseen = activity
     .flatMap((result) => result.data ?? [])
-    .filter((conversation) => conversation.unreadCount > 0).length;
+    .filter(isUnseen).length;
   const pending = invites.reduce(
     (sum, result) => sum + (result.data?.length ?? 0),
     0,
   );
-  const total = loaded ? unread + pending : undefined;
+  const total = loaded ? unseen + pending : undefined;
 
   /** Matches a notification to its account's conversation or invitation. */
   function isSettled(notification: Notifications.Notification) {

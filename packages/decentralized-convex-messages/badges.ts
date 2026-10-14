@@ -1,25 +1,18 @@
 import type { QueryCtx } from "./_generated/server.js";
-import { inboxAccess } from "./inbox.ts";
-import { hasUnread, pendingInvites } from "./model.ts";
+import { activity, isUnseen } from "./activity.ts";
+import { pendingInvites } from "./model.ts";
 
 /**
- * The app icon badge for one account, counted the way an inbox-and-spaces
- * app counts its tab badges: each inbox conversation (direct messages,
- * groups, and the channels shown in the inbox) with anything unread, plus
- * each pending space invitation. Muted conversations count, as they do in
- * the inbox.
+ * The app icon badge for one account, counted the way the app counts its
+ * Activity tab's badge: each activity item not yet seen (a conversation
+ * with new messages, or a message of yours with new reactions; muted
+ * conversations and spaces left out), plus each pending space invitation.
  *
- * Only this PDS's conversations and invitations are counted, and a push
+ * Only this PDS's activity and invitations are counted, and a push
  * carries only its own account's count. A device signed into several
  * accounts shows the sum once the app is open.
  */
 export async function badgeCount(ctx: QueryCtx, accountId: string) {
-  let count = 0;
-  for (const access of await inboxAccess(ctx, accountId, true)) {
-    const { conversationId } = access.conversation;
-    if (await hasUnread(ctx, conversationId, accountId, access.lastReadAt)) {
-      count += 1;
-    }
-  }
-  return count + (await pendingInvites(ctx, accountId)).length;
+  const unseen = (await activity(ctx, accountId)).filter(isUnseen).length;
+  return unseen + (await pendingInvites(ctx, accountId)).length;
 }

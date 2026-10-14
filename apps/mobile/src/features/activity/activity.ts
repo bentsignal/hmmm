@@ -10,7 +10,7 @@ import type { AccountSpaceInvite } from "~/features/messaging/spaces";
 import { useVisibleAccounts } from "~/features/messaging/account";
 import { conversationTitle } from "~/features/messaging/conversations";
 import { useProfileState } from "~/features/messaging/profiles";
-import { pdsResult } from "~/features/messaging/results";
+import { pdsResultOr } from "~/features/messaging/results";
 import { useSpaceInvites } from "~/features/messaging/spaces";
 import { liveSession } from "~/features/session/account-session";
 
@@ -82,7 +82,8 @@ function useActivityQueries(accounts: readonly string[]) {
     queries: accounts.map((session) =>
       pdsQuery({
         args: {},
-        options: { select: pdsResult },
+        // A server without activity (an older one) has nothing to show.
+        options: { select: (result) => pdsResultOr(result, []) },
         query: pds.messages.activity,
         session,
       }),
@@ -140,17 +141,17 @@ export function useActivity(now: number) {
 }
 
 /**
- * The Activity tab's badge: space invitations waiting for an answer, plus
- * reactions to your messages you haven't seen yet. Unread messages already
- * count on Home's badge.
+ * The Activity tab's badge, the app's only one: space invitations waiting
+ * for an answer, plus activity not yet seen (conversations with new
+ * messages and messages of yours with new reactions; muted ones left out).
  */
 export function useActivityBadge() {
   const accounts = useVisibleAccounts().map(({ address }) => address);
   const invites = useSpaceInvites().invites.length;
-  const reactions = useActivityQueries(accounts)
+  const unseen = useActivityQueries(accounts)
     .flatMap((result) => result.data ?? [])
-    .filter((item) => item.kind === "reactions" && isUnseen(item)).length;
-  return invites + reactions;
+    .filter(isUnseen).length;
+  return invites + unseen;
 }
 
 interface Sighting {

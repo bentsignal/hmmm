@@ -26,7 +26,8 @@ Home replaced the separate Inbox and Spaces tabs. Tabs are now
 - Inbox rows have no swipe actions, since a sideways swipe changes the
   page. Pin, Mark as Read, Hide (channels), and Leave Group are in the
   long-press menu on both platforms.
-- The Home tab's badge counts unread conversations. Space invitations
-  moved to the Activity tab (`.plans/activity.md`), which counts them.
+- Home has no badge (2026-10-13): Activity has the app's only badge, for
+  everything not yet seen (`.plans/activity.md`). Space invitations moved
+  to Activity too.
 - A space's screen lives in Home's stack (`(tabs)/(home)/spaces/…`), so
   its URL didn't change.

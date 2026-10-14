@@ -133,12 +133,12 @@ as the title, "<inviter> invited you to join <space>" as the body, a `badge`,
 and `data` of `accountId`, `invitedBy`, `kind: "spaceInvite"`, `spaceId`, and
 `spaceName`.
 
-`badge` is what an inbox-and-spaces app would show on its tabs together:
-the recipient's inbox conversations with anything unread (channels left out
-of the inbox don't count; muted conversations do), plus their pending space
-invitations. Only this PDS's data is counted, and a push knows only its own
-account, so an app signed into several accounts should set the total itself
-while it runs.
+`badge` is what an app's activity view would count: the recipient's
+`activity` items not yet seen (muted conversations and spaces, and channels
+left out of the inbox, don't count), plus their pending space invitations.
+Only this PDS's data is counted, and a push knows only its own account, so
+an app signed into several accounts should set the total itself while it
+runs.
 
 The default export is a normal Convex Component whose TypeScript type also
 carries the Messages protocol and its `accounts@1` requirement.

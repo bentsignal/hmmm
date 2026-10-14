@@ -23,7 +23,23 @@ export default function NotificationSettingsScreen() {
     <>
       <Stack.Screen options={{ headerLargeTitleEnabled: false }} />
       <Stack.Title>Notifications</Stack.Title>
-      {settings !== undefined && (
+      {settings === null && (
+        <Animated.View entering={FadeIn.duration(220)} style={{ flex: 1 }}>
+          <NativeHost style={{ flex: 1 }}>
+            <FieldList>
+              <FieldGroup.Section>
+                <FieldGroup.SectionFooter>
+                  <Text>
+                    Your account's server doesn't have notification settings
+                    yet.
+                  </Text>
+                </FieldGroup.SectionFooter>
+              </FieldGroup.Section>
+            </FieldList>
+          </NativeHost>
+        </Animated.View>
+      )}
+      {settings != null && (
         <Animated.View entering={FadeIn.duration(220)} style={{ flex: 1 }}>
           <NativeHost style={{ flex: 1 }}>
             <FieldList>
