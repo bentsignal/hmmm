@@ -246,9 +246,12 @@ function unconfirmedStatus(status: OutgoingMessage["status"]) {
 }
 
 /**
- * The pages whose messages show: each once it and its messages' reactions
- * have loaded, so a page never appears and then grows under its reactions.
- * Once shown, a page stays, even while its reactions reload.
+ * The pages whose messages show. The pages the window opened with wait for
+ * their messages' reactions too, so the conversation never appears and then
+ * grows under them. Pages loaded later show as soon as their messages
+ * arrive: they load past the edge of the screen, where rows that grow move
+ * nothing you're looking at, and waiting would leave you at the top of the
+ * list longer. Once shown, a page stays, even while its reactions reload.
  */
 function useSettledPages(
   pages: ReturnType<typeof useMessageWindow>["pages"],
@@ -257,7 +260,9 @@ function useSettledPages(
   const [settled, setSettled] = useState<ReadonlySet<string>>(new Set());
   const ready = pages.filter(
     (page) =>
-      page.messageIds?.every((id) => reactionsOf(id) !== undefined) === true,
+      page.messageIds !== undefined &&
+      (!page.initial ||
+        page.messageIds.every((id) => reactionsOf(id) !== undefined)),
   );
   const newlyReady = ready.filter((page) => !settled.has(page.key));
   if (newlyReady.length > 0) {

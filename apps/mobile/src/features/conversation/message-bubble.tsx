@@ -15,7 +15,7 @@ import { InteractiveMessage } from "./message-reactions";
 import { NotSent, SendingFade } from "./message-status";
 import { linkCardsOf, visibleBody } from "./message-text";
 import { RevealedTime, SlideWithReveal } from "./reveal";
-import { TAPBACK_OVERLAP, TAPBACK_SIZE } from "./tapbacks";
+import { TAPBACK_SPACE } from "./tapbacks";
 
 /** Width of the avatar column beside incoming bubbles in group chats. */
 const AVATAR_COLUMN = 28;
@@ -169,8 +169,7 @@ function BubbleColumn({
 /** What sits above the bubble: the sender's name, and the tapbacks. */
 function aboveBubble(message: Message, named: boolean) {
   const name = named ? NAME_HEIGHT : 0;
-  const tapbacks =
-    (message.reactions?.length ?? 0) > 0 ? TAPBACK_SIZE - TAPBACK_OVERLAP : 0;
+  const tapbacks = (message.reactions?.length ?? 0) > 0 ? TAPBACK_SPACE : 0;
   return name + tapbacks;
 }
 

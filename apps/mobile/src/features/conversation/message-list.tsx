@@ -4,20 +4,23 @@ import { useImperativeHandle, useRef, useState } from "react";
 import { FlatList, Pressable, View } from "react-native";
 import { KeyboardChatScrollView } from "react-native-keyboard-controller";
 import Animated, {
-  useAnimatedProps,
+  useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { scheduleOnRN } from "react-native-worklets";
 
 import type { MessageRow } from "./build-rows";
 import type { Latest } from "./list-position";
 import type { ProfileOf } from "./message-row";
 import type { Message } from "./types";
 import type { MessageLayout } from "~/features/preferences/store";
+import { GlassSurface } from "~/components/glass-surface";
 import { SymbolIcon } from "~/components/symbol-icon";
+import { cn } from "~/lib/cn";
 import { arrivedAfter, buildMessageRows } from "./build-rows";
 import { useLatest, usePlacement } from "./list-position";
 import { MessageActionsProvider } from "./message-actions";
@@ -25,45 +28,78 @@ import { Row } from "./message-row";
 import { useModalKeyboardFreeze } from "./modal-keyboard-freeze";
 import { RevealTimes } from "./reveal";
 
+/** The jump button's size. */
+const JUMP_SIZE = 40;
+
+function JumpChevron() {
+  return (
+    <SymbolIcon
+      name={{ android: "keyboard_arrow_down", ios: "chevron.down" }}
+      size={17}
+      weight="semibold"
+      tintColorClassName="accent-foreground"
+    />
+  );
+}
+
+/**
+ * Back down to the newest message, once you've scrolled away from it. On
+ * iOS a Liquid Glass circle that materializes and dissolves like the
+ * system's own controls (glass can't fade, see `GlassSurface`); a plain
+ * raised circle on Android.
+ */
 function JumpToLatest({
   visible,
   bottom,
   onPress,
 }: {
-  visible: { value: boolean };
+  visible: SharedValue<boolean>;
   /** Distance from the bottom edge, above the floating composer. */
   bottom: number;
   onPress: () => void;
 }) {
-  const style = useAnimatedStyle(() => ({
+  const [shown, setShown] = useState(false);
+  useAnimatedReaction(
+    () => visible.value,
+    (now, before) => {
+      if (now !== before) scheduleOnRN(setShown, now);
+    },
+  );
+  const chevron = useAnimatedStyle(() => ({
     opacity: withTiming(visible.value ? 1 : 0, { duration: 160 }),
     transform: [
-      { scale: withTiming(visible.value ? 1 : 0.8, { duration: 160 }) },
+      { scale: withTiming(visible.value ? 1 : 0.6, { duration: 200 }) },
     ],
   }));
-  const props = useAnimatedProps(() => ({
-    pointerEvents: visible.value ? ("auto" as const) : ("none" as const),
-  }));
   return (
-    <Animated.View
-      animatedProps={props}
+    <View
+      pointerEvents={shown ? "box-none" : "none"}
       className="absolute right-4"
-      style={[{ bottom }, style]}
+      style={{ bottom }}
     >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Jump to latest"
+        accessibilityElementsHidden={!shown}
         onPress={onPress}
-        className="bg-background-elevated border-hairline border-separator size-10 items-center justify-center rounded-full shadow-sm"
+        hitSlop={6}
       >
-        <SymbolIcon
-          name={{ android: "keyboard_arrow_down", ios: "chevron.down" }}
-          size={18}
-          weight="semibold"
-          tintColorClassName="accent-accent"
-        />
+        <GlassSurface
+          isInteractive
+          shown={shown}
+          className="items-center justify-center rounded-full"
+          androidClassName={cn(
+            "bg-background-elevated border-hairline border-separator shadow-sm",
+            !shown && "opacity-0",
+          )}
+          style={{ height: JUMP_SIZE, width: JUMP_SIZE }}
+        >
+          <Animated.View style={chevron}>
+            <JumpChevron />
+          </Animated.View>
+        </GlassSurface>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -101,13 +137,16 @@ interface RowsProps {
   onReady: () => void;
 }
 
+/** Messages in a page (`MESSAGE_PAGE_SIZE`), plus room for headers. */
+const PAGE_ROWS = 60;
+
 /**
  * The messages, in a list that's inverted: it lays out from the newest
  * message up, so it opens at the bottom without scrolling there, and older
  * pages load past the top without moving anything on screen, since rows
- * are laid out in order and never placed at estimated spots first. Newer
- * messages arriving below keep their place with the native scroll anchor,
- * which also slides a new message into view when you're at the bottom.
+ * are laid out in order and never placed at estimated spots first. At the
+ * bottom it stays there as messages arrive; scrolled up, what you're
+ * reading stays still (see `useLatest`).
  */
 function Rows({
   listRef,
@@ -117,7 +156,6 @@ function Rows({
   profileOf,
   showAuthors,
   anchorId,
-  hasNewer,
   onLoadOlder,
   onLoadNewer,
   bottomInset,
@@ -166,27 +204,34 @@ function Rows({
         />
       )}
       // Enough to fill the screen at once, and to reach the message it
-      // opens on, so that one can be scrolled to before it shows.
+      // opens on, so that one can be scrolled to before it shows. A page
+      // that loads renders all at once, so the list grows (and the scroll
+      // bar moves) once per page, not once per batch.
       initialNumToRender={Math.max(20, anchorIndex + 15)}
-      maxToRenderPerBatch={20}
-      windowSize={15}
-      // Newer messages (or a newer page) added below what's on screen keep
-      // it in place. At the newest message, a new one then slides into view
-      // (see useLatest).
-      maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
-      // Inverted: the list's end is the oldest message, at the top.
+      maxToRenderPerBatch={PAGE_ROWS}
+      windowSize={21}
+      // Scrolled up, newer messages (or a newer page) added below what's
+      // on screen leave it where it is. At the bottom there's no anchor,
+      // so the list stays on the newest message (see useLatest).
+      maintainVisibleContentPosition={
+        latest.pinned ? undefined : { minIndexForVisible: 0 }
+      }
+      // Inverted: the list's end is the oldest message, at the top. Older
+      // ones load three screens early, so a fast scroll rarely reaches
+      // the top before they're there.
       onEndReached={() => {
         if (placement.isPlaced()) onLoadOlder();
       }}
-      onEndReachedThreshold={1}
+      onEndReachedThreshold={3}
       onStartReached={() => {
         if (placement.isPlaced()) onLoadNewer();
       }}
-      onStartReachedThreshold={1}
+      onStartReachedThreshold={2}
       onScroll={(event) => latest.onScroll(event.nativeEvent.contentOffset.y)}
-      scrollEventThrottle={32}
+      {...latest.scrollHandlers}
+      scrollEventThrottle={16}
       onContentSizeChange={() => {
-        latest.onNewest(rows[0]?.key, !hasNewer);
+        latest.onNewest(rows[0]?.key);
         placement.onLaidOut();
       }}
       onScrollToIndexFailed={placement.onMissed}
@@ -239,7 +284,7 @@ export function MessageList({
   // created under a fully transparent parent never draws.
   const loaded = useSharedValue(0);
   const cover = useAnimatedStyle(() => ({ opacity: 1 - loaded.value }));
-  const latest = useLatest(listRef);
+  const latest = useLatest(listRef, props.anchorId === undefined);
   const { isNearLatest, scrollToLatest, scrollToNewest } = latest;
   // Read out first: the worklet must not capture `props` (messages hold
   // Dates, which worklets can't copy).

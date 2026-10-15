@@ -66,3 +66,34 @@ Shawn's list of what made conversations feel broken, and what each fix is.
       took the press), so media-only messages had no menu. They open it
       now, and photos and videos have **Save to Photos**
       (`expo-media-library`, add-only access; a native change).
+
+## Round 2 (Shawn's phone test)
+
+- [x] Chats opened a few hundred points above the bottom, then scrolled
+      down. The list used to follow new messages by scrolling to them; an
+      update arriving while it opened scrolled it. Now, at the bottom it is
+      **pinned**: no scroll anchor, so it stays at offset 0 (the bottom of an
+      inverted list) through new messages, a growing composer, and rows that
+      change size, with no scrolling at all. Only your own drag or fling
+      unpins it, and reaching the bottom pins it again (`useLatest`).
+- [x] Rapid replies didn't keep you at the bottom; scrolling away while they
+      arrived fought you. Same fix: pinned follows with no scroll, and any
+      scroll up unpins at once.
+- [x] Scrolling up fast reached the top, and older messages appeared in
+      several steps. Older pages load three screens early, render a whole page
+      at once (`maxToRenderPerBatch`), and no longer wait for their reactions
+      (they load past the edge, where rows that grow move nothing in view).
+- [x] Tapbacks redone to match Messages: one round bubble per reaction (two
+      ❤️ show two, no counts), the newest at the corner with a thought-bubble
+      tail and up to two fanned behind, sitting in space above the bubble.
+      They hide while the message is lifted into its menu, so closing it no
+      longer flickers them over the lifted copy.
+- [x] Reactions that arrive while you watch open their space smoothly
+      (`Expand`), for tapbacks and stacked chips; ones already there when a
+      row appears are just there.
+- [x] iOS jump-to-latest button is a Liquid Glass circle that materializes
+      and dissolves.
+- [x] Android: the inbox's last row ended under the tab bar.
+- Testing a conversation opened in the middle: Settings → your account →
+  Developer → Open a Long Thread in the Middle (a 600-message DM, opened 200
+  back).

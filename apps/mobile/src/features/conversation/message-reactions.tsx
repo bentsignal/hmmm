@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import type { View as NativeView } from "react-native";
 import { useRef, useState } from "react";
 import { View } from "react-native";
@@ -6,14 +6,17 @@ import { LayoutAnimationConfig } from "react-native-reanimated";
 
 import type { PreviewShape } from "./glass-message-menu";
 import type { Message } from "./types";
+import { cn } from "~/lib/cn";
 import { impact, selectionTick } from "~/lib/native-extras";
+import { Expand } from "./expand";
 import {
   MessageTargetProvider,
+  useIsLifted,
   useMessageActions,
   useOpenReactions,
 } from "./message-actions";
 import { ChipRow } from "./reaction-chips";
-import { Tapbacks } from "./tapbacks";
+import { TAPBACK_SPACE, Tapbacks } from "./tapbacks";
 
 /**
  * The message's reactions, keeping the last loaded ones on screen while
@@ -25,6 +28,44 @@ function useShownReactions(message: Message) {
     setLastLoaded(message.reactions);
   }
   return message.reactions ?? lastLoaded ?? [];
+}
+
+/**
+ * Whether the message was on screen without reactions: then its first one
+ * arrives while you watch, and makes room for itself smoothly. A message
+ * that already has reactions when it appears (opening a conversation,
+ * scrolling to it) shows them in place.
+ */
+function useSeenWithout(reactions: readonly unknown[], loaded: boolean) {
+  const [seenWithout, setSeenWithout] = useState(
+    loaded && reactions.length === 0,
+  );
+  if (!seenWithout && loaded && reactions.length === 0) setSeenWithout(true);
+  return seenWithout;
+}
+
+/** Space above a bubble for its tapbacks, opened as the first arrives. */
+function TapbackSpace({ open, animate }: { open: boolean; animate: boolean }) {
+  if (!animate) return open ? <View style={{ height: TAPBACK_SPACE }} /> : null;
+  return (
+    <Expand open={open}>
+      <View style={{ height: TAPBACK_SPACE }} />
+    </Expand>
+  );
+}
+
+/** Stacked rows' chips, opened smoothly when the first arrives (`animate`). */
+function Chips({
+  open,
+  animate,
+  ...row
+}: ComponentProps<typeof ChipRow> & { open: boolean; animate: boolean }) {
+  if (!animate) return open ? <ChipRow {...row} /> : null;
+  return (
+    <Expand open={open}>
+      <ChipRow {...row} />
+    </Expand>
+  );
 }
 
 /**
@@ -53,6 +94,8 @@ export function InteractiveMessage({
 }) {
   const { toggleReaction, viewReactions } = useMessageActions();
   const reactions = useShownReactions(message);
+  const grows = useSeenWithout(reactions, message.reactions !== undefined);
+  const lifted = useIsLifted(message.id);
   const body = useRef<NativeView>(null);
   const openReactions = useOpenReactions({
     align,
@@ -61,25 +104,39 @@ export function InteractiveMessage({
     preview: children,
     shape,
   });
+  const has = reactions.length > 0;
   return (
     // Reactions already there when the row mounts don't pop in on scroll;
     // only one added while the conversation is open does.
     <LayoutAnimationConfig skipEntering>
-      <View className={align === "end" ? "self-end" : "self-start"}>
-        {reactionStyle === "tapbacks" && reactions.length > 0 && (
-          <Tapbacks
-            reactions={reactions}
-            align={align}
-            onPress={openReactions}
-          />
+      <View
+        className={cn(
+          align === "end" ? "self-end" : "self-start",
+          // Chips wrap across the row, not just under the message.
+          reactionStyle === "chips" && "self-stretch",
+        )}
+      >
+        {reactionStyle === "tapbacks" && (
+          <TapbackSpace open={has} animate={grows} />
         )}
         <View ref={body}>
           <MessageTargetProvider message={message} align={align} shape={shape}>
             {children}
           </MessageTargetProvider>
         </View>
-        {reactionStyle === "chips" && reactions.length > 0 && (
-          <ChipRow
+        {/* After the bubble, so they draw over it on every platform. */}
+        {reactionStyle === "tapbacks" && has && (
+          <Tapbacks
+            reactions={reactions}
+            align={align}
+            hidden={lifted}
+            onPress={openReactions}
+          />
+        )}
+        {reactionStyle === "chips" && (
+          <Chips
+            open={has}
+            animate={grows}
             reactions={reactions}
             align={align}
             onToggle={(emoji) => {

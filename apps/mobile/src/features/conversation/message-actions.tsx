@@ -28,6 +28,14 @@ interface MessageActions {
 
 const MessageActionsContext = createContext<MessageActions | null>(null);
 
+/** The message lifted into the menu, from when it opens until it's closed. */
+const LiftedMessageContext = createContext<string | undefined>(undefined);
+
+/** Whether this message is lifted into the menu right now. */
+export function useIsLifted(messageId: string) {
+  return use(LiftedMessageContext) === messageId;
+}
+
 export function useMessageActions() {
   const actions = use(MessageActionsContext);
   if (actions === null) {
@@ -64,7 +72,9 @@ export function MessageActionsProvider({
         viewReactions: onViewReactions,
       }}
     >
-      {children}
+      <LiftedMessageContext value={target?.message.id}>
+        {children}
+      </LiftedMessageContext>
       {target !== null && (
         <GlassMessageMenu
           target={target}

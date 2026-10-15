@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
 import type { FlatList } from "react-native";
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { Platform } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 
 import type { MessageRow } from "./build-rows";
@@ -9,41 +10,74 @@ import type { MessageRow } from "./build-rows";
 // keeping up with the newest message.
 
 /**
- * How close to the newest message (in points) still counts as being there:
- * new messages then scroll into view, and the jump button stays hidden.
+ * How close to the newest message (in points) still counts as being there
+ * for the jump button, which stays hidden.
  */
 const NEAR_LATEST = 80;
+/**
+ * How far from the bottom still counts as at the bottom, so the list stays
+ * pinned there: a scroll up by more than this lets go.
+ */
+const PIN_SLOP = 4;
 /** Frames to wait for the message a conversation opens on to be measured. */
 const ANCHOR_TRIES = 30;
 
+interface LatestState {
+  /** The keyboard's inset (iOS), which the newest message sits above. */
+  inset: number;
+  pinned: boolean;
+  /** You're dragging the list, or it's still moving from a fling. */
+  scrolling: boolean;
+  newest?: string;
+  /** You just sent one: the list follows it down even if scrolled up. */
+  sending: boolean;
+}
+
 /**
- * Where the newest message is, and staying with it as new ones arrive.
- * Inverted, the newest message is at offset 0, less the keyboard's inset
- * (react-native-keyboard-controller lifts the list with a top content
- * inset), so scrolling to 0 would leave it behind the keyboard. That's
- * also why this follows new messages itself instead of the native
- * `autoscrollToTopThreshold`, which always scrolls to 0.
+ * Keeps the list on the newest message while you're at the bottom, and
+ * lets go the moment you scroll up.
+ *
+ * Pinned, the list has no scroll anchor (`pinned` is true), so it stays at
+ * offset 0, the bottom of an inverted list: new messages, a composer that
+ * grows, and rows that change size all keep the newest message in view,
+ * with no scrolling at all. Once you drag or fling away from the bottom it
+ * unpins, and the native anchor (`maintainVisibleContentPosition`) keeps
+ * what you're reading still as messages arrive below. Only your own scroll
+ * unpins it (the keyboard lifting the list never does), and reaching the
+ * bottom pins it again.
+ *
+ * On iOS the keyboard lifts the list with a top content inset, so the
+ * bottom is at minus that inset rather than 0.
  */
-export function useLatest(listRef: RefObject<FlatList<MessageRow> | null>) {
-  const isNearLatest = useSharedValue(true);
-  const state = useRef<{
-    /** The keyboard's inset, which the newest message sits above. */
-    inset: number;
-    near: boolean;
-    newest?: string;
-    /** You just sent one: the next new message is followed regardless. */
-    sending: boolean;
-  }>({ inset: 0, near: true, sending: false });
+export function useLatest(
+  listRef: RefObject<FlatList<MessageRow> | null>,
+  pinnedAtStart: boolean,
+) {
+  const isNearLatest = useSharedValue(pinnedAtStart);
+  const [pinned, setPinned] = useState(pinnedAtStart);
+  const state = useRef<LatestState>({
+    inset: 0,
+    pinned: pinnedAtStart,
+    scrolling: false,
+    sending: false,
+  });
+  function bottom() {
+    return Platform.OS === "ios" ? -state.current.inset : 0;
+  }
+  function pin(next: boolean) {
+    if (state.current.pinned === next) return;
+    state.current.pinned = next;
+    setPinned(next);
+  }
   function scrollToNewest() {
-    listRef.current?.scrollToOffset({
-      animated: true,
-      offset: -state.current.inset,
-    });
+    listRef.current?.scrollToOffset({ animated: true, offset: bottom() });
   }
   return {
     isNearLatest,
+    /** No scroll anchor while pinned (see above). */
+    pinned,
     scrollToNewest,
-    /** Scrolls down to the newest message, and to the one being sent. */
+    /** Scrolls down to the newest message, and follows the one being sent. */
     scrollToLatest: () => {
       state.current.sending = true;
       scrollToNewest();
@@ -51,22 +85,35 @@ export function useLatest(listRef: RefObject<FlatList<MessageRow> | null>) {
     onInsetChange: (top: number) => {
       state.current.inset = top;
     },
-    onScroll: (offset: number) => {
-      const near = offset + state.current.inset < NEAR_LATEST;
-      state.current.near = near;
-      isNearLatest.set(near);
+    scrollHandlers: {
+      onScrollBeginDrag: () => {
+        state.current.scrolling = true;
+      },
+      onMomentumScrollEnd: () => {
+        state.current.scrolling = false;
+      },
+      onScrollEndDrag: (event: {
+        nativeEvent: { velocity?: { y: number } };
+      }) => {
+        // No fling: the scroll ends with the drag.
+        if ((event.nativeEvent.velocity?.y ?? 0) === 0) {
+          state.current.scrolling = false;
+        }
+      },
     },
-    /**
-     * The list changed. A new newest message slides into view if you were
-     * at the newest one, or just sent it, unless it's a newer page
-     * (`follow` is false).
-     */
-    onNewest: (key: string | undefined, follow: boolean) => {
-      const { newest, near, sending } = state.current;
+    onScroll: (offset: number) => {
+      const fromBottom = offset - bottom();
+      isNearLatest.set(fromBottom < NEAR_LATEST);
+      if (fromBottom <= PIN_SLOP) pin(true);
+      else if (state.current.scrolling) pin(false);
+    },
+    /** The list changed: follows a message you just sent down to it. */
+    onNewest: (key: string | undefined) => {
+      const { newest, sending } = state.current;
       state.current.newest = key;
-      if (!follow || newest === undefined || key === newest) return;
+      if (!sending || newest === undefined || key === newest) return;
       state.current.sending = false;
-      if (near || sending) scrollToNewest();
+      if (!state.current.pinned) scrollToNewest();
     },
   };
 }
