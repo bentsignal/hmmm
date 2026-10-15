@@ -1,8 +1,7 @@
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useCSSVariable } from "uniwind";
 
-import { useInbox } from "~/features/messaging/inbox";
-import { useSpaceInvites } from "~/features/messaging/spaces";
+import { useActivityBadge } from "~/features/activity/activity";
 import {
   blurNativeSearch,
   focusNativeSearch,
@@ -10,13 +9,9 @@ import {
 
 export default function TabsLayout() {
   const accent = useCSSVariable("--color-accent");
-  const { conversations } = useInbox();
-  // Channel unreads are conversations here; space invitations add to them.
-  const invites = useSpaceInvites().invites.length;
-  const unread = (conversations ?? []).filter(
-    ({ unreadCount }) => unreadCount > 0,
-  ).length;
-  const badge = unread + invites;
+  // Only Activity has a badge: everything you haven't seen yet. Home's
+  // rows still show their own unread dots.
+  const activity = useActivityBadge();
   return (
     <NativeTabs tintColor={typeof accent === "string" ? accent : undefined}>
       {/* Native tabs give a tab's first scroll view the tab bar's inset;
@@ -27,8 +22,17 @@ export default function TabsLayout() {
           sf={{ default: "house", selected: "house.fill" }}
           md="home"
         />
-        {badge > 0 && (
-          <NativeTabs.Trigger.Badge>{String(badge)}</NativeTabs.Trigger.Badge>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="activity">
+        <NativeTabs.Trigger.Label>Activity</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={{ default: "bell", selected: "bell.fill" }}
+          md="notifications"
+        />
+        {activity > 0 && (
+          <NativeTabs.Trigger.Badge>
+            {String(activity)}
+          </NativeTabs.Trigger.Badge>
         )}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="settings">

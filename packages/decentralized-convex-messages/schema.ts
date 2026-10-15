@@ -25,6 +25,9 @@ export default defineSchema({
   // channels.
   members: defineTable({
     accountId: v.string(),
+    // When alerts were last turned back on: activity from before, while
+    // muted, never shows.
+    alertsSince: v.optional(v.number()),
     conversationId: v.string(),
     // A channel left out of the inbox; it still appears in its space.
     hiddenFromInbox: v.optional(v.boolean()),
@@ -71,10 +74,25 @@ export default defineSchema({
     conversationId: v.string(),
     emoji: v.string(),
     messageId: v.string(),
+    // Who wrote the message, when it's stored here too, so its author's
+    // activity can list reactions to it.
+    messageAuthorId: v.optional(v.string()),
     reactedAt: v.number(),
   })
     .index("by_message", ["messageId"])
-    .index("by_message_account", ["messageId", "accountId"]),
+    .index("by_message_account", ["messageId", "accountId"])
+    .index("by_author_reacted", ["messageAuthorId", "reactedAt"]),
+  // Each time an account saw an activity item (`key`) on screen, through
+  // the newest activity in it then. Only the newest sighting older than a
+  // day matters, so older ones are deleted.
+  activitySightings: defineTable({
+    accountId: v.string(),
+    key: v.string(),
+    seenAt: v.number(),
+    through: v.number(),
+  })
+    .index("by_account_key", ["accountId", "key", "seenAt"])
+    .index("by_account_seen", ["accountId", "seenAt"]),
   spaces: defineTable({
     createdBy: v.string(),
     name: v.string(),
@@ -82,6 +100,10 @@ export default defineSchema({
   }).index("by_space", ["spaceId"]),
   spaceMembers: defineTable({
     accountId: v.string(),
+    // When the space's alerts were last turned back on (see members).
+    alertsSince: v.optional(v.number()),
+    // Alerts hidden for every channel in the space.
+    muted: v.optional(v.boolean()),
     role: spaceRole,
     spaceId: v.string(),
   })
@@ -104,6 +126,16 @@ export default defineSchema({
   })
     .index("by_code", ["code"])
     .index("by_space", ["spaceId"]),
+  // Kinds of pushes an account turned off; absent fields are on.
+  notificationSettings: defineTable({
+    accountId: v.string(),
+    channels: v.optional(v.boolean()),
+    directMessages: v.optional(v.boolean()),
+    enabled: v.optional(v.boolean()),
+    groups: v.optional(v.boolean()),
+    invites: v.optional(v.boolean()),
+    reactions: v.optional(v.boolean()),
+  }).index("by_account", ["accountId"]),
   pushTokens: defineTable({
     accountId: v.string(),
     token: v.string(),

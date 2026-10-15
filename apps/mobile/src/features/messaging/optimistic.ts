@@ -92,7 +92,7 @@ function findSpace(store: Store, spaceId: string) {
 }
 
 /** Changes a space wherever it's loaded: on its own and in lists. */
-function updateSpace(
+export function updateSpace(
   store: Store,
   spaceId: string,
   change: (space: Space) => Space,

@@ -7,11 +7,14 @@ import { v } from "convex/values";
 
 import { decentralizedConvexPackage } from "./metadata.ts";
 import {
+  activityItem,
+  activitySighting,
   attachment,
   conversation,
   linkCard,
   message,
   messagePage,
+  notificationSettings,
   reaction,
   space,
   spaceInvite,
@@ -84,12 +87,41 @@ export const messagesProtocol = definePluginProtocol({
       }),
       returns: v.null(),
     }),
+    /**
+     * Records that activity items came into view (see `activity`). Each
+     * stays for `ACTIVITY_SEEN_LIFETIME` after it's seen, then goes, until
+     * something newer happens in it.
+     */
+    markActivitySeen: defineOperation({
+      args: v.object({ items: v.array(activitySighting) }),
+      returns: v.null(),
+    }),
     markRead: defineOperation({
       args: v.object({ conversationId: v.string(), readAt: v.number() }),
       returns: v.null(),
     }),
     setMuted: defineOperation({
       args: v.object({ conversationId: v.string(), muted: v.boolean() }),
+      returns: v.null(),
+    }),
+    /**
+     * Hides alerts for every channel in a space, or shows them again. Each
+     * channel's own `setMuted` still applies.
+     */
+    setSpaceMuted: defineOperation({
+      args: v.object({ muted: v.boolean(), spaceId: v.string() }),
+      returns: v.null(),
+    }),
+    /** Turns kinds of pushes on or off; fields left out stay as they are. */
+    setNotificationSettings: defineOperation({
+      args: v.object({
+        channels: v.optional(v.boolean()),
+        directMessages: v.optional(v.boolean()),
+        enabled: v.optional(v.boolean()),
+        groups: v.optional(v.boolean()),
+        invites: v.optional(v.boolean()),
+        reactions: v.optional(v.boolean()),
+      }),
       returns: v.null(),
     }),
     /** Pins a conversation to the top of your inbox, or unpins it. */
@@ -211,6 +243,22 @@ export const messagesProtocol = definePluginProtocol({
     inbox: defineOperation({
       args: v.object({ channels: v.optional(v.boolean()) }),
       returns: v.array(conversation),
+    }),
+    /**
+     * What happened while you were away, newest first: messages from others
+     * (one item per conversation) and others' reactions to your messages
+     * (one per message). Muted conversations and channels left out of the
+     * inbox don't appear. An item lasts until a day after you saw it (see
+     * `markActivitySeen`), and nothing older than `ACTIVITY_HORIZON` shows.
+     */
+    activity: defineOperation({
+      args: v.object({}),
+      returns: v.array(activityItem),
+    }),
+    /** Which pushes you get (see `setNotificationSettings`). */
+    notificationSettings: defineOperation({
+      args: v.object({}),
+      returns: notificationSettings,
     }),
     conversation: defineOperation({
       args: v.object({ conversationId: v.string() }),

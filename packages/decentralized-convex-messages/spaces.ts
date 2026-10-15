@@ -247,6 +247,7 @@ export async function toSpace(
       );
       return {
         conversationId: conversation.conversationId,
+        muted: member?.muted === true,
         name: conversation.name ?? "",
         position: conversation.position ?? 0,
         showInInbox: member?.hiddenFromInbox !== true,
@@ -271,6 +272,7 @@ export async function toSpace(
       accountId: member.accountId,
       role: member.role,
     })),
+    muted: self.muted === true,
     name: space.name,
     role: self.role,
     spaceId: space.spaceId,

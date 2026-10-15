@@ -11,7 +11,7 @@ export default function InvitesScreen() {
   const showAccount = useVisibleAccounts().length > 1;
   return (
     <>
-      <Stack.Title>Invites</Stack.Title>
+      <Stack.Title>Space Invites</Stack.Title>
       <ScreenList
         ready={!isLoading}
         data={invites}

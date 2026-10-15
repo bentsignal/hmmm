@@ -1,4 +1,8 @@
-import type { LegendListProps } from "@legendapp/list/react-native";
+import type {
+  LegendListProps,
+  LegendListRef,
+} from "@legendapp/list/react-native";
+import type { Ref } from "react";
 import { use } from "react";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { LegendList } from "@legendapp/list/react-native";
@@ -13,8 +17,9 @@ import { ScreenListInsets } from "./screen-list-insets";
  */
 export function ScreenList<Item>({
   ready = true,
+  ref,
   ...props
-}: LegendListProps<Item> & { ready?: boolean }) {
+}: LegendListProps<Item> & { ready?: boolean; ref?: Ref<LegendListRef> }) {
   const background = useCSSVariable("--color-background");
   const insets = use(ScreenListInsets);
   if (!ready) return null;
@@ -23,6 +28,7 @@ export function ScreenList<Item>({
   return (
     <Animated.View entering={FadeIn.duration(260)} style={{ flex: 1 }}>
       <LegendList
+        ref={ref}
         contentInsetAdjustmentBehavior={insets === null ? "automatic" : "never"}
         // As padding, which Legend List measures, not a native content
         // inset, which it counts again: a short list would scroll by it.

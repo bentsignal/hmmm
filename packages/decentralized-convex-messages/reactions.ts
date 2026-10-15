@@ -2,8 +2,12 @@ import type { OperationArgs } from "@decentralized-convex/plugin";
 
 import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { messagesProtocol } from "./protocol.ts";
+import { internal } from "./_generated/api.js";
 import { fail, memberAddresses, requireAccess } from "./model.ts";
 import { MAX_REACTION_MESSAGES } from "./protocol.ts";
+
+/** How long a new reaction waits before its push, in case it's undone. */
+const REACTION_PUSH_DELAY_MS = 3000;
 
 type Operations = (typeof messagesProtocol)["mutations"] &
   (typeof messagesProtocol)["queries"];
@@ -24,6 +28,7 @@ function validEmoji(emoji: string) {
 export async function react(
   ctx: MutationCtx,
   self: string,
+  selfName: string,
   args: Args<"react">,
 ) {
   await requireAccess(ctx, args.conversationId, self);
@@ -41,13 +46,35 @@ export async function react(
   }
   if (existing !== undefined) return null;
   if (mine.length >= MAX_REACTIONS_PER_ACCOUNT) fail("TOO_MANY_REACTIONS");
+  // Messages live on their author's home PDS; one stored here names its
+  // author, whose activity lists the reaction.
+  const message = await ctx.db
+    .query("messages")
+    .withIndex("by_message", (index) => index.eq("messageId", args.messageId))
+    .unique();
   await ctx.db.insert("reactions", {
     accountId: self,
     conversationId: args.conversationId,
     emoji: args.emoji,
     messageId: args.messageId,
+    messageAuthorId:
+      message?.conversationId === args.conversationId
+        ? message.authorId
+        : undefined,
     reactedAt: Date.now(),
   });
+  if (message !== null && message.authorId !== self) {
+    await ctx.scheduler.runAfter(
+      REACTION_PUSH_DELAY_MS,
+      internal.reactionPush.sendReaction,
+      {
+        emoji: args.emoji,
+        messageId: args.messageId,
+        reactorId: self,
+        reactorName: selfName,
+      },
+    );
+  }
   return null;
 }
 

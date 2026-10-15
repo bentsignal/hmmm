@@ -1,17 +1,22 @@
 import type { Space } from "@decentralized-convex/messages";
 import { useRouter } from "expo-router";
-import { FieldGroup } from "@expo/ui";
+import { FieldGroup, Text } from "@expo/ui";
 
-import { ListItem } from "~/components/list-item";
 import { SectionHeaderWithAdd } from "~/components/section-header";
 import { SectionTitle } from "~/components/section-title";
-import { SymbolIcon } from "~/components/symbol-icon";
-import { UnreadBadge } from "~/components/unread-badge";
 import { useAccount } from "~/features/messaging/account";
+import { useChannelSettings } from "~/features/messaging/channel-settings";
+import { channelMenuActions } from "./channel-actions";
+import { ChannelRow } from "./channel-row";
 
+/**
+ * The space's text channels. Tap one to open it; touch and hold for its
+ * settings (Show in Inbox, Hide Alerts, and for owners Rename and Delete).
+ */
 export function ChannelsSection({ space }: { space: Space }) {
   const router = useRouter();
   const { address: account } = useAccount();
+  const settings = useChannelSettings();
   return (
     <FieldGroup.Section>
       <FieldGroup.SectionHeader>
@@ -30,17 +35,25 @@ export function ChannelsSection({ space }: { space: Space }) {
         )}
       </FieldGroup.SectionHeader>
       {space.channels.map((channel) => (
-        <ListItem
+        <ChannelRow
           key={channel.conversationId}
-          leading={
-            <SymbolIcon
-              name={{ android: "tag", ios: "number" }}
-              size={20}
-              tintColorClassName="accent-accent"
-            />
-          }
-          trailing={<UnreadBadge count={channel.unreadCount} />}
-          onPress={() =>
+          channel={channel}
+          actions={channelMenuActions({
+            channel,
+            onRename: () =>
+              router.push({
+                params: {
+                  account,
+                  conversationId: channel.conversationId,
+                  name: channel.name,
+                  spaceId: space.spaceId,
+                },
+                pathname: "/new-channel",
+              }),
+            settings,
+            space,
+          })}
+          onOpen={() =>
             router.push({
               params: {
                 account,
@@ -50,10 +63,14 @@ export function ChannelsSection({ space }: { space: Space }) {
               pathname: "/conversation/[conversationId]",
             })
           }
-        >
-          {channel.name}
-        </ListItem>
+        />
       ))}
+      <FieldGroup.SectionFooter>
+        <Text>
+          Touch and hold a channel to hide it from your Inbox or hide its
+          alerts.
+        </Text>
+      </FieldGroup.SectionFooter>
     </FieldGroup.Section>
   );
 }

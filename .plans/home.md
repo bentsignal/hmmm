@@ -1,7 +1,7 @@
 # Home
 
 Home replaced the separate Inbox and Spaces tabs. Tabs are now
-**Home · Settings · Search**.
+**Home · Activity · Settings · Search** (Activity: `.plans/activity.md`).
 
 - Home holds pages side by side, swiped between as on X's home screen:
   **Inbox**, then **Spaces**. More pages can join later
@@ -26,6 +26,8 @@ Home replaced the separate Inbox and Spaces tabs. Tabs are now
 - Inbox rows have no swipe actions, since a sideways swipe changes the
   page. Pin, Mark as Read, Hide (channels), and Leave Group are in the
   long-press menu on both platforms.
-- The Home tab's badge counts unread conversations plus space invitations.
-- A space's screen and Invites now live in Home's stack
-  (`(tabs)/(home)/spaces/…`), so their URLs didn't change.
+- Home has no badge (2026-10-13): Activity has the app's only badge, for
+  everything not yet seen (`.plans/activity.md`). Space invitations moved
+  to Activity too.
+- A space's screen lives in Home's stack (`(tabs)/(home)/spaces/…`), so
+  its URL didn't change.

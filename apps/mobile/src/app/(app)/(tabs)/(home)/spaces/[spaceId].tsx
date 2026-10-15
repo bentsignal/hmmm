@@ -11,8 +11,8 @@ import {
   useSpaceActions,
   useSpaceInviteLinks,
 } from "~/features/messaging/spaces";
+import { AlertsSection } from "~/features/spaces/alerts-section";
 import { ChannelsSection } from "~/features/spaces/channels-section";
-import { InboxSection } from "~/features/spaces/inbox-section";
 import { InviteLinksSection } from "~/features/spaces/invite-links-section";
 import { MembersSection } from "~/features/spaces/members-section";
 import { destructive } from "~/lib/ui-modifiers";
@@ -66,7 +66,7 @@ function Space({ name, spaceId }: { name?: string; spaceId: string }) {
         <NativeHost style={{ flex: 1 }}>
           <FieldList>
             <ChannelsSection space={space} />
-            <InboxSection space={space} />
+            <AlertsSection space={space} />
             <MembersSection space={space} />
             <InviteLinksSection links={links.links} space={space} />
             {space.role !== "owner" && (

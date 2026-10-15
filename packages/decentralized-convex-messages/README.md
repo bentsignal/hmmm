@@ -78,6 +78,23 @@ Reactions follow the same author-home rule as messages: `messages.react`
 stores your reaction on your home PDS, and `messages.reactions` (given the
 message IDs on screen) gathers reactions from every member's PDS.
 
+Activity: `messages.activity` lists what happened while the caller was
+away, newest first: messages others sent (one item per conversation, with
+the newest, a count, and the authors) and others' reactions to the caller's
+messages (one item per message). Muted conversations and channels left out
+of the inbox don't appear. Apps report items that came into view with
+`messages.markActivitySeen` (each item's `key`, through its newest activity
+`at`); an item stays for a day after it's seen (`ACTIVITY_SEEN_LIFETIME`),
+then goes until something newer happens in it. `markRead` sees a
+conversation's activity too (its messages up to `readAt`, and its reactions
+so far). Unmuting a conversation or space starts clean: activity from while
+it was muted never shows. Nothing older than a week
+(`ACTIVITY_HORIZON`) shows, seen or not. Reactions name the message's
+author (`messageAuthorId`) when the message is stored on the reactor's
+PDS, which is how its author's activity finds them; reactions from before
+that field don't appear. Like the inbox, only this PDS's messages and
+reactions are listed.
+
 ## Push notifications
 
 Each new message sends one Expo push per recipient device (muted
@@ -102,17 +119,29 @@ PDS's own public root router (`pds:dispatchQuery` at `CONVEX_CLOUD_URL`), the
 same unauthenticated request any client makes. If that fails, the push uses
 the name stored on the message and no photo.
 
+A new reaction sends the message's author a push too, 3 seconds later (if
+it's still there): the reactor as the title and sender, "Reacted ❤️ to
+“…”" as the body, and `data` like a message's with `kind: "reaction"` and
+the `emoji`. It's skipped for reactions to your own messages.
+
+Each account chooses which pushes it gets with
+`messages.setNotificationSettings` (read with `messages.notificationSettings`):
+`enabled` off silences all of them, and `directMessages`, `groups`,
+`channels`, `reactions`, and `invites` turn off one kind each. Muting still
+applies on top: a conversation's (`setMuted`), or every channel of a space
+(`setSpaceMuted`, shown as `muted` on the space and on each channel).
+
 Inviting people to a space sends each invitee a push too: the space's name
 as the title, "<inviter> invited you to join <space>" as the body, a `badge`,
 and `data` of `accountId`, `invitedBy`, `kind: "spaceInvite"`, `spaceId`, and
 `spaceName`.
 
-`badge` is what an inbox-and-spaces app would show on its tabs together:
-the recipient's inbox conversations with anything unread (channels left out
-of the inbox don't count; muted conversations do), plus their pending space
-invitations. Only this PDS's data is counted, and a push knows only its own
-account, so an app signed into several accounts should set the total itself
-while it runs.
+`badge` is what an app's activity view would count: the recipient's
+`activity` items not yet seen (muted conversations and spaces, and channels
+left out of the inbox, don't count), plus their pending space invitations.
+Only this PDS's data is counted, and a push knows only its own account, so
+an app signed into several accounts should set the total itself while it
+runs.
 
 The default export is a normal Convex Component whose TypeScript type also
 carries the Messages protocol and its `accounts@1` requirement.
