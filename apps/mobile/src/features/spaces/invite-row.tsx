@@ -8,26 +8,44 @@ import { useProfile, usernameOf } from "~/features/messaging/profiles";
 import { useSpaceActions } from "~/features/messaging/spaces";
 import { cn } from "~/lib/cn";
 
-/** Heads the Spaces list while invitations are waiting. */
-export function InvitesRow({ count }: { count: number }) {
+/**
+ * Heads Activity while space invitations are waiting: how many, and who
+ * they're from. Tapping it opens the invitations to answer.
+ */
+export function InvitesRow({
+  invites,
+}: {
+  invites: readonly AccountSpaceInvite[];
+}) {
+  const [first] = invites;
+  const more = invites.length - 1;
   return (
-    <Link href="/spaces/invites" asChild>
-      <Pressable className="active:bg-fill flex-row items-center gap-3 pl-4">
+    <Link href="/activity/invites" asChild>
+      <Pressable className="active:bg-fill flex-row">
+        {/* The same gutter, photo size, and text column as the rows below. */}
+        <View className="w-6" />
         <View
-          className="bg-fill size-12 items-center justify-center rounded-xl"
+          className="bg-fill mt-3.5 size-[46px] items-center justify-center rounded-xl"
           style={{ borderCurve: "continuous" }}
         >
           <SymbolIcon
             name={{ android: "mail", ios: "envelope.fill" }}
-            size={22}
+            size={21}
             tintColorClassName="accent-accent"
           />
         </View>
-        <View className="border-b-hairline border-separator flex-1 flex-row items-center gap-2 py-3 pr-4">
-          <Text className="text-headline text-foreground flex-1 font-semibold">
-            Invites
-          </Text>
-          <UnreadBadge count={count} />
+        <View className="border-b-hairline border-separator ml-3 flex-1 flex-row items-center gap-2 py-3.5 pr-4">
+          <View className="flex-1 gap-0.5">
+            <Text className="text-headline text-foreground font-semibold">
+              Space Invites
+            </Text>
+            <Text numberOfLines={1} className="text-subhead text-muted">
+              {more > 0
+                ? `${first?.name ?? ""} and ${more} more`
+                : (first?.name ?? "")}
+            </Text>
+          </View>
+          <UnreadBadge count={invites.length} />
           <SymbolIcon
             name={{ android: "chevron_right", ios: "chevron.right" }}
             size={14}
@@ -72,8 +90,8 @@ function PillButton({
 
 /**
  * One space you're invited to, with Accept and Decline. Both answer right
- * away: accepting opens the space in place of the invites; declining the
- * last one goes back.
+ * away: accepting opens the space on Home, and declining takes the row
+ * away. Answering the last one also closes the invitations.
  */
 export function InviteRow({
   invite,
@@ -97,7 +115,8 @@ export function InviteRow({
       .catch(() =>
         Alert.alert("Couldn't Join Space", "Try again in a moment."),
       );
-    router.replace({
+    if (isLast) router.back();
+    router.navigate({
       params: { account: invite.account, name: invite.name, spaceId },
       pathname: "/spaces/[spaceId]",
     });
@@ -113,16 +132,16 @@ export function InviteRow({
   }
 
   return (
-    <View className="flex-row gap-3 pl-4">
+    <View className="flex-row pl-4">
       <View
-        className="bg-accent mt-3 size-12 items-center justify-center rounded-xl"
+        className="bg-accent mt-3.5 size-[46px] items-center justify-center rounded-xl"
         style={{ borderCurve: "continuous" }}
       >
         <Text className="text-title text-on-accent font-bold">
           {invite.name.charAt(0).toUpperCase()}
         </Text>
       </View>
-      <View className="border-b-hairline border-separator flex-1 gap-2.5 py-3 pr-4">
+      <View className="border-b-hairline border-separator ml-3 flex-1 gap-3 pt-3.5 pr-4 pb-4">
         <View className="gap-0.5">
           <Text className="text-headline text-foreground font-semibold">
             {invite.name}

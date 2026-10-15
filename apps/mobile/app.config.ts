@@ -21,6 +21,18 @@ const notificationExtension = process.env.VERA_NOTIFICATION_EXTENSION === "1";
 
 const EAS_PROJECT_ID = "5680db13-57a8-4b74-ae41-1f52abbda0b1";
 
+/**
+ * iOS alternate app icons, picked in Settings (src/features/preferences/app-icon.ts):
+ * one per color theme but green, which is Vera's primary icon. Vera Dev's
+ * primary icon is amber, so it offers green (`vera`) as an alternate too.
+ */
+const ALTERNATE_ICONS = [
+  ...(dev ? ["vera"] : []),
+  ...["blue", "teal", "indigo", "purple", "pink", "orange", "graphite"].map(
+    (theme) => `vera-${theme}`,
+  ),
+].map((name) => `./assets/icons/${name}.icon`);
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: dev ? "Vera Dev" : "Vera",
@@ -42,7 +54,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     fallbackToCacheTimeout: 0,
   },
   ios: {
-    // Liquid Glass icon from Icon Composer; see assets/icons/README.md.
+    // Liquid Glass icon from Icon Composer; see assets/icons/README.md. The
+    // alternates come from ALTERNATE_ICONS.
     icon: dev ? "./assets/icons/vera-dev.icon" : "./assets/icons/vera.icon",
     bundleIdentifier: BUNDLE_ID,
     supportsTablet: true,
@@ -96,6 +109,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: [
     // Adopts the UIScene life cycle the iOS 27 SDK requires; remove with SDK 58.
     "./plugins/with-ios-scene-lifecycle.cjs",
+    ["./plugins/with-alternate-icons.cjs", { icons: ALTERNATE_ICONS }],
     "expo-router",
     [
       "expo-image-picker",

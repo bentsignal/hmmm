@@ -1,6 +1,5 @@
 import "~/global.css";
 
-import { useEffect } from "react";
 import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -38,10 +37,6 @@ function useNavigationTheme() {
 
 function Navigator() {
   const isAuthenticated = useSession().accounts.length > 0;
-  // eslint-disable-next-line no-restricted-syntax -- The native splash screen stays up until the accounts' home servers are known.
-  useEffect(() => {
-    void SplashScreen.hideAsync();
-  }, []);
   return (
     <Stack
       // Signing out of the last account replaces the whole app tree, so no

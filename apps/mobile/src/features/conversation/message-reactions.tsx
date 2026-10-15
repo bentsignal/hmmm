@@ -6,7 +6,7 @@ import { LayoutAnimationConfig } from "react-native-reanimated";
 
 import type { PreviewShape } from "./glass-message-menu";
 import type { Message } from "./types";
-import { selectionTick } from "~/lib/native-extras";
+import { impact, selectionTick } from "~/lib/native-extras";
 import {
   MessageTargetProvider,
   useMessageActions,
@@ -33,7 +33,8 @@ function useShownReactions(message: Message) {
  * `useMenuTarget`). Its reactions show as iMessage tapbacks over the top
  * corner (`tapbacks`, for bubbles), which show who reacted when tapped, or
  * as Slack's chips underneath (`chips`, for stacked rows), which add or
- * take back that reaction.
+ * take back that reaction when tapped and show who reacted with it when
+ * held.
  */
 export function InteractiveMessage({
   message,
@@ -50,7 +51,7 @@ export function InteractiveMessage({
   reactionStyle: "chips" | "tapbacks";
   children: ReactNode;
 }) {
-  const { toggleReaction } = useMessageActions();
+  const { toggleReaction, viewReactions } = useMessageActions();
   const reactions = useShownReactions(message);
   const body = useRef<NativeView>(null);
   const openReactions = useOpenReactions({
@@ -84,6 +85,10 @@ export function InteractiveMessage({
             onToggle={(emoji) => {
               selectionTick();
               toggleReaction(message.id, emoji);
+            }}
+            onHold={(emoji) => {
+              impact();
+              viewReactions(message.id, emoji);
             }}
           />
         )}

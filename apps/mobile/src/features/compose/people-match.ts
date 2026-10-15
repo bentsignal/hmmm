@@ -25,6 +25,21 @@ export function searchedAddress(text: string, homeDomain: string) {
   return ADDRESS_PATTERN.test(address) ? address : null;
 }
 
+/** The server part of an address: `vera.chat` in `maya@vera.chat`. */
+export function domainOf(address: string) {
+  return address.slice(address.lastIndexOf("@") + 1);
+}
+
+/**
+ * Whether a search is a full address on a server other than `self`'s.
+ * People there can't be found or added yet (servers don't look each other's
+ * accounts up).
+ */
+export function isOtherServer(text: string, self: string) {
+  const value = normalize(text);
+  return ADDRESS_PATTERN.test(value) && domainOf(value) !== domainOf(self);
+}
+
 /**
  * Whether a person matches a people search: the text starts their address
  * (so `maya@`, `maya@ve` keep finding `maya@vera.chat`), or appears in

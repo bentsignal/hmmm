@@ -55,7 +55,7 @@ export function groupTitle(
 }
 
 export function conversationTitle(
-  conversation: Conversation,
+  conversation: Pick<Conversation, "kind" | "members" | "name">,
   self: string,
   displayName: (id: string) => string,
 ) {

@@ -25,6 +25,18 @@ export const linkPreview = v.object({
   siteName: v.optional(v.string()),
   title: v.optional(v.string()),
   url: v.string(),
+  /**
+   * A video the link's post holds (a tweet's, say), playable in the app.
+   * `imageUrl` is its poster.
+   */
+  video: v.optional(
+    v.object({
+      durationMs: v.optional(v.number()),
+      height: v.optional(v.number()),
+      url: v.string(),
+      width: v.optional(v.number()),
+    }),
+  ),
 });
 
 export type LinkPreview = Infer<typeof linkPreview>;
@@ -91,6 +103,8 @@ export type Conversation = Infer<typeof conversation>;
 
 export const channel = v.object({
   conversationId: v.string(),
+  /** Whether the caller hid its alerts (absent from older PDSs: no). */
+  muted: v.optional(v.boolean()),
   name: v.string(),
   position: v.number(),
   /** Whether the caller's inbox lists it (absent from older PDSs: yes). */
@@ -106,7 +120,14 @@ export const space = v.object({
   channels: v.array(channel),
   /** People invited who haven't accepted yet (absent from older PDSs). */
   invited: v.optional(v.array(v.string())),
+  /** When the caller joined or created it (absent from older PDSs). */
+  joinedAt: v.optional(v.number()),
   members: v.array(v.object({ accountId: v.string(), role: spaceRole })),
+  /**
+   * Whether the caller hid alerts for the whole space, every channel in it
+   * (absent from older PDSs: no).
+   */
+  muted: v.optional(v.boolean()),
   name: v.string(),
   role: spaceRole,
   spaceId: v.string(),
@@ -170,3 +191,93 @@ export const messagePage = v.object({
   hasOlder: v.boolean(),
   messages: v.array(message),
 });
+
+/** What an activity item needs to name its conversation. */
+export const activityConversation = v.object({
+  conversationId: v.string(),
+  kind: conversationKind,
+  members: v.array(v.string()),
+  name: v.union(v.null(), v.string()),
+  spaceId: v.union(v.null(), v.string()),
+  /** Channels only: the space's name. */
+  spaceName: v.optional(v.string()),
+});
+
+export type ActivityConversation = Infer<typeof activityConversation>;
+
+/**
+ * When the caller last saw an activity item on screen, and the newest
+ * activity it held then. Absent until they first see it.
+ */
+const activitySeen = {
+  seenAt: v.optional(v.number()),
+  seenThrough: v.optional(v.number()),
+};
+
+/**
+ * Something that happened while the caller was away, newest first in
+ * `activity`. `key` names it for `markActivitySeen`, and `at` is its newest
+ * activity: it's unseen while `at` is after `seenThrough`.
+ */
+export const activityItem = v.union(
+  v.object({
+    ...activitySeen,
+    at: v.number(),
+    /** Who wrote them, newest first. */
+    authors: v.array(v.string()),
+    conversation: activityConversation,
+    /** How many messages others sent (at most `MAX_ACTIVITY_MESSAGES`). */
+    count: v.number(),
+    key: v.string(),
+    kind: v.literal("messages"),
+    /** The newest of them. */
+    latest: message,
+  }),
+  v.object({
+    ...activitySeen,
+    at: v.number(),
+    conversation: activityConversation,
+    key: v.string(),
+    kind: v.literal("reactions"),
+    /** The caller's message they reacted to. */
+    message,
+    /** Newest first. */
+    reactions: v.array(reaction),
+  }),
+);
+
+export type ActivityItem = Infer<typeof activityItem>;
+
+/** An item seen on screen, through its newest activity then (`at`). */
+export const activitySighting = v.object({
+  key: v.string(),
+  through: v.number(),
+});
+
+/** At most this many messages count toward one activity item. */
+export const MAX_ACTIVITY_MESSAGES = 99;
+
+/** At most this many items per `markActivitySeen`. */
+export const MAX_ACTIVITY_SIGHTINGS = 100;
+
+/** How long an item stays after it's seen: a day. */
+export const ACTIVITY_SEEN_LIFETIME = 24 * 60 * 60 * 1000;
+
+/** Activity older than this never shows, seen or not: a week. */
+export const ACTIVITY_HORIZON = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Which pushes an account gets. `enabled` off silences all of them; the
+ * rest turn off one kind each. Muted conversations and spaces stay silent
+ * either way.
+ */
+export const notificationSettings = v.object({
+  channels: v.boolean(),
+  directMessages: v.boolean(),
+  enabled: v.boolean(),
+  groups: v.boolean(),
+  invites: v.boolean(),
+  reactions: v.boolean(),
+});
+
+export type NotificationSettings = Infer<typeof notificationSettings>;

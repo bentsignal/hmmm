@@ -38,10 +38,11 @@ credential), with no username or server field, because Vera's server is the
 only one for now. Signing in to a self-hosted server, which needs a way to
 name it, comes later.
 
-Sign-up requires an invite code. Codes are stored in Convex, are multi-use, and
-stay valid until deactivated. Shawn asks the agent to create a code, sends it to
-friends, and later asks the agent to deactivate it. The repo skill
-`.claude/skills/invite-codes` describes the procedure.
+Sign-up is open: anyone with the app picks a username and creates a passkey
+(decided 2026-10-11). TestFlight and Play internal testing already limit who
+has the app, so invite codes were only friction, and they were removed. When
+Vera opens to the public, users will likely invite each other; that is a
+separate design.
 
 ## Mobile stack
 
@@ -94,7 +95,7 @@ friends, and later asks the agent to deactivate it. The repo skill
 | Bare domain                  | `vera.chat` → Vercel project `vera-chat-domain`, which proxies `/.well-known/*` to production |
 | App Store Connect            | App "Vera Chat" (Apple ID `6818656155`, SKU `vera-ios`, bundle `chat.vera.app`); "Vera" was taken |
 | App Store Connect API key    | Team key "Vera EAS" (Admin), `~/.appstoreconnect/` on Shawn's Mac; EAS uses it for credentials and submits |
-| TestFlight                   | Internal group "Team" (Shawn); external group "Friends" with public link `https://testflight.apple.com/join/CqpKDW25`; App Review signs up with the "Apple App Review" invite code |
+| TestFlight                   | Internal group "Team" (Shawn); external group "Friends" with public link `https://testflight.apple.com/join/CqpKDW25` |
 | Discovery records            | `_pds.vera.chat`, `_pds.dev.vera.chat` (Vercel DNS)                                           |
 | Apple team                   | `39K6A9FP99` (bundle `chat.vera.app`)                                                         |
 | EAS project                  | `@directedbyshawn/vera`, `5680db13-57a8-4b74-ae41-1f52abbda0b1`                               |

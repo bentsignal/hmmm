@@ -14,6 +14,8 @@ import { stringField } from "./presented";
 let activeConversationId: string | undefined;
 /** Whether the Inbox is on screen, where new messages show in the list. */
 let inboxOnScreen = false;
+/** Whether Activity is on screen, where new reactions show in the list. */
+let activityOnScreen = false;
 
 /**
  * Marks the conversation as the one on screen, which suppresses its banners
@@ -30,9 +32,13 @@ export function useActiveConversation(conversationId: string) {
   });
 }
 
-/** Marks the Inbox as on screen, which suppresses message banners. */
-export function useInboxOnScreen() {
+/**
+ * Marks the Inbox as on screen, which suppresses message banners: while
+ * Home is focused and `onScreen` (its Inbox page is the one showing).
+ */
+export function useInboxOnScreen(onScreen: boolean) {
   useFocusEffect(() => {
+    if (!onScreen) return;
     inboxOnScreen = true;
     return () => {
       inboxOnScreen = false;
@@ -40,18 +46,31 @@ export function useInboxOnScreen() {
   });
 }
 
+/** Marks Activity as on screen, which suppresses reaction banners. */
+export function useActivityOnScreen() {
+  useFocusEffect(() => {
+    activityOnScreen = true;
+    return () => {
+      activityOnScreen = false;
+    };
+  });
+}
+
 Notifications.setNotificationHandler({
   handleNotification: (notification) => {
-    const conversationId = stringField(
-      notification.request.content.data,
-      "conversationId",
-    );
+    const { data } = notification.request.content;
+    const conversationId = stringField(data, "conversationId");
     // Space invitations have no conversation and always show. A message
     // stays quiet in its own open conversation, and on the Inbox, where it
-    // shows up in the list.
+    // shows up in the list; a reaction likewise in its conversation and on
+    // Activity.
+    const listed =
+      stringField(data, "kind") === "reaction"
+        ? activityOnScreen
+        : inboxOnScreen;
     const visible =
       conversationId === undefined ||
-      (conversationId !== activeConversationId && !inboxOnScreen);
+      (conversationId !== activeConversationId && !listed);
     return Promise.resolve({
       shouldPlaySound: visible,
       // A push's badge counts only its own account; `useAppBadge` sets the
@@ -102,8 +121,10 @@ export function usePushRegistration() {
 }
 
 /**
- * Opens the conversation when someone taps a message notification, and the
- * invites when they tap a space invitation.
+ * Opens the conversation when someone taps a message notification (at the
+ * message, for a reaction's), and
+ * Activity (where invitations are answered) when they tap a space
+ * invitation.
  */
 export function useNotificationRouting() {
   const router = useRouter();
@@ -112,7 +133,7 @@ export function useNotificationRouting() {
   useEffect(() => {
     const data = response?.notification.request.content.data;
     if (stringField(data, "kind") === "spaceInvite") {
-      router.push("/spaces/invites");
+      router.navigate("/activity");
       void Notifications.clearLastNotificationResponseAsync();
       return;
     }

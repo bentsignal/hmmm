@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { SharedValue } from "react-native-reanimated";
+import { useState } from "react";
 import { Modal, Pressable, useWindowDimensions } from "react-native";
 import Animated, {
   clamp,
@@ -18,11 +19,10 @@ import { requireOptionalNativeModule } from "expo";
 import { BlurView } from "expo-blur";
 import { useUniwind } from "uniwind";
 
-import type { MenuAction } from "./glass-menu-parts";
 import type { MenuLayout, Rect } from "./menu-layout";
 import type { Message, MessageAttachment } from "./types";
 import { cn } from "~/lib/cn";
-import { canCopy, copyText, selectionTick } from "~/lib/native-extras";
+import { selectionTick } from "~/lib/native-extras";
 import {
   ActionMenu,
   BAR_HEIGHT,
@@ -31,12 +31,11 @@ import {
   menuHeight,
   ReactionBar,
 } from "./glass-menu-parts";
-import { linkActions } from "./link-actions";
+import { menuActions } from "./menu-actions";
 import { menuLayout } from "./menu-layout";
 import { menuTitleHeight } from "./menu-title";
 import { REACTORS_WIDTH, reactorsHeight } from "./reactor-rows";
 import { Reactors } from "./reactors";
-import { canSaveToPhotos, saveToPhotos } from "./save-media";
 
 export type TargetAlign = "end" | "start";
 
@@ -177,64 +176,6 @@ function Lifted({
 }
 
 /**
- * A held link's actions, Save to Photos for a held photo or video, then
- * Copy for text (the whole message, links and all), and View Reactions
- * once anyone has reacted.
- */
-function menuActions(
-  { attachment, link, message }: MenuTarget,
-  {
-    close,
-    onViewReactions,
-  }: {
-    close: (then?: () => void) => void;
-    onViewReactions: () => void;
-  },
-) {
-  const { body } = message;
-  const save =
-    attachment !== undefined && canSaveToPhotos(attachment)
-      ? [
-          {
-            icon: { android: "download", ios: "square.and.arrow.down" },
-            label: "Save to Photos",
-            onPress: () => {
-              close();
-              void saveToPhotos(attachment).then((saved) => {
-                if (saved) selectionTick();
-              });
-            },
-          } satisfies MenuAction,
-        ]
-      : [];
-  const copy =
-    canCopy && body !== undefined && body !== ""
-      ? [
-          {
-            icon: { android: "content_copy", ios: "doc.on.doc" },
-            // Beside Copy Link, say which copy this is.
-            label: link === undefined ? "Copy" : "Copy Message",
-            onPress: () => {
-              copyText(body);
-              close();
-            },
-          } satisfies MenuAction,
-        ]
-      : [];
-  const viewReactions =
-    (message.reactions?.length ?? 0) > 0
-      ? [
-          {
-            icon: { android: "groups", ios: "person.2" },
-            label: "View Reactions",
-            onPress: () => close(onViewReactions),
-          } satisfies MenuAction,
-        ]
-      : [];
-  return [...linkActions(link, close), ...save, ...copy, ...viewReactions];
-}
-
-/**
  * The iMessage-style overlay: the conversation blurs, the message lifts, a
  * Liquid Glass reaction bar springs out above it, and below it the actions
  * (a long press) or who reacted (a double tap, or its tapbacks). Closing
@@ -276,6 +217,7 @@ export function GlassMessageMenu({
     screen,
   });
   const progress = useSharedValue(0);
+  const [closing, setClosing] = useState(false);
   useAnimatedReaction(
     () => true,
     (_, previous) => {
@@ -290,6 +232,7 @@ export function GlassMessageMenu({
       then?.();
     }
     onClosing?.();
+    setClosing(true);
     progress.set(
       withTiming(
         0,
@@ -313,6 +256,7 @@ export function GlassMessageMenu({
       <ReactionBar
         target={target}
         progress={progress}
+        closing={closing}
         position={{ left: layout.barLeft, top: layout.barTop }}
         onPick={(emoji) => {
           selectionTick();
@@ -324,6 +268,7 @@ export function GlassMessageMenu({
         <Reactors
           reactions={reactions}
           progress={progress}
+          closing={closing}
           align={target.align}
           position={{ left: layout.menuLeft, top: layout.menuTop }}
         />
@@ -331,6 +276,7 @@ export function GlassMessageMenu({
       {actions.length > 0 && (
         <ActionMenu
           progress={progress}
+          closing={closing}
           align={target.align}
           position={{ left: layout.menuLeft, top: layout.menuTop }}
           title={target.link}

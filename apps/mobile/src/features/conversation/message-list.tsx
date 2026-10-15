@@ -89,6 +89,7 @@ interface RowsProps {
   hasNewer: boolean;
   onLoadOlder: () => void;
   onLoadNewer: () => void;
+  /** Space below the composer that the keyboard covers when it opens. */
   bottomInset: number;
   topInset: number;
   /** Height of the composer floating over the bottom of the list. */
@@ -216,8 +217,8 @@ type MessageListProps = Omit<
   ref?: Ref<MessageListHandle>;
   onJumpToLatest: () => void;
   onToggleReaction: (messageId: string, emoji: string) => void;
-  /** Opens the sheet of who reacted to a message. */
-  onViewReactions: (messageId: string) => void;
+  /** Opens the sheet of who reacted to a message, on one emoji if given. */
+  onViewReactions: (messageId: string, emoji?: string) => void;
 };
 
 /**

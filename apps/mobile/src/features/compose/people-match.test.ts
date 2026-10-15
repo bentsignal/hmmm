@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  domainOf,
+  isOtherServer,
   matchesPerson,
   searchedAddress,
   searchPeople,
@@ -95,4 +97,14 @@ void test("one answer gives the matches and the lookup together", () => {
     searchPeople({ ...people, found: null, query: "zed" }).noResults,
     true,
   );
+});
+
+void test("a full address on another server is flagged", () => {
+  const self = "me@dev.vera.chat";
+  assert.equal(isOtherServer("maya@vera.chat", self), true);
+  assert.equal(isOtherServer("maya@dev.vera.chat", self), false);
+  // Not a full address yet.
+  assert.equal(isOtherServer("maya@ve", self), false);
+  assert.equal(isOtherServer("maya", self), false);
+  assert.equal(domainOf(self), "dev.vera.chat");
 });

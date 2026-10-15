@@ -62,9 +62,11 @@ The phone holds one Vera Dev at a time:
 
 - **The dev client, day to day.** `scripts/phone.sh up` builds it (once per
   native fingerprint, cached in `~/Library/Caches/vera` for every worktree),
-  starts the worktree's Metro, and prints an install link and an open link,
-  each with a QR code PNG. The open link
-  (`vera-dev://expo-development-client/?url=http://<Mac's Wi-Fi IP>:<port>`)
+  starts the worktree's Metro, and prints its server address
+  (`http://<Mac's Wi-Fi IP>:<port>`), an install link, and an open link. In
+  Vera Dev, pick that server from the list (every running worktree's Metro
+  shows up there by address), or use the open link
+  (`vera-dev://expo-development-client/?url=...`). It
   loads the worktree's JavaScript over the local network, so the phone has to
   be on the same Wi-Fi as the Mac, and edits hot-reload. It's a plain IP, not
   a tailnet address: iOS's App Transport Security blocks plain HTTP to
@@ -171,9 +173,8 @@ xcrun altool --upload-app -f /tmp/vera-production.ipa -t ios \
 (`eas submit --non-interactive` refuses an API key from the environment.)
 TestFlight groups: **Team** (internal, Shawn; every build, no review) and
 **Friends** (external, public link `https://testflight.apple.com/join/CqpKDW25`;
-each build goes through Beta App Review). Reviewers sign up with the
-production invite code labeled "Apple App Review", which the review notes
-in Test Information give them.
+each build goes through Beta App Review). Reviewers create their own
+account; sign-up needs no code.
 
 ### Google Play
 
@@ -194,6 +195,12 @@ with Google's key; its SHA-256 is in the passkey variables and
   photos) shows nothing until it is ready and then fades in.
   `ScreenList`'s `ready` prop, the message list's `onLoad` fade, and
   `expo-image` transitions do this; new screens follow the same pattern.
+- Liquid Glass never sits under a parent whose opacity is below 1: no fade,
+  no `active:opacity-*`. iOS can't draw glass there, and a `GlassView` that
+  misses its first draw or fades out with a parent can stay blank until it
+  remounts. Fade the content inside the glass instead, and bring the glass
+  in and out with `GlassSurface`'s `materialize` and `shown`, which use
+  iOS's own glass animation.
 
 ## Message notifications
 
@@ -283,8 +290,15 @@ with `development: true`) and send to that token through the Expo push API.
 ## Layout
 
 - `src/app`: routes. `(auth)` holds welcome, create account, and sign in;
-  `(app)/(tabs)` holds Inbox, Spaces, Settings, and Search, each with its own
-  native stack; conversations and the new-message sheet sit above the tabs.
+  `(app)/(tabs)` holds Home (the Inbox and Spaces pages), Activity,
+  Settings, and Search, each with its own native stack; conversations and
+  the new-message sheet sit above the tabs.
+- `src/features/settings/notification-settings.ts`: which pushes you get,
+  set the same on every signed-in account's server.
+- `src/features/activity`: the Activity tab (see `.plans/activity.md`). A
+  row counts as seen once it has been entirely on screen, clear of the
+  header and tab bar, for 1.1 seconds (`seen.ts`); a native safe-area
+  probe gives that area, since the list scrolls under both bars on iOS.
 - `src/features`: screen building blocks grouped by feature.
 - `src/components`, `src/lib`: shared components and helpers.
   `lib/ui-modifiers` holds per-platform `@expo/ui` modifier presets.
@@ -311,6 +325,12 @@ with `development: true`) and send to that token through the Expo push API.
   Alerts, leaving a group).
 - `src/features/notifications`: Expo push registration and notification
   routing.
+- `modules/open-in-app` (a local Expo module, autolinked from `modules/`):
+  `src/lib/open-link.ts` opens a link in the installed app that claims it
+  (Reddit, Instagram, X, a news app), with no list of apps: iOS opens it
+  with `universalLinksOnly`, Android with `FLAG_ACTIVITY_REQUIRE_NON_BROWSER`
+  (Android 11 and newer). When no app takes it, it opens in the in-app
+  browser, as it does on builds from before the module.
 - `plugins/with-ios-scene-lifecycle.cjs`: adopts the UIScene life cycle that
   the iOS 27 SDK requires. Expo SDK 58 does this in its template; remove the
   plugin when upgrading.
@@ -327,5 +347,7 @@ with `development: true`) and send to that token through the Expo push API.
   then run `pnpm install` and rebuild.
 - `assets/icons`: the app icon, a top-down aloe vera made as a Liquid Glass
   Icon Composer document, and the flat Android and fallback images rendered
-  from it. The splash screen has no logo, only the app's background color. Color themes don't change the icon. See
+  from it, plus one alternate icon per color theme that people pick in
+  Settings > App Icon (iOS), separately from the color theme. The splash
+  screen has no logo, only the app's background color. See
   `assets/icons/README.md`.

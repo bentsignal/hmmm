@@ -1,6 +1,9 @@
 # Releasing the mobile app
 
-Merging to `main` ships nothing. Shawn decides when to release; an agent runs
+Merging to `main` ships nothing. The one exception is the shared dev
+deployment (`dev.vera.chat`): a PR that changed the backend pushes main's
+backend there right after it merges (`pnpm release backend dev`; see
+AGENTS.md → Feature workflow). Shawn decides when to release; an agent runs
 the release with the `vera-release` skill and
 `pnpm release <command>` (`scripts/release.ts`).
 
@@ -102,7 +105,8 @@ the release a PR removes the finished steps.
    backend changes against the app and against old app versions, native
    changes together in one store build). Send both to Shawn.
 2. **Test in the dev client.** Push `main`'s backend to the shared dev
-   deployment (`pnpm release backend dev`), then serve `main` to Vera Dev
+   deployment (`pnpm release backend dev`; usually already current, since
+   backend PRs push it when they merge), then serve `main` to Vera Dev
    on Shawn's phones (`scripts/phone.sh up`). This test is for how the
    changes work together: JavaScript fixes reach the phone without a build. The
    real app gets tested in TestFlight. An internal build or internal OTA is

@@ -1,18 +1,10 @@
 import { View } from "react-native";
 import { useRouter } from "expo-router";
-import {
-  Button,
-  ContextMenu,
-  Host,
-  List,
-  RNHostView,
-  SwipeActions,
-} from "@expo/ui/swift-ui";
+import { Button, ContextMenu, Host, List, RNHostView } from "@expo/ui/swift-ui";
 import {
   alignmentGuide,
   buttonStyle,
   frame,
-  labelStyle,
   listRowInsets,
   listRowSeparator,
   listStyle,
@@ -22,15 +14,11 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import { useCSSVariable } from "uniwind";
 
-import type { RowAction } from "./swipe-actions";
+import type { RowAction } from "./row-actions";
 import type { ConversationSummary } from "./types";
 import { useRunAs } from "~/features/messaging/account";
 import { ConversationRowContent, INBOX_ROW_HEIGHT } from "./conversation-row";
-import {
-  afterSwipe,
-  inboxMenuActions,
-  inboxSwipeActions,
-} from "./swipe-actions";
+import { afterMenuCloses, inboxMenuActions } from "./row-actions";
 
 /** Where the text starts (unread gutter, photo, gap): the separator's inset. */
 const TEXT_INSET = 24 + 46 + 12;
@@ -60,20 +48,18 @@ function ActionButtons({
       label={action.label}
       systemImage={action.icon.ios}
       role={action.tone === "destructive" ? "destructive" : undefined}
-      // Icons only, as in Messages; the label is for VoiceOver.
-      modifiers={[labelStyle("iconOnly"), tint(colors[action.tone] ?? GRAY)]}
-      onPress={() => afterSwipe(action.onPress)}
+      modifiers={[tint(colors[action.tone] ?? GRAY)]}
+      onPress={() => afterMenuCloses(action.onPress)}
     />
   ));
 }
 
 /**
  * An Inbox row on iOS. Each row is a one-row SwiftUI List, so it gets the
- * system's own swipe actions: the Liquid Glass buttons, full swipe, and
- * haptics of Messages and Mail. Swipe right to Pin; swipe left to hide a
- * channel. Long-press opens the native context menu. The row's content is
- * the shared React Native view, hosted inside and ignoring touches so
- * SwiftUI handles taps and swipes.
+ * system's own press highlight and separator, and long-press opens the
+ * native context menu with the row's actions. The row's content is the
+ * shared React Native view, hosted inside and ignoring touches so SwiftUI
+ * handles taps and presses.
  */
 export function InboxRow({
   conversation,
@@ -85,7 +71,6 @@ export function InboxRow({
   const router = useRouter();
   const runAs = useRunAs();
   const colors = useToneColors();
-  const { leading, trailing } = inboxSwipeActions(runAs, conversation);
   const { account, id, title } = conversation;
 
   function open() {
@@ -104,59 +89,49 @@ export function InboxRow({
           scrollContentBackground("hidden"),
         ]}
       >
-        <SwipeActions
-          // The system's own row background and separator, so a swipe
+        <ContextMenu
+          // The system's own row background and separator, so a press
           // lifts the row into its highlight and the separator blends in.
           modifiers={[
             listRowInsets({ bottom: 0, leading: 0, top: 0, trailing: 0 }),
             listRowSeparator("visible", "bottom"),
           ]}
         >
-          <ContextMenu>
-            <ContextMenu.Items>
-              <ActionButtons
-                actions={inboxMenuActions(runAs, conversation)}
-                colors={colors}
-              />
-            </ContextMenu.Items>
-            <ContextMenu.Trigger>
-              <Button
-                modifiers={[
-                  buttonStyle("plain"),
-                  frame({ height: INBOX_ROW_HEIGHT, maxWidth: Infinity }),
-                  alignmentGuide("listRowSeparatorLeading", TEXT_INSET),
-                ]}
-                onPress={open}
-              >
-                <RNHostView>
-                  {/* A fixed height, not flex: SwiftUI reports the host's
-                      size a few frames after a new row mounts, and until
-                      then a flexed row is laid out zero tall, with the
-                      photo and unread dot centered on its top edge. */}
-                  <View
-                    pointerEvents="none"
-                    className="flex-row"
-                    style={{ height: INBOX_ROW_HEIGHT }}
-                  >
-                    <ConversationRowContent
-                      conversation={conversation}
-                      showAccount={showAccount}
-                      separator={false}
-                    />
-                  </View>
-                </RNHostView>
-              </Button>
-            </ContextMenu.Trigger>
-          </ContextMenu>
-          <SwipeActions.Actions edge="leading">
-            <ActionButtons actions={leading} colors={colors} />
-          </SwipeActions.Actions>
-          {trailing.length > 0 && (
-            <SwipeActions.Actions edge="trailing">
-              <ActionButtons actions={trailing} colors={colors} />
-            </SwipeActions.Actions>
-          )}
-        </SwipeActions>
+          <ContextMenu.Items>
+            <ActionButtons
+              actions={inboxMenuActions(runAs, conversation)}
+              colors={colors}
+            />
+          </ContextMenu.Items>
+          <ContextMenu.Trigger>
+            <Button
+              modifiers={[
+                buttonStyle("plain"),
+                frame({ height: INBOX_ROW_HEIGHT, maxWidth: Infinity }),
+                alignmentGuide("listRowSeparatorLeading", TEXT_INSET),
+              ]}
+              onPress={open}
+            >
+              <RNHostView>
+                {/* A fixed height, not flex: SwiftUI reports the host's
+                    size a few frames after a new row mounts, and until
+                    then a flexed row is laid out zero tall, with the
+                    photo and unread dot centered on its top edge. */}
+                <View
+                  pointerEvents="none"
+                  className="flex-row"
+                  style={{ height: INBOX_ROW_HEIGHT }}
+                >
+                  <ConversationRowContent
+                    conversation={conversation}
+                    showAccount={showAccount}
+                    separator={false}
+                  />
+                </View>
+              </RNHostView>
+            </Button>
+          </ContextMenu.Trigger>
+        </ContextMenu>
       </List>
     </Host>
   );
