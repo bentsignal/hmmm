@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
+import { View } from "react-native";
 import Animated, {
-  FadeIn,
   useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
@@ -10,6 +10,7 @@ import Animated, {
 
 import type { MessageRow } from "./build-rows";
 import type { MessageLayout } from "~/features/preferences/store";
+import { Arrive } from "./arrive";
 import { DaySeparator, TimeHeader } from "./day-separator";
 import { MessageBubble } from "./message-bubble";
 import { MessageStacked } from "./message-stacked";
@@ -29,10 +30,19 @@ function Highlight({ children }: { children: ReactNode }) {
         tint.value = withDelay(800, withTiming(0, { duration: 1600 }));
     },
   );
-  const style = useAnimatedStyle(() => ({
-    backgroundColor: `rgba(124, 124, 255, ${0.18 * tint.value})`,
-  }));
-  return <Animated.View style={style}>{children}</Animated.View>;
+  // The tint's opacity fades, not its color: a color string built from a
+  // tiny number ("5e-16") is invalid, and Android's Reanimated throws on it.
+  const style = useAnimatedStyle(() => ({ opacity: 0.18 * tint.value }));
+  return (
+    <View>
+      <Animated.View
+        pointerEvents="none"
+        className="absolute inset-0"
+        style={[{ backgroundColor: "rgb(124, 124, 255)" }, style]}
+      />
+      {children}
+    </View>
+  );
 }
 
 interface RowProps {
@@ -44,28 +54,58 @@ interface RowProps {
 }
 
 /**
- * New rows fade in while the list slides them up into view; the list's
- * own scroll is the motion, so the row doesn't move on its own too.
+ * One row of the list. Its props are passed on one by one, not spread:
+ * a spread makes a new object each render, so the React Compiler couldn't
+ * tell the row is unchanged and every row on screen would redraw whenever
+ * the list did.
  */
-const ARRIVE = FadeIn.duration(260);
-
 export function Row({
+  row,
+  self,
+  layout,
+  profileOf,
+  showAuthors,
   highlighted,
   arriving,
-  ...props
 }: RowProps & { highlighted: boolean; arriving: boolean }) {
-  const content = highlighted ? (
-    <Highlight>
-      <RowContent {...props} />
-    </Highlight>
-  ) : (
-    <RowContent {...props} />
-  );
   return (
-    <Animated.View entering={arriving ? ARRIVE : undefined}>
-      {content}
-    </Animated.View>
+    <RowShell rowKey={row.key} highlighted={highlighted} arriving={arriving}>
+      <RowContent
+        row={row}
+        self={self}
+        layout={layout}
+        profileOf={profileOf}
+        showAuthors={showAuthors}
+      />
+    </RowShell>
   );
+}
+
+/**
+ * What wraps a row: the tint behind the message the conversation opened on,
+ * and the arrival of a row that came in while it's open.
+ */
+function RowShell({
+  rowKey,
+  highlighted,
+  arriving,
+  children,
+}: {
+  rowKey: string;
+  highlighted: boolean;
+  arriving: boolean;
+  children: ReactNode;
+}) {
+  if (arriving) {
+    return (
+      <Arrive rowKey={rowKey}>
+        <RowShell rowKey={rowKey} highlighted={highlighted} arriving={false}>
+          {children}
+        </RowShell>
+      </Arrive>
+    );
+  }
+  return highlighted ? <Highlight>{children}</Highlight> : children;
 }
 
 function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {

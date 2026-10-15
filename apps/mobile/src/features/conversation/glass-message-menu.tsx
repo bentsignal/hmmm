@@ -32,9 +32,9 @@ import {
   ReactionBar,
 } from "./glass-menu-parts";
 import { menuActions } from "./menu-actions";
-import { menuLayout } from "./menu-layout";
+import { EDGE, menuLayout } from "./menu-layout";
 import { menuTitleHeight } from "./menu-title";
-import { REACTORS_WIDTH, reactorsHeight } from "./reactor-rows";
+import { REACTORS_HEIGHT, reactorsWidth } from "./reactor-rows";
 import { Reactors } from "./reactors";
 
 export type TargetAlign = "end" | "start";
@@ -175,6 +175,20 @@ function Lifted({
   );
 }
 
+/** The size of what goes under the lifted message: who reacted, or actions. */
+function belowSize(target: MenuTarget, actions: number, reactorsMax: number) {
+  if (target.mode === "reactions") {
+    return {
+      height: REACTORS_HEIGHT,
+      width: reactorsWidth(target.message.reactions ?? [], reactorsMax),
+    };
+  }
+  return {
+    height: menuHeight(actions) + menuTitleHeight(target.link),
+    width: MENU_WIDTH,
+  };
+}
+
 /**
  * The iMessage-style overlay: the conversation blurs, the message lifts, a
  * Liquid Glass reaction bar springs out above it, and below it the actions
@@ -190,8 +204,8 @@ export function GlassMessageMenu({
 }: {
   target: MenuTarget;
   onReact: (emoji: string) => void;
-  /** Opens the sheet of who reacted with what. */
-  onViewReactions: () => void;
+  /** Opens the sheet of who reacted with what, on one emoji if given. */
+  onViewReactions: (emoji?: string) => void;
   /** The overlay starts playing back into place. */
   onClosing?: () => void;
   onClosed: () => void;
@@ -200,6 +214,7 @@ export function GlassMessageMenu({
   const insets = useSafeAreaInsets();
   const showReactors = target.mode === "reactions";
   const reactions = target.message.reactions ?? [];
+  const reactorsMax = screen.width - EDGE * 2;
   const actions = showReactors
     ? []
     : menuActions(target, { close: (then) => close(then), onViewReactions });
@@ -208,12 +223,7 @@ export function GlassMessageMenu({
     bar: { height: BAR_HEIGHT, width: BAR_WIDTH },
     frame: frameOf(target),
     insets,
-    menu: showReactors
-      ? { height: reactorsHeight(reactions), width: REACTORS_WIDTH }
-      : {
-          height: menuHeight(actions.length) + menuTitleHeight(target.link),
-          width: MENU_WIDTH,
-        },
+    menu: belowSize(target, actions.length, reactorsMax),
     screen,
   });
   const progress = useSharedValue(0);
@@ -271,6 +281,8 @@ export function GlassMessageMenu({
           closing={closing}
           align={target.align}
           position={{ left: layout.menuLeft, top: layout.menuTop }}
+          width={reactorsWidth(reactions, reactorsMax)}
+          onPick={(emoji) => close(() => onViewReactions(emoji))}
         />
       )}
       {actions.length > 0 && (

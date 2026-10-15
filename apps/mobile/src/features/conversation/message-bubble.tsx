@@ -19,8 +19,13 @@ import { TAPBACK_SPACE } from "./tapbacks";
 
 /** Width of the avatar column beside incoming bubbles in group chats. */
 const AVATAR_COLUMN = 28;
-/** The sender's name above a run, plus the gap under it. */
-const NAME_HEIGHT = 18;
+/** The sender's line above a run, and the gap under it. */
+const NAME_LINE = 16;
+const NAME_GAP = 6;
+/** The sender's name above a run, and the gap under it, together. */
+const NAME_HEIGHT = NAME_LINE + NAME_GAP;
+/** The name's padding on each side (`px-3`). */
+const NAME_INSET = 12;
 
 function Body({
   text,
@@ -146,18 +151,32 @@ function BubbleColumn({
   name?: string;
   endsGroup: boolean;
 }) {
+  // Where the name's text ends, inside its padding.
+  const [nameEnd, setNameEnd] = useState<number>();
   return (
     <View
       className={cn("max-w-[75%] gap-0.5", isOwn ? "items-end" : "items-start")}
     >
       {name !== undefined && (
-        <Text className="text-caption text-muted px-3">{name}</Text>
+        <Text
+          numberOfLines={1}
+          className="text-caption text-muted px-3"
+          style={{ lineHeight: NAME_LINE, marginBottom: NAME_GAP - 2 }}
+          onLayout={(event) =>
+            setNameEnd(event.nativeEvent.layout.width - NAME_INSET)
+          }
+        >
+          {name}
+        </Text>
       )}
       <InteractiveMessage
         message={message}
         align={isOwn ? "end" : "start"}
         shape="plain"
         reactionStyle="tapbacks"
+        // Tapbacks rise beside the name, which keeps its place.
+        roomAbove={name === undefined ? 0 : NAME_HEIGHT}
+        tapbacksClearOf={name === undefined ? undefined : nameEnd}
       >
         <Content message={message} isOwn={isOwn} endsGroup={endsGroup} />
       </InteractiveMessage>
@@ -169,8 +188,8 @@ function BubbleColumn({
 /** What sits above the bubble: the sender's name, and the tapbacks. */
 function aboveBubble(message: Message, named: boolean) {
   const name = named ? NAME_HEIGHT : 0;
-  const tapbacks = (message.reactions?.length ?? 0) > 0 ? TAPBACK_SPACE : 0;
-  return name + tapbacks;
+  const reacted = (message.reactions?.length ?? 0) > 0;
+  return Math.max(name, reacted ? TAPBACK_SPACE : 0);
 }
 
 /**

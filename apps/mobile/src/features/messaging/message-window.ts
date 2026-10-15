@@ -131,34 +131,34 @@ export function useMessageWindow(
   const hasOlder = first?.hasOlder ?? false;
   const hasNewer = last?.hasNewer ?? false;
 
+  /**
+   * Adds a page unless the window already has it: the list can ask twice
+   * before the first request lands.
+   */
+  function addPage(cursor: PageCursor, at: "end" | "start") {
+    const key = pageKey(cursor);
+    setView((current) => {
+      if (current.pages.some((page) => pageKey(page) === key)) return current;
+      return {
+        ...current,
+        pages:
+          at === "start"
+            ? [cursor, ...current.pages]
+            : [...current.pages, cursor],
+      };
+    });
+  }
+
   function loadOlder() {
     const oldest = messages[0];
     if (!hasOlder || oldest === undefined) return;
-    if (
-      view.pages.some(
-        (page) => "before" in page && page.before === oldest.sentAt,
-      )
-    ) {
-      return;
-    }
-    setView((current) => ({
-      ...current,
-      pages: [{ before: oldest.sentAt }, ...current.pages],
-    }));
+    addPage({ before: oldest.sentAt }, "start");
   }
 
   function loadNewer() {
     const newest = messages.at(-1);
     if (!hasNewer || newest === undefined) return;
-    if (
-      view.pages.some((page) => "after" in page && page.after === newest.sentAt)
-    ) {
-      return;
-    }
-    setView((current) => ({
-      ...current,
-      pages: [...current.pages, { after: newest.sentAt }],
-    }));
+    addPage({ after: newest.sentAt }, "end");
   }
 
   return {

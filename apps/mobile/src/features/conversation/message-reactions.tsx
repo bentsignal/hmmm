@@ -44,12 +44,26 @@ function useSeenWithout(reactions: readonly unknown[], loaded: boolean) {
   return seenWithout;
 }
 
-/** Space above a bubble for its tapbacks, opened as the first arrives. */
-function TapbackSpace({ open, animate }: { open: boolean; animate: boolean }) {
-  if (!animate) return open ? <View style={{ height: TAPBACK_SPACE }} /> : null;
+/**
+ * Space above a bubble for its tapbacks, opened as the first arrives:
+ * what they need beyond `roomAbove`, the space already there (the sender's
+ * name), which they rise beside.
+ */
+function TapbackSpace({
+  open,
+  animate,
+  roomAbove,
+}: {
+  open: boolean;
+  animate: boolean;
+  roomAbove: number;
+}) {
+  const height = Math.max(0, TAPBACK_SPACE - roomAbove);
+  if (height === 0) return null;
+  if (!animate) return open ? <View style={{ height }} /> : null;
   return (
     <Expand open={open}>
-      <View style={{ height: TAPBACK_SPACE }} />
+      <View style={{ height }} />
     </Expand>
   );
 }
@@ -82,6 +96,8 @@ export function InteractiveMessage({
   align,
   shape,
   reactionStyle,
+  roomAbove = 0,
+  tapbacksClearOf,
   children,
 }: {
   message: Message;
@@ -90,6 +106,10 @@ export function InteractiveMessage({
   /** How its text lifts. */
   shape: PreviewShape;
   reactionStyle: "chips" | "tapbacks";
+  /** Space already above the message (the sender's name) tapbacks can use. */
+  roomAbove?: number;
+  /** Where the name above ends, which tapbacks keep clear of. */
+  tapbacksClearOf?: number;
   children: ReactNode;
 }) {
   const { toggleReaction, viewReactions } = useMessageActions();
@@ -117,22 +137,23 @@ export function InteractiveMessage({
         )}
       >
         {reactionStyle === "tapbacks" && (
-          <TapbackSpace open={has} animate={grows} />
+          <TapbackSpace open={has} animate={grows} roomAbove={roomAbove} />
         )}
         <View ref={body}>
           <MessageTargetProvider message={message} align={align} shape={shape}>
             {children}
           </MessageTargetProvider>
+          {/* After the bubble, so they draw over it on every platform. */}
+          {reactionStyle === "tapbacks" && has && (
+            <Tapbacks
+              reactions={reactions}
+              align={align}
+              hidden={lifted}
+              clearOf={tapbacksClearOf}
+              onPress={openReactions}
+            />
+          )}
         </View>
-        {/* After the bubble, so they draw over it on every platform. */}
-        {reactionStyle === "tapbacks" && has && (
-          <Tapbacks
-            reactions={reactions}
-            align={align}
-            hidden={lifted}
-            onPress={openReactions}
-          />
-        )}
         {reactionStyle === "chips" && (
           <Chips
             open={has}

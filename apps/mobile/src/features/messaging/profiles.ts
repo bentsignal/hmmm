@@ -60,7 +60,10 @@ function shownProfile(
 export function useProfileState(addresses: readonly string[]) {
   const { address: session } = useAccount();
   const unique = [...new Set(addresses)];
-  const profiles = useQueries({
+  // Shared structurally with the last result, so the same profiles give the
+  // same object, and `profileOf` stays the same function: rows that take it
+  // (every message in a conversation) don't redraw when nothing changed.
+  const { found, isLoading } = useQueries({
     queries: unique.map((accountId) =>
       pdsQuery({
         args: { accountId },
@@ -79,15 +82,18 @@ export function useProfileState(addresses: readonly string[]) {
         session,
       }),
     ),
+    combine: (results) => ({
+      found: Object.fromEntries(
+        unique.map((address, index) => [address, results[index]?.data]),
+      ),
+      isLoading: results.some((result) => result.data === undefined),
+    }),
   });
-  const found = new Map(
-    unique.map((address, index) => [address, profiles[index]?.data]),
-  );
   return {
-    isLoading: profiles.some((profile) => profile.data === undefined),
+    isLoading,
     /** Whether this address's profile (or its absence) is known. */
-    isLoaded: (address: string) => found.get(address) !== undefined,
-    profileOf: (address: string) => shownProfile(address, found.get(address)),
+    isLoaded: (address: string) => found[address] !== undefined,
+    profileOf: (address: string) => shownProfile(address, found[address]),
   };
 }
 

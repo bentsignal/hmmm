@@ -151,7 +151,9 @@ function Conversation({
     useConversation(conversationId);
   const layout = useMessageLayout(conversation?.kind);
   const messages = useMessages(conversationId, anchorId);
-  const [composerHeight, setComposerHeight] = useState(56);
+  // Undefined until the composer is laid out: the list leaves room for it
+  // under the newest message, so it waits rather than shift once it knows.
+  const [composerHeight, setComposerHeight] = useState<number>();
   const list = useRef<MessageListHandle>(null);
   useMarkRead(conversationId, messages.newestSentAt);
   useActiveConversation(conversationId);
@@ -174,32 +176,38 @@ function Conversation({
     <View className="bg-background flex-1">
       <Stack.Title>{heading}</Stack.Title>
       <KeyboardGestureArea interpolator="ios" offset={60} style={{ flex: 1 }}>
-        {listReady(messages.isLoading, layout, profilesLoaded) && (
-          <MessageList
-            ref={list}
-            key={messages.viewKey}
-            messages={messages.messages}
-            self={address}
-            layout={layout}
-            profileOf={profileOf}
-            showAuthors={conversation?.kind !== "direct"}
-            anchorId={messages.anchor}
-            hasNewer={messages.hasNewer}
-            onLoadOlder={messages.loadOlder}
-            onLoadNewer={messages.loadNewer}
-            onJumpToLatest={messages.jumpToLatest}
-            bottomInset={composerBottomInset}
-            topInset={CONVERSATION_HEADER_HEIGHT}
-            composerHeight={composerHeight}
-            onToggleReaction={messages.toggleReaction}
-            onViewReactions={(messageId, emoji) =>
-              router.push({
-                params: { account: address, conversationId, emoji, messageId },
-                pathname: "/reactions",
-              })
-            }
-          />
-        )}
+        {listReady(messages.isLoading, layout, profilesLoaded) &&
+          composerHeight !== undefined && (
+            <MessageList
+              ref={list}
+              key={messages.viewKey}
+              messages={messages.messages}
+              self={address}
+              layout={layout}
+              profileOf={profileOf}
+              showAuthors={conversation?.kind !== "direct"}
+              anchorId={messages.anchor}
+              hasNewer={messages.hasNewer}
+              onLoadOlder={messages.loadOlder}
+              onLoadNewer={messages.loadNewer}
+              onJumpToLatest={messages.jumpToLatest}
+              bottomInset={composerBottomInset}
+              topInset={CONVERSATION_HEADER_HEIGHT}
+              composerHeight={composerHeight}
+              onToggleReaction={messages.toggleReaction}
+              onViewReactions={(messageId, emoji) =>
+                router.push({
+                  params: {
+                    account: address,
+                    conversationId,
+                    emoji,
+                    messageId,
+                  },
+                  pathname: "/reactions",
+                })
+              }
+            />
+          )}
       </KeyboardGestureArea>
       <ConversationHeader
         title={heading}

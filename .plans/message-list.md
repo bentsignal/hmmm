@@ -97,3 +97,34 @@ Shawn's list of what made conversations feel broken, and what each fix is.
 - Testing a conversation opened in the middle: Settings → your account →
   Developer → Open a Long Thread in the Middle (a 600-message DM, opened 200
   back).
+
+## Round 3
+
+- [x] Tapbacks: no tail dots; 34pt circles with a 1pt ring and more room
+      around the emoji. They sit in the bubble's box and rise beside the
+      sender's name, moving past it rather than covering it, so a reaction
+      never pushes the name up. The gap under the name is a little larger.
+- [x] Reaction bar: yours are an inset tinted circle, so two side by side
+      never touch; no count badges.
+- [x] Who reacted (double tap): a column per emoji with overlapping photos
+      and "+N", scrolling sideways, instead of a row per person. Tapping a
+      column opens the sheet on that emoji.
+- [x] New messages arrive like Messages (`Arrive`): their space opens
+      smoothly at the bottom so the conversation glides up, and the message
+      floats up into it as it fades in.
+- [x] Stacked chips' glass was clipped when it swelled on press (`Expand`
+      clipped); the space no longer clips, its contents fade in instead.
+- [x] Android: everything vanished scrolling in the long thread. The
+      opened-on highlight built an `rgba()` string from a tiny number
+      (`5e-16`), which Reanimated on Android throws on, killing the list's
+      animations. The tint now fades its opacity. Pages the list asked for
+      twice (two `before` cursors) are no longer added twice.
+- [x] Newer messages load three screens early too.
+- [x] The open fade could shift at the end: the list showed before the
+      composer's height was known, then made room. It now waits for it.
+- [x] Performance: every row on screen redrew on any list update (824 row
+      renders for one send) because `Row` spread its props into a new
+      object; and `profileOf` changed each render. Props are passed one by
+      one and profiles are shared structurally: about 10 per send now.
+- [x] Android inbox: rows draw 1000pt ahead so a fast fling on a slow
+      phone doesn't outrun them.

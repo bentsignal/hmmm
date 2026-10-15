@@ -79,7 +79,7 @@ export function MessageActionsProvider({
         <GlassMessageMenu
           target={target}
           onReact={(emoji) => onToggleReaction(target.message.id, emoji)}
-          onViewReactions={() => onViewReactions(target.message.id)}
+          onViewReactions={(emoji) => onViewReactions(target.message.id, emoji)}
           onClosing={onMenuChange}
           onClosed={() => setTarget(null)}
         />

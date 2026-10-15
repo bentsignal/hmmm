@@ -226,7 +226,7 @@ function Rows({
       onStartReached={() => {
         if (placement.isPlaced()) onLoadNewer();
       }}
-      onStartReachedThreshold={2}
+      onStartReachedThreshold={3}
       onScroll={(event) => latest.onScroll(event.nativeEvent.contentOffset.y)}
       {...latest.scrollHandlers}
       scrollEventThrottle={16}
