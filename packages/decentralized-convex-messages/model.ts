@@ -135,6 +135,8 @@ export async function pendingInvites(ctx: QueryCtx, accountId: string) {
 }
 
 export interface ConversationAccess {
+  /** When alerts were last turned back on (0: never muted). */
+  readonly alertsSince: number;
   readonly conversation: Doc<"conversations">;
   readonly lastReadAt: number;
   readonly member: Doc<"members"> | null;
@@ -162,6 +164,7 @@ export async function findAccess(
     return member === null
       ? null
       : {
+          alertsSince: member.alertsSince ?? 0,
           conversation,
           lastReadAt: member.lastReadAt,
           member,
@@ -169,12 +172,26 @@ export async function findAccess(
           spaceMuted: false,
         };
   }
+  return channelAccess(ctx, conversation, member, accountId);
+}
+
+/** A channel's access comes from membership of its space. */
+async function channelAccess(
+  ctx: QueryCtx,
+  conversation: Doc<"conversations">,
+  member: Doc<"members"> | null,
+  accountId: string,
+): Promise<ConversationAccess | null> {
   const spaceMember =
     conversation.spaceId === undefined
       ? null
       : await getSpaceMember(ctx, conversation.spaceId, accountId);
   if (spaceMember === null) return null;
   return {
+    alertsSince: Math.max(
+      member?.alertsSince ?? 0,
+      spaceMember.alertsSince ?? 0,
+    ),
     conversation,
     // Space members start with everything before they joined marked read.
     lastReadAt: member?.lastReadAt ?? spaceMember._creationTime,
@@ -202,7 +219,7 @@ export async function upsertMember(
   patch: Partial<
     Pick<
       Doc<"members">,
-      "hiddenFromInbox" | "lastReadAt" | "muted" | "pinnedAt"
+      "alertsSince" | "hiddenFromInbox" | "lastReadAt" | "muted" | "pinnedAt"
     >
   >,
 ) {
@@ -213,6 +230,7 @@ export async function upsertMember(
   }
   await ctx.db.insert("members", {
     accountId,
+    alertsSince: patch.alertsSince,
     conversationId: access.conversation.conversationId,
     hiddenFromInbox: patch.hiddenFromInbox,
     lastReadAt: patch.lastReadAt ?? access.lastReadAt,
@@ -281,27 +299,6 @@ export async function unreadCount(
     )
     .take(MAX_UNREAD + 1);
   return unread.filter((message) => message.authorId !== accountId).length;
-}
-
-/**
- * Whether anyone else has written since `lastReadAt`. Cheaper than
- * `unreadCount` when only "any unread" matters, as for the app icon badge.
- */
-export async function hasUnread(
-  ctx: QueryCtx,
-  conversationId: string,
-  accountId: string,
-  lastReadAt: number,
-) {
-  const newer = ctx.db
-    .query("messages")
-    .withIndex("by_conversation_sent", (index) =>
-      index.eq("conversationId", conversationId).gt("sentAt", lastReadAt),
-    );
-  for await (const message of newer) {
-    if (message.authorId !== accountId) return true;
-  }
-  return false;
 }
 
 export async function toConversation(

@@ -25,6 +25,7 @@ import {
 import { directConversationId } from "./naming.ts";
 import { around, newerThan, olderThan } from "./paging.ts";
 import { startFetches } from "./previews.ts";
+import { seeConversationActivity } from "./sightings.ts";
 
 type Mutations = (typeof messagesProtocol)["mutations"];
 type Queries = (typeof messagesProtocol)["queries"];
@@ -226,6 +227,8 @@ export async function markRead(
   if (readAt > access.lastReadAt) {
     await upsertMember(ctx, access, self, { lastReadAt: readAt });
   }
+  // Reading a conversation sees its activity too.
+  await seeConversationActivity(ctx, self, args.conversationId, readAt);
   return null;
 }
 
@@ -235,7 +238,12 @@ export async function setMuted(
   args: Args<"setMuted">,
 ) {
   const access = await requireAccess(ctx, args.conversationId, self);
-  await upsertMember(ctx, access, self, { muted: args.muted });
+  // Unmuting starts clean: what came in while muted stays out of activity.
+  const unmuted = access.muted && !args.muted;
+  await upsertMember(ctx, access, self, {
+    muted: args.muted,
+    ...(unmuted ? { alertsSince: Date.now() } : {}),
+  });
   return null;
 }
 

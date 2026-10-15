@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { TestContext } from "node:test";
 
-import { activity, markActivitySeen } from "./activity.ts";
+import { activity, isUnseen } from "./activity.ts";
 import { fakeCtx } from "./fakeCtx.ts";
+import { markActivitySeen, seeConversationActivity } from "./sightings.ts";
 
 const ME = "me@vera.chat";
 const MAYA = "maya@vera.chat";
@@ -274,4 +275,38 @@ void test("rejects bad sightings", async (t) => {
   await assert.rejects(
     markActivitySeen(ctx, ME, { items: [{ key: "a", through: Number.NaN }] }),
   );
+});
+
+void test("leaves out what came in while muted", async (t) => {
+  at(t, NOW);
+  const { ctx } = fakeCtx({
+    conversations: [conversation("direct:a", "direct")],
+    // Unmuted two hours ago.
+    members: [member("direct:a", { alertsSince: NOW - 2 * HOUR })],
+    messages: [
+      message("direct:a", MAYA, NOW - 3 * HOUR),
+      message("direct:a", MAYA, NOW - HOUR),
+    ],
+  });
+  const [item] = await activity(ctx, ME);
+  assert.equal(item?.kind === "messages" ? item.count : null, 1);
+  assert.equal(item?.at, NOW - HOUR);
+});
+
+void test("reading a conversation sees its messages and reactions", async (t) => {
+  at(t, NOW);
+  const { ctx } = fakeCtx({
+    conversations: [conversation("direct:a", "direct")],
+    members: [member("direct:a")],
+    messages: [
+      { ...message("direct:a", ME, NOW - 3 * HOUR), messageId: "mine" },
+      message("direct:a", MAYA, NOW - 2 * HOUR),
+    ],
+    reactions: [reaction(MAYA, "mine", "❤️", NOW - HOUR)],
+  });
+  assert.equal((await activity(ctx, ME)).filter(isUnseen).length, 2);
+  await seeConversationActivity(ctx, ME, "direct:a", NOW - 2 * HOUR);
+  const items = await activity(ctx, ME);
+  assert.equal(items.length, 2);
+  assert.equal(items.filter(isUnseen).length, 0);
 });

@@ -82,6 +82,11 @@ export async function setSpaceMuted(
 ) {
   const member = await getSpaceMember(ctx, args.spaceId, self);
   if (member === null) fail("SPACE_NOT_FOUND");
-  await ctx.db.patch(member._id, { muted: args.muted ? true : undefined });
+  // Unmuting starts clean: what came in while muted stays out of activity.
+  const unmuted = member.muted === true && !args.muted;
+  await ctx.db.patch(member._id, {
+    muted: args.muted ? true : undefined,
+    ...(unmuted ? { alertsSince: Date.now() } : {}),
+  });
   return null;
 }

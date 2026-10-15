@@ -1,7 +1,7 @@
 import type { Message } from "@decentralized-convex/messages";
 import { Pressable, Text, View } from "react-native";
 import Animated, { FadeOut } from "react-native-reanimated";
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 import { MAX_ACTIVITY_MESSAGES } from "@decentralized-convex/messages";
 
 import type { ActivityEntry } from "./activity";
@@ -9,7 +9,7 @@ import type { useProfileState } from "~/features/messaging/profiles";
 import { Avatar } from "~/components/avatar";
 import { usernameOf } from "~/features/messaging/profiles";
 import { formatInboxTimestamp } from "~/lib/format";
-import { actorsOf } from "./activity";
+import { actorsOf, markSeen } from "./activity";
 
 type ProfileOf = ReturnType<typeof useProfileState>["profileOf"];
 
@@ -110,68 +110,71 @@ export function ActivityRow({
   profileOf: ProfileOf;
   showAccount: boolean;
 }) {
+  const router = useRouter();
   const { account, item, title, unseen } = entry;
   const actor = actorsOf(item)[0] ?? "";
   const profile = profileOf(actor);
   const note = footnote(entry, showAccount);
+
+  /** Opening a row is seeing it: its dot is gone when you come back. */
+  function open() {
+    if (unseen) void markSeen([entry]);
+    router.push({
+      pathname: "/conversation/[conversationId]",
+      params: {
+        account,
+        conversationId: item.conversation.conversationId,
+        title,
+        ...(item.kind === "reactions"
+          ? { messageId: item.message.messageId }
+          : {}),
+      },
+    });
+  }
+
   return (
-    <Link
-      href={{
-        pathname: "/conversation/[conversationId]",
-        params: {
-          account,
-          conversationId: item.conversation.conversationId,
-          title,
-          ...(item.kind === "reactions"
-            ? { messageId: item.message.messageId }
-            : {}),
-        },
-      }}
-      asChild
-    >
-      <Pressable className="active:bg-fill flex-row">
-        <View className="w-6 items-center pt-[28px]">
-          {/* Fades away once the row has been seen, rather than vanishing. */}
-          {unseen && (
-            <Animated.View
-              exiting={FadeOut.duration(400)}
-              accessibilityLabel="New"
-              className="bg-accent size-[10px] rounded-full"
-            />
-          )}
-        </View>
-        <View className="pt-2.5">
-          <Avatar
-            name={profile.displayName}
-            size="list"
-            uri={profile.avatarUrl}
+    <Pressable className="active:bg-fill flex-row" onPress={open}>
+      <View className="w-6 items-center pt-[28px]">
+        {/* Fades away once the row has been seen, rather than vanishing. */}
+        {unseen && (
+          <Animated.View
+            exiting={FadeOut.duration(400)}
+            accessibilityLabel="New"
+            className="bg-accent size-[10px] rounded-full"
           />
-        </View>
-        <View className="border-b-hairline border-separator ml-3 flex-1 gap-0.5 py-2.5 pr-4">
-          <View className="flex-row items-start gap-1.5">
-            <Text
-              numberOfLines={2}
-              className="text-subhead text-foreground flex-1 leading-[20px]"
-            >
-              <Headline entry={entry} profileOf={profileOf} />
-            </Text>
-            <Text className="text-subhead text-muted leading-[20px]">
-              {formatInboxTimestamp(new Date(item.at))}
-            </Text>
-          </View>
+        )}
+      </View>
+      <View className="pt-2.5">
+        <Avatar
+          name={profile.displayName}
+          size="list"
+          uri={profile.avatarUrl}
+        />
+      </View>
+      <View className="border-b-hairline border-separator ml-3 flex-1 gap-0.5 py-2.5 pr-4">
+        <View className="flex-row items-start gap-1.5">
           <Text
             numberOfLines={2}
-            className="text-subhead text-muted leading-[20px]"
+            className="text-subhead text-foreground flex-1 leading-[20px]"
           >
-            {body(entry, profileOf)}
+            <Headline entry={entry} profileOf={profileOf} />
           </Text>
-          {note.length > 0 && (
-            <Text numberOfLines={1} className="text-footnote text-muted">
-              {note}
-            </Text>
-          )}
+          <Text className="text-subhead text-muted leading-[20px]">
+            {formatInboxTimestamp(new Date(item.at))}
+          </Text>
         </View>
-      </Pressable>
-    </Link>
+        <Text
+          numberOfLines={2}
+          className="text-subhead text-muted leading-[20px]"
+        >
+          {body(entry, profileOf)}
+        </Text>
+        {note.length > 0 && (
+          <Text numberOfLines={1} className="text-footnote text-muted">
+            {note}
+          </Text>
+        )}
+      </View>
+    </Pressable>
   );
 }

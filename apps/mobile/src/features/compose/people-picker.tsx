@@ -96,7 +96,11 @@ function ResultsSection({
   return (
     <FieldGroup.Section modifiers={sectionGap}>
       {search.noResults ? (
-        <Text textStyle={secondaryTextStyle}>No users found</Text>
+        <Text textStyle={secondaryTextStyle}>
+          {search.otherServer
+            ? "People on other servers can't be added yet."
+            : "No users found"}
+        </Text>
       ) : (
         results.map((address) => (
           <PersonRow

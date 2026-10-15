@@ -15,6 +15,7 @@ import { messagesProtocol } from "./protocol.ts";
 import * as push from "./pushTokens.ts";
 import * as reactions from "./reactions.ts";
 import * as settings from "./settings.ts";
+import * as sightings from "./sightings.ts";
 import * as spaces from "./spaces.ts";
 
 export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
@@ -45,7 +46,7 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
       leaveConversation: (ctx, { args, identity }) =>
         conversations.leaveConversation(ctx, requireAccountId(identity), args),
       markActivitySeen: (ctx, { args, identity }) =>
-        activity.markActivitySeen(ctx, requireAccountId(identity), args),
+        sightings.markActivitySeen(ctx, requireAccountId(identity), args),
       markRead: (ctx, { args, identity }) =>
         conversations.markRead(ctx, requireAccountId(identity), args),
       openDirect: (ctx, { args, identity }) =>

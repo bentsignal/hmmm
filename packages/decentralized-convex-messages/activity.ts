@@ -1,62 +1,27 @@
-import type { OperationArgs } from "@decentralized-convex/plugin";
-
 import type { Doc } from "./_generated/dataModel.js";
-import type { MutationCtx, QueryCtx } from "./_generated/server.js";
+import type { QueryCtx } from "./_generated/server.js";
 import type { ConversationAccess } from "./model.ts";
-import type {
-  ActivityConversation,
-  ActivityItem,
-  messagesProtocol,
-} from "./protocol.ts";
+import type { ActivityConversation, ActivityItem } from "./protocol.ts";
 import { inboxAccess } from "./inbox.ts";
-import {
-  fail,
-  findAccess,
-  getSpace,
-  memberAddresses,
-  toMessage,
-} from "./model.ts";
+import { findAccess, getSpace, memberAddresses, toMessage } from "./model.ts";
 import {
   ACTIVITY_HORIZON,
   ACTIVITY_SEEN_LIFETIME,
   MAX_ACTIVITY_MESSAGES,
-  MAX_ACTIVITY_SIGHTINGS,
 } from "./protocol.ts";
-
-type Args = OperationArgs<
-  (typeof messagesProtocol)["mutations"]["markActivitySeen"]
->;
+import {
+  MAX_REACTIONS_SCANNED,
+  messagesKey,
+  reactionsKey,
+  sightingsOf,
+} from "./sightings.ts";
 
 /** Messages read to fill one conversation's item, the caller's included. */
 const MAX_MESSAGES_SCANNED = 300;
-/** The newest reactions to the caller's messages that activity looks at. */
-const MAX_REACTIONS_SCANNED = 500;
-const MAX_KEY_LENGTH = 300;
-/** Old sightings deleted per `markActivitySeen`, so it stays quick. */
-const MAX_PRUNED = 20;
 
 /** Whether an item holds anything not yet seen on screen. */
 export function isUnseen(item: ActivityItem) {
   return item.seenThrough === undefined || item.at > item.seenThrough;
-}
-
-/** The item for messages others sent in a conversation. */
-export function messagesKey(conversationId: string) {
-  return `messages:${conversationId}`;
-}
-
-/** The item for others' reactions to one of the caller's messages. */
-export function reactionsKey(messageId: string) {
-  return `reactions:${messageId}`;
-}
-
-function sightingsOf(ctx: QueryCtx, accountId: string, key: string) {
-  return ctx.db
-    .query("activitySightings")
-    .withIndex("by_account_key", (index) =>
-      index.eq("accountId", accountId).eq("key", key),
-    )
-    .collect();
 }
 
 /**
@@ -139,7 +104,11 @@ async function messagesItem(
   const { conversationId } = access.conversation;
   const key = messagesKey(conversationId);
   const { goneThrough, seen } = await seenState(ctx, self, key, now);
-  const since = Math.max(goneThrough, now - ACTIVITY_HORIZON);
+  const since = Math.max(
+    goneThrough,
+    now - ACTIVITY_HORIZON,
+    access.alertsSince,
+  );
   const newer = ctx.db
     .query("messages")
     .withIndex("by_conversation_sent", (index) =>
@@ -211,7 +180,8 @@ async function reactionItems(
         const key = reactionsKey(messageId);
         const { goneThrough, seen } = await seenState(ctx, self, key, now);
         const shown = reactions.filter(
-          ({ reactedAt }) => reactedAt > goneThrough,
+          ({ reactedAt }) =>
+            reactedAt > Math.max(goneThrough, found.alertsSince),
         );
         const newest = shown[0];
         if (newest === undefined) return null;
@@ -243,7 +213,8 @@ async function reactionItems(
  * What happened while the caller was away, newest first: messages others
  * sent (an item per conversation) and others' reactions to the caller's
  * messages (an item per message). It skips muted conversations (and
- * muted spaces' channels), channels left out of the inbox, activity seen over a day ago, and
+ * muted spaces' channels) and what came in before they were unmuted,
+ * channels left out of the inbox, activity seen over a day ago, and
  * anything older than `ACTIVITY_HORIZON`.
  *
  * Only this PDS's messages and reactions are listed, like the inbox.
@@ -263,46 +234,4 @@ export async function activity(ctx: QueryCtx, self: string) {
   return [...messages, ...reactions]
     .filter((item): item is ActivityItem => item !== null)
     .sort((left, right) => right.at - left.at);
-}
-
-/**
- * Records that items came into view, through their newest activity then.
- * Seeing an item again without anything new in it changes nothing, so it
- * still goes a day after it was first seen.
- */
-export async function markActivitySeen(
-  ctx: MutationCtx,
-  self: string,
-  args: Args,
-) {
-  if (args.items.length > MAX_ACTIVITY_SIGHTINGS) fail("TOO_MANY_ITEMS");
-  const now = Date.now();
-  for (const { key, through } of args.items) {
-    if (key.length === 0 || key.length > MAX_KEY_LENGTH) fail("INVALID_KEY");
-    if (!Number.isFinite(through)) fail("INVALID_SIGHTING");
-    const rows = await sightingsOf(ctx, self, key);
-    const seenThrough = Math.min(through, now);
-    const latest = rows.at(-1);
-    if (latest !== undefined && latest.through >= seenThrough) continue;
-    await ctx.db.insert("activitySightings", {
-      accountId: self,
-      key,
-      seenAt: now,
-      through: seenThrough,
-    });
-    // Of the sightings over a day old, only the newest hides anything.
-    const old = rows.filter(
-      ({ seenAt }) => seenAt <= now - ACTIVITY_SEEN_LIFETIME,
-    );
-    for (const row of old.slice(0, -1)) await ctx.db.delete(row._id);
-  }
-  // Sightings from before the horizon hide nothing that could still show.
-  const stale = await ctx.db
-    .query("activitySightings")
-    .withIndex("by_account_seen", (index) =>
-      index.eq("accountId", self).lt("seenAt", now - ACTIVITY_HORIZON),
-    )
-    .take(MAX_PRUNED);
-  for (const row of stale) await ctx.db.delete(row._id);
-  return null;
 }

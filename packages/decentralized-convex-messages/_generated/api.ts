@@ -35,6 +35,7 @@ import type * as reactionPush from "../reactionPush.js";
 import type * as reactions from "../reactions.js";
 import type * as settings from "../settings.js";
 import type * as shapes from "../shapes.js";
+import type * as sightings from "../sightings.js";
 import type * as sites from "../sites.js";
 import type * as spaces from "../spaces.js";
 
@@ -73,6 +74,7 @@ const fullApi: ApiFromModules<{
   reactions: typeof reactions;
   settings: typeof settings;
   shapes: typeof shapes;
+  sightings: typeof sightings;
   sites: typeof sites;
   spaces: typeof spaces;
 }> = anyApi as any;

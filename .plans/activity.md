@@ -15,8 +15,9 @@ over which notifications you get.
 - **Seen means on screen.** A row counts as seen only once it has been
   entirely on screen (not under the header or tab bar, not a sliver at an
   edge) for 1.1 seconds, with the tab focused and the app in front. Its dot
-  then fades out, so you see it go. Opening the conversation elsewhere
-  doesn't count.
+  then fades out, so you see it go. Tapping a row also sees it, and so does
+  reading its conversation anywhere (from Home, or a push): its messages up
+  to what you read and every reaction in it so far (2026-10-14).
 - **A seen row goes a day later**, unless something new happens in it, which
   makes it unseen again. Rows nobody has seen stay; nothing older than a week
   shows (a backstop, so a first visit isn't the whole history).
@@ -31,7 +32,8 @@ over which notifications you get.
   its rows keep their unread dots, muted ones included. The app icon badge
   (and each push's) is the same count.
 - **Muted conversations**, channels of muted spaces, and channels hidden
-  from the Inbox are left out.
+  from the Inbox are left out. Unmuting starts clean: nothing from while
+  it was muted shows up, or counts (`alertsSince` on the membership).
 - Tapping a row opens the conversation (at the message, for a reaction).
 
 ## Notifications
@@ -46,6 +48,9 @@ over which notifications you get.
   then one switch each for Direct Messages, Group Chats, Space Channels,
   Reactions, and Space Invites. They're stored on each account's server
   (which sends the pushes) and set the same for every signed-in account.
+  They only decide which pushes are sent; pushes aren't stored, so turning
+  a kind back on never replays old ones. Activity shows everything either
+  way.
 - **Muting**: Hide Alerts on any Inbox row's long-press menu (a person, a
   group, or a channel), and on a space's screen for the whole space. Muted
   things stay in the Inbox, quietly.

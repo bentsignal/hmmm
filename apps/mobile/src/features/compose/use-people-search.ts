@@ -1,7 +1,6 @@
 import { pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
-import { env } from "~/env";
 import { useAccount } from "~/features/messaging/account";
 import { useInbox } from "~/features/messaging/inbox";
 import { useProfiles } from "~/features/messaging/profiles";
@@ -10,7 +9,12 @@ import {
   useSearchQuery,
   useSearchText,
 } from "~/features/search/use-search-query";
-import { searchedAddress, searchPeople } from "./people-match";
+import {
+  domainOf,
+  isOtherServer,
+  searchedAddress,
+  searchPeople,
+} from "./people-match";
 
 /**
  * The account a search names, such as `maya`, `maya@ve`, or
@@ -28,7 +32,8 @@ function useNamedAccount({
   self: string;
 }) {
   function lookupOf(text: string) {
-    const address = searchedAddress(text, env.veraDomain);
+    // A bare username means someone on the searching account's server.
+    const address = searchedAddress(text, domainOf(self));
     return address === null || address === self || listed.has(address)
       ? null
       : address;
@@ -106,6 +111,8 @@ export function usePeopleSearch({
     newAddress,
     /** Nobody matches a non-empty search. */
     noResults,
+    /** The search names an address on another server, which can't be added yet. */
+    otherServer: noResults && isOtherServer(lookup.query, self),
     onChangeText: text.onChangeText,
     people,
     profileOf,

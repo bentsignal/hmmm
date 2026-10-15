@@ -25,6 +25,9 @@ export default defineSchema({
   // channels.
   members: defineTable({
     accountId: v.string(),
+    // When alerts were last turned back on: activity from before, while
+    // muted, never shows.
+    alertsSince: v.optional(v.number()),
     conversationId: v.string(),
     // A channel left out of the inbox; it still appears in its space.
     hiddenFromInbox: v.optional(v.boolean()),
@@ -97,6 +100,8 @@ export default defineSchema({
   }).index("by_space", ["spaceId"]),
   spaceMembers: defineTable({
     accountId: v.string(),
+    // When the space's alerts were last turned back on (see members).
+    alertsSince: v.optional(v.number()),
     // Alerts hidden for every channel in the space.
     muted: v.optional(v.boolean()),
     role: spaceRole,
