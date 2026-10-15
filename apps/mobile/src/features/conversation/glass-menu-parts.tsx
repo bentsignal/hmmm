@@ -7,6 +7,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import type { MenuTarget, TargetAlign } from "./glass-message-menu";
+import { Emoji } from "~/components/emoji";
 import { GlassSurface } from "~/components/glass-surface";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { QUICK_REACTIONS } from "~/features/messaging/reactions";
@@ -89,7 +90,7 @@ function EmojiButton({
           style={{ height: HIGHLIGHT, width: HIGHLIGHT }}
         />
       )}
-      <Text style={{ fontSize: 27 }}>{emoji}</Text>
+      <Emoji emoji={emoji} size={27} />
     </Pressable>
   );
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Platform, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { useCSSVariable } from "uniwind";
 
 import type { Message } from "./types";
@@ -7,7 +7,7 @@ import { Avatar } from "~/components/avatar";
 import { cn } from "~/lib/cn";
 import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
-import { BUBBLE_RADIUS, TAIL_DROP, TailedBubble } from "./bubble-shape";
+import { BUBBLE_RADIUS, BubbleTail, TAIL_DROP } from "./bubble-shape";
 import { LinkCards } from "./link-preview-card";
 import { LinkedText } from "./linked-text";
 import { MenuTargetView } from "./message-actions";
@@ -27,6 +27,11 @@ const NAME_HEIGHT = NAME_LINE + NAME_GAP;
 /** The name's padding on each side (`px-3`). */
 const NAME_INSET = 12;
 
+/**
+ * A message's text in its bubble: a plain rounded background, and the tail
+ * drawn over its corner when it ends a run. Nothing is measured, so a
+ * bubble renders once.
+ */
 function Body({
   text,
   isOwn,
@@ -36,43 +41,22 @@ function Body({
   isOwn: boolean;
   tail: boolean;
 }) {
-  const [size, setSize] = useState<{ height: number; width: number }>();
   const outgoing = useCSSVariable("--color-bubble-outgoing");
   const incoming = useCSSVariable("--color-bubble-incoming");
   const color = isOwn ? outgoing : incoming;
-  // With a tail the whole bubble is drawn as one shape, once it is sized.
-  const shaped = tail && size !== undefined && typeof color === "string";
+  const fill = typeof color === "string" ? color : undefined;
   return (
     <View
-      // Android doesn't round a background that appears on a view that
-      // already exists (a bubble that loses its tail when a message lands
-      // below it turned square), so it gets a fresh view when it switches
-      // between the tail shape and the plain rounded background. iOS keeps
-      // the same view, so the tail animates away.
-      key={Platform.OS === "android" ? String(shaped) : undefined}
-      onLayout={(event) => {
-        const { height, width } = event.nativeEvent.layout;
-        if (tail) setSize({ height, width });
-      }}
       className="px-3.5 py-2"
       style={{
-        // Transparent while the tail shape draws the bubble.
-        backgroundColor:
-          shaped || typeof color !== "string" ? "transparent" : color,
+        backgroundColor: fill,
         borderCurve: "continuous",
         borderRadius: BUBBLE_RADIUS,
         // Room for the tail hanging below, so nothing under it overlaps.
         marginBottom: tail ? TAIL_DROP : 0,
       }}
     >
-      {shaped && (
-        <TailedBubble
-          width={size.width}
-          height={size.height}
-          color={color}
-          isOwn={isOwn}
-        />
-      )}
+      {tail && fill !== undefined && <BubbleTail color={fill} isOwn={isOwn} />}
       <LinkedText
         text={text}
         className={cn(

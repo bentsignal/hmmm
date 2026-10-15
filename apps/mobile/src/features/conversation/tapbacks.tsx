@@ -1,8 +1,16 @@
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
-import Animated, { Keyframe, ZoomOut } from "react-native-reanimated";
+import { Pressable, View } from "react-native";
+import Animated, {
+  Keyframe,
+  useAnimatedReaction,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  ZoomOut,
+} from "react-native-reanimated";
 
 import type { ReactionSummary } from "~/features/messaging/reactions";
+import { Emoji } from "~/components/emoji";
 import { useAccount } from "~/features/messaging/account";
 import { cn } from "~/lib/cn";
 
@@ -74,9 +82,7 @@ function TapbackBubble({ tapback }: { tapback: Tapback }) {
       )}
       style={{ borderWidth: RING, height: SIZE, width: SIZE }}
     >
-      <Text style={{ fontSize: EMOJI_SIZE, lineHeight: EMOJI_SIZE + 4 }}>
-        {tapback.emoji}
-      </Text>
+      <Emoji emoji={tapback.emoji} size={EMOJI_SIZE} />
     </Animated.View>
   );
 }
@@ -121,38 +127,62 @@ export function Tapbacks({
   const label = reactions
     .map((reaction) => `${reaction.emoji} ${reaction.count}`)
     .join(", ");
+  const fade = useHiddenFade(hidden);
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Reactions: ${label}`}
-      accessibilityHint="Shows who reacted"
-      onPress={onPress}
-      hitSlop={6}
+    <Animated.View
       className="absolute"
       // Measured where they'd sit, unmoved: the shift is a transform.
       onLayout={(event) => setLeft(event.nativeEvent.layout.x)}
-      style={{
-        top: -TAPBACK_SPACE,
-        transform: [{ translateX: shift }],
-        [incoming ? "right" : "left"]: CENTER_INSET - SIZE / 2,
-        // Behind the front one, toward the middle of the bubble.
-        flexDirection: incoming ? "row" : "row-reverse",
-        opacity: hidden ? 0 : 1,
-        transitionDuration: 200,
-        transitionProperty: "opacity",
-      }}
+      style={[
+        {
+          top: -TAPBACK_SPACE,
+          transform: [{ translateX: shift }],
+          [incoming ? "right" : "left"]: CENTER_INSET - SIZE / 2,
+        },
+        fade,
+      ]}
     >
-      {shown.map((tapback, index) => (
-        <View
-          key={tapback.key}
-          style={{
-            [incoming ? "marginLeft" : "marginRight"]:
-              index === 0 ? 0 : STACK_OFFSET - SIZE,
-          }}
-        >
-          <TapbackBubble tapback={tapback} />
-        </View>
-      ))}
-    </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Reactions: ${label}`}
+        accessibilityHint="Shows who reacted"
+        onPress={onPress}
+        hitSlop={6}
+        // Behind the front one, toward the middle of the bubble.
+        style={{ flexDirection: incoming ? "row" : "row-reverse" }}
+      >
+        {shown.map((tapback, index) => (
+          <View
+            key={tapback.key}
+            style={{
+              [incoming ? "marginLeft" : "marginRight"]:
+                index === 0 ? 0 : STACK_OFFSET - SIZE,
+            }}
+          >
+            <TapbackBubble tapback={tapback} />
+          </View>
+        ))}
+      </Pressable>
+    </Animated.View>
   );
+}
+
+/** How long tapbacks take to fade back in after the menu closes. */
+const RETURN_MS = 260;
+
+/**
+ * Hidden at once while the message is lifted into its menu (the menu shows
+ * its own copy), and faded back in once it's back in place.
+ */
+function useHiddenFade(hidden: boolean) {
+  const opacity = useSharedValue(hidden ? 0 : 1);
+  useAnimatedReaction(
+    () => hidden,
+    (now, before) => {
+      if (before === null || now === before) return;
+      opacity.value = now ? 0 : withTiming(1, { duration: RETURN_MS });
+    },
+    [hidden],
+  );
+  return useAnimatedStyle(() => ({ opacity: opacity.value }));
 }

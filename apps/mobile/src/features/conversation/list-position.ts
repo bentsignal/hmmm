@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 import type { FlatList } from "react-native";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { Platform } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 
@@ -28,23 +28,19 @@ interface LatestState {
   pinned: boolean;
   /** You're dragging the list, or it's still moving from a fling. */
   scrolling: boolean;
-  newest?: string;
-  /** You just sent one: the list follows it down even if scrolled up. */
-  sending: boolean;
 }
 
 /**
  * Keeps the list on the newest message while you're at the bottom, and
  * lets go the moment you scroll up.
  *
- * Pinned, the list has no scroll anchor (`pinned` is true), so it stays at
- * offset 0, the bottom of an inverted list: new messages, a composer that
- * grows, and rows that change size all keep the newest message in view,
- * with no scrolling at all. Once you drag or fling away from the bottom it
- * unpins, and the native anchor (`maintainVisibleContentPosition`) keeps
- * what you're reading still as messages arrive below. Only your own scroll
- * unpins it (the keyboard lifting the list never does), and reaching the
- * bottom pins it again.
+ * The native scroll anchor (`maintainVisibleContentPosition`, see
+ * `ANCHOR`) always keeps what's on screen still when rows are added below
+ * it. So a new message lands just below the screen, laid out once at its
+ * full size, and when the list is pinned it then slides into view with the
+ * platform's own animated scroll: no layout or JavaScript runs per frame.
+ * Only your own drag or fling unpins it (the keyboard lifting the list
+ * never does), and reaching the bottom pins it again.
  *
  * On iOS the keyboard lifts the list with a top content inset, so the
  * bottom is at minus that inset rather than 0.
@@ -54,32 +50,23 @@ export function useLatest(
   pinnedAtStart: boolean,
 ) {
   const isNearLatest = useSharedValue(pinnedAtStart);
-  const [pinned, setPinned] = useState(pinnedAtStart);
   const state = useRef<LatestState>({
     inset: 0,
     pinned: pinnedAtStart,
     scrolling: false,
-    sending: false,
   });
   function bottom() {
     return Platform.OS === "ios" ? -state.current.inset : 0;
-  }
-  function pin(next: boolean) {
-    if (state.current.pinned === next) return;
-    state.current.pinned = next;
-    setPinned(next);
   }
   function scrollToNewest() {
     listRef.current?.scrollToOffset({ animated: true, offset: bottom() });
   }
   return {
     isNearLatest,
-    /** No scroll anchor while pinned (see above). */
-    pinned,
     scrollToNewest,
-    /** Scrolls down to the newest message, and follows the one being sent. */
+    /** Scrolls down to the newest message, as after sending one. */
     scrollToLatest: () => {
-      state.current.sending = true;
+      state.current.pinned = true;
       scrollToNewest();
     },
     onInsetChange: (top: number) => {
@@ -104,19 +91,25 @@ export function useLatest(
     onScroll: (offset: number) => {
       const fromBottom = offset - bottom();
       isNearLatest.set(fromBottom < NEAR_LATEST);
-      if (fromBottom <= PIN_SLOP) pin(true);
-      else if (state.current.scrolling) pin(false);
+      if (fromBottom <= PIN_SLOP) state.current.pinned = true;
+      else if (state.current.scrolling) state.current.pinned = false;
     },
-    /** The list changed: follows a message you just sent down to it. */
-    onNewest: (key: string | undefined) => {
-      const { newest, sending } = state.current;
-      state.current.newest = key;
-      if (!sending || newest === undefined || key === newest) return;
-      state.current.sending = false;
-      if (!state.current.pinned) scrollToNewest();
+    /**
+     * The list's content changed: pinned, a message that landed below the
+     * screen slides up into view.
+     */
+    onContentChange: () => {
+      if (state.current.pinned) scrollToNewest();
     },
   };
 }
+
+/**
+ * The scroll anchor: the first row on screen stays where it is when rows
+ * are added or grow below it. Index 0 is the list's header (the space
+ * under the newest message for the composer), so the anchor starts at 1.
+ */
+export const ANCHOR = { minIndexForVisible: 1 };
 
 export type Latest = ReturnType<typeof useLatest>;
 

@@ -22,7 +22,7 @@ import { GlassSurface } from "~/components/glass-surface";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { cn } from "~/lib/cn";
 import { arrivedAfter, buildMessageRows } from "./build-rows";
-import { useLatest, usePlacement } from "./list-position";
+import { ANCHOR, useLatest, usePlacement } from "./list-position";
 import { MessageActionsProvider } from "./message-actions";
 import { Row } from "./message-row";
 import { useModalKeyboardFreeze } from "./modal-keyboard-freeze";
@@ -135,10 +135,17 @@ interface RowsProps {
   freeze: SharedValue<boolean>;
   /** The list is laid out at its starting place. */
   onReady: () => void;
+  /**
+   * The fade-in has finished: until then the list renders only what's on
+   * screen, so nothing mounts while it fades.
+   */
+  shown: boolean;
 }
 
-/** Messages in a page (`MESSAGE_PAGE_SIZE`), plus room for headers. */
-const PAGE_ROWS = 60;
+/** How many screens of rows stay mounted, centered on the screen. */
+const WINDOW_SCREENS = 11;
+/** How long the conversation takes to fade in. */
+const FADE_MS = 220;
 
 /**
  * The messages, in a list that's inverted: it lays out from the newest
@@ -164,6 +171,7 @@ function Rows({
   latest,
   freeze,
   onReady,
+  shown,
 }: RowsProps) {
   const safeArea = useSafeAreaInsets();
   const rows = newestFirst(messages, layout);
@@ -208,14 +216,16 @@ function Rows({
       // that loads renders all at once, so the list grows (and the scroll
       // bar moves) once per page, not once per batch.
       initialNumToRender={Math.max(20, anchorIndex + 15)}
-      maxToRenderPerBatch={PAGE_ROWS}
-      windowSize={21}
-      // Scrolled up, newer messages (or a newer page) added below what's
-      // on screen leave it where it is. At the bottom there's no anchor,
-      // so the list stays on the newest message (see useLatest).
-      maintainVisibleContentPosition={
-        latest.pinned ? undefined : { minIndexForVisible: 0 }
-      }
+      maxToRenderPerBatch={8}
+      // Just the screen until it has faded in: mounting rows takes the UI
+      // thread, and a frame spent on it shows as a hitch in the fade. Then
+      // five screens either way, filled in small batches.
+      windowSize={shown ? WINDOW_SCREENS : 1}
+      // Rows added below what's on screen leave it where it is; at the
+      // bottom, a new message then slides into view (see useLatest). Off
+      // until it has faded in, so it opens at the bottom whatever arrives
+      // meanwhile.
+      maintainVisibleContentPosition={shown ? ANCHOR : undefined}
       // Inverted: the list's end is the oldest message, at the top. Older
       // ones load three screens early, so a fast scroll rarely reaches
       // the top before they're there.
@@ -231,7 +241,7 @@ function Rows({
       {...latest.scrollHandlers}
       scrollEventThrottle={16}
       onContentSizeChange={() => {
-        latest.onNewest(rows[0]?.key);
+        latest.onContentChange();
         placement.onLaidOut();
       }}
       onScrollToIndexFailed={placement.onMissed}
@@ -257,7 +267,7 @@ function Rows({
 
 type MessageListProps = Omit<
   RowsProps,
-  "freeze" | "latest" | "listRef" | "onReady"
+  "freeze" | "latest" | "listRef" | "onReady" | "shown"
 > & {
   ref?: Ref<MessageListHandle>;
   onJumpToLatest: () => void;
@@ -285,6 +295,7 @@ export function MessageList({
   const loaded = useSharedValue(0);
   const cover = useAnimatedStyle(() => ({ opacity: 1 - loaded.value }));
   const latest = useLatest(listRef, props.anchorId === undefined);
+  const [shown, setShown] = useState(false);
   const { isNearLatest, scrollToLatest, scrollToNewest } = latest;
   // Read out first: the worklet must not capture `props` (messages hold
   // Dates, which worklets can't copy).
@@ -309,12 +320,20 @@ export function MessageList({
             listRef={listRef}
             latest={latest}
             freeze={keyboard.freeze}
+            shown={shown}
             onReady={() => {
-              // A frame later, once the first scroll (to the message it
-              // opened on) has drawn.
-              requestAnimationFrame(() => {
-                loaded.set(withTiming(1, { duration: 220 }));
-              });
+              // Two frames later, once the first scroll (to the message it
+              // opened on) has drawn and the rows' mounting is done, so it
+              // can't hitch the fade's first frame.
+              requestAnimationFrame(() =>
+                requestAnimationFrame(() => {
+                  loaded.set(
+                    withTiming(1, { duration: FADE_MS }, (done) => {
+                      if (done === true) scheduleOnRN(setShown, true);
+                    }),
+                  );
+                }),
+              );
             }}
           />
         </View>

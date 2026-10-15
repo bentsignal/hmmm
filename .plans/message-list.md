@@ -128,3 +128,38 @@ Shawn's list of what made conversations feel broken, and what each fix is.
       one and profiles are shared structurally: about 10 per send now.
 - [x] Android inbox: rows draw 1000pt ahead so a fast fling on a slow
       phone doesn't outrun them.
+
+## Round 4: measured, not eyeballed
+
+Measured with a temporary UI-thread frame probe (Reanimated
+`useFrameCallback`, logging frames over 24ms) in the iOS simulator, opening
+the bot group by route so nothing else touched the device meanwhile.
+
+- [x] Open fade stuttered: after opening, the list kept mounting rows in
+      batches (60 at a time, from round 2) for ten screens around the
+      bottom, and each batch held the UI thread for 50–80ms, 2–6 times per
+      open, right during the fade. Now it renders just the screen until the
+      fade finishes (`windowSize` 1, then 11, in batches of 8), and the fade
+      starts two frames after the list is placed. After: no slow frames
+      during the fade.
+- [x] Arriving messages ran at 30fps (a run of 33ms frames per arrival):
+      the row's height was animated, which re-lays out the list every
+      frame, and the clipping showed an edge they rose from. Now a new
+      message is laid out once at full size below the screen (the native
+      scroll anchor keeps everything still), then the platform's animated
+      scroll slides it into view while it fades in. After: one slow frame
+      when the row mounts, before anything moves; none during the slide.
+- [x] Bubbles measured themselves and rendered twice to draw the tail as
+      one SVG of the whole bubble. The tail is now a fixed SVG over an
+      ordinary rounded background: one render, no measuring.
+- [x] Reacting from the menu: the reaction now lands once the menu has
+      closed, so it animates in where you can see it, and in stacked rows
+      the lifted copy no longer covers the message while its row grows.
+- [x] Tapbacks fade back in after the menu closes (the fade was a CSS
+      transition on a plain Pressable, which doesn't animate).
+- [x] Emoji are optically centered in their circles (`Emoji`): Apple's sit
+      a little left of the middle of their advance.
+- [x] Who reacted: no outline on the photos.
+- Known: adding the first reaction still animates the row's height
+  (about 35–45ms frames for 0.4s in the simulator). Moving it to native
+  frame animations is the next step if it shows on the phone.

@@ -270,8 +270,10 @@ export function GlassMessageMenu({
         position={{ left: layout.barLeft, top: layout.barTop }}
         onPick={(emoji) => {
           selectionTick();
-          onReact(emoji);
-          close();
+          // Once the message is back in place, so its reaction animates in
+          // where you can see it, and the lifted copy never covers the
+          // message while the row makes room for the reaction.
+          close(() => onReact(emoji));
         }}
       />
       {showReactors && reactions.length > 0 && (

@@ -8,6 +8,7 @@ import Animated, {
 import type { TargetAlign } from "./glass-message-menu";
 import type { ReactionSummary } from "~/features/messaging/reactions";
 import { Avatar } from "~/components/avatar";
+import { Emoji } from "~/components/emoji";
 import { GlassSurface } from "~/components/glass-surface";
 import { useAccount } from "~/features/messaging/account";
 import { useProfiles } from "~/features/messaging/profiles";
@@ -63,7 +64,7 @@ function Column({
         )}
         style={{ height: REACTOR_EMOJI, width: REACTOR_EMOJI }}
       >
-        <Text style={{ fontSize: 24 }}>{reaction.emoji}</Text>
+        <Emoji emoji={reaction.emoji} size={24} />
       </View>
       <View className="flex-row items-center" style={{ height: REACTOR_FACES }}>
         {shown.map((account, index) => {
@@ -71,8 +72,7 @@ function Column({
           return (
             <View
               key={account}
-              className="border-background-elevated rounded-full border"
-              style={{ marginLeft: index === 0 ? 0 : -12, zIndex: -index }}
+              style={{ marginLeft: index === 0 ? 0 : -10, zIndex: -index }}
             >
               <Avatar name={displayName} size="sm" uri={avatarUrl} />
             </View>
