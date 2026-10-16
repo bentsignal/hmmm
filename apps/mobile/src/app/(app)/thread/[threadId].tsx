@@ -126,6 +126,8 @@ function Thread({
       />
       {root !== undefined && (
         <FloatingComposer
+          // A thread's draft is its own, apart from the conversation's.
+          draftId={`${conversationId} thread:${threadId}`}
           autoFocus={focus}
           placeholder="Reply"
           onHeight={setComposerHeight}

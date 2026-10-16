@@ -144,6 +144,7 @@ function Conversation({
       />
       <FloatingComposer
         ref={composer}
+        draftId={conversationId}
         onHeight={setComposerHeight}
         replyingTo={replies.replyingTo}
         onCancelReply={replies.cancel}

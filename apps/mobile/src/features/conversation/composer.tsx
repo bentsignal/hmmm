@@ -29,6 +29,7 @@ import { SymbolIcon } from "~/components/symbol-icon";
 import { cn } from "~/lib/cn";
 import { PASTE_IMAGES_NATIVE_ID, usePastedImages } from "~/lib/paste-images";
 import { AttachMenu } from "./attach-menu";
+import { readDraft, saveDraftText } from "./drafts";
 import { StagedAttachments } from "./staged-attachments";
 
 const StyledTextInput = withUniwind(TextInput);
@@ -117,12 +118,16 @@ function useSides() {
   }));
 }
 
-/** The text being typed, emptied by `sent`. */
+/**
+ * The text being typed, emptied by `sent`, and kept as a draft on this
+ * device (see `drafts.ts`).
+ */
 function useDraft(
+  draftKey: string,
   input: RefObject<TextInput | null>,
   onChangeText: ((text: string) => void) | undefined,
 ) {
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(() => readDraft(draftKey).text);
   /** When the field was last emptied by sending, until something is typed. */
   const sentAt = useRef<number | null>(null);
 
@@ -142,6 +147,7 @@ function useDraft(
     }
     if (text !== "") sentAt.current = null;
     setDraft(text);
+    saveDraftText(draftKey, text);
     onChangeText?.(text);
   }
 
@@ -213,10 +219,12 @@ function ReplyBar({
 
 /**
  * The message field with its "+" menu and the attachments picked or pasted
- * for the message, which upload only once it's sent.
+ * for the message, which upload only once it's sent. Unsent text is kept as
+ * a draft on this device (see `drafts.ts`).
  */
 export function Composer({
   ref,
+  draftKey,
   staged,
   onSend,
   onPick,
@@ -230,6 +238,8 @@ export function Composer({
   placeholder = "Message",
 }: {
   ref?: Ref<ComposerHandle>;
+  /** From `draftKey`: the account and conversation the draft belongs to. */
+  draftKey: string;
   staged: readonly StagedFile[];
   /** Sends the text (possibly empty) with everything staged. */
   onSend: (text: string) => void;
@@ -256,7 +266,7 @@ export function Composer({
     if (input.current?.isFocused() === true) onPaste(images);
   });
   const sides = useSides();
-  const { draft, change, sent } = useDraft(input, onChangeText);
+  const { draft, change, sent } = useDraft(draftKey, input, onChangeText);
   const canSend = draft.trim().length > 0 || staged.length > 0;
 
   function send() {

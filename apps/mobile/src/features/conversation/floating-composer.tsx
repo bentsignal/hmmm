@@ -15,16 +15,25 @@ import {
   pickAttachments,
   stagePasted,
 } from "~/features/messaging/attachments";
+import { useAccount } from "~/features/messaging/account";
 import { useLinkPrefetch } from "~/features/messaging/link-previews";
 import { Composer, useComposerBottomInset } from "./composer";
+import {
+  discardStaged,
+  draftKey,
+  keepForDraft,
+  readDraft,
+  saveDraftFiles,
+} from "./drafts";
 
 /**
  * The composer floating over the bottom of a conversation or thread,
- * holding what's picked for the next message until it's sent. Reports its
- * height so messages can scroll under it.
+ * holding what's picked for the next message until it's sent, in its draft
+ * on this device. Reports its height so messages can scroll under it.
  */
 export function FloatingComposer({
   ref,
+  draftId,
   onHeight,
   onSend,
   replyingTo,
@@ -33,6 +42,8 @@ export function FloatingComposer({
   placeholder,
 }: {
   ref?: Ref<ComposerHandle>;
+  /** Whose draft it keeps: the conversation's, or a thread's. */
+  draftId: string;
   onHeight: (height: number) => void;
   onSend: (
     body: string,
@@ -47,8 +58,10 @@ export function FloatingComposer({
   placeholder?: string;
 }) {
   const bottomInset = useComposerBottomInset();
+  const { address } = useAccount();
+  const key = draftKey(address, draftId);
   const links = useLinkPrefetch();
-  const [staged, setStaged] = useState<readonly StagedFile[]>([]);
+  const [staged, setStaged] = useState(() => readDraft(key).files);
   // One picker at a time: a second tap on the menu while one is still
   // handing over files does nothing.
   const picking = useRef(false);
@@ -62,8 +75,22 @@ export function FloatingComposer({
     return true;
   }
 
+  /**
+   * Changes the staged files and saves them in the draft. Starts from the
+   * draft's, which are current even after awaiting a picker.
+   */
+  function restage(
+    change: (current: readonly StagedFile[]) => readonly StagedFile[],
+  ) {
+    const next = change(readDraft(key).files);
+    saveDraftFiles(key, next);
+    setStaged(next);
+  }
+
   function add(files: readonly StagedFile[]) {
-    setStaged((current) => [...current, ...files].slice(0, MAX_ATTACHMENTS));
+    restage((current) =>
+      [...current, ...keepForDraft(files)].slice(0, MAX_ATTACHMENTS),
+    );
   }
 
   async function pick(source: AttachmentSource) {
@@ -94,6 +121,7 @@ export function FloatingComposer({
     >
       <Composer
         ref={ref}
+        draftKey={key}
         bottomInset={bottomInset}
         staged={staged}
         replyingTo={replyingTo}
@@ -103,12 +131,16 @@ export function FloatingComposer({
         onChangeText={links.onChangeText}
         onPick={(source) => void pick(source)}
         onPaste={paste}
-        onRemoveStaged={(id) =>
-          setStaged((current) => current.filter((file) => file.id !== id))
-        }
+        onRemoveStaged={(id) => {
+          const removed = staged.find((file) => file.id === id);
+          if (removed !== undefined) discardStaged(removed);
+          restage((current) => current.filter((file) => file.id !== id));
+        }}
         onSend={(body) => {
           onSend(body, staged, links.cardsFor(body));
-          setStaged([]);
+          // The outbox uploads the files from where they are; the drafts
+          // folder clears them out next launch.
+          restage(() => []);
         }}
       />
     </KeyboardStickyView>

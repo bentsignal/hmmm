@@ -77,7 +77,7 @@ function StackedRow({
     <View
       className={cn(
         "flex-row gap-3 px-4",
-        quoted || !startsGroup ? "pt-1" : "pt-5",
+        quoted || !startsGroup ? "pt-1.5" : "pt-5",
       )}
     >
       <View style={{ width: AVATAR_COLUMN }}>
