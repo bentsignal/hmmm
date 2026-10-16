@@ -19,7 +19,7 @@ import { SymbolIcon } from "~/components/symbol-icon";
 import { cn } from "~/lib/cn";
 import { PASTE_IMAGES_NATIVE_ID, usePastedImages } from "~/lib/paste-images";
 import { AttachMenu } from "./attach-menu";
-import { readDraft, writeDraft } from "./drafts";
+import { readDraft, saveDraftText } from "./drafts";
 import { StagedAttachments } from "./staged-attachments";
 
 const StyledTextInput = withUniwind(TextInput);
@@ -95,7 +95,7 @@ function SendButton({
 /**
  * The message field with its "+" menu and the attachments picked or pasted
  * for the message, which upload only once it's sent. Unsent text is kept as
- * a draft on this device, so it's still there after leaving and coming back.
+ * a draft on this device (see `drafts.ts`).
  */
 export function Composer({
   draftKey,
@@ -121,7 +121,7 @@ export function Composer({
   /** From `useComposerBottomInset`. */
   bottomInset: number;
 }) {
-  const [draft, setDraft] = useState(() => readDraft(draftKey));
+  const [draft, setDraft] = useState(() => readDraft(draftKey).text);
   const input = useRef<TextInput>(null);
   // Only the field being pasted into is focused; another conversation's
   // composer can be mounted beneath this one.
@@ -160,7 +160,7 @@ export function Composer({
     }
     if (text !== "") sentAt.current = null;
     setDraft(text);
-    writeDraft(draftKey, text);
+    saveDraftText(draftKey, text);
     onChangeText?.(text);
   }
 
