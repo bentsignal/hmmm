@@ -126,7 +126,7 @@ function useDraft(
   mentionable: readonly MentionCandidate[] | undefined,
 ) {
   const [draft, setDraft] = useState(() => readDraft(draftKey).text);
-  const mention = useMentions(draft, mentionable, draftKey);
+  const mention = useMentions(draft, mentionable, draftKey, input);
   /** When the field was last emptied by sending, until something is typed. */
   const sentAt = useRef<number | null>(null);
 
@@ -316,7 +316,7 @@ export function Composer({
             multiline
             value={draft}
             onChangeText={change}
-            {...mention.inputProps}
+            onSelectionChange={mention.onSelectionChange}
             autoFocus={autoFocus}
             placeholder={staged.length > 0 ? "Add a message" : placeholder}
             accessibilityLabel="Message"

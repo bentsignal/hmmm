@@ -1,6 +1,8 @@
 import type { Mention } from "@decentralized-convex/messages";
+import type { RefObject } from "react";
 import type {
   NativeSyntheticEvent,
+  TextInput,
   TextInputSelectionChangeEventData,
 } from "react-native";
 import { useState } from "react";
@@ -31,6 +33,7 @@ export function useMentions(
   draft: string,
   mentionable: readonly MentionCandidate[] | undefined,
   draftKey: string,
+  input: RefObject<TextInput | null>,
 ) {
   const [mentions, setPicked] = useState<readonly Mention[]>(
     () => readDraft(draftKey).mentions,
@@ -40,17 +43,19 @@ export function useMentions(
     saveDraftMentions(draftKey, next);
   }
   const [selection, setSelection] = useState<Selection>({ end: 0, start: 0 });
-  // Where the cursor goes after the text is changed here, until the field
-  // reports it's there.
-  const [placed, setPlaced] = useState<Selection>();
   const query =
     mentionable === undefined || selection.start !== selection.end
       ? null
       : mentionQuery(draft, selection.start);
 
+  /**
+   * Puts the cursor at `cursor` once the field has the text changed here.
+   * It's moved through the field rather than its `selection` prop, which
+   * on iOS leaves a one-line message sitting high in a taller field.
+   */
   function place(cursor: number) {
-    setPlaced({ end: cursor, start: cursor });
     setSelection({ end: cursor, start: cursor });
+    requestAnimationFrame(() => input.current?.setSelection(cursor, cursor));
   }
 
   return {
@@ -61,16 +66,10 @@ export function useMentions(
       isPicked(query.query, mentions)
         ? []
         : suggestions(mentionable, query.query),
-    /** For the field: where its cursor is, and putting it back. */
-    inputProps: {
-      onSelectionChange: (
-        event: NativeSyntheticEvent<TextInputSelectionChangeEventData>,
-      ) => {
-        setSelection(event.nativeEvent.selection);
-        setPlaced(undefined);
-      },
-      selection: placed,
-    },
+    /** For the field: where its cursor is. */
+    onSelectionChange: (
+      event: NativeSyntheticEvent<TextInputSelectionChangeEventData>,
+    ) => setSelection(event.nativeEvent.selection),
     /** The text after an edit: deleting into a mention deletes all of it. */
     edited: (text: string) => {
       const whole = deleteWholeMention(draft, text, mentions);

@@ -6,7 +6,6 @@ import {
   Text,
   View,
 } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
 
 import type { MentionCandidate } from "./mention-text";
 import { Avatar } from "~/components/avatar";
@@ -16,10 +15,7 @@ import { usernameOf } from "~/features/messaging/profiles";
 const ROW = 52;
 /** Four and a half rows, so a longer list shows it scrolls. */
 const MAX_HEIGHT = ROW * 4.5;
-/**
- * Glass can't fade in with its parent (see `GlassSurface`), so on iOS the
- * glass materializes and only the people in it fade in.
- */
+/** iOS draws it in glass, which brings its own edge and depth. */
 const GLASS = Platform.OS === "ios";
 
 function PersonRow({
@@ -56,10 +52,9 @@ function PersonRow({
 /**
  * The people an `@` can mention, over the message field while a name is
  * typed: photo, name, and username. Tapping one puts them in the message.
- * Glass on iOS, a raised card on Android. It fades in, and the keyboard
- * stays up while it's tapped. It goes at once, with no fade: the composer
- * it sits in is held to the keyboard by its bottom, so a fading copy would
- * drop down behind the field as the composer shrinks.
+ * Glass on iOS, a raised card on Android. Like the keyboard's own
+ * suggestions it comes and goes at once, with no animation, and the
+ * keyboard stays up while it's tapped.
  */
 export function MentionPicker({
   people,
@@ -72,8 +67,7 @@ export function MentionPicker({
   onPick: (person: MentionCandidate) => void;
 }) {
   return (
-    <Animated.View
-      entering={GLASS ? undefined : FadeIn.duration(140)}
+    <View
       className="mb-1.5 rounded-[20px]"
       style={{
         boxShadow: GLASS ? undefined : "0 4px 16px rgba(0, 0, 0, 0.12)",
@@ -81,29 +75,24 @@ export function MentionPicker({
       }}
     >
       <GlassSurface
-        materialize
         className="overflow-hidden rounded-[20px]"
         androidClassName="bg-background border-separator"
         style={GLASS ? undefined : { borderWidth: StyleSheet.hairlineWidth }}
       >
-        <Animated.View entering={GLASS ? FadeIn.duration(180) : undefined}>
-          <FlatList
-            data={people}
-            keyExtractor={(person) => person.accountId}
-            getItemLayout={(_, index) => ({
-              index,
-              length: ROW,
-              offset: ROW * index,
-            })}
-            renderItem={({ item }) => (
-              <PersonRow person={item} onPick={onPick} />
-            )}
-            keyboardShouldPersistTaps="always"
-            style={{ maxHeight: MAX_HEIGHT }}
-            accessibilityLabel="People to mention"
-          />
-        </Animated.View>
+        <FlatList
+          data={people}
+          keyExtractor={(person) => person.accountId}
+          getItemLayout={(_, index) => ({
+            index,
+            length: ROW,
+            offset: ROW * index,
+          })}
+          renderItem={({ item }) => <PersonRow person={item} onPick={onPick} />}
+          keyboardShouldPersistTaps="always"
+          style={{ maxHeight: MAX_HEIGHT }}
+          accessibilityLabel="People to mention"
+        />
       </GlassSurface>
-    </Animated.View>
+    </View>
   );
 }
