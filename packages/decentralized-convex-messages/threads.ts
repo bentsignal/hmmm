@@ -21,14 +21,14 @@ type Args<Operation extends keyof Operations> = OperationArgs<
 /** How much of the original's text a reply keeps in its quote. */
 const QUOTE_LENGTH = 300;
 
-function messageById(ctx: QueryCtx, messageId: string) {
+export function messageById(ctx: QueryCtx, messageId: string) {
   return ctx.db
     .query("messages")
     .withIndex("by_message", (index) => index.eq("messageId", messageId))
     .unique();
 }
 
-function threadRow(ctx: QueryCtx, threadId: string) {
+export function threadRow(ctx: QueryCtx, threadId: string) {
   return ctx.db
     .query("threads")
     .withIndex("by_thread", (index) => index.eq("threadId", threadId))

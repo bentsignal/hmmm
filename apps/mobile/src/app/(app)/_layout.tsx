@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import { Stack } from "expo-router";
 
+import { useFormScreenOptions } from "~/components/form-screen-options";
 import { dismissKeyboardOnSheetSwipe } from "~/features/compose/sheet";
 import { AccountScope, useAccounts } from "~/features/messaging/account";
 import { useEnsureProfile } from "~/features/messaging/directory";
@@ -50,6 +51,7 @@ export default function AppLayout() {
 }
 
 function AppStack() {
+  const formScreen = useFormScreenOptions();
   return (
     <Stack screenOptions={{ headerBackButtonDisplayMode: "minimal" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -67,6 +69,10 @@ function AppStack() {
       <Stack.Screen
         name="conversation-info/[conversationId]"
         options={{ headerTransparent: Platform.OS === "ios", title: "" }}
+      />
+      <Stack.Screen
+        name="conversation-threads/[conversationId]"
+        options={{ ...formScreen, title: "Threads" }}
       />
       <Stack.Screen
         name="profile/[address]"

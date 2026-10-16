@@ -32,3 +32,29 @@ export interface ConversationSummary {
   spaceId: string | null;
   spaceName: string | null;
 }
+
+/** A thread you follow, as an Inbox row. */
+export interface ThreadSummaryRow {
+  /** The signed-in account that follows it. */
+  account: string;
+  conversationId: string;
+  /** The conversation's name, as its own row shows it. */
+  conversationTitle: string;
+  /** Unique across accounts and conversations. */
+  key: string;
+  /** Its newest reply: "Leo: sounds good". */
+  latestReply: string;
+  lastActivityAt: Date;
+  replyCount: number;
+  /** The original message's author: name and photo. */
+  rootAuthor: { avatarUrl: string | null; name: string };
+  /** The original message's text (or "Photo"). */
+  rootText: string;
+  threadId: string;
+  unreadCount: number;
+}
+
+/** One row of the Inbox: a conversation, or a thread you follow. */
+export type InboxItem =
+  | { kind: "conversation"; conversation: ConversationSummary; key: string }
+  | { kind: "thread"; key: string; thread: ThreadSummaryRow };

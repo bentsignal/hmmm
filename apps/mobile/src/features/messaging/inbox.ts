@@ -13,8 +13,17 @@ import { conversationTitle } from "./conversations";
 import { useProfileState } from "./profiles";
 import { pdsResult } from "./results";
 
+/** A message's text, or what it sent instead ("Photo", "3 attachments"). */
+export function messageSummary(message: PdsMessage) {
+  if (message.body.length > 0) return message.body;
+  const count = message.attachments.length;
+  const kind = message.attachments[0]?.kind ?? "file";
+  const noun = { file: "File", image: "Photo", video: "Video" }[kind];
+  return count > 1 ? `${count} attachments` : noun;
+}
+
 /** The last message, led by its author where several people talk. */
-function preview(
+export function preview(
   message: PdsMessage | null,
   self: string,
   name: string,
@@ -24,10 +33,7 @@ function preview(
   const prefix =
     message.authorId === self ? "You: " : shared ? `${name}: ` : "";
   if (message.body.length > 0) return `${prefix}${message.body}`;
-  const count = message.attachments.length;
-  const kind = message.attachments[0]?.kind ?? "file";
-  const noun = { file: "File", image: "Photo", video: "Video" }[kind];
-  return `${prefix || `${name}: `}${count > 1 ? `${count} attachments` : noun}`;
+  return `${prefix || `${name}: `}${messageSummary(message)}`;
 }
 
 function summarize(

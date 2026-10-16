@@ -56,6 +56,64 @@ function compare(left: unknown, right: unknown) {
   return String(left).localeCompare(String(right));
 }
 
+function range() {
+  const filters: Filter[] = [];
+  const builder = {
+    eq: (field: string, value: unknown) => {
+      filters.push((row) => row[field] === value);
+      return builder;
+    },
+    gt: (field: string, value: number) => {
+      filters.push((row) => Number(row[field]) > value);
+      return builder;
+    },
+    lt: (field: string, value: number) => {
+      filters.push((row) => Number(row[field]) < value);
+      return builder;
+    },
+    filters,
+  };
+  return builder;
+}
+
+/** Search matches rows whose field holds any of the search's words. */
+function search() {
+  const filters: Filter[] = [];
+  const builder = {
+    eq: (field: string, value: unknown) => {
+      filters.push((row) => row[field] === value);
+      return builder;
+    },
+    search: (field: string, text: string) => {
+      const words = text.toLowerCase().split(/\s+/);
+      filters.push((row) =>
+        words.some((word) => String(row[field]).toLowerCase().includes(word)),
+      );
+      return builder;
+    },
+    filters,
+  };
+  return builder;
+}
+
+function results(found: Row[]) {
+  return {
+    [Symbol.asyncIterator]: async function* () {
+      yield* found;
+      await Promise.resolve();
+    },
+    collect: () => Promise.resolve(found),
+    first: () => Promise.resolve(found[0] ?? null),
+    order: (direction: "asc" | "desc") =>
+      results(direction === "desc" ? [...found].reverse() : found),
+    take: (count: number) => Promise.resolve(found.slice(0, count)),
+    unique: () => {
+      if (found.length > 1) throw new Error("Not unique");
+      return Promise.resolve(found[0] ?? null);
+    },
+  };
+}
+
 /**
  * A fake context holding `tables`. It reads and writes like a mutation's,
  * so it also stands in for a query's. `rows` reads a table back.
@@ -86,44 +144,6 @@ export function fakeCtx(tables: Record<string, Record<string, unknown>[]>) {
       });
   }
 
-  function range() {
-    const filters: Filter[] = [];
-    const builder = {
-      eq: (field: string, value: unknown) => {
-        filters.push((row) => row[field] === value);
-        return builder;
-      },
-      gt: (field: string, value: number) => {
-        filters.push((row) => Number(row[field]) > value);
-        return builder;
-      },
-      lt: (field: string, value: number) => {
-        filters.push((row) => Number(row[field]) < value);
-        return builder;
-      },
-      filters,
-    };
-    return builder;
-  }
-
-  function results(found: Row[]) {
-    return {
-      [Symbol.asyncIterator]: async function* () {
-        yield* found;
-        await Promise.resolve();
-      },
-      collect: () => Promise.resolve(found),
-      first: () => Promise.resolve(found[0] ?? null),
-      order: (direction: "asc" | "desc") =>
-        results(direction === "desc" ? [...found].reverse() : found),
-      take: (count: number) => Promise.resolve(found.slice(0, count)),
-      unique: () => {
-        if (found.length > 1) throw new Error("Not unique");
-        return Promise.resolve(found[0] ?? null);
-      },
-    };
-  }
-
   const ctx = {
     // Scheduled work (pushes, link previews) doesn't run in tests.
     scheduler: { runAfter: () => Promise.resolve() },
@@ -150,6 +170,18 @@ export function fakeCtx(tables: Record<string, Record<string, unknown>[]>) {
           const builder = range();
           build(builder);
           return results(select(table, index, builder.filters));
+        },
+        withSearchIndex: (
+          _index: string,
+          build: (builder: ReturnType<typeof search>) => unknown,
+        ) => {
+          const builder = search();
+          build(builder);
+          return results(
+            (rows[table] ?? []).filter((row) =>
+              builder.filters.every((filter) => filter(row)),
+            ),
+          );
         },
       }),
     },

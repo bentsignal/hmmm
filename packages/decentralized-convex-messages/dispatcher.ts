@@ -18,6 +18,7 @@ import * as sending from "./sending.ts";
 import * as settings from "./settings.ts";
 import * as sightings from "./sightings.ts";
 import * as spaces from "./spaces.ts";
+import * as threadLists from "./threadLists.ts";
 import * as threads from "./threads.ts";
 
 export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
@@ -106,6 +107,8 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
         conversations.conversation(ctx, requireAccountId(identity), args),
       inbox: (ctx, { args, identity }) =>
         inbox.inbox(ctx, requireAccountId(identity), args),
+      inboxThreads: (ctx, { identity }) =>
+        threadLists.inboxThreads(ctx, requireAccountId(identity)),
       list: async (ctx, { args, identity }) => {
         const { page, routes } = await conversations.list(
           ctx,
@@ -132,6 +135,14 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
         spaces.space(ctx, requireAccountId(identity), args.spaceId),
       thread: async (ctx, { args, identity }) => {
         const found = await threads.thread(
+          ctx,
+          requireAccountId(identity),
+          args,
+        );
+        return routedQueryResult(found.page, found.routes);
+      },
+      threads: async (ctx, { args, identity }) => {
+        const found = await threadLists.threads(
           ctx,
           requireAccountId(identity),
           args,

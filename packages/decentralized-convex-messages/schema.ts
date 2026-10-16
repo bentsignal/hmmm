@@ -61,7 +61,12 @@ export default defineSchema({
     .index("by_conversation_sent", ["conversationId", "sentAt"])
     // What the conversation shows: `threadOnly` undefined.
     .index("by_chat_sent", ["conversationId", "threadOnly", "sentAt"])
-    .index("by_thread_sent", ["threadId", "sentAt"]),
+    .index("by_thread_sent", ["threadId", "sentAt"])
+    // Finding threads by the text of their original and replies.
+    .searchIndex("search_body", {
+      filterFields: ["conversationId"],
+      searchField: "body",
+    }),
   // Each thread with replies stored here: how many, and its newest.
   threads: defineTable({
     conversationId: v.string(),

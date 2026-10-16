@@ -160,3 +160,19 @@ everyone who replies, and anyone who turns a thread's bell on
 `activity({ threads: true })`, an Activity item per thread with new
 replies. `messages.markThreadRead` sees it, and `messages.threadState` is
 the caller's bell and read state.
+
+Finding threads: `messages.threads` pages a conversation's threads, newest
+reply first (`THREAD_PAGE_SIZE` at a time, or fewer with `limit`, older
+than `before`), each with its original, its counts, and the caller's
+place in it (`following`, `lastReadAt`, `unreadCount`). With `mine`, only
+threads the caller follows; with `search`, those whose original or
+replies match it (a search index on message bodies, filtered by
+conversation; the 256 most relevant matching messages count). Like
+summaries, each member's PDS lists the replies it stores and apps add
+them up. `messages.inboxThreads` lists the threads the caller follows
+across conversations, newest reply first (at most `MAX_INBOX_THREADS`),
+each with its conversation and newest reply, leaving out muted
+conversations and channels left out of the inbox as `activity` does. A
+thread whose bell the caller turned off isn't theirs in either. Unread
+counts leave out a thread's first reply, which is read in the
+conversation.

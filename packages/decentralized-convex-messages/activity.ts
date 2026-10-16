@@ -55,7 +55,7 @@ async function seenState(
 }
 
 /** Describes each conversation once, however many items it has. */
-function conversationDescriber(ctx: QueryCtx) {
+export function conversationDescriber(ctx: QueryCtx) {
   const described = new Map<string, Promise<ActivityConversation>>();
   async function describe(conversation: Doc<"conversations">) {
     const [members, space] = await Promise.all([
@@ -82,13 +82,13 @@ function conversationDescriber(ctx: QueryCtx) {
   };
 }
 
-type Describe = ReturnType<typeof conversationDescriber>;
+export type Describe = ReturnType<typeof conversationDescriber>;
 
 /**
  * Whether a conversation's activity shows: not muted (nor, for a channel,
  * its space), and a channel still in the inbox.
  */
-function isHeard(access: ConversationAccess) {
+export function isHeard(access: ConversationAccess) {
   return (
     !access.muted &&
     !access.spaceMuted &&
@@ -148,7 +148,7 @@ async function messagesItem(
 }
 
 /** The caller's access to each conversation, each looked up once. */
-function accessFinder(ctx: QueryCtx, self: string) {
+export function accessFinder(ctx: QueryCtx, self: string) {
   const access = new Map<string, Promise<ConversationAccess | null>>();
   return (conversationId: string) => {
     const known = access.get(conversationId);

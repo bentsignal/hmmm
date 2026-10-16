@@ -46,6 +46,36 @@ function Title({ conversation }: { conversation: ConversationSummary }) {
   );
 }
 
+/** The end of a row's title line: its account, time, and chevron. */
+export function RowMeta({
+  account,
+  at,
+  showAccount,
+}: {
+  account: string;
+  at: Date;
+  showAccount: boolean;
+}) {
+  return (
+    <>
+      {showAccount && (
+        <Text numberOfLines={1} className="text-footnote text-accent">
+          {usernameOf(account)}
+        </Text>
+      )}
+      <Text className="text-subhead text-muted">
+        {formatInboxTimestamp(at)}
+      </Text>
+      <SymbolIcon
+        name={{ android: "chevron_right", ios: "chevron.right" }}
+        size={12}
+        weight="semibold"
+        tintColorClassName="accent-subtle"
+      />
+    </>
+  );
+}
+
 /** The title line: name, pin, account, time, and chevron. */
 function TopLine({
   conversation,
@@ -65,19 +95,10 @@ function TopLine({
           tintColorClassName="accent-accent"
         />
       )}
-      {showAccount && (
-        <Text numberOfLines={1} className="text-footnote text-accent">
-          {usernameOf(conversation.account)}
-        </Text>
-      )}
-      <Text className="text-subhead text-muted">
-        {formatInboxTimestamp(conversation.lastActivityAt)}
-      </Text>
-      <SymbolIcon
-        name={{ android: "chevron_right", ios: "chevron.right" }}
-        size={12}
-        weight="semibold"
-        tintColorClassName="accent-subtle"
+      <RowMeta
+        account={conversation.account}
+        at={conversation.lastActivityAt}
+        showAccount={showAccount}
       />
     </View>
   );

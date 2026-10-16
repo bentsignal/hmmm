@@ -12,6 +12,7 @@ import {
   request,
   stringField,
 } from "./devBots";
+import { seedChannelThread, seedGroupThreads } from "./devThreads";
 
 // Development only: seed conversations for the signed-in account. See dev.ts.
 
@@ -63,7 +64,7 @@ async function importHistory(
   }
 }
 
-interface Author {
+export interface Author {
   readonly address: string;
   readonly name: string;
 }
@@ -130,7 +131,7 @@ export async function seedGroup(
     conversationId,
     history([me, ...authors.slice(0, 3)], 120, 6),
   );
-  await seedThread(ctx, conversationId, { jonah, maya, priya });
+  await seedGroupThreads(ctx, conversationId, me);
   // A live message so the inbox has an unread conversation.
   await asAccount(ctx, maya, {
     args: {
@@ -141,44 +142,6 @@ export async function seedGroup(
     },
     type: "send",
   });
-}
-
-/**
- * A message with a thread: its first reply shows in the conversation, the
- * rest only in the thread.
- */
-async function seedThread(
-  ctx: ActionCtx,
-  conversationId: string,
-  {
-    jonah,
-    maya,
-    priya,
-  }: Record<"jonah" | "maya" | "priya", ReturnType<typeof botIdentity>>,
-) {
-  const threadId = crypto.randomUUID();
-  const posts = [
-    {
-      body: "Who's in for the lake on Saturday?",
-      by: maya,
-      threadId: undefined,
-    },
-    { body: "I'm in! Can bring the cooler", by: jonah, threadId },
-    { body: "Only if we leave after 10", by: priya, threadId },
-    { body: "10 works. I'll drive", by: maya, threadId },
-  ];
-  for (const { body, by, threadId: thread } of posts) {
-    await asAccount(ctx, by, {
-      args: {
-        attachments: [],
-        body,
-        conversationId,
-        messageId: thread === undefined ? threadId : crypto.randomUUID(),
-        threadId: thread,
-      },
-      type: "send",
-    });
-  }
 }
 
 export async function seedSpace(
@@ -216,6 +179,10 @@ export async function seedSpace(
       channel.conversationId,
       history(authors, channel.name === "general" ? 250 : 30, 10),
     );
+  }
+  const general = channelsOf(space).find(({ name }) => name === "general");
+  if (general !== undefined) {
+    await seedChannelThread(ctx, general.conversationId, me);
   }
   return spaceId;
 }

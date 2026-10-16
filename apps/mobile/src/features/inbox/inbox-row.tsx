@@ -1,5 +1,7 @@
+import type { ReactNode } from "react";
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { useRouter } from "expo-router";
 import {
   Box,
   DropdownMenu,
@@ -9,27 +11,31 @@ import {
 import { fillMaxSize } from "@expo/ui/jetpack-compose/modifiers";
 import { useCSSVariable } from "uniwind";
 
-import type { ConversationSummary } from "./types";
+import type { RowAction } from "./row-actions";
+import type { ConversationSummary, ThreadSummaryRow } from "./types";
 import { NativeHost } from "~/components/native-host";
 import { useRunAs } from "~/features/messaging/account";
 import { impact } from "~/lib/native-extras";
-import { ConversationRow } from "./conversation-row";
-import { afterMenuCloses, inboxMenuActions } from "./row-actions";
+import { ConversationRow, INBOX_ROW_HEIGHT } from "./conversation-row";
+import {
+  afterMenuCloses,
+  inboxMenuActions,
+  threadMenuActions,
+} from "./row-actions";
+import { conversationHref, threadHref, ThreadRowContent } from "./thread-row";
 
 /**
- * An Inbox row on Android: tap to open, long-press for its actions in a
- * Material menu that drops from the row. The menu's Compose host sits
- * behind the row, so the row still takes every touch. iOS has its own
- * native row (`inbox-row.ios.tsx`).
+ * A row whose long-press opens `actions` in a Material menu that drops
+ * from the row. The menu's Compose host sits behind the row, so the row
+ * (`children`, given the long-press handler) still takes every touch.
  */
-export function InboxRow({
-  conversation,
-  showAccount,
+function MenuRow({
+  actions,
+  children,
 }: {
-  conversation: ConversationSummary;
-  showAccount: boolean;
+  actions: readonly RowAction[];
+  children: (onLongPress: () => void) => ReactNode;
 }) {
-  const runAs = useRunAs();
   const destructive = useCSSVariable("--color-destructive");
   const [expanded, setExpanded] = useState(false);
   return (
@@ -43,7 +49,7 @@ export function InboxRow({
             <Box modifiers={[fillMaxSize()]} />
           </DropdownMenu.Trigger>
           <DropdownMenu.Items>
-            {inboxMenuActions(runAs, conversation).map((action) => (
+            {actions.map((action) => (
               <DropdownMenuItem
                 key={action.key}
                 elementColors={
@@ -65,14 +71,65 @@ export function InboxRow({
           </DropdownMenu.Items>
         </DropdownMenu>
       </NativeHost>
-      <ConversationRow
-        conversation={conversation}
-        showAccount={showAccount}
-        onLongPress={() => {
-          impact();
-          setExpanded(true);
-        }}
-      />
+      {children(() => {
+        impact();
+        setExpanded(true);
+      })}
     </View>
+  );
+}
+
+/**
+ * An Inbox row on Android: tap to open, long-press for its actions in a
+ * Material menu (see `MenuRow`). iOS has its own native row
+ * (`inbox-row.ios.tsx`).
+ */
+export function InboxRow({
+  conversation,
+  showAccount,
+}: {
+  conversation: ConversationSummary;
+  showAccount: boolean;
+}) {
+  const runAs = useRunAs();
+  return (
+    <MenuRow actions={inboxMenuActions(runAs, conversation)}>
+      {(onLongPress) => (
+        <ConversationRow
+          conversation={conversation}
+          showAccount={showAccount}
+          onLongPress={onLongPress}
+        />
+      )}
+    </MenuRow>
+  );
+}
+
+/** A thread's Inbox row on Android, which opens the thread. */
+export function ThreadInboxRow({
+  thread,
+  showAccount,
+}: {
+  thread: ThreadSummaryRow;
+  showAccount: boolean;
+}) {
+  const router = useRouter();
+  const runAs = useRunAs();
+  const actions = threadMenuActions(runAs, thread, () =>
+    router.push(conversationHref(thread)),
+  );
+  return (
+    <MenuRow actions={actions}>
+      {(onLongPress) => (
+        <Pressable
+          className="active:bg-fill flex-row"
+          style={{ height: INBOX_ROW_HEIGHT }}
+          onPress={() => router.push(threadHref(thread))}
+          onLongPress={onLongPress}
+        >
+          <ThreadRowContent thread={thread} showAccount={showAccount} />
+        </Pressable>
+      )}
+    </MenuRow>
   );
 }

@@ -39,6 +39,8 @@ import type * as shapes from "../shapes.js";
 import type * as sightings from "../sightings.js";
 import type * as sites from "../sites.js";
 import type * as spaces from "../spaces.js";
+import type * as threadLists from "../threadLists.js";
+import type * as threadOperations from "../threadOperations.js";
 import type * as threads from "../threads.js";
 
 import type {
@@ -80,6 +82,8 @@ const fullApi: ApiFromModules<{
   sightings: typeof sightings;
   sites: typeof sites;
   spaces: typeof spaces;
+  threadLists: typeof threadLists;
+  threadOperations: typeof threadOperations;
   threads: typeof threads;
 }> = anyApi as any;
 

@@ -2,8 +2,14 @@ import { useSyncExternalStore } from "react";
 import * as SecureStore from "expo-secure-store";
 import { Uniwind } from "uniwind";
 
+import type { InboxKind } from "./inbox-kinds";
 import type { ThemeId } from "./themes";
 import type { ConversationKind } from "~/features/inbox/types";
+import {
+  DEFAULT_INBOX_KINDS,
+  storedInboxKinds,
+  toggledInboxKind,
+} from "./inbox-kinds";
 import { applyTheme, isThemeId } from "./themes";
 
 const STORAGE_KEY = "vera.preferences";
@@ -12,8 +18,6 @@ export type Appearance = "dark" | "light" | "system";
 export type MessageLayout = "bubbles" | "stacked";
 /** Which conversations the Inbox lists, by read state. */
 export type InboxShow = "all" | "unread";
-/** Which conversations the Inbox lists, by kind. */
-export type InboxFrom = "channels" | "chats" | "everything";
 /** The order Home's Spaces page lists spaces in. */
 export type SpacesSort = "name" | "newest" | "oldest";
 
@@ -23,7 +27,8 @@ export interface Preferences {
   readonly directLayout: MessageLayout;
   readonly groupLayout: MessageLayout;
   readonly channelLayout: MessageLayout;
-  readonly inboxFrom: InboxFrom;
+  /** The kinds ticked, in `INBOX_KINDS` order. */
+  readonly inboxKinds: readonly InboxKind[];
   readonly inboxShow: InboxShow;
   readonly spacesSort: SpacesSort;
   readonly theme: ThemeId;
@@ -34,7 +39,7 @@ const DEFAULTS = {
   directLayout: "bubbles",
   groupLayout: "stacked",
   channelLayout: "stacked",
-  inboxFrom: "everything",
+  inboxKinds: DEFAULT_INBOX_KINDS,
   inboxShow: "all",
   spacesSort: "name",
   theme: "blue",
@@ -84,12 +89,7 @@ function fromStored(stored: unknown) {
       LAYOUTS,
       DEFAULTS.channelLayout,
     ),
-    // A space filter saved by an earlier build reads as Everything.
-    inboxFrom: pick(
-      Reflect.get(stored, "inboxFrom"),
-      ["everything", "chats", "channels"],
-      DEFAULTS.inboxFrom,
-    ),
+    inboxKinds: storedInboxKinds(stored),
     inboxShow: pick(
       Reflect.get(stored, "inboxShow"),
       ["all", "unread"],
@@ -133,6 +133,11 @@ export function setPreference<Key extends keyof Preferences>(
   SecureStore.setItem(STORAGE_KEY, JSON.stringify(current));
   apply(current);
   for (const listener of listeners) listener();
+}
+
+/** Ticks a kind of Inbox row, or unticks it. */
+export function toggleInboxKind(kind: InboxKind) {
+  setPreference("inboxKinds", toggledInboxKind(current.inboxKinds, kind));
 }
 
 export function usePreference<Key extends keyof Preferences>(key: Key) {

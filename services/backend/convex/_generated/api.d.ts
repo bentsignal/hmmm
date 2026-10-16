@@ -16,6 +16,7 @@ import type * as dev from "../dev.js";
 import type * as devBots from "../devBots.js";
 import type * as devSeed from "../devSeed.js";
 import type * as devSignIn from "../devSignIn.js";
+import type * as devThreads from "../devThreads.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
 import type * as joinPage from "../joinPage.js";
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   devBots: typeof devBots;
   devSeed: typeof devSeed;
   devSignIn: typeof devSignIn;
+  devThreads: typeof devThreads;
   files: typeof files;
   http: typeof http;
   joinPage: typeof joinPage;
