@@ -5,7 +5,7 @@ import type {
 } from "@decentralized-convex/messages";
 import { useEffect, useRef, useState } from "react";
 // eslint-disable-next-line no-restricted-imports -- Expo Router has no route loaders to preload suspense queries.
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { listNames } from "@decentralized-convex/messages";
 import { pdsMutation, pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
@@ -15,7 +15,7 @@ import type { OutgoingItem, OutgoingMessage } from "./outbox";
 import type { ReactionSummary } from "./reactions";
 import type { Message, MessageAttachment } from "~/features/conversation/types";
 import { useAccount } from "./account";
-import { prefetchLatestMessages, useMessageWindow } from "./message-window";
+import { useMessageWindow } from "./message-window";
 import * as optimistic from "./optimistic";
 import { sendOutgoing, useOutbox, withPrefetched } from "./outbox";
 import { useProfileState } from "./profiles";
@@ -64,24 +64,6 @@ export function conversationTitle(
   if (kind === "group") return groupTitle(name, members, self, displayName);
   const other = members.find((member) => member !== self);
   return displayName(other ?? self);
-}
-
-/**
- * Starts loading a conversation the moment its row is tapped, so its
- * messages are often there by the time the screen is.
- */
-export function usePrefetchConversation() {
-  const queryClient = useQueryClient();
-  return (session: string, conversationId: string) => {
-    void queryClient.prefetchQuery(
-      pdsQuery({
-        args: { conversationId },
-        query: pds.messages.conversation,
-        session,
-      }),
-    );
-    prefetchLatestMessages(queryClient, session, conversationId);
-  };
 }
 
 export function useConversation(conversationId: string) {

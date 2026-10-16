@@ -17,7 +17,7 @@ import { useCSSVariable } from "uniwind";
 import type { RowAction } from "./row-actions";
 import type { ConversationSummary } from "./types";
 import { useRunAs } from "~/features/messaging/account";
-import { usePrefetchConversation } from "~/features/messaging/conversations";
+import { usePrefetchConversation } from "~/features/messaging/prefetch";
 import { ConversationRowContent, INBOX_ROW_HEIGHT } from "./conversation-row";
 import { afterMenuCloses, inboxMenuActions } from "./row-actions";
 

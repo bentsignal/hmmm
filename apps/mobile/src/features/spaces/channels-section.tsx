@@ -6,7 +6,7 @@ import { SectionHeaderWithAdd } from "~/components/section-header";
 import { SectionTitle } from "~/components/section-title";
 import { useAccount } from "~/features/messaging/account";
 import { useChannelSettings } from "~/features/messaging/channel-settings";
-import { usePrefetchConversation } from "~/features/messaging/conversations";
+import { usePrefetchConversation } from "~/features/messaging/prefetch";
 import { channelMenuActions } from "./channel-actions";
 import { ChannelRow } from "./channel-row";
 

@@ -4,7 +4,7 @@ import { Link } from "expo-router";
 import type { ConversationSummary } from "./types";
 import { Avatar } from "~/components/avatar";
 import { SymbolIcon } from "~/components/symbol-icon";
-import { usePrefetchConversation } from "~/features/messaging/conversations";
+import { usePrefetchConversation } from "~/features/messaging/prefetch";
 import { usernameOf } from "~/features/messaging/profiles";
 import { AffiliatedBadge } from "~/features/profile/affiliated-badge";
 import { formatInboxTimestamp } from "~/lib/format";
