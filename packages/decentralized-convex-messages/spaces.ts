@@ -3,6 +3,8 @@ import type { OperationArgs } from "@decentralized-convex/plugin";
 import type { Doc } from "./_generated/dataModel.js";
 import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { messagesProtocol, Space } from "./protocol.ts";
+import { chosenAlerts } from "./alertChoice.ts";
+import { unreadCount } from "./chatMessages.ts";
 import {
   fail,
   getConversation,
@@ -14,9 +16,9 @@ import {
   normalizeAddress,
   normalizeMembers,
   normalizeName,
-  unreadCount,
 } from "./model.ts";
 import { channelName } from "./naming.ts";
+import { notificationSettings } from "./settings.ts";
 import { deleteThreads } from "./threads.ts";
 
 type Mutations = (typeof messagesProtocol)["mutations"];
@@ -222,7 +224,7 @@ export async function toSpace(
 ): Promise<Space | null> {
   const self = await getSpaceMember(ctx, space.spaceId, accountId);
   if (self === null) return null;
-  const [members, invites, conversations] = await Promise.all([
+  const [members, invites, conversations, settings] = await Promise.all([
     ctx.db
       .query("spaceMembers")
       .withIndex("by_space_account", (index) =>
@@ -239,7 +241,9 @@ export async function toSpace(
       .query("conversations")
       .withIndex("by_space", (index) => index.eq("spaceId", space.spaceId))
       .collect(),
+    notificationSettings(ctx, accountId),
   ]);
+  const alerts = chosenAlerts(self) ?? settings.channelAlerts;
   const channels = await Promise.all(
     conversations.map(async (conversation) => {
       const member = await getMember(
@@ -247,9 +251,11 @@ export async function toSpace(
         conversation.conversationId,
         accountId,
       );
+      const chosen = chosenAlerts(member);
       return {
+        alerts: chosen,
         conversationId: conversation.conversationId,
-        muted: member?.muted === true,
+        muted: chosen === "none",
         name: conversation.name ?? "",
         position: conversation.position ?? 0,
         showInInbox: member?.hiddenFromInbox !== true,
@@ -267,6 +273,7 @@ export async function toSpace(
       left.position - right.position || left.name.localeCompare(right.name),
   );
   return {
+    alerts,
     channels,
     invited: invites.map((invite) => invite.accountId),
     joinedAt: self._creationTime,
@@ -274,7 +281,7 @@ export async function toSpace(
       accountId: member.accountId,
       role: member.role,
     })),
-    muted: self.muted === true,
+    muted: alerts === "none",
     name: space.name,
     role: self.role,
     spaceId: space.spaceId,

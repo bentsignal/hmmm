@@ -1,6 +1,5 @@
 import type {
   Attachment,
-  LinkCard,
   Message as PdsMessage,
 } from "@decentralized-convex/messages";
 import { useEffect, useRef, useState } from "react";
@@ -8,8 +7,7 @@ import { useMutation } from "@tanstack/react-query";
 import { pdsMutation } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
-import type { StagedFile } from "./attachments";
-import type { OutgoingMessage } from "./outbox";
+import type { OutgoingDraft, OutgoingMessage } from "./outbox";
 import type { Message, ThreadInfo } from "~/features/conversation/types";
 import { useAccount } from "./account";
 import { useMessageWindow } from "./message-window";
@@ -255,24 +253,14 @@ export function useMessages(
     newestSentAt: newestSentAt(view),
     /**
      * Sends a message, shown right away; its files upload after that.
-     * `linkPreviews` are the cards it starts with (see `useLinkPrefetch`).
      * In the conversation, `replyTo` makes it its thread's first reply; in
      * a thread, it's always a reply.
      */
-    sendMessage: (
-      body: string,
-      files: readonly StagedFile[] = [],
-      linkPreviews: readonly LinkCard[] = [],
-      replyTo?: Message,
-    ) => {
+    sendMessage: (draft: OutgoingDraft, replyTo?: Message) => {
       if (!atLatest) view.jumpToLatest();
-      sendOutgoing({
-        body,
-        conversationId,
-        files,
-        linkPreviews,
+      sendOutgoing(session, conversationId, {
+        ...draft,
         reply: replyFor(root, replyTo, threads.threadOf),
-        session,
       });
     },
   };

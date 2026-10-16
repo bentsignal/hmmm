@@ -1,17 +1,9 @@
-import type { Ref, RefObject } from "react";
+import type { Mention } from "@decentralized-convex/messages";
+import type { ReactNode, Ref, RefObject } from "react";
 import { useImperativeHandle, useRef, useState } from "react";
-import {
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import Animated, {
-  FadeIn,
-  FadeOut,
   interpolate,
   useAnimatedStyle,
   withTiming,
@@ -19,6 +11,8 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { withUniwind } from "uniwind";
 
+import type { MentionCandidate } from "./mention-text";
+import type { ReplyingTo } from "./reply-bar";
 import type {
   AttachmentSource,
   StagedFile,
@@ -30,7 +24,10 @@ import { cn } from "~/lib/cn";
 import { PASTE_IMAGES_NATIVE_ID, usePastedImages } from "~/lib/paste-images";
 import { AttachMenu } from "./attach-menu";
 import { readDraft, saveDraftText } from "./drafts";
+import { MentionPicker } from "./mention-picker";
+import { ReplyBar } from "./reply-bar";
 import { StagedAttachments } from "./staged-attachments";
+import { useMentions } from "./use-mentions";
 
 const StyledTextInput = withUniwind(TextInput);
 /** Every control in the composer shares this height so they line up. */
@@ -119,17 +116,25 @@ function useSides() {
 }
 
 /**
- * The text being typed, emptied by `sent`, and kept as a draft on this
- * device (see `drafts.ts`).
+ * The text being typed and who it @mentions, emptied by `sent`, and kept as
+ * a draft on this device (see `drafts.ts`).
  */
 function useDraft(
   draftKey: string,
   input: RefObject<TextInput | null>,
   onChangeText: ((text: string) => void) | undefined,
+  mentionable: readonly MentionCandidate[] | undefined,
 ) {
   const [draft, setDraft] = useState(() => readDraft(draftKey).text);
+  const mention = useMentions(draft, mentionable, draftKey, input);
   /** When the field was last emptied by sending, until something is typed. */
   const sentAt = useRef<number | null>(null);
+
+  function show(text: string) {
+    setDraft(text);
+    saveDraftText(draftKey, text);
+    onChangeText?.(text);
+  }
 
   function change(text: string) {
     // Sending while iOS still offers an autocorrection for the last word
@@ -146,17 +151,23 @@ function useDraft(
       return;
     }
     if (text !== "") sentAt.current = null;
-    setDraft(text);
-    saveDraftText(draftKey, text);
-    onChangeText?.(text);
+    show(mention.edited(text));
   }
 
   return {
     change,
     draft,
-    sent: () => {
+    mention,
+    pick: (person: MentionCandidate) => {
+      const text = mention.pick(person);
+      if (text !== null) show(text);
+    },
+    /** Empties the field, returning who the sent text mentions. */
+    sent: (text: string) => {
+      const mentions = mention.take(text);
       change("");
       sentAt.current = Date.now();
+      return mentions;
     },
   };
 }
@@ -167,116 +178,23 @@ export interface ComposerHandle {
   focus: () => void;
 }
 
-/** Who and what the next message replies to, shown over the field. */
-export interface ReplyingTo {
-  /** Who wrote the message being answered. */
-  readonly name: string;
-  /** Its text, or what it sent instead. */
-  readonly text: string;
-}
-
 /**
- * "Replying to Maya" and the message, at the top of the field, with a
- * button to send a plain message instead.
+ * The bar the field and its "+" menu sit in, moving in from the sides a
+ * little on iOS while the keyboard is up.
  */
-function ReplyBar({
-  replyingTo,
-  onCancel,
-}: {
-  replyingTo: ReplyingTo;
-  onCancel: () => void;
-}) {
-  return (
-    <Animated.View
-      entering={FadeIn.duration(160)}
-      exiting={FadeOut.duration(120)}
-      className="flex-row items-center gap-2 pt-2 pr-2 pl-4"
-    >
-      <View className="border-accent flex-1 border-l-2 pl-2">
-        <Text numberOfLines={1} className="text-caption text-accent">
-          Replying to {replyingTo.name}
-        </Text>
-        <Text numberOfLines={1} className="text-footnote text-muted">
-          {replyingTo.text}
-        </Text>
-      </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Cancel Reply"
-        hitSlop={8}
-        onPress={onCancel}
-        className="active:opacity-60"
-      >
-        <SymbolIcon
-          name={{ android: "close", ios: "xmark.circle.fill" }}
-          size={18}
-          tintColorClassName="accent-subtle"
-        />
-      </Pressable>
-    </Animated.View>
-  );
-}
-
-/**
- * The message field with its "+" menu and the attachments picked or pasted
- * for the message, which upload only once it's sent. Unsent text is kept as
- * a draft on this device (see `drafts.ts`).
- */
-export function Composer({
-  ref,
-  draftKey,
-  staged,
-  onSend,
-  onPick,
-  onPaste,
-  onRemoveStaged,
-  onChangeText,
+function Bar({
   bottomInset,
-  replyingTo,
-  onCancelReply,
-  autoFocus = false,
-  placeholder = "Message",
+  onHeight,
+  children,
 }: {
-  ref?: Ref<ComposerHandle>;
-  /** From `draftKey`: the account and conversation the draft belongs to. */
-  draftKey: string;
-  staged: readonly StagedFile[];
-  /** Sends the text (possibly empty) with everything staged. */
-  onSend: (text: string) => void;
-  onPick: (source: AttachmentSource) => void;
-  /** Photos pasted into the field. */
-  onPaste: (images: readonly PastedImage[]) => void;
-  onRemoveStaged: (id: string) => void;
-  /** Every change to the text, including emptying it on send. */
-  onChangeText?: (text: string) => void;
-  /** From `useComposerBottomInset`. */
   bottomInset: number;
-  /** Set while the next message is a reply. */
-  replyingTo?: ReplyingTo;
-  onCancelReply?: () => void;
-  /** Opens with the keyboard up. */
-  autoFocus?: boolean;
-  placeholder?: string;
+  onHeight?: (height: number) => void;
+  children: ReactNode;
 }) {
-  const input = useRef<TextInput>(null);
-  useImperativeHandle(ref, () => ({ focus: () => input.current?.focus() }));
-  // Only the field being pasted into is focused; another conversation's
-  // composer can be mounted beneath this one.
-  usePastedImages((images) => {
-    if (input.current?.isFocused() === true) onPaste(images);
-  });
   const sides = useSides();
-  const { draft, change, sent } = useDraft(draftKey, input, onChangeText);
-  const canSend = draft.trim().length > 0 || staged.length > 0;
-
-  function send() {
-    if (!canSend) return;
-    onSend(draft.trim());
-    sent();
-  }
-
   return (
     <Animated.View
+      onLayout={(event) => onHeight?.(event.nativeEvent.layout.height)}
       className={cn(
         "flex-row items-end gap-2",
         // No glass on Android: a solid bar, down through the navigation
@@ -295,38 +213,125 @@ export function Composer({
         sides,
       ]}
     >
-      <AttachMenu onPick={onPick} />
-      <GlassSurface
-        className="flex-1 justify-center rounded-[20px]"
-        style={{ minHeight: CONTROL }}
-      >
-        {replyingTo !== undefined && (
-          <ReplyBar
-            replyingTo={replyingTo}
-            onCancel={() => onCancelReply?.()}
-          />
-        )}
-        <StagedAttachments files={staged} onRemove={onRemoveStaged} />
-        <StyledTextInput
-          ref={input}
-          nativeID={PASTE_IMAGES_NATIVE_ID}
-          multiline
-          value={draft}
-          onChangeText={change}
-          autoFocus={autoFocus}
-          placeholder={staged.length > 0 ? "Add a message" : placeholder}
-          accessibilityLabel="Message"
-          // A message field never needs AutoFill suggestions.
-          autoComplete="off"
-          textContentType="none"
-          className="text-body text-foreground max-h-32 pl-4"
-          // The send button floats over this padding, so text never jumps.
-          style={{ paddingBottom: 9, paddingRight: SEND + 12, paddingTop: 9 }}
-          placeholderTextColorClassName="accent-muted"
-          cursorColorClassName="accent-accent"
-        />
-        <SendButton visible={canSend} onPress={send} />
-      </GlassSurface>
+      {children}
     </Animated.View>
+  );
+}
+
+/**
+ * The message field with its "+" menu and the attachments picked or pasted
+ * for the message, which upload only once it's sent. In a group or channel,
+ * typing `@` lists the people in it, above the field, to mention. Unsent
+ * text and its mentions are kept as a draft on this device (see
+ * `drafts.ts`).
+ */
+export function Composer({
+  ref,
+  draftKey,
+  staged,
+  mentionable,
+  onSend,
+  onPick,
+  onPaste,
+  onRemoveStaged,
+  onChangeText,
+  onHeight,
+  bottomInset,
+  replyingTo,
+  onCancelReply,
+  autoFocus = false,
+  placeholder = "Message",
+}: {
+  ref?: Ref<ComposerHandle>;
+  /** From `draftKey`: the account and conversation the draft belongs to. */
+  draftKey: string;
+  staged: readonly StagedFile[];
+  /** Who can be @mentioned; undefined where nobody can. */
+  mentionable?: readonly MentionCandidate[];
+  /** Sends the text (possibly empty) and who it mentions, with everything staged. */
+  onSend: (text: string, mentions: readonly Mention[]) => void;
+  onPick: (source: AttachmentSource) => void;
+  /** Photos pasted into the field. */
+  onPaste: (images: readonly PastedImage[]) => void;
+  onRemoveStaged: (id: string) => void;
+  /** Every change to the text, including emptying it on send. */
+  onChangeText?: (text: string) => void;
+  /** The bar's height, without the people listed above it. */
+  onHeight?: (height: number) => void;
+  /** From `useComposerBottomInset`. */
+  bottomInset: number;
+  /** Set while the next message is a reply. */
+  replyingTo?: ReplyingTo;
+  onCancelReply?: () => void;
+  /** Opens with the keyboard up. */
+  autoFocus?: boolean;
+  placeholder?: string;
+}) {
+  const input = useRef<TextInput>(null);
+  useImperativeHandle(ref, () => ({ focus: () => input.current?.focus() }));
+  // Only the field being pasted into is focused; another conversation's
+  // composer can be mounted beneath this one.
+  usePastedImages((images) => {
+    if (input.current?.isFocused() === true) onPaste(images);
+  });
+  const { draft, change, mention, pick, sent } = useDraft(
+    draftKey,
+    input,
+    onChangeText,
+    mentionable,
+  );
+  const canSend = draft.trim().length > 0 || staged.length > 0;
+
+  function send() {
+    if (!canSend) return;
+    const text = draft.trim();
+    onSend(text, sent(text));
+  }
+
+  return (
+    <View>
+      {mention.people.length > 0 && (
+        <MentionPicker
+          people={mention.people}
+          inset={Platform.OS === "ios" ? IOS_TYPING_EDGE : ANDROID_EDGE}
+          onPick={pick}
+        />
+      )}
+      <Bar bottomInset={bottomInset} onHeight={onHeight}>
+        <AttachMenu onPick={onPick} />
+        <GlassSurface
+          className="flex-1 justify-center rounded-[20px]"
+          style={{ minHeight: CONTROL }}
+        >
+          {replyingTo !== undefined && (
+            <ReplyBar
+              replyingTo={replyingTo}
+              onCancel={() => onCancelReply?.()}
+            />
+          )}
+          <StagedAttachments files={staged} onRemove={onRemoveStaged} />
+          <StyledTextInput
+            ref={input}
+            nativeID={PASTE_IMAGES_NATIVE_ID}
+            multiline
+            value={draft}
+            onChangeText={change}
+            onSelectionChange={mention.onSelectionChange}
+            autoFocus={autoFocus}
+            placeholder={staged.length > 0 ? "Add a message" : placeholder}
+            accessibilityLabel="Message"
+            // A message field never needs AutoFill suggestions.
+            autoComplete="off"
+            textContentType="none"
+            className="text-body text-foreground max-h-32 pl-4"
+            // The send button floats over this padding, so text never jumps.
+            style={{ paddingBottom: 9, paddingRight: SEND + 12, paddingTop: 9 }}
+            placeholderTextColorClassName="accent-muted"
+            cursorColorClassName="accent-accent"
+          />
+          <SendButton visible={canSend} onPress={send} />
+        </GlassSurface>
+      </Bar>
+    </View>
   );
 }

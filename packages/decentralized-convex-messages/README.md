@@ -78,6 +78,24 @@ lasts with `messages.setSpaceInviteLinkExpiry` (measured from when it was
 made) or delete it with `messages.revokeSpaceInviteLink`. `messages.addSpaceMembers`, which adds people
 without asking, remains for apps from before invitations.
 
+Mentions: `messages.send` takes `mentions`, each an `accountId` and the
+`name` written after its `@` in the body (the display name at the time).
+The PDS keeps only mentions of other members of the group or channel whose
+`@name` is in the body, stores them on the message (`mentions`), and notes
+each mentioned account in its `mentions` table so their activity finds
+it. Direct messages have none. Apps bold `@name` wherever it appears.
+
+Alerts: each group, channel, and space alerts an account about `all`
+messages, only ones that `mentions` them, or `none` (no activity and no
+pushes). `messages.setAlerts` chooses for a conversation and
+`messages.setSpaceAlerts` for every channel of a space; a channel's choice
+wins over its space's, and a space's or group's over the account's
+defaults (`groupAlerts` and `channelAlerts` in the notification settings).
+Choosing what it would get anyway follows those again. Conversations,
+channels, and spaces report the level as `alerts`; `muted` (and
+`setMuted`/`setSpaceMuted`) remain for older apps and mean `none`. Direct
+messages are `all` or `none`.
+
 Reactions follow the same author-home rule as messages: `messages.react`
 stores your reaction on your home PDS, and `messages.reactions` (given the
 message IDs on screen) gathers reactions from every member's PDS.
@@ -86,7 +104,11 @@ Activity: `messages.activity` lists what happened while the caller was
 away, newest first: messages others sent (one item per conversation, with
 the newest, a count, and the authors) and others' reactions to the caller's
 messages (one item per message). Muted conversations and channels left out
-of the inbox don't appear. Apps report items that came into view with
+of the inbox don't appear. With `{ mentions: true }`, each message that
+@mentions the caller is a `mention` item of its own (from any conversation
+not at `none`), and a conversation at `mentions` shows nothing else;
+without it, a conversation at `mentions` lists just the messages that
+mention the caller. Apps report items that came into view with
 `messages.markActivitySeen` (each item's `key`, through its newest activity
 `at`); an item stays for a day after it's seen (`ACTIVITY_SEEN_LIFETIME`),
 then goes until something newer happens in it. `markRead` sees a
@@ -101,8 +123,10 @@ reactions are listed.
 
 ## Push notifications
 
-Each new message sends one Expo push per recipient device (muted
-conversations and the author are skipped). The push is shaped for iOS
+Each new message sends one Expo push per recipient device: to each other
+member whose alerts let it through (everything, or a message that
+mentions them), who has pushes on (and, for a direct message, direct
+message pushes). The push is shaped for iOS
 communication notifications:
 
 | Field            | Value                                                                                                                                        |
@@ -130,10 +154,10 @@ the `emoji`. It's skipped for reactions to your own messages.
 
 Each account chooses which pushes it gets with
 `messages.setNotificationSettings` (read with `messages.notificationSettings`):
-`enabled` off silences all of them, and `directMessages`, `groups`,
-`channels`, `reactions`, and `invites` turn off one kind each. Muting still
-applies on top: a conversation's (`setMuted`), or every channel of a space
-(`setSpaceMuted`, shown as `muted` on the space and on each channel).
+`enabled` off silences all of them, and `directMessages`, `reactions`, and
+`invites` turn off one kind each. Groups and channels follow their alerts
+(above); `groups` and `channels` are whether those defaults aren't `none`.
+A conversation's own alerts still apply on top.
 
 Inviting people to a space sends each invitee a push too: the space's name
 as the title, "<inviter> invited you to join <space>" as the body, a `badge`,
@@ -162,5 +186,8 @@ everyone who replies, and anyone who turns a thread's bell on
 (`messages.setThreadFollowed`) are in it: they get its pushes (the
 `replies` and `threadReplies` notification settings) and, with
 `activity({ threads: true })`, an Activity item per thread with new
-replies. `messages.markThreadRead` sees it, and `messages.threadState` is
-the caller's bell and read state.
+replies. They hear of a thread at any alert level but `none`, and anyone a
+reply @mentions hears of it too (its `mention` item only for apps that
+ask for threads, since only they can open it). `messages.markThreadRead`
+sees the thread and its mentions of the caller, and `messages.threadState`
+is the caller's bell and read state.

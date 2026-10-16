@@ -20,6 +20,10 @@ const INDEXES: Record<string, Record<string, string[]>> = {
     by_account: ["accountId"],
     by_conversation_account: ["conversationId", "accountId"],
   },
+  mentions: {
+    by_account_conversation_sent: ["accountId", "conversationId", "sentAt"],
+    by_account_sent: ["accountId", "sentAt"],
+  },
   messages: {
     by_chat_sent: ["conversationId", "threadOnly", "sentAt"],
     by_conversation_sent: ["conversationId", "sentAt"],
@@ -100,6 +104,10 @@ export function fakeCtx(tables: Record<string, Record<string, unknown>[]>) {
       },
       lt: (field: string, value: number) => {
         filters.push((row) => Number(row[field]) < value);
+        return builder;
+      },
+      lte: (field: string, value: number) => {
+        filters.push((row) => Number(row[field]) <= value);
         return builder;
       },
       filters,

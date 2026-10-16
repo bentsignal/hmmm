@@ -5,11 +5,12 @@ import type { Attachment, messagesProtocol } from "./protocol.ts";
 import { internal } from "./_generated/api.js";
 import { cardsForMessage, GIVE_UP_AFTER_MS } from "./linkCache.ts";
 import { previewedUrls } from "./links.ts";
+import { recordMentions, validMentions } from "./mentions.ts";
 import { fail, requireAccess, toMessage, upsertMember } from "./model.ts";
 import { startFetches } from "./previews.ts";
 import { addReply, replyTo } from "./threads.ts";
 
-// Sending a message, or a reply in a thread.
+// Sending a message, or a reply in a thread, and who it @mentions.
 
 type Args = OperationArgs<(typeof messagesProtocol)["mutations"]["send"]>;
 
@@ -62,6 +63,7 @@ export async function send(
       ? undefined
       : await replyTo(ctx, args.conversationId, args.threadId);
   const linkPreviews = await startLinkCards(ctx, args.messageId, body, sentAt);
+  const mentions = await validMentions(ctx, access, self, body, args.mentions);
   const message = {
     attachments: args.attachments,
     authorId: self,
@@ -70,11 +72,13 @@ export async function send(
     conversationId: args.conversationId,
     linkPreview: linkPreviews?.[0]?.preview ?? undefined,
     linkPreviews,
+    mentions,
     messageId: args.messageId,
     sentAt,
     ...replyFields(reply),
   };
   await ctx.db.insert("messages", message);
+  await recordMentions(ctx, message);
   if (reply !== undefined) {
     await addReply(ctx, { ...reply, authorId: self, sentAt });
   }

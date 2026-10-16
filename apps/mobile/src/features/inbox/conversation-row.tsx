@@ -4,6 +4,7 @@ import { Link } from "expo-router";
 import type { ConversationSummary } from "./types";
 import { Avatar } from "~/components/avatar";
 import { SymbolIcon } from "~/components/symbol-icon";
+import { alertsIcon } from "~/features/messaging/alerts";
 import { usePrefetchConversation } from "~/features/messaging/prefetch";
 import { usernameOf } from "~/features/messaging/profiles";
 import { AffiliatedBadge } from "~/features/profile/affiliated-badge";
@@ -18,8 +19,12 @@ const CHANNEL_GLYPH = { android: "tag", ios: "number" } as const;
  */
 export const INBOX_ROW_HEIGHT = 84;
 
-/** The name, then a channel's space and the muted bell. */
+/**
+ * The name, then a channel's space and its alerts: a crossed-out bell
+ * when hidden, an @ when only mentions alert.
+ */
 function Title({ conversation }: { conversation: ConversationSummary }) {
+  const icon = alertsIcon(conversation.alerts);
   return (
     <View className="flex-1 flex-row items-center gap-1">
       <Text
@@ -34,10 +39,10 @@ function Title({ conversation }: { conversation: ConversationSummary }) {
           {conversation.spaceName}
         </Text>
       )}
-      {conversation.muted && (
+      {icon !== null && (
         <SymbolIcon
-          accessibilityLabel="Alerts hidden"
-          name={{ android: "notifications_off", ios: "bell.slash.fill" }}
+          accessibilityLabel={icon.label}
+          name={icon.name}
           size={12}
           tintColorClassName="accent-muted"
         />

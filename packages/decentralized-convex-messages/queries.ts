@@ -1,0 +1,149 @@
+import { defineOperation } from "@decentralized-convex/plugin";
+import { v } from "convex/values";
+
+import {
+  activityItem,
+  conversation,
+  linkCard,
+  memberEvent,
+  messagePage,
+  notificationSettings,
+  reaction,
+  space,
+  spaceInvite,
+  spaceInviteLink,
+  spaceInviteLinkPreview,
+  threadPage,
+  threadState,
+  threadSummary,
+} from "./shapes.ts";
+
+/** What the Messages protocol reads (see `messagesProtocol`). */
+export const queries = {
+  /**
+   * Your conversations. With `channels`, it also lists the channels of
+   * your spaces that you haven't left out of it; without, it lists only
+   * direct messages and groups (as apps before the unified inbox expect).
+   */
+  inbox: defineOperation({
+    args: v.object({ channels: v.optional(v.boolean()) }),
+    returns: v.array(conversation),
+  }),
+  /**
+   * What happened while you were away, newest first: messages from others
+   * (one item per conversation) and others' reactions to your messages
+   * (one per message). With `threads`, also new replies in threads
+   * you're in (one per thread); with `mentions`, each message that
+   * @mentions you is its own `mention` item. Each conversation shows
+   * what it alerts you about, and channels left out of the inbox show
+   * only mentions. An item lasts until a day after you saw it (see
+   * `markActivitySeen`), and nothing older than `ACTIVITY_HORIZON` shows.
+   */
+  activity: defineOperation({
+    args: v.object({
+      mentions: v.optional(v.boolean()),
+      threads: v.optional(v.boolean()),
+    }),
+    returns: v.array(activityItem),
+  }),
+  /** Which pushes you get (see `setNotificationSettings`). */
+  notificationSettings: defineOperation({
+    args: v.object({}),
+    returns: notificationSettings,
+  }),
+  conversation: defineOperation({
+    args: v.object({ conversationId: v.string() }),
+    returns: v.union(v.null(), conversation),
+  }),
+  list: defineOperation({
+    // At most one cursor: older than `before`, newer than `after`, centered
+    // on the `around` message ID, or the latest page when none is given.
+    args: v.object({
+      after: v.optional(v.number()),
+      around: v.optional(v.string()),
+      before: v.optional(v.number()),
+      conversationId: v.string(),
+    }),
+    returns: messagePage,
+  }),
+  /** A group's newest `MAX_MEMBER_EVENTS` joins and leaves, oldest first. */
+  memberEvents: defineOperation({
+    args: v.object({ conversationId: v.string() }),
+    returns: v.array(memberEvent),
+  }),
+  /**
+   * Reactions to the given messages, gathered from every member's PDS
+   * (each stores its own accounts' reactions).
+   */
+  reactions: defineOperation({
+    args: v.object({
+      conversationId: v.string(),
+      messageIds: v.array(v.string()),
+    }),
+    returns: v.array(reaction),
+  }),
+  /**
+   * A thread: its original message and one page of replies, oldest
+   * first, gathered from every member's PDS. At most one cursor: older
+   * than `before`, newer than `after`, or the latest page.
+   */
+  thread: defineOperation({
+    args: v.object({
+      after: v.optional(v.number()),
+      before: v.optional(v.number()),
+      conversationId: v.string(),
+      threadId: v.string(),
+    }),
+    returns: threadPage,
+  }),
+  /**
+   * The threads of the given messages that have replies, from every
+   * member's PDS (each counts the replies it stores).
+   */
+  threadSummaries: defineOperation({
+    args: v.object({
+      conversationId: v.string(),
+      messageIds: v.array(v.string()),
+    }),
+    returns: v.array(threadSummary),
+  }),
+  /** Your place in a thread: its bell, and how far you've read. */
+  threadState: defineOperation({
+    args: v.object({ conversationId: v.string(), threadId: v.string() }),
+    returns: threadState,
+  }),
+  /**
+   * What this PDS has fetched of each link's preview so far (see
+   * `prefetchLinkPreviews`), at most `MAX_LINK_PREVIEWS` links.
+   */
+  linkPreviews: defineOperation({
+    args: v.object({ urls: v.array(v.string()) }),
+    returns: v.array(linkCard),
+  }),
+  spaces: defineOperation({
+    args: v.object({}),
+    returns: v.array(space),
+  }),
+  space: defineOperation({
+    args: v.object({ spaceId: v.string() }),
+    returns: v.union(v.null(), space),
+  }),
+  /** Spaces you've been invited to and haven't answered, newest first. */
+  spaceInvites: defineOperation({
+    args: v.object({}),
+    returns: v.array(spaceInvite),
+  }),
+  /**
+   * A space's unexpired invite links: all of them for owners, your own
+   * for members.
+   */
+  spaceInviteLinks: defineOperation({
+    args: v.object({ spaceId: v.string() }),
+    returns: v.array(spaceInviteLink),
+  }),
+  /** Where an invite link leads; null when it's unknown or expired. */
+  spaceInviteLinkPreview: defineOperation({
+    args: v.object({ code: v.string() }),
+    returns: v.union(v.null(), spaceInviteLinkPreview),
+  }),
+};

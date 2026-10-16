@@ -28,6 +28,7 @@ export function toMessage(
     id: message.messageId,
     linkPreview: message.linkPreview ?? undefined,
     linkPreviews: message.linkPreviews,
+    mentions: message.mentions,
     reactions,
     quote: message.quote,
     sentAt: new Date(message.sentAt),

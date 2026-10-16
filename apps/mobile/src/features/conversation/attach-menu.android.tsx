@@ -37,7 +37,9 @@ export function AttachMenu({
   const [expanded, setExpanded] = useState(false);
   const colors = useMaterialColors();
   return (
-    <NativeHost matchContents>
+    // Sized up front, not matched to its contents, so the message field
+    // doesn't spread over it until Compose reports its size.
+    <NativeHost style={{ height: BUTTON, width: BUTTON }}>
       <DropdownMenu
         expanded={expanded}
         onDismissRequest={() => setExpanded(false)}

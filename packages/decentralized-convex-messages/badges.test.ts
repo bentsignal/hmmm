@@ -79,7 +79,7 @@ void test("counts activity not yet seen, not messages", async (t) => {
       message("group:muted", FRIEND, NOW - HOUR),
     ],
   });
-  assert.equal(await badgeCount(ctx, ME, true), 1);
+  assert.equal(await badgeCount(ctx, ME, { threads: true }), 1);
 });
 
 void test("ignores your own messages", async (t) => {
@@ -92,7 +92,7 @@ void test("ignores your own messages", async (t) => {
       message("direct:a", ME, NOW - HOUR),
     ],
   });
-  assert.equal(await badgeCount(ctx, ME, true), 0);
+  assert.equal(await badgeCount(ctx, ME, { threads: true }), 0);
 });
 
 void test("counts channels shown in the inbox", async (t) => {
@@ -113,7 +113,7 @@ void test("counts channels shown in the inbox", async (t) => {
     spaceMembers: [{ accountId: ME, role: "member", spaceId: "space:1" }],
     spaces: [{ createdBy: FRIEND, name: "One", spaceId: "space:1" }],
   });
-  assert.equal(await badgeCount(ctx, ME, true), 1);
+  assert.equal(await badgeCount(ctx, ME, { threads: true }), 1);
 });
 
 void test("counts new reactions to your messages", async (t) => {
@@ -135,7 +135,7 @@ void test("counts new reactions to your messages", async (t) => {
       },
     ],
   });
-  assert.equal(await badgeCount(ctx, ME, true), 1);
+  assert.equal(await badgeCount(ctx, ME, { threads: true }), 1);
 });
 
 void test("adds pending invitations to spaces that still exist", async (t) => {
@@ -153,10 +153,10 @@ void test("adds pending invitations to spaces that still exist", async (t) => {
       { createdBy: FRIEND, name: "Two", spaceId: "space:2" },
     ],
   });
-  assert.equal(await badgeCount(ctx, ME, true), 2);
+  assert.equal(await badgeCount(ctx, ME, { threads: true }), 2);
 });
 
 void test("is zero with nothing waiting", async (t) => {
   at(t);
-  assert.equal(await badgeCount(fakeCtx({}).ctx, ME, true), 0);
+  assert.equal(await badgeCount(fakeCtx({}).ctx, ME, { threads: true }), 0);
 });

@@ -49,6 +49,13 @@ function Headline({
 }) {
   const { item, title } = entry;
   const who = names(actorsOf(item), profileOf);
+  if (item.kind === "mention") {
+    return (
+      <>
+        <Bold>{who}</Bold> mentioned you in <Bold>{title}</Bold>
+      </>
+    );
+  }
   if (item.kind === "reactions") {
     const emoji = [...new Set(item.reactions.map(({ emoji }) => emoji))];
     return (
@@ -85,6 +92,7 @@ function Headline({
 /** The message: theirs, or yours that they reacted to. */
 function body(entry: ActivityEntry, profileOf: ProfileOf) {
   const { item } = entry;
+  if (item.kind === "mention") return messageText(item.message);
   if (item.kind === "reactions") {
     const { message } = item;
     return message.body.length > 0
@@ -104,6 +112,13 @@ function counted(count: number, noun: string) {
   return `${count}${many ? "+" : ""} ${noun}`;
 }
 
+/** How many messages or replies a row holds, when it's more than one. */
+function countOf(item: ActivityEntry["item"]) {
+  if (item.kind !== "messages" && item.kind !== "thread") return null;
+  if (item.count <= 1) return null;
+  return counted(item.count, item.kind === "thread" ? "replies" : "messages");
+}
+
 /** Where it happened and how much, under the message. */
 function footnote(entry: ActivityEntry, showAccount: boolean) {
   const { item, title } = entry;
@@ -114,25 +129,30 @@ function footnote(entry: ActivityEntry, showAccount: boolean) {
   }
   if (item.kind === "reactions" && kind !== "direct") parts.push(`in ${title}`);
   if (spaceName !== undefined) parts.push(spaceName);
-  if (item.kind !== "reactions" && item.count > 1) {
-    parts.push(
-      counted(item.count, item.kind === "thread" ? "replies" : "messages"),
-    );
-  }
+  const count = countOf(item);
+  if (count !== null) parts.push(count);
   if (showAccount) parts.push(usernameOf(entry.account));
   return parts.join(" · ");
+}
+
+/** The message a row is about, for a reaction or a mention. */
+function itemMessage(item: ActivityEntry["item"]) {
+  return item.kind === "reactions" || item.kind === "mention"
+    ? item.message
+    : undefined;
 }
 
 /** Where tapping a row goes: the conversation, or a reply's thread. */
 function destination({ account, item, title }: ActivityEntry) {
   const { conversationId } = item.conversation;
-  // A reaction to a reply kept in its thread opens the thread, where the
-  // reply is.
+  const message = itemMessage(item);
+  // A reaction to or mention in a reply kept in its thread opens the
+  // thread, where the reply is.
   const threadId =
     item.kind === "thread"
       ? item.threadId
-      : item.kind === "reactions" && item.message.threadOnly === true
-        ? item.message.threadId
+      : message?.threadOnly === true
+        ? message.threadId
         : undefined;
   if (threadId !== undefined) {
     return {
@@ -145,10 +165,8 @@ function destination({ account, item, title }: ActivityEntry) {
       account,
       conversationId,
       title,
-      // A reaction opens at the message.
-      ...(item.kind === "reactions"
-        ? { messageId: item.message.messageId }
-        : {}),
+      // A reaction or a mention opens at the message.
+      ...(message === undefined ? {} : { messageId: message.messageId }),
     },
     pathname: "/conversation/[conversationId]" as const,
   };
@@ -157,7 +175,8 @@ function destination({ account, item, title }: ActivityEntry) {
 /**
  * One Activity row: the person who acted, what happened (a reaction's
  * emoji in its headline), and a dot until it's been seen. Tapping opens
- * the conversation, at the message for a reaction, or a reply's thread.
+ * the conversation, at the message for a reaction or a mention, or a
+ * reply's thread.
  */
 export function ActivityRow({
   entry,

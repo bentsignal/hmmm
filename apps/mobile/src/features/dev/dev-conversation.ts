@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 
 import type { Message } from "~/features/conversation/types";
+import type { OutgoingDraft } from "~/features/messaging/outbox";
 import { env } from "~/env";
 
 /** What scripts can do in the open conversation (see `useDevConversation`). */
@@ -30,7 +31,7 @@ export function useDevConversation({
 }: {
   messages: readonly Message[];
   toggleReaction: (messageId: string, emoji: string) => void;
-  sendMessage: (body: string) => void;
+  sendMessage: (draft: OutgoingDraft) => void;
 }) {
   // eslint-disable-next-line no-restricted-syntax -- Hands the open conversation to dev scripts, which run outside React; debug builds only.
   useEffect(() => {
@@ -41,7 +42,8 @@ export function useDevConversation({
         if (message === undefined) throw new Error(`No message "${text}"`);
         toggleReaction(message.id, emoji);
       },
-      send: sendMessage,
+      send: (body) =>
+        sendMessage({ body, files: [], linkPreviews: [], mentions: [] }),
     };
     return () => {
       open = undefined;

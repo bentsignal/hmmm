@@ -71,6 +71,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   }>;
                   body: string;
                   conversationId: string;
+                  mentions?: Array<{ accountId: string; name: string }>;
                   messageId: string;
                   threadId?: string;
                 };
@@ -115,14 +116,27 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 type: "setMuted";
               }
             | {
+                args: {
+                  alerts: "all" | "mentions" | "none";
+                  conversationId: string;
+                };
+                type: "setAlerts";
+              }
+            | {
                 args: { muted: boolean; spaceId: string };
                 type: "setSpaceMuted";
               }
             | {
+                args: { alerts: "all" | "mentions" | "none"; spaceId: string };
+                type: "setSpaceAlerts";
+              }
+            | {
                 args: {
+                  channelAlerts?: "all" | "mentions" | "none";
                   channels?: boolean;
                   directMessages?: boolean;
                   enabled?: boolean;
+                  groupAlerts?: "all" | "mentions" | "none";
                   groups?: boolean;
                   invites?: boolean;
                   reactions?: boolean;
@@ -253,6 +267,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   };
                 };
               }>;
+              mentions?: Array<{ accountId: string; name: string }>;
               messageId: string;
               quote?: {
                 attachment?: {
@@ -281,7 +296,9 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         | { routes?: Array<string>; type: "markActivitySeen"; value: null }
         | { routes?: Array<string>; type: "markRead"; value: null }
         | { routes?: Array<string>; type: "setMuted"; value: null }
+        | { routes?: Array<string>; type: "setAlerts"; value: null }
         | { routes?: Array<string>; type: "setSpaceMuted"; value: null }
+        | { routes?: Array<string>; type: "setSpaceAlerts"; value: null }
         | {
             routes?: Array<string>;
             type: "setNotificationSettings";
@@ -352,7 +369,10 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           lastChanged: "0.1.0";
           operation:
             | { args: { channels?: boolean }; type: "inbox" }
-            | { args: { threads?: boolean }; type: "activity" }
+            | {
+                args: { mentions?: boolean; threads?: boolean };
+                type: "activity";
+              }
             | { args: {}; type: "notificationSettings" }
             | { args: { conversationId: string }; type: "conversation" }
             | {
@@ -398,6 +418,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             routes?: Array<string>;
             type: "inbox";
             value: Array<{
+              alerts?: "all" | "mentions" | "none";
               conversationId: string;
               kind: "direct" | "group" | "channel";
               lastMessage: null | {
@@ -445,6 +466,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     };
                   };
                 }>;
+                mentions?: Array<{ accountId: string; name: string }>;
                 messageId: string;
                 quote?: {
                   attachment?: {
@@ -539,6 +561,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                         };
                       };
                     }>;
+                    mentions?: Array<{ accountId: string; name: string }>;
                     messageId: string;
                     quote?: {
                       attachment?: {
@@ -619,6 +642,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                         };
                       };
                     }>;
+                    mentions?: Array<{ accountId: string; name: string }>;
                     messageId: string;
                     quote?: {
                       attachment?: {
@@ -645,6 +669,87 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     messageId: string;
                     reactedAt: number;
                   }>;
+                  seenAt?: number;
+                  seenThrough?: number;
+                }
+              | {
+                  at: number;
+                  conversation: {
+                    conversationId: string;
+                    kind: "direct" | "group" | "channel";
+                    members: Array<string>;
+                    name: null | string;
+                    spaceId: null | string;
+                    spaceName?: string;
+                  };
+                  key: string;
+                  kind: "mention";
+                  message: {
+                    attachments: Array<{
+                      durationMs?: number;
+                      height?: number;
+                      kind: "image" | "video" | "file";
+                      mimeType: string;
+                      name: string;
+                      size: number;
+                      thumbnailUrl?: string;
+                      url: string;
+                      width?: number;
+                    }>;
+                    authorId: string;
+                    authorName: string;
+                    body: string;
+                    conversationId: string;
+                    linkPreview: null | {
+                      description?: string;
+                      imageUrl?: string;
+                      siteName?: string;
+                      title?: string;
+                      url: string;
+                      video?: {
+                        durationMs?: number;
+                        height?: number;
+                        url: string;
+                        width?: number;
+                      };
+                    };
+                    linkPreviews?: Array<{
+                      link: string;
+                      preview?: null | {
+                        description?: string;
+                        imageUrl?: string;
+                        siteName?: string;
+                        title?: string;
+                        url: string;
+                        video?: {
+                          durationMs?: number;
+                          height?: number;
+                          url: string;
+                          width?: number;
+                        };
+                      };
+                    }>;
+                    mentions?: Array<{ accountId: string; name: string }>;
+                    messageId: string;
+                    quote?: {
+                      attachment?: {
+                        durationMs?: number;
+                        height?: number;
+                        kind: "image" | "video" | "file";
+                        mimeType: string;
+                        name: string;
+                        size: number;
+                        thumbnailUrl?: string;
+                        url: string;
+                        width?: number;
+                      };
+                      authorId: string;
+                      body: string;
+                    };
+                    sentAt: number;
+                    threadId?: string;
+                    threadOnly?: boolean;
+                  };
                   seenAt?: number;
                   seenThrough?: number;
                 }
@@ -707,6 +812,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                         };
                       };
                     }>;
+                    mentions?: Array<{ accountId: string; name: string }>;
                     messageId: string;
                     quote?: {
                       attachment?: {
@@ -772,6 +878,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                         };
                       };
                     }>;
+                    mentions?: Array<{ accountId: string; name: string }>;
                     messageId: string;
                     quote?: {
                       attachment?: {
@@ -802,9 +909,11 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             routes?: Array<string>;
             type: "notificationSettings";
             value: {
+              channelAlerts?: "all" | "mentions" | "none";
               channels: boolean;
               directMessages: boolean;
               enabled: boolean;
+              groupAlerts?: "all" | "mentions" | "none";
               groups: boolean;
               invites: boolean;
               reactions: boolean;
@@ -816,6 +925,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             routes?: Array<string>;
             type: "conversation";
             value: null | {
+              alerts?: "all" | "mentions" | "none";
               conversationId: string;
               kind: "direct" | "group" | "channel";
               lastMessage: null | {
@@ -863,6 +973,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     };
                   };
                 }>;
+                mentions?: Array<{ accountId: string; name: string }>;
                 messageId: string;
                 quote?: {
                   attachment?: {
@@ -945,6 +1056,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     };
                   };
                 }>;
+                mentions?: Array<{ accountId: string; name: string }>;
                 messageId: string;
                 quote?: {
                   attachment?: {
@@ -1039,6 +1151,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     };
                   };
                 }>;
+                mentions?: Array<{ accountId: string; name: string }>;
                 messageId: string;
                 quote?: {
                   attachment?: {
@@ -1104,6 +1217,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     };
                   };
                 }>;
+                mentions?: Array<{ accountId: string; name: string }>;
                 messageId: string;
                 quote?: {
                   attachment?: {
@@ -1165,7 +1279,9 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             routes?: Array<string>;
             type: "spaces";
             value: Array<{
+              alerts?: "all" | "mentions" | "none";
               channels: Array<{
+                alerts?: "all" | "mentions" | "none";
                 conversationId: string;
                 muted?: boolean;
                 name: string;
@@ -1187,7 +1303,9 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             routes?: Array<string>;
             type: "space";
             value: null | {
+              alerts?: "all" | "mentions" | "none";
               channels: Array<{
+                alerts?: "all" | "mentions" | "none";
                 conversationId: string;
                 muted?: boolean;
                 name: string;

@@ -98,9 +98,6 @@ export function InviteLinksSection({
           {inviteLinkUrl(link.code).replace("https://", "")}
         </ListItem>
       ))}
-      <FieldGroup.SectionFooter>
-        <Text>Anyone with a link can join the space until it expires.</Text>
-      </FieldGroup.SectionFooter>
     </FieldGroup.Section>
   );
 }

@@ -9,6 +9,7 @@ import { pds } from "@vera/backend/pds";
 
 import type { ConversationSummary } from "~/features/inbox/types";
 import { useVisibleAccounts } from "./account";
+import { conversationAlerts } from "./alerts";
 import { conversationTitle } from "./conversations";
 import { useProfileState } from "./profiles";
 import { pdsResult } from "./results";
@@ -61,6 +62,7 @@ function summarize(
     hasMessages: conversation.lastMessage !== null,
     memberIds: conversation.members,
     muted: conversation.muted,
+    alerts: conversationAlerts(conversation),
     pinnedAt: conversation.pinnedAt ?? null,
     spaceId: conversation.spaceId,
     spaceName: conversation.spaceName ?? null,

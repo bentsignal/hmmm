@@ -1,4 +1,8 @@
-import type { Channel, Conversation } from "@decentralized-convex/messages";
+import type {
+  AlertLevel,
+  Channel,
+  Conversation,
+} from "@decentralized-convex/messages";
 import type { PdsOptimisticLocalStore } from "@decentralized-convex/tanstack-query";
 import { useMutation } from "@tanstack/react-query";
 import { channelName } from "@decentralized-convex/messages";
@@ -8,8 +12,8 @@ import { pds } from "@vera/backend/pds";
 import { useAccount } from "./account";
 import { updateSpace } from "./optimistic";
 
-// A channel's own settings (Show in Inbox, Hide Alerts, its name, deleting
-// it) and a space's Hide Alerts, each shown the moment it's changed.
+// A channel's own settings (Show in Inbox, its alerts, its name, deleting
+// it) and a space's alerts, each shown the moment it's changed.
 
 type Store = PdsOptimisticLocalStore;
 
@@ -72,9 +76,29 @@ export function showSetMuted(
   store: Store,
   args: { conversationId: string; muted: boolean },
 ) {
-  const { conversationId, muted } = args;
-  updateChannel(store, conversationId, (channel) => ({ ...channel, muted }));
-  updateConversation(store, conversationId, (item) => ({ ...item, muted }));
+  showSetAlerts(store, {
+    alerts: args.muted ? "none" : "all",
+    conversationId: args.conversationId,
+  });
+}
+
+/** Shows what a conversation alerts about, in its space and the inbox. */
+export function showSetAlerts(
+  store: Store,
+  args: { alerts: AlertLevel; conversationId: string },
+) {
+  const { alerts, conversationId } = args;
+  const muted = alerts === "none";
+  updateChannel(store, conversationId, (channel) => ({
+    ...channel,
+    alerts,
+    muted,
+  }));
+  updateConversation(store, conversationId, (item) => ({
+    ...item,
+    alerts,
+    muted,
+  }));
 }
 
 function showShowInInbox(
@@ -110,13 +134,14 @@ function showDelete(store: Store, args: { conversationId: string }) {
   updateConversation(store, args.conversationId, () => null);
 }
 
-function showSpaceMuted(
+function showSpaceAlerts(
   store: Store,
-  args: { muted: boolean; spaceId: string },
+  args: { alerts: AlertLevel; spaceId: string },
 ) {
   updateSpace(store, args.spaceId, (space) => ({
     ...space,
-    muted: args.muted,
+    alerts: args.alerts,
+    muted: args.alerts === "none",
   }));
 }
 
@@ -138,10 +163,10 @@ export function useChannelSettings() {
         session,
       }),
     ),
-    setMuted: useMutation(
+    setAlerts: useMutation(
       pdsMutation({
-        mutation: pds.messages.setMuted,
-        optimisticUpdate: showSetMuted,
+        mutation: pds.messages.setAlerts,
+        optimisticUpdate: showSetAlerts,
         session,
       }),
     ),
@@ -152,10 +177,10 @@ export function useChannelSettings() {
         session,
       }),
     ),
-    setSpaceMuted: useMutation(
+    setSpaceAlerts: useMutation(
       pdsMutation({
-        mutation: pds.messages.setSpaceMuted,
-        optimisticUpdate: showSpaceMuted,
+        mutation: pds.messages.setSpaceAlerts,
+        optimisticUpdate: showSpaceAlerts,
         session,
       }),
     ),

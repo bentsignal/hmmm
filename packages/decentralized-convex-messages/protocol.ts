@@ -6,24 +6,15 @@ import {
 import { v } from "convex/values";
 
 import { decentralizedConvexPackage } from "./metadata.ts";
+import { queries } from "./queries.ts";
 import {
-  activityItem,
   activitySighting,
+  alertLevel,
   attachment,
-  conversation,
-  linkCard,
-  memberEvent,
+  mention,
   message,
-  messagePage,
-  notificationSettings,
-  reaction,
-  space,
-  spaceInvite,
+  notificationSettingsChange,
   spaceInviteLink,
-  spaceInviteLinkPreview,
-  threadPage,
-  threadState,
-  threadSummary,
 } from "./shapes.ts";
 
 export * from "./shapes.ts";
@@ -65,12 +56,15 @@ export const messagesProtocol = definePluginProtocol({
      * With `threadId`, a reply in that message's thread (a reply's own
      * thread when it names a reply). The thread's first reply also shows
      * in the conversation; later ones come back with `threadOnly`.
+     * `mentions` names who the body @mentions by the name after each `@`;
+     * any not in the group or channel, or not in the body, is left out.
      */
     send: defineOperation({
       args: v.object({
         attachments: v.array(attachment),
         body: v.string(),
         conversationId: v.string(),
+        mentions: v.optional(v.array(mention)),
         messageId: v.string(),
         threadId: v.optional(v.string()),
       }),
@@ -131,30 +125,37 @@ export const messagesProtocol = definePluginProtocol({
       args: v.object({ conversationId: v.string(), readAt: v.number() }),
       returns: v.null(),
     }),
+    /** `setAlerts` with `none` (muted) or `all`, for older apps. */
     setMuted: defineOperation({
       args: v.object({ conversationId: v.string(), muted: v.boolean() }),
       returns: v.null(),
     }),
     /**
-     * Hides alerts for every channel in a space, or shows them again. Each
-     * channel's own `setMuted` still applies.
+     * Chooses what a conversation alerts you about, over its space's choice
+     * and your defaults; choosing what it would get anyway follows those
+     * again. Direct messages take `all` or `none`.
      */
+    setAlerts: defineOperation({
+      args: v.object({ alerts: alertLevel, conversationId: v.string() }),
+      returns: v.null(),
+    }),
+    /** `setSpaceAlerts` with `none` (muted) or `all`, for older apps. */
     setSpaceMuted: defineOperation({
       args: v.object({ muted: v.boolean(), spaceId: v.string() }),
       returns: v.null(),
     }),
-    /** Turns kinds of pushes on or off; fields left out stay as they are. */
+    /** What a space's channels alert you about (see `setAlerts`). */
+    setSpaceAlerts: defineOperation({
+      args: v.object({ alerts: alertLevel, spaceId: v.string() }),
+      returns: v.null(),
+    }),
+    /**
+     * Turns kinds of pushes on or off and sets the default alerts for
+     * groups and channels; fields left out stay as they are. `groups` or
+     * `channels` (from older apps) sets that default to `all` or `none`.
+     */
     setNotificationSettings: defineOperation({
-      args: v.object({
-        channels: v.optional(v.boolean()),
-        directMessages: v.optional(v.boolean()),
-        enabled: v.optional(v.boolean()),
-        groups: v.optional(v.boolean()),
-        invites: v.optional(v.boolean()),
-        reactions: v.optional(v.boolean()),
-        replies: v.optional(v.boolean()),
-        threadReplies: v.optional(v.boolean()),
-      }),
+      args: notificationSettingsChange,
       returns: v.null(),
     }),
     /** Pins a conversation to the top of your inbox, or unpins it. */
@@ -272,132 +273,6 @@ export const messagesProtocol = definePluginProtocol({
       returns: v.null(),
     }),
   },
-  queries: {
-    /**
-     * Your conversations. With `channels`, it also lists the channels of
-     * your spaces that you haven't left out of it; without, it lists only
-     * direct messages and groups (as apps before the unified inbox expect).
-     */
-    inbox: defineOperation({
-      args: v.object({ channels: v.optional(v.boolean()) }),
-      returns: v.array(conversation),
-    }),
-    /**
-     * What happened while you were away, newest first: messages from others
-     * (one item per conversation) and others' reactions to your messages
-     * (one per message). With `threads`, also new replies in threads
-     * you're in (one per thread); apps from before threads don't ask.
-     * Muted conversations and channels left out of the inbox don't
-     * appear. An item lasts until a day after you saw it (see
-     * `markActivitySeen`), and nothing older than `ACTIVITY_HORIZON` shows.
-     */
-    activity: defineOperation({
-      args: v.object({ threads: v.optional(v.boolean()) }),
-      returns: v.array(activityItem),
-    }),
-    /** Which pushes you get (see `setNotificationSettings`). */
-    notificationSettings: defineOperation({
-      args: v.object({}),
-      returns: notificationSettings,
-    }),
-    conversation: defineOperation({
-      args: v.object({ conversationId: v.string() }),
-      returns: v.union(v.null(), conversation),
-    }),
-    list: defineOperation({
-      // At most one cursor: older than `before`, newer than `after`, centered
-      // on the `around` message ID, or the latest page when none is given.
-      args: v.object({
-        after: v.optional(v.number()),
-        around: v.optional(v.string()),
-        before: v.optional(v.number()),
-        conversationId: v.string(),
-      }),
-      returns: messagePage,
-    }),
-    /**
-     * A group's people joining and leaving, oldest first: the newest
-     * `MAX_MEMBER_EVENTS`. Other conversations have none.
-     */
-    memberEvents: defineOperation({
-      args: v.object({ conversationId: v.string() }),
-      returns: v.array(memberEvent),
-    }),
-    /**
-     * Reactions to the given messages, gathered from every member's PDS
-     * (each stores its own accounts' reactions).
-     */
-    reactions: defineOperation({
-      args: v.object({
-        conversationId: v.string(),
-        messageIds: v.array(v.string()),
-      }),
-      returns: v.array(reaction),
-    }),
-    /**
-     * A thread: its original message and one page of replies, oldest
-     * first, gathered from every member's PDS. At most one cursor: older
-     * than `before`, newer than `after`, or the latest page.
-     */
-    thread: defineOperation({
-      args: v.object({
-        after: v.optional(v.number()),
-        before: v.optional(v.number()),
-        conversationId: v.string(),
-        threadId: v.string(),
-      }),
-      returns: threadPage,
-    }),
-    /**
-     * The threads of the given messages that have replies, from every
-     * member's PDS (each counts the replies it stores).
-     */
-    threadSummaries: defineOperation({
-      args: v.object({
-        conversationId: v.string(),
-        messageIds: v.array(v.string()),
-      }),
-      returns: v.array(threadSummary),
-    }),
-    /** Your place in a thread: its bell, and how far you've read. */
-    threadState: defineOperation({
-      args: v.object({ conversationId: v.string(), threadId: v.string() }),
-      returns: threadState,
-    }),
-    /**
-     * What this PDS has fetched of each link's preview so far (see
-     * `prefetchLinkPreviews`), at most `MAX_LINK_PREVIEWS` links.
-     */
-    linkPreviews: defineOperation({
-      args: v.object({ urls: v.array(v.string()) }),
-      returns: v.array(linkCard),
-    }),
-    spaces: defineOperation({
-      args: v.object({}),
-      returns: v.array(space),
-    }),
-    space: defineOperation({
-      args: v.object({ spaceId: v.string() }),
-      returns: v.union(v.null(), space),
-    }),
-    /** Spaces you've been invited to and haven't answered, newest first. */
-    spaceInvites: defineOperation({
-      args: v.object({}),
-      returns: v.array(spaceInvite),
-    }),
-    /**
-     * A space's unexpired invite links: all of them for owners, your own
-     * for members.
-     */
-    spaceInviteLinks: defineOperation({
-      args: v.object({ spaceId: v.string() }),
-      returns: v.array(spaceInviteLink),
-    }),
-    /** Where an invite link leads; null when it's unknown or expired. */
-    spaceInviteLinkPreview: defineOperation({
-      args: v.object({ code: v.string() }),
-      returns: v.union(v.null(), spaceInviteLinkPreview),
-    }),
-  },
+  queries,
   requires: { accounts: DECENTRALIZED_CONVEX_VERSION },
 });

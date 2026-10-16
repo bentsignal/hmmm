@@ -1,21 +1,23 @@
+import type { Mention } from "@decentralized-convex/messages";
 import { Directory, File, Paths } from "expo-file-system";
 
 import type { StagedFile } from "~/features/messaging/attachments";
 
 /**
  * Unsent messages, one per conversation and account, kept on this device
- * only (never synced): the text and the attachments picked or pasted for
- * it, so leaving a conversation and coming back finds the message as it
- * was left.
+ * only (never synced): the text, who it @mentions, and the attachments
+ * picked or pasted for it, so leaving a conversation and coming back finds
+ * the message as it was left.
  */
 export interface Draft {
   readonly text: string;
   readonly files: readonly StagedFile[];
+  readonly mentions: readonly Mention[];
 }
 
 type LocalFile = NonNullable<StagedFile["poster"]>;
 
-const EMPTY = { files: [], text: "" } satisfies Draft;
+const EMPTY = { files: [], mentions: [], text: "" } satisfies Draft;
 /** How long typing pauses before the drafts are written to disk. */
 const SAVE_DELAY_MS = 400;
 const KINDS = ["file", "image", "video"] as const;
@@ -107,12 +109,25 @@ function filesFrom(stored: unknown) {
     : [];
 }
 
+function mentionsFrom(stored: unknown) {
+  if (!Array.isArray(stored)) return [];
+  return stored.flatMap((mention: unknown) => {
+    if (typeof mention !== "object" || mention === null) return [];
+    const accountId = stringIn(mention, "accountId");
+    const name = stringIn(mention, "name");
+    return accountId === undefined || name === undefined
+      ? []
+      : [{ accountId, name }];
+  });
+}
+
 function draftFrom(stored: unknown) {
   // Drafts saved before attachments were kept are only their text.
   if (typeof stored === "string") return { ...EMPTY, text: stored };
   if (typeof stored !== "object" || stored === null) return EMPTY;
   return {
     files: filesFrom(Reflect.get(stored, "files")),
+    mentions: mentionsFrom(Reflect.get(stored, "mentions")),
     text: stringIn(stored, "text") ?? "",
   } satisfies Draft;
 }
@@ -219,6 +234,11 @@ export function readDraft(key: string) {
 export function saveDraftText(key: string, text: string) {
   if (readDraft(key).text === text) return;
   update(key, { text });
+}
+
+/** Saves who the text @mentions. */
+export function saveDraftMentions(key: string, mentions: readonly Mention[]) {
+  update(key, { mentions });
 }
 
 /** Saves the attachments staged for the message. */

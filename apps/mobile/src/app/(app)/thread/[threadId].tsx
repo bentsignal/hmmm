@@ -6,6 +6,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import type { MessageListHandle } from "~/features/conversation/message-list";
 import { useComposerBottomInset } from "~/features/conversation/composer";
 import { FloatingComposer } from "~/features/conversation/floating-composer";
+import { mentionableIn } from "~/features/conversation/mentionable";
 import { MessageList } from "~/features/conversation/message-list";
 import {
   THREAD_HEADER_HEIGHT,
@@ -133,9 +134,10 @@ function Thread({
           draftId={`${conversationId} thread:${threadId}`}
           autoFocus={focus}
           placeholder="Reply"
+          mentionable={mentionableIn(conversation, address, profileOf)}
           onHeight={setComposerHeight}
-          onSend={(body, files, linkPreviews) => {
-            thread.sendMessage(body, files, linkPreviews);
+          onSend={(draft) => {
+            thread.sendMessage(draft);
             list.current?.scrollToLatest();
             devTools.replyToMe(conversationId, threadId);
           }}
