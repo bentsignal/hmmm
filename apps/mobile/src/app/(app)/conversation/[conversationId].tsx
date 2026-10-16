@@ -23,6 +23,13 @@ import {
   CONVERSATION_HEADER_HEIGHT,
   ConversationHeader,
 } from "~/features/conversation/conversation-header";
+import {
+  discardStaged,
+  draftKey,
+  keepForDraft,
+  readDraft,
+  saveDraftFiles,
+} from "~/features/conversation/drafts";
 import { MessageList } from "~/features/conversation/message-list";
 import { useDevConversation } from "~/features/dev/dev-conversation";
 import { useDevTools } from "~/features/dev/dev-tools";
@@ -43,7 +50,7 @@ import { useMessageLayout } from "~/features/preferences/store";
 
 /**
  * The composer floating over the bottom of the conversation, holding what's
- * picked for the next message until it's sent. Reports its height so
+ * picked for the next message until it's sent, in its draft on this device. Reports its height so
  * messages can scroll under it.
  */
 function FloatingComposer({
@@ -63,9 +70,11 @@ function FloatingComposer({
   ) => void;
 }) {
   const bottomInset = useComposerBottomInset();
+  const { address } = useAccount();
+  const key = draftKey(address, conversationId);
   const links = useLinkPrefetch();
   const devTools = useDevTools();
-  const [staged, setStaged] = useState<readonly StagedFile[]>([]);
+  const [staged, setStaged] = useState(() => readDraft(key).files);
   // One picker at a time: a second tap on the menu while one is still
   // handing over files does nothing.
   const picking = useRef(false);
@@ -79,8 +88,22 @@ function FloatingComposer({
     return true;
   }
 
+  /**
+   * Changes the staged files and saves them in the draft. Starts from the
+   * draft's, which are current even after awaiting a picker.
+   */
+  function restage(
+    change: (current: readonly StagedFile[]) => readonly StagedFile[],
+  ) {
+    const next = change(readDraft(key).files);
+    saveDraftFiles(key, next);
+    setStaged(next);
+  }
+
   function add(files: readonly StagedFile[]) {
-    setStaged((current) => [...current, ...files].slice(0, MAX_ATTACHMENTS));
+    restage((current) =>
+      [...current, ...keepForDraft(files)].slice(0, MAX_ATTACHMENTS),
+    );
   }
 
   async function pick(source: AttachmentSource) {
@@ -109,6 +132,7 @@ function FloatingComposer({
       style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
     >
       <Composer
+        draftKey={key}
         bottomInset={bottomInset}
         staged={staged}
         mentionable={mentionable}
@@ -118,12 +142,16 @@ function FloatingComposer({
         onChangeText={links.onChangeText}
         onPick={(source) => void pick(source)}
         onPaste={paste}
-        onRemoveStaged={(id) =>
-          setStaged((current) => current.filter((file) => file.id !== id))
-        }
+        onRemoveStaged={(id) => {
+          const removed = staged.find((file) => file.id === id);
+          if (removed !== undefined) discardStaged(removed);
+          restage((current) => current.filter((file) => file.id !== id));
+        }}
         onSend={(body, mentions) => {
           onSend(body, staged, links.cardsFor(body), mentions);
-          setStaged([]);
+          // The outbox uploads the files from where they are; the drafts
+          // folder clears them out next launch.
+          restage(() => []);
           devTools.replyToMe(conversationId);
         }}
       />

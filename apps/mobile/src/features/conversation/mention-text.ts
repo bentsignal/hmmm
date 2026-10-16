@@ -100,13 +100,17 @@ export function mentionRanges(
   mentions: readonly Mention[] | undefined,
 ) {
   if (mentions === undefined || mentions.length === 0) return [];
-  const names = [...new Set(mentions.map(({ name }) => name))].sort(
+  // Each name once, with whoever it names first.
+  const byName = new Map<string, string>();
+  for (const { accountId, name } of mentions) {
+    if (!byName.has(name)) byName.set(name, accountId);
+  }
+  const names = [...byName.keys()].sort(
     (left, right) => right.length - left.length,
   );
   const found = new Array<TextRange & { accountId: string }>();
   for (const name of names) {
-    const accountId =
-      mentions.find((mention) => mention.name === name)?.accountId ?? "";
+    const accountId = byName.get(name) ?? "";
     const token = `@${name}`;
     let from = text.indexOf(token);
     while (from !== -1) {

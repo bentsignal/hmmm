@@ -22,6 +22,7 @@ import { SymbolIcon } from "~/components/symbol-icon";
 import { cn } from "~/lib/cn";
 import { PASTE_IMAGES_NATIVE_ID, usePastedImages } from "~/lib/paste-images";
 import { AttachMenu } from "./attach-menu";
+import { readDraft, saveDraftText } from "./drafts";
 import { MentionPicker } from "./mention-picker";
 import { StagedAttachments } from "./staged-attachments";
 import { useMentions } from "./use-mentions";
@@ -150,9 +151,12 @@ function Bar({
 /**
  * The message field with its "+" menu and the attachments picked or pasted
  * for the message, which upload only once it's sent. In a group or channel,
- * typing `@` lists the people in it, above the field, to mention.
+ * typing `@` lists the people in it, above the field, to mention. Unsent
+ * text and its mentions are kept as a draft on this device (see
+ * `drafts.ts`).
  */
 export function Composer({
+  draftKey,
   staged,
   mentionable,
   onSend,
@@ -163,6 +167,8 @@ export function Composer({
   onHeight,
   bottomInset,
 }: {
+  /** From `draftKey`: the account and conversation the draft belongs to. */
+  draftKey: string;
   staged: readonly StagedFile[];
   /** Who can be @mentioned; undefined where nobody can. */
   mentionable?: readonly MentionCandidate[];
@@ -179,8 +185,8 @@ export function Composer({
   /** From `useComposerBottomInset`. */
   bottomInset: number;
 }) {
-  const [draft, setDraft] = useState("");
-  const mention = useMentions(draft, mentionable);
+  const [draft, setDraft] = useState(() => readDraft(draftKey).text);
+  const mention = useMentions(draft, mentionable, draftKey);
   const input = useRef<TextInput>(null);
   // Only the field being pasted into is focused; another conversation's
   // composer can be mounted beneath this one.
@@ -208,6 +214,7 @@ export function Composer({
     if (text !== "") sentAt.current = null;
     const next = mention.edited(text);
     setDraft(next);
+    saveDraftText(draftKey, next);
     onChangeText?.(next);
   }
 
@@ -215,6 +222,7 @@ export function Composer({
     const text = mention.pick(person);
     if (text === null) return;
     setDraft(text);
+    saveDraftText(draftKey, text);
     onChangeText?.(text);
   }
 

@@ -6,6 +6,7 @@ import type {
 import { useState } from "react";
 
 import type { MentionCandidate } from "./mention-text";
+import { readDraft, saveDraftMentions } from "./drafts";
 import {
   deleteWholeMention,
   insertMention,
@@ -22,13 +23,21 @@ interface Selection {
 /**
  * The message field's @mentions: who's been picked, the people the
  * `@name` being typed at the cursor could be, and picking one. Nobody can
- * be mentioned where `mentionable` is undefined (direct messages).
+ * be mentioned where `mentionable` is undefined (direct messages). Who's
+ * been picked is kept with the draft (`draftKey`).
  */
 export function useMentions(
   draft: string,
   mentionable: readonly MentionCandidate[] | undefined,
+  draftKey: string,
 ) {
-  const [mentions, setMentions] = useState<readonly Mention[]>([]);
+  const [mentions, setPicked] = useState<readonly Mention[]>(
+    () => readDraft(draftKey).mentions,
+  );
+  function setMentions(next: readonly Mention[]) {
+    setPicked(next);
+    saveDraftMentions(draftKey, next);
+  }
   const [selection, setSelection] = useState<Selection>({ end: 0, start: 0 });
   // Where the cursor goes after the text is changed here, until the field
   // reports it's there.
