@@ -1,4 +1,4 @@
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import Animated, {
   FadeIn,
   LayoutAnimationConfig,
@@ -17,18 +17,20 @@ export const THREAD_HEADER_HEIGHT = BUTTON + 8;
 
 /**
  * A thread's header: a floating glass back button, "Thread" over the
- * conversation's name in the middle, and the thread's bell, which turns
- * its notifications off or back on.
+ * conversation's name in the middle, which opens the conversation, and
+ * the thread's bell, which turns its notifications off or back on.
  */
 export function ThreadHeader({
   title,
   following,
+  onOpenConversation,
   onToggleFollowing,
 }: {
   /** The conversation's name. */
   title: string;
   /** Whether the bell is on; undefined until it has loaded. */
   following: boolean | undefined;
+  onOpenConversation: () => void;
   onToggleFollowing: () => void;
 }) {
   const router = useRouter();
@@ -51,23 +53,39 @@ export function ThreadHeader({
               else router.replace("/");
             }}
           />
-          <GlassSurface
-            className="items-center justify-center rounded-full px-4"
-            style={{ height: BUTTON, maxWidth: 220 }}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={title === "" ? "Thread" : `Thread in ${title}`}
+            accessibilityHint="Opens the conversation"
+            onPress={onOpenConversation}
           >
-            <Text className="text-subhead text-foreground font-semibold">
-              Thread
-            </Text>
-            {title !== "" && (
-              <Animated.Text
-                entering={FadeIn.duration(200)}
-                numberOfLines={1}
-                className="text-caption text-muted"
+            {({ pressed }) => (
+              <GlassSurface
+                className="items-center justify-center rounded-full px-4"
+                style={{ height: BUTTON, maxWidth: 220 }}
               >
-                {title}
-              </Animated.Text>
+                {/* Dims what's on the glass, not the glass itself, which a
+                    parent's opacity breaks (see `GlassSurface`). */}
+                <View
+                  className="items-center"
+                  style={{ opacity: pressed ? 0.7 : 1 }}
+                >
+                  <Text className="text-subhead text-foreground font-semibold">
+                    Thread
+                  </Text>
+                  {title !== "" && (
+                    <Animated.Text
+                      entering={FadeIn.duration(200)}
+                      numberOfLines={1}
+                      className="text-caption text-muted"
+                    >
+                      {title}
+                    </Animated.Text>
+                  )}
+                </View>
+              </GlassSurface>
             )}
-          </GlassSurface>
+          </Pressable>
           <View style={{ width: BUTTON }}>
             {/* Once loaded, its glass materializes. */}
             {following !== undefined && (

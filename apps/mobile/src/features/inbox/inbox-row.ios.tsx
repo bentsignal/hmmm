@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { View } from "react-native";
 import { useRouter } from "expo-router";
 import { Button, ContextMenu, Host, List, RNHostView } from "@expo/ui/swift-ui";
@@ -15,11 +16,17 @@ import {
 import { useCSSVariable } from "uniwind";
 
 import type { RowAction } from "./row-actions";
-import type { ConversationSummary } from "./types";
+import type { ConversationSummary, ThreadSummaryRow } from "./types";
 import { useRunAs } from "~/features/messaging/account";
 import { usePrefetchConversation } from "~/features/messaging/prefetch";
 import { ConversationRowContent, INBOX_ROW_HEIGHT } from "./conversation-row";
-import { afterMenuCloses, inboxMenuActions } from "./row-actions";
+import {
+  afterMenuCloses,
+  inboxMenuActions,
+  threadMenuActions,
+} from "./row-actions";
+import { conversationHref, threadHref } from "./thread-links";
+import { ThreadRowContent } from "./thread-row";
 
 /** Where the text starts (unread gutter, photo, gap): the separator's inset. */
 const TEXT_INSET = 24 + 46 + 12;
@@ -56,33 +63,21 @@ function ActionButtons({
 }
 
 /**
- * An Inbox row on iOS. Each row is a one-row SwiftUI List, so it gets the
- * system's own press highlight and separator, and long-press opens the
- * native context menu with the row's actions. The row's content is the
- * shared React Native view, hosted inside and ignoring touches so SwiftUI
- * handles taps and presses.
+ * One native Inbox row: a one-row SwiftUI List, so it gets the system's
+ * own press highlight and separator, with `actions` in its long-press
+ * menu. `children` is the shared React Native look, hosted inside and
+ * ignoring touches so SwiftUI handles taps and presses.
  */
-export function InboxRow({
-  conversation,
-  showAccount,
+function NativeRow({
+  actions,
+  onPress,
+  children,
 }: {
-  conversation: ConversationSummary;
-  showAccount: boolean;
+  actions: readonly RowAction[];
+  onPress: () => void;
+  children: ReactNode;
 }) {
-  const router = useRouter();
-  const runAs = useRunAs();
-  const prefetch = usePrefetchConversation();
   const colors = useToneColors();
-  const { account, id, title } = conversation;
-
-  function open() {
-    prefetch(account, id);
-    router.push({
-      pathname: "/conversation/[conversationId]",
-      params: { account, conversationId: id, title },
-    });
-  }
-
   return (
     <Host style={{ height: INBOX_ROW_HEIGHT }}>
       <List
@@ -101,10 +96,7 @@ export function InboxRow({
           ]}
         >
           <ContextMenu.Items>
-            <ActionButtons
-              actions={inboxMenuActions(runAs, conversation)}
-              colors={colors}
-            />
+            <ActionButtons actions={actions} colors={colors} />
           </ContextMenu.Items>
           <ContextMenu.Trigger>
             <Button
@@ -113,7 +105,7 @@ export function InboxRow({
                 frame({ height: INBOX_ROW_HEIGHT, maxWidth: Infinity }),
                 alignmentGuide("listRowSeparatorLeading", TEXT_INSET),
               ]}
-              onPress={open}
+              onPress={onPress}
             >
               <RNHostView>
                 {/* A fixed height, not flex: SwiftUI reports the host's
@@ -125,11 +117,7 @@ export function InboxRow({
                   className="flex-row"
                   style={{ height: INBOX_ROW_HEIGHT }}
                 >
-                  <ConversationRowContent
-                    conversation={conversation}
-                    showAccount={showAccount}
-                    separator={false}
-                  />
+                  {children}
                 </View>
               </RNHostView>
             </Button>
@@ -137,5 +125,67 @@ export function InboxRow({
         </ContextMenu>
       </List>
     </Host>
+  );
+}
+
+/**
+ * An Inbox row on iOS: a native row (see `NativeRow`) whose long-press
+ * menu holds the conversation's actions.
+ */
+export function InboxRow({
+  conversation,
+  showAccount,
+}: {
+  conversation: ConversationSummary;
+  showAccount: boolean;
+}) {
+  const router = useRouter();
+  const runAs = useRunAs();
+  const prefetch = usePrefetchConversation();
+  const { account, id, title } = conversation;
+
+  function open() {
+    prefetch(account, id);
+    router.push({
+      pathname: "/conversation/[conversationId]",
+      params: { account, conversationId: id, title },
+    });
+  }
+
+  return (
+    <NativeRow actions={inboxMenuActions(runAs, conversation)} onPress={open}>
+      <ConversationRowContent
+        conversation={conversation}
+        showAccount={showAccount}
+        separator={false}
+      />
+    </NativeRow>
+  );
+}
+
+/** A thread's Inbox row on iOS, which opens the thread. */
+export function ThreadInboxRow({
+  thread,
+  showAccount,
+}: {
+  thread: ThreadSummaryRow;
+  showAccount: boolean;
+}) {
+  const router = useRouter();
+  const runAs = useRunAs();
+  const actions = threadMenuActions(runAs, thread, () =>
+    router.push(conversationHref(thread)),
+  );
+  return (
+    <NativeRow
+      actions={actions}
+      onPress={() => router.push(threadHref(thread))}
+    >
+      <ThreadRowContent
+        thread={thread}
+        showAccount={showAccount}
+        separator={false}
+      />
+    </NativeRow>
   );
 }
