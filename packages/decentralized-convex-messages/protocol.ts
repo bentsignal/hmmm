@@ -20,6 +20,9 @@ import {
   spaceInvite,
   spaceInviteLink,
   spaceInviteLinkPreview,
+  threadPage,
+  threadState,
+  threadSummary,
 } from "./shapes.ts";
 
 export * from "./shapes.ts";
@@ -57,14 +60,41 @@ export const messagesProtocol = definePluginProtocol({
       args: v.object({ conversationId: v.string() }),
       returns: v.null(),
     }),
+    /**
+     * With `threadId`, a reply in that message's thread (a reply's own
+     * thread when it names a reply). The thread's first reply also shows
+     * in the conversation; later ones come back with `threadOnly`.
+     */
     send: defineOperation({
       args: v.object({
         attachments: v.array(attachment),
         body: v.string(),
         conversationId: v.string(),
         messageId: v.string(),
+        threadId: v.optional(v.string()),
       }),
       returns: message,
+    }),
+    /** Marks a thread read up to `readAt`, which sees its activity too. */
+    markThreadRead: defineOperation({
+      args: v.object({
+        conversationId: v.string(),
+        readAt: v.number(),
+        threadId: v.string(),
+      }),
+      returns: v.null(),
+    }),
+    /**
+     * Turns a thread's notifications on or off for you (its bell). Its
+     * original's author and everyone who replies start with them on.
+     */
+    setThreadFollowed: defineOperation({
+      args: v.object({
+        conversationId: v.string(),
+        followed: v.boolean(),
+        threadId: v.string(),
+      }),
+      returns: v.null(),
     }),
     /**
      * Starts fetching previews of links being typed, so they're ready when
@@ -121,6 +151,8 @@ export const messagesProtocol = definePluginProtocol({
         groups: v.optional(v.boolean()),
         invites: v.optional(v.boolean()),
         reactions: v.optional(v.boolean()),
+        replies: v.optional(v.boolean()),
+        threadReplies: v.optional(v.boolean()),
       }),
       returns: v.null(),
     }),
@@ -247,12 +279,14 @@ export const messagesProtocol = definePluginProtocol({
     /**
      * What happened while you were away, newest first: messages from others
      * (one item per conversation) and others' reactions to your messages
-     * (one per message). Muted conversations and channels left out of the
-     * inbox don't appear. An item lasts until a day after you saw it (see
+     * (one per message). With `threads`, also new replies in threads
+     * you're in (one per thread); apps from before threads don't ask.
+     * Muted conversations and channels left out of the inbox don't
+     * appear. An item lasts until a day after you saw it (see
      * `markActivitySeen`), and nothing older than `ACTIVITY_HORIZON` shows.
      */
     activity: defineOperation({
-      args: v.object({}),
+      args: v.object({ threads: v.optional(v.boolean()) }),
       returns: v.array(activityItem),
     }),
     /** Which pushes you get (see `setNotificationSettings`). */
@@ -285,6 +319,36 @@ export const messagesProtocol = definePluginProtocol({
         messageIds: v.array(v.string()),
       }),
       returns: v.array(reaction),
+    }),
+    /**
+     * A thread: its original message and one page of replies, oldest
+     * first, gathered from every member's PDS. At most one cursor: older
+     * than `before`, newer than `after`, or the latest page.
+     */
+    thread: defineOperation({
+      args: v.object({
+        after: v.optional(v.number()),
+        before: v.optional(v.number()),
+        conversationId: v.string(),
+        threadId: v.string(),
+      }),
+      returns: threadPage,
+    }),
+    /**
+     * The threads of the given messages that have replies, from every
+     * member's PDS (each counts the replies it stores).
+     */
+    threadSummaries: defineOperation({
+      args: v.object({
+        conversationId: v.string(),
+        messageIds: v.array(v.string()),
+      }),
+      returns: v.array(threadSummary),
+    }),
+    /** Your place in a thread: its bell, and how far you've read. */
+    threadState: defineOperation({
+      args: v.object({ conversationId: v.string(), threadId: v.string() }),
+      returns: threadState,
     }),
     /**
      * What this PDS has fetched of each link's preview so far (see

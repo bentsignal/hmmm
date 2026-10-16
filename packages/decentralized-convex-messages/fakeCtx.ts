@@ -20,8 +20,10 @@ const INDEXES: Record<string, Record<string, string[]>> = {
     by_conversation_account: ["conversationId", "accountId"],
   },
   messages: {
+    by_chat_sent: ["conversationId", "threadOnly", "sentAt"],
     by_conversation_sent: ["conversationId", "sentAt"],
     by_message: ["messageId"],
+    by_thread_sent: ["threadId", "sentAt"],
   },
   notificationSettings: { by_account: ["accountId"] },
   reactions: {
@@ -37,6 +39,14 @@ const INDEXES: Record<string, Record<string, string[]>> = {
     by_space_account: ["spaceId", "accountId"],
   },
   spaces: { by_space: ["spaceId"] },
+  threadMembers: {
+    by_account_reply: ["accountId", "lastReplyAt"],
+    by_thread_account: ["threadId", "accountId"],
+  },
+  threads: {
+    by_conversation_reply: ["conversationId", "lastReplyAt"],
+    by_thread: ["threadId"],
+  },
 };
 
 function compare(left: unknown, right: unknown) {
@@ -115,6 +125,8 @@ export function fakeCtx(tables: Record<string, Record<string, unknown>[]>) {
   }
 
   const ctx = {
+    // Scheduled work (pushes, link previews) doesn't run in tests.
+    scheduler: { runAfter: () => Promise.resolve() },
     db: {
       delete: (id: string) => {
         const table = id.slice(0, id.indexOf(":"));

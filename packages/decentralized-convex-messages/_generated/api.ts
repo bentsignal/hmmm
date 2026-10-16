@@ -33,11 +33,13 @@ import type * as pushParts from "../pushParts.js";
 import type * as pushTokens from "../pushTokens.js";
 import type * as reactionPush from "../reactionPush.js";
 import type * as reactions from "../reactions.js";
+import type * as sending from "../sending.js";
 import type * as settings from "../settings.js";
 import type * as shapes from "../shapes.js";
 import type * as sightings from "../sightings.js";
 import type * as sites from "../sites.js";
 import type * as spaces from "../spaces.js";
+import type * as threads from "../threads.js";
 
 import type {
   ApiFromModules,
@@ -72,11 +74,13 @@ const fullApi: ApiFromModules<{
   pushTokens: typeof pushTokens;
   reactionPush: typeof reactionPush;
   reactions: typeof reactions;
+  sending: typeof sending;
   settings: typeof settings;
   shapes: typeof shapes;
   sightings: typeof sightings;
   sites: typeof sites;
   spaces: typeof spaces;
+  threads: typeof threads;
 }> = anyApi as any;
 
 /**

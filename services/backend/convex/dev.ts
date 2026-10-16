@@ -65,8 +65,9 @@ export const longThreadMiddle = action({
 
 /** Bots in a conversation answer the caller's latest message after a beat. */
 export const replyToMe = action({
-  args: { conversationId: v.string() },
-  handler: async (ctx, { conversationId }) => {
+  // With `threadId`, the bots answer in that thread.
+  args: { conversationId: v.string(), threadId: v.optional(v.string()) },
+  handler: async (ctx, { conversationId, threadId }) => {
     const me = await requireCaller(ctx);
     const conversation = await queryAs(ctx, me, {
       args: { conversationId },
@@ -96,6 +97,7 @@ export const replyToMe = action({
         {
           body: pick(REPLIES, seed + index * 31),
           conversationId,
+          threadId,
           username: bot.username,
         },
       );
@@ -131,8 +133,13 @@ export const react = internalAction({
 });
 
 export const say = internalAction({
-  args: { body: v.string(), conversationId: v.string(), username: v.string() },
-  handler: async (ctx, { body, conversationId, username }) => {
+  args: {
+    body: v.string(),
+    conversationId: v.string(),
+    threadId: v.optional(v.string()),
+    username: v.string(),
+  },
+  handler: async (ctx, { body, conversationId, threadId, username }) => {
     requireDevTools();
     const bot = BOTS.find((candidate) => candidate.username === username);
     if (bot === undefined) return;
@@ -142,6 +149,7 @@ export const say = internalAction({
         body,
         conversationId,
         messageId: crypto.randomUUID(),
+        threadId,
       },
       type: "send",
     });

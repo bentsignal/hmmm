@@ -3,6 +3,7 @@ import type { OperationArgs } from "@decentralized-convex/plugin";
 import type { Doc } from "./_generated/dataModel.js";
 import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { messagesProtocol, Space } from "./protocol.ts";
+import { deleteThreads } from "./threads.ts";
 import {
   fail,
   getConversation,
@@ -188,6 +189,7 @@ export async function deleteChannel(
     )
     .collect();
   for (const row of [...messages, ...members]) await ctx.db.delete(row._id);
+  await deleteThreads(ctx, conversationId);
   await ctx.db.delete(channel._id);
   return null;
 }

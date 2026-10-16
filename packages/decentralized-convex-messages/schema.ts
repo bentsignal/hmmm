@@ -6,6 +6,7 @@ import {
   conversationKind,
   linkCard,
   linkPreview,
+  quote,
   spaceRole,
 } from "./protocol.ts";
 
@@ -48,10 +49,46 @@ export default defineSchema({
     linkPreview: v.optional(linkPreview),
     linkPreviews: v.optional(v.array(linkCard)),
     messageId: v.string(),
+    // A reply's quote of its original, its thread (the original's ID), and
+    // whether it stays out of the conversation (every reply after the
+    // first). See `message` in the protocol.
+    quote: v.optional(quote),
     sentAt: v.number(),
+    threadId: v.optional(v.string()),
+    threadOnly: v.optional(v.boolean()),
   })
     .index("by_message", ["messageId"])
-    .index("by_conversation_sent", ["conversationId", "sentAt"]),
+    .index("by_conversation_sent", ["conversationId", "sentAt"])
+    // What the conversation shows: `threadOnly` undefined.
+    .index("by_chat_sent", ["conversationId", "threadOnly", "sentAt"])
+    .index("by_thread_sent", ["threadId", "sentAt"]),
+  // Each thread with replies stored here: how many, and its newest.
+  threads: defineTable({
+    conversationId: v.string(),
+    lastReplyAt: v.number(),
+    replyCount: v.number(),
+    // Who wrote its replies, newest first, at most `MAX_REPLIERS`.
+    repliers: v.array(v.string()),
+    // The author of the message it answers, when that's stored here.
+    rootAuthorId: v.optional(v.string()),
+    threadId: v.string(),
+  })
+    .index("by_thread", ["threadId"])
+    .index("by_conversation_reply", ["conversationId", "lastReplyAt"]),
+  // Accounts in a thread: the original's author, everyone who replied, and
+  // anyone who turned its bell on.
+  threadMembers: defineTable({
+    accountId: v.string(),
+    conversationId: v.string(),
+    // The thread's newest reply, so an account's threads list by activity.
+    lastReplyAt: v.number(),
+    lastReadAt: v.number(),
+    // The account turned the thread's bell off.
+    unfollowed: v.optional(v.boolean()),
+    threadId: v.string(),
+  })
+    .index("by_thread_account", ["threadId", "accountId"])
+    .index("by_account_reply", ["accountId", "lastReplyAt"]),
   // Link previews fetched recently, shared by everyone on this PDS, so a
   // link prefetched while typing is ready when the message is sent.
   linkPreviewCache: defineTable({
@@ -135,6 +172,8 @@ export default defineSchema({
     groups: v.optional(v.boolean()),
     invites: v.optional(v.boolean()),
     reactions: v.optional(v.boolean()),
+    replies: v.optional(v.boolean()),
+    threadReplies: v.optional(v.boolean()),
   }).index("by_account", ["accountId"]),
   pushTokens: defineTable({
     accountId: v.string(),

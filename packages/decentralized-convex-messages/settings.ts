@@ -15,7 +15,9 @@ export type PushKind =
   | "directMessages"
   | "groups"
   | "invites"
-  | "reactions";
+  | "reactions"
+  | "replies"
+  | "threadReplies";
 
 function settingsRow(ctx: QueryCtx, accountId: string) {
   return ctx.db
@@ -37,6 +39,8 @@ export async function notificationSettings(
     groups: row?.groups !== false,
     invites: row?.invites !== false,
     reactions: row?.reactions !== false,
+    replies: row?.replies !== false,
+    threadReplies: row?.threadReplies !== false,
   };
 }
 

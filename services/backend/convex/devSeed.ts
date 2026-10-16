@@ -130,6 +130,7 @@ export async function seedGroup(
     conversationId,
     history([me, ...authors.slice(0, 3)], 120, 6),
   );
+  await seedThread(ctx, conversationId, { jonah, maya, priya });
   // A live message so the inbox has an unread conversation.
   await asAccount(ctx, maya, {
     args: {
@@ -140,6 +141,40 @@ export async function seedGroup(
     },
     type: "send",
   });
+}
+
+/**
+ * A message with a thread: its first reply shows in the conversation, the
+ * rest only in the thread.
+ */
+async function seedThread(
+  ctx: ActionCtx,
+  conversationId: string,
+  {
+    jonah,
+    maya,
+    priya,
+  }: Record<"jonah" | "maya" | "priya", ReturnType<typeof botIdentity>>,
+) {
+  const threadId = crypto.randomUUID();
+  const posts = [
+    { body: "Who's in for the lake on Saturday?", by: maya, threadId: undefined },
+    { body: "I'm in! Can bring the cooler", by: jonah, threadId },
+    { body: "Only if we leave after 10", by: priya, threadId },
+    { body: "10 works. I'll drive", by: maya, threadId },
+  ];
+  for (const { body, by, threadId: thread } of posts) {
+    await asAccount(ctx, by, {
+      args: {
+        attachments: [],
+        body,
+        conversationId,
+        messageId: thread === undefined ? threadId : crypto.randomUUID(),
+        threadId: thread,
+      },
+      type: "send",
+    });
+  }
 }
 
 export async function seedSpace(
