@@ -1,4 +1,5 @@
 import { Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 
 import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
@@ -10,7 +11,7 @@ import { LinkCards } from "./link-preview-card";
 import { LinkedText } from "./linked-text";
 import { MenuTargetView } from "./message-actions";
 import { InteractiveMessage } from "./message-reactions";
-import { MessageMeta, SendingFade } from "./message-status";
+import { NotSent, SendingFade, SENT_FADE_MS } from "./message-status";
 import { linkCardsOf, visibleBody } from "./message-text";
 
 const AVATAR_COLUMN = 36;
@@ -40,14 +41,27 @@ export function MessageStacked({
             <Text className="text-subhead text-foreground font-semibold">
               {author.displayName}
             </Text>
-            {message.status === undefined && (
-              <Text className="text-caption text-muted">
-                {formatTime(message.sentAt)}
-              </Text>
-            )}
+            {/* Always laid out, so the name never shifts; it fades in once
+                the message is sent. */}
+            <Animated.Text
+              className="text-caption text-muted"
+              style={{
+                opacity: message.status === undefined ? 1 : 0,
+                transitionDuration: SENT_FADE_MS,
+                transitionProperty: "opacity",
+                transitionTimingFunction: "ease-out",
+              }}
+            >
+              {formatTime(message.sentAt)}
+            </Animated.Text>
           </View>
         )}
-        <InteractiveMessage message={message} align="start" shape="card">
+        <InteractiveMessage
+          message={message}
+          align="start"
+          shape="card"
+          reactionStyle="chips"
+        >
           <SendingFade status={message.status}>
             <View className="items-start gap-1">
               {body !== undefined && (
@@ -59,18 +73,17 @@ export function MessageStacked({
                 </MenuTargetView>
               )}
               {message.attachments.map((attachment) => (
-                <MenuTargetView key={attachmentKey(attachment)} shape="plain">
-                  <AttachmentView
-                    attachment={attachment}
-                    sending={message.status === "sending"}
-                  />
-                </MenuTargetView>
+                <AttachmentView
+                  key={attachmentKey(attachment)}
+                  attachment={attachment}
+                  sending={message.status === "sending"}
+                />
               ))}
               {cards.length > 0 && <LinkCards cards={cards} />}
             </View>
           </SendingFade>
         </InteractiveMessage>
-        <MessageMeta message={message} delivered={false} />
+        <NotSent message={message} />
       </View>
     </View>
   );

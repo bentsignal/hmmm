@@ -5,10 +5,13 @@ import { MAX_REACTION_MESSAGES } from "@decentralized-convex/messages";
 import { pdsMutation, pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
-import { pdsResult } from "./results";
+import { pdsResultOr } from "./results";
 
 /** The emoji offered first when reacting, in order. */
 export const QUICK_REACTIONS = ["❤️", "👍", "👎", "😂", "😮", "😢", "🔥", "🎉"];
+
+/** No reactions, the same array each time so rows don't redraw. */
+const NONE = Object.freeze<ReactionSummary[]>([]);
 
 /** One emoji's reactions to a message, as shown under it. */
 export interface ReactionSummary {
@@ -16,6 +19,8 @@ export interface ReactionSummary {
   readonly count: number;
   /** Whether the signed-in account reacted with it. */
   readonly mine: boolean;
+  /** Who reacted with it, earliest first. */
+  readonly accounts: readonly string[];
 }
 
 function chunks(ids: readonly string[]) {
@@ -36,7 +41,10 @@ function summarize(
 ) {
   // Who reacted with what, per message, with this device's pending toggles.
   const byMessage = new Map<string, Map<string, Set<string>>>();
-  for (const { accountId, emoji, messageId } of reactions) {
+  const earliestFirst = [...reactions].sort(
+    (left, right) => left.reactedAt - right.reactedAt,
+  );
+  for (const { accountId, emoji, messageId } of earliestFirst) {
     const emojis = byMessage.get(messageId) ?? new Map<string, Set<string>>();
     emojis.set(emoji, (emojis.get(emoji) ?? new Set()).add(accountId));
     byMessage.set(messageId, emojis);
@@ -56,6 +64,7 @@ function summarize(
       [...emojis]
         .filter(([, accounts]) => accounts.size > 0)
         .map(([emoji, accounts]) => ({
+          accounts: [...accounts],
           count: accounts.size,
           emoji,
           mine: accounts.has(self),
@@ -77,18 +86,35 @@ export function useReactions(
     new Map(),
   );
   const batches = pageMessageIds.flatMap(chunks);
-  const results = useQueries({
+  const { loaded, reactions } = useQueries({
     queries: batches.map((messageIds) =>
       pdsQuery({
         args: { conversationId, messageIds },
         options: {
           enabled: messageIds.length > 0,
-          select: (result) => pdsResult(result)?.flat(),
+          // A PDS that can't answer leaves the messages without reactions
+          // rather than holding them back.
+          select: (result) => pdsResultOr(result, [])?.flat(),
         },
         query: pds.messages.reactions,
         session,
       }),
     ),
+    // TanStack shares this structurally with the last result, so a message
+    // whose reactions didn't change keeps the same array and its row
+    // doesn't redraw.
+    combine: (results) => ({
+      loaded: batches.flatMap((messageIds, index) =>
+        results[index]?.data === undefined ? [] : messageIds,
+      ),
+      reactions: Object.fromEntries(
+        summarize(
+          results.flatMap((result) => result.data ?? []),
+          session,
+          overrides,
+        ),
+      ),
+    }),
   });
   const react = useMutation(
     pdsMutation({ mutation: pds.messages.react, session }),
@@ -103,26 +129,17 @@ export function useReactions(
     });
   }
 
-  const reactions = summarize(
-    results.flatMap((result) => result.data ?? []),
-    session,
-    overrides,
-  );
-  const loaded = new Set(
-    batches.flatMap((messageIds, index) =>
-      results[index]?.data === undefined ? [] : messageIds,
-    ),
-  );
+  const loadedIds = new Set(loaded);
 
   return {
     /** A message's reactions, or undefined while they are still loading. */
     reactionsOf: (messageId: string) =>
-      loaded.has(messageId) ? (reactions.get(messageId) ?? []) : undefined,
+      loadedIds.has(messageId) ? (reactions[messageId] ?? NONE) : undefined,
     toggle: (messageId: string, emoji: string) => {
       const on = !(
-        reactions
-          .get(messageId)
-          ?.some((item) => item.emoji === emoji && item.mine) ?? false
+        reactions[messageId]?.some(
+          (item) => item.emoji === emoji && item.mine,
+        ) ?? false
       );
       const key = `${messageId} ${emoji}`;
       setOverride(key, on);

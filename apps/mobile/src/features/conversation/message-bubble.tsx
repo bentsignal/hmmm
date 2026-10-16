@@ -1,5 +1,7 @@
+import type { ReactNode } from "react";
 import { useState } from "react";
-import { Platform, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { useCSSVariable } from "uniwind";
 
 import type { Message } from "./types";
@@ -7,20 +9,33 @@ import { Avatar } from "~/components/avatar";
 import { cn } from "~/lib/cn";
 import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
-import { BUBBLE_RADIUS, TAIL_DROP, TailedBubble } from "./bubble-shape";
+import { BUBBLE_RADIUS, BubbleTail, TAIL_DROP } from "./bubble-shape";
+import { rowOrder } from "./build-rows";
+import { useOwnLift } from "./grow";
 import { LinkCards } from "./link-preview-card";
 import { LinkedText } from "./linked-text";
 import { MenuTargetView } from "./message-actions";
-import { InteractiveMessage } from "./message-reactions";
-import { MessageMeta, SendingFade } from "./message-status";
+import { InteractiveMessage, TopPart } from "./message-reactions";
+import { NotSent, SendingFade } from "./message-status";
 import { linkCardsOf, visibleBody } from "./message-text";
 import { RevealedTime, SlideWithReveal } from "./reveal";
+import { TAPBACK_SPACE } from "./tapbacks";
 
 /** Width of the avatar column beside incoming bubbles in group chats. */
 const AVATAR_COLUMN = 28;
-/** The sender's name above a run, plus the gap under it. */
-const NAME_HEIGHT = 18;
+/** The sender's line above a run, and the gap under it. */
+const NAME_LINE = 16;
+const NAME_GAP = 6;
+/** The sender's name above a run, and the gap under it, together. */
+const NAME_HEIGHT = NAME_LINE + NAME_GAP;
+/** The name's padding on each side (`px-3`). */
+const NAME_INSET = 12;
 
+/**
+ * A message's text in its bubble: a plain rounded background, and the tail
+ * drawn over its corner when it ends a run. Nothing is measured, so a
+ * bubble renders once.
+ */
 function Body({
   text,
   isOwn,
@@ -30,43 +45,22 @@ function Body({
   isOwn: boolean;
   tail: boolean;
 }) {
-  const [size, setSize] = useState<{ height: number; width: number }>();
   const outgoing = useCSSVariable("--color-bubble-outgoing");
   const incoming = useCSSVariable("--color-bubble-incoming");
   const color = isOwn ? outgoing : incoming;
-  // With a tail the whole bubble is drawn as one shape, once it is sized.
-  const shaped = tail && size !== undefined && typeof color === "string";
+  const fill = typeof color === "string" ? color : undefined;
   return (
     <View
-      // Android doesn't round a background that appears on a view that
-      // already exists (a bubble that loses its tail when a message lands
-      // below it turned square), so it gets a fresh view when it switches
-      // between the tail shape and the plain rounded background. iOS keeps
-      // the same view, so the tail animates away.
-      key={Platform.OS === "android" ? String(shaped) : undefined}
-      onLayout={(event) => {
-        const { height, width } = event.nativeEvent.layout;
-        if (tail) setSize({ height, width });
-      }}
       className="px-3.5 py-2"
       style={{
-        // Transparent while the tail shape draws the bubble.
-        backgroundColor:
-          shaped || typeof color !== "string" ? "transparent" : color,
+        backgroundColor: fill,
         borderCurve: "continuous",
         borderRadius: BUBBLE_RADIUS,
         // Room for the tail hanging below, so nothing under it overlaps.
         marginBottom: tail ? TAIL_DROP : 0,
       }}
     >
-      {shaped && (
-        <TailedBubble
-          width={size.width}
-          height={size.height}
-          color={color}
-          isOwn={isOwn}
-        />
-      )}
+      {tail && fill !== undefined && <BubbleTail color={fill} isOwn={isOwn} />}
       <LinkedText
         text={text}
         className={cn(
@@ -76,6 +70,11 @@ function Body({
       />
     </View>
   );
+}
+
+/** `TopPart` around the message's first part only. */
+function TopPartIf({ top, children }: { top: boolean; children: ReactNode }) {
+  return top ? <TopPart>{children}</TopPart> : children;
 }
 
 function Content({
@@ -93,24 +92,32 @@ function Content({
     <SendingFade status={message.status}>
       {/* 4pt between a message's parts, the same as between bubbles. */}
       <View className={cn("gap-1", isOwn ? "items-end" : "items-start")}>
-        {message.attachments.map((attachment) => (
-          <MenuTargetView key={attachmentKey(attachment)}>
+        {message.attachments.map((attachment, index) => (
+          <TopPartIf key={attachmentKey(attachment)} top={index === 0}>
             <AttachmentView
               attachment={attachment}
               sending={message.status === "sending"}
             />
-          </MenuTargetView>
+          </TopPartIf>
         ))}
         {body !== undefined && (
-          <MenuTargetView>
-            <Body
-              text={body}
-              isOwn={isOwn}
-              tail={endsGroup && cards.length === 0}
-            />
-          </MenuTargetView>
+          <TopPartIf top={message.attachments.length === 0}>
+            <MenuTargetView>
+              <Body
+                text={body}
+                isOwn={isOwn}
+                tail={endsGroup && cards.length === 0}
+              />
+            </MenuTargetView>
+          </TopPartIf>
         )}
-        {cards.length > 0 && <LinkCards cards={cards} />}
+        {cards.length > 0 && (
+          <TopPartIf
+            top={message.attachments.length === 0 && body === undefined}
+          >
+            <LinkCards cards={cards} />
+          </TopPartIf>
+        )}
       </View>
     </SendingFade>
   );
@@ -133,38 +140,82 @@ function AvatarColumn({
   );
 }
 
-/** A message's bubbles, with its sender's name, reactions, and status. */
+/**
+ * The sender's name above a run. Tapbacks that open space under it move it
+ * up with the rows above (see `GrowingSpace`).
+ */
+function SenderName({
+  name,
+  order,
+  onEnd,
+}: {
+  name: string;
+  order: number;
+  /** Where the name's text ends, inside its padding. */
+  onEnd: (end: number) => void;
+}) {
+  const lift = useOwnLift(order);
+  return (
+    <Animated.View style={lift}>
+      <Text
+        numberOfLines={1}
+        className="text-caption text-muted px-3"
+        style={{ lineHeight: NAME_LINE, marginBottom: NAME_GAP - 2 }}
+        onLayout={(event) => onEnd(event.nativeEvent.layout.width - NAME_INSET)}
+      >
+        {name}
+      </Text>
+    </Animated.View>
+  );
+}
+
+/** A message's bubbles, with its sender's name, tapbacks, and status. */
 function BubbleColumn({
   message,
   isOwn,
   name,
   endsGroup,
-  delivered,
 }: {
   message: Message;
   isOwn: boolean;
   /** The sender's name, above the first bubble of a run in group chats. */
   name?: string;
   endsGroup: boolean;
-  delivered: boolean;
 }) {
+  // Where the name's text ends, inside its padding.
+  const [nameEnd, setNameEnd] = useState<number>();
   return (
     <View
       className={cn("max-w-[75%] gap-0.5", isOwn ? "items-end" : "items-start")}
     >
       {name !== undefined && (
-        <Text className="text-caption text-muted px-3">{name}</Text>
+        <SenderName
+          name={name}
+          order={rowOrder(message.sentAt)}
+          onEnd={setNameEnd}
+        />
       )}
       <InteractiveMessage
         message={message}
         align={isOwn ? "end" : "start"}
         shape="plain"
+        reactionStyle="tapbacks"
+        // Tapbacks rise beside the name, which keeps its place.
+        roomAbove={name === undefined ? 0 : NAME_HEIGHT}
+        tapbacksClearOf={name === undefined ? undefined : nameEnd}
       >
         <Content message={message} isOwn={isOwn} endsGroup={endsGroup} />
       </InteractiveMessage>
-      <MessageMeta message={message} delivered={delivered} />
+      <NotSent message={message} />
     </View>
   );
+}
+
+/** What sits above the bubble: the sender's name, and the tapbacks. */
+function aboveBubble(message: Message, named: boolean) {
+  const name = named ? NAME_HEIGHT : 0;
+  const reacted = (message.reactions?.length ?? 0) > 0;
+  return Math.max(name, reacted ? TAPBACK_SPACE : 0);
 }
 
 /**
@@ -178,7 +229,6 @@ export function MessageBubble({
   author,
   startsGroup,
   endsGroup,
-  delivered,
 }: {
   message: Message;
   isOwn: boolean;
@@ -186,7 +236,6 @@ export function MessageBubble({
   author?: { avatarUrl: string | null; displayName: string };
   startsGroup: boolean;
   endsGroup: boolean;
-  delivered: boolean;
 }) {
   const showAuthor = author !== undefined && !isOwn;
   return (
@@ -204,13 +253,12 @@ export function MessageBubble({
             isOwn={isOwn}
             name={startsGroup && showAuthor ? author.displayName : undefined}
             endsGroup={endsGroup}
-            delivered={delivered}
           />
         </View>
       </SlideWithReveal>
       <RevealedTime
         date={message.sentAt}
-        top={startsGroup && showAuthor ? NAME_HEIGHT : 0}
+        top={aboveBubble(message, startsGroup && showAuthor)}
       />
     </View>
   );

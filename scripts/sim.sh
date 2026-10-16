@@ -15,6 +15,8 @@
 #   reload           reload the JavaScript
 #   relaunch         restart the app (clears in-memory state)
 #   eval "<js>"      evaluate JavaScript in the running app
+#   frames start     record the UI thread's frames (to measure an animation)
+#   frames stop      stop, and report the frames that drew slowly
 #   status           devices, port, Metro, and backend
 #   queue            the simulator queue: devices up on this Mac, who is waiting, and why
 #   down             delete this platform's device; stops Metro when no device is left
@@ -369,6 +371,21 @@ case "$command" in
   seed) require_up && open_path "/dev-seed" ;;
   open) require_up && open_path "${1:?path}" ;;
   eval) require_up && app_eval "${1:?expression}" ;;
+  frames)
+    require_up
+    case "${1:-}" in
+      start) app_eval "globalThis.veraDev.frames.start()" >/dev/null && echo "recording frames" ;;
+      stop)
+        app_eval "globalThis.veraDev.frames.stop()" >/dev/null
+        for _ in $(seq 1 20); do
+          report="$(app_eval "globalThis.veraDev.frames.report()")"
+          [ -n "$report" ] && echo "$report" && break
+          sleep 0.25
+        done
+        ;;
+      *) echo "usage: scripts/sim.sh frames start|stop" >&2 && exit 2 ;;
+    esac
+    ;;
   relaunch) require_up && launch && echo "relaunched" ;;
   shot) shot "${1:?name}" ;;
   record) record "${1:?name}" ;;
@@ -378,7 +395,7 @@ case "$command" in
   queue) queue status ;;
   down) down ;;
   *)
-    sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'
     exit 2
     ;;
 esac

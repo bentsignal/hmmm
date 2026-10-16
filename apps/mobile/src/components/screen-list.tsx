@@ -10,6 +10,9 @@ import { useCSSVariable } from "uniwind";
 
 import { ScreenListInsets } from "./screen-list-insets";
 
+/** How far past the screen, in points, rows are drawn ahead of time. */
+const DRAW_DISTANCE = 1000;
+
 /**
  * A full-screen Legend List under a native header, so large titles collapse
  * as it scrolls and its background follows the theme. It shows nothing
@@ -42,6 +45,10 @@ export function ScreenList<Item>({
         alwaysBounceVertical={inset !== undefined}
         keyboardDismissMode="on-drag"
         estimatedItemSize={72}
+        // Rows are drawn well ahead of the scroll, so a fast fling on a slow
+        // phone doesn't outrun them and show them appearing at the edges.
+        drawDistance={DRAW_DISTANCE}
+        recycleItems={false}
         {...props}
         style={[
           {

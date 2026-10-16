@@ -15,6 +15,14 @@ const config = {
       filePath: "plugins/notification-service",
       reasons: ["notificationServiceExtension"],
     },
+    // Reanimated compiles its static feature flags in from package.json's
+    // "reanimated" key, which the default sources don't read.
+    {
+      type: "contents",
+      id: "reanimatedStaticFeatureFlags",
+      contents: JSON.stringify(require("./package.json").reanimated ?? null),
+      reasons: ["reanimatedStaticFeatureFlags"],
+    },
   ],
 };
 module.exports = config;

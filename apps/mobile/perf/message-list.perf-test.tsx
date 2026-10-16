@@ -1,0 +1,69 @@
+// Reassure measurements: how long React takes to render the conversation
+// and its common updates, and how many renders they take, compared with the
+// PR's base in CI (`pnpm perf`; see README.md). Timings in Jest are React's
+// work only, not drawing, so they flag regressions rather than measure
+// frames.
+import { useState } from "react";
+import { Pressable } from "react-native";
+import { act, fireEvent, screen } from "@testing-library/react-native";
+import { measureRenders } from "reassure";
+
+import type { Message } from "~/features/conversation/types";
+import { Conversation } from "./conversation";
+import { message, OLDER, OTHER, PAGE, withReaction } from "./messages";
+
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+
+async function settle() {
+  await act(() => jest.runAllTimers());
+}
+
+/**
+ * The conversation showing `from`, until "change" is pressed: then `to`,
+ * as when a query's results update. (Re-rendering from outside would drop
+ * Reassure's profiler.)
+ */
+function Changing({
+  from,
+  to,
+}: {
+  from: readonly Message[];
+  to: readonly Message[];
+}) {
+  const [messages, setMessages] = useState(from);
+  return (
+    <>
+      <Conversation messages={messages} />
+      <Pressable testID="change" onPress={() => setMessages(to)} />
+    </>
+  );
+}
+
+/** Measures the conversation changing from `PAGE` to `to`. */
+async function measureChange(to: readonly Message[]) {
+  await measureRenders(<Changing from={PAGE} to={to} />, {
+    scenario: async () => {
+      await settle();
+      await fireEvent.press(screen.getByTestId("change"));
+      await settle();
+    },
+  });
+}
+
+test("opening a conversation", async () => {
+  await measureRenders(<Conversation messages={PAGE} />, { scenario: settle });
+});
+
+test("a new message arriving", async () => {
+  await measureChange([...PAGE, message(50, { authorId: OTHER })]);
+});
+
+test("a reaction arriving", async () => {
+  await measureChange(withReaction(PAGE, "m45"));
+});
+
+test("an older page loading", async () => {
+  await measureChange([...OLDER, ...PAGE]);
+});

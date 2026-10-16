@@ -7,10 +7,10 @@ import Animated, {
 } from "react-native-reanimated";
 
 import type { MenuTarget, TargetAlign } from "./glass-message-menu";
+import { Emoji } from "~/components/emoji";
 import { GlassSurface } from "~/components/glass-surface";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { QUICK_REACTIONS } from "~/features/messaging/reactions";
-import { cn } from "~/lib/cn";
 import { TITLE_LINE_HEIGHT, TITLE_LINES } from "./menu-title";
 
 const EMOJI = 44;
@@ -54,14 +54,20 @@ function usePopStyle(
   return { content, frame };
 }
 
+/** Your reaction's highlight, inset so two side by side never touch. */
+const HIGHLIGHT = EMOJI - 6;
+
+/**
+ * One quick reaction. Yours sit on a tinted circle, as in Messages; who
+ * reacted with what is in the panel under the message (double tap) and
+ * the sheet.
+ */
 function EmojiButton({
   emoji,
-  count,
   mine,
   onPress,
 }: {
   emoji: string;
-  count: number;
   mine: boolean;
   onPress: () => void;
 }) {
@@ -71,29 +77,20 @@ function EmojiButton({
       accessibilityLabel={`React ${emoji}`}
       accessibilityState={{ selected: mine }}
       onPress={onPress}
-      className={cn(
-        "items-center justify-center rounded-full",
-        mine && "bg-accent/25",
-      )}
+      className="items-center justify-center"
       style={({ pressed }) => ({
         height: EMOJI,
         transform: [{ scale: pressed ? 1.2 : 1 }],
         width: EMOJI,
       })}
     >
-      <Text style={{ fontSize: 27 }}>{emoji}</Text>
-      {count > 0 && (
-        <View className="bg-background-elevated absolute -right-0.5 -bottom-0.5 min-w-4 items-center rounded-full px-1">
-          <Text
-            className={cn(
-              "text-[10px] font-bold",
-              mine ? "text-accent" : "text-muted",
-            )}
-          >
-            {count}
-          </Text>
-        </View>
+      {mine && (
+        <View
+          className="bg-accent/25 absolute rounded-full"
+          style={{ height: HIGHLIGHT, width: HIGHLIGHT }}
+        />
       )}
+      <Emoji emoji={emoji} size={27} />
     </Pressable>
   );
 }
@@ -137,7 +134,6 @@ export function ReactionBar({
               <EmojiButton
                 key={emoji}
                 emoji={emoji}
-                count={reaction?.count ?? 0}
                 mine={reaction?.mine ?? false}
                 onPress={() => onPick(emoji)}
               />

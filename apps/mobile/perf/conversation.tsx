@@ -1,0 +1,31 @@
+// The conversation's list, as the conversation screen renders it.
+import type { Message } from "~/features/conversation/types";
+import { MessageList } from "~/features/conversation/message-list";
+import { SELF } from "./messages";
+
+/** The same profile object each time, as `useProfileState` gives. */
+const profile = { avatarUrl: null, displayName: "Maya" };
+function profileOf() {
+  return profile;
+}
+
+export function Conversation({ messages }: { messages: readonly Message[] }) {
+  return (
+    <MessageList
+      messages={messages}
+      self={SELF}
+      layout="bubbles"
+      profileOf={profileOf}
+      showAuthors
+      hasNewer={false}
+      onLoadOlder={() => undefined}
+      onLoadNewer={() => undefined}
+      onJumpToLatest={() => undefined}
+      bottomInset={0}
+      topInset={0}
+      composerHeight={56}
+      onToggleReaction={() => undefined}
+      onViewReactions={() => undefined}
+    />
+  );
+}

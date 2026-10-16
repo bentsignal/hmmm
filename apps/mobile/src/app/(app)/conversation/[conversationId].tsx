@@ -7,10 +7,12 @@ import {
 } from "react-native-keyboard-controller";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 
+import type { MessageListHandle } from "~/features/conversation/message-list";
 import type {
   AttachmentSource,
   StagedFile,
 } from "~/features/messaging/attachments";
+import type { MessageLayout } from "~/features/preferences/store";
 import {
   Composer,
   useComposerBottomInset,
@@ -20,6 +22,7 @@ import {
   ConversationHeader,
 } from "~/features/conversation/conversation-header";
 import { MessageList } from "~/features/conversation/message-list";
+import { useDevConversation } from "~/features/dev/dev-conversation";
 import { useDevTools } from "~/features/dev/dev-tools";
 import { AccountScope, useAccount } from "~/features/messaging/account";
 import {
@@ -116,6 +119,18 @@ function otherMember(
   return conversation.members.find((member) => member !== self);
 }
 
+/**
+ * The list shows once its messages, their reactions, and everyone's names
+ * and photos are in, so nothing changes size or swaps as it fades in.
+ */
+function listReady(
+  loadingMessages: boolean,
+  layout: MessageLayout | undefined,
+  profilesLoaded: boolean,
+): layout is MessageLayout {
+  return !loadingMessages && layout !== undefined && profilesLoaded;
+}
+
 /** The title from the opening screen shows until the conversation loads. */
 function headingFor(title: string, initialTitle: string | undefined) {
   return title === "" ? (initialTitle ?? "") : title;
@@ -133,13 +148,17 @@ function Conversation({
   const router = useRouter();
   const composerBottomInset = useComposerBottomInset();
   const { address } = useAccount();
-  const { conversation, isLoading, profileOf, title } =
+  const { conversation, isLoading, profileOf, profilesLoaded, title } =
     useConversation(conversationId);
   const layout = useMessageLayout(conversation?.kind);
   const messages = useMessages(conversationId, anchorId);
-  const [composerHeight, setComposerHeight] = useState(56);
+  // Undefined until the composer is laid out: the list leaves room for it
+  // under the newest message, so it waits rather than shift once it knows.
+  const [composerHeight, setComposerHeight] = useState<number>();
+  const list = useRef<MessageListHandle>(null);
   useMarkRead(conversationId, messages.newestSentAt);
   useActiveConversation(conversationId);
+  useDevConversation(messages);
 
   const heading = headingFor(title, initialTitle);
   const other = otherMember(conversation, address);
@@ -159,31 +178,38 @@ function Conversation({
     <View className="bg-background flex-1">
       <Stack.Title>{heading}</Stack.Title>
       <KeyboardGestureArea interpolator="ios" offset={60} style={{ flex: 1 }}>
-        {messages.isLoading || layout === undefined ? null : (
-          <MessageList
-            key={messages.viewKey}
-            messages={messages.messages}
-            self={address}
-            layout={layout}
-            profileOf={profileOf}
-            showAuthors={conversation?.kind !== "direct"}
-            anchorId={messages.anchor}
-            hasNewer={messages.hasNewer}
-            onStartReached={messages.loadOlder}
-            onEndReached={messages.loadNewer}
-            onJumpToLatest={messages.jumpToLatest}
-            bottomInset={composerBottomInset}
-            topInset={CONVERSATION_HEADER_HEIGHT}
-            composerHeight={composerHeight}
-            onToggleReaction={messages.toggleReaction}
-            onViewReactions={(messageId, emoji) =>
-              router.push({
-                params: { account: address, conversationId, emoji, messageId },
-                pathname: "/reactions",
-              })
-            }
-          />
-        )}
+        {listReady(messages.isLoading, layout, profilesLoaded) &&
+          composerHeight !== undefined && (
+            <MessageList
+              ref={list}
+              key={messages.viewKey}
+              messages={messages.messages}
+              self={address}
+              layout={layout}
+              profileOf={profileOf}
+              showAuthors={conversation?.kind !== "direct"}
+              anchorId={messages.anchor}
+              hasNewer={messages.hasNewer}
+              onLoadOlder={messages.loadOlder}
+              onLoadNewer={messages.loadNewer}
+              onJumpToLatest={messages.jumpToLatest}
+              bottomInset={composerBottomInset}
+              topInset={CONVERSATION_HEADER_HEIGHT}
+              composerHeight={composerHeight}
+              onToggleReaction={messages.toggleReaction}
+              onViewReactions={(messageId, emoji) =>
+                router.push({
+                  params: {
+                    account: address,
+                    conversationId,
+                    emoji,
+                    messageId,
+                  },
+                  pathname: "/reactions",
+                })
+              }
+            />
+          )}
       </KeyboardGestureArea>
       <ConversationHeader
         title={heading}
@@ -200,7 +226,10 @@ function Conversation({
       <FloatingComposer
         conversationId={conversationId}
         onHeight={setComposerHeight}
-        onSend={messages.sendMessage}
+        onSend={(body, files, linkPreviews) => {
+          messages.sendMessage(body, files, linkPreviews);
+          list.current?.scrollToLatest();
+        }}
       />
     </View>
   );

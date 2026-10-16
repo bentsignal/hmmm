@@ -22,6 +22,13 @@ interface View {
   readonly opened: PageCursor;
   /** Oldest page first. */
   readonly pages: readonly PageCursor[];
+  /** The pages it opened with, which must load before anything shows. */
+  readonly initial: readonly PageCursor[];
+}
+
+/** A page cursor's identity, stable across renders. */
+function pageKey(cursor: PageCursor) {
+  return JSON.stringify(cursor);
 }
 
 /**
@@ -46,17 +53,15 @@ function latestWindow(windowKey: string, reopen = false) {
       : Date.now();
   openedAtByConversation.set(windowKey, openedAt);
   const opened = { before: openedAt + 1 };
-  return {
-    anchor: undefined,
-    opened,
-    pages: [opened, { after: openedAt }],
-  } satisfies View;
+  const pages = [opened, { after: openedAt }];
+  return { anchor: undefined, initial: pages, opened, pages } satisfies View;
 }
 
 function anchoredWindow(messageId: string) {
   const opened = { around: messageId };
   return {
     anchor: messageId,
+    initial: [opened],
     opened,
     pages: [opened],
   } satisfies View;
@@ -143,39 +148,40 @@ export function useMessageWindow(
   });
 
   const messages = mergePages(pages);
+  const initial = new Set(view.initial);
   const first = pages[0]?.data;
   const last = pages.at(-1)?.data;
   const hasOlder = first?.hasOlder ?? false;
   const hasNewer = last?.hasNewer ?? false;
 
+  /**
+   * Adds a page unless the window already has it: the list can ask twice
+   * before the first request lands.
+   */
+  function addPage(cursor: PageCursor, at: "end" | "start") {
+    const key = pageKey(cursor);
+    setView((current) => {
+      if (current.pages.some((page) => pageKey(page) === key)) return current;
+      return {
+        ...current,
+        pages:
+          at === "start"
+            ? [cursor, ...current.pages]
+            : [...current.pages, cursor],
+      };
+    });
+  }
+
   function loadOlder() {
     const oldest = messages[0];
     if (!hasOlder || oldest === undefined) return;
-    if (
-      view.pages.some(
-        (page) => "before" in page && page.before === oldest.sentAt,
-      )
-    ) {
-      return;
-    }
-    setView((current) => ({
-      ...current,
-      pages: [{ before: oldest.sentAt }, ...current.pages],
-    }));
+    addPage({ before: oldest.sentAt }, "start");
   }
 
   function loadNewer() {
     const newest = messages.at(-1);
     if (!hasNewer || newest === undefined) return;
-    if (
-      view.pages.some((page) => "after" in page && page.after === newest.sentAt)
-    ) {
-      return;
-    }
-    setView((current) => ({
-      ...current,
-      pages: [...current.pages, { after: newest.sentAt }],
-    }));
+    addPage({ after: newest.sentAt }, "end");
   }
 
   return {
@@ -184,12 +190,21 @@ export function useMessageWindow(
     pageMessageIds: pages.map(
       (page) => page.data?.messages.map((message) => message.messageId) ?? [],
     ),
+    /**
+     * Each page by key, oldest first, with its message IDs once it has
+     * loaded, and whether it is one the window opened with.
+     */
+    pages: view.pages.map((cursor, index) => ({
+      initial: initial.has(cursor),
+      key: pageKey(cursor),
+      messageIds: pages[index]?.data?.messages.map(
+        (message) => message.messageId,
+      ),
+    })),
     /** Changes whenever the window reopens, so lists can remount. */
-    viewKey: JSON.stringify(view.opened),
+    viewKey: pageKey(view.opened),
     hasNewer,
     hasOlder,
-    isLoading:
-      pages.some((page) => page.data === undefined) && messages.length === 0,
     /** Drops the loaded pages and reopens at the latest message. */
     jumpToLatest: () => setView(latestWindow(windowKey, true)),
     loadNewer,

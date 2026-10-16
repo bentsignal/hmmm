@@ -1,288 +1,346 @@
-import type { LegendListRef } from "@legendapp/list/react-native";
-import type { ReactNode } from "react";
-import { useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import type { Ref, RefObject } from "react";
+import type { SharedValue } from "react-native-reanimated";
+import { useImperativeHandle, useRef, useState } from "react";
+import { FlatList, Pressable, View } from "react-native";
+import { KeyboardChatScrollView } from "react-native-keyboard-controller";
 import Animated, {
-  FadeInDown,
-  useAnimatedProps,
   useAnimatedReaction,
+  useAnimatedRef,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
-  withDelay,
   withTiming,
 } from "react-native-reanimated";
-import { KeyboardAwareLegendList } from "@legendapp/list/keyboard";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { scheduleOnRN } from "react-native-worklets";
 
 import type { MessageRow } from "./build-rows";
+import type { Latest } from "./list-position";
+import type { ProfileOf } from "./message-row";
 import type { Message } from "./types";
 import type { MessageLayout } from "~/features/preferences/store";
+import { GlassSurface } from "~/components/glass-surface";
 import { SymbolIcon } from "~/components/symbol-icon";
-import { buildMessageRows } from "./build-rows";
-import { DaySeparator, TimeHeader } from "./day-separator";
+import { cn } from "~/lib/cn";
+import { arrivedAfter, buildMessageRows } from "./build-rows";
+import { GrowthProvider } from "./grow";
+import { ANCHOR, useLatest, usePlacement } from "./list-position";
+import { useMenuKeyboard } from "./menu-keyboard";
 import { MessageActionsProvider } from "./message-actions";
-import { MessageBubble } from "./message-bubble";
-import { MessageStacked } from "./message-stacked";
-import { useModalKeyboardFreeze } from "./modal-keyboard-freeze";
+import { Row } from "./message-row";
 import { RevealTimes } from "./reveal";
 
-type ProfileOf = (address: string) => {
-  avatarUrl: string | null;
-  displayName: string;
-};
+/** The jump button's size. */
+const JUMP_SIZE = 40;
 
-/** Fades a tint behind the message a conversation opened on. */
-function Highlight({ children }: { children: ReactNode }) {
-  const tint = useSharedValue(1);
-  useAnimatedReaction(
-    () => true,
-    (_, previous) => {
-      if (previous === null)
-        tint.value = withDelay(800, withTiming(0, { duration: 1600 }));
-    },
-  );
-  const style = useAnimatedStyle(() => ({
-    backgroundColor: `rgba(124, 124, 255, ${0.18 * tint.value})`,
-  }));
-  return <Animated.View style={style}>{children}</Animated.View>;
-}
-
-interface RowProps {
-  row: MessageRow;
-  self: string;
-  layout: MessageLayout;
-  profileOf: ProfileOf;
-  showAuthors: boolean;
-}
-
-/** New rows rise a little and fade in, like a sent message in iMessage. */
-const ARRIVE = FadeInDown.duration(280).withInitialValues({
-  opacity: 0,
-  transform: [{ translateY: 14 }],
-});
-
-function Row({
-  highlighted,
-  arriving,
-  ...props
-}: RowProps & { highlighted: boolean; arriving: boolean }) {
-  const content = highlighted ? (
-    <Highlight>
-      <RowContent {...props} />
-    </Highlight>
-  ) : (
-    <RowContent {...props} />
-  );
+function JumpChevron() {
   return (
-    <Animated.View entering={arriving ? ARRIVE : undefined}>
-      {content}
-    </Animated.View>
-  );
-}
-
-function arrivedAfter(row: MessageRow, openedAt: number) {
-  const date = row.type === "message" ? row.message.sentAt : row.date;
-  return date.getTime() > openedAt;
-}
-
-function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
-  const stacked = layout === "stacked";
-  if (row.type === "day") {
-    return <DaySeparator date={row.date} stacked={stacked} />;
-  }
-  if (row.type === "time") {
-    return <TimeHeader date={row.date} stacked={stacked} />;
-  }
-  const { message } = row;
-  if (stacked) {
-    return (
-      <MessageStacked
-        message={message}
-        author={profileOf(message.authorId)}
-        startsGroup={row.startsGroup}
-      />
-    );
-  }
-  return (
-    <MessageBubble
-      message={message}
-      isOwn={message.authorId === self}
-      author={showAuthors ? profileOf(message.authorId) : undefined}
-      startsGroup={row.startsGroup}
-      endsGroup={row.endsGroup}
-      delivered={row.delivered}
+    <SymbolIcon
+      name={{ android: "keyboard_arrow_down", ios: "chevron.down" }}
+      size={17}
+      weight="semibold"
+      tintColorClassName="accent-foreground"
     />
   );
 }
 
+/**
+ * Back down to the newest message, once you've scrolled away from it. On
+ * iOS a Liquid Glass circle that materializes and dissolves like the
+ * system's own controls (glass can't fade, see `GlassSurface`); a plain
+ * raised circle on Android.
+ */
 function JumpToLatest({
   visible,
   bottom,
   onPress,
 }: {
-  visible: { value: boolean };
+  visible: SharedValue<boolean>;
   /** Distance from the bottom edge, above the floating composer. */
   bottom: number;
   onPress: () => void;
 }) {
-  const style = useAnimatedStyle(() => ({
+  const [shown, setShown] = useState(false);
+  useAnimatedReaction(
+    () => visible.value,
+    (now, before) => {
+      if (now !== before) scheduleOnRN(setShown, now);
+    },
+  );
+  const chevron = useAnimatedStyle(() => ({
     opacity: withTiming(visible.value ? 1 : 0, { duration: 160 }),
     transform: [
-      { scale: withTiming(visible.value ? 1 : 0.8, { duration: 160 }) },
+      { scale: withTiming(visible.value ? 1 : 0.6, { duration: 200 }) },
     ],
   }));
-  const props = useAnimatedProps(() => ({
-    pointerEvents: visible.value ? ("auto" as const) : ("none" as const),
-  }));
   return (
-    <Animated.View
-      animatedProps={props}
+    <View
+      pointerEvents={shown ? "box-none" : "none"}
       className="absolute right-4"
-      style={[{ bottom }, style]}
+      style={{ bottom }}
     >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Jump to latest"
+        accessibilityElementsHidden={!shown}
         onPress={onPress}
-        className="bg-background-elevated border-hairline border-separator size-10 items-center justify-center rounded-full shadow-sm"
+        hitSlop={6}
       >
-        <SymbolIcon
-          name={{ android: "keyboard_arrow_down", ios: "chevron.down" }}
-          size={18}
-          weight="semibold"
-          tintColorClassName="accent-accent"
-        />
+        <GlassSurface
+          isInteractive
+          shown={shown}
+          className="items-center justify-center rounded-full"
+          androidClassName={cn(
+            "bg-background-elevated border-hairline border-separator shadow-sm",
+            !shown && "opacity-0",
+          )}
+          style={{ height: JUMP_SIZE, width: JUMP_SIZE }}
+        >
+          <Animated.View style={chevron}>
+            <JumpChevron />
+          </Animated.View>
+        </GlassSurface>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 
-interface MessageListProps {
+/** What the conversation screen can ask of its list. */
+export interface MessageListHandle {
+  /** Scrolls down to the newest message, as after sending one. */
+  scrollToLatest: () => void;
+}
+
+/** Rows newest first, as the inverted list lays them out from the bottom. */
+function newestFirst(messages: readonly Message[], layout: MessageLayout) {
+  return buildMessageRows(messages, layout).reverse();
+}
+
+interface RowsProps {
+  listRef: RefObject<FlatList<MessageRow> | null>;
   messages: readonly Message[];
-  /** The signed-in account's address. */
   self: string;
   layout: MessageLayout;
   profileOf: ProfileOf;
-  /** Name incoming bubbles; for groups and channels. */
   showAuthors: boolean;
   anchorId?: string;
-  /** Newer messages exist beyond the loaded window. */
   hasNewer: boolean;
-  onStartReached: () => void;
-  onEndReached: () => void;
-  onJumpToLatest: () => void;
+  onLoadOlder: () => void;
+  onLoadNewer: () => void;
   /** Space below the composer that the keyboard covers when it opens. */
   bottomInset: number;
-  /** Height of the header floating over the top, below the status bar. */
   topInset: number;
   /** Height of the composer floating over the bottom of the list. */
   composerHeight: number;
-  onToggleReaction: (messageId: string, emoji: string) => void;
-  /** Opens the sheet of who reacted to a message, on one emoji if given. */
-  onViewReactions: (messageId: string, emoji?: string) => void;
+  latest: Latest;
+  /** Freezes keyboard handling (see useMenuKeyboard). */
+  freeze: SharedValue<boolean>;
+  /** The list is laid out at its starting place. */
+  onReady: () => void;
+  /**
+   * The fade-in has finished: until then the list renders only what's on
+   * screen, so nothing mounts while it fades.
+   */
+  shown: boolean;
 }
 
+/** How many screens of rows stay mounted, centered on the screen. */
+const WINDOW_SCREENS = 11;
+/** How long the conversation takes to fade in. */
+const FADE_MS = 220;
+
 /**
- * The conversation, oldest first and aligned to the bottom. Loads older
- * pages near the top and newer ones near the bottom without moving what is on
- * screen, and opens on `anchorId` when given.
+ * The messages, in a list that's inverted: it lays out from the newest
+ * message up, so it opens at the bottom without scrolling there, and older
+ * pages load past the top without moving anything on screen, since rows
+ * are laid out in order and never placed at estimated spots first. At the
+ * bottom it stays there as messages arrive; scrolled up, what you're
+ * reading stays still (see `useLatest`).
  */
-export function MessageList({
+function Rows({
+  listRef,
   messages,
   self,
   layout,
   profileOf,
   showAuthors,
   anchorId,
-  hasNewer,
-  onStartReached,
-  onEndReached,
-  onJumpToLatest,
+  onLoadOlder,
+  onLoadNewer,
   bottomInset,
   topInset,
   composerHeight,
-  onToggleReaction,
-  onViewReactions,
-}: MessageListProps) {
-  const listRef = useRef<LegendListRef>(null);
-  // Hidden until the first layout settles at its starting position, then
-  // faded in, so nothing flashes or jumps into place.
-  // A page-colored cover fades away rather than the list fading in: glass
-  // (reaction chips) created under a fully transparent parent never draws.
-  const loaded = useSharedValue(0);
-  const cover = useAnimatedStyle(() => ({ opacity: 1 - loaded.value }));
-  const isNearEnd = useSharedValue(true);
-  const showJump = useDerivedValue(() => hasNewer || !isNearEnd.value);
-  const rows = buildMessageRows(messages, { layout, self });
+  latest,
+  freeze,
+  onReady,
+  shown,
+}: RowsProps) {
+  const safeArea = useSafeAreaInsets();
+  const rows = newestFirst(messages, layout);
   // Only messages that arrive while open animate in, not loaded pages.
   const [openedAt] = useState(Date.now);
   const anchorIndex =
     anchorId === undefined ? -1 : rows.findIndex((row) => row.key === anchorId);
-  const keyboard = useModalKeyboardFreeze();
+  const placement = usePlacement({
+    anchorIndex,
+    listRef,
+    onLoadNewer,
+    onReady,
+  });
+  return (
+    <FlatList
+      ref={listRef}
+      inverted
+      data={rows}
+      keyExtractor={(row) => row.key}
+      renderItem={({ item }) => (
+        <Row
+          row={item}
+          self={self}
+          layout={layout}
+          profileOf={profileOf}
+          showAuthors={showAuthors}
+          highlighted={item.key === anchorId}
+          arriving={arrivedAfter(item, openedAt)}
+        />
+      )}
+      renderScrollComponent={(props) => (
+        <KeyboardChatScrollView
+          {...props}
+          inverted
+          offset={bottomInset}
+          freeze={freeze}
+          onContentInsetChange={(insets) => latest.onInsetChange(insets.top)}
+        />
+      )}
+      // Enough to fill the screen at once, and to reach the message it
+      // opens on, so that one can be scrolled to before it shows. A page
+      // that loads renders all at once, so the list grows (and the scroll
+      // bar moves) once per page, not once per batch.
+      initialNumToRender={Math.max(20, anchorIndex + 15)}
+      maxToRenderPerBatch={8}
+      // Just the screen until it has faded in: mounting rows takes the UI
+      // thread, and a frame spent on it shows as a hitch in the fade. Then
+      // five screens either way, filled in small batches.
+      windowSize={shown ? WINDOW_SCREENS : 1}
+      // Rows added below what's on screen leave it where it is; at the
+      // bottom, a new message then slides into view (see useLatest). Off
+      // until it has faded in, so it opens at the bottom whatever arrives
+      // meanwhile.
+      maintainVisibleContentPosition={shown ? ANCHOR : undefined}
+      // Inverted: the list's end is the oldest message, at the top. Older
+      // ones load three screens early, so a fast scroll rarely reaches
+      // the top before they're there.
+      onEndReached={() => {
+        if (placement.isPlaced()) onLoadOlder();
+      }}
+      onEndReachedThreshold={3}
+      onStartReached={() => {
+        if (placement.isPlaced()) onLoadNewer();
+      }}
+      onStartReachedThreshold={3}
+      onScroll={(event) => latest.onScroll(event.nativeEvent.contentOffset.y)}
+      {...latest.scrollHandlers}
+      scrollEventThrottle={16}
+      onContentSizeChange={() => {
+        latest.onContentChange(rows[0]?.key, composerHeight);
+        placement.onLaidOut();
+      }}
+      onScrollToIndexFailed={placement.onMissed}
+      keyboardDismissMode="interactive"
+      keyboardShouldPersistTaps="handled"
+      contentInsetAdjustmentBehavior="never"
+      // Room under the newest message for the composer floating over it,
+      // which grows as you type, and above the oldest for the header: the
+      // messages scroll under both. Inverted, the list's header is at the
+      // bottom of the screen and its footer at the top.
+      ListHeaderComponent={<View style={{ height: composerHeight + 8 }} />}
+      ListFooterComponent={
+        <View style={{ height: safeArea.top + topInset + 8 }} />
+      }
+      scrollIndicatorInsets={{
+        bottom: safeArea.top + topInset,
+        top: composerHeight,
+      }}
+      style={{ flex: 1 }}
+    />
+  );
+}
+
+type MessageListProps = Omit<
+  RowsProps,
+  "freeze" | "latest" | "listRef" | "onReady" | "shown"
+> & {
+  ref?: Ref<MessageListHandle>;
+  onJumpToLatest: () => void;
+  onToggleReaction: (messageId: string, emoji: string) => void;
+  /** Opens the sheet of who reacted to a message, on one emoji if given. */
+  onViewReactions: (messageId: string, emoji?: string) => void;
+};
+
+/**
+ * The conversation, newest at the bottom, with its long-press menu, drag
+ * to see times, and a button back down to the latest message. Opens on
+ * `anchorId` when given.
+ */
+export function MessageList({
+  ref,
+  onJumpToLatest,
+  onToggleReaction,
+  onViewReactions,
+  ...props
+}: MessageListProps) {
+  const listRef = useRef<FlatList<MessageRow>>(null);
+  const frame = useAnimatedRef<View>();
+  // Covered until laid out at its starting place, then faded in. A
+  // page-colored cover fades away rather than the list fading in: glass
+  // created under a fully transparent parent never draws.
+  const loaded = useSharedValue(0);
+  const cover = useAnimatedStyle(() => ({ opacity: 1 - loaded.value }));
+  const latest = useLatest(listRef, props.anchorId === undefined);
+  const [shown, setShown] = useState(false);
+  const { isNearLatest, scrollToLatest, scrollToNewest } = latest;
+  // Read out first: the worklet must not capture `props` (messages hold
+  // Dates, which worklets can't copy).
+  const { hasNewer } = props;
+  const showJump = useDerivedValue(() => hasNewer || !isNearLatest.value);
+  const keyboard = useMenuKeyboard();
+
+  useImperativeHandle(ref, () => ({ scrollToLatest }));
 
   return (
     <MessageActionsProvider
       onToggleReaction={onToggleReaction}
       onViewReactions={onViewReactions}
-      // The menu is a modal, which would otherwise scroll the list on
-      // Android (see useModalKeyboardFreeze).
-      onMenuChange={keyboard.hold}
+      // The menu is a modal, which takes the keyboard down on iOS and
+      // reports it again on Android; the list stays still through both.
+      menuKeyboard={keyboard}
     >
       <RevealTimes>
-        <View style={{ flex: 1 }}>
-          <KeyboardAwareLegendList
-            ref={listRef}
-            data={rows}
-            keyExtractor={(row) => row.key}
-            getItemType={(row) => row.type}
-            renderItem={({ item }) => (
-              <Row
-                row={item}
-                self={self}
-                layout={layout}
-                profileOf={profileOf}
-                showAuthors={showAuthors}
-                highlighted={item.key === anchorId}
-                arriving={arrivedAfter(item, openedAt)}
-              />
-            )}
-            estimatedItemSize={56}
-            // Rows mount fresh, so arriving messages can animate in.
-            recycleItems={false}
-            // Rows move straight to where the list puts them. Animating that
-            // move (`itemLayoutAnimation`) kept rows drawn at their old or
-            // estimated places, over their neighbors, for as long as the list
-            // kept re-laying them out, as it does while a page of older
-            // messages (often tall ones with link cards) is measured.
-            alignItemsAtEnd
-            maintainScrollAtEnd={hasNewer ? false : { animated: true }}
-            maintainVisibleContentPosition
-            {...(anchorIndex === -1
-              ? { initialScrollAtEnd: true }
-              : {
-                  initialScrollIndex: { index: anchorIndex, viewPosition: 0.5 },
-                })}
-            onStartReached={onStartReached}
-            onStartReachedThreshold={1}
-            onEndReached={onEndReached}
-            onEndReachedThreshold={1}
-            sharedValues={{ isNearEnd }}
-            keyboardDismissMode="interactive"
-            keyboardShouldPersistTaps="handled"
-            keyboardOffset={bottomInset}
-            freeze={keyboard.freeze}
-            contentInsetAdjustmentBehavior="automatic"
-            // Messages scroll under the floating header and composer.
-            contentContainerStyle={{
-              paddingBottom: composerHeight + 8,
-              paddingTop: topInset + 8,
-            }}
-            scrollIndicatorInsets={{ top: topInset }}
-            onLoad={() => {
-              loaded.set(withTiming(1, { duration: 220 }));
-            }}
-            style={{ flex: 1 }}
-          />
+        <View ref={frame} style={{ flex: 1 }}>
+          <GrowthProvider list={frame}>
+            <Rows
+              {...props}
+              listRef={listRef}
+              latest={latest}
+              freeze={keyboard.freeze}
+              shown={shown}
+              onReady={() => {
+                // Two frames later, once the first scroll (to the message it
+                // opened on) has drawn and the rows' mounting is done, so it
+                // can't hitch the fade's first frame.
+                requestAnimationFrame(() =>
+                  requestAnimationFrame(() => {
+                    loaded.set(
+                      withTiming(1, { duration: FADE_MS }, (done) => {
+                        if (done === true) scheduleOnRN(setShown, true);
+                      }),
+                    );
+                  }),
+                );
+              }}
+            />
+          </GrowthProvider>
         </View>
       </RevealTimes>
       <Animated.View
@@ -292,10 +350,10 @@ export function MessageList({
       />
       <JumpToLatest
         visible={showJump}
-        bottom={composerHeight + 12}
+        bottom={props.composerHeight + 12}
         onPress={() => {
           if (hasNewer) onJumpToLatest();
-          else void listRef.current?.scrollToEnd({ animated: true });
+          else scrollToNewest();
         }}
       />
     </MessageActionsProvider>
