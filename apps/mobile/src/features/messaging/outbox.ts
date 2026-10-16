@@ -1,7 +1,6 @@
 import type {
   Attachment,
   LinkCard,
-  Message as PdsMessage,
   Quote,
 } from "@decentralized-convex/messages";
 import { useSyncExternalStore } from "react";
@@ -374,26 +373,4 @@ export function useOutbox(account: string, conversationId: string) {
     (message) =>
       message.account === account && message.conversationId === conversationId,
   );
-}
-
-/**
- * A sent message, with the link cards this device prefetched where the
- * PDS is still fetching (so a card shown when it was sent stays up).
- */
-export function withPrefetched(
-  message: PdsMessage,
-  sent: OutgoingMessage | undefined,
-) {
-  const prefetched = sent?.linkPreviews;
-  if (prefetched === undefined || message.linkPreviews === undefined) {
-    return message;
-  }
-  return {
-    ...message,
-    linkPreviews: message.linkPreviews.map((card) =>
-      card.preview === undefined
-        ? (prefetched.find(({ link }) => link === card.link) ?? card)
-        : card,
-    ),
-  };
 }

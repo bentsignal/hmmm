@@ -9,6 +9,8 @@ import Animated, {
 } from "react-native-reanimated";
 
 import type { MessageRow } from "./build-rows";
+import type { ReplyCard } from "./reply-card";
+import type { Message } from "./types";
 import type { MessageLayout } from "~/features/preferences/store";
 import { Arrive } from "./arrive";
 import { rowOrder } from "./build-rows";
@@ -16,6 +18,7 @@ import { DaySeparator, TimeHeader } from "./day-separator";
 import { useRowLift } from "./grow";
 import { MessageBubble } from "./message-bubble";
 import { MessageStacked } from "./message-stacked";
+import { RepliesDivider } from "./replies-divider";
 
 export type ProfileOf = (address: string) => {
   avatarUrl: string | null;
@@ -72,11 +75,7 @@ export function Row({
 }: RowProps & { highlighted: boolean; arriving: boolean }) {
   return (
     <RowLift
-      order={
-        row.type === "message"
-          ? rowOrder(row.message.sentAt)
-          : rowOrder(row.date, true)
-      }
+      order={orderOf(row)}
       // Stacked rows' reactions open below the message, so the row itself
       // moves up as they do.
       withOwn={layout === "stacked"}
@@ -92,6 +91,14 @@ export function Row({
       </RowShell>
     </RowLift>
   );
+}
+
+/** Where a row sits in the list (see `rowOrder`). */
+function orderOf(row: MessageRow) {
+  if (row.type === "message") return rowOrder(row.message.sentAt);
+  // A thread's divider sits just after its original.
+  if (row.type === "replies") return rowOrder(row.date) + 0.25;
+  return rowOrder(row.date, true);
 }
 
 /** Moves the row with the rows above a row that grows (see `useRowLift`). */
@@ -135,6 +142,21 @@ function RowShell({
   return highlighted ? <Highlight>{children}</Highlight> : children;
 }
 
+/** What a thread's first reply shows around it in the conversation. */
+function replyCard(message: Message, profileOf: ProfileOf) {
+  if (message.quote === undefined) return undefined;
+  function person(address: string) {
+    return { address, ...profileOf(address) };
+  }
+  const repliers = message.thread?.repliers ?? [];
+  return {
+    more: (message.thread?.replyCount ?? 1) - 1,
+    quote: message.quote,
+    quoteAuthor: person(message.quote.authorId),
+    repliers: repliers.map(person),
+  } satisfies ReplyCard;
+}
+
 function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
   const stacked = layout === "stacked";
   if (row.type === "day") {
@@ -143,13 +165,18 @@ function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
   if (row.type === "time") {
     return <TimeHeader date={row.date} stacked={stacked} />;
   }
+  if (row.type === "replies") {
+    return <RepliesDivider count={row.count} />;
+  }
   const { message } = row;
+  const card = replyCard(message, profileOf);
   if (stacked) {
     return (
       <MessageStacked
         message={message}
         author={profileOf(message.authorId)}
         startsGroup={row.startsGroup}
+        card={card}
       />
     );
   }
@@ -160,6 +187,7 @@ function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
       author={showAuthors ? profileOf(message.authorId) : undefined}
       startsGroup={row.startsGroup}
       endsGroup={row.endsGroup}
+      card={card}
     />
   );
 }

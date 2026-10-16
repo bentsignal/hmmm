@@ -14,7 +14,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
 
-import type { MessageRow } from "./build-rows";
+import type { MessageRow, ThreadHead } from "./build-rows";
 import type { Latest } from "./list-position";
 import type { ProfileOf } from "./message-row";
 import type { Message } from "./types";
@@ -22,7 +22,7 @@ import type { MessageLayout } from "~/features/preferences/store";
 import { GlassSurface } from "~/components/glass-surface";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { cn } from "~/lib/cn";
-import { arrivedAfter, buildMessageRows } from "./build-rows";
+import { arrivedAfter, newestFirst } from "./build-rows";
 import { GrowthProvider } from "./grow";
 import { ANCHOR, useLatest, usePlacement } from "./list-position";
 import { useMenuKeyboard } from "./menu-keyboard";
@@ -111,14 +111,11 @@ export interface MessageListHandle {
   scrollToLatest: () => void;
 }
 
-/** Rows newest first, as the inverted list lays them out from the bottom. */
-function newestFirst(messages: readonly Message[], layout: MessageLayout) {
-  return buildMessageRows(messages, layout).reverse();
-}
-
 interface RowsProps {
   listRef: RefObject<FlatList<MessageRow> | null>;
   messages: readonly Message[];
+  /** Set in a thread, whose original heads the list. */
+  thread?: ThreadHead;
   self: string;
   layout: MessageLayout;
   profileOf: ProfileOf;
@@ -160,6 +157,7 @@ const FADE_MS = 220;
 function Rows({
   listRef,
   messages,
+  thread,
   self,
   layout,
   profileOf,
@@ -176,7 +174,7 @@ function Rows({
   shown,
 }: RowsProps) {
   const safeArea = useSafeAreaInsets();
-  const rows = newestFirst(messages, layout);
+  const rows = newestFirst(messages, layout, thread);
   // Only messages that arrive while open animate in, not loaded pages.
   const [openedAt] = useState(Date.now);
   const anchorIndex =
@@ -250,6 +248,11 @@ function Rows({
       keyboardDismissMode="interactive"
       keyboardShouldPersistTaps="handled"
       contentInsetAdjustmentBehavior="never"
+      // A thread starts at the top, under its original, until it fills
+      // the screen. (Inverted, the content's end is the top.)
+      contentContainerStyle={
+        thread === undefined ? undefined : { flexGrow: 1, justifyContent: "flex-end" }
+      }
       // Room under the newest message for the composer floating over it,
       // which grows as you type, and above the oldest for the header: the
       // messages scroll under both. Inverted, the list's header is at the
@@ -276,6 +279,10 @@ type MessageListProps = Omit<
   onToggleReaction: (messageId: string, emoji: string) => void;
   /** Opens the sheet of who reacted to a message, on one emoji if given. */
   onViewReactions: (messageId: string, emoji?: string) => void;
+  /** A tap on a message opens its thread; absent in a thread. */
+  onOpenThread?: (message: Message) => void;
+  /** The menu's Reply; absent in a thread. */
+  onReply?: (message: Message) => void;
 };
 
 /**
@@ -288,6 +295,8 @@ export function MessageList({
   onJumpToLatest,
   onToggleReaction,
   onViewReactions,
+  onOpenThread,
+  onReply,
   ...props
 }: MessageListProps) {
   const listRef = useRef<FlatList<MessageRow>>(null);
@@ -312,6 +321,8 @@ export function MessageList({
     <MessageActionsProvider
       onToggleReaction={onToggleReaction}
       onViewReactions={onViewReactions}
+      onOpenThread={onOpenThread}
+      onReply={onReply}
       // The menu is a modal, which takes the keyboard down on iOS and
       // reports it again on Android; the list stays still through both.
       menuKeyboard={keyboard}

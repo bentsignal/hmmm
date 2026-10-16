@@ -1,6 +1,7 @@
 import { Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 
+import type { ReplyCard } from "./reply-card";
 import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
 import { cn } from "~/lib/cn";
@@ -13,23 +14,72 @@ import { MenuTargetView } from "./message-actions";
 import { InteractiveMessage } from "./message-reactions";
 import { NotSent, SendingFade, SENT_FADE_MS } from "./message-status";
 import { linkCardsOf, visibleBody } from "./message-text";
+import { QuoteLine, ThreadFooter } from "./reply-card";
 
 const AVATAR_COLUMN = 36;
 
-/** Slack/Discord-style: everyone left-aligned with a photo and name. */
+/**
+ * Slack/Discord-style: everyone left-aligned with a photo and name. A
+ * thread's first reply has a line quoting the message it answers above it
+ * (see `ReplyCard`).
+ */
 export function MessageStacked({
   message,
   author,
   startsGroup,
+  card,
 }: {
   message: Message;
   author: { avatarUrl: string | null; displayName: string };
   startsGroup: boolean;
+  /** Set for a thread's first reply in the conversation. */
+  card?: ReplyCard;
+}) {
+  return (
+    <View>
+      {card !== undefined && (
+        <QuoteLine
+          message={message}
+          card={card}
+          avatarColumn={AVATAR_COLUMN}
+        />
+      )}
+      <StackedRow
+        message={message}
+        author={author}
+        startsGroup={startsGroup}
+        quoted={card !== undefined}
+      />
+      {card !== undefined && (
+        <View style={{ paddingLeft: 16 + AVATAR_COLUMN + 12 }}>
+          <ThreadFooter message={message} card={card} />
+        </View>
+      )}
+    </View>
+  );
+}
+
+function StackedRow({
+  message,
+  author,
+  startsGroup,
+  quoted,
+}: {
+  message: Message;
+  author: { avatarUrl: string | null; displayName: string };
+  startsGroup: boolean;
+  /** Under a quote, which leaves the space above it. */
+  quoted: boolean;
 }) {
   const body = visibleBody(message);
   const cards = linkCardsOf(message);
   return (
-    <View className={cn("flex-row gap-3 px-4", startsGroup ? "pt-5" : "pt-1")}>
+    <View
+      className={cn(
+        "flex-row gap-3 px-4",
+        quoted || !startsGroup ? "pt-1" : "pt-5",
+      )}
+    >
       <View style={{ width: AVATAR_COLUMN }}>
         {startsGroup && (
           <Avatar name={author.displayName} size="row" uri={author.avatarUrl} />

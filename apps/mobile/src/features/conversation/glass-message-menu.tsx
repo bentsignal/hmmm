@@ -224,11 +224,7 @@ export function GlassMessageMenu({
   const reactorsMax = screen.width - EDGE * 2;
   const actions = showReactors
     ? []
-    : menuActions(target, {
-        close: (then, toChat) => close(then, toChat),
-        onReply,
-        onViewReactions,
-      });
+    : menuActions(target, { close, onReply, onViewReactions });
   const layout = menuLayout({
     align: target.align,
     bar: { height: BAR_HEIGHT, width: BAR_WIDTH },

@@ -1,7 +1,7 @@
 import type {
+  Attachment,
   LinkCard,
   Message as PdsMessage,
-  Quote,
 } from "@decentralized-convex/messages";
 import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
@@ -9,169 +9,14 @@ import { pdsMutation } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
 import type { StagedFile } from "./attachments";
-import type { OutgoingItem, OutgoingMessage, OutgoingReply } from "./outbox";
-import type { ReactionSummary } from "./reactions";
-import type {
-  Message,
-  MessageAttachment,
-  ThreadInfo,
-} from "~/features/conversation/types";
+import type { OutgoingMessage } from "./outbox";
+import type { Message, ThreadInfo } from "~/features/conversation/types";
 import { useAccount } from "./account";
-import { toMessage } from "./conversations";
 import { useMessageWindow } from "./message-window";
-import { sendOutgoing, useOutbox, withPrefetched } from "./outbox";
+import { sendOutgoing, useOutbox } from "./outbox";
 import { useReactions } from "./reactions";
+import { shownMessage, shownUnconfirmed } from "./shown-messages";
 import { useThreadSummaries } from "./threads";
-
-/** An attachment still uploading, shown from this device's copy. */
-function localAttachment(messageId: string, item: OutgoingItem) {
-  const { file } = item;
-  return {
-    ...item.attachment,
-    durationMs: file.durationMs,
-    height: file.height,
-    kind: file.kind,
-    localThumbnailUrl: file.poster?.uri,
-    localUrl: file.uri,
-    mimeType: file.mimeType,
-    name: file.name,
-    size: file.size,
-    thumbnailUrl: item.attachment?.thumbnailUrl ?? file.poster?.uri,
-    upload: { itemId: item.id, messageId, state: item.state },
-    url: item.attachment?.url ?? file.uri,
-    width: file.width,
-  } satisfies MessageAttachment;
-}
-
-/**
- * A confirmed message's attachments, still drawn from this device's
- * copies when it sent them, so nothing reloads when the PDS confirms it.
- */
-function withLocalMedia(
-  message: PdsMessage,
-  sent: OutgoingMessage | undefined,
-) {
-  if (sent === undefined) return message.attachments;
-  return message.attachments.map((attachment) => {
-    const item = sent.items.find(
-      ({ attachment: uploaded }) => uploaded?.url === attachment.url,
-    );
-    return item === undefined
-      ? attachment
-      : {
-          ...attachment,
-          localThumbnailUrl: item.file.poster?.uri,
-          localUrl: item.file.uri,
-        };
-  });
-}
-
-function unconfirmedStatus(status: OutgoingMessage["status"]) {
-  if (status === "sent") return undefined;
-  return status;
-}
-
-function unconfirmedMessage(
-  message: OutgoingMessage,
-  address: string,
-  conversationId: string,
-) {
-  return {
-    ...toMessage(
-      {
-        attachments: [],
-        authorId: address,
-        authorName: "",
-        body: message.body,
-        conversationId,
-        linkPreview: null,
-        linkPreviews: message.linkPreviews,
-        messageId: message.messageId,
-        quote: message.reply?.quote,
-        sentAt: message.sentAt,
-        threadId: message.reply?.threadId,
-      },
-      [],
-      message.items.map((item) => localAttachment(message.messageId, item)),
-    ),
-    // One the PDS took shows as sent, even before the conversation's
-    // pages list it.
-    status: unconfirmedStatus(message.status),
-  };
-}
-
-/**
- * How a message shows: in the conversation (where a reply shows as a card
- * quoting its original, with its thread's count), or in its thread.
- */
-interface Shown {
-  readonly reactions: readonly ReactionSummary[] | undefined;
-  readonly sent: OutgoingMessage | undefined;
-  readonly thread: ThreadInfo | undefined;
-  /** In a thread, a reply shows without its quote. */
-  readonly inThread: boolean;
-}
-
-/**
- * Each message as the conversation shows it, kept from render to render
- * while what it's made from is the same, so its row doesn't redraw when
- * something else in the conversation changes.
- */
-const shown = new WeakMap<
-  PdsMessage | OutgoingMessage,
-  { readonly message: Message; readonly how: Shown }
->();
-
-function sameShown(left: Shown, right: Shown) {
-  return (
-    left.reactions === right.reactions &&
-    left.sent === right.sent &&
-    left.inThread === right.inThread &&
-    left.thread?.replyCount === right.thread?.replyCount &&
-    left.thread?.repliers.join() === right.thread?.repliers.join()
-  );
-}
-
-function shownAs(message: Message, how: Shown) {
-  return {
-    ...message,
-    quote: how.inThread ? undefined : message.quote,
-    thread: how.thread,
-  };
-}
-
-function shownMessage(message: PdsMessage, how: Shown) {
-  const cached = shown.get(message);
-  if (cached !== undefined && sameShown(cached.how, how)) {
-    return cached.message;
-  }
-  const result = shownAs(
-    toMessage(
-      withPrefetched(message, how.sent),
-      how.reactions,
-      withLocalMedia(message, how.sent),
-    ),
-    how,
-  );
-  shown.set(message, { how, message: result });
-  return result;
-}
-
-function shownUnconfirmed(
-  message: OutgoingMessage,
-  how: Shown & { address: string; conversationId: string },
-) {
-  const cached = shown.get(message);
-  if (cached !== undefined && sameShown(cached.how, how)) {
-    return cached.message;
-  }
-  const result = shownAs(
-    unconfirmedMessage(message, how.address, how.conversationId),
-    how,
-  );
-  shown.set(message, { how, message: result });
-  return result;
-}
 
 /**
  * The pages whose messages show. The pages the window opened with wait for
@@ -216,7 +61,11 @@ function useSettledPages(
 }
 
 /** What a reply quotes of the message it answers. */
-export function quoteOf(message: Message): Quote {
+export function quoteOf(message: {
+  attachments: readonly Attachment[];
+  authorId: string;
+  body?: string;
+}) {
   return {
     attachment: message.attachments[0],
     authorId: message.authorId,
@@ -250,6 +99,81 @@ function outboxFor(
 }
 
 /**
+ * Each message's thread, counting replies this device is still sending.
+ * In a thread, only the thread's own count is asked for.
+ */
+function useThreads({
+  address,
+  conversationId,
+  view,
+  outbox,
+  threadId,
+}: {
+  address: string;
+  conversationId: string;
+  view: ReturnType<typeof useMessageWindow>;
+  outbox: readonly OutgoingMessage[];
+  threadId: string | undefined;
+}) {
+  const summaries = useThreadSummaries(
+    address,
+    conversationId,
+    threadId === undefined ? view.pageThreadIds : [[threadId]],
+  );
+  const sending = sendingReplies(outbox);
+  function threadOf(id: string) {
+    const known = summaries.threadOf(id);
+    const pending = sending.get(id) ?? 0;
+    if (pending === 0) return known;
+    return {
+      repliers: [address, ...(known?.repliers ?? [])],
+      replyCount: (known?.replyCount ?? 0) + pending,
+    };
+  }
+  return { isLoaded: summaries.isLoaded, threadOf };
+}
+
+/**
+ * Where a new message goes: in a thread, a reply to its original (the
+ * thread's first, to show in the conversation, while it has none); in the
+ * conversation, a reply to `replyTo` if given, which starts its thread.
+ */
+function replyFor(
+  root: PdsMessage | null,
+  replyTo: Message | undefined,
+  threadOf: (id: string) => ThreadInfo | undefined,
+) {
+  if (root !== null) {
+    return {
+      inChat: threadOf(root.messageId) === undefined,
+      quote: quoteOf(root),
+      threadId: root.messageId,
+    };
+  }
+  if (replyTo === undefined) return undefined;
+  const threadId = replyTo.threadId ?? replyTo.id;
+  return {
+    inChat: threadOf(threadId) === undefined,
+    quote: quoteOf(replyTo),
+    threadId,
+  };
+}
+
+/** How many replies a thread has; 0 outside one. */
+function replyCountOf(
+  threadOf: (id: string) => ThreadInfo | undefined,
+  threadId: string | undefined,
+) {
+  if (threadId === undefined) return 0;
+  return threadOf(threadId)?.replyCount ?? 0;
+}
+
+/** The newest message's time, when it's the newest there is. */
+function newestSentAt(view: ReturnType<typeof useMessageWindow>) {
+  return view.hasNewer ? undefined : view.messages.at(-1)?.sentAt;
+}
+
+/**
  * Messages oldest first, opened at the latest message or around `anchor`,
  * with this device's unconfirmed sends at the end. With `threadId`, a
  * thread's replies instead, and its original as `root`.
@@ -266,30 +190,20 @@ export function useMessages(
     conversationId,
     inThread ? [[threadId], ...view.pageMessageIds] : view.pageMessageIds,
   );
-  const summaries = useThreadSummaries(
+  const outbox = useOutbox(address, conversationId);
+  const threads = useThreads({
     address,
     conversationId,
-    inThread ? [[threadId]] : view.pageThreadIds,
-  );
+    outbox,
+    threadId,
+    view,
+  });
   const settled = useSettledPages(
     view.pages,
     ({ messageIds, threadIds }) =>
       messageIds.every((id) => reactionsOf(id) !== undefined) &&
-      threadIds.every(summaries.isLoaded),
+      threadIds.every(threads.isLoaded),
   );
-  const outbox = useOutbox(address, conversationId);
-  const sending = sendingReplies(outbox);
-  /** A message's thread, counting replies this device is still sending. */
-  function threadOf(id: string): ThreadInfo | undefined {
-    const known = summaries.threadOf(id);
-    const pending = sending.get(id) ?? 0;
-    if (pending === 0) return known;
-    return {
-      repliers: [address, ...(known?.repliers ?? [])],
-      replyCount: (known?.replyCount ?? 0) + pending,
-    };
-  }
-  const here = outboxFor(outbox, threadId);
   const sentById = new Map(outbox.map((item) => [item.messageId, item]));
   const confirmed = new Set(view.messages.map((message) => message.messageId));
   const atLatest = !view.hasNewer;
@@ -298,34 +212,31 @@ export function useMessages(
       inThread,
       reactions: reactionsOf(message.messageId),
       sent: sentById.get(message.messageId),
-      thread: threadOf(message.threadId ?? message.messageId),
+      thread: threads.threadOf(message.threadId ?? message.messageId),
     };
   }
-  const unconfirmed = atLatest
-    ? here
-        .filter((message) => !confirmed.has(message.messageId))
-        .map((message) =>
-          shownUnconfirmed(message, {
-            ...how({
-              messageId: message.messageId,
-              threadId: message.reply?.threadId,
-            }),
-            address,
-            conversationId,
-            reactions: [],
-          }),
-        )
-    : [];
-  const thread = inThread ? threadOf(threadId) : undefined;
+  const unconfirmed = (atLatest ? outboxFor(outbox, threadId) : [])
+    .filter((message) => !confirmed.has(message.messageId))
+    .map((message) =>
+      shownUnconfirmed(message, {
+        ...how({
+          messageId: message.messageId,
+          threadId: message.reply?.threadId,
+        }),
+        address,
+        conversationId,
+        reactions: [],
+      }),
+    );
   const { root } = view;
+  // A thread waits for its original's reactions too. (Its original is
+  // missing once its pages have loaded without it.)
+  const rootLoading =
+    root !== null && reactionsOf(root.messageId) === undefined;
 
   return {
     ...view,
-    // A thread waits for its original's reactions too. (Its original is
-    // missing once its pages have loaded without it.)
-    isLoading:
-      settled.isLoading ||
-      (inThread && root !== null && reactionsOf(threadId) === undefined),
+    isLoading: settled.isLoading || rootLoading,
     messages: [
       ...view.messages
         .filter((message) => settled.shownIds.has(message.messageId))
@@ -335,13 +246,13 @@ export function useMessages(
     /** A thread's original, once loaded; undefined if it doesn't exist. */
     root: root === null ? undefined : shownMessage(root, how(root)),
     /** How many replies a thread has. */
-    replyCount: thread?.replyCount ?? 0,
+    replyCount: replyCountOf(threads.threadOf, threadId),
     /** A message's thread, if it has replies (see `ThreadInfo`). */
-    threadOf,
+    threadOf: threads.threadOf,
     /** Adds or removes your reaction, showing it right away. */
     toggleReaction: toggle,
     /** Only set when the newest loaded message is the newest there is. */
-    newestSentAt: atLatest ? view.messages.at(-1)?.sentAt : undefined,
+    newestSentAt: newestSentAt(view),
     /**
      * Sends a message, shown right away; its files upload after that.
      * `linkPreviews` are the cards it starts with (see `useLinkPrefetch`).
@@ -355,30 +266,12 @@ export function useMessages(
       replyTo?: Message,
     ) => {
       if (!atLatest) view.jumpToLatest();
-      let reply: OutgoingReply | undefined;
-      if (inThread && root !== null) {
-        reply = {
-          inChat: (thread?.replyCount ?? 0) === 0,
-          quote: {
-            attachment: root.attachments[0],
-            authorId: root.authorId,
-            body: root.body,
-          },
-          threadId,
-        };
-      } else if (replyTo !== undefined) {
-        reply = {
-          inChat: threadOf(replyTo.threadId ?? replyTo.id) === undefined,
-          quote: quoteOf(replyTo),
-          threadId: replyTo.threadId ?? replyTo.id,
-        };
-      }
       sendOutgoing({
         body,
         conversationId,
         files,
         linkPreviews,
-        reply,
+        reply: replyFor(root, replyTo, threads.threadOf),
         session,
       });
     },

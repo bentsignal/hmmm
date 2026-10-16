@@ -26,12 +26,13 @@ export function useDevTools() {
   const { session } = useAccount();
   return {
     enabled: env.devTools,
-    replyToMe: (conversationId: string) => {
+    /** Bots answer in the conversation, or in a thread with `threadId`. */
+    replyToMe: (conversationId: string, threadId?: string) => {
       if (env.devTools) {
         void session
           .convex()
           .then((convex) =>
-            convex.action(api.dev.replyToMe, { conversationId }),
+            convex.action(api.dev.replyToMe, { conversationId, threadId }),
           );
       }
     },

@@ -4,6 +4,23 @@ import { canCopy, copyText, selectionTick } from "~/lib/native-extras";
 import { linkActions } from "./link-actions";
 import { canSaveToPhotos, saveToPhotos } from "./save-media";
 
+/** Reply, in a conversation (not a thread). */
+function replyAction(
+  onReply: (() => void) | undefined,
+  close: (then?: () => void, toChat?: boolean) => void,
+) {
+  if (onReply === undefined) return [];
+  return [
+    {
+      icon: { android: "reply", ios: "arrowshape.turn.up.left" },
+      label: "Reply",
+      // Back to the conversation, where the field takes the reply (or on
+      // into the thread, which brings its own keyboard).
+      onPress: () => close(onReply, true),
+    } satisfies MenuAction,
+  ];
+}
+
 /**
  * Reply first (in a conversation), then a held link's actions, Save to
  * Photos for a held photo or video, Copy for text (the whole message,
@@ -23,18 +40,6 @@ export function menuActions(
   },
 ) {
   const { body } = message;
-  const reply =
-    onReply === undefined
-      ? []
-      : [
-          {
-            icon: { android: "reply", ios: "arrowshape.turn.up.left" },
-            label: "Reply",
-            // Back to the conversation, where the field takes the reply
-            // (or on into the thread, which brings its own keyboard).
-            onPress: () => close(onReply, true),
-          } satisfies MenuAction,
-        ];
   const save =
     attachment !== undefined && canSaveToPhotos(attachment)
       ? [
@@ -75,7 +80,7 @@ export function menuActions(
         ]
       : [];
   return [
-    ...reply,
+    ...replyAction(onReply, close),
     ...linkActions(link, close),
     ...save,
     ...copy,

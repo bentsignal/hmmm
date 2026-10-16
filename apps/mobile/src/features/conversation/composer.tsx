@@ -1,4 +1,4 @@
-import type { Ref } from "react";
+import type { Ref, RefObject } from "react";
 import { useImperativeHandle, useRef, useState } from "react";
 import {
   Platform,
@@ -101,6 +101,60 @@ function SendButton({
   );
 }
 
+/** The bar's sides, which widen a little while typing on iOS. */
+function useSides() {
+  const keyboard = useReanimatedKeyboardAnimation();
+  return useAnimatedStyle(() => ({
+    // eslint-disable-next-line vera/no-layout-animation -- Known: re-lays out the composer on each frame of the keyboard; to be fixed in its own PR.
+    paddingHorizontal:
+      Platform.OS === "ios"
+        ? interpolate(
+            keyboard.progress.value,
+            [0, 1],
+            [IOS_EDGE, IOS_TYPING_EDGE],
+          )
+        : ANDROID_EDGE,
+  }));
+}
+
+/** The text being typed, emptied by `sent`. */
+function useDraft(
+  input: RefObject<TextInput | null>,
+  onChangeText: ((text: string) => void) | undefined,
+) {
+  const [draft, setDraft] = useState("");
+  /** When the field was last emptied by sending, until something is typed. */
+  const sentAt = useRef<number | null>(null);
+
+  function change(text: string) {
+    // Sending while iOS still offers an autocorrection for the last word
+    // (tapping send rather than space) lets the keyboard apply it after the
+    // field has cleared, putting that word back. Typing adds a letter at a
+    // time, so a whole word landing in the empty field just after a send
+    // is the keyboard's, and the field stays empty.
+    if (
+      sentAt.current !== null &&
+      text.length > 1 &&
+      Date.now() - sentAt.current < AUTOCORRECT_WINDOW_MS
+    ) {
+      input.current?.clear();
+      return;
+    }
+    if (text !== "") sentAt.current = null;
+    setDraft(text);
+    onChangeText?.(text);
+  }
+
+  return {
+    change,
+    draft,
+    sent: () => {
+      change("");
+      sentAt.current = Date.now();
+    },
+  };
+}
+
 /** What the composer can be asked to do. */
 export interface ComposerHandle {
   /** Puts the cursor in the field, bringing the keyboard up. */
@@ -194,56 +248,21 @@ export function Composer({
   autoFocus?: boolean;
   placeholder?: string;
 }) {
-  const [draft, setDraft] = useState("");
   const input = useRef<TextInput>(null);
-  useImperativeHandle(ref, () => ({
-    focus: () => input.current?.focus(),
-  }));
+  useImperativeHandle(ref, () => ({ focus: () => input.current?.focus() }));
   // Only the field being pasted into is focused; another conversation's
   // composer can be mounted beneath this one.
   usePastedImages((images) => {
     if (input.current?.isFocused() === true) onPaste(images);
   });
-  /** When the field was last emptied by sending, until something is typed. */
-  const sentAt = useRef<number | null>(null);
-  const keyboard = useReanimatedKeyboardAnimation();
-  const sides = useAnimatedStyle(() => ({
-    // eslint-disable-next-line vera/no-layout-animation -- Known: re-lays out the composer on each frame of the keyboard; to be fixed in its own PR.
-    paddingHorizontal:
-      Platform.OS === "ios"
-        ? interpolate(
-            keyboard.progress.value,
-            [0, 1],
-            [IOS_EDGE, IOS_TYPING_EDGE],
-          )
-        : ANDROID_EDGE,
-  }));
+  const sides = useSides();
+  const { draft, change, sent } = useDraft(input, onChangeText);
   const canSend = draft.trim().length > 0 || staged.length > 0;
-
-  function change(text: string) {
-    // Sending while iOS still offers an autocorrection for the last word
-    // (tapping send rather than space) lets the keyboard apply it after the
-    // field has cleared, putting that word back. Typing adds a letter at a
-    // time, so a whole word landing in the empty field just after a send
-    // is the keyboard's, and the field stays empty.
-    if (
-      sentAt.current !== null &&
-      text.length > 1 &&
-      Date.now() - sentAt.current < AUTOCORRECT_WINDOW_MS
-    ) {
-      input.current?.clear();
-      return;
-    }
-    if (text !== "") sentAt.current = null;
-    setDraft(text);
-    onChangeText?.(text);
-  }
 
   function send() {
     if (!canSend) return;
     onSend(draft.trim());
-    change("");
-    sentAt.current = Date.now();
+    sent();
   }
 
   return (

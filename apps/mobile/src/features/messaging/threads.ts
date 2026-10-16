@@ -4,12 +4,15 @@ import type {
 } from "@decentralized-convex/messages";
 import type { PdsOptimisticLocalStore } from "@decentralized-convex/tanstack-query";
 import { useEffect, useRef } from "react";
+import { Alert } from "react-native";
+// eslint-disable-next-line no-restricted-imports -- Expo Router has no route loaders to preload suspense queries.
 import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { MAX_REACTION_MESSAGES } from "@decentralized-convex/messages";
 import { pdsMutation, pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
 import type { ThreadInfo } from "~/features/conversation/types";
+import { selectionTick } from "~/lib/native-extras";
 import { useAccount } from "./account";
 import { pdsResult, pdsResultOr } from "./results";
 
@@ -88,15 +91,13 @@ export function useThreadSummaries(
       loaded: batches.flatMap((messageIds, index) =>
         results[index]?.data === undefined ? NONE : messageIds,
       ),
-      threads: Object.fromEntries(
-        combine(results.flatMap((result) => result.data ?? [])),
-      ),
+      threads: combine(results.flatMap((result) => result.data ?? [])),
     }),
   });
   const loadedIds = new Set(loaded);
   return {
     isLoaded: (threadId: string) => loadedIds.has(threadId),
-    threadOf: (threadId: string): ThreadInfo | undefined => threads[threadId],
+    threadOf: (threadId: string) => threads.get(threadId),
   };
 }
 
@@ -137,11 +138,25 @@ export function useThreadState(conversationId: string, threadId: string) {
       session: address,
     }),
   );
+  const following = data?.following;
   return {
     /** Undefined until it has loaded. */
-    following: data?.following,
-    setFollowed: (followed: boolean, onError: () => void) =>
-      mutate({ conversationId, followed, threadId }, { onError }),
+    following,
+    /** Turns the bell off or back on, showing it right away. */
+    toggle: () => {
+      if (following === undefined) return;
+      selectionTick();
+      mutate(
+        { conversationId, followed: !following, threadId },
+        {
+          onError: () =>
+            Alert.alert(
+              "Couldn't Change Notifications",
+              "Try again in a moment.",
+            ),
+        },
+      );
+    },
   };
 }
 
