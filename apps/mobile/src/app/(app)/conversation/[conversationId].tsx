@@ -22,6 +22,7 @@ import {
   CONVERSATION_HEADER_HEIGHT,
   ConversationHeader,
 } from "~/features/conversation/conversation-header";
+import { draftKey } from "~/features/conversation/drafts";
 import { MessageList } from "~/features/conversation/message-list";
 import { useDevConversation } from "~/features/dev/dev-conversation";
 import { useDevTools } from "~/features/dev/dev-tools";
@@ -59,6 +60,7 @@ function FloatingComposer({
   ) => void;
 }) {
   const bottomInset = useComposerBottomInset();
+  const { address } = useAccount();
   const links = useLinkPrefetch();
   const devTools = useDevTools();
   const [staged, setStaged] = useState<readonly StagedFile[]>([]);
@@ -106,6 +108,7 @@ function FloatingComposer({
       onLayout={(event) => onHeight(event.nativeEvent.layout.height)}
     >
       <Composer
+        draftKey={draftKey(address, conversationId)}
         bottomInset={bottomInset}
         staged={staged}
         onChangeText={links.onChangeText}
