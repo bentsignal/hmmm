@@ -1,3 +1,5 @@
+import type { AlertLevel } from "~/features/messaging/alerts";
+
 export type ConversationKind = "direct" | "group" | "channel";
 
 export interface Person {
@@ -26,6 +28,8 @@ export interface ConversationSummary {
   /** Whether the other person in a direct conversation is verified. */
   affiliated: boolean;
   muted: boolean;
+  /** What it alerts you about (all messages, only @mentions, nothing). */
+  alerts: AlertLevel;
   /** When it was pinned to the top of the inbox, or null. */
   pinnedAt: number | null;
   /** The space a channel belongs to. */

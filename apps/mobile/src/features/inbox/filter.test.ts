@@ -12,6 +12,7 @@ function conversation(
   return {
     account: "me@vera.chat",
     affiliated: false,
+    alerts: "all",
     avatarUrl: null,
     hasMessages: true,
     id,

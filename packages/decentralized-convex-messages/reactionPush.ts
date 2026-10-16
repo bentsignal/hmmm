@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { internal } from "./_generated/api.js";
 import { internalAction, internalQuery } from "./_generated/server.js";
+import { alertsOf } from "./alerts.ts";
 import { badgeCounts, badgeField, deliver } from "./delivery.ts";
 import { getConversation } from "./model.ts";
 import {
@@ -9,7 +10,6 @@ import {
   ANDROID_DELIVERY,
   conversationName,
   previewText,
-  wantsAlerts,
 } from "./pushParts.ts";
 import { wantsPush } from "./settings.ts";
 
@@ -37,7 +37,8 @@ export const reactionTargets = internalQuery({
     const conversation = await getConversation(ctx, message.conversationId);
     if (conversation === null) return null;
     const author = message.authorId;
-    if (!(await wantsAlerts(ctx, conversation, author))) return null;
+    const level = await alertsOf(ctx, conversation.conversationId, author);
+    if (level === null || level === "none") return null;
     if (!(await wantsPush(ctx, author, "reactions"))) return null;
     const tokens = await ctx.db
       .query("pushTokens")

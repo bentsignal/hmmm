@@ -47,8 +47,11 @@ export type ActivityListRow =
       readonly kind: "activity";
     };
 
-/** What Activity asks its PDS for: thread replies too. */
-export const ACTIVITY_ARGS = { threads: true };
+/**
+ * What Activity asks its PDS for: thread replies, and each message that
+ * @mentions you as an item of its own.
+ */
+export const ACTIVITY_ARGS = { mentions: true, threads: true };
 
 export function isUnseen(item: ActivityItem) {
   return item.seenThrough === undefined || item.at > item.seenThrough;
@@ -65,9 +68,10 @@ function isGone(item: ActivityItem, now: number) {
 
 /** Who acted in an item, newest first, without repeats. */
 export function actorsOf(item: ActivityItem) {
-  return item.kind === "reactions"
-    ? [...new Set(item.reactions.map(({ accountId }) => accountId))]
-    : item.authors;
+  if (item.kind === "reactions") {
+    return [...new Set(item.reactions.map(({ accountId }) => accountId))];
+  }
+  return item.kind === "mention" ? [item.message.authorId] : item.authors;
 }
 
 /** Everyone an item's row names: who acted, and who titles the chat. */
@@ -146,8 +150,8 @@ export function useActivity(now: number) {
 /**
  * The Activity tab's badge, the app's only one: space invitations waiting
  * for an answer, plus activity not yet seen (conversations with new
- * messages, messages of yours with new reactions, and threads with new
- * replies; muted ones left out).
+ * messages, messages that mention you, messages of yours with new
+ * reactions, and threads with new replies; muted ones left out).
  */
 export function useActivityBadge() {
   const accounts = useVisibleAccounts().map(({ address }) => address);

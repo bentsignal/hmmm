@@ -132,12 +132,14 @@ export async function seedGroup(
     history([me, ...authors.slice(0, 3)], 120, 6),
   );
   await seedGroupThreads(ctx, conversationId, me);
-  // A live message so the inbox has an unread conversation.
+  // A live message so the inbox has an unread conversation, and Activity a
+  // mention.
   await asAccount(ctx, maya, {
     args: {
       attachments: [],
-      body: "Seeded! Reply here and I'll answer.",
+      body: `@${me.name} seeded! Reply here and I'll answer.`,
       conversationId,
+      mentions: [{ accountId: me.address, name: me.name }],
       messageId: crypto.randomUUID(),
     },
     type: "send",

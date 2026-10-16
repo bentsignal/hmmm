@@ -12,6 +12,7 @@ import {
   ConversationHeader,
 } from "~/features/conversation/conversation-header";
 import { FloatingComposer } from "~/features/conversation/floating-composer";
+import { mentionableIn } from "~/features/conversation/mentionable";
 import { MessageList } from "~/features/conversation/message-list";
 import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
 import { useReplies } from "~/features/conversation/use-replies";
@@ -145,11 +146,12 @@ function Conversation({
       <FloatingComposer
         ref={composer}
         draftId={conversationId}
+        mentionable={mentionableIn(conversation, address, profileOf)}
         onHeight={setComposerHeight}
         replyingTo={replies.replyingTo}
         onCancelReply={replies.cancel}
-        onSend={(body, files, linkPreviews) => {
-          messages.sendMessage(body, files, linkPreviews, replies.replyTo);
+        onSend={(draft) => {
+          messages.sendMessage(draft, replies.replyTo);
           replies.cancel();
           list.current?.scrollToLatest();
           devTools.replyToMe(conversationId);

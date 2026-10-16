@@ -3,9 +3,13 @@ import test from "node:test";
 import type { TestContext } from "node:test";
 
 import { activity } from "./activity.ts";
+import { setAlerts } from "./alerts.ts";
 import { badgeCount } from "./badges.ts";
 import { fakeCtx } from "./fakeCtx.ts";
+import { listeners } from "./listeners.ts";
+import { recordMentions } from "./mentions.ts";
 import { olderThan } from "./paging.ts";
+import { seeConversationActivity } from "./sightings.ts";
 import {
   addReply,
   markThreadRead,
@@ -41,7 +45,12 @@ function setup(t: TestContext) {
    * Stores a message as `send` does, a minute after the last one. (`send`
    * itself schedules pushes, which these tests can't load.)
    */
-  async function say(author: string, messageId: string, threadId?: string) {
+  async function say(
+    author: string,
+    messageId: string,
+    threadId?: string,
+    mentions?: { accountId: string; name: string }[],
+  ) {
     t.mock.timers.tick(60_000);
     const sentAt = Date.now();
     const reply =
@@ -54,6 +63,7 @@ function setup(t: TestContext) {
       authorName: author,
       body: `${messageId} from ${author}`,
       conversationId: GROUP,
+      mentions,
       messageId,
       quote: reply?.quote,
       sentAt,
@@ -61,6 +71,7 @@ function setup(t: TestContext) {
       threadOnly: reply?.threadOnly,
     };
     await fake.ctx.db.insert("messages", message);
+    await recordMentions(fake.ctx, message);
     if (reply !== undefined) {
       await addReply(fake.ctx, { ...reply, authorId: author, sentAt });
     }
@@ -139,7 +150,7 @@ void test("activity lists replies after the first, until the thread is read", as
   await say(MAYA, "first", "root");
   await say(LEO, "second", "root");
   await say(MAYA, "third", "root");
-  const items = await activity(ctx, ME, true);
+  const items = await activity(ctx, ME, { threads: true });
   const item = items.find(({ kind }) => kind === "thread");
   assert.ok(item?.kind === "thread");
   assert.equal(item.count, 2);
@@ -156,7 +167,7 @@ void test("activity lists replies after the first, until the thread is read", as
     readAt: item.at,
     threadId: "root",
   });
-  const after = (await activity(ctx, ME, true)).find(
+  const after = (await activity(ctx, ME, { threads: true })).find(
     ({ kind }) => kind === "thread",
   );
   assert.equal(after?.seenThrough, item.at);
@@ -171,7 +182,9 @@ void test("a thread's bell turns its activity off and back on", async (t) => {
   await setThreadFollowed(ctx, ME, { ...args, followed: false });
   assert.equal((await threadState(ctx, ME, args)).following, false);
   assert.equal(
-    (await activity(ctx, ME, true)).some(({ kind }) => kind === "thread"),
+    (await activity(ctx, ME, { threads: true })).some(
+      ({ kind }) => kind === "thread",
+    ),
     false,
   );
   await setThreadFollowed(ctx, ME, { ...args, followed: true });
@@ -198,6 +211,76 @@ void test("push badges count threads only for apps that show them", async (t) =>
   await say(MAYA, "first", "root");
   await say(LEO, "second", "root");
   // The conversation's messages are one item; the thread is another.
-  assert.equal(await badgeCount(ctx, ME, true), 2);
-  assert.equal(await badgeCount(ctx, ME, false), 1);
+  assert.equal(await badgeCount(ctx, ME, { threads: true }), 2);
+  assert.equal(await badgeCount(ctx, ME, {}), 1);
+});
+
+void test("a mention in a thread reply is its own item, seen in the thread", async (t) => {
+  const { ctx, say } = setup(t);
+  await say(ME, "root");
+  await say(MAYA, "first", "root");
+  await say(LEO, "plain", "root");
+  await say(LEO, "ping", "root", [{ accountId: ME, name: "Me" }]);
+  const shows = { mentions: true, threads: true };
+  const items = await activity(ctx, ME, shows);
+  const mention = items.find(({ kind }) => kind === "mention");
+  assert.equal(mention?.key, "mention:ping");
+  const replies = items.find(({ kind }) => kind === "thread");
+  assert.equal(replies?.kind === "thread" && replies.count, 1);
+  // Apps that can't open threads don't list it.
+  assert.equal(
+    (await activity(ctx, ME, { mentions: true })).some(
+      ({ kind }) => kind === "mention",
+    ),
+    false,
+  );
+
+  // Reading the conversation doesn't see it; reading the thread does.
+  await seeConversationActivity(ctx, ME, GROUP, Date.now());
+  const unread = (await activity(ctx, ME, shows)).find(
+    ({ kind }) => kind === "mention",
+  );
+  assert.equal(unread?.seenThrough, undefined);
+  await markThreadRead(ctx, ME, {
+    conversationId: GROUP,
+    readAt: Date.now(),
+    threadId: "root",
+  });
+  const read = (await activity(ctx, ME, shows)).find(
+    ({ kind }) => kind === "mention",
+  );
+  assert.notEqual(read?.seenThrough, undefined);
+});
+
+void test("a thread reply pushes to the thread and to whoever it mentions", async (t) => {
+  const { ctx, say } = setup(t);
+  await say(ME, "root");
+  await say(MAYA, "first", "root");
+  await say(MAYA, "ping", "root", [{ accountId: LEO, name: "Leo" }]);
+  const [message, conversation] = await Promise.all([
+    ctx.db
+      .query("messages")
+      .withIndex("by_message", (index) => index.eq("messageId", "ping"))
+      .unique(),
+    ctx.db
+      .query("conversations")
+      .withIndex("by_conversation", (index) =>
+        index.eq("conversationId", GROUP),
+      )
+      .unique(),
+  ]);
+  assert.ok(message !== null && conversation !== null);
+  const found = { conversation, message };
+  function heard() {
+    return listeners(ctx, found.message, found.conversation, [ME, MAYA, LEO]);
+  }
+  assert.deepEqual(await heard(), [
+    { accountId: ME, reply: "yours" },
+    { accountId: LEO, reply: "thread" },
+  ]);
+  // At mentions, the thread still reaches you; at none, nothing does.
+  await setAlerts(ctx, ME, { alerts: "mentions", conversationId: GROUP });
+  assert.equal((await heard()).length, 2);
+  await setAlerts(ctx, ME, { alerts: "none", conversationId: GROUP });
+  assert.deepEqual(await heard(), [{ accountId: LEO, reply: "thread" }]);
 });

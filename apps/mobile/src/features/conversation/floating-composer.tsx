@@ -1,14 +1,16 @@
-import type { LinkCard } from "@decentralized-convex/messages";
 import type { Ref } from "react";
 import { useRef, useState } from "react";
 import { Alert } from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 
-import type { ComposerHandle, ReplyingTo } from "./composer";
+import type { ComposerHandle } from "./composer";
+import type { MentionCandidate } from "./mention-text";
+import type { ReplyingTo } from "./reply-bar";
 import type {
   AttachmentSource,
   StagedFile,
 } from "~/features/messaging/attachments";
+import type { OutgoingDraft } from "~/features/messaging/outbox";
 import type { PastedImage } from "~/lib/paste-images";
 import { useAccount } from "~/features/messaging/account";
 import {
@@ -34,6 +36,7 @@ import {
 export function FloatingComposer({
   ref,
   draftId,
+  mentionable,
   onHeight,
   onSend,
   replyingTo,
@@ -44,12 +47,11 @@ export function FloatingComposer({
   ref?: Ref<ComposerHandle>;
   /** Whose draft it keeps: the conversation's, or a thread's. */
   draftId: string;
+  /** Who can be @mentioned (see `Composer`). */
+  mentionable?: readonly MentionCandidate[];
+  /** The bar's height, without the people to mention listed over it. */
   onHeight: (height: number) => void;
-  onSend: (
-    body: string,
-    files: readonly StagedFile[],
-    linkPreviews: readonly LinkCard[],
-  ) => void;
+  onSend: (draft: OutgoingDraft) => void;
   /** Set while the next message is a reply (see `Composer`). */
   replyingTo?: ReplyingTo;
   onCancelReply?: () => void;
@@ -117,13 +119,14 @@ export function FloatingComposer({
       offset={{ closed: 0, opened: bottomInset }}
       // Floats over the messages, which scroll all the way to the bottom.
       style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
-      onLayout={(event) => onHeight(event.nativeEvent.layout.height)}
     >
       <Composer
         ref={ref}
         draftKey={key}
         bottomInset={bottomInset}
         staged={staged}
+        mentionable={mentionable}
+        onHeight={onHeight}
         replyingTo={replyingTo}
         onCancelReply={onCancelReply}
         autoFocus={autoFocus}
@@ -136,8 +139,13 @@ export function FloatingComposer({
           if (removed !== undefined) discardStaged(removed);
           restage((current) => current.filter((file) => file.id !== id));
         }}
-        onSend={(body) => {
-          onSend(body, staged, links.cardsFor(body));
+        onSend={(body, mentions) => {
+          onSend({
+            body,
+            files: staged,
+            linkPreviews: links.cardsFor(body),
+            mentions,
+          });
           // The outbox uploads the files from where they are; the drafts
           // folder clears them out next launch.
           restage(() => []);

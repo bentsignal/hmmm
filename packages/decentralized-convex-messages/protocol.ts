@@ -9,12 +9,15 @@ import { decentralizedConvexPackage } from "./metadata.ts";
 import {
   activityItem,
   activitySighting,
+  alertLevel,
   attachment,
   conversation,
   linkCard,
+  mention,
   message,
   messagePage,
   notificationSettings,
+  notificationSettingsChange,
   reaction,
   space,
   spaceInvite,
@@ -65,12 +68,15 @@ export const messagesProtocol = definePluginProtocol({
      * With `threadId`, a reply in that message's thread (a reply's own
      * thread when it names a reply). The thread's first reply also shows
      * in the conversation; later ones come back with `threadOnly`.
+     * `mentions` names who the body @mentions by the name after each `@`;
+     * any not in the group or channel, or not in the body, is left out.
      */
     send: defineOperation({
       args: v.object({
         attachments: v.array(attachment),
         body: v.string(),
         conversationId: v.string(),
+        mentions: v.optional(v.array(mention)),
         messageId: v.string(),
         threadId: v.optional(v.string()),
       }),
@@ -131,30 +137,37 @@ export const messagesProtocol = definePluginProtocol({
       args: v.object({ conversationId: v.string(), readAt: v.number() }),
       returns: v.null(),
     }),
+    /** `setAlerts` with `none` (muted) or `all`, for older apps. */
     setMuted: defineOperation({
       args: v.object({ conversationId: v.string(), muted: v.boolean() }),
       returns: v.null(),
     }),
     /**
-     * Hides alerts for every channel in a space, or shows them again. Each
-     * channel's own `setMuted` still applies.
+     * Chooses what a conversation alerts you about, over its space's choice
+     * and your defaults; choosing what it would get anyway follows those
+     * again. Direct messages take `all` or `none`.
      */
+    setAlerts: defineOperation({
+      args: v.object({ alerts: alertLevel, conversationId: v.string() }),
+      returns: v.null(),
+    }),
+    /** `setSpaceAlerts` with `none` (muted) or `all`, for older apps. */
     setSpaceMuted: defineOperation({
       args: v.object({ muted: v.boolean(), spaceId: v.string() }),
       returns: v.null(),
     }),
-    /** Turns kinds of pushes on or off; fields left out stay as they are. */
+    /** What a space's channels alert you about (see `setAlerts`). */
+    setSpaceAlerts: defineOperation({
+      args: v.object({ alerts: alertLevel, spaceId: v.string() }),
+      returns: v.null(),
+    }),
+    /**
+     * Turns kinds of pushes on or off and sets the default alerts for
+     * groups and channels; fields left out stay as they are. `groups` or
+     * `channels` (from older apps) sets that default to `all` or `none`.
+     */
     setNotificationSettings: defineOperation({
-      args: v.object({
-        channels: v.optional(v.boolean()),
-        directMessages: v.optional(v.boolean()),
-        enabled: v.optional(v.boolean()),
-        groups: v.optional(v.boolean()),
-        invites: v.optional(v.boolean()),
-        reactions: v.optional(v.boolean()),
-        replies: v.optional(v.boolean()),
-        threadReplies: v.optional(v.boolean()),
-      }),
+      args: notificationSettingsChange,
       returns: v.null(),
     }),
     /** Pins a conversation to the top of your inbox, or unpins it. */
@@ -286,13 +299,17 @@ export const messagesProtocol = definePluginProtocol({
      * What happened while you were away, newest first: messages from others
      * (one item per conversation) and others' reactions to your messages
      * (one per message). With `threads`, also new replies in threads
-     * you're in (one per thread); apps from before threads don't ask.
-     * Muted conversations and channels left out of the inbox don't
-     * appear. An item lasts until a day after you saw it (see
+     * you're in (one per thread); with `mentions`, each message that
+     * @mentions you is its own `mention` item. Each conversation shows
+     * what it alerts you about, and channels left out of the inbox show
+     * only mentions. An item lasts until a day after you saw it (see
      * `markActivitySeen`), and nothing older than `ACTIVITY_HORIZON` shows.
      */
     activity: defineOperation({
-      args: v.object({ threads: v.optional(v.boolean()) }),
+      args: v.object({
+        mentions: v.optional(v.boolean()),
+        threads: v.optional(v.boolean()),
+      }),
       returns: v.array(activityItem),
     }),
     /** Which pushes you get (see `setNotificationSettings`). */

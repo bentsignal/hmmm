@@ -12,16 +12,20 @@ import { asAccount, botIdentity, BOTS, identityFor } from "./devBots";
 async function seedThread(
   ctx: ActionCtx,
   conversationId: string,
-  posts: readonly { body: string; by: Identity }[],
+  posts: readonly { body: string; by: Identity; mentions?: Author }[],
 ) {
   const threadId = crypto.randomUUID();
-  for (const [index, { body, by }] of posts.entries()) {
+  for (const [index, { body, by, mentions }] of posts.entries()) {
     const isRoot = index === 0;
     await asAccount(ctx, by, {
       args: {
         attachments: [],
         body,
         conversationId,
+        mentions:
+          mentions === undefined
+            ? undefined
+            : [{ accountId: mentions.address, name: mentions.name }],
         messageId: isRoot ? threadId : crypto.randomUUID(),
         threadId: isRoot ? undefined : threadId,
       },
@@ -31,8 +35,9 @@ async function seedThread(
 }
 
 /**
- * The group's threads: one the account isn't in, one it started, and one
- * it replied to. The last reply in each of its own is unread.
+ * The group's threads: one the account isn't in (whose last reply
+ * @mentions it), one it started, and one it replied to. The last reply in
+ * each of its own is unread.
  */
 export async function seedGroupThreads(
   ctx: ActionCtx,
@@ -50,6 +55,7 @@ export async function seedGroupThreads(
     { body: "I'm in! Can bring the cooler", by: jonah },
     { body: "Only if we leave after 10", by: priya },
     { body: "10 works. I'll drive", by: maya },
+    { body: `@${me.name} you coming?`, by: jonah, mentions: me },
   ]);
   await seedThread(ctx, conversationId, [
     { body: "Anyone know a good brunch spot near the lake?", by: self },

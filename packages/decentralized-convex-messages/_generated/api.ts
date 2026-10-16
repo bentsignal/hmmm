@@ -9,8 +9,12 @@
  */
 
 import type * as activity from "../activity.js";
+import type * as activityScope from "../activityScope.js";
 import type * as agents from "../agents.js";
+import type * as alertChoice from "../alertChoice.js";
+import type * as alerts from "../alerts.js";
 import type * as badges from "../badges.js";
+import type * as chatMessages from "../chatMessages.js";
 import type * as conversations from "../conversations.js";
 import type * as delivery from "../delivery.js";
 import type * as dispatcher from "../dispatcher.js";
@@ -21,6 +25,8 @@ import type * as index from "../index.js";
 import type * as invites from "../invites.js";
 import type * as linkCache from "../linkCache.js";
 import type * as links from "../links.js";
+import type * as listeners from "../listeners.js";
+import type * as mentions from "../mentions.js";
 import type * as metadata from "../metadata.js";
 import type * as model from "../model.js";
 import type * as naming from "../naming.js";
@@ -52,8 +58,12 @@ import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
   activity: typeof activity;
+  activityScope: typeof activityScope;
   agents: typeof agents;
+  alertChoice: typeof alertChoice;
+  alerts: typeof alerts;
   badges: typeof badges;
+  chatMessages: typeof chatMessages;
   conversations: typeof conversations;
   delivery: typeof delivery;
   dispatcher: typeof dispatcher;
@@ -64,6 +74,8 @@ const fullApi: ApiFromModules<{
   invites: typeof invites;
   linkCache: typeof linkCache;
   links: typeof links;
+  listeners: typeof listeners;
+  mentions: typeof mentions;
   metadata: typeof metadata;
   model: typeof model;
   naming: typeof naming;

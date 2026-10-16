@@ -7,13 +7,19 @@ import type {
   messagesProtocol,
   ThreadListing,
 } from "./protocol.ts";
-import { accessFinder, conversationDescriber, isHeard } from "./activity.ts";
+import {
+  accessFinder,
+  conversationDescriber,
+  isHeard,
+} from "./activityScope.ts";
+import { alertsFor } from "./alerts.ts";
 import { memberAddresses, requireAccess, toMessage } from "./model.ts";
 import {
   MAX_INBOX_THREADS,
   MAX_THREAD_UNREAD,
   THREAD_PAGE_SIZE,
 } from "./protocol.ts";
+import { notificationSettings } from "./settings.ts";
 import { messageById, threadMember, threadRow } from "./threads.ts";
 
 // Lists of threads: a conversation's (its info page), and every thread an
@@ -217,13 +223,14 @@ export async function threads(ctx: QueryCtx, self: string, args: Args) {
 }
 
 /**
- * The threads the caller follows, newest reply first, leaving out muted
- * conversations (and muted spaces' channels) and channels left out of the
+ * The threads the caller follows, newest reply first, leaving out
+ * conversations whose alerts are off (muted) and channels left out of the
  * inbox, as `activity` does. Only this PDS's threads are listed.
  */
 export async function inboxThreads(ctx: QueryCtx, self: string) {
   const accessTo = accessFinder(ctx, self);
   const describe = conversationDescriber(ctx);
+  const settings = await notificationSettings(ctx, self);
   const memberships = ctx.db
     .query("threadMembers")
     .withIndex("by_account_reply", (index) => index.eq("accountId", self))
@@ -234,7 +241,7 @@ export async function inboxThreads(ctx: QueryCtx, self: string) {
     scanned += 1;
     if (member.unfollowed !== true) {
       const access = await accessTo(member.conversationId);
-      if (access !== null && isHeard(access)) {
+      if (access !== null && isHeard(access, alertsFor(access, settings))) {
         shown.push(
           (async () => {
             const row = await threadRow(ctx, member.threadId);

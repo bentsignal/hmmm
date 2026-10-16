@@ -1,27 +1,23 @@
 import type { Space } from "@decentralized-convex/messages";
-import { FieldGroup, Text } from "@expo/ui";
+import { FieldGroup } from "@expo/ui";
 
-import { OptimisticSwitch } from "~/components/optimistic-switch";
+import { OptimisticChoice } from "~/components/optimistic-choice";
+import { ALERT_CHOICES, spaceAlerts } from "~/features/messaging/alerts";
 import { useChannelSettings } from "~/features/messaging/channel-settings";
 
-/** Hide Alerts for the whole space: every channel goes quiet. */
+/** What every channel in the space alerts you about. */
 export function AlertsSection({ space }: { space: Space }) {
-  const { setSpaceMuted } = useChannelSettings();
+  const { setSpaceAlerts } = useChannelSettings();
   return (
     <FieldGroup.Section title="Notifications">
-      <OptimisticSwitch
-        label="Hide Alerts"
-        value={space.muted === true}
-        onChange={(muted) =>
-          setSpaceMuted.mutateAsync({ muted, spaceId: space.spaceId })
+      <OptimisticChoice
+        label="Notify Me About"
+        value={spaceAlerts(space)}
+        choices={ALERT_CHOICES}
+        onChange={(alerts) =>
+          setSpaceAlerts.mutateAsync({ alerts, spaceId: space.spaceId })
         }
       />
-      <FieldGroup.SectionFooter>
-        <Text>
-          No notifications from any channel in this space. Its channels still
-          show in your Inbox.
-        </Text>
-      </FieldGroup.SectionFooter>
     </FieldGroup.Section>
   );
 }

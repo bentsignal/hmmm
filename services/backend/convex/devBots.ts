@@ -158,7 +158,23 @@ export async function requireCaller(ctx: ActionCtx) {
   if (identity === null || accountId === null) {
     throw new ConvexError({ code: "AUTHENTICATED_ACCOUNT_REQUIRED" });
   }
-  return identityFor(accountId, identity.name ?? accountId);
+  const caller = identityFor(accountId, identity.name ?? accountId);
+  // Their display name, as the app writes it in an @mention.
+  const profile = await ctx.runQuery(
+    components.accounts.dispatcher.dispatchQuery,
+    {
+      ...request,
+      identity: caller,
+      operation: { args: {}, type: "getMyProfile" },
+    },
+  );
+  const displayName: unknown =
+    typeof profile.value === "object" && profile.value !== null
+      ? Reflect.get(profile.value, "displayName")
+      : undefined;
+  return typeof displayName === "string" && displayName.trim() !== ""
+    ? identityFor(accountId, displayName.trim())
+    : caller;
 }
 
 export function botIdentity(bot: (typeof BOTS)[number]) {

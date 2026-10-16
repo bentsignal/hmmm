@@ -109,6 +109,7 @@ function StackedRow({
                 <MenuTargetView>
                   <LinkedText
                     text={body}
+                    mentions={message.mentions}
                     className="text-body text-foreground"
                   />
                 </MenuTargetView>

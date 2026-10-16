@@ -97,6 +97,7 @@ function unconfirmedMessage(
         conversationId,
         linkPreview: null,
         linkPreviews: message.linkPreviews,
+        mentions: message.mentions,
         messageId: message.messageId,
         quote: message.reply?.quote,
         sentAt: message.sentAt,

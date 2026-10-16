@@ -5,6 +5,7 @@ import {
 
 import { mutation, query } from "./_generated/server.js";
 import * as activity from "./activity.ts";
+import * as alerts from "./alerts.ts";
 import * as conversations from "./conversations.ts";
 import * as inbox from "./inbox.ts";
 import * as invites from "./invites.ts";
@@ -85,12 +86,16 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
         const authorName = identity?.name?.trim() ?? self.split("@")[0] ?? self;
         return sending.send(ctx, self, authorName, args);
       },
+      setAlerts: (ctx, { args, identity }) =>
+        alerts.setAlerts(ctx, requireAccountId(identity), args),
       setMuted: (ctx, { args, identity }) =>
-        conversations.setMuted(ctx, requireAccountId(identity), args),
+        alerts.setMuted(ctx, requireAccountId(identity), args),
       setNotificationSettings: (ctx, { args, identity }) =>
         settings.setNotificationSettings(ctx, requireAccountId(identity), args),
+      setSpaceAlerts: (ctx, { args, identity }) =>
+        alerts.setSpaceAlerts(ctx, requireAccountId(identity), args),
       setSpaceMuted: (ctx, { args, identity }) =>
-        settings.setSpaceMuted(ctx, requireAccountId(identity), args),
+        alerts.setSpaceMuted(ctx, requireAccountId(identity), args),
       setThreadFollowed: (ctx, { args, identity }) =>
         threads.setThreadFollowed(ctx, requireAccountId(identity), args),
       setPinned: (ctx, { args, identity }) =>
@@ -102,7 +107,7 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
     },
     queries: {
       activity: (ctx, { args, identity }) =>
-        activity.activity(ctx, requireAccountId(identity), args.threads),
+        activity.activity(ctx, requireAccountId(identity), args),
       conversation: (ctx, { args, identity }) =>
         conversations.conversation(ctx, requireAccountId(identity), args),
       inbox: (ctx, { args, identity }) =>
