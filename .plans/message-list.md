@@ -192,3 +192,31 @@ the bot group by route so nothing else touched the device meanwhile.
   - Flashlight (Android FPS) isn't in CI: it needs an emulator and a release
     build each run, and emulator frame rates on shared runners are too noisy
     to compare.
+
+## Round 6: frames, measured on the device's UI thread
+
+- [x] A tapback pushing the sender's name up ran at 30fps. Two causes:
+  - The space it opened animated its height, which re-lays out every row
+    in the list on every frame. Now the space opens at once, and the rows
+    it moves (older rows, the name, a stacked row) are drawn back where they
+    were and ease into place with a transform (`GrowingSpace`, `useRowLift`
+    in `grow.tsx`). A row below the screen is left to the scroll anchor.
+  - Reanimated 4 sends even transform and opacity animations through a
+    full layout pass every frame unless `IOS_SYNCHRONOUSLY_UPDATE_UI_PROPS`
+    and `ANDROID_SYNCHRONOUSLY_UPDATE_UI_PROPS` are on. They are now
+    (package.json's "reanimated" key, a native change, counted in the
+    fingerprint by `fingerprint.config.cjs`). Every animation in the app
+    gets the faster path.
+- [x] Why the checks missed it: Jest and Reassure measure React's work on
+      the JavaScript thread, and this was the UI thread. New checks:
+  - `vera/no-layout-animation` (lint): fails on animating a layout property
+    (animated style, keyframe, CSS transition or animation). It found two
+    more in the composer (its side padding with the keyboard, and the
+    staged attachments strip's height), left for their own PR.
+  - `scripts/sim.sh frames start|stop` records the UI thread's frames in
+    the simulator or emulator and reports the slow ones, with when they
+    happened. `veraDev.conversation().react(text, emoji)` and `.send(text)`
+    drive a conversation without tapping: the simulator's tap automation
+    itself stalls the app for ~180ms while it reads the screen.
+  - The `vera-feature` skill now asks for before and after frame reports
+    for anything that moves.

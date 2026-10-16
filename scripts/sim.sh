@@ -375,7 +375,14 @@ case "$command" in
     require_up
     case "${1:-}" in
       start) app_eval "globalThis.veraDev.frames.start()" >/dev/null && echo "recording frames" ;;
-      stop) app_eval "globalThis.veraDev.frames.stop()" ;;
+      stop)
+        app_eval "globalThis.veraDev.frames.stop()" >/dev/null
+        for _ in $(seq 1 20); do
+          report="$(app_eval "globalThis.veraDev.frames.report()")"
+          [ -n "$report" ] && echo "$report" && break
+          sleep 0.25
+        done
+        ;;
       *) echo "usage: scripts/sim.sh frames start|stop" >&2 && exit 2 ;;
     esac
     ;;

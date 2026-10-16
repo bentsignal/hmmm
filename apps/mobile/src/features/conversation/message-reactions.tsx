@@ -12,7 +12,8 @@ import type { PreviewShape } from "./glass-message-menu";
 import type { Message } from "./types";
 import { cn } from "~/lib/cn";
 import { impact, selectionTick } from "~/lib/native-extras";
-import { GrowingSpace, rowOrder, useOwnLift } from "./grow";
+import { rowOrder } from "./build-rows";
+import { GrowingSpace, useOwnLift } from "./grow";
 import {
   MessageTargetProvider,
   useIsLifted,
@@ -86,9 +87,11 @@ function Chips({
   room,
   ...row
 }: ComponentProps<typeof ChipRow> & { open: boolean; room: Room }) {
+  const [used, setUsed] = useState(open);
+  if (open && !used) setUsed(true);
   // Already there when the row appeared: laid out with it.
   if (!room.animate) return open ? <ChipRow {...row} /> : null;
-  return <GrowingChips open={open} room={room} {...row} />;
+  return used ? <GrowingChips open={open} room={room} {...row} /> : null;
 }
 
 /**
@@ -104,7 +107,8 @@ function GrowingChips({
   const [natural, setNatural] = useState(0);
   const stay = useOwnLift(room.order, -1);
   return (
-    <GrowingSpace height={open ? natural : 0} {...room}>
+    <View>
+      <GrowingSpace height={open ? natural : 0} {...room} />
       <Animated.View
         // Laid out on its own, as wide as the row, so it has its full
         // height whatever the space's.
@@ -114,7 +118,7 @@ function GrowingChips({
       >
         {open && <ChipRow {...row} />}
       </Animated.View>
-    </GrowingSpace>
+    </View>
   );
 }
 

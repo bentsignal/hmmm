@@ -1,12 +1,13 @@
 import { Platform, Text } from "react-native";
 
 /**
- * Apple's emoji sit a little left of the middle of the space a font gives
+ * Apple's emoji draw a little left of the middle of the space a font gives
  * them, so one centered in a circle looks off to the left. This much of the
- * emoji's size nudges it back to the visual middle. Android's emoji are
- * centered already.
+ * emoji's size nudges it back: measured in the reaction bar, it centers the
+ * faces to within a tenth of a point (5% put them two pixels right).
+ * Android's emoji are centered already.
  */
-const IOS_OPTICAL_SHIFT = 0.05;
+const IOS_OPTICAL_SHIFT = 0.025;
 
 /**
  * An emoji to center in something round (a reaction): its line is exactly

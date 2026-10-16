@@ -11,8 +11,9 @@ import Animated, {
 import type { MessageRow } from "./build-rows";
 import type { MessageLayout } from "~/features/preferences/store";
 import { Arrive } from "./arrive";
+import { rowOrder } from "./build-rows";
 import { DaySeparator, TimeHeader } from "./day-separator";
-import { rowOrder, useRowLift } from "./grow";
+import { useRowLift } from "./grow";
 import { MessageBubble } from "./message-bubble";
 import { MessageStacked } from "./message-stacked";
 

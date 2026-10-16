@@ -22,6 +22,7 @@ import {
   ConversationHeader,
 } from "~/features/conversation/conversation-header";
 import { MessageList } from "~/features/conversation/message-list";
+import { useDevConversation } from "~/features/dev/dev-conversation";
 import { useDevTools } from "~/features/dev/dev-tools";
 import { AccountScope, useAccount } from "~/features/messaging/account";
 import {
@@ -157,6 +158,7 @@ function Conversation({
   const list = useRef<MessageListHandle>(null);
   useMarkRead(conversationId, messages.newestSentAt);
   useActiveConversation(conversationId);
+  useDevConversation(messages);
 
   const heading = headingFor(title, initialTitle);
   const other = otherMember(conversation, address);

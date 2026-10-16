@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { View } from "react-native";
 import type { AnimatedRef, SharedValue } from "react-native-reanimated";
-import { createContext, use } from "react";
+import { createContext, use, useState } from "react";
 import Animated, {
   Easing,
   measure,
@@ -64,14 +64,6 @@ export function GrowthProvider({
 }
 
 /**
- * Where a row sits in the list, oldest first, as a number a worklet can
- * compare: its message's time, or just before it for the header above it.
- */
-export function rowOrder(date: Date, header = false) {
-  return date.getTime() - (header ? 0.5 : 0);
-}
-
-/**
  * Draws `measured`'s row as before its space changed by `delta`, then eases
  * it into place. A row below the bottom of the screen is left alone: the
  * list's scroll anchor keeps what's on screen still then, and moves
@@ -127,36 +119,39 @@ export function useOwnLift(order: number, direction: 1 | -1 = 1) {
  * Space in a row that opens to `height` (or closes to 0) at once, while the
  * messages it moves ease into place (see `Growth`). With `animate` off it
  * just changes, as for reactions already there when the row appears.
- * `children` are drawn over the space, at its full height.
+ * Nothing until it first opens, so rows that never need it cost nothing.
  */
-export function GrowingSpace({
-  height,
-  order,
-  animate,
-  measured,
-  children,
-}: {
+export function GrowingSpace(props: SpaceProps) {
+  const [used, setUsed] = useState(props.height > 0);
+  if (!used && props.height > 0) setUsed(true);
+  return used ? <Space {...props} /> : null;
+}
+
+interface SpaceProps {
   height: number;
   /** The row's order (see `rowOrder`). */
   order: number;
   animate: boolean;
   /** The message, measured to tell whether it's on screen. */
   measured: AnimatedRef<View>;
-  children?: ReactNode;
-}) {
+}
+
+function Space({ height, order, animate, measured }: SpaceProps) {
   const growth = useGrowth();
-  const space = useSharedValue(height);
+  // Opening as it mounts, when what it makes room for arrived while you
+  // watched.
+  const space = useSharedValue(animate ? 0 : height);
   useAnimatedReaction(
     () => height,
-    (now, before) => {
-      if (before === null || now === before) return;
+    (now) => {
       const delta = now - space.get();
+      if (delta === 0) return;
       space.set(now);
-      if (animate && delta !== 0) lift(growth, order, delta, measured);
+      if (animate) lift(growth, order, delta, measured);
     },
     [height, animate, order],
   );
   // eslint-disable-next-line vera/no-layout-animation -- Not animated: the height changes once, in the same frame as the lift, which does the moving.
   const style = useAnimatedStyle(() => ({ height: space.get() }));
-  return <Animated.View style={style}>{children}</Animated.View>;
+  return <Animated.View style={style} />;
 }

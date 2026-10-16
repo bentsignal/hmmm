@@ -114,3 +114,11 @@ export function arrivedAfter(row: MessageRow, openedAt: number) {
   const date = row.type === "message" ? row.message.sentAt : row.date;
   return date.getTime() > openedAt;
 }
+
+/**
+ * Where a row sits in the list, oldest first, as a number a worklet can
+ * compare: its message's time, or just before it for the header above it.
+ */
+export function rowOrder(date: Date, header = false) {
+  return date.getTime() - (header ? 0.5 : 0);
+}

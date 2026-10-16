@@ -18,6 +18,11 @@ export interface FrameReport {
   readonly dropped: number;
   /** The longest frames, in milliseconds, longest first. */
   readonly worst: readonly number[];
+  /**
+   * Each slow frame in order, as "<when>+<how long>" in milliseconds from
+   * the start, to line them up with what was happening.
+   */
+  readonly timeline: readonly string[];
 }
 
 interface Recording {
@@ -46,6 +51,13 @@ function summarize(intervals: readonly number[]) {
       Math.round(intervals.reduce((total, interval) => total + interval, 0)) /
       1000,
     slow: slow.length,
+    timeline: intervals.flatMap((interval, index) => {
+      if (interval <= typical * 1.5) return [];
+      const at = intervals
+        .slice(0, index)
+        .reduce((total, earlier) => total + earlier, 0);
+      return [`${Math.round(at)}+${Math.round(interval)}`];
+    }),
     worst: [...slow]
       .sort((a, b) => b - a)
       .slice(0, 10)
@@ -74,18 +86,31 @@ export function startFrames() {
   });
 }
 
-/** Stops recording and reports how the frames went. */
+/**
+ * Stops recording; the report follows in `frameReport()` a moment later
+ * (from the UI thread). Hermes's debugger can't wait on a promise, so
+ * scripts poll for it.
+ */
 export function stopFrames() {
-  return new Promise<FrameReport | null>((resolve) => {
-    scheduleOnUI(() => {
-      "worklet";
-      const recording = globalThis.veraFrames;
-      globalThis.veraFrames = undefined;
-      if (recording === undefined) {
-        scheduleOnRN(resolve, null);
-        return;
-      }
-      scheduleOnRN(resolve, summarize(recording.intervals));
-    });
+  report = undefined;
+  scheduleOnUI(() => {
+    "worklet";
+    const recording = globalThis.veraFrames;
+    globalThis.veraFrames = undefined;
+    scheduleOnRN(
+      setReport,
+      recording === undefined ? null : summarize(recording.intervals),
+    );
   });
+}
+
+/** The report from the last `stopFrames()`, once it's ready. */
+let report: FrameReport | null | undefined;
+
+function setReport(next: FrameReport | null) {
+  report = next;
+}
+
+export function frameReport() {
+  return report;
 }

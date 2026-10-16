@@ -92,6 +92,12 @@
     "reassure": "^1.6.0",
     "typescript": "catalog:"
   },
+  "reanimated": {
+    "staticFeatureFlags": {
+      "ANDROID_SYNCHRONOUSLY_UPDATE_UI_PROPS": true,
+      "IOS_SYNCHRONOUSLY_UPDATE_UI_PROPS": true
+    }
+  },
   "expo": {
     "install": {
       "exclude": [
