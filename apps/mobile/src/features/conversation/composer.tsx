@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, TextInput } from "react-native";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import Animated, {
@@ -13,9 +13,11 @@ import type {
   AttachmentSource,
   StagedFile,
 } from "~/features/messaging/attachments";
+import type { PastedImage } from "~/lib/paste-images";
 import { GlassSurface } from "~/components/glass-surface";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { cn } from "~/lib/cn";
+import { PASTE_IMAGES_NATIVE_ID, usePastedImages } from "~/lib/paste-images";
 import { AttachMenu } from "./attach-menu";
 import { StagedAttachments } from "./staged-attachments";
 
@@ -88,13 +90,14 @@ function SendButton({
 }
 
 /**
- * The message field with its "+" menu and the attachments picked for the
- * message, which upload only once it's sent.
+ * The message field with its "+" menu and the attachments picked or pasted
+ * for the message, which upload only once it's sent.
  */
 export function Composer({
   staged,
   onSend,
   onPick,
+  onPaste,
   onRemoveStaged,
   onChangeText,
   bottomInset,
@@ -103,6 +106,8 @@ export function Composer({
   /** Sends the text (possibly empty) with everything staged. */
   onSend: (text: string) => void;
   onPick: (source: AttachmentSource) => void;
+  /** Photos pasted into the field. */
+  onPaste: (images: readonly PastedImage[]) => void;
   onRemoveStaged: (id: string) => void;
   /** Every change to the text, including emptying it on send. */
   onChangeText?: (text: string) => void;
@@ -110,6 +115,12 @@ export function Composer({
   bottomInset: number;
 }) {
   const [draft, setDraft] = useState("");
+  const input = useRef<TextInput>(null);
+  // Only the field being pasted into is focused; another conversation's
+  // composer can be mounted beneath this one.
+  usePastedImages((images) => {
+    if (input.current?.isFocused() === true) onPaste(images);
+  });
   const keyboard = useReanimatedKeyboardAnimation();
   const sides = useAnimatedStyle(() => ({
     paddingHorizontal:
@@ -161,6 +172,8 @@ export function Composer({
       >
         <StagedAttachments files={staged} onRemove={onRemoveStaged} />
         <StyledTextInput
+          ref={input}
+          nativeID={PASTE_IMAGES_NATIVE_ID}
           multiline
           value={draft}
           onChangeText={change}

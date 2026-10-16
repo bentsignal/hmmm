@@ -1,0 +1,20 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'chat.vera'
+version = '1.0.0'
+
+android {
+  namespace "chat.vera.pasteimages"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+}
+
+dependencies {
+  // ReactFindViewUtil, to find the text fields that take photos.
+  implementation 'com.facebook.react:react-android'
+}
