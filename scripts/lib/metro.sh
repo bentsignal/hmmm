@@ -30,17 +30,32 @@ metro_running() {
     curl -fsS "http://127.0.0.1:$PORT/status" 2>/dev/null | grep -q running
 }
 
+# What Metro's transform cache depends on beyond the source files. Its cache
+# keys miss some dependency and config changes, and a stale cache can break
+# startup ("Maximum call stack size exceeded" after a dependency update), so
+# Metro clears it when these change.
+cache_inputs() { cat "$ROOT/pnpm-lock.yaml" "$MOBILE/metro.config.cjs" | cksum | cut -d' ' -f1; }
+
 start_metro() {
+  local inputs clear=()
   PORT=$((8100 + $(hash_of "$ROOT") % 800))
   while port_in_use "$PORT"; do PORT=$((PORT + 1)); done
+  inputs="$(cache_inputs)"
+  if [ "$(cat "$STATE_DIR/metro-cache" 2>/dev/null)" != "$inputs" ]; then
+    echo "dependencies or Metro config changed; clearing Metro's cache" >&2
+    clear=(--clear)
+  fi
   (
     cd "$MOBILE"
-    nohup npx expo start --dev-client --port "$PORT" </dev/null >"$STATE_DIR/metro.log" 2>&1 &
+    nohup npx expo start --dev-client --port "$PORT" ${clear[@]+"${clear[@]}"} </dev/null >"$STATE_DIR/metro.log" 2>&1 &
     echo $! >"$STATE_DIR/metro.pid"
   )
   METRO_PID="$(cat "$STATE_DIR/metro.pid")"
   for _ in $(seq 1 60); do
-    curl -fsS "http://127.0.0.1:$PORT/status" 2>/dev/null | grep -q running && return
+    if curl -fsS "http://127.0.0.1:$PORT/status" 2>/dev/null | grep -q running; then
+      echo "$inputs" >"$STATE_DIR/metro-cache"
+      return
+    fi
     sleep 1
   done
   echo "Metro did not start; see $STATE_DIR/metro.log" >&2

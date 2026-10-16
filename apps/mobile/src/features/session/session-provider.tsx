@@ -10,7 +10,7 @@ import type { StoredAccount } from "./account-store";
 import { env } from "~/env";
 import { accountSession, verifyAccountSession } from "./account-session";
 import { useStoredAccounts } from "./account-store";
-import { discoverHome } from "./home";
+import { discoverHome, savedHome } from "./home";
 
 interface Session {
   /** Every signed-in account, in the order they were added. */
@@ -60,11 +60,17 @@ export function SessionProvider({
   ];
   const homes = useQueries({
     queries: domains.map((domain) => ({
+      // The home saved last launch starts the app right away, while the
+      // lookup runs again in the background. If the home has changed, the
+      // account's session moves to the new one.
+      initialData: () => savedHome(domain),
+      initialDataUpdatedAt: 0,
       queryFn: () => discoverHome(domain),
       queryKey: ["vera", "home", domain],
       retry: 3,
       select: (discovered: DiscoveredPds) => discovered,
-      staleTime: Infinity,
+      staleTime: (query: { state: { dataUpdatedAt: number } }) =>
+        query.state.dataUpdatedAt === 0 ? 0 : Infinity,
     })),
   });
   const homeByDomain = new Map(
@@ -73,8 +79,12 @@ export function SessionProvider({
     ),
   );
   const home = homeByDomain.get(env.veraDomain);
+  // A failed lookup only matters without a saved home to fall back on.
   const failed = new Set(
-    domains.filter((_, index) => homes[index]?.isError === true),
+    domains.filter(
+      (_, index) =>
+        homes[index]?.isError === true && homes[index].data === undefined,
+    ),
   );
   const unreachable = stored.accounts.filter((account) =>
     failed.has(account.domain),

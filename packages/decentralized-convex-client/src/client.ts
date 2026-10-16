@@ -236,6 +236,14 @@ export class DecentralizedConvexClient {
     }).mutation(request, options);
   }
 
+  /**
+   * Opens the connection to the home PDS (and starts authenticating it)
+   * ahead of the first query, so that query doesn't wait for either.
+   */
+  connectHome() {
+    this.#getConnection(this.#requireHome().manifest.deploymentUrl);
+  }
+
   async resolvePds(addressOrDomain: string) {
     const domain = accountDomain(addressOrDomain);
     const existing = this.#pdsByDomain.get(domain);

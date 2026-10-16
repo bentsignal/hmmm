@@ -139,7 +139,8 @@ async function resolveTxtWithDoh(name: string, fetcher: typeof fetch) {
   );
 }
 
-function parsePdsManifest(value: unknown): PdsManifest {
+/** Checks that a value is a well-formed PDS manifest, such as a saved one. */
+export function parsePdsManifest(value: unknown): PdsManifest {
   if (!isRecord(value)) throw new Error("The PDS manifest is not an object");
   const accountDomainValue = accountDomain(requireString(value.accountDomain));
   const auth = value.auth;

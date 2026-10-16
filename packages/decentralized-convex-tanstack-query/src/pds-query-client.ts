@@ -193,6 +193,15 @@ export class PdsQueryClient {
     function publish() {
       const snapshot = observer.getSnapshot();
       if (requireCompleteResults && snapshot.status !== "success") return;
+      // A result already in the cache (from an earlier subscription, such
+      // as a screen opened again, or from a fetch or prefetch) stays until
+      // this subscription answers, instead of going back to loading.
+      if (
+        snapshot.status === "pending" &&
+        hasResult(queryClient.getQueryData(query.queryKey))
+      ) {
+        return;
+      }
       queryClient.setQueryData(
         query.queryKey,
         pdsQueryDataFromSnapshot(snapshot),
@@ -252,6 +261,13 @@ function isPdsQueryRequest(value: unknown): value is AnyPdsQueryRequest {
     "plugin" in value &&
     "version" in value &&
     "operation" in value
+  );
+}
+
+/** Whether cached PDS query data holds a result to keep showing. */
+function hasResult(data: unknown) {
+  return (
+    isRecord(data) && (data.status === "partial" || data.status === "success")
   );
 }
 
