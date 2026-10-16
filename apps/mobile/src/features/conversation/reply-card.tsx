@@ -5,6 +5,7 @@ import type { Message, Quote } from "./types";
 import { Avatar } from "~/components/avatar";
 import { cn } from "~/lib/cn";
 import { useMessageActions } from "./message-actions";
+import { quoteText, REPLY_INDENT } from "./reply-parts";
 
 // A thread's first reply, as the conversation shows it: the message it
 // answers, small, with a curve from under it down into the reply, and how
@@ -29,8 +30,7 @@ export interface ReplyCard {
   readonly repliers: readonly Person[];
 }
 
-/** How far a bubble reply sits in from its quote, making room for the curve. */
-export const REPLY_INDENT = 22;
+
 /** Where the curve leaves the quote, from the quote's edge. */
 const CURVE_INSET = 12;
 /** The curve's line. */
@@ -41,14 +41,6 @@ const CURVE_END = 19;
 export const QUOTE_GAP = 4;
 /** Most repliers' photos the footer shows. */
 const FOOTER_FACES = 3;
-
-/** The quote's text: the original's, or what it sent instead. */
-export function quoteText(quote: Quote) {
-  if (quote.body.length > 0) return quote.body;
-  const kind = quote.attachment?.kind;
-  if (kind === undefined) return "Message";
-  return { file: "File", image: "Photo", video: "Video" }[kind];
-}
 
 /** Opens the reply's thread when pressed. */
 function ThreadLink({
@@ -115,23 +107,34 @@ export function ReplyCurve({
   isOwn: boolean;
   above: number;
 }) {
-  const height = above + CURVE_END;
+  const side = isOwn
+    ? {
+        borderBottomRightRadius: 12,
+        borderRightWidth: CURVE_WIDTH,
+        right: CURVE_INSET,
+      }
+    : {
+        borderBottomLeftRadius: 12,
+        borderLeftWidth: CURVE_WIDTH,
+        left: CURVE_INSET,
+      };
   return (
     <View
       pointerEvents="none"
       className="border-separator absolute"
-      style={{
-        [isOwn ? "borderBottomRightRadius" : "borderBottomLeftRadius"]: 12,
-        [isOwn ? "borderRightWidth" : "borderLeftWidth"]: CURVE_WIDTH,
-        [isOwn ? "right" : "left"]: CURVE_INSET,
-        borderBottomWidth: CURVE_WIDTH,
-        height,
-        top: -above,
-        width: REPLY_INDENT - CURVE_INSET - 3,
-      }}
+      style={[
+        side,
+        {
+          borderBottomWidth: CURVE_WIDTH,
+          height: above + CURVE_END,
+          top: -above,
+          width: REPLY_INDENT - CURVE_INSET - 3,
+        },
+      ]}
     />
   );
 }
+
 
 /**
  * Stacked rows' quote, Discord-style: a curve from the reply's photo up

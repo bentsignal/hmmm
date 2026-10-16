@@ -32,11 +32,17 @@ function chunks(ids: readonly string[]) {
 
 /**
  * Each thread's replies across every PDS that stores some: their counts
- * added up, and the people who wrote the newest ones first.
+ * added up, and the people who wrote the newest ones first. A PDS can
+ * answer more than once (as home and as a member's), so a summary seen
+ * twice counts once.
  */
 function combine(summaries: readonly ThreadSummary[]) {
   const byThread = new Map<string, ThreadSummary[]>();
+  const seen = new Set<string>();
   for (const summary of summaries) {
+    const key = `${summary.threadId} ${summary.lastReplyAt}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     byThread.set(summary.threadId, [
       ...(byThread.get(summary.threadId) ?? []),
       summary,

@@ -18,6 +18,7 @@ import type {
 import type { Message, MessageAttachment } from "./types";
 import { impact, selectionTick } from "~/lib/native-extras";
 import { GlassMessageMenu } from "./glass-message-menu";
+import { wasLinkTap } from "./link-tap";
 
 interface MessageActions {
   readonly open: (target: MenuTarget) => void;
@@ -152,8 +153,6 @@ export function MessageTargetProvider({
 const DOUBLE_TAP_MS = 200;
 /** A tap moving further than this is a drag (to reveal times), not a tap. */
 const TAP_SLOP = 10;
-/** How long a link's tap keeps the message's tap from opening its thread. */
-const LINK_TAP_MS = 600;
 
 /** What a part of a message lifts into the menu, besides where it sits. */
 type LiftedPart = Omit<MenuTarget, "rect">;
@@ -285,9 +284,6 @@ export function MenuTargetView({
   const target = useMenuTarget({ measured: ref, preview: children, shape });
   const messageTarget = use(MessageTargetContext);
   const { openThread } = useMessageActions();
-  // When a link in the text took the last tap, which then isn't the
-  // message's.
-  const linkTappedAt = useRef(0);
   if (target === null || messageTarget === null) return children;
   const { message } = messageTarget;
   const doubleTap = Gesture.Tap()
@@ -304,35 +300,21 @@ export function MenuTargetView({
     .enabled(openThread !== undefined && message.status === undefined)
     .runOnJS(true)
     .onEnd((_, success) => {
-      if (!success || Date.now() - linkTappedAt.current < LINK_TAP_MS) return;
+      if (!success || wasLinkTap()) return;
       openThread?.(message);
     });
   return (
     <GestureDetector gesture={Gesture.Exclusive(doubleTap, singleTap)}>
       <Pressable ref={ref} {...target.press}>
         <MenuPressContext value={target.press}>
-          <LinkTapContext
-            value={() => {
-              linkTappedAt.current = Date.now();
-            }}
-          >
-            <Animated.View style={target.style}>{children}</Animated.View>
-          </LinkTapContext>
+          <Animated.View style={target.style}>{children}</Animated.View>
         </MenuPressContext>
       </Pressable>
     </GestureDetector>
   );
 }
 
-const LinkTapContext = createContext<(() => void) | null>(null);
 
-/**
- * Tells the part around it that a link inside took the tap, so the tap
- * doesn't also open the message's thread. Null in the lifted copy.
- */
-export function useLinkTap() {
-  return use(LinkTapContext);
-}
 
 type MenuPress = NonNullable<ReturnType<typeof useMenuTarget>>["press"];
 

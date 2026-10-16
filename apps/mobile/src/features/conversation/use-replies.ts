@@ -7,7 +7,7 @@ import type { ProfileOf } from "./message-row";
 import type { Message, ThreadInfo } from "./types";
 import { useAccount } from "~/features/messaging/account";
 import { quoteOf } from "~/features/messaging/messages";
-import { quoteText } from "./reply-card";
+import { quoteText } from "./reply-parts";
 
 /**
  * Replying from a conversation. A tap opens a message's thread. Reply

@@ -22,10 +22,10 @@ import { linkCardsOf, visibleBody } from "./message-text";
 import {
   QUOTE_GAP,
   QuoteBubble,
-  REPLY_INDENT,
   ReplyCurve,
   ThreadFooter,
 } from "./reply-card";
+import { replyIndent } from "./reply-parts";
 import { RevealedTime, SlideWithReveal } from "./reveal";
 import { TAPBACK_SPACE } from "./tapbacks";
 
@@ -110,11 +110,7 @@ function Content({
       {/* 4pt between a message's parts, the same as between bubbles. */}
       <View
         className={cn("gap-1", isOwn ? "items-end" : "items-start")}
-        style={
-          quoted
-            ? { [isOwn ? "paddingRight" : "paddingLeft"]: REPLY_INDENT }
-            : undefined
-        }
+        style={quoted ? replyIndent(isOwn) : undefined}
       >
         {quoted && <ReplyCurve isOwn={isOwn} above={quoteGap(message)} />}
         {message.attachments.map((attachment, index) => (
@@ -252,7 +248,7 @@ function BubbleColumn({
       <NotSent message={message} />
       {card !== undefined && (
         <View
-          style={{ [isOwn ? "paddingRight" : "paddingLeft"]: REPLY_INDENT }}
+          style={replyIndent(isOwn)}
         >
           <ThreadFooter message={message} card={card} isOwn={isOwn} />
         </View>
