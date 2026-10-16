@@ -1,6 +1,7 @@
 import type {
   Attachment,
   LinkCard,
+  Mention,
   Quote,
 } from "@decentralized-convex/messages";
 import { useSyncExternalStore } from "react";
@@ -34,6 +35,8 @@ export interface OutgoingMessage {
   readonly items: readonly OutgoingItem[];
   /** Its link cards, with the previews prefetched while it was typed. */
   readonly linkPreviews: LinkCard[] | undefined;
+  /** Who it @mentions; undefined when nobody. */
+  readonly mentions: Mention[] | undefined;
   readonly sentAt: number;
   /** "sent" once the PDS has it; it stays to keep showing local media. */
   readonly status: "failed" | "sending" | "sent";
@@ -52,6 +55,16 @@ export interface OutgoingReply {
    * It starts out as this device expects, and the PDS has the last word.
    */
   readonly inChat: boolean;
+}
+
+/** A message to send, with its first link cards (`useLinkPrefetch`). */
+export interface OutgoingDraft {
+  readonly body: string;
+  readonly files: readonly StagedFile[];
+  readonly linkPreviews: readonly LinkCard[];
+  readonly mentions: readonly Mention[];
+  /** Set for a reply in a thread. */
+  readonly reply?: OutgoingReply;
 }
 
 /** How many uploads run at once across every message. */
@@ -220,6 +233,8 @@ async function send(
         attachments,
         body: message.body,
         conversationId: message.conversationId,
+        // Undefined (left out) when empty: older servers don't take it.
+        mentions: message.mentions,
         messageId,
         threadId: message.reply?.threadId,
       }),
@@ -290,22 +305,11 @@ function failed(message: OutgoingMessage) {
  * Sends a message, shown in the conversation right away with this
  * device's copies of its attachments while they upload.
  */
-export function sendOutgoing({
-  session,
-  conversationId,
-  body,
-  files,
-  linkPreviews,
-  reply,
-}: {
-  session: AccountSession;
-  conversationId: string;
-  body: string;
-  files: readonly StagedFile[];
-  linkPreviews: readonly LinkCard[];
-  /** Set for a reply in a thread. */
-  reply?: OutgoingReply;
-}) {
+export function sendOutgoing(
+  session: AccountSession,
+  conversationId: string,
+  { body, files, linkPreviews, mentions, reply }: OutgoingDraft,
+) {
   const messageId = Crypto.randomUUID();
   sessions.set(messageId, session);
   outbox = [
@@ -320,6 +324,7 @@ export function sendOutgoing({
         state: "uploading" as const,
       })),
       linkPreviews: linkPreviews.length > 0 ? [...linkPreviews] : undefined,
+      mentions: mentions.length > 0 ? [...mentions] : undefined,
       messageId,
       reply,
       sentAt: Date.now(),

@@ -63,7 +63,10 @@ export const longThreadMiddle = action({
   },
 });
 
-/** Bots in a conversation answer the caller's latest message after a beat. */
+/**
+ * Bots in a conversation answer the caller's latest message after a beat.
+ * In a group or channel, the first @mentions the caller.
+ */
 export const replyToMe = action({
   // With `threadId`, the bots answer in that thread.
   args: { conversationId: v.string(), threadId: v.optional(v.string()) },
@@ -97,6 +100,10 @@ export const replyToMe = action({
         {
           body: pick(REPLIES, seed + index * 31),
           conversationId,
+          mention:
+            isDirect || index > 0
+              ? undefined
+              : { accountId: me.accountId, name: me.name },
           threadId,
           username: bot.username,
         },
@@ -136,18 +143,24 @@ export const say = internalAction({
   args: {
     body: v.string(),
     conversationId: v.string(),
+    /** Someone to @mention at the start. */
+    mention: v.optional(v.object({ accountId: v.string(), name: v.string() })),
     threadId: v.optional(v.string()),
     username: v.string(),
   },
-  handler: async (ctx, { body, conversationId, threadId, username }) => {
+  handler: async (
+    ctx,
+    { body, conversationId, mention, threadId, username },
+  ) => {
     requireDevTools();
     const bot = BOTS.find((candidate) => candidate.username === username);
     if (bot === undefined) return;
     await asAccount(ctx, botIdentity(bot), {
       args: {
         attachments: [],
-        body,
+        body: mention === undefined ? body : `@${mention.name} ${body}`,
         conversationId,
+        mentions: mention === undefined ? undefined : [mention],
         messageId: crypto.randomUUID(),
         threadId,
       },

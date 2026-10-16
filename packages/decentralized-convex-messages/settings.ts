@@ -1,19 +1,24 @@
 import type { OperationArgs } from "@decentralized-convex/plugin";
 
+import type { Doc } from "./_generated/dataModel.js";
 import type { MutationCtx, QueryCtx } from "./_generated/server.js";
-import type { messagesProtocol, NotificationSettings } from "./protocol.ts";
-import { fail, getSpaceMember } from "./model.ts";
+import type {
+  AlertLevel,
+  messagesProtocol,
+  NotificationSettings,
+} from "./protocol.ts";
 
 type Mutations = (typeof messagesProtocol)["mutations"];
 type Args<Operation extends keyof Mutations> = OperationArgs<
   Mutations[Operation]
 >;
 
-/** The kinds of pushes an account can turn off. */
+/**
+ * The kinds of pushes an account can turn off on their own. Groups and
+ * channels have alert levels instead (see `alertsFor`).
+ */
 export type PushKind =
-  | "channels"
   | "directMessages"
-  | "groups"
   | "invites"
   | "reactions"
   | "replies"
@@ -26,22 +31,57 @@ function settingsRow(ctx: QueryCtx, accountId: string) {
     .unique();
 }
 
+/** A default alert level; rows from before levels have only the switch. */
+function defaultAlerts(
+  chosen: AlertLevel | undefined,
+  on: boolean | undefined,
+): AlertLevel {
+  return chosen ?? (on === false ? "none" : "all");
+}
+
+/** A switch, on until it's turned off. */
+function isOn(value: boolean | undefined) {
+  return value !== false;
+}
+
 /** An account's push settings; everything is on until turned off. */
 export async function notificationSettings(
   ctx: QueryCtx,
   accountId: string,
-): Promise<NotificationSettings> {
-  const row = await settingsRow(ctx, accountId);
+): Promise<
+  NotificationSettings & Record<"channelAlerts" | "groupAlerts", AlertLevel>
+> {
+  const row: Partial<Doc<"notificationSettings">> =
+    (await settingsRow(ctx, accountId)) ?? {};
+  const channelAlerts = defaultAlerts(row.channelAlerts, row.channels);
+  const groupAlerts = defaultAlerts(row.groupAlerts, row.groups);
   return {
-    channels: row?.channels !== false,
-    directMessages: row?.directMessages !== false,
-    enabled: row?.enabled !== false,
-    groups: row?.groups !== false,
-    invites: row?.invites !== false,
-    reactions: row?.reactions !== false,
-    replies: row?.replies !== false,
-    threadReplies: row?.threadReplies !== false,
+    channelAlerts,
+    channels: channelAlerts !== "none",
+    directMessages: isOn(row.directMessages),
+    enabled: isOn(row.enabled),
+    groupAlerts,
+    groups: groupAlerts !== "none",
+    invites: isOn(row.invites),
+    reactions: isOn(row.reactions),
+    replies: isOn(row.replies),
+    threadReplies: isOn(row.threadReplies),
   };
+}
+
+export type AccountSettings = Awaited<ReturnType<typeof notificationSettings>>;
+
+/**
+ * One kind's default as stored: a level keeps its switch in step for
+ * older apps, and a switch from an older app replaces the level.
+ */
+function defaultPatch(
+  level: AlertLevel | undefined,
+  on: boolean | undefined,
+): { level?: AlertLevel; on?: boolean } | null {
+  if (level !== undefined) return { level, on: level !== "none" };
+  if (on !== undefined) return { level: undefined, on };
+  return null;
 }
 
 export async function setNotificationSettings(
@@ -49,11 +89,23 @@ export async function setNotificationSettings(
   self: string,
   args: Args<"setNotificationSettings">,
 ) {
+  const { channelAlerts, channels, groupAlerts, groups, ...kinds } = args;
+  const patch: Partial<Doc<"notificationSettings">> = { ...kinds };
+  const group = defaultPatch(groupAlerts, groups);
+  if (group !== null) {
+    patch.groupAlerts = group.level;
+    patch.groups = group.on;
+  }
+  const channel = defaultPatch(channelAlerts, channels);
+  if (channel !== null) {
+    patch.channelAlerts = channel.level;
+    patch.channels = channel.on;
+  }
   const row = await settingsRow(ctx, self);
   if (row === null) {
-    await ctx.db.insert("notificationSettings", { accountId: self, ...args });
+    await ctx.db.insert("notificationSettings", { accountId: self, ...patch });
   } else {
-    await ctx.db.patch(row._id, args);
+    await ctx.db.patch(row._id, patch);
   }
   return null;
 }
@@ -66,31 +118,4 @@ export async function wantsPush(
 ) {
   const settings = await notificationSettings(ctx, accountId);
   return settings.enabled && settings[kind];
-}
-
-/** The push kind for a message in a conversation of this kind. */
-export function messagePushKind(kind: "channel" | "direct" | "group") {
-  return (
-    {
-      channel: "channels",
-      direct: "directMessages",
-      group: "groups",
-    } as const
-  )[kind];
-}
-
-export async function setSpaceMuted(
-  ctx: MutationCtx,
-  self: string,
-  args: Args<"setSpaceMuted">,
-) {
-  const member = await getSpaceMember(ctx, args.spaceId, self);
-  if (member === null) fail("SPACE_NOT_FOUND");
-  // Unmuting starts clean: what came in while muted stays out of activity.
-  const unmuted = member.muted === true && !args.muted;
-  await ctx.db.patch(member._id, {
-    muted: args.muted ? true : undefined,
-    ...(unmuted ? { alertsSince: Date.now() } : {}),
-  });
-  return null;
 }

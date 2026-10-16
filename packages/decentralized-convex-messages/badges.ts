@@ -1,13 +1,15 @@
 import type { QueryCtx } from "./_generated/server.js";
+import type { ActivityOptions } from "./activity.ts";
 import { activity, isUnseen } from "./activity.ts";
 import { pendingInvites } from "./model.ts";
 
 /**
  * The app icon badge for one account, counted the way the app counts its
  * Activity tab's badge: each activity item not yet seen (a conversation
- * with new messages, a message of yours with new reactions, or a thread
- * you're in with new replies; muted
- * conversations and spaces left out), plus each pending space invitation.
+ * with new messages, a message of yours with new reactions, a message
+ * that @mentions you, or a thread you're in with new replies; what
+ * conversations don't alert you about left out), plus each pending space
+ * invitation.
  *
  * Only this PDS's activity and invitations are counted, and a push
  * carries only its own account's count. A device signed into several
@@ -16,10 +18,10 @@ import { pendingInvites } from "./model.ts";
 export async function badgeCount(
   ctx: QueryCtx,
   accountId: string,
-  /** Whether the app shows threads (older ones can't clear their items). */
-  threads: boolean,
+  /** What the app shows (older ones can't clear the items they don't). */
+  shows: ActivityOptions,
 ) {
-  const unseen = (await activity(ctx, accountId, threads)).filter(
+  const unseen = (await activity(ctx, accountId, shows)).filter(
     isUnseen,
   ).length;
   return unseen + (await pendingInvites(ctx, accountId)).length;

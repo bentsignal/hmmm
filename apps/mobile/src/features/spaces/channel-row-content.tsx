@@ -6,6 +6,7 @@ import type { RowAction } from "~/features/inbox/row-actions";
 import { ListItem } from "~/components/list-item";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { UnreadBadge } from "~/components/unread-badge";
+import { alertsIcon } from "~/features/messaging/alerts";
 
 export interface ChannelRowProps {
   actions: readonly RowAction[];
@@ -14,8 +15,9 @@ export interface ChannelRowProps {
 }
 
 /**
- * A channel's row: its name, a bell while its alerts are hidden, and its
- * unread count. Android passes its taps as `modifiers` (a long press
+ * A channel's row: its name, a crossed-out bell while its alerts are
+ * hidden or an @ while it alerts only about mentions (its own choice, not
+ * its space's), and its unread count. Android passes its taps as `modifiers` (a long press
  * included); iOS passes `onPress` and wraps the row in a menu.
  */
 export function ChannelListItem({
@@ -27,6 +29,9 @@ export function ChannelListItem({
   modifiers?: ListItemProps["modifiers"];
   onPress?: () => void;
 }) {
+  const icon = alertsIcon(
+    channel.alerts ?? (channel.muted === true ? "none" : "all"),
+  );
   return (
     <ListItem
       leading={
@@ -38,10 +43,10 @@ export function ChannelListItem({
       }
       trailing={
         <Row alignment="center" spacing={6}>
-          {channel.muted === true && (
+          {icon !== null && (
             <SymbolIcon
-              accessibilityLabel="Alerts hidden"
-              name={{ android: "notifications_off", ios: "bell.slash.fill" }}
+              accessibilityLabel={icon.label}
+              name={icon.name}
               size={14}
               tintColorClassName="accent-muted"
             />

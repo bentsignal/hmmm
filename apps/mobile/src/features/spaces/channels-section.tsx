@@ -1,6 +1,6 @@
 import type { Space } from "@decentralized-convex/messages";
 import { useRouter } from "expo-router";
-import { FieldGroup, Text } from "@expo/ui";
+import { FieldGroup } from "@expo/ui";
 
 import { SectionHeaderWithAdd } from "~/components/section-header";
 import { SectionTitle } from "~/components/section-title";
@@ -12,7 +12,7 @@ import { ChannelRow } from "./channel-row";
 
 /**
  * The space's text channels. Tap one to open it; touch and hold for its
- * settings (Show in Inbox, Hide Alerts, and for owners Rename and Delete).
+ * settings (Show in Inbox, its alerts, and for owners Rename and Delete).
  */
 export function ChannelsSection({ space }: { space: Space }) {
   const router = useRouter();
@@ -68,12 +68,6 @@ export function ChannelsSection({ space }: { space: Space }) {
           }}
         />
       ))}
-      <FieldGroup.SectionFooter>
-        <Text>
-          Touch and hold a channel to hide it from your Inbox or hide its
-          alerts.
-        </Text>
-      </FieldGroup.SectionFooter>
     </FieldGroup.Section>
   );
 }

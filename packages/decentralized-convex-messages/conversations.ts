@@ -3,6 +3,7 @@ import type { OperationArgs } from "@decentralized-convex/plugin";
 import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { MessagePage } from "./paging.ts";
 import type { messagesProtocol } from "./protocol.ts";
+import { alertsFor } from "./alerts.ts";
 import {
   fail,
   findAccess,
@@ -21,6 +22,7 @@ import {
 } from "./model.ts";
 import { directConversationId } from "./naming.ts";
 import { around, pageOf } from "./paging.ts";
+import { notificationSettings } from "./settings.ts";
 import { seeConversationActivity } from "./sightings.ts";
 
 type Mutations = (typeof messagesProtocol)["mutations"];
@@ -157,28 +159,15 @@ export async function markRead(
   return null;
 }
 
-export async function setMuted(
-  ctx: MutationCtx,
-  self: string,
-  args: Args<"setMuted">,
-) {
-  const access = await requireAccess(ctx, args.conversationId, self);
-  // Unmuting starts clean: what came in while muted stays out of activity.
-  const unmuted = access.muted && !args.muted;
-  await upsertMember(ctx, access, self, {
-    muted: args.muted,
-    ...(unmuted ? { alertsSince: Date.now() } : {}),
-  });
-  return null;
-}
-
 export async function conversation(
   ctx: QueryCtx,
   self: string,
   args: OperationArgs<Queries["conversation"]>,
 ) {
   const access = await findAccess(ctx, args.conversationId, self);
-  return access === null ? null : toConversation(ctx, access, self);
+  if (access === null) return null;
+  const settings = await notificationSettings(ctx, self);
+  return toConversation(ctx, access, self, alertsFor(access, settings));
 }
 
 /** One page of messages, oldest first, by whichever cursor was given. */

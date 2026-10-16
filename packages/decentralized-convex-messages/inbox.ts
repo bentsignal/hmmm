@@ -3,6 +3,7 @@ import type { OperationArgs } from "@decentralized-convex/plugin";
 import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { ConversationAccess } from "./model.ts";
 import type { messagesProtocol } from "./protocol.ts";
+import { alertsFor } from "./alerts.ts";
 import {
   fail,
   findAccess,
@@ -10,6 +11,7 @@ import {
   toConversation,
   upsertMember,
 } from "./model.ts";
+import { notificationSettings } from "./settings.ts";
 
 type Mutations = (typeof messagesProtocol)["mutations"];
 type Queries = (typeof messagesProtocol)["queries"];
@@ -99,9 +101,10 @@ export async function inbox(
   self: string,
   args: OperationArgs<Queries["inbox"]>,
 ) {
+  const settings = await notificationSettings(ctx, self);
   const conversations = await Promise.all(
     (await inboxAccess(ctx, self, args.channels === true)).map((access) =>
-      toConversation(ctx, access, self),
+      toConversation(ctx, access, self, alertsFor(access, settings)),
     ),
   );
   return conversations.sort((left, right) => right.updatedAt - left.updatedAt);

@@ -130,13 +130,15 @@ export async function seedGroup(
     conversationId,
     history([me, ...authors.slice(0, 3)], 120, 6),
   );
-  await seedThread(ctx, conversationId, { jonah, maya, priya });
-  // A live message so the inbox has an unread conversation.
+  await seedThread(ctx, conversationId, me, { jonah, maya, priya });
+  // A live message so the inbox has an unread conversation, and Activity a
+  // mention.
   await asAccount(ctx, maya, {
     args: {
       attachments: [],
-      body: "Seeded! Reply here and I'll answer.",
+      body: `@${me.name} seeded! Reply here and I'll answer.`,
       conversationId,
+      mentions: [{ accountId: me.address, name: me.name }],
       messageId: crypto.randomUUID(),
     },
     type: "send",
@@ -145,11 +147,12 @@ export async function seedGroup(
 
 /**
  * A message with a thread: its first reply shows in the conversation, the
- * rest only in the thread.
+ * rest only in the thread. The last @mentions you, who aren't in it.
  */
 async function seedThread(
   ctx: ActionCtx,
   conversationId: string,
+  me: Author,
   {
     jonah,
     maya,
@@ -166,13 +169,18 @@ async function seedThread(
     { body: "I'm in! Can bring the cooler", by: jonah, threadId },
     { body: "Only if we leave after 10", by: priya, threadId },
     { body: "10 works. I'll drive", by: maya, threadId },
+    { body: `@${me.name} you coming?`, by: jonah, mentions: true, threadId },
   ];
-  for (const { body, by, threadId: thread } of posts) {
+  for (const { body, by, mentions, threadId: thread } of posts) {
     await asAccount(ctx, by, {
       args: {
         attachments: [],
         body,
         conversationId,
+        mentions:
+          mentions === true
+            ? [{ accountId: me.address, name: me.name }]
+            : undefined,
         messageId: thread === undefined ? threadId : crypto.randomUUID(),
         threadId: thread,
       },

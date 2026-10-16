@@ -6,7 +6,7 @@ import type { messagesProtocol, Quote, ThreadSummary } from "./protocol.ts";
 import { fail, memberAddresses, requireAccess, toMessage } from "./model.ts";
 import { pageOf } from "./paging.ts";
 import { MAX_REACTION_MESSAGES, MAX_REPLIERS } from "./protocol.ts";
-import { recordSighting, threadKey } from "./sightings.ts";
+import { recordSighting, seeMentions, threadKey } from "./sightings.ts";
 
 // Replies and threads. A reply is a message with `threadId`, the ID of the
 // message it answers (its original). Threads are flat. The first reply
@@ -238,12 +238,14 @@ export async function markThreadRead(
   if (member !== null && readAt > member.lastReadAt) {
     await ctx.db.patch(member._id, { lastReadAt: readAt });
   }
-  // Reading a thread sees its activity too.
+  // Reading a thread sees its activity too, and its mentions of the caller.
+  const now = Date.now();
   await recordSighting(ctx, self, {
     key: threadKey(args.threadId),
-    now: Date.now(),
+    now,
     through: readAt,
   });
+  await seeMentions(ctx, self, { ...args, now, readAt });
   return null;
 }
 

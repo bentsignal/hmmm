@@ -18,6 +18,8 @@ type Args = OperationArgs<
 
 /** The newest reactions to the caller's messages that are looked at. */
 export const MAX_REACTIONS_SCANNED = 500;
+/** The newest mentions of the caller that are looked at. */
+export const MAX_MENTIONS_SCANNED = 200;
 const MAX_KEY_LENGTH = 300;
 /** Old sightings deleted per `markActivitySeen`, so it stays quick. */
 const MAX_PRUNED = 20;
@@ -30,6 +32,11 @@ export function messagesKey(conversationId: string) {
 /** The item for others' reactions to one of the caller's messages. */
 export function reactionsKey(messageId: string) {
   return `reactions:${messageId}`;
+}
+
+/** The item for a message that @mentions the caller. */
+export function mentionKey(messageId: string) {
+  return `mention:${messageId}`;
 }
 
 /** The item for others' replies in a thread the caller is in. */
@@ -100,8 +107,9 @@ export async function markActivitySeen(
 }
 
 /**
- * Reading a conversation sees its activity: its messages through
- * `readAt`, and every reaction so far to the caller's messages in it.
+ * Reading a conversation sees its activity: its messages and mentions of
+ * the caller through `readAt` (but not those kept in threads), and every reaction so far to the caller's
+ * messages in it.
  */
 export async function seeConversationActivity(
   ctx: MutationCtx,
@@ -131,6 +139,42 @@ export async function seeConversationActivity(
       key: reactionsKey(messageId),
       now,
       through: now,
+    });
+  }
+  await seeMentions(ctx, self, { conversationId, now, readAt });
+}
+
+/**
+ * Sees the mentions of the caller through `readAt` in a conversation, or
+ * with `threadId`, the ones in replies kept in that thread.
+ */
+export async function seeMentions(
+  ctx: MutationCtx,
+  self: string,
+  place: {
+    conversationId: string;
+    now: number;
+    readAt: number;
+    threadId?: string;
+  },
+) {
+  const { conversationId, now, readAt, threadId } = place;
+  const mentions = await ctx.db
+    .query("mentions")
+    .withIndex("by_account_conversation_sent", (index) =>
+      index
+        .eq("accountId", self)
+        .eq("conversationId", conversationId)
+        .gt("sentAt", now - ACTIVITY_HORIZON)
+        .lte("sentAt", readAt),
+    )
+    .take(MAX_MENTIONS_SCANNED);
+  for (const row of mentions) {
+    if (row.threadId !== threadId) continue;
+    await recordSighting(ctx, self, {
+      key: mentionKey(row.messageId),
+      now,
+      through: row.sentAt,
     });
   }
 }

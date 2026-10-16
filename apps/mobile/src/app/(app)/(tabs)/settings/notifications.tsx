@@ -2,25 +2,40 @@ import Animated, { FadeIn } from "react-native-reanimated";
 import { Stack } from "expo-router";
 import { FieldGroup, Text } from "@expo/ui";
 
-import type { NotificationKind } from "~/features/settings/notification-settings";
+import type {
+  AlertDefault,
+  NotificationKind,
+} from "~/features/settings/notification-settings";
 import { FieldList } from "~/components/field-list";
 import { NativeHost } from "~/components/native-host";
+import { OptimisticChoice } from "~/components/optimistic-choice";
 import { OptimisticSwitch } from "~/components/optimistic-switch";
+import { ALERT_CHOICES } from "~/features/messaging/alerts";
 import { useNotificationSettings } from "~/features/settings/notification-settings";
 
 const KINDS = [
   { kind: "directMessages", label: "Direct Messages" },
-  { kind: "groups", label: "Group Chats" },
-  { kind: "channels", label: "Space Channels" },
   { kind: "replies", label: "Replies to Your Messages" },
-  { kind: "threadReplies", label: "Thread Replies" },
+  { kind: "threadReplies", label: "Thread Updates" },
   { kind: "reactions", label: "Reactions" },
   { kind: "invites", label: "Space Invites" },
 ] as const satisfies readonly { kind: NotificationKind; label: string }[];
 
-/** Which kinds of notifications you get, or none at all. */
+const DEFAULTS = [
+  { kind: "groupAlerts", label: "Group Chats", on: "groups" },
+  { kind: "channelAlerts", label: "Space Channels", on: "channels" },
+] as const satisfies readonly {
+  kind: AlertDefault;
+  label: string;
+  on: NotificationKind;
+}[];
+
+/**
+ * Which kinds of notifications you get, or none at all, and what groups
+ * and channels alert you about unless they say otherwise.
+ */
 export default function NotificationSettingsScreen() {
-  const { settings, set } = useNotificationSettings();
+  const { settings, set, setDefault } = useNotificationSettings();
   return (
     <>
       <Stack.Screen options={{ headerLargeTitleEnabled: false }} />
@@ -51,12 +66,6 @@ export default function NotificationSettingsScreen() {
                   value={settings.enabled}
                   onChange={(on) => set("enabled", on)}
                 />
-                <FieldGroup.SectionFooter>
-                  <Text>
-                    When this is off, Vera sends no notifications at all.
-                    Activity still shows what you missed.
-                  </Text>
-                </FieldGroup.SectionFooter>
               </FieldGroup.Section>
               {settings.enabled && (
                 <FieldGroup.Section title="Notify Me About">
@@ -70,17 +79,19 @@ export default function NotificationSettingsScreen() {
                       onChange={(on) => set(kind, on)}
                     />
                   ))}
-                  <FieldGroup.SectionFooter>
-                    <Text>
-                      Thread Replies are new replies in threads you're in. To
-                      quiet one person, group, or channel, touch and hold it in
-                      your Inbox and choose Hide Alerts. To quiet a whole space,
-                      turn on Hide Alerts in the space. To quiet one thread, tap
-                      its bell.
-                    </Text>
-                  </FieldGroup.SectionFooter>
                 </FieldGroup.Section>
               )}
+              <FieldGroup.Section title="Groups and Channels">
+                {DEFAULTS.map(({ kind, label, on }) => (
+                  <OptimisticChoice
+                    key={kind}
+                    label={label}
+                    value={settings[kind] ?? (settings[on] ? "all" : "none")}
+                    choices={ALERT_CHOICES}
+                    onChange={(level) => setDefault(kind, level)}
+                  />
+                ))}
+              </FieldGroup.Section>
             </FieldList>
           </NativeHost>
         </Animated.View>

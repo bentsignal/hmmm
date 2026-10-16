@@ -1,19 +1,27 @@
 import type { Doc } from "./_generated/dataModel.js";
 import type { QueryCtx } from "./_generated/server.js";
+import type { Scope } from "./activityScope.ts";
 import type { ConversationAccess } from "./model.ts";
-import type { ActivityConversation, ActivityItem } from "./protocol.ts";
+import type { ActivityItem, AlertLevel } from "./protocol.ts";
+import {
+  accessFinder,
+  conversationDescriber,
+  isHeard,
+  leftForMention,
+  messageById,
+  seenState,
+} from "./activityScope.ts";
+import { alerts, alertsFor } from "./alerts.ts";
 import { inboxAccess } from "./inbox.ts";
-import { findAccess, getSpace, memberAddresses, toMessage } from "./model.ts";
+import { toMessage } from "./model.ts";
+import { ACTIVITY_HORIZON, MAX_ACTIVITY_MESSAGES } from "./protocol.ts";
+import { notificationSettings } from "./settings.ts";
 import {
-  ACTIVITY_HORIZON,
-  ACTIVITY_SEEN_LIFETIME,
-  MAX_ACTIVITY_MESSAGES,
-} from "./protocol.ts";
-import {
+  MAX_MENTIONS_SCANNED,
   MAX_REACTIONS_SCANNED,
+  mentionKey,
   messagesKey,
   reactionsKey,
-  sightingsOf,
   threadKey,
 } from "./sightings.ts";
 
@@ -28,82 +36,54 @@ export function isUnseen(item: ActivityItem) {
 }
 
 /**
- * An item's newest sighting, and the newest activity in it that was seen
- * over a day ago (`goneThrough`), which no longer shows.
+ * Whether a message from someone else counts toward its conversation's
+ * item: with mentions as their own items, it doesn't if it mentions the
+ * caller, and at `mentions` nothing else does. Without them, a message
+ * counts if it alerts the caller.
  */
-async function seenState(
-  ctx: QueryCtx,
-  accountId: string,
-  key: string,
-  now: number,
+function countsInItem(
+  scope: Scope,
+  level: AlertLevel,
+  message: Doc<"messages">,
 ) {
-  const rows = await sightingsOf(ctx, accountId, key);
-  let goneThrough = 0;
-  for (const row of rows) {
-    if (row.seenAt <= now - ACTIVITY_SEEN_LIFETIME) {
-      goneThrough = Math.max(goneThrough, row.through);
-    }
-  }
-  const latest = rows.at(-1);
-  return {
-    goneThrough,
-    seen:
-      latest === undefined
-        ? {}
-        : { seenAt: latest.seenAt, seenThrough: latest.through },
-  };
+  if (!scope.mentions) return alerts(level, message, scope.self);
+  return level === "all" && !leftForMention(scope, message);
 }
-
-/** Describes each conversation once, however many items it has. */
-function conversationDescriber(ctx: QueryCtx) {
-  const described = new Map<string, Promise<ActivityConversation>>();
-  async function describe(conversation: Doc<"conversations">) {
-    const [members, space] = await Promise.all([
-      memberAddresses(ctx, conversation),
-      conversation.spaceId === undefined
-        ? null
-        : getSpace(ctx, conversation.spaceId),
-    ]);
-    return {
-      conversationId: conversation.conversationId,
-      kind: conversation.kind,
-      members,
-      name: conversation.name ?? null,
-      spaceId: conversation.spaceId ?? null,
-      spaceName: space?.name,
-    };
-  }
-  return (conversation: Doc<"conversations">) => {
-    const known = described.get(conversation.conversationId);
-    if (known !== undefined) return known;
-    const found = describe(conversation);
-    described.set(conversation.conversationId, found);
-    return found;
-  };
-}
-
-type Describe = ReturnType<typeof conversationDescriber>;
 
 /**
- * Whether a conversation's activity shows: not muted (nor, for a channel,
- * its space), and a channel still in the inbox.
+ * The newest of others' messages `newer` lists that `counts`, at most
+ * `MAX_ACTIVITY_MESSAGES` of them.
  */
-function isHeard(access: ConversationAccess) {
-  return (
-    !access.muted &&
-    !access.spaceMuted &&
-    access.member?.hiddenFromInbox !== true
-  );
+async function othersNewest(
+  scope: Scope,
+  newer: AsyncIterable<Doc<"messages">>,
+  counts: (message: Doc<"messages">) => boolean,
+) {
+  const theirs = new Array<Doc<"messages">>();
+  let scanned = 0;
+  for await (const message of newer) {
+    if (message.authorId !== scope.self && counts(message)) {
+      theirs.push(message);
+    }
+    scanned += 1;
+    if (
+      theirs.length >= MAX_ACTIVITY_MESSAGES ||
+      scanned >= MAX_MESSAGES_SCANNED
+    ) {
+      break;
+    }
+  }
+  return theirs;
 }
 
 /** Messages others sent in one conversation that still show, if any. */
 async function messagesItem(
   ctx: QueryCtx,
-  self: string,
+  scope: Scope,
   access: ConversationAccess,
-  describe: Describe,
-  now: number,
+  level: AlertLevel,
 ): Promise<ActivityItem | null> {
+  const { describe, now, self } = scope;
   const { conversationId } = access.conversation;
   const key = messagesKey(conversationId);
   const { goneThrough, seen } = await seenState(ctx, self, key, now);
@@ -121,18 +101,9 @@ async function messagesItem(
         .gt("sentAt", since),
     )
     .order("desc");
-  const theirs: Doc<"messages">[] = [];
-  let scanned = 0;
-  for await (const message of newer) {
-    if (message.authorId !== self) theirs.push(message);
-    scanned += 1;
-    if (
-      theirs.length >= MAX_ACTIVITY_MESSAGES ||
-      scanned >= MAX_MESSAGES_SCANNED
-    ) {
-      break;
-    }
-  }
+  const theirs = await othersNewest(scope, newer, (message) =>
+    countsInItem(scope, level, message),
+  );
   const latest = theirs[0];
   if (latest === undefined) return null;
   return {
@@ -147,42 +118,23 @@ async function messagesItem(
   };
 }
 
-/** The caller's access to each conversation, each looked up once. */
-function accessFinder(ctx: QueryCtx, self: string) {
-  const access = new Map<string, Promise<ConversationAccess | null>>();
-  return (conversationId: string) => {
-    const known = access.get(conversationId);
-    if (known !== undefined) return known;
-    const found = findAccess(ctx, conversationId, self);
-    access.set(conversationId, found);
-    return found;
-  };
-}
-
-type AccessTo = ReturnType<typeof accessFinder>;
-
-function messageById(ctx: QueryCtx, messageId: string) {
-  return ctx.db
-    .query("messages")
-    .withIndex("by_message", (index) => index.eq("messageId", messageId))
-    .unique();
-}
-
 /**
  * Replies others sent in one thread the caller is in that still show, if
  * any. The thread's first reply is left out: it shows in the
- * conversation, and so in the conversation's item.
+ * conversation, and so in the conversation's item. A thread shows at any
+ * level but `none`.
  */
 async function threadItem(
   ctx: QueryCtx,
-  self: string,
+  scope: Scope,
   member: Doc<"threadMembers">,
-  { accessTo, describe }: { accessTo: AccessTo; describe: Describe },
-  now: number,
 ): Promise<ActivityItem | null> {
+  const { accessTo, describe, now, self, settings } = scope;
   const { threadId } = member;
   const found = await accessTo(member.conversationId);
-  if (found === null || !isHeard(found)) return null;
+  if (found === null || !isHeard(found, alertsFor(found, settings))) {
+    return null;
+  }
   const key = threadKey(threadId);
   const { goneThrough, seen } = await seenState(ctx, self, key, now);
   const since = Math.max(
@@ -196,20 +148,11 @@ async function threadItem(
       index.eq("threadId", threadId).gt("sentAt", since),
     )
     .order("desc");
-  const theirs: Doc<"messages">[] = [];
-  let scanned = 0;
-  for await (const message of newer) {
-    if (message.authorId !== self && message.threadOnly === true) {
-      theirs.push(message);
-    }
-    scanned += 1;
-    if (
-      theirs.length >= MAX_ACTIVITY_MESSAGES ||
-      scanned >= MAX_MESSAGES_SCANNED
-    ) {
-      break;
-    }
-  }
+  const theirs = await othersNewest(
+    scope,
+    newer,
+    (message) => message.threadOnly === true && !leftForMention(scope, message),
+  );
   const latest = theirs[0];
   if (latest === undefined) return null;
   const root = await messageById(ctx, threadId);
@@ -228,33 +171,26 @@ async function threadItem(
 }
 
 /** New replies in the threads the caller is in and hasn't turned off. */
-async function threadItems(
-  ctx: QueryCtx,
-  self: string,
-  lookups: { accessTo: AccessTo; describe: Describe },
-  now: number,
-) {
+async function threadItems(ctx: QueryCtx, scope: Scope) {
   const members = await ctx.db
     .query("threadMembers")
     .withIndex("by_account_reply", (index) =>
-      index.eq("accountId", self).gt("lastReplyAt", now - ACTIVITY_HORIZON),
+      index
+        .eq("accountId", scope.self)
+        .gt("lastReplyAt", scope.now - ACTIVITY_HORIZON),
     )
     .order("desc")
     .take(MAX_THREADS_SCANNED);
   return Promise.all(
     members
       .filter((member) => member.unfollowed !== true)
-      .map((member) => threadItem(ctx, self, member, lookups, now)),
+      .map((member) => threadItem(ctx, scope, member)),
   );
 }
 
 /** Others' reactions to the caller's messages that still show, by message. */
-async function reactionItems(
-  ctx: QueryCtx,
-  self: string,
-  { accessTo, describe }: { accessTo: AccessTo; describe: Describe },
-  now: number,
-) {
+async function reactionItems(ctx: QueryCtx, scope: Scope) {
+  const { accessTo, describe, now, self, settings } = scope;
   const rows = await ctx.db
     .query("reactions")
     .withIndex("by_author_reacted", (index) =>
@@ -275,7 +211,9 @@ async function reactionItems(
       async ([messageId, reactions]): Promise<ActivityItem | null> => {
         const conversationId = reactions[0]?.conversationId ?? "";
         const found = await accessTo(conversationId);
-        if (found === null || !isHeard(found)) return null;
+        if (found === null || !isHeard(found, alertsFor(found, settings))) {
+          return null;
+        }
         const key = reactionsKey(messageId);
         const { goneThrough, seen } = await seenState(ctx, self, key, now);
         const shown = reactions.filter(
@@ -306,34 +244,93 @@ async function reactionItems(
 }
 
 /**
+ * Messages that @mention the caller and still show, an item each. A
+ * mention shows from any conversation that alerts about something, even a
+ * channel left out of the inbox. One in a reply kept in its thread shows
+ * only to apps that show threads, since only they can open it.
+ */
+async function mentionItems(ctx: QueryCtx, scope: Scope) {
+  const { accessTo, describe, now, self, settings } = scope;
+  const rows = await ctx.db
+    .query("mentions")
+    .withIndex("by_account_sent", (index) =>
+      index.eq("accountId", self).gt("sentAt", now - ACTIVITY_HORIZON),
+    )
+    .order("desc")
+    .take(MAX_MENTIONS_SCANNED);
+  return Promise.all(
+    rows.map(async (row): Promise<ActivityItem | null> => {
+      if (row.threadId !== undefined && !scope.threads) return null;
+      const found = await accessTo(row.conversationId);
+      if (found === null || alertsFor(found, settings) === "none") return null;
+      const key = mentionKey(row.messageId);
+      const { goneThrough, seen } = await seenState(ctx, self, key, now);
+      if (row.sentAt <= Math.max(goneThrough, found.alertsSince)) return null;
+      const message = await messageById(ctx, row.messageId);
+      if (message === null || message.authorId === self) return null;
+      return {
+        ...seen,
+        at: message.sentAt,
+        conversation: await describe(found.conversation),
+        key,
+        kind: "mention",
+        message: toMessage(message),
+      };
+    }),
+  );
+}
+
+/** What the app asking for activity shows (see `activity`). */
+export interface ActivityOptions {
+  readonly mentions?: boolean;
+  readonly threads?: boolean;
+}
+
+/**
  * What happened while the caller was away, newest first: messages others
- * sent (an item per conversation), others' reactions to the caller's
- * messages (an item per message), and with `threads`, others' replies in
- * threads the caller is in (an item per thread). It skips muted
- * conversations (and
- * muted spaces' channels) and what came in before they were unmuted,
- * channels left out of the inbox, activity seen over a day ago, and
+ * sent (an item per conversation) and others' reactions to the caller's
+ * messages (an item per message). With `threads`, others' replies in
+ * threads the caller is in are an item per thread; with `mentions`, each
+ * message that @mentions the caller is an item of its own. Each
+ * conversation shows what it alerts about (`alertsFor`): nothing from one
+ * at `none`, nor from before its alerts came back on, and only mentions
+ * (and threads) from one at `mentions`. It also skips channels left out
+ * of the inbox (except for mentions), activity seen over a day ago, and
  * anything older than `ACTIVITY_HORIZON`.
  *
  * Only this PDS's messages and reactions are listed, like the inbox.
  */
-export async function activity(ctx: QueryCtx, self: string, threads = false) {
-  const now = Date.now();
-  const lookups = {
+export async function activity(
+  ctx: QueryCtx,
+  self: string,
+  options: ActivityOptions = {},
+) {
+  const scope: Scope = {
     accessTo: accessFinder(ctx, self),
     describe: conversationDescriber(ctx),
+    mentions: options.mentions === true,
+    now: Date.now(),
+    self,
+    settings: await notificationSettings(ctx, self),
+    threads: options.threads === true,
   };
-  const conversations = (await inboxAccess(ctx, self, true)).filter(isHeard);
-  const [messages, reactions, replies] = await Promise.all([
+  const conversations = (await inboxAccess(ctx, self, true)).flatMap(
+    (access) => {
+      const level = alertsFor(access, scope.settings);
+      return isHeard(access, level) ? [{ access, level }] : [];
+    },
+  );
+  const [messages, reactions, mentions, replies] = await Promise.all([
     Promise.all(
-      conversations.map((access) =>
-        messagesItem(ctx, self, access, lookups.describe, now),
+      conversations.map(({ access, level }) =>
+        messagesItem(ctx, scope, access, level),
       ),
     ),
-    reactionItems(ctx, self, lookups, now),
-    threads ? threadItems(ctx, self, lookups, now) : [],
+    reactionItems(ctx, scope),
+    scope.mentions ? mentionItems(ctx, scope) : [],
+    scope.threads ? threadItems(ctx, scope) : [],
   ]);
-  return [...messages, ...reactions, ...replies]
+  return [...messages, ...reactions, ...mentions, ...replies]
     .filter((item): item is ActivityItem => item !== null)
     .sort((left, right) => right.at - left.at);
 }
