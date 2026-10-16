@@ -16,14 +16,30 @@ import { ScreenListInsets } from "~/components/screen-list-insets";
 
 export type PagerRef = RefObject<Animated.ScrollView | null>;
 
+/** Material's navigation bar, the Android tab bar, without the system's. */
+const ANDROID_TAB_BAR = 80;
+
 /**
- * Hands the screen's insets, measured outside the pager, to its lists on
- * iOS, where they scroll under the tab bar. Android's lists end above it.
+ * Hands the screen's insets, measured outside the pager, to its lists:
+ * they scroll under the tab bar, and their last rows end above it. On
+ * Android the tab bar is drawn over the bottom of the screen, above the
+ * system navigation's inset.
  */
 function PagerInsets({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
   return (
-    <ScreenListInsets value={Platform.OS === "ios" ? insets : null}>
+    <ScreenListInsets
+      value={
+        Platform.OS === "ios"
+          ? insets
+          : {
+              bottom: insets.bottom + ANDROID_TAB_BAR,
+              left: 0,
+              right: 0,
+              top: 0,
+            }
+      }
+    >
       {children}
     </ScreenListInsets>
   );

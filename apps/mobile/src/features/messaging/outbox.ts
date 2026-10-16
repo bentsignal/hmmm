@@ -43,11 +43,15 @@ export interface OutgoingMessage {
 const UPLOAD_CONCURRENCY = 3;
 /** Sent messages kept for their local media, newest first. */
 const KEEP_SENT = 50;
+/** How long a send may take before it shows as not sent. */
+const SEND_TIMEOUT_MS = 20_000;
 
 let outbox = new Array<OutgoingMessage>();
 const listeners = new Set<() => void>();
 const sessions = new Map<string, AccountSession>();
 const running = new Set<string>();
+/** Each message's latest send attempt, so an older one's timeout is ignored. */
+const attempts = new Map<string, number>();
 
 function emit() {
   for (const listener of listeners) listener();
@@ -94,7 +98,10 @@ function pruneSent() {
     sent.slice(0, sent.length - KEEP_SENT).map((message) => message.messageId),
   );
   outbox = outbox.filter((message) => !dropped.has(message.messageId));
-  for (const messageId of dropped) sessions.delete(messageId);
+  for (const messageId of dropped) {
+    sessions.delete(messageId);
+    attempts.delete(messageId);
+  }
 }
 
 // Upload progress changes many times a second, so it has its own store
@@ -178,6 +185,50 @@ async function upload(
   }
 }
 
+/**
+ * Sends a message whose files are all uploaded. A send can hang (a dropped
+ * connection the client keeps retrying), so after a while it shows as not
+ * sent and can be tried again. Sends are idempotent by message ID, so a
+ * late success and a retry agree, and whichever lands marks it sent.
+ */
+async function send(
+  session: AccountSession,
+  message: OutgoingMessage,
+  attachments: Attachment[],
+) {
+  const { messageId } = message;
+  const attempt = (attempts.get(messageId) ?? 0) + 1;
+  attempts.set(messageId, attempt);
+  const sent = session.pds
+    .mutate(
+      pds.messages.send({
+        attachments,
+        body: message.body,
+        conversationId: message.conversationId,
+        messageId,
+      }),
+    )
+    .then(
+      () => {
+        update(messageId, (current) => ({ ...current, status: "sent" }));
+        return true;
+      },
+      () => false,
+    );
+  const settled = await Promise.race([
+    sent,
+    new Promise<false>((resolve) =>
+      setTimeout(() => resolve(false), SEND_TIMEOUT_MS),
+    ),
+  ]);
+  // Only the latest attempt reports a failure.
+  if (!settled && attempts.get(messageId) === attempt) {
+    update(messageId, (current) =>
+      current.status === "sent" ? current : failed(current),
+    );
+  }
+}
+
 /** Uploads whatever hasn't uploaded yet, then sends the message. */
 async function deliver(messageId: string) {
   const session = sessions.get(messageId);
@@ -198,28 +249,11 @@ async function deliver(messageId: string) {
   const attachments = message?.items.flatMap((item) =>
     item.attachment === undefined ? [] : [item.attachment],
   );
-  if (
-    message === undefined ||
-    attachments === undefined ||
-    attachments.length < message.items.length
-  ) {
-    running.delete(messageId);
-    if (message !== undefined) update(messageId, failed);
-    return;
+  if (message !== undefined && attachments?.length === message.items.length) {
+    await send(session, message, attachments);
+  } else if (message !== undefined) {
+    update(messageId, failed);
   }
-  await session.pds
-    .mutate(
-      pds.messages.send({
-        attachments,
-        body: message.body,
-        conversationId: message.conversationId,
-        messageId,
-      }),
-    )
-    .then(
-      () => update(messageId, (sent) => ({ ...sent, status: "sent" })),
-      () => update(messageId, failed),
-    );
   running.delete(messageId);
 }
 
@@ -278,6 +312,7 @@ export function deleteOutgoing(messageId: string) {
   if (running.has(messageId)) return;
   update(messageId, () => undefined);
   sessions.delete(messageId);
+  attempts.delete(messageId);
 }
 
 /**
@@ -294,6 +329,7 @@ export function removeOutgoingItem(messageId: string, itemId: string) {
   });
   if (find(messageId) === undefined) {
     sessions.delete(messageId);
+    attempts.delete(messageId);
   } else if (
     find(messageId)?.items.every((item) => item.state === "uploaded") === true
   ) {

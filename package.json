@@ -21,12 +21,13 @@
     "lint:fix": "turbo run lint --continue -- --fix --cache --cache-location .cache/.eslintcache",
     "lint:ws": "pnpm dlx sherif@latest",
     "postinstall": "pnpm lint:ws",
-    "typecheck": "turbo run typecheck",
+    "typecheck": "turbo run typecheck && pnpm -F @vera/mobile exec tsgo --noEmit -p perf",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run test",
     "ui-add": "turbo run ui-add",
     "create-package": "turbo gen init",
     "loc": "cloc --exclude-dir=_generated --not-match-f=routeTree.gen.ts apps/*/src packages/*/src services/*/convex shared/*/src",
-    "test": "turbo run test"
+    "perf": "pnpm -F @vera/mobile exec reassure measure --testMatch '**/perf/*.perf-test.tsx'",
+    "test": "turbo run test && pnpm -F @vera/mobile exec jest"
   },
   "devDependencies": {
     "@acme/prettier-config": "workspace:*",

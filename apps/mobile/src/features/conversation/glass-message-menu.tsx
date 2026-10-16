@@ -19,11 +19,10 @@ import { requireOptionalNativeModule } from "expo";
 import { BlurView } from "expo-blur";
 import { useUniwind } from "uniwind";
 
-import type { MenuAction } from "./glass-menu-parts";
 import type { MenuLayout, Rect } from "./menu-layout";
-import type { Message } from "./types";
+import type { Message, MessageAttachment } from "./types";
 import { cn } from "~/lib/cn";
-import { canCopy, copyText, selectionTick } from "~/lib/native-extras";
+import { selectionTick } from "~/lib/native-extras";
 import {
   ActionMenu,
   BAR_HEIGHT,
@@ -32,9 +31,11 @@ import {
   menuHeight,
   ReactionBar,
 } from "./glass-menu-parts";
-import { linkActions } from "./link-actions";
-import { menuLayout } from "./menu-layout";
+import { menuActions } from "./menu-actions";
+import { EDGE, menuLayout } from "./menu-layout";
 import { menuTitleHeight } from "./menu-title";
+import { REACTORS_HEIGHT, reactorsWidth } from "./reactor-rows";
+import { Reactors } from "./reactors";
 
 export type TargetAlign = "end" | "start";
 
@@ -52,6 +53,13 @@ export interface MenuTarget {
   readonly preview: ReactNode;
   /** The link whose card was held, which the menu is about. */
   readonly link?: string;
+  /** The photo, video, or file that was held, which the menu can save. */
+  readonly attachment?: MessageAttachment;
+  /**
+   * `actions` under the message (a long press), or who reacted
+   * (`reactions`: a double tap, or tapping its tapbacks).
+   */
+  readonly mode: "actions" | "reactions";
 }
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
@@ -167,53 +175,25 @@ function Lifted({
   );
 }
 
-/**
- * A held link's actions, then Copy for text (the whole message, links and
- * all), and View Reactions once anyone has reacted.
- */
-function menuActions(
-  message: MenuTarget["message"],
-  body: string | undefined,
-  link: string | undefined,
-  {
-    close,
-    onViewReactions,
-  }: {
-    close: (then?: () => void) => void;
-    onViewReactions: () => void;
-  },
-) {
-  const copy =
-    canCopy && body !== undefined && body !== ""
-      ? [
-          {
-            icon: { android: "content_copy", ios: "doc.on.doc" },
-            // Beside Copy Link, say which copy this is.
-            label: link === undefined ? "Copy" : "Copy Message",
-            onPress: () => {
-              copyText(body);
-              close();
-            },
-          } satisfies MenuAction,
-        ]
-      : [];
-  const viewReactions =
-    (message.reactions?.length ?? 0) > 0
-      ? [
-          {
-            icon: { android: "groups", ios: "person.2" },
-            label: "View Reactions",
-            onPress: () => close(onViewReactions),
-          } satisfies MenuAction,
-        ]
-      : [];
-  return [...linkActions(link, close), ...copy, ...viewReactions];
+/** The size of what goes under the lifted message: who reacted, or actions. */
+function belowSize(target: MenuTarget, actions: number, reactorsMax: number) {
+  if (target.mode === "reactions") {
+    return {
+      height: REACTORS_HEIGHT,
+      width: reactorsWidth(target.message.reactions ?? [], reactorsMax),
+    };
+  }
+  return {
+    height: menuHeight(actions) + menuTitleHeight(target.link),
+    width: MENU_WIDTH,
+  };
 }
 
 /**
- * The iMessage-style long-press overlay: the conversation blurs, the message
- * lifts, a Liquid Glass reaction bar springs out above it and the actions
- * below. Closing plays it all back into place.
+ * The iMessage-style overlay: the conversation blurs, the message lifts, a
+ * Liquid Glass reaction bar springs out above it, and below it the actions
+ * (a long press) or who reacted (a double tap, or its tapbacks). Closing
+ * plays it all back into place.
  */
 export function GlassMessageMenu({
   target,
@@ -224,28 +204,30 @@ export function GlassMessageMenu({
 }: {
   target: MenuTarget;
   onReact: (emoji: string) => void;
-  /** Opens the sheet of who reacted with what. */
-  onViewReactions: () => void;
+  /** Opens the sheet of who reacted with what, on one emoji if given. */
+  onViewReactions: (emoji?: string) => void;
   /** The overlay starts playing back into place. */
   onClosing?: () => void;
-  onClosed: () => void;
+  /**
+   * The overlay is gone. `backToChat` unless it opened something else (a
+   * sheet, a link, sharing), so the keyboard can come back if it was up.
+   */
+  onClosed: (backToChat: boolean) => void;
 }) {
   const screen = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { body } = target.message;
-  const actions = menuActions(target.message, body, target.link, {
-    close: (then) => close(then),
-    onViewReactions,
-  });
+  const showReactors = target.mode === "reactions";
+  const reactions = target.message.reactions ?? [];
+  const reactorsMax = screen.width - EDGE * 2;
+  const actions = showReactors
+    ? []
+    : menuActions(target, { close: (then) => close(then), onViewReactions });
   const layout = menuLayout({
     align: target.align,
     bar: { height: BAR_HEIGHT, width: BAR_WIDTH },
     frame: frameOf(target),
     insets,
-    menu: {
-      height: menuHeight(actions.length) + menuTitleHeight(target.link),
-      width: MENU_WIDTH,
-    },
+    menu: belowSize(target, actions.length, reactorsMax),
     screen,
   });
   const progress = useSharedValue(0);
@@ -253,14 +235,18 @@ export function GlassMessageMenu({
   useAnimatedReaction(
     () => true,
     (_, previous) => {
-      if (previous === null) progress.value = withSpring(1, OPEN_SPRING);
+      if (previous === null) progress.set(withSpring(1, OPEN_SPRING));
     },
   );
 
-  /** Plays the overlay back into place, then runs `then` (if any). */
-  function close(then?: () => void) {
+  /**
+   * Plays the overlay back into place, then runs `then`. Back to the chat
+   * unless `then` opens something else; reacting stays in the chat.
+   */
+  function close(then?: () => void, toChat?: boolean) {
+    const backToChat = toChat ?? then === undefined;
     function closed() {
-      onClosed();
+      onClosed(backToChat);
       then?.();
     }
     onClosing?.();
@@ -292,10 +278,23 @@ export function GlassMessageMenu({
         position={{ left: layout.barLeft, top: layout.barTop }}
         onPick={(emoji) => {
           selectionTick();
-          onReact(emoji);
-          close();
+          // Once the message is back in place, so its reaction animates in
+          // where you can see it, and the lifted copy never covers the
+          // message while the row makes room for the reaction.
+          close(() => onReact(emoji), true);
         }}
       />
+      {showReactors && reactions.length > 0 && (
+        <Reactors
+          reactions={reactions}
+          progress={progress}
+          closing={closing}
+          align={target.align}
+          position={{ left: layout.menuLeft, top: layout.menuTop }}
+          width={reactorsWidth(reactions, reactorsMax)}
+          onPick={(emoji) => close(() => onViewReactions(emoji))}
+        />
+      )}
       {actions.length > 0 && (
         <ActionMenu
           progress={progress}
