@@ -15,6 +15,11 @@ export function FieldList({
   children,
 }: {
   modifiers?: ModifierConfig[];
+  /**
+   * Android only: keeps the end of the list clear of the system's bottom
+   * bar, on screens outside the tabs. iOS insets the list itself.
+   */
+  clearsNavigationBar?: boolean;
   children: ReactNode;
 }) {
   return <FieldGroup modifiers={modifiers}>{children}</FieldGroup>;

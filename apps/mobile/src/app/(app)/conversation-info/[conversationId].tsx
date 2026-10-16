@@ -72,7 +72,7 @@ function Details({
   return (
     <Animated.View entering={FadeIn.duration(220)} style={{ flex: 1 }}>
       <NativeHost style={{ flex: 1 }}>
-        <FieldList>
+        <FieldList clearsNavigationBar>
           <ProfileCard {...card} />
           <InboxSection conversation={conversation} />
           <ThreadsSection
