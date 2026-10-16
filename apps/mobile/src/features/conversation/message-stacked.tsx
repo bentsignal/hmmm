@@ -124,9 +124,7 @@ function StackedRow({
             </View>
           </SendingFade>
           {/* Reactions go under the thread's count. */}
-          {card !== undefined && (
-            <ThreadFooter message={message} card={card} />
-          )}
+          {card !== undefined && <ThreadFooter message={message} card={card} />}
         </InteractiveMessage>
         <NotSent message={message} />
       </View>
