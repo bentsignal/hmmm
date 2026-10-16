@@ -1,7 +1,17 @@
-import { useRef, useState } from "react";
-import { Platform, Pressable, StyleSheet, TextInput } from "react-native";
+import type { Ref, RefObject } from "react";
+import { useImperativeHandle, useRef, useState } from "react";
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import Animated, {
+  FadeIn,
+  FadeOut,
   interpolate,
   useAnimatedStyle,
   withTiming,
@@ -92,46 +102,10 @@ function SendButton({
   );
 }
 
-/**
- * The message field with its "+" menu and the attachments picked or pasted
- * for the message, which upload only once it's sent. Unsent text is kept as
- * a draft on this device (see `drafts.ts`).
- */
-export function Composer({
-  draftKey,
-  staged,
-  onSend,
-  onPick,
-  onPaste,
-  onRemoveStaged,
-  onChangeText,
-  bottomInset,
-}: {
-  /** From `draftKey`: the account and conversation the draft belongs to. */
-  draftKey: string;
-  staged: readonly StagedFile[];
-  /** Sends the text (possibly empty) with everything staged. */
-  onSend: (text: string) => void;
-  onPick: (source: AttachmentSource) => void;
-  /** Photos pasted into the field. */
-  onPaste: (images: readonly PastedImage[]) => void;
-  onRemoveStaged: (id: string) => void;
-  /** Every change to the text, including emptying it on send. */
-  onChangeText?: (text: string) => void;
-  /** From `useComposerBottomInset`. */
-  bottomInset: number;
-}) {
-  const [draft, setDraft] = useState(() => readDraft(draftKey).text);
-  const input = useRef<TextInput>(null);
-  // Only the field being pasted into is focused; another conversation's
-  // composer can be mounted beneath this one.
-  usePastedImages((images) => {
-    if (input.current?.isFocused() === true) onPaste(images);
-  });
-  /** When the field was last emptied by sending, until something is typed. */
-  const sentAt = useRef<number | null>(null);
+/** The bar's sides, which widen a little while typing on iOS. */
+function useSides() {
   const keyboard = useReanimatedKeyboardAnimation();
-  const sides = useAnimatedStyle(() => ({
+  return useAnimatedStyle(() => ({
     // eslint-disable-next-line vera/no-layout-animation -- Known: re-lays out the composer on each frame of the keyboard; to be fixed in its own PR.
     paddingHorizontal:
       Platform.OS === "ios"
@@ -142,7 +116,20 @@ export function Composer({
           )
         : ANDROID_EDGE,
   }));
-  const canSend = draft.trim().length > 0 || staged.length > 0;
+}
+
+/**
+ * The text being typed, emptied by `sent`, and kept as a draft on this
+ * device (see `drafts.ts`).
+ */
+function useDraft(
+  draftKey: string,
+  input: RefObject<TextInput | null>,
+  onChangeText: ((text: string) => void) | undefined,
+) {
+  const [draft, setDraft] = useState(() => readDraft(draftKey).text);
+  /** When the field was last emptied by sending, until something is typed. */
+  const sentAt = useRef<number | null>(null);
 
   function change(text: string) {
     // Sending while iOS still offers an autocorrection for the last word
@@ -164,11 +151,128 @@ export function Composer({
     onChangeText?.(text);
   }
 
+  return {
+    change,
+    draft,
+    sent: () => {
+      change("");
+      sentAt.current = Date.now();
+    },
+  };
+}
+
+/** What the composer can be asked to do. */
+export interface ComposerHandle {
+  /** Puts the cursor in the field, bringing the keyboard up. */
+  focus: () => void;
+}
+
+/** Who and what the next message replies to, shown over the field. */
+export interface ReplyingTo {
+  /** Who wrote the message being answered. */
+  readonly name: string;
+  /** Its text, or what it sent instead. */
+  readonly text: string;
+}
+
+/**
+ * "Replying to Maya" and the message, at the top of the field, with a
+ * button to send a plain message instead.
+ */
+function ReplyBar({
+  replyingTo,
+  onCancel,
+}: {
+  replyingTo: ReplyingTo;
+  onCancel: () => void;
+}) {
+  return (
+    <Animated.View
+      entering={FadeIn.duration(160)}
+      exiting={FadeOut.duration(120)}
+      className="flex-row items-center gap-2 pt-2 pr-2 pl-4"
+    >
+      <View className="border-accent flex-1 border-l-2 pl-2">
+        <Text numberOfLines={1} className="text-caption text-accent">
+          Replying to {replyingTo.name}
+        </Text>
+        <Text numberOfLines={1} className="text-footnote text-muted">
+          {replyingTo.text}
+        </Text>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Cancel Reply"
+        hitSlop={8}
+        onPress={onCancel}
+        className="active:opacity-60"
+      >
+        <SymbolIcon
+          name={{ android: "close", ios: "xmark.circle.fill" }}
+          size={18}
+          tintColorClassName="accent-subtle"
+        />
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+/**
+ * The message field with its "+" menu and the attachments picked or pasted
+ * for the message, which upload only once it's sent. Unsent text is kept as
+ * a draft on this device (see `drafts.ts`).
+ */
+export function Composer({
+  ref,
+  draftKey,
+  staged,
+  onSend,
+  onPick,
+  onPaste,
+  onRemoveStaged,
+  onChangeText,
+  bottomInset,
+  replyingTo,
+  onCancelReply,
+  autoFocus = false,
+  placeholder = "Message",
+}: {
+  ref?: Ref<ComposerHandle>;
+  /** From `draftKey`: the account and conversation the draft belongs to. */
+  draftKey: string;
+  staged: readonly StagedFile[];
+  /** Sends the text (possibly empty) with everything staged. */
+  onSend: (text: string) => void;
+  onPick: (source: AttachmentSource) => void;
+  /** Photos pasted into the field. */
+  onPaste: (images: readonly PastedImage[]) => void;
+  onRemoveStaged: (id: string) => void;
+  /** Every change to the text, including emptying it on send. */
+  onChangeText?: (text: string) => void;
+  /** From `useComposerBottomInset`. */
+  bottomInset: number;
+  /** Set while the next message is a reply. */
+  replyingTo?: ReplyingTo;
+  onCancelReply?: () => void;
+  /** Opens with the keyboard up. */
+  autoFocus?: boolean;
+  placeholder?: string;
+}) {
+  const input = useRef<TextInput>(null);
+  useImperativeHandle(ref, () => ({ focus: () => input.current?.focus() }));
+  // Only the field being pasted into is focused; another conversation's
+  // composer can be mounted beneath this one.
+  usePastedImages((images) => {
+    if (input.current?.isFocused() === true) onPaste(images);
+  });
+  const sides = useSides();
+  const { draft, change, sent } = useDraft(draftKey, input, onChangeText);
+  const canSend = draft.trim().length > 0 || staged.length > 0;
+
   function send() {
     if (!canSend) return;
     onSend(draft.trim());
-    change("");
-    sentAt.current = Date.now();
+    sent();
   }
 
   return (
@@ -196,6 +300,12 @@ export function Composer({
         className="flex-1 justify-center rounded-[20px]"
         style={{ minHeight: CONTROL }}
       >
+        {replyingTo !== undefined && (
+          <ReplyBar
+            replyingTo={replyingTo}
+            onCancel={() => onCancelReply?.()}
+          />
+        )}
         <StagedAttachments files={staged} onRemove={onRemoveStaged} />
         <StyledTextInput
           ref={input}
@@ -203,7 +313,8 @@ export function Composer({
           multiline
           value={draft}
           onChangeText={change}
-          placeholder={staged.length > 0 ? "Add a message" : "Message"}
+          autoFocus={autoFocus}
+          placeholder={staged.length > 0 ? "Add a message" : placeholder}
           accessibilityLabel="Message"
           // A message field never needs AutoFill suggestions.
           autoComplete="off"

@@ -47,7 +47,13 @@ export const reactionTargets = internalQuery({
       conversationId: conversation.conversationId,
       conversationName: await conversationName(ctx, conversation),
       message: previewText(message),
-      recipients: tokens.map(({ token }) => ({ accountId: author, token })),
+      // A reaction to a reply kept in its thread opens the thread.
+      threadId: message.threadOnly === true ? (message.threadId ?? null) : null,
+      recipients: tokens.map(({ threads, token }) => ({
+        accountId: author,
+        threads: threads === true,
+        token,
+      })),
     };
   },
 });
@@ -81,8 +87,8 @@ export const sendReaction = internalAction({
     const { conversationName } = target;
     await deliver(
       ctx,
-      target.recipients.map(({ accountId, token }) => ({
-        ...badgeField(badges.get(accountId)),
+      target.recipients.map(({ accountId, threads, token }) => ({
+        ...badgeField(badges, { accountId, threads }),
         body:
           target.message.length > 0
             ? `Reacted ${emoji} to “${target.message}”`
@@ -97,6 +103,7 @@ export const sendReaction = internalAction({
           senderAvatarUrl: reactor?.avatarUrl ?? null,
           senderId: reactorId,
           senderName,
+          ...(target.threadId === null ? {} : { threadId: target.threadId }),
         },
         ...ANDROID_DELIVERY,
         mutableContent: true,

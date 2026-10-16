@@ -17,6 +17,7 @@ import {
   unreadCount,
 } from "./model.ts";
 import { channelName } from "./naming.ts";
+import { deleteThreads } from "./threads.ts";
 
 type Mutations = (typeof messagesProtocol)["mutations"];
 type Args<Operation extends keyof Mutations> = OperationArgs<
@@ -188,6 +189,7 @@ export async function deleteChannel(
     )
     .collect();
   for (const row of [...messages, ...members]) await ctx.db.delete(row._id);
+  await deleteThreads(ctx, conversationId);
   await ctx.db.delete(channel._id);
   return null;
 }

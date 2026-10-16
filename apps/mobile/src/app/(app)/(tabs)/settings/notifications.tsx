@@ -12,6 +12,8 @@ const KINDS = [
   { kind: "directMessages", label: "Direct Messages" },
   { kind: "groups", label: "Group Chats" },
   { kind: "channels", label: "Space Channels" },
+  { kind: "replies", label: "Replies to Your Messages" },
+  { kind: "threadReplies", label: "Thread Replies" },
   { kind: "reactions", label: "Reactions" },
   { kind: "invites", label: "Space Invites" },
 ] as const satisfies readonly { kind: NotificationKind; label: string }[];
@@ -62,15 +64,19 @@ export default function NotificationSettingsScreen() {
                     <OptimisticSwitch
                       key={kind}
                       label={label}
-                      value={settings[kind]}
+                      // Servers from before threads leave replies out:
+                      // they're on.
+                      value={settings[kind] ?? true}
                       onChange={(on) => set(kind, on)}
                     />
                   ))}
                   <FieldGroup.SectionFooter>
                     <Text>
-                      To quiet one person, group, or channel, touch and hold it
-                      in your Inbox and choose Hide Alerts. To quiet a whole
-                      space, turn on Hide Alerts in the space.
+                      Thread Replies are new replies in threads you're in. To
+                      quiet one person, group, or channel, touch and hold it in
+                      your Inbox and choose Hide Alerts. To quiet a whole space,
+                      turn on Hide Alerts in the space. To quiet one thread, tap
+                      its bell.
                     </Text>
                   </FieldGroup.SectionFooter>
                 </FieldGroup.Section>

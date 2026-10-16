@@ -272,15 +272,19 @@ export function toMessage(message: Doc<"messages">): Message {
     linkPreview: message.linkPreview ?? null,
     linkPreviews: message.linkPreviews,
     messageId: message.messageId,
+    quote: message.quote,
     sentAt: message.sentAt,
+    threadId: message.threadId,
+    threadOnly: message.threadOnly,
   };
 }
 
+/** The newest message the conversation shows (not one kept in a thread). */
 export function latestMessage(ctx: QueryCtx, conversationId: string) {
   return ctx.db
     .query("messages")
-    .withIndex("by_conversation_sent", (index) =>
-      index.eq("conversationId", conversationId),
+    .withIndex("by_chat_sent", (index) =>
+      index.eq("conversationId", conversationId).eq("threadOnly", undefined),
     )
     .order("desc")
     .first();
@@ -294,8 +298,11 @@ export async function unreadCount(
 ) {
   const unread = await ctx.db
     .query("messages")
-    .withIndex("by_conversation_sent", (index) =>
-      index.eq("conversationId", conversationId).gt("sentAt", lastReadAt),
+    .withIndex("by_chat_sent", (index) =>
+      index
+        .eq("conversationId", conversationId)
+        .eq("threadOnly", undefined)
+        .gt("sentAt", lastReadAt),
     )
     .take(MAX_UNREAD + 1);
   return unread.filter((message) => message.authorId !== accountId).length;

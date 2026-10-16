@@ -14,10 +14,13 @@ import {
   messagesKey,
   reactionsKey,
   sightingsOf,
+  threadKey,
 } from "./sightings.ts";
 
 /** Messages read to fill one conversation's item, the caller's included. */
 const MAX_MESSAGES_SCANNED = 300;
+/** The threads with the newest replies that are looked at. */
+const MAX_THREADS_SCANNED = 200;
 
 /** Whether an item holds anything not yet seen on screen. */
 export function isUnseen(item: ActivityItem) {
@@ -111,8 +114,11 @@ async function messagesItem(
   );
   const newer = ctx.db
     .query("messages")
-    .withIndex("by_conversation_sent", (index) =>
-      index.eq("conversationId", conversationId).gt("sentAt", since),
+    .withIndex("by_chat_sent", (index) =>
+      index
+        .eq("conversationId", conversationId)
+        .eq("threadOnly", undefined)
+        .gt("sentAt", since),
     )
     .order("desc");
   const theirs: Doc<"messages">[] = [];
@@ -141,11 +147,112 @@ async function messagesItem(
   };
 }
 
+/** The caller's access to each conversation, each looked up once. */
+function accessFinder(ctx: QueryCtx, self: string) {
+  const access = new Map<string, Promise<ConversationAccess | null>>();
+  return (conversationId: string) => {
+    const known = access.get(conversationId);
+    if (known !== undefined) return known;
+    const found = findAccess(ctx, conversationId, self);
+    access.set(conversationId, found);
+    return found;
+  };
+}
+
+type AccessTo = ReturnType<typeof accessFinder>;
+
+function messageById(ctx: QueryCtx, messageId: string) {
+  return ctx.db
+    .query("messages")
+    .withIndex("by_message", (index) => index.eq("messageId", messageId))
+    .unique();
+}
+
+/**
+ * Replies others sent in one thread the caller is in that still show, if
+ * any. The thread's first reply is left out: it shows in the
+ * conversation, and so in the conversation's item.
+ */
+async function threadItem(
+  ctx: QueryCtx,
+  self: string,
+  member: Doc<"threadMembers">,
+  { accessTo, describe }: { accessTo: AccessTo; describe: Describe },
+  now: number,
+): Promise<ActivityItem | null> {
+  const { threadId } = member;
+  const found = await accessTo(member.conversationId);
+  if (found === null || !isHeard(found)) return null;
+  const key = threadKey(threadId);
+  const { goneThrough, seen } = await seenState(ctx, self, key, now);
+  const since = Math.max(
+    goneThrough,
+    now - ACTIVITY_HORIZON,
+    found.alertsSince,
+  );
+  const newer = ctx.db
+    .query("messages")
+    .withIndex("by_thread_sent", (index) =>
+      index.eq("threadId", threadId).gt("sentAt", since),
+    )
+    .order("desc");
+  const theirs: Doc<"messages">[] = [];
+  let scanned = 0;
+  for await (const message of newer) {
+    if (message.authorId !== self && message.threadOnly === true) {
+      theirs.push(message);
+    }
+    scanned += 1;
+    if (
+      theirs.length >= MAX_ACTIVITY_MESSAGES ||
+      scanned >= MAX_MESSAGES_SCANNED
+    ) {
+      break;
+    }
+  }
+  const latest = theirs[0];
+  if (latest === undefined) return null;
+  const root = await messageById(ctx, threadId);
+  return {
+    ...seen,
+    at: latest.sentAt,
+    authors: [...new Set(theirs.map(({ authorId }) => authorId))],
+    conversation: await describe(found.conversation),
+    count: theirs.length,
+    key,
+    kind: "thread",
+    latest: toMessage(latest),
+    root: root === null ? null : toMessage(root),
+    threadId,
+  };
+}
+
+/** New replies in the threads the caller is in and hasn't turned off. */
+async function threadItems(
+  ctx: QueryCtx,
+  self: string,
+  lookups: { accessTo: AccessTo; describe: Describe },
+  now: number,
+) {
+  const members = await ctx.db
+    .query("threadMembers")
+    .withIndex("by_account_reply", (index) =>
+      index.eq("accountId", self).gt("lastReplyAt", now - ACTIVITY_HORIZON),
+    )
+    .order("desc")
+    .take(MAX_THREADS_SCANNED);
+  return Promise.all(
+    members
+      .filter((member) => member.unfollowed !== true)
+      .map((member) => threadItem(ctx, self, member, lookups, now)),
+  );
+}
+
 /** Others' reactions to the caller's messages that still show, by message. */
 async function reactionItems(
   ctx: QueryCtx,
   self: string,
-  describe: Describe,
+  { accessTo, describe }: { accessTo: AccessTo; describe: Describe },
   now: number,
 ) {
   const rows = await ctx.db
@@ -163,14 +270,6 @@ async function reactionItems(
       row,
     ]);
   }
-  const access = new Map<string, Promise<ConversationAccess | null>>();
-  function accessTo(conversationId: string) {
-    const known = access.get(conversationId);
-    if (known !== undefined) return known;
-    const found = findAccess(ctx, conversationId, self);
-    access.set(conversationId, found);
-    return found;
-  }
   return Promise.all(
     [...byMessage].map(
       async ([messageId, reactions]): Promise<ActivityItem | null> => {
@@ -185,10 +284,7 @@ async function reactionItems(
         );
         const newest = shown[0];
         if (newest === undefined) return null;
-        const message = await ctx.db
-          .query("messages")
-          .withIndex("by_message", (index) => index.eq("messageId", messageId))
-          .unique();
+        const message = await messageById(ctx, messageId);
         if (message?.authorId !== self) return null;
         return {
           ...seen,
@@ -211,27 +307,33 @@ async function reactionItems(
 
 /**
  * What happened while the caller was away, newest first: messages others
- * sent (an item per conversation) and others' reactions to the caller's
- * messages (an item per message). It skips muted conversations (and
+ * sent (an item per conversation), others' reactions to the caller's
+ * messages (an item per message), and with `threads`, others' replies in
+ * threads the caller is in (an item per thread). It skips muted
+ * conversations (and
  * muted spaces' channels) and what came in before they were unmuted,
  * channels left out of the inbox, activity seen over a day ago, and
  * anything older than `ACTIVITY_HORIZON`.
  *
  * Only this PDS's messages and reactions are listed, like the inbox.
  */
-export async function activity(ctx: QueryCtx, self: string) {
+export async function activity(ctx: QueryCtx, self: string, threads = false) {
   const now = Date.now();
-  const describe = conversationDescriber(ctx);
+  const lookups = {
+    accessTo: accessFinder(ctx, self),
+    describe: conversationDescriber(ctx),
+  };
   const conversations = (await inboxAccess(ctx, self, true)).filter(isHeard);
-  const [messages, reactions] = await Promise.all([
+  const [messages, reactions, replies] = await Promise.all([
     Promise.all(
       conversations.map((access) =>
-        messagesItem(ctx, self, access, describe, now),
+        messagesItem(ctx, self, access, lookups.describe, now),
       ),
     ),
-    reactionItems(ctx, self, describe, now),
+    reactionItems(ctx, self, lookups, now),
+    threads ? threadItems(ctx, self, lookups, now) : [],
   ]);
-  return [...messages, ...reactions]
+  return [...messages, ...reactions, ...replies]
     .filter((item): item is ActivityItem => item !== null)
     .sort((left, right) => right.at - left.at);
 }

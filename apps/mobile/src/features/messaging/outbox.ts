@@ -1,7 +1,7 @@
 import type {
   Attachment,
   LinkCard,
-  Message as PdsMessage,
+  Quote,
 } from "@decentralized-convex/messages";
 import { useSyncExternalStore } from "react";
 import * as Crypto from "expo-crypto";
@@ -37,6 +37,21 @@ export interface OutgoingMessage {
   readonly sentAt: number;
   /** "sent" once the PDS has it; it stays to keep showing local media. */
   readonly status: "failed" | "sending" | "sent";
+  /** A reply's thread, and where it shows (see `OutgoingReply`). */
+  readonly reply?: OutgoingReply;
+}
+
+/** Where a reply this device is sending goes. */
+export interface OutgoingReply {
+  /** The message it answers. */
+  readonly threadId: string;
+  /** What it quotes of that message, in its card in the conversation. */
+  readonly quote: Quote;
+  /**
+   * Whether it shows in the conversation too: the thread's first reply.
+   * It starts out as this device expects, and the PDS has the last word.
+   */
+  readonly inChat: boolean;
 }
 
 /** How many uploads run at once across every message. */
@@ -206,11 +221,21 @@ async function send(
         body: message.body,
         conversationId: message.conversationId,
         messageId,
+        threadId: message.reply?.threadId,
       }),
     )
     .then(
-      () => {
-        update(messageId, (current) => ({ ...current, status: "sent" }));
+      (sent) => {
+        update(messageId, (current) => ({
+          ...current,
+          // Someone else's reply got there first: this one stays in the
+          // thread.
+          reply:
+            current.reply === undefined
+              ? undefined
+              : { ...current.reply, inChat: sent.threadOnly !== true },
+          status: "sent",
+        }));
         return true;
       },
       () => false,
@@ -271,12 +296,15 @@ export function sendOutgoing({
   body,
   files,
   linkPreviews,
+  reply,
 }: {
   session: AccountSession;
   conversationId: string;
   body: string;
   files: readonly StagedFile[];
   linkPreviews: readonly LinkCard[];
+  /** Set for a reply in a thread. */
+  reply?: OutgoingReply;
 }) {
   const messageId = Crypto.randomUUID();
   sessions.set(messageId, session);
@@ -293,6 +321,7 @@ export function sendOutgoing({
       })),
       linkPreviews: linkPreviews.length > 0 ? [...linkPreviews] : undefined,
       messageId,
+      reply,
       sentAt: Date.now(),
       status: "sending",
     },
@@ -344,26 +373,4 @@ export function useOutbox(account: string, conversationId: string) {
     (message) =>
       message.account === account && message.conversationId === conversationId,
   );
-}
-
-/**
- * A sent message, with the link cards this device prefetched where the
- * PDS is still fetching (so a card shown when it was sent stays up).
- */
-export function withPrefetched(
-  message: PdsMessage,
-  sent: OutgoingMessage | undefined,
-) {
-  const prefetched = sent?.linkPreviews;
-  if (prefetched === undefined || message.linkPreviews === undefined) {
-    return message;
-  }
-  return {
-    ...message,
-    linkPreviews: message.linkPreviews.map((card) =>
-      card.preview === undefined
-        ? (prefetched.find(({ link }) => link === card.link) ?? card)
-        : card,
-    ),
-  };
 }

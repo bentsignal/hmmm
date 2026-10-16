@@ -32,6 +32,11 @@ export function reactionsKey(messageId: string) {
   return `reactions:${messageId}`;
 }
 
+/** The item for others' replies in a thread the caller is in. */
+export function threadKey(threadId: string) {
+  return `thread:${threadId}`;
+}
+
 /** Every time the account saw an item, oldest first. */
 export function sightingsOf(ctx: QueryCtx, accountId: string, key: string) {
   return ctx.db
@@ -47,7 +52,7 @@ export function sightingsOf(ctx: QueryCtx, accountId: string, key: string) {
  * without anything new changes nothing, so it still goes a day after it
  * was first seen.
  */
-async function recordSighting(
+export async function recordSighting(
   ctx: MutationCtx,
   self: string,
   sighting: { key: string; now: number; through: number },

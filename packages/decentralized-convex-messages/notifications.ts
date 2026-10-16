@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 
+import type { Doc } from "./_generated/dataModel.js";
+import type { QueryCtx } from "./_generated/server.js";
 import { internal } from "./_generated/api.js";
 import {
   internalAction,
@@ -19,6 +21,90 @@ import {
   wantsAlerts,
 } from "./pushParts.ts";
 import { messagePushKind, wantsPush } from "./settings.ts";
+import { threadMember, threadMembers } from "./threads.ts";
+
+/**
+ * What a push about a reply says it is: a reply to the recipient's own
+ * message, or one in a thread they're in. Null for a plain message push.
+ */
+type ReplyPush = "thread" | "yours" | null;
+
+/**
+ * Who hears about a message, and as what. A message in the conversation
+ * (a thread's first reply included) goes to its members; its original's
+ * author hears of a first reply as a reply to their message, unless they
+ * turned those off. A reply kept in its thread goes only to the people in
+ * the thread who haven't turned it off: its original's author as a reply
+ * to their message, everyone else as a thread reply.
+ */
+async function listeners(
+  ctx: QueryCtx,
+  message: Doc<"messages">,
+  conversation: Doc<"conversations">,
+  members: readonly string[],
+) {
+  if (message.threadOnly === true && message.threadId !== undefined) {
+    return threadListeners(ctx, message, conversation, message.threadId);
+  }
+  const heard: { accountId: string; reply: ReplyPush }[] = [];
+  for (const accountId of members) {
+    if (accountId === message.authorId) continue;
+    if (!(await wantsAlerts(ctx, conversation, accountId))) continue;
+    const reply = await chatPush(ctx, message, conversation, accountId);
+    if (reply !== undefined) heard.push({ accountId, reply });
+  }
+  return heard;
+}
+
+/**
+ * What a member hears of a message in the conversation: a reply to their
+ * message, the message, or (undefined) nothing.
+ */
+async function chatPush(
+  ctx: QueryCtx,
+  message: Doc<"messages">,
+  conversation: Doc<"conversations">,
+  accountId: string,
+): Promise<ReplyPush | undefined> {
+  const yours =
+    message.threadId !== undefined && message.quote?.authorId === accountId;
+  if (yours && message.threadId !== undefined) {
+    // The original's author turned the thread's bell off before anyone
+    // replied: they hear of the reply only as a message.
+    const member = await threadMember(ctx, message.threadId, accountId);
+    if (
+      member?.unfollowed !== true &&
+      (await wantsPush(ctx, accountId, "replies"))
+    ) {
+      return "yours";
+    }
+  }
+  const kind = messagePushKind(conversation.kind);
+  return (await wantsPush(ctx, accountId, kind)) ? null : undefined;
+}
+
+/** The people in a reply's thread who hear about it (see `listeners`). */
+async function threadListeners(
+  ctx: QueryCtx,
+  message: Doc<"messages">,
+  conversation: Doc<"conversations">,
+  threadId: string,
+) {
+  const heard: { accountId: string; reply: ReplyPush }[] = [];
+  for (const member of await threadMembers(ctx, threadId)) {
+    const { accountId } = member;
+    if (accountId === message.authorId || member.unfollowed === true) {
+      continue;
+    }
+    if (!(await wantsAlerts(ctx, conversation, accountId))) continue;
+    const yours = accountId === message.quote?.authorId;
+    const kind = yours ? "replies" : "threadReplies";
+    if (await wantsPush(ctx, accountId, kind)) {
+      heard.push({ accountId, reply: yours ? "yours" : "thread" });
+    }
+  }
+  return heard;
+}
 
 /** Who to notify about a message, and what to show them. */
 export const targets = internalQuery({
@@ -33,20 +119,30 @@ export const targets = internalQuery({
     if (conversation === null) return null;
 
     const members = await memberAddresses(ctx, conversation);
-    const recipients: { accountId: string; token: string }[] = [];
-    for (const accountId of members) {
-      if (accountId === message.authorId) continue;
-      if (!(await wantsAlerts(ctx, conversation, accountId))) continue;
-      if (
-        !(await wantsPush(ctx, accountId, messagePushKind(conversation.kind)))
-      ) {
-        continue;
-      }
+    const recipients: {
+      accountId: string;
+      reply: ReplyPush;
+      threads: boolean;
+      token: string;
+    }[] = [];
+    for (const { accountId, reply } of await listeners(
+      ctx,
+      message,
+      conversation,
+      members,
+    )) {
       const rows = await ctx.db
         .query("pushTokens")
         .withIndex("by_account", (index) => index.eq("accountId", accountId))
         .collect();
-      recipients.push(...rows.map(({ token }) => ({ accountId, token })));
+      recipients.push(
+        ...rows.map(({ threads, token }) => ({
+          accountId,
+          reply,
+          threads: threads === true,
+          token,
+        })),
+      );
     }
     return {
       body: previewText(message),
@@ -63,16 +159,27 @@ export const targets = internalQuery({
       recipients,
       senderId: message.authorId,
       senderName: message.authorName,
+      threadId: message.threadId ?? null,
+      threadOnly: message.threadOnly === true,
     };
   },
 });
+
+/** A reply push's body: what it is, then the reply. */
+function replyBody(reply: ReplyPush, body: string) {
+  if (reply === null) return body;
+  const what =
+    reply === "yours" ? "Replied to your message" : "Replied in a thread";
+  return body.length === 0 ? what : `${what}: ${body}`;
+}
 /**
  * The account's app icon badge (see `badgeCount`), read in its own query so
  * a push to a large space doesn't count every member in one transaction.
  */
 export const badge = internalQuery({
-  args: { accountId: v.string() },
-  handler: (ctx, { accountId }) => badgeCount(ctx, accountId),
+  args: { accountId: v.string(), threads: v.optional(v.boolean()) },
+  handler: (ctx, { accountId, threads }) =>
+    badgeCount(ctx, accountId, threads === true),
 });
 
 /** Who to tell about new space invitations, and the space's name. */
@@ -81,7 +188,11 @@ export const inviteTargets = internalQuery({
   handler: async (ctx, { accountIds, spaceId }) => {
     const space = await getSpace(ctx, spaceId);
     if (space === null) return null;
-    const recipients: { accountId: string; token: string }[] = [];
+    const recipients: {
+      accountId: string;
+      threads: boolean;
+      token: string;
+    }[] = [];
     for (const accountId of accountIds) {
       // Skip anyone who already answered before this ran.
       const invite = await ctx.db
@@ -96,7 +207,13 @@ export const inviteTargets = internalQuery({
         .query("pushTokens")
         .withIndex("by_account", (index) => index.eq("accountId", accountId))
         .collect();
-      recipients.push(...rows.map(({ token }) => ({ accountId, token })));
+      recipients.push(
+        ...rows.map(({ threads, token }) => ({
+          accountId,
+          threads: threads === true,
+          token,
+        })),
+      );
     }
     return { recipients, spaceName: space.name };
   },
@@ -133,11 +250,22 @@ export const send = internalAction({
 
     await deliver(
       ctx,
-      target.recipients.map(({ accountId, token }) => {
+      target.recipients.map(({ accountId, reply, threads, token }) => {
         const conversationName = conversationNameFor(accountId);
+        // A reply kept in its thread opens the thread. Its `messageId` is
+        // the original, where apps from before threads open the
+        // conversation, since the reply isn't in it.
+        const thread =
+          target.threadOnly && target.threadId !== null
+            ? {
+                messageId: target.threadId,
+                replyId: target.messageId,
+                threadId: target.threadId,
+              }
+            : {};
         return {
-          ...badgeField(badges.get(accountId)),
-          body: target.body,
+          ...badgeField(badges, { accountId, threads }),
+          body: replyBody(reply, target.body),
           // A device signed into several accounts opens the message as
           // the account it was sent to.
           data: {
@@ -149,6 +277,7 @@ export const send = internalAction({
             senderAvatarUrl: sender?.avatarUrl ?? null,
             senderId: target.senderId,
             senderName,
+            ...thread,
           },
           ...ANDROID_DELIVERY,
           // Lets the iOS Notification Service Extension rewrite it.
@@ -188,8 +317,8 @@ export const sendInvite = internalAction({
     const inviterName = inviter?.displayName ?? invitedBy.split("@")[0];
     await deliver(
       ctx,
-      target.recipients.map(({ accountId, token }) => ({
-        ...badgeField(badges.get(accountId)),
+      target.recipients.map(({ accountId, threads, token }) => ({
+        ...badgeField(badges, { accountId, threads }),
         body: `${inviterName} invited you to join ${target.spaceName}`,
         data: {
           accountId,

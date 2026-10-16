@@ -71,7 +71,8 @@ caller's space membership).
 
 ## Later
 
-- Mentions and replies as activity.
+- Mentions as activity. (Thread replies have Activity rows and their
+  own notification switches since 2026-10-16; see `.plans/threads.md`.)
 - Federation: like the inbox, activity lists only the home PDS's messages
   and reactions, and a reaction's push goes out only when the message is on
   the reactor's PDS.

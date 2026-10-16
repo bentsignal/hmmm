@@ -1,6 +1,7 @@
 import { Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 
+import type { ReplyCard } from "./reply-card";
 import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
 import { cn } from "~/lib/cn";
@@ -13,24 +14,62 @@ import { MenuTargetView } from "./message-actions";
 import { InteractiveMessage } from "./message-reactions";
 import { NotSent, SendingFade, SENT_FADE_MS } from "./message-status";
 import { linkCardsOf, visibleBody } from "./message-text";
+import { QuoteLine, ThreadFooter } from "./reply-card";
 
 const AVATAR_COLUMN = 36;
 
-/** Slack/Discord-style: everyone left-aligned with a photo and name. */
+/**
+ * Slack/Discord-style: everyone left-aligned with a photo and name. A
+ * thread's first reply has a line quoting the message it answers above it
+ * (see `ReplyCard`).
+ */
 export function MessageStacked({
   message,
   author,
   startsGroup,
+  card,
 }: {
   message: Message;
   author: { avatarUrl: string | null; displayName: string };
   startsGroup: boolean;
+  /** Set for a thread's first reply in the conversation. */
+  card?: ReplyCard;
+}) {
+  return (
+    <View>
+      {card !== undefined && (
+        <QuoteLine message={message} card={card} avatarColumn={AVATAR_COLUMN} />
+      )}
+      <StackedRow
+        message={message}
+        author={author}
+        startsGroup={startsGroup}
+        card={card}
+      />
+    </View>
+  );
+}
+
+function StackedRow({
+  message,
+  author,
+  startsGroup,
+  card,
+}: {
+  message: Message;
+  author: { avatarUrl: string | null; displayName: string };
+  startsGroup: boolean;
+  /** A reply card's, under its quote, which leaves the space above it. */
+  card?: ReplyCard;
 }) {
   const body = visibleBody(message);
   const cards = linkCardsOf(message);
   return (
     <View
-      className={cn("flex-row gap-3 px-4", startsGroup ? "pt-5" : "pt-1.5")}
+      className={cn(
+        "flex-row gap-3 px-4",
+        card !== undefined || !startsGroup ? "pt-1.5" : "pt-5",
+      )}
     >
       <View style={{ width: AVATAR_COLUMN }}>
         {startsGroup && (
@@ -84,6 +123,8 @@ export function MessageStacked({
               {cards.length > 0 && <LinkCards cards={cards} />}
             </View>
           </SendingFade>
+          {/* Reactions go under the thread's count. */}
+          {card !== undefined && <ThreadFooter message={message} card={card} />}
         </InteractiveMessage>
         <NotSent message={message} />
       </View>

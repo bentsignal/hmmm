@@ -16,7 +16,7 @@ import { SymbolIcon } from "~/components/symbol-icon";
 import { AffiliatedBadge } from "~/features/profile/affiliated-badge";
 
 /** Matches the native glass bar buttons. */
-const BUTTON = 44;
+export const BUTTON = 44;
 const AVATAR = 52;
 /** How far the name capsule tucks up under the photo, as in Messages. */
 const CAPSULE_OVERLAP = 6;
@@ -39,10 +39,15 @@ const EDGE = 14;
  * effect: messages reach up behind the photo and name, and just the clock
  * and battery stay clear of them.
  */
-function TopEdge() {
+export function TopEdge({
+  height: barHeight = CONVERSATION_HEADER_HEIGHT,
+}: {
+  /** Android's bar: the header's height below the status bar. */
+  height?: number;
+}) {
   const insets = useSafeAreaInsets();
   const color = useCSSVariable("--color-background");
-  if (Platform.OS === "android") return <AndroidBar />;
+  if (Platform.OS === "android") return <AndroidBar height={barHeight} />;
   if (typeof color !== "string" || !/^#[0-9a-f]{6}$/i.test(color)) {
     return null;
   }
@@ -64,7 +69,7 @@ function TopEdge() {
  * Android has no glass to read messages through, so the header sits on a
  * solid bar with a hairline, like a Material top app bar.
  */
-function AndroidBar() {
+function AndroidBar({ height }: { height: number }) {
   const insets = useSafeAreaInsets();
   return (
     <View
@@ -72,20 +77,23 @@ function AndroidBar() {
       className="bg-background border-separator absolute top-0 right-0 left-0"
       style={{
         borderBottomWidth: StyleSheet.hairlineWidth,
-        height: insets.top + CONVERSATION_HEADER_HEIGHT + 6,
+        height: insets.top + height + 6,
       }}
     />
   );
 }
 
-function GlassCircleButton({
+export function GlassCircleButton({
   icon,
   label,
   onPress,
+  materialize = false,
 }: {
   icon: SymbolViewProps["name"];
   label: string;
   onPress: () => void;
+  /** It appears after the screen opens: the glass materializes. */
+  materialize?: boolean;
 }) {
   return (
     <Pressable
@@ -96,6 +104,7 @@ function GlassCircleButton({
     >
       <GlassSurface
         isInteractive
+        materialize={materialize}
         className="items-center justify-center rounded-full"
         style={{ height: BUTTON, width: BUTTON }}
       >

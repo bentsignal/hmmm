@@ -1,156 +1,27 @@
-import type { LinkCard } from "@decentralized-convex/messages";
 import { useRef, useState } from "react";
-import { Alert, Text, View } from "react-native";
-import {
-  KeyboardGestureArea,
-  KeyboardStickyView,
-} from "react-native-keyboard-controller";
+import { Text, View } from "react-native";
+import { KeyboardGestureArea } from "react-native-keyboard-controller";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 
+import type { ComposerHandle } from "~/features/conversation/composer";
 import type { MessageListHandle } from "~/features/conversation/message-list";
-import type {
-  AttachmentSource,
-  StagedFile,
-} from "~/features/messaging/attachments";
 import type { MessageLayout } from "~/features/preferences/store";
-import type { PastedImage } from "~/lib/paste-images";
-import {
-  Composer,
-  useComposerBottomInset,
-} from "~/features/conversation/composer";
+import { useComposerBottomInset } from "~/features/conversation/composer";
 import {
   CONVERSATION_HEADER_HEIGHT,
   ConversationHeader,
 } from "~/features/conversation/conversation-header";
-import {
-  discardStaged,
-  draftKey,
-  keepForDraft,
-  readDraft,
-  saveDraftFiles,
-} from "~/features/conversation/drafts";
+import { FloatingComposer } from "~/features/conversation/floating-composer";
 import { MessageList } from "~/features/conversation/message-list";
+import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
+import { useReplies } from "~/features/conversation/use-replies";
 import { useDevConversation } from "~/features/dev/dev-conversation";
 import { useDevTools } from "~/features/dev/dev-tools";
 import { AccountScope, useAccount } from "~/features/messaging/account";
-import {
-  MAX_ATTACHMENTS,
-  pickAttachments,
-  stagePasted,
-} from "~/features/messaging/attachments";
-import {
-  useConversation,
-  useMarkRead,
-  useMessages,
-} from "~/features/messaging/conversations";
-import { useLinkPrefetch } from "~/features/messaging/link-previews";
+import { useConversation } from "~/features/messaging/conversations";
+import { useMarkRead, useMessages } from "~/features/messaging/messages";
 import { useActiveConversation } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
-
-/**
- * The composer floating over the bottom of the conversation, holding what's
- * picked for the next message until it's sent, in its draft on this device. Reports its height so
- * messages can scroll under it.
- */
-function FloatingComposer({
-  conversationId,
-  onHeight,
-  onSend,
-}: {
-  conversationId: string;
-  onHeight: (height: number) => void;
-  onSend: (
-    body: string,
-    files: readonly StagedFile[],
-    linkPreviews: readonly LinkCard[],
-  ) => void;
-}) {
-  const bottomInset = useComposerBottomInset();
-  const { address } = useAccount();
-  const key = draftKey(address, conversationId);
-  const links = useLinkPrefetch();
-  const devTools = useDevTools();
-  const [staged, setStaged] = useState(() => readDraft(key).files);
-  // One picker at a time: a second tap on the menu while one is still
-  // handing over files does nothing.
-  const picking = useRef(false);
-
-  function full() {
-    if (staged.length < MAX_ATTACHMENTS) return false;
-    Alert.alert(
-      "Too Many Attachments",
-      `You can send up to ${MAX_ATTACHMENTS} at a time.`,
-    );
-    return true;
-  }
-
-  /**
-   * Changes the staged files and saves them in the draft. Starts from the
-   * draft's, which are current even after awaiting a picker.
-   */
-  function restage(
-    change: (current: readonly StagedFile[]) => readonly StagedFile[],
-  ) {
-    const next = change(readDraft(key).files);
-    saveDraftFiles(key, next);
-    setStaged(next);
-  }
-
-  function add(files: readonly StagedFile[]) {
-    restage((current) =>
-      [...current, ...keepForDraft(files)].slice(0, MAX_ATTACHMENTS),
-    );
-  }
-
-  async function pick(source: AttachmentSource) {
-    if (picking.current || full()) return;
-    // Nothing shows in the composer until the files are ready; then they
-    // animate in.
-    picking.current = true;
-    const files = await pickAttachments(source, {
-      limit: MAX_ATTACHMENTS - staged.length,
-    }).finally(() => {
-      picking.current = false;
-    });
-    add(files);
-  }
-
-  function paste(images: readonly PastedImage[]) {
-    if (full()) return;
-    add(stagePasted(images, MAX_ATTACHMENTS - staged.length));
-  }
-
-  return (
-    <KeyboardStickyView
-      // With the keyboard up, the inset below the bar goes behind it.
-      offset={{ closed: 0, opened: bottomInset }}
-      // Floats over the messages, which scroll all the way to the bottom.
-      style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
-      onLayout={(event) => onHeight(event.nativeEvent.layout.height)}
-    >
-      <Composer
-        draftKey={key}
-        bottomInset={bottomInset}
-        staged={staged}
-        onChangeText={links.onChangeText}
-        onPick={(source) => void pick(source)}
-        onPaste={paste}
-        onRemoveStaged={(id) => {
-          const removed = staged.find((file) => file.id === id);
-          if (removed !== undefined) discardStaged(removed);
-          restage((current) => current.filter((file) => file.id !== id));
-        }}
-        onSend={(body) => {
-          onSend(body, staged, links.cardsFor(body));
-          // The outbox uploads the files from where they are; the drafts
-          // folder clears them out next launch.
-          restage(() => []);
-          devTools.replyToMe(conversationId);
-        }}
-      />
-    </KeyboardStickyView>
-  );
-}
 
 /** The other person in a direct conversation, whose photo heads it. */
 function otherMember(
@@ -178,6 +49,18 @@ function headingFor(title: string, initialTitle: string | undefined) {
   return title === "" ? (initialTitle ?? "") : title;
 }
 
+function MissingConversation({ heading }: { heading: string }) {
+  return (
+    <View className="bg-background flex-1 items-center justify-center">
+      <Stack.Title>{heading}</Stack.Title>
+      <Text className="text-body text-muted">
+        This conversation doesn't exist.
+      </Text>
+      <ConversationHeader title={heading} avatarUrl={null} />
+    </View>
+  );
+}
+
 function Conversation({
   conversationId,
   anchorId,
@@ -190,10 +73,13 @@ function Conversation({
   const router = useRouter();
   const composerBottomInset = useComposerBottomInset();
   const { address } = useAccount();
+  const devTools = useDevTools();
+  const viewReactions = useReactionsSheet(conversationId);
   const { conversation, isLoading, profileOf, profilesLoaded, title } =
     useConversation(conversationId);
   const layout = useMessageLayout(conversation?.kind);
-  const messages = useMessages(conversationId, anchorId);
+  const messages = useMessages(conversationId, { anchor: anchorId });
+  const composer = useRef<ComposerHandle>(null);
   // Undefined until the composer is laid out: the list leaves room for it
   // under the newest message, so it waits rather than shift once it knows.
   const [composerHeight, setComposerHeight] = useState<number>();
@@ -204,16 +90,15 @@ function Conversation({
 
   const heading = headingFor(title, initialTitle);
   const other = otherMember(conversation, address);
+  const replies = useReplies({
+    composer,
+    conversationId,
+    profileOf,
+    threadOf: messages.threadOf,
+    title: heading,
+  });
   if (!isLoading && conversation === undefined) {
-    return (
-      <View className="bg-background flex-1 items-center justify-center">
-        <Stack.Title>{heading}</Stack.Title>
-        <Text className="text-body text-muted">
-          This conversation doesn't exist.
-        </Text>
-        <ConversationHeader title={heading} avatarUrl={null} />
-      </View>
-    );
+    return <MissingConversation heading={heading} />;
   }
 
   return (
@@ -239,17 +124,9 @@ function Conversation({
               topInset={CONVERSATION_HEADER_HEIGHT}
               composerHeight={composerHeight}
               onToggleReaction={messages.toggleReaction}
-              onViewReactions={(messageId, emoji) =>
-                router.push({
-                  params: {
-                    account: address,
-                    conversationId,
-                    emoji,
-                    messageId,
-                  },
-                  pathname: "/reactions",
-                })
-              }
+              onOpenThread={replies.openThread}
+              onReply={replies.reply}
+              onViewReactions={viewReactions}
             />
           )}
       </KeyboardGestureArea>
@@ -266,11 +143,16 @@ function Conversation({
         }
       />
       <FloatingComposer
-        conversationId={conversationId}
+        ref={composer}
+        draftId={conversationId}
         onHeight={setComposerHeight}
+        replyingTo={replies.replyingTo}
+        onCancelReply={replies.cancel}
         onSend={(body, files, linkPreviews) => {
-          messages.sendMessage(body, files, linkPreviews);
+          messages.sendMessage(body, files, linkPreviews, replies.replyTo);
+          replies.cancel();
           list.current?.scrollToLatest();
+          devTools.replyToMe(conversationId);
         }}
       />
     </View>

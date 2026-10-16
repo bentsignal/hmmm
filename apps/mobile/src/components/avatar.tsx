@@ -12,6 +12,7 @@ const StyledImage = withUniwind(Image);
 const MONOGRAM_GRADIENT = "linear-gradient(180deg, #a6abb8, #858994)";
 
 const SIZES = {
+  xs: { box: "size-[18px]", text: "text-[8px]", glyph: 9 },
   sm: { box: "size-7", text: "text-caption", glyph: 13 },
   row: { box: "size-9", text: "text-footnote", glyph: 16 },
   list: { box: "size-[46px]", text: "text-[19px]", glyph: 20 },
