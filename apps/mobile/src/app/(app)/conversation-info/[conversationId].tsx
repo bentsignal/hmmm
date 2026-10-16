@@ -66,11 +66,13 @@ function Details({
   card: CardProps;
   recent: RecentThreads;
 }) {
+  const router = useRouter();
+  const { address: account } = useAccount();
   const { conversationId, kind, members } = conversation;
   return (
     <Animated.View entering={FadeIn.duration(220)} style={{ flex: 1 }}>
       <NativeHost style={{ flex: 1 }}>
-        <FieldList>
+        <FieldList clearsNavigationBar>
           <ProfileCard {...card} />
           <InboxSection conversation={conversation} />
           <ThreadsSection
@@ -79,7 +81,22 @@ function Details({
             threads={recent.threads}
             profileOf={recent.profileOf}
           />
-          {kind !== "direct" && <MembersSection members={members} />}
+          {kind !== "direct" && (
+            <MembersSection
+              members={members}
+              // Anyone in a group can add people; a channel's members are
+              // its space's.
+              onAdd={
+                kind === "group"
+                  ? () =>
+                      router.push({
+                        params: { account, conversationId },
+                        pathname: "/add-people",
+                      })
+                  : undefined
+              }
+            />
+          )}
           {kind === "group" && (
             <LeaveSection conversationId={conversationId} name={card.name} />
           )}

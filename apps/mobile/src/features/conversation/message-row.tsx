@@ -16,6 +16,7 @@ import { Arrive } from "./arrive";
 import { rowOrder } from "./build-rows";
 import { DaySeparator, TimeHeader } from "./day-separator";
 import { useRowLift } from "./grow";
+import { MemberNotice } from "./member-notice";
 import { MessageBubble } from "./message-bubble";
 import { MessageStacked } from "./message-stacked";
 import { RepliesDivider } from "./replies-divider";
@@ -96,6 +97,7 @@ export function Row({
 /** Where a row sits in the list (see `rowOrder`). */
 function orderOf(row: MessageRow) {
   if (row.type === "message") return rowOrder(row.message.sentAt);
+  if (row.type === "notice") return rowOrder(row.notice.at);
   // A thread's divider sits just after its original.
   if (row.type === "replies") return rowOrder(row.date) + 0.25;
   return rowOrder(row.date, true);
@@ -167,6 +169,15 @@ function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
   }
   if (row.type === "replies") {
     return <RepliesDivider count={row.count} />;
+  }
+  if (row.type === "notice") {
+    return (
+      <MemberNotice
+        notice={row.notice}
+        stacked={stacked}
+        followsNotice={row.followsNotice}
+      />
+    );
   }
   const { message } = row;
   const card = replyCard(message, profileOf);

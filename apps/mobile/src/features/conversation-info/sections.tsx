@@ -10,6 +10,7 @@ import { Avatar } from "~/components/avatar";
 import { ListItem } from "~/components/list-item";
 import { OptimisticChoice } from "~/components/optimistic-choice";
 import { OptimisticSwitch } from "~/components/optimistic-switch";
+import { SectionHeaderWithAdd } from "~/components/section-header";
 import { useAccount } from "~/features/messaging/account";
 import { ALERT_CHOICES, conversationAlerts } from "~/features/messaging/alerts";
 import { showSetAlerts } from "~/features/messaging/channel-settings";
@@ -18,13 +19,28 @@ import { useOpenProfile } from "~/features/profile/use-open-profile";
 import { secondaryTextStyle } from "~/lib/colors";
 import { destructive } from "~/lib/ui-modifiers";
 
-/** Everyone in a group or channel; tapping someone opens their profile. */
-export function MembersSection({ members }: { members: readonly string[] }) {
+/**
+ * Everyone in a group or channel; tapping someone opens their profile.
+ * With `onAdd`, the heading has a button to add people.
+ */
+export function MembersSection({
+  members,
+  onAdd,
+}: {
+  members: readonly string[];
+  onAdd?: () => void;
+}) {
   const { address: self } = useAccount();
   const profileOf = useProfiles(members);
   const openProfile = useOpenProfile();
+  const title = `${members.length} Members`;
   return (
-    <FieldGroup.Section title={`${members.length} Members`}>
+    <FieldGroup.Section title={onAdd === undefined ? title : undefined}>
+      {onAdd !== undefined && (
+        <FieldGroup.SectionHeader>
+          <SectionHeaderWithAdd title={title} onAdd={onAdd} />
+        </FieldGroup.SectionHeader>
+      )}
       {members.map((member) => {
         const profile = profileOf(member);
         return (

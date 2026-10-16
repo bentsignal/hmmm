@@ -15,6 +15,7 @@ const INDEXES: Record<string, Record<string, string[]>> = {
     by_conversation: ["conversationId"],
     by_space: ["spaceId"],
   },
+  memberEvents: { by_conversation_at: ["conversationId", "at"] },
   members: {
     by_account: ["accountId"],
     by_conversation_account: ["conversationId", "accountId"],

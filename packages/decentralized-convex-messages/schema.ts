@@ -46,6 +46,15 @@ export default defineSchema({
   })
     .index("by_account", ["accountId"])
     .index("by_conversation_account", ["conversationId", "accountId"]),
+  // People joining (added by `by`) and leaving groups, shown between
+  // their messages.
+  memberEvents: defineTable({
+    accountId: v.string(),
+    at: v.number(),
+    by: v.optional(v.string()),
+    conversationId: v.string(),
+    kind: v.union(v.literal("joined"), v.literal("left")),
+  }).index("by_conversation_at", ["conversationId", "at"]),
   messages: defineTable({
     attachments: v.array(attachment),
     authorId: v.string(),

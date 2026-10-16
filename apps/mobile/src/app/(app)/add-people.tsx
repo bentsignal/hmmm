@@ -10,15 +10,42 @@ import { sheetIcons } from "~/features/compose/sheet";
 import { SheetKeyboardLock } from "~/features/compose/sheet-keyboard";
 import { usePeopleSearch } from "~/features/compose/use-people-search";
 import { AccountScope } from "~/features/messaging/account";
+import {
+  useConversation,
+  useConversationActions,
+} from "~/features/messaging/conversations";
 import { useSpace, useSpaceActions } from "~/features/messaging/spaces";
 import { dismissKeyboardOnScroll } from "~/lib/ui-modifiers";
 
-function AddPeople({ spaceId }: { spaceId: string }) {
+/** The most people a group holds, as the PDS allows. */
+const MAX_GROUP_MEMBERS = 50;
+
+/** People picked here, toggled on and off. */
+function usePicked(limit = Infinity) {
+  const [members, setMembers] = useState<string[]>([]);
+  function toggle(address: string) {
+    if (members.includes(address)) {
+      setMembers(members.filter((member) => member !== address));
+      return;
+    }
+    if (members.length >= limit) {
+      Alert.alert(
+        "This Group Is Full",
+        `Groups can have up to ${MAX_GROUP_MEMBERS} people.`,
+      );
+      return;
+    }
+    setMembers([...members, address]);
+  }
+  return [members, toggle] as const;
+}
+
+function InviteToSpace({ spaceId }: { spaceId: string }) {
   const router = useRouter();
   const dragDismiss = useDismissKeyboardOnDrag();
   const { invite } = useSpaceActions();
   const { space } = useSpace(spaceId);
-  const [members, setMembers] = useState<string[]>([]);
+  const [members, toggle] = usePicked();
   const search = usePeopleSearch({
     exclude: [
       ...(space?.members ?? []).map((member) => member.accountId),
@@ -26,14 +53,6 @@ function AddPeople({ spaceId }: { spaceId: string }) {
     ],
     selected: members,
   });
-
-  function toggle(address: string) {
-    if (members.includes(address)) {
-      setMembers(members.filter((member) => member !== address));
-      return;
-    }
-    setMembers([...members, address]);
-  }
 
   /** Invites them, shown as invited right away. */
   function send() {
@@ -71,14 +90,68 @@ function AddPeople({ spaceId }: { spaceId: string }) {
   );
 }
 
+/** Anyone in a group adds people straight in, no invitation needed. */
+function AddToGroup({ conversationId }: { conversationId: string }) {
+  const router = useRouter();
+  const dragDismiss = useDismissKeyboardOnDrag();
+  const { addGroupMembers } = useConversationActions();
+  const { conversation } = useConversation(conversationId);
+  const current = conversation?.members ?? [];
+  const [members, toggle] = usePicked(MAX_GROUP_MEMBERS - current.length);
+  const search = usePeopleSearch({ exclude: current, selected: members });
+
+  /** Adds them, shown as members right away. */
+  function add() {
+    void addGroupMembers
+      .mutateAsync({ conversationId, members })
+      .catch(() =>
+        Alert.alert("Couldn't Add People", "Try again in a moment."),
+      );
+    router.dismiss();
+  }
+
+  return (
+    <>
+      <SheetKeyboardLock />
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          icon={sheetIcons.done}
+          accessibilityLabel="Add People"
+          variant="prominent"
+          disabled={members.length === 0}
+          onPress={add}
+        />
+      </Stack.Toolbar>
+      <NativeHost style={{ flex: 1 }} {...dragDismiss}>
+        <FieldList modifiers={dismissKeyboardOnScroll}>
+          <PeoplePicker
+            search={search}
+            selected={members}
+            footer="They'll see the group's earlier messages too."
+            onPress={toggle}
+          />
+        </FieldList>
+      </NativeHost>
+    </>
+  );
+}
+
+/** Invites people to a space, or adds them to a group. */
 export default function AddPeopleScreen() {
-  const { account, spaceId } = useLocalSearchParams<{
+  const { account, conversationId, spaceId } = useLocalSearchParams<{
     account?: string;
-    spaceId: string;
+    /** A group to add people to. */
+    conversationId?: string;
+    /** A space to invite people to. */
+    spaceId?: string;
   }>();
   return (
     <AccountScope address={account}>
-      <AddPeople spaceId={spaceId} />
+      {conversationId === undefined ? (
+        <InviteToSpace spaceId={spaceId ?? ""} />
+      ) : (
+        <AddToGroup conversationId={conversationId} />
+      )}
     </AccountScope>
   );
 }

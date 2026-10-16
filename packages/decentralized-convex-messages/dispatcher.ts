@@ -122,6 +122,8 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
         );
         return routedQueryResult(page, routes);
       },
+      memberEvents: (ctx, { args, identity }) =>
+        conversations.memberEvents(ctx, requireAccountId(identity), args),
       notificationSettings: (ctx, { identity }) =>
         settings.notificationSettings(ctx, requireAccountId(identity)),
       linkPreviews: (ctx, { args, identity }) => {

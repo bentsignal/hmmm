@@ -384,6 +384,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 };
                 type: "list";
               }
+            | { args: { conversationId: string }; type: "memberEvents" }
             | {
                 args: { conversationId: string; messageIds: Array<string> };
                 type: "reactions";
@@ -1087,6 +1088,17 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 threadOnly?: boolean;
               }>;
             };
+          }
+        | {
+            routes?: Array<string>;
+            type: "memberEvents";
+            value: Array<{
+              accountId: string;
+              at: number;
+              by?: string;
+              eventId: string;
+              kind: "joined" | "left";
+            }>;
           }
         | {
             routes?: Array<string>;

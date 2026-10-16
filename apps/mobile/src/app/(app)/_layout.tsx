@@ -18,6 +18,17 @@ export const unstable_settings = { anchor: "(tabs)" };
  * half-height sheet; Android's sheet has no header, so the button would be
  * missing, and there it's a full modal with a header instead.
  */
+/** A group adds people straight in; a space invites them. */
+function addPeopleOptions({ route }: { route: { params?: object } }) {
+  return {
+    ...TOOLBAR_SHEET,
+    title:
+      route.params !== undefined && "conversationId" in route.params
+        ? "Add People"
+        : "Invite People",
+  };
+}
+
 const TOOLBAR_SHEET =
   Platform.OS === "ios"
     ? {
@@ -135,7 +146,7 @@ function AppStack() {
       />
       <Stack.Screen
         name="add-people"
-        options={{ ...TOOLBAR_SHEET, title: "Invite People" }}
+        options={addPeopleOptions}
         listeners={dismissKeyboardOnSheetSwipe}
       />
       <Stack.Screen

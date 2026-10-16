@@ -17,7 +17,7 @@ import { scheduleOnRN } from "react-native-worklets";
 import type { MessageRow, ThreadHead } from "./build-rows";
 import type { Latest } from "./list-position";
 import type { ProfileOf } from "./message-row";
-import type { Message } from "./types";
+import type { MemberNotice, Message } from "./types";
 import type { MessageLayout } from "~/features/preferences/store";
 import { GlassSurface } from "~/components/glass-surface";
 import { SymbolIcon } from "~/components/symbol-icon";
@@ -115,6 +115,8 @@ export interface MessageListHandle {
 interface RowsProps {
   listRef: RefObject<FlatList<MessageRow> | null>;
   messages: readonly Message[];
+  /** A group's joins and leaves, shown between its messages. */
+  notices?: readonly MemberNotice[];
   /** Set in a thread, whose original heads the list. */
   thread?: ThreadHead;
   self: string;
@@ -158,6 +160,7 @@ const FADE_MS = 220;
 function Rows({
   listRef,
   messages,
+  notices,
   thread,
   self,
   layout,
@@ -175,7 +178,7 @@ function Rows({
   shown,
 }: RowsProps) {
   const safeArea = useSafeAreaInsets();
-  const rows = newestFirst(messages, layout, thread);
+  const rows = newestFirst(messages, layout, thread, notices);
   const blank = useBlankSpace(thread !== undefined);
   // Only messages that arrive while open animate in, not loaded pages.
   const [openedAt] = useState(Date.now);

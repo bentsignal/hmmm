@@ -37,6 +37,7 @@ import type * as previews from "../previews.js";
 import type * as protocol from "../protocol.js";
 import type * as pushParts from "../pushParts.js";
 import type * as pushTokens from "../pushTokens.js";
+import type * as queries from "../queries.js";
 import type * as reactionPush from "../reactionPush.js";
 import type * as reactions from "../reactions.js";
 import type * as sending from "../sending.js";
@@ -86,6 +87,7 @@ const fullApi: ApiFromModules<{
   protocol: typeof protocol;
   pushParts: typeof pushParts;
   pushTokens: typeof pushTokens;
+  queries: typeof queries;
   reactionPush: typeof reactionPush;
   reactions: typeof reactions;
   sending: typeof sending;
