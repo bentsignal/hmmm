@@ -27,7 +27,7 @@ function Highlight({ children }: { children: ReactNode }) {
     () => true,
     (_, previous) => {
       if (previous === null)
-        tint.value = withDelay(800, withTiming(0, { duration: 1600 }));
+        tint.set(withDelay(800, withTiming(0, { duration: 1600 })));
     },
   );
   // The tint's opacity fades, not its color: a color string built from a

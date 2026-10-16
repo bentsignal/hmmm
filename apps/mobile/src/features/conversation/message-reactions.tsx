@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import type { View as NativeView } from "react-native";
-import { useRef, useState } from "react";
+import { createContext, use, useRef, useState } from "react";
 import { View } from "react-native";
 import { LayoutAnimationConfig } from "react-native-reanimated";
 
@@ -16,7 +16,7 @@ import {
   useOpenReactions,
 } from "./message-actions";
 import { ChipRow } from "./reaction-chips";
-import { TAPBACK_SPACE, Tapbacks } from "./tapbacks";
+import { NAME_CLEARANCE, TAPBACK_SPACE, Tapbacks } from "./tapbacks";
 
 /**
  * The message's reactions, keeping the last loaded ones on screen while
@@ -82,6 +82,47 @@ function Chips({
   );
 }
 
+/** Where a message's top part reports its width, so tapbacks sit on it. */
+const TopPartContext = createContext<((width: number) => void) | null>(null);
+
+/**
+ * Wraps a message's top part (its first photo, its text, or its first link
+ * card): tapbacks sit on that part's corner, not on the widest part's.
+ */
+export function TopPart({ children }: { children: ReactNode }) {
+  const report = use(TopPartContext);
+  if (report === null) return children;
+  return (
+    <View onLayout={(event) => report(event.nativeEvent.layout.width)}>
+      {children}
+    </View>
+  );
+}
+
+/**
+ * Where tapbacks go: on the top part's corner (`inset` in from the
+ * message's edge), and beside the sender's name unless they'd cover it.
+ */
+function useTapbackPlacement(nameEnd: number | undefined) {
+  // Where the tapbacks' left edge sits, once laid out.
+  const [left, setLeft] = useState<number>();
+  const [widths, setWidths] = useState({ body: 0, top: 0 });
+  return {
+    besideName: clearsName(nameEnd, left),
+    inset: Math.max(0, widths.body - widths.top),
+    onBodyWidth: (body: number) =>
+      setWidths((current) => ({ ...current, body })),
+    onTopWidth: (top: number) => setWidths((current) => ({ ...current, top })),
+    onPlaced: setLeft,
+  };
+}
+
+/** Whether tapbacks starting at `left` clear a name ending at `nameEnd`. */
+function clearsName(nameEnd: number | undefined, left: number | undefined) {
+  if (nameEnd === undefined || left === undefined) return true;
+  return nameEnd + NAME_CLEARANCE <= left;
+}
+
 /**
  * A message whose parts open the glass overlay on a long press, and its
  * reactions on a double tap (each wraps itself in `MenuTargetView` or uses
@@ -108,7 +149,10 @@ export function InteractiveMessage({
   reactionStyle: "chips" | "tapbacks";
   /** Space already above the message (the sender's name) tapbacks can use. */
   roomAbove?: number;
-  /** Where the name above ends, which tapbacks keep clear of. */
+  /**
+   * Where the name above ends: tapbacks that would cover it get space of
+   * their own instead, between the name and the bubble, as in Messages.
+   */
   tapbacksClearOf?: number;
   children: ReactNode;
 }) {
@@ -125,6 +169,7 @@ export function InteractiveMessage({
     shape,
   });
   const has = reactions.length > 0;
+  const placement = useTapbackPlacement(tapbacksClearOf);
   return (
     // Reactions already there when the row mounts don't pop in on scroll;
     // only one added while the conversation is open does.
@@ -137,19 +182,35 @@ export function InteractiveMessage({
         )}
       >
         {reactionStyle === "tapbacks" && (
-          <TapbackSpace open={has} animate={grows} roomAbove={roomAbove} />
+          <TapbackSpace
+            open={has}
+            animate={grows}
+            roomAbove={placement.besideName ? roomAbove : 0}
+          />
         )}
-        <View ref={body}>
-          <MessageTargetProvider message={message} align={align} shape={shape}>
-            {children}
-          </MessageTargetProvider>
+        <View
+          ref={body}
+          onLayout={(event) =>
+            placement.onBodyWidth(event.nativeEvent.layout.width)
+          }
+        >
+          <TopPartContext value={placement.onTopWidth}>
+            <MessageTargetProvider
+              message={message}
+              align={align}
+              shape={shape}
+            >
+              {children}
+            </MessageTargetProvider>
+          </TopPartContext>
           {/* After the bubble, so they draw over it on every platform. */}
           {reactionStyle === "tapbacks" && has && (
             <Tapbacks
               reactions={reactions}
               align={align}
               hidden={lifted}
-              clearOf={tapbacksClearOf}
+              inset={placement.inset}
+              onPlaced={placement.onPlaced}
               onPress={openReactions}
             />
           )}

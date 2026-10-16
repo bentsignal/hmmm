@@ -208,7 +208,11 @@ export function GlassMessageMenu({
   onViewReactions: (emoji?: string) => void;
   /** The overlay starts playing back into place. */
   onClosing?: () => void;
-  onClosed: () => void;
+  /**
+   * The overlay is gone. `backToChat` unless it opened something else (a
+   * sheet, a link, sharing), so the keyboard can come back if it was up.
+   */
+  onClosed: (backToChat: boolean) => void;
 }) {
   const screen = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -231,14 +235,18 @@ export function GlassMessageMenu({
   useAnimatedReaction(
     () => true,
     (_, previous) => {
-      if (previous === null) progress.value = withSpring(1, OPEN_SPRING);
+      if (previous === null) progress.set(withSpring(1, OPEN_SPRING));
     },
   );
 
-  /** Plays the overlay back into place, then runs `then` (if any). */
-  function close(then?: () => void) {
+  /**
+   * Plays the overlay back into place, then runs `then`. Back to the chat
+   * unless `then` opens something else; reacting stays in the chat.
+   */
+  function close(then?: () => void, toChat?: boolean) {
+    const backToChat = toChat ?? then === undefined;
     function closed() {
-      onClosed();
+      onClosed(backToChat);
       then?.();
     }
     onClosing?.();
@@ -273,7 +281,7 @@ export function GlassMessageMenu({
           // Once the message is back in place, so its reaction animates in
           // where you can see it, and the lifted copy never covers the
           // message while the row makes room for the reaction.
-          close(() => onReact(emoji));
+          close(() => onReact(emoji), true);
         }}
       />
       {showReactors && reactions.length > 0 && (

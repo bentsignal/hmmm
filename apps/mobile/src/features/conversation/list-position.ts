@@ -28,6 +28,8 @@ interface LatestState {
   pinned: boolean;
   /** You're dragging the list, or it's still moving from a fling. */
   scrolling: boolean;
+  /** The newest row and the composer's height when content last changed. */
+  seen?: { newest: string | undefined; composer: number };
 }
 
 /**
@@ -95,21 +97,29 @@ export function useLatest(
       else if (state.current.scrolling) state.current.pinned = false;
     },
     /**
-     * The list's content changed: pinned, a message that landed below the
-     * screen slides up into view.
+     * The list's content changed. Pinned, a new message (`newest`) or a
+     * taller composer (`composer`) slides into view below what's there.
+     * Anything else (a row growing as a reaction makes room) leaves the
+     * scroll alone: the newest message stays put and the rows above move
+     * up, and following it would restart the scroll every frame.
      */
-    onContentChange: () => {
-      if (state.current.pinned) scrollToNewest();
+    onContentChange: (newest: string | undefined, composer: number) => {
+      const seen = state.current.seen;
+      state.current.seen = { composer, newest };
+      if (seen === undefined) return;
+      const grew = newest !== seen.newest || composer !== seen.composer;
+      if (grew && state.current.pinned) scrollToNewest();
     },
   };
 }
 
 /**
- * The scroll anchor: the first row on screen stays where it is when rows
- * are added or grow below it. Index 0 is the list's header (the space
- * under the newest message for the composer), so the anchor starts at 1.
+ * The scroll anchor: the first row on screen, from the newest message up,
+ * stays where it is when rows are added or grow below it. (The list skips
+ * its header, the space under the newest message for the composer, on its
+ * own, so index 0 is the newest message.)
  */
-export const ANCHOR = { minIndexForVisible: 1 };
+export const ANCHOR = { minIndexForVisible: 0 };
 
 export type Latest = ReturnType<typeof useLatest>;
 

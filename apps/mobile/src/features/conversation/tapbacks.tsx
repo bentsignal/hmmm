@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Pressable, View } from "react-native";
 import Animated, {
   Keyframe,
@@ -30,7 +29,7 @@ const OVERLAP = Math.round(SIZE * 0.25);
 const CENTER_INSET = Math.round(SIZE * 0.1);
 
 /** The space kept between the sender's name and tapbacks beside it. */
-const NAME_CLEARANCE = 6;
+export const NAME_CLEARANCE = 6;
 
 /** The room tapbacks need above a bubble. */
 export const TAPBACK_SPACE = SIZE - OVERLAP;
@@ -99,7 +98,8 @@ export function Tapbacks({
   reactions,
   align,
   hidden,
-  clearOf,
+  inset = 0,
+  onPlaced,
   onPress,
 }: {
   reactions: readonly ReactionSummary[];
@@ -107,21 +107,13 @@ export function Tapbacks({
   align: "end" | "start";
   /** While the message is lifted into its menu, which shows them itself. */
   hidden: boolean;
-  /**
-   * Where the sender's name above the bubble ends, from the bubble's left:
-   * tapbacks rising beside it move past it rather than cover it.
-   */
-  clearOf?: number;
+  /** How far in from the message's edge its top part's corner is. */
+  inset?: number;
+  /** Where their left edge sits, from the bubble's left. */
+  onPlaced?: (left: number) => void;
   onPress: () => void;
 }) {
   const { address } = useAccount();
-  // Where they'd sit, unmoved, from the bubble's left.
-  const [left, setLeft] = useState<number>();
-  // How far right to move to clear the name.
-  const shift =
-    clearOf === undefined || left === undefined
-      ? 0
-      : Math.max(0, clearOf + NAME_CLEARANCE - left);
   const shown = tapbacksOf(reactions, address).slice(-MAX_SHOWN);
   const incoming = align === "start";
   const label = reactions
@@ -131,14 +123,11 @@ export function Tapbacks({
   return (
     <Animated.View
       className="absolute"
-      // Measured where they'd sit, unmoved: the shift is a transform.
-      onLayout={(event) => setLeft(event.nativeEvent.layout.x)}
+      onLayout={(event) => onPlaced?.(event.nativeEvent.layout.x)}
       style={[
-        {
-          top: -TAPBACK_SPACE,
-          transform: [{ translateX: shift }],
-          [incoming ? "right" : "left"]: CENTER_INSET - SIZE / 2,
-        },
+        incoming
+          ? { right: CENTER_INSET - SIZE / 2 + inset, top: -TAPBACK_SPACE }
+          : { left: CENTER_INSET - SIZE / 2 + inset, top: -TAPBACK_SPACE },
         fade,
       ]}
     >
@@ -154,10 +143,11 @@ export function Tapbacks({
         {shown.map((tapback, index) => (
           <View
             key={tapback.key}
-            style={{
-              [incoming ? "marginLeft" : "marginRight"]:
-                index === 0 ? 0 : STACK_OFFSET - SIZE,
-            }}
+            style={
+              incoming
+                ? { marginLeft: index === 0 ? 0 : STACK_OFFSET - SIZE }
+                : { marginRight: index === 0 ? 0 : STACK_OFFSET - SIZE }
+            }
           >
             <TapbackBubble tapback={tapback} />
           </View>
@@ -180,7 +170,7 @@ function useHiddenFade(hidden: boolean) {
     () => hidden,
     (now, before) => {
       if (before === null || now === before) return;
-      opacity.value = now ? 0 : withTiming(1, { duration: RETURN_MS });
+      opacity.set(now ? 0 : withTiming(1, { duration: RETURN_MS }));
     },
     [hidden],
   );

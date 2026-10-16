@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { Text, View } from "react-native";
 import { useCSSVariable } from "uniwind";
@@ -11,7 +12,7 @@ import { BUBBLE_RADIUS, BubbleTail, TAIL_DROP } from "./bubble-shape";
 import { LinkCards } from "./link-preview-card";
 import { LinkedText } from "./linked-text";
 import { MenuTargetView } from "./message-actions";
-import { InteractiveMessage } from "./message-reactions";
+import { InteractiveMessage, TopPart } from "./message-reactions";
 import { NotSent, SendingFade } from "./message-status";
 import { linkCardsOf, visibleBody } from "./message-text";
 import { RevealedTime, SlideWithReveal } from "./reveal";
@@ -68,6 +69,11 @@ function Body({
   );
 }
 
+/** `TopPart` around the message's first part only. */
+function TopPartIf({ top, children }: { top: boolean; children: ReactNode }) {
+  return top ? <TopPart>{children}</TopPart> : children;
+}
+
 function Content({
   message,
   isOwn,
@@ -83,23 +89,32 @@ function Content({
     <SendingFade status={message.status}>
       {/* 4pt between a message's parts, the same as between bubbles. */}
       <View className={cn("gap-1", isOwn ? "items-end" : "items-start")}>
-        {message.attachments.map((attachment) => (
-          <AttachmentView
-            key={attachmentKey(attachment)}
-            attachment={attachment}
-            sending={message.status === "sending"}
-          />
+        {message.attachments.map((attachment, index) => (
+          <TopPartIf key={attachmentKey(attachment)} top={index === 0}>
+            <AttachmentView
+              attachment={attachment}
+              sending={message.status === "sending"}
+            />
+          </TopPartIf>
         ))}
         {body !== undefined && (
-          <MenuTargetView>
-            <Body
-              text={body}
-              isOwn={isOwn}
-              tail={endsGroup && cards.length === 0}
-            />
-          </MenuTargetView>
+          <TopPartIf top={message.attachments.length === 0}>
+            <MenuTargetView>
+              <Body
+                text={body}
+                isOwn={isOwn}
+                tail={endsGroup && cards.length === 0}
+              />
+            </MenuTargetView>
+          </TopPartIf>
         )}
-        {cards.length > 0 && <LinkCards cards={cards} />}
+        {cards.length > 0 && (
+          <TopPartIf
+            top={message.attachments.length === 0 && body === undefined}
+          >
+            <LinkCards cards={cards} />
+          </TopPartIf>
+        )}
       </View>
     </SendingFade>
   );

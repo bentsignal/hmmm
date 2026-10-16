@@ -163,3 +163,32 @@ the bot group by route so nothing else touched the device meanwhile.
 - Known: adding the first reaction still animates the row's height
   (about 35–45ms frames for 0.4s in the simulator). Moving it to native
   frame animations is the next step if it shows on the phone.
+
+## Round 5
+
+- [x] A tapback that would cover the sender's name pushes the name up above
+      it, as in Messages; one that clears the name sits beside it.
+- [x] A reaction on your bottom message dipped it down and back up: the
+      list's anchor was one row off (`ANCHOR` 0; VirtualizedList adds one for
+      the header itself), and following the newest message restarted every
+      frame while the tapback space opened. It now follows only when the
+      newest message or the composer changes, so the bottom message stays put
+      and the rest moves up.
+- [x] With the keyboard up, holding or double tapping a message no longer
+      moves the conversation. The menu is a modal, which takes the keyboard
+      down on iOS: the list freezes as it opens, the messages stay over the
+      space the keyboard leaves, and closing back to the chat brings the
+      keyboard back before the list lets go (`useMenuKeyboard`).
+- [x] Performance tooling (`apps/mobile/perf/`, see its README):
+  - Render budgets in `pnpm test`: a new message, a reaction, or an older
+    page re-renders only the messages it changes.
+  - A check that the React Compiler compiles every component and hook. It
+    found five it silently skipped, the worst `useMenuKeyboard`, whose
+    new object on every render re-rendered every message's reactions and
+    press handling on any list update. All five are fixed.
+  - Reassure (`pnpm perf`, and a CI report comparing a PR with its base).
+    The fixes above: an update to the list takes about half the React work
+    it did (78–82ms → 36–38ms per update in Jest, opening 36 → 27ms).
+  - Flashlight (Android FPS) isn't in CI: it needs an emulator and a release
+    build each run, and emulator frame rates on shared runners are too noisy
+    to compare.

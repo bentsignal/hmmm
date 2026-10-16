@@ -51,13 +51,17 @@ export function useMessageActions() {
 export function MessageActionsProvider({
   onToggleReaction,
   onViewReactions,
-  onMenuChange,
+  menuKeyboard,
   children,
 }: {
   onToggleReaction: (messageId: string, emoji: string) => void;
   onViewReactions: (messageId: string, emoji?: string) => void;
-  /** Called just before the menu opens and as it starts to close. */
-  onMenuChange?: () => void;
+  /** What the keyboard does around the menu (see `useMenuKeyboard`). */
+  menuKeyboard?: {
+    onOpen: () => void;
+    onClosing: () => void;
+    onClosed: (backToChat: boolean) => void;
+  };
   children: ReactNode;
 }) {
   const [target, setTarget] = useState<MenuTarget | null>(null);
@@ -65,7 +69,7 @@ export function MessageActionsProvider({
     <MessageActionsContext
       value={{
         open: (next) => {
-          onMenuChange?.();
+          menuKeyboard?.onOpen();
           setTarget(next);
         },
         toggleReaction: onToggleReaction,
@@ -80,8 +84,11 @@ export function MessageActionsProvider({
           target={target}
           onReact={(emoji) => onToggleReaction(target.message.id, emoji)}
           onViewReactions={(emoji) => onViewReactions(target.message.id, emoji)}
-          onClosing={onMenuChange}
-          onClosed={() => setTarget(null)}
+          onClosing={menuKeyboard?.onClosing}
+          onClosed={(backToChat) => {
+            setTarget(null);
+            menuKeyboard?.onClosed(backToChat);
+          }}
         />
       )}
     </MessageActionsContext>

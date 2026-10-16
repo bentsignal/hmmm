@@ -23,9 +23,9 @@ import { SymbolIcon } from "~/components/symbol-icon";
 import { cn } from "~/lib/cn";
 import { arrivedAfter, buildMessageRows } from "./build-rows";
 import { ANCHOR, useLatest, usePlacement } from "./list-position";
+import { useMenuKeyboard } from "./menu-keyboard";
 import { MessageActionsProvider } from "./message-actions";
 import { Row } from "./message-row";
-import { useModalKeyboardFreeze } from "./modal-keyboard-freeze";
 import { RevealTimes } from "./reveal";
 
 /** The jump button's size. */
@@ -131,7 +131,7 @@ interface RowsProps {
   /** Height of the composer floating over the bottom of the list. */
   composerHeight: number;
   latest: Latest;
-  /** Freezes keyboard handling (see useModalKeyboardFreeze). */
+  /** Freezes keyboard handling (see useMenuKeyboard). */
   freeze: SharedValue<boolean>;
   /** The list is laid out at its starting place. */
   onReady: () => void;
@@ -241,7 +241,7 @@ function Rows({
       {...latest.scrollHandlers}
       scrollEventThrottle={16}
       onContentSizeChange={() => {
-        latest.onContentChange();
+        latest.onContentChange(rows[0]?.key, composerHeight);
         placement.onLaidOut();
       }}
       onScrollToIndexFailed={placement.onMissed}
@@ -301,7 +301,7 @@ export function MessageList({
   // Dates, which worklets can't copy).
   const { hasNewer } = props;
   const showJump = useDerivedValue(() => hasNewer || !isNearLatest.value);
-  const keyboard = useModalKeyboardFreeze();
+  const keyboard = useMenuKeyboard();
 
   useImperativeHandle(ref, () => ({ scrollToLatest }));
 
@@ -309,9 +309,9 @@ export function MessageList({
     <MessageActionsProvider
       onToggleReaction={onToggleReaction}
       onViewReactions={onViewReactions}
-      // The menu is a modal, which would otherwise scroll the list on
-      // Android (see useModalKeyboardFreeze).
-      onMenuChange={keyboard.hold}
+      // The menu is a modal, which takes the keyboard down on iOS and
+      // reports it again on Android; the list stays still through both.
+      menuKeyboard={keyboard}
     >
       <RevealTimes>
         <View style={{ flex: 1 }}>
