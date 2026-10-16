@@ -2,6 +2,7 @@ import { pds } from "@vera/backend/pds";
 
 import type { AccountSession } from "~/features/session/account-session";
 import type { StoredAccount } from "~/features/session/account-store";
+import { forgetDrafts } from "~/features/conversation/drafts";
 import { forgetAccountNotifications } from "~/features/notifications/presented";
 import { getPushToken } from "~/features/notifications/push";
 import { closeAccountSession } from "~/features/session/account-session";
@@ -18,6 +19,7 @@ import {
  */
 export function signOutAccount(session: AccountSession) {
   removeStoredAccount(session.address);
+  forgetDrafts(session.address);
   void endSession(session);
 }
 
@@ -38,6 +40,7 @@ async function endSession(session: AccountSession) {
  */
 export function removeUnreachableAccount(account: StoredAccount) {
   removeStoredAccount(account.address);
+  forgetDrafts(account.address);
   void forgetAccountNotifications(
     account.address,
     storedAccounts().length,
