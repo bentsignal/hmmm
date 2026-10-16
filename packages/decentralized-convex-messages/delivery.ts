@@ -4,32 +4,51 @@ import { internal } from "./_generated/api.js";
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 const EXPO_BATCH_SIZE = 100;
 
+/** A device a push goes to, and whether its app shows threads. */
+interface Recipient {
+  readonly accountId: string;
+  readonly threads?: boolean;
+}
+
+function badgeKey({ accountId, threads }: Recipient) {
+  return `${accountId} ${threads === true ? "threads" : ""}`;
+}
+
 /**
- * Each recipient account's badge. A failed count leaves that account's push
- * without a badge rather than holding up the notification.
+ * Each recipient's badge, counting threads only for apps that show them.
+ * A failed count leaves that push without a badge rather than holding up
+ * the notification.
  */
 export async function badgeCounts(
   ctx: ActionCtx,
-  recipients: readonly { accountId: string }[],
+  recipients: readonly Recipient[],
 ) {
-  const accounts = [...new Set(recipients.map(({ accountId }) => accountId))];
+  const unique = new Map(
+    recipients.map((recipient) => [badgeKey(recipient), recipient]),
+  );
   const counts = await Promise.all(
-    accounts.map((accountId) =>
-      ctx
-        .runQuery(internal.notifications.badge, { accountId })
+    [...unique].map(async ([key, { accountId, threads }]) => {
+      const count = await ctx
+        .runQuery(internal.notifications.badge, {
+          accountId,
+          threads: threads === true,
+        })
         .catch((error: unknown) => {
           console.error("Badge count failed", error);
           return undefined;
-        }),
-    ),
+        });
+      return [key, count] as const;
+    }),
   );
-  return new Map(
-    accounts.map((accountId, index) => [accountId, counts[index]]),
-  );
+  return new Map(counts);
 }
 
 /** iOS sets the app icon badge to the push's `badge`. */
-export function badgeField(count: number | undefined) {
+export function badgeField(
+  badges: ReadonlyMap<string, number | undefined>,
+  recipient: Recipient,
+) {
+  const count = badges.get(badgeKey(recipient));
   return count === undefined ? {} : { badge: count };
 }
 

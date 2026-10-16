@@ -82,19 +82,35 @@ export async function newerThan(
   return { hasMore: rows.length > limit, messages: rows.slice(0, limit) };
 }
 
+function messageById(ctx: QueryCtx, messageId: string) {
+  return ctx.db
+    .query("messages")
+    .withIndex("by_message", (index) => index.eq("messageId", messageId))
+    .unique();
+}
+
+/**
+ * Where a conversation opens at a message: the message, or for a reply
+ * kept in its thread (which the conversation doesn't show), its original.
+ */
+async function anchorFor(ctx: QueryCtx, messageId: string) {
+  const anchor = await messageById(ctx, messageId);
+  if (anchor?.threadOnly !== true || anchor.threadId === undefined) {
+    return anchor;
+  }
+  return messageById(ctx, anchor.threadId);
+}
+
 /**
  * Half a page on each side of one message the conversation shows, so it
- * can open centered.
+ * can open centered. A reply kept in its thread opens at its original.
  */
 export async function around(
   ctx: QueryCtx,
   conversationId: string,
   messageId: string,
 ): Promise<MessagePage | null> {
-  const anchor = await ctx.db
-    .query("messages")
-    .withIndex("by_message", (index) => index.eq("messageId", messageId))
-    .unique();
+  const anchor = await anchorFor(ctx, messageId);
   if (anchor?.conversationId !== conversationId || anchor.threadOnly === true) {
     return null;
   }

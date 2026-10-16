@@ -66,7 +66,7 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
         return reactions.react(ctx, self, name, args);
       },
       registerPushToken: (ctx, { args, identity }) =>
-        push.registerPushToken(ctx, requireAccountId(identity), args.token),
+        push.registerPushToken(ctx, requireAccountId(identity), args),
       removeSpaceMember: (ctx, { args, identity }) =>
         spaces.removeSpaceMember(ctx, requireAccountId(identity), args),
       renameChannel: (ctx, { args, identity }) =>

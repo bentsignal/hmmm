@@ -137,7 +137,8 @@ export function usePushRegistration() {
   // eslint-disable-next-line no-restricted-syntax -- Registers this device with the OS push service and the server once per sign-in.
   useEffect(() => {
     void getPushToken().then((token) => {
-      if (token !== null) mutate({ token });
+      // This app shows threads, so its pushes' badges count them.
+      if (token !== null) mutate({ threads: true, token });
     });
   }, [mutate]);
 }

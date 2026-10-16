@@ -35,7 +35,11 @@ function threadRow(ctx: QueryCtx, threadId: string) {
     .unique();
 }
 
-function threadMember(ctx: QueryCtx, threadId: string, accountId: string) {
+export function threadMember(
+  ctx: QueryCtx,
+  threadId: string,
+  accountId: string,
+) {
   return ctx.db
     .query("threadMembers")
     .withIndex("by_thread_account", (index) =>

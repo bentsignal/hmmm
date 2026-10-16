@@ -3,6 +3,7 @@ import test from "node:test";
 import type { TestContext } from "node:test";
 
 import { activity } from "./activity.ts";
+import { badgeCount } from "./badges.ts";
 import { fakeCtx } from "./fakeCtx.ts";
 import { olderThan } from "./paging.ts";
 import {
@@ -189,4 +190,14 @@ void test("anyone can follow a thread before it has replies", async (t) => {
 void test("a reply must answer a message in its conversation", async (t) => {
   const { say } = setup(t);
   await assert.rejects(say(ME, "reply", "missing"), /MESSAGE_NOT_FOUND/);
+});
+
+void test("push badges count threads only for apps that show them", async (t) => {
+  const { ctx, say } = setup(t);
+  await say(ME, "root");
+  await say(MAYA, "first", "root");
+  await say(LEO, "second", "root");
+  // The conversation's messages are one item; the thread is another.
+  assert.equal(await badgeCount(ctx, ME, true), 2);
+  assert.equal(await badgeCount(ctx, ME, false), 1);
 });

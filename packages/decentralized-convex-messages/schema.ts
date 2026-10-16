@@ -177,6 +177,8 @@ export default defineSchema({
   }).index("by_account", ["accountId"]),
   pushTokens: defineTable({
     accountId: v.string(),
+    // The app on this device shows threads (see `registerPushToken`).
+    threads: v.optional(v.boolean()),
     token: v.string(),
   })
     .index("by_account", ["accountId"])

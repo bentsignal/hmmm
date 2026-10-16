@@ -126,9 +126,17 @@ function footnote(entry: ActivityEntry, showAccount: boolean) {
 /** Where tapping a row goes: the conversation, or a reply's thread. */
 function destination({ account, item, title }: ActivityEntry) {
   const { conversationId } = item.conversation;
-  if (item.kind === "thread") {
+  // A reaction to a reply kept in its thread opens the thread, where the
+  // reply is.
+  const threadId =
+    item.kind === "thread"
+      ? item.threadId
+      : item.kind === "reactions" && item.message.threadOnly === true
+        ? item.message.threadId
+        : undefined;
+  if (threadId !== undefined) {
     return {
-      params: { account, conversationId, threadId: item.threadId },
+      params: { account, conversationId, threadId },
       pathname: "/thread/[threadId]" as const,
     };
   }

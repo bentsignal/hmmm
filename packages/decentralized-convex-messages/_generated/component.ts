@@ -185,7 +185,10 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 type: "renameChannel";
               }
             | { args: { conversationId: string }; type: "deleteChannel" }
-            | { args: { token: string }; type: "registerPushToken" }
+            | {
+                args: { threads?: boolean; token: string };
+                type: "registerPushToken";
+              }
             | { args: { token: string }; type: "unregisterPushToken" };
           version: string;
         },

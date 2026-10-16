@@ -75,12 +75,12 @@ export function quoteOf(message: {
 
 /**
  * Replies this device is still sending, by thread, which the PDS doesn't
- * count yet.
+ * count yet. One that failed isn't a reply until it's sent.
  */
 function sendingReplies(outbox: readonly OutgoingMessage[]) {
   const counts = new Map<string, number>();
   for (const { reply, status } of outbox) {
-    if (reply === undefined || status === "sent") continue;
+    if (reply === undefined || status !== "sending") continue;
     counts.set(reply.threadId, (counts.get(reply.threadId) ?? 0) + 1);
   }
   return counts;

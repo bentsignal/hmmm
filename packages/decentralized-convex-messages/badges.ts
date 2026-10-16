@@ -13,7 +13,14 @@ import { pendingInvites } from "./model.ts";
  * carries only its own account's count. A device signed into several
  * accounts shows the sum once the app is open.
  */
-export async function badgeCount(ctx: QueryCtx, accountId: string) {
-  const unseen = (await activity(ctx, accountId, true)).filter(isUnseen).length;
+export async function badgeCount(
+  ctx: QueryCtx,
+  accountId: string,
+  /** Whether the app shows threads (older ones can't clear their items). */
+  threads: boolean,
+) {
+  const unseen = (await activity(ctx, accountId, threads)).filter(
+    isUnseen,
+  ).length;
   return unseen + (await pendingInvites(ctx, accountId)).length;
 }

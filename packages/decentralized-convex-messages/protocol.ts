@@ -257,8 +257,13 @@ export const messagesProtocol = definePluginProtocol({
       args: v.object({ conversationId: v.string() }),
       returns: v.null(),
     }),
+    /**
+     * Registers this device for the account's pushes. Apps that show
+     * threads pass `threads`, so a push's badge counts threads' replies
+     * (older apps can't see or clear them).
+     */
     registerPushToken: defineOperation({
-      args: v.object({ token: v.string() }),
+      args: v.object({ threads: v.optional(v.boolean()), token: v.string() }),
       returns: v.null(),
     }),
     unregisterPushToken: defineOperation({
