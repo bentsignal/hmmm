@@ -126,28 +126,6 @@ void test("pages a conversation's threads with `limit` and `before`", async (t) 
   assert.equal(next.page.hasMore, false);
 });
 
-void test("searches the text of a thread's original and replies", async (t) => {
-  const { ctx, say } = setup(t);
-  await say(MAYA, "lake", { body: "Who's in for the lake?" });
-  await say(MAYA, "brunch", { body: "Brunch on Sunday" });
-  await say(MAYA, "lunch", { body: "Lunch at the lake?" });
-  await say(LEO, "a", { body: "I'm in", threadId: "lake" });
-  await say(ME, "b", { body: "Pancakes please", threadId: "brunch" });
-  function search(text: string, mine?: boolean) {
-    return threads(ctx, ME, { conversationId: GROUP, mine, search: text });
-  }
-  // "lunch" has no replies, so it isn't a thread.
-  assert.deepEqual(ids((await search("lake")).page), ["lake"]);
-  assert.deepEqual(ids((await search("pancakes")).page), ["brunch"]);
-  assert.deepEqual(ids((await search("lake pancakes")).page), [
-    "brunch",
-    "lake",
-  ]);
-  assert.deepEqual(ids((await search("lake pancakes", true)).page), ["brunch"]);
-  // A blank search lists every thread.
-  assert.deepEqual(ids((await search("  ")).page), ["brunch", "lake"]);
-});
-
 void test("the inbox lists the threads you follow outside muted conversations", async (t) => {
   const { ctx, say } = setup(t);
   await say(ME, "mine");

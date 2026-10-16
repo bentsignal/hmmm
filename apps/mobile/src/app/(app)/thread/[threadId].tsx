@@ -1,7 +1,12 @@
 import { useRef, useState } from "react";
 import { Text, View } from "react-native";
 import { KeyboardGestureArea } from "react-native-keyboard-controller";
-import { Stack, useLocalSearchParams } from "expo-router";
+import {
+  Stack,
+  useLocalSearchParams,
+  useNavigation,
+  useRouter,
+} from "expo-router";
 
 import type { MessageListHandle } from "~/features/conversation/message-list";
 import { useComposerBottomInset } from "~/features/conversation/composer";
@@ -27,6 +32,45 @@ import { useMessageLayout } from "~/features/preferences/store";
 /** The conversation's name from the opening screen, until it loads. */
 function headingFor(title: string, initialTitle: string | undefined) {
   return title === "" ? (initialTitle ?? "") : title;
+}
+
+/** Whether a stack screen's route params name this conversation. */
+function namesConversation(params: unknown, conversationId: string) {
+  return (
+    typeof params === "object" &&
+    params !== null &&
+    Reflect.get(params, "conversationId") === conversationId
+  );
+}
+
+/**
+ * Opens the conversation a thread is in: back to it when the thread was
+ * opened from there, or at the thread's original message otherwise (from
+ * the Inbox, Activity, or a push), so the stack never holds it twice.
+ */
+function useOpenConversation(
+  conversationId: string,
+  threadId: string,
+  title: string,
+) {
+  const router = useRouter();
+  const navigation = useNavigation();
+  const { address } = useAccount();
+  return () => {
+    const { index, routes } = navigation.getState() ?? { index: 0, routes: [] };
+    const below = routes[index - 1];
+    const cameFrom =
+      below?.name === "conversation/[conversationId]" &&
+      namesConversation(below.params, conversationId);
+    if (cameFrom) {
+      router.back();
+      return;
+    }
+    router.push({
+      params: { account: address, conversationId, messageId: threadId, title },
+      pathname: "/conversation/[conversationId]",
+    });
+  };
 }
 
 /**
@@ -81,6 +125,11 @@ function Thread({
   useActiveThread(threadId);
 
   const heading = headingFor(title, initialTitle);
+  const openConversation = useOpenConversation(
+    conversationId,
+    threadId,
+    heading,
+  );
   const { root } = thread;
   const missing = !thread.isLoading && root === undefined;
   const shown = shownList({
@@ -126,6 +175,7 @@ function Thread({
       <ThreadHeader
         title={heading}
         following={state.following}
+        onOpenConversation={openConversation}
         onToggleFollowing={state.toggle}
       />
       {root !== undefined && (

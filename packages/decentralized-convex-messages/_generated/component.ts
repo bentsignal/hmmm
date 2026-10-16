@@ -407,7 +407,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   conversationId: string;
                   limit?: number;
                   mine?: boolean;
-                  search?: string;
                 };
                 type: "threads";
               }

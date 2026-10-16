@@ -88,9 +88,12 @@ groups, and channels alike.
   show without threads.
 - **See All** has a segmented **Yours / All** switch (All first selected,
   since it continues the info page's list; a swipe between them would
-  fight swipe back), a search field, and Show More for older threads.
-  Search matches the text of the original and its replies, through
-  `useSearchText`/`useSearchQuery`.
+  fight swipe back) and Show More for older threads. It had a search
+  field at first; Shawn dropped it after testing, as not useful enough
+  for threads.
+- **The thread page's header** ("Thread" over the conversation's name)
+  opens the conversation: back to it when the thread was opened from
+  there, otherwise at the original message.
 
 ## How it works
 
@@ -109,10 +112,7 @@ groups, and channels alike.
   caller's own.
 - `messages.threads` pages a conversation's threads (`by_conversation_reply`,
   or the caller's `threadMembers` with `mine`), gathered from every
-  member's PDS like summaries. With `search`, it searches message bodies
-  in the conversation (the `search_body` search index), turns the 256 most
-  relevant matches into their threads, and lists those newest reply first.
-  `messages.inboxThreads` lists the caller's threads across conversations
+  member's PDS like summaries. `messages.inboxThreads` lists the caller's threads across conversations
   (`by_account_reply`) from their home PDS, like the inbox.
 - Like messages and reactions, replies live on their author's home PDS.
   With one production server the PDS sees every reply; with federation,

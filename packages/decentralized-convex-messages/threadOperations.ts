@@ -7,8 +7,8 @@ import { inboxThread, threadListingPage } from "./shapes.ts";
 export const threadListQueries = {
   /**
    * A conversation's threads, newest reply first, `THREAD_PAGE_SIZE` (or
-   * `limit`) older than `before`: only yours with `mine`, or those whose
-   * text matches `search`. Each member's PDS lists the replies it stores.
+   * `limit`) older than `before`, or only yours with `mine`. Each member's
+   * PDS lists the replies it stores.
    */
   threads: defineOperation({
     args: v.object({
@@ -16,7 +16,6 @@ export const threadListQueries = {
       conversationId: v.string(),
       limit: v.optional(v.number()),
       mine: v.optional(v.boolean()),
-      search: v.optional(v.string()),
     }),
     returns: threadListingPage,
   }),

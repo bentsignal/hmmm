@@ -192,10 +192,7 @@ Finding threads: `messages.threads` pages a conversation's threads, newest
 reply first (`THREAD_PAGE_SIZE` at a time, or fewer with `limit`, older
 than `before`), each with its original, its counts, and the caller's
 place in it (`following`, `lastReadAt`, `unreadCount`). With `mine`, only
-threads the caller follows; with `search`, those whose original or
-replies match it (a search index on message bodies, filtered by
-conversation; the 256 most relevant matching messages count). Like
-summaries, each member's PDS lists the replies it stores and apps add
+threads the caller follows. Like summaries, each member's PDS lists the replies it stores and apps add
 them up. `messages.inboxThreads` lists the threads the caller follows
 across conversations, newest reply first (at most `MAX_INBOX_THREADS`),
 each with its conversation and newest reply, leaving out muted

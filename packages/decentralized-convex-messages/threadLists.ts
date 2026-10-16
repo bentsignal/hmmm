@@ -31,10 +31,6 @@ type Args = OperationArgs<(typeof messagesProtocol)["queries"]["threads"]>;
 const MAX_REPLIES_SCANNED = 300;
 /** Thread memberships looked at for one page of the caller's threads. */
 const MAX_MEMBERSHIPS_SCANNED = 500;
-/** The most relevant matching messages a search turns into threads. */
-const MAX_SEARCH_MATCHES = 256;
-/** Longer searches are cut to this many characters. */
-const MAX_SEARCH_LENGTH = 200;
 
 /**
  * Others' replies after `lastReadAt`, leaving out the thread's first
@@ -148,50 +144,15 @@ async function followedThreads(
   return { found, hasMore: false };
 }
 
-/**
- * The threads whose original or replies match `search`: the most relevant
- * matching messages, each turned into its thread, then newest reply first.
- */
-async function searchedThreads(
-  ctx: QueryCtx,
-  self: string,
-  args: Args,
-  search: string,
-) {
-  const matches = await ctx.db
-    .query("messages")
-    .withSearchIndex("search_body", (index) =>
-      index.search("body", search).eq("conversationId", args.conversationId),
-    )
-    .take(MAX_SEARCH_MATCHES);
-  const threadIds = new Set(
-    matches.map((message) => message.threadId ?? message.messageId),
-  );
-  const found = await Promise.all(
-    [...threadIds].map(async (threadId): Promise<Found | null> => {
-      const row = await threadRow(ctx, threadId);
-      if (row?.conversationId !== args.conversationId) return null;
-      if (args.before !== undefined && row.lastReplyAt >= args.before) {
-        return null;
-      }
-      return { member: await threadMember(ctx, threadId, self), row };
-    }),
-  );
-  return found
-    .filter((item): item is Found => item !== null)
-    .filter(({ member }) => args.mine !== true || isFollowing(member))
-    .sort((left, right) => right.row.lastReplyAt - left.row.lastReplyAt);
-}
-
 function isFollowing(member: Doc<"threadMembers"> | null) {
   return member !== null && member.unfollowed !== true;
 }
 
 /**
  * One page of a conversation's threads that have replies here, newest
- * reply first: every one, the caller's (`mine`), or those matching
- * `search`. With the conversation's member addresses, so the client also
- * asks every member's PDS.
+ * reply first: every one, or the caller's (`mine`). With the
+ * conversation's member addresses, so the client also asks every member's
+ * PDS.
  */
 export async function threads(ctx: QueryCtx, self: string, args: Args) {
   const { conversation } = await requireAccess(ctx, args.conversationId, self);
@@ -199,16 +160,10 @@ export async function threads(ctx: QueryCtx, self: string, args: Args) {
     1,
     Math.min(Math.floor(args.limit ?? THREAD_PAGE_SIZE), THREAD_PAGE_SIZE),
   );
-  const search = (args.search ?? "").trim().slice(0, MAX_SEARCH_LENGTH);
-  let page: { found: Found[]; hasMore: boolean };
-  if (search.length > 0) {
-    const found = await searchedThreads(ctx, self, args, search);
-    page = { found, hasMore: found.length > limit };
-  } else if (args.mine === true) {
-    page = await followedThreads(ctx, self, args, limit);
-  } else {
-    page = await everyThread(ctx, self, args, limit);
-  }
+  const page =
+    args.mine === true
+      ? await followedThreads(ctx, self, args, limit)
+      : await everyThread(ctx, self, args, limit);
   return {
     page: {
       hasMore: page.hasMore,

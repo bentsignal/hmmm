@@ -68,12 +68,7 @@ export default defineSchema({
     .index("by_conversation_sent", ["conversationId", "sentAt"])
     // What the conversation shows: `threadOnly` undefined.
     .index("by_chat_sent", ["conversationId", "threadOnly", "sentAt"])
-    .index("by_thread_sent", ["threadId", "sentAt"])
-    // Finding threads by the text of their original and replies.
-    .searchIndex("search_body", {
-      filterFields: ["conversationId"],
-      searchField: "body",
-    }),
+    .index("by_thread_sent", ["threadId", "sentAt"]),
   // One per account a message @mentions, so their activity finds it.
   mentions: defineTable({
     accountId: v.string(),

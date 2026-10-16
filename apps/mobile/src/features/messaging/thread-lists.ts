@@ -11,10 +11,6 @@ import { pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
 import type { ThreadSummaryRow } from "~/features/inbox/types";
-import {
-  useSearchQuery,
-  useSearchText,
-} from "~/features/search/use-search-query";
 import { useAccount, useVisibleAccounts } from "./account";
 import { conversationTitle } from "./conversations";
 import { messageSummary, preview } from "./inbox";
@@ -141,47 +137,6 @@ export function useConversationThreads({
       setCursors([...cursors, oldest]);
     },
     threads,
-  };
-}
-
-/**
- * A conversation's threads matching a search of their original's and
- * replies' text, through `useSearchText`: debounced, and the last results
- * stay up while the next load. Without a search, `threads` is undefined.
- */
-export function useThreadSearch({
-  conversationId,
-  mine,
-}: {
-  conversationId: string;
-  mine: boolean;
-}) {
-  const { address } = useAccount();
-  const text = useSearchText();
-  const search = text.query.trim();
-  const answer = useSearchQuery({
-    options: pdsQuery({
-      args: { conversationId, mine, search },
-      options: {
-        enabled: search.length > 0,
-        select: (result) => {
-          const pages = pdsResultOr(result, []);
-          return pages === undefined
-            ? undefined
-            : combine(pages.flatMap((page) => page.threads));
-        },
-      },
-      query: pds.messages.threads,
-      session: address,
-    }),
-    query: search,
-  });
-  return {
-    clear: text.clear,
-    onChangeText: text.onChangeText,
-    /** The search whose results are showing. */
-    query: answer.query,
-    threads: answer.query.length > 0 ? answer.data : undefined,
   };
 }
 
