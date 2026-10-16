@@ -56,6 +56,21 @@ function isReactionSeen(
   return item === undefined || !isUnseen(item);
 }
 
+/**
+ * Whether a thread's new replies have been seen (in Activity, or by
+ * opening it), or are no longer there.
+ */
+function isThreadSeen(
+  activity: Snapshot<ActivityItem> | undefined,
+  threadId: string,
+  arrived: number,
+) {
+  const items = current(activity, arrived);
+  if (items === null) return false;
+  const item = items.find(({ key }) => key === `thread:${threadId}`);
+  return item === undefined || !isUnseen(item);
+}
+
 /** Whether the invitation to the space is no longer pending. */
 function isAnswered(
   invites: Snapshot<{ spaceId: string }> | undefined,
@@ -81,8 +96,8 @@ function isAnswered(
  * app opens.
  *
  * Also clears delivered notifications nobody needs anymore: a
- * conversation's once it has nothing unread, a reaction's once it's been
- * seen in Activity, and an invitation's once it's answered. Android
+ * conversation's once it has nothing unread, a reaction's or a thread
+ * reply's once it's been seen, and an invitation's once it's answered. Android
  * launchers count notifications, so this is what clears the badge there.
  */
 export function useAppBadge() {
@@ -143,6 +158,10 @@ export function useAppBadge() {
         stringField(data, "messageId"),
         arrived,
       );
+    }
+    const threadId = stringField(data, "threadId");
+    if (threadId !== undefined) {
+      return isThreadSeen(activity[index], threadId, arrived);
     }
     const conversationId = stringField(data, "conversationId");
     if (conversationId !== undefined) {

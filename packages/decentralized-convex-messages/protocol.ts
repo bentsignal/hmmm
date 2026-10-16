@@ -17,11 +17,15 @@ import {
   message,
   messagePage,
   notificationSettings,
+  notificationSettingsChange,
   reaction,
   space,
   spaceInvite,
   spaceInviteLink,
   spaceInviteLinkPreview,
+  threadPage,
+  threadState,
+  threadSummary,
 } from "./shapes.ts";
 
 export * from "./shapes.ts";
@@ -60,9 +64,11 @@ export const messagesProtocol = definePluginProtocol({
       returns: v.null(),
     }),
     /**
-     * `mentions` names who the body @mentions, each by the name after its
-     * `@`. Any that isn't a member of the group or channel, or whose
-     * `@name` isn't in the body, is left out; direct messages have none.
+     * With `threadId`, a reply in that message's thread (a reply's own
+     * thread when it names a reply). The thread's first reply also shows
+     * in the conversation; later ones come back with `threadOnly`.
+     * `mentions` names who the body @mentions by the name after each `@`;
+     * any not in the group or channel, or not in the body, is left out.
      */
     send: defineOperation({
       args: v.object({
@@ -71,8 +77,30 @@ export const messagesProtocol = definePluginProtocol({
         conversationId: v.string(),
         mentions: v.optional(v.array(mention)),
         messageId: v.string(),
+        threadId: v.optional(v.string()),
       }),
       returns: message,
+    }),
+    /** Marks a thread read up to `readAt`, which sees its activity too. */
+    markThreadRead: defineOperation({
+      args: v.object({
+        conversationId: v.string(),
+        readAt: v.number(),
+        threadId: v.string(),
+      }),
+      returns: v.null(),
+    }),
+    /**
+     * Turns a thread's notifications on or off for you (its bell). Its
+     * original's author and everyone who replies start with them on.
+     */
+    setThreadFollowed: defineOperation({
+      args: v.object({
+        conversationId: v.string(),
+        followed: v.boolean(),
+        threadId: v.string(),
+      }),
+      returns: v.null(),
     }),
     /**
      * Starts fetching previews of links being typed, so they're ready when
@@ -114,10 +142,9 @@ export const messagesProtocol = definePluginProtocol({
       returns: v.null(),
     }),
     /**
-     * Chooses what a conversation alerts you about. A channel's choice
-     * wins over its space's, and a space's or group's over your defaults
-     * (`groupAlerts`, `channelAlerts`); choosing what it would get anyway
-     * follows those again. Direct messages take `all` or `none`.
+     * Chooses what a conversation alerts you about, over its space's choice
+     * and your defaults; choosing what it would get anyway follows those
+     * again. Direct messages take `all` or `none`.
      */
     setAlerts: defineOperation({
       args: v.object({ alerts: alertLevel, conversationId: v.string() }),
@@ -128,10 +155,7 @@ export const messagesProtocol = definePluginProtocol({
       args: v.object({ muted: v.boolean(), spaceId: v.string() }),
       returns: v.null(),
     }),
-    /**
-     * Chooses what a space's channels alert you about, except those with
-     * their own choice (see `setAlerts`).
-     */
+    /** What a space's channels alert you about (see `setAlerts`). */
     setSpaceAlerts: defineOperation({
       args: v.object({ alerts: alertLevel, spaceId: v.string() }),
       returns: v.null(),
@@ -142,16 +166,7 @@ export const messagesProtocol = definePluginProtocol({
      * `channels` (from older apps) sets that default to `all` or `none`.
      */
     setNotificationSettings: defineOperation({
-      args: v.object({
-        channelAlerts: v.optional(alertLevel),
-        channels: v.optional(v.boolean()),
-        directMessages: v.optional(v.boolean()),
-        enabled: v.optional(v.boolean()),
-        groupAlerts: v.optional(alertLevel),
-        groups: v.optional(v.boolean()),
-        invites: v.optional(v.boolean()),
-        reactions: v.optional(v.boolean()),
-      }),
+      args: notificationSettingsChange,
       returns: v.null(),
     }),
     /** Pins a conversation to the top of your inbox, or unpins it. */
@@ -255,8 +270,13 @@ export const messagesProtocol = definePluginProtocol({
       args: v.object({ conversationId: v.string() }),
       returns: v.null(),
     }),
+    /**
+     * Registers this device for the account's pushes. Apps that show
+     * threads pass `threads`, so a push's badge counts threads' replies
+     * (older apps can't see or clear them).
+     */
     registerPushToken: defineOperation({
-      args: v.object({ token: v.string() }),
+      args: v.object({ threads: v.optional(v.boolean()), token: v.string() }),
       returns: v.null(),
     }),
     unregisterPushToken: defineOperation({
@@ -277,17 +297,18 @@ export const messagesProtocol = definePluginProtocol({
     /**
      * What happened while you were away, newest first: messages from others
      * (one item per conversation) and others' reactions to your messages
-     * (one per message). Muted conversations and channels left out of the
-     * inbox don't appear. An item lasts until a day after you saw it (see
+     * (one per message). With `threads`, also new replies in threads
+     * you're in (one per thread); with `mentions`, each message that
+     * @mentions you is its own `mention` item. Each conversation shows
+     * what it alerts you about, and channels left out of the inbox show
+     * only mentions. An item lasts until a day after you saw it (see
      * `markActivitySeen`), and nothing older than `ACTIVITY_HORIZON` shows.
-     *
-     * With `mentions`, each message that @mentions you is its own
-     * `mention` item instead of counting toward its conversation's. A
-     * conversation that alerts you only about mentions has nothing else
-     * (without `mentions`, its item holds just those messages).
      */
     activity: defineOperation({
-      args: v.object({ mentions: v.optional(v.boolean()) }),
+      args: v.object({
+        mentions: v.optional(v.boolean()),
+        threads: v.optional(v.boolean()),
+      }),
       returns: v.array(activityItem),
     }),
     /** Which pushes you get (see `setNotificationSettings`). */
@@ -320,6 +341,36 @@ export const messagesProtocol = definePluginProtocol({
         messageIds: v.array(v.string()),
       }),
       returns: v.array(reaction),
+    }),
+    /**
+     * A thread: its original message and one page of replies, oldest
+     * first, gathered from every member's PDS. At most one cursor: older
+     * than `before`, newer than `after`, or the latest page.
+     */
+    thread: defineOperation({
+      args: v.object({
+        after: v.optional(v.number()),
+        before: v.optional(v.number()),
+        conversationId: v.string(),
+        threadId: v.string(),
+      }),
+      returns: threadPage,
+    }),
+    /**
+     * The threads of the given messages that have replies, from every
+     * member's PDS (each counts the replies it stores).
+     */
+    threadSummaries: defineOperation({
+      args: v.object({
+        conversationId: v.string(),
+        messageIds: v.array(v.string()),
+      }),
+      returns: v.array(threadSummary),
+    }),
+    /** Your place in a thread: its bell, and how far you've read. */
+    threadState: defineOperation({
+      args: v.object({ conversationId: v.string(), threadId: v.string() }),
+      returns: threadState,
     }),
     /**
      * What this PDS has fetched of each link's preview so far (see

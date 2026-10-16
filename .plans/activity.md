@@ -71,7 +71,8 @@ caller's space membership).
 
 ## Later
 
-- Replies as activity (mentions: see mentions.md).
+- Thread replies and mentions have Activity rows since 2026-10-16 (see
+  `.plans/threads.md` and `.plans/mentions.md`).
 - Federation: like the inbox, activity lists only the home PDS's messages
   and reactions, and a reaction's push goes out only when the message is on
   the reactor's PDS.

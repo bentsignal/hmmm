@@ -48,10 +48,10 @@ export type ActivityListRow =
     };
 
 /**
- * What the app asks `activity` for: each message that @mentions you as
- * an item of its own.
+ * What Activity asks its PDS for: thread replies, and each message that
+ * @mentions you as an item of its own.
  */
-export const ACTIVITY_ARGS = { mentions: true } as const;
+export const ACTIVITY_ARGS = { mentions: true, threads: true };
 
 export function isUnseen(item: ActivityItem) {
   return item.seenThrough === undefined || item.at > item.seenThrough;
@@ -68,9 +68,10 @@ function isGone(item: ActivityItem, now: number) {
 
 /** Who acted in an item, newest first, without repeats. */
 export function actorsOf(item: ActivityItem) {
-  if (item.kind === "messages") return item.authors;
-  if (item.kind === "mention") return [item.message.authorId];
-  return [...new Set(item.reactions.map(({ accountId }) => accountId))];
+  if (item.kind === "reactions") {
+    return [...new Set(item.reactions.map(({ accountId }) => accountId))];
+  }
+  return item.kind === "mention" ? [item.message.authorId] : item.authors;
 }
 
 /** Everyone an item's row names: who acted, and who titles the chat. */
@@ -149,8 +150,8 @@ export function useActivity(now: number) {
 /**
  * The Activity tab's badge, the app's only one: space invitations waiting
  * for an answer, plus activity not yet seen (conversations with new
- * messages, messages that mention you, and messages of yours with new
- * reactions; muted ones left out).
+ * messages, messages that mention you, messages of yours with new
+ * reactions, and threads with new replies; muted ones left out).
  */
 export function useActivityBadge() {
   const accounts = useVisibleAccounts().map(({ address }) => address);

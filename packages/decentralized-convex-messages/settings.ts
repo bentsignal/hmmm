@@ -17,7 +17,12 @@ type Args<Operation extends keyof Mutations> = OperationArgs<
  * The kinds of pushes an account can turn off on their own. Groups and
  * channels have alert levels instead (see `alertsFor`).
  */
-export type PushKind = "directMessages" | "invites" | "reactions";
+export type PushKind =
+  | "directMessages"
+  | "invites"
+  | "reactions"
+  | "replies"
+  | "threadReplies";
 
 function settingsRow(ctx: QueryCtx, accountId: string) {
   return ctx.db
@@ -34,6 +39,11 @@ function defaultAlerts(
   return chosen ?? (on === false ? "none" : "all");
 }
 
+/** A switch, on until it's turned off. */
+function isOn(value: boolean | undefined) {
+  return value !== false;
+}
+
 /** An account's push settings; everything is on until turned off. */
 export async function notificationSettings(
   ctx: QueryCtx,
@@ -41,18 +51,21 @@ export async function notificationSettings(
 ): Promise<
   NotificationSettings & Record<"channelAlerts" | "groupAlerts", AlertLevel>
 > {
-  const row = await settingsRow(ctx, accountId);
-  const channelAlerts = defaultAlerts(row?.channelAlerts, row?.channels);
-  const groupAlerts = defaultAlerts(row?.groupAlerts, row?.groups);
+  const row: Partial<Doc<"notificationSettings">> =
+    (await settingsRow(ctx, accountId)) ?? {};
+  const channelAlerts = defaultAlerts(row.channelAlerts, row.channels);
+  const groupAlerts = defaultAlerts(row.groupAlerts, row.groups);
   return {
     channelAlerts,
     channels: channelAlerts !== "none",
-    directMessages: row?.directMessages !== false,
-    enabled: row?.enabled !== false,
+    directMessages: isOn(row.directMessages),
+    enabled: isOn(row.enabled),
     groupAlerts,
     groups: groupAlerts !== "none",
-    invites: row?.invites !== false,
-    reactions: row?.reactions !== false,
+    invites: isOn(row.invites),
+    reactions: isOn(row.reactions),
+    replies: isOn(row.replies),
+    threadReplies: isOn(row.threadReplies),
   };
 }
 

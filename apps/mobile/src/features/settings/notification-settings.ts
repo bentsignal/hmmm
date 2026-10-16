@@ -12,7 +12,9 @@ import { pdsResultOr } from "~/features/messaging/results";
 
 /** The kinds of notifications turned on or off with a switch. */
 export type NotificationKind = keyof {
-  [Key in keyof NotificationSettings as NotificationSettings[Key] extends boolean
+  [Key in keyof NotificationSettings as NonNullable<
+    NotificationSettings[Key]
+  > extends boolean
     ? Key
     : never]: true;
 };

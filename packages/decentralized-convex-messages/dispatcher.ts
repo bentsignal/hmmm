@@ -15,9 +15,11 @@ import { prefetch } from "./previews.ts";
 import { messagesProtocol } from "./protocol.ts";
 import * as push from "./pushTokens.ts";
 import * as reactions from "./reactions.ts";
+import * as sending from "./sending.ts";
 import * as settings from "./settings.ts";
 import * as sightings from "./sightings.ts";
 import * as spaces from "./spaces.ts";
+import * as threads from "./threads.ts";
 
 export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
   handlers: {
@@ -50,6 +52,8 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
         sightings.markActivitySeen(ctx, requireAccountId(identity), args),
       markRead: (ctx, { args, identity }) =>
         conversations.markRead(ctx, requireAccountId(identity), args),
+      markThreadRead: (ctx, { args, identity }) =>
+        threads.markThreadRead(ctx, requireAccountId(identity), args),
       openDirect: (ctx, { args, identity }) =>
         conversations.openDirect(ctx, requireAccountId(identity), args),
       prefetchLinkPreviews: async (ctx, { args, identity }) => {
@@ -63,7 +67,7 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
         return reactions.react(ctx, self, name, args);
       },
       registerPushToken: (ctx, { args, identity }) =>
-        push.registerPushToken(ctx, requireAccountId(identity), args.token),
+        push.registerPushToken(ctx, requireAccountId(identity), args),
       removeSpaceMember: (ctx, { args, identity }) =>
         spaces.removeSpaceMember(ctx, requireAccountId(identity), args),
       renameChannel: (ctx, { args, identity }) =>
@@ -79,7 +83,7 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
       send: (ctx, { args, identity }) => {
         const self = requireAccountId(identity);
         const authorName = identity?.name?.trim() ?? self.split("@")[0] ?? self;
-        return conversations.send(ctx, self, authorName, args);
+        return sending.send(ctx, self, authorName, args);
       },
       setAlerts: (ctx, { args, identity }) =>
         alerts.setAlerts(ctx, requireAccountId(identity), args),
@@ -91,6 +95,8 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
         alerts.setSpaceAlerts(ctx, requireAccountId(identity), args),
       setSpaceMuted: (ctx, { args, identity }) =>
         alerts.setSpaceMuted(ctx, requireAccountId(identity), args),
+      setThreadFollowed: (ctx, { args, identity }) =>
+        threads.setThreadFollowed(ctx, requireAccountId(identity), args),
       setPinned: (ctx, { args, identity }) =>
         inbox.setPinned(ctx, requireAccountId(identity), args),
       setShowInInbox: (ctx, { args, identity }) =>
@@ -129,6 +135,24 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
       },
       space: (ctx, { args, identity }) =>
         spaces.space(ctx, requireAccountId(identity), args.spaceId),
+      thread: async (ctx, { args, identity }) => {
+        const found = await threads.thread(
+          ctx,
+          requireAccountId(identity),
+          args,
+        );
+        return routedQueryResult(found.page, found.routes);
+      },
+      threadState: (ctx, { args, identity }) =>
+        threads.threadState(ctx, requireAccountId(identity), args),
+      threadSummaries: async (ctx, { args, identity }) => {
+        const found = await threads.threadSummaries(
+          ctx,
+          requireAccountId(identity),
+          args,
+        );
+        return routedQueryResult(found.summaries, found.routes);
+      },
       spaceInviteLinkPreview: (ctx, { args, identity }) =>
         invites.spaceInviteLinkPreview(
           ctx,

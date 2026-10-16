@@ -82,6 +82,18 @@ export const alertLevel = v.union(
 
 export type AlertLevel = Infer<typeof alertLevel>;
 
+/**
+ * What a reply shows of the message it answers: its author, text, and
+ * first attachment, as they were when the reply was sent.
+ */
+export const quote = v.object({
+  attachment: v.optional(attachment),
+  authorId: v.string(),
+  body: v.string(),
+});
+
+export type Quote = Infer<typeof quote>;
+
 export const message = v.object({
   attachments: v.array(attachment),
   authorId: v.string(),
@@ -99,7 +111,19 @@ export const message = v.object({
   /** Who it @mentions (absent when nobody, and from older PDSs). */
   mentions: v.optional(v.array(mention)),
   messageId: v.string(),
+  /** A reply's quote of the message it answers (see `threadId`). */
+  quote: v.optional(quote),
   sentAt: v.number(),
+  /**
+   * A reply's thread: the ID of the message it answers. Threads are flat,
+   * so this is never another reply's ID.
+   */
+  threadId: v.optional(v.string()),
+  /**
+   * A reply after its thread's first, which stays in the thread: `list`
+   * leaves these out, so the conversation shows only each first reply.
+   */
+  threadOnly: v.optional(v.boolean()),
 });
 
 export type Message = Infer<typeof message>;
@@ -229,6 +253,43 @@ export const reaction = v.object({
 
 export type Reaction = Infer<typeof reaction>;
 
+/**
+ * A message's thread as one PDS knows it: how many replies it stores and
+ * who wrote the newest. Apps add up every member's PDS's summaries.
+ */
+export const threadSummary = v.object({
+  /** When the newest reply here was sent. */
+  lastReplyAt: v.number(),
+  replyCount: v.number(),
+  /** Who wrote the replies here, newest first, at most `MAX_REPLIERS`. */
+  repliers: v.array(v.string()),
+  threadId: v.string(),
+});
+
+export type ThreadSummary = Infer<typeof threadSummary>;
+
+/** At most this many repliers per summary. */
+export const MAX_REPLIERS = 5;
+
+/** A thread's original message and one page of its replies, oldest first. */
+export const threadPage = v.object({
+  hasNewer: v.boolean(),
+  hasOlder: v.boolean(),
+  messages: v.array(message),
+  /** Null from a PDS that doesn't store the original. */
+  root: v.union(v.null(), message),
+});
+
+/** The caller's place in a thread. */
+export const threadState = v.object({
+  /** Whether the caller hears about new replies (the thread's bell). */
+  following: v.boolean(),
+  /** How far the caller has read; null before they've opened it. */
+  lastReadAt: v.union(v.null(), v.number()),
+});
+
+export type ThreadState = Infer<typeof threadState>;
+
 /** At most this many messages per `reactions` query. */
 export const MAX_REACTION_MESSAGES = 100;
 
@@ -301,6 +362,25 @@ export const activityItem = v.union(
     /** The message that @mentions the caller. */
     message,
   }),
+  v.object({
+    ...activitySeen,
+    at: v.number(),
+    /** Who wrote them, newest first. */
+    authors: v.array(v.string()),
+    conversation: activityConversation,
+    /**
+     * How many replies others sent (at most `MAX_ACTIVITY_MESSAGES`),
+     * leaving out the first, which shows in the conversation.
+     */
+    count: v.number(),
+    key: v.string(),
+    kind: v.literal("thread"),
+    /** The newest of them. */
+    latest: message,
+    /** The message the thread answers; null when this PDS doesn't have it. */
+    root: v.union(v.null(), message),
+    threadId: v.string(),
+  }),
 );
 
 export type ActivityItem = Infer<typeof activityItem>;
@@ -342,6 +422,25 @@ export const notificationSettings = v.object({
   groups: v.boolean(),
   invites: v.boolean(),
   reactions: v.boolean(),
+  // Optional so results from PDSs that predate threads still validate.
+  /** Replies to the caller's own messages. */
+  replies: v.optional(v.boolean()),
+  /** New replies in threads the caller is in. */
+  threadReplies: v.optional(v.boolean()),
 });
 
 export type NotificationSettings = Infer<typeof notificationSettings>;
+
+/** What `setNotificationSettings` changes: any of the settings. */
+export const notificationSettingsChange = v.object({
+  channelAlerts: v.optional(alertLevel),
+  channels: v.optional(v.boolean()),
+  directMessages: v.optional(v.boolean()),
+  enabled: v.optional(v.boolean()),
+  groupAlerts: v.optional(alertLevel),
+  groups: v.optional(v.boolean()),
+  invites: v.optional(v.boolean()),
+  reactions: v.optional(v.boolean()),
+  replies: v.optional(v.boolean()),
+  threadReplies: v.optional(v.boolean()),
+});

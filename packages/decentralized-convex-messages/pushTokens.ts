@@ -15,11 +15,19 @@ async function findToken(ctx: MutationCtx, self: string, token: string) {
 export async function registerPushToken(
   ctx: MutationCtx,
   self: string,
-  token: string,
+  { threads, token }: { threads?: boolean; token: string },
 ) {
   const existing = await findToken(ctx, self, token);
+  const shows = threads === true ? true : undefined;
   if (existing === null) {
-    await ctx.db.insert("pushTokens", { accountId: self, token });
+    await ctx.db.insert("pushTokens", {
+      accountId: self,
+      threads: shows,
+      token,
+    });
+  } else if (existing.threads !== shows) {
+    // The app on the device was updated (or rolled back).
+    await ctx.db.patch(existing._id, { threads: shows });
   }
   return null;
 }

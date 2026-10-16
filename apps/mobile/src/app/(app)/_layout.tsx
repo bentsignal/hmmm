@@ -60,6 +60,11 @@ function AppStack() {
         options={{ headerShown: false, title: "" }}
       />
       <Stack.Screen
+        name="thread/[threadId]"
+        // Like a conversation, it draws its own header.
+        options={{ headerShown: false, title: "" }}
+      />
+      <Stack.Screen
         name="conversation-info/[conversationId]"
         options={{ headerTransparent: Platform.OS === "ios", title: "" }}
       />

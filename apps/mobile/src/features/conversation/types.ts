@@ -3,11 +3,20 @@ import type {
   LinkCard,
   LinkPreview,
   Mention,
+  Quote,
 } from "@decentralized-convex/messages";
 
 import type { ReactionSummary } from "~/features/messaging/reactions";
 
-export type { Attachment, LinkCard, LinkPreview, Mention };
+export type { Attachment, LinkCard, LinkPreview, Mention, Quote };
+
+/** A message's thread, as far as the conversation shows it. */
+export interface ThreadInfo {
+  /** Every reply in it, the one shown in the conversation included. */
+  readonly replyCount: number;
+  /** Who wrote the replies, newest first. */
+  readonly repliers: readonly string[];
+}
 
 /** Where an attachment of a message this device is sending stands. */
 export interface AttachmentUpload {
@@ -42,4 +51,13 @@ export interface Message {
   reactions: readonly ReactionSummary[] | undefined;
   /** Set until the server confirms a message this device sent. */
   status?: "failed" | "sending";
+  /** A reply's thread: the ID of the message it answers. */
+  threadId?: string;
+  /**
+   * What a reply shown in the conversation quotes of the message it
+   * answers (its reply card). Left off in the thread itself.
+   */
+  quote?: Quote;
+  /** The message's thread, or a reply card's, once it has replies. */
+  thread?: ThreadInfo;
 }

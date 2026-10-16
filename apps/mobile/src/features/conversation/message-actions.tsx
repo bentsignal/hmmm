@@ -18,9 +18,15 @@ import type {
 import type { Message, MessageAttachment } from "./types";
 import { impact, selectionTick } from "~/lib/native-extras";
 import { GlassMessageMenu } from "./glass-message-menu";
+import { wasLinkTap } from "./link-tap";
 
 interface MessageActions {
   readonly open: (target: MenuTarget) => void;
+  /**
+   * Opens a message's thread (a reply's own). Absent in a thread, where a
+   * tap does nothing.
+   */
+  readonly openThread?: (message: Message) => void;
   readonly toggleReaction: (messageId: string, emoji: string) => void;
   /** Opens who reacted, on the given emoji's tab when there is one. */
   readonly viewReactions: (messageId: string, emoji?: string) => void;
@@ -46,16 +52,23 @@ export function useMessageActions() {
 
 /**
  * Long-press actions for the messages below: the glass reaction overlay,
- * reaction toggles for the chips, and the sheet of who reacted.
+ * reaction toggles for the chips, the sheet of who reacted, and in a
+ * conversation, replies and threads.
  */
 export function MessageActionsProvider({
   onToggleReaction,
   onViewReactions,
+  onOpenThread,
+  onReply,
   menuKeyboard,
   children,
 }: {
   onToggleReaction: (messageId: string, emoji: string) => void;
   onViewReactions: (messageId: string, emoji?: string) => void;
+  /** A tap on a message opens its thread; absent in a thread. */
+  onOpenThread?: (message: Message) => void;
+  /** The menu's Reply; absent in a thread. */
+  onReply?: (message: Message) => void;
   /** What the keyboard does around the menu (see `useMenuKeyboard`). */
   menuKeyboard?: {
     onOpen: () => void;
@@ -72,6 +85,7 @@ export function MessageActionsProvider({
           menuKeyboard?.onOpen();
           setTarget(next);
         },
+        openThread: onOpenThread,
         toggleReaction: onToggleReaction,
         viewReactions: onViewReactions,
       }}
@@ -84,6 +98,9 @@ export function MessageActionsProvider({
           target={target}
           onReact={(emoji) => onToggleReaction(target.message.id, emoji)}
           onViewReactions={(emoji) => onViewReactions(target.message.id, emoji)}
+          onReply={
+            onReply === undefined ? undefined : () => onReply(target.message)
+          }
           onClosing={menuKeyboard?.onClosing}
           onClosed={(backToChat) => {
             setTarget(null);
@@ -129,8 +146,13 @@ export function MessageTargetProvider({
   );
 }
 
-/** Two taps this close together are a double tap. */
-const DOUBLE_TAP_MS = 300;
+/**
+ * Two taps this close together are a double tap. A single tap waits this
+ * long to be sure it isn't one.
+ */
+const DOUBLE_TAP_MS = 200;
+/** A tap moving further than this is a drag (to reveal times), not a tap. */
+const TAP_SLOP = 10;
 
 /** What a part of a message lifts into the menu, besides where it sits. */
 type LiftedPart = Omit<MenuTarget, "rect">;
@@ -244,9 +266,11 @@ export function useMenuTarget({
 }
 
 /**
- * A part of a message that opens its menu on a long press, and its
- * reactions on a double tap, lifted as is. The double tap is the native
- * recognizer's: a Pressable drops the second of two quick taps.
+ * A part of a message that opens its menu on a long press, its reactions
+ * on a double tap, and in a conversation its thread on a single tap,
+ * lifted as is. The taps are the native recognizers': a Pressable drops
+ * the second of two quick taps. A single tap fires once a double tap can
+ * no longer begin.
  */
 export function MenuTargetView({
   shape,
@@ -258,7 +282,10 @@ export function MenuTargetView({
 }) {
   const ref = useRef<NativeView>(null);
   const target = useMenuTarget({ measured: ref, preview: children, shape });
-  if (target === null) return children;
+  const messageTarget = use(MessageTargetContext);
+  const { openThread } = useMessageActions();
+  if (target === null || messageTarget === null) return children;
+  const { message } = messageTarget;
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
     .maxDelay(DOUBLE_TAP_MS)
@@ -266,8 +293,18 @@ export function MenuTargetView({
     .onEnd((_, success) => {
       if (success) target.openReactions();
     });
+  const singleTap = Gesture.Tap()
+    // A hold opens the menu instead.
+    .maxDuration(LONG_PRESS_MS)
+    .maxDistance(TAP_SLOP)
+    .enabled(openThread !== undefined && message.status === undefined)
+    .runOnJS(true)
+    .onEnd((_, success) => {
+      if (!success || wasLinkTap()) return;
+      openThread?.(message);
+    });
   return (
-    <GestureDetector gesture={doubleTap}>
+    <GestureDetector gesture={Gesture.Exclusive(doubleTap, singleTap)}>
       <Pressable ref={ref} {...target.press}>
         <MenuPressContext value={target.press}>
           <Animated.View style={target.style}>{children}</Animated.View>

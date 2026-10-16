@@ -169,3 +169,21 @@ runs.
 
 The default export is a normal Convex Component whose TypeScript type also
 carries the Messages protocol and its `accounts@1` requirement.
+
+Replies and threads ([`.plans/threads.md`](../../.plans/threads.md)): `send`
+with `threadId` replies to that message, in its thread (threads are flat, so
+naming a reply replies to its original). The thread's first reply shows in
+the conversation; later ones come back with `threadOnly` and stay out of
+`list`, unread counts, and the inbox. Every reply carries a `quote` of its
+original. `messages.thread` pages a thread's replies with its original, and
+`messages.threadSummaries` counts the replies of the messages on screen,
+gathered from every member's PDS like reactions. The original's author,
+everyone who replies, and anyone who turns a thread's bell on
+(`messages.setThreadFollowed`) are in it: they get its pushes (the
+`replies` and `threadReplies` notification settings) and, with
+`activity({ threads: true })`, an Activity item per thread with new
+replies. They hear of a thread at any alert level but `none`, and anyone a
+reply @mentions hears of it too (its `mention` item only for apps that
+ask for threads, since only they can open it). `messages.markThreadRead`
+sees the thread and its mentions of the caller, and `messages.threadState`
+is the caller's bell and read state.

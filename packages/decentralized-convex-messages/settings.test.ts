@@ -21,6 +21,8 @@ void test("every kind of push is on until turned off", async () => {
     groups: true,
     invites: true,
     reactions: true,
+    replies: true,
+    threadReplies: true,
   });
   assert.equal(await wantsPush(ctx, ME, "reactions"), true);
 });

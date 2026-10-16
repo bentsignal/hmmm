@@ -1,6 +1,6 @@
 import type { Mention } from "@decentralized-convex/messages";
-import type { ReactNode } from "react";
-import { useRef, useState } from "react";
+import type { ReactNode, Ref, RefObject } from "react";
+import { useImperativeHandle, useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import Animated, {
@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { withUniwind } from "uniwind";
 
 import type { MentionCandidate } from "./mention-text";
+import type { ReplyingTo } from "./reply-bar";
 import type {
   AttachmentSource,
   StagedFile,
@@ -24,6 +25,7 @@ import { PASTE_IMAGES_NATIVE_ID, usePastedImages } from "~/lib/paste-images";
 import { AttachMenu } from "./attach-menu";
 import { readDraft, saveDraftText } from "./drafts";
 import { MentionPicker } from "./mention-picker";
+import { ReplyBar } from "./reply-bar";
 import { StagedAttachments } from "./staged-attachments";
 import { useMentions } from "./use-mentions";
 
@@ -97,6 +99,85 @@ function SendButton({
   );
 }
 
+/** The bar's sides, which widen a little while typing on iOS. */
+function useSides() {
+  const keyboard = useReanimatedKeyboardAnimation();
+  return useAnimatedStyle(() => ({
+    // eslint-disable-next-line vera/no-layout-animation -- Known: re-lays out the composer on each frame of the keyboard; to be fixed in its own PR.
+    paddingHorizontal:
+      Platform.OS === "ios"
+        ? interpolate(
+            keyboard.progress.value,
+            [0, 1],
+            [IOS_EDGE, IOS_TYPING_EDGE],
+          )
+        : ANDROID_EDGE,
+  }));
+}
+
+/**
+ * The text being typed and who it @mentions, emptied by `sent`, and kept as
+ * a draft on this device (see `drafts.ts`).
+ */
+function useDraft(
+  draftKey: string,
+  input: RefObject<TextInput | null>,
+  onChangeText: ((text: string) => void) | undefined,
+  mentionable: readonly MentionCandidate[] | undefined,
+) {
+  const [draft, setDraft] = useState(() => readDraft(draftKey).text);
+  const mention = useMentions(draft, mentionable, draftKey);
+  /** When the field was last emptied by sending, until something is typed. */
+  const sentAt = useRef<number | null>(null);
+
+  function show(text: string) {
+    setDraft(text);
+    saveDraftText(draftKey, text);
+    onChangeText?.(text);
+  }
+
+  function change(text: string) {
+    // Sending while iOS still offers an autocorrection for the last word
+    // (tapping send rather than space) lets the keyboard apply it after the
+    // field has cleared, putting that word back. Typing adds a letter at a
+    // time, so a whole word landing in the empty field just after a send
+    // is the keyboard's, and the field stays empty.
+    if (
+      sentAt.current !== null &&
+      text.length > 1 &&
+      Date.now() - sentAt.current < AUTOCORRECT_WINDOW_MS
+    ) {
+      input.current?.clear();
+      return;
+    }
+    if (text !== "") sentAt.current = null;
+    show(mention.edited(text));
+  }
+
+  return {
+    change,
+    draft,
+    mention,
+    pick: (person: MentionCandidate) => {
+      const text = mention.pick(person);
+      if (text !== null) show(text);
+    },
+    /** Empties the field, returning who the sent text mentions. */
+    sent: (text: string) => {
+      const mentions = mention.take(text);
+      change("");
+      sentAt.current = Date.now();
+      return mentions;
+    },
+  };
+}
+
+/** What the composer can be asked to do. */
+export interface ComposerHandle {
+  /** Puts the cursor in the field, bringing the keyboard up. */
+  focus: () => void;
+}
+
 /**
  * The bar the field and its "+" menu sit in, moving in from the sides a
  * little on iOS while the keyboard is up.
@@ -110,18 +191,7 @@ function Bar({
   onHeight?: (height: number) => void;
   children: ReactNode;
 }) {
-  const keyboard = useReanimatedKeyboardAnimation();
-  const sides = useAnimatedStyle(() => ({
-    // eslint-disable-next-line vera/no-layout-animation -- Known: re-lays out the composer on each frame of the keyboard; to be fixed in its own PR.
-    paddingHorizontal:
-      Platform.OS === "ios"
-        ? interpolate(
-            keyboard.progress.value,
-            [0, 1],
-            [IOS_EDGE, IOS_TYPING_EDGE],
-          )
-        : ANDROID_EDGE,
-  }));
+  const sides = useSides();
   return (
     <Animated.View
       onLayout={(event) => onHeight?.(event.nativeEvent.layout.height)}
@@ -156,6 +226,7 @@ function Bar({
  * `drafts.ts`).
  */
 export function Composer({
+  ref,
   draftKey,
   staged,
   mentionable,
@@ -166,7 +237,12 @@ export function Composer({
   onChangeText,
   onHeight,
   bottomInset,
+  replyingTo,
+  onCancelReply,
+  autoFocus = false,
+  placeholder = "Message",
 }: {
+  ref?: Ref<ComposerHandle>;
   /** From `draftKey`: the account and conversation the draft belongs to. */
   draftKey: string;
   staged: readonly StagedFile[];
@@ -184,54 +260,32 @@ export function Composer({
   onHeight?: (height: number) => void;
   /** From `useComposerBottomInset`. */
   bottomInset: number;
+  /** Set while the next message is a reply. */
+  replyingTo?: ReplyingTo;
+  onCancelReply?: () => void;
+  /** Opens with the keyboard up. */
+  autoFocus?: boolean;
+  placeholder?: string;
 }) {
-  const [draft, setDraft] = useState(() => readDraft(draftKey).text);
-  const mention = useMentions(draft, mentionable, draftKey);
   const input = useRef<TextInput>(null);
+  useImperativeHandle(ref, () => ({ focus: () => input.current?.focus() }));
   // Only the field being pasted into is focused; another conversation's
   // composer can be mounted beneath this one.
   usePastedImages((images) => {
     if (input.current?.isFocused() === true) onPaste(images);
   });
-  /** When the field was last emptied by sending, until something is typed. */
-  const sentAt = useRef<number | null>(null);
+  const { draft, change, mention, pick, sent } = useDraft(
+    draftKey,
+    input,
+    onChangeText,
+    mentionable,
+  );
   const canSend = draft.trim().length > 0 || staged.length > 0;
-
-  function change(text: string) {
-    // Sending while iOS still offers an autocorrection for the last word
-    // (tapping send rather than space) lets the keyboard apply it after the
-    // field has cleared, putting that word back. Typing adds a letter at a
-    // time, so a whole word landing in the empty field just after a send
-    // is the keyboard's, and the field stays empty.
-    if (
-      sentAt.current !== null &&
-      text.length > 1 &&
-      Date.now() - sentAt.current < AUTOCORRECT_WINDOW_MS
-    ) {
-      input.current?.clear();
-      return;
-    }
-    if (text !== "") sentAt.current = null;
-    const next = mention.edited(text);
-    setDraft(next);
-    saveDraftText(draftKey, next);
-    onChangeText?.(next);
-  }
-
-  function pick(person: MentionCandidate) {
-    const text = mention.pick(person);
-    if (text === null) return;
-    setDraft(text);
-    saveDraftText(draftKey, text);
-    onChangeText?.(text);
-  }
 
   function send() {
     if (!canSend) return;
     const text = draft.trim();
-    onSend(text, mention.take(text));
-    change("");
-    sentAt.current = Date.now();
+    onSend(text, sent(text));
   }
 
   return (
@@ -249,6 +303,12 @@ export function Composer({
           className="flex-1 justify-center rounded-[20px]"
           style={{ minHeight: CONTROL }}
         >
+          {replyingTo !== undefined && (
+            <ReplyBar
+              replyingTo={replyingTo}
+              onCancel={() => onCancelReply?.()}
+            />
+          )}
           <StagedAttachments files={staged} onRemove={onRemoveStaged} />
           <StyledTextInput
             ref={input}
@@ -257,7 +317,8 @@ export function Composer({
             value={draft}
             onChangeText={change}
             {...mention.inputProps}
-            placeholder={staged.length > 0 ? "Add a message" : "Message"}
+            autoFocus={autoFocus}
+            placeholder={staged.length > 0 ? "Add a message" : placeholder}
             accessibilityLabel="Message"
             // A message field never needs AutoFill suggestions.
             autoComplete="off"

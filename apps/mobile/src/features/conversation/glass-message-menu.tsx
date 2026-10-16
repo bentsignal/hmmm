@@ -199,6 +199,7 @@ export function GlassMessageMenu({
   target,
   onReact,
   onViewReactions,
+  onReply,
   onClosing,
   onClosed,
 }: {
@@ -206,6 +207,8 @@ export function GlassMessageMenu({
   onReact: (emoji: string) => void;
   /** Opens the sheet of who reacted with what, on one emoji if given. */
   onViewReactions: (emoji?: string) => void;
+  /** The Reply action, in a conversation (not a thread). */
+  onReply?: () => void;
   /** The overlay starts playing back into place. */
   onClosing?: () => void;
   /**
@@ -221,7 +224,7 @@ export function GlassMessageMenu({
   const reactorsMax = screen.width - EDGE * 2;
   const actions = showReactors
     ? []
-    : menuActions(target, { close: (then) => close(then), onViewReactions });
+    : menuActions(target, { close, onReply, onViewReactions });
   const layout = menuLayout({
     align: target.align,
     bar: { height: BAR_HEIGHT, width: BAR_WIDTH },

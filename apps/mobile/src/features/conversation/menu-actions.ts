@@ -4,18 +4,38 @@ import { canCopy, copyText, selectionTick } from "~/lib/native-extras";
 import { linkActions } from "./link-actions";
 import { canSaveToPhotos, saveToPhotos } from "./save-media";
 
+/** Reply, in a conversation (not a thread). */
+function replyAction(
+  onReply: (() => void) | undefined,
+  close: (then?: () => void, toChat?: boolean) => void,
+) {
+  if (onReply === undefined) return [];
+  return [
+    {
+      icon: { android: "reply", ios: "arrowshape.turn.up.left" },
+      label: "Reply",
+      // Back to the conversation, where the field takes the reply (or on
+      // into the thread, which brings its own keyboard).
+      onPress: () => close(onReply, true),
+    } satisfies MenuAction,
+  ];
+}
+
 /**
- * A held link's actions, Save to Photos for a held photo or video, then
- * Copy for text (the whole message, links and all), and View Reactions
- * once anyone has reacted.
+ * Reply first (in a conversation), then a held link's actions, Save to
+ * Photos for a held photo or video, Copy for text (the whole message,
+ * links and all), and View Reactions once anyone has reacted.
  */
 export function menuActions(
   { attachment, link, message }: MenuTarget,
   {
     close,
+    onReply,
     onViewReactions,
   }: {
-    close: (then?: () => void) => void;
+    /** Closes the menu, then runs `then`; `toChat` keeps the keyboard. */
+    close: (then?: () => void, toChat?: boolean) => void;
+    onReply?: () => void;
     onViewReactions: () => void;
   },
 ) {
@@ -59,5 +79,11 @@ export function menuActions(
           } satisfies MenuAction,
         ]
       : [];
-  return [...linkActions(link, close), ...save, ...copy, ...viewReactions];
+  return [
+    ...replyAction(onReply, close),
+    ...linkActions(link, close),
+    ...save,
+    ...copy,
+    ...viewReactions,
+  ];
 }

@@ -2,6 +2,7 @@ import type {
   Attachment,
   LinkCard,
   Mention,
+  Quote,
 } from "@decentralized-convex/messages";
 import { useSyncExternalStore } from "react";
 import * as Crypto from "expo-crypto";
@@ -39,6 +40,21 @@ export interface OutgoingMessage {
   readonly sentAt: number;
   /** "sent" once the PDS has it; it stays to keep showing local media. */
   readonly status: "failed" | "sending" | "sent";
+  /** A reply's thread, and where it shows (see `OutgoingReply`). */
+  readonly reply?: OutgoingReply;
+}
+
+/** Where a reply this device is sending goes. */
+export interface OutgoingReply {
+  /** The message it answers. */
+  readonly threadId: string;
+  /** What it quotes of that message, in its card in the conversation. */
+  readonly quote: Quote;
+  /**
+   * Whether it shows in the conversation too: the thread's first reply.
+   * It starts out as this device expects, and the PDS has the last word.
+   */
+  readonly inChat: boolean;
 }
 
 /** A message to send, with its first link cards (`useLinkPrefetch`). */
@@ -47,6 +63,8 @@ export interface OutgoingDraft {
   readonly files: readonly StagedFile[];
   readonly linkPreviews: readonly LinkCard[];
   readonly mentions: readonly Mention[];
+  /** Set for a reply in a thread. */
+  readonly reply?: OutgoingReply;
 }
 
 /** How many uploads run at once across every message. */
@@ -218,11 +236,21 @@ async function send(
         // Undefined (left out) when empty: older servers don't take it.
         mentions: message.mentions,
         messageId,
+        threadId: message.reply?.threadId,
       }),
     )
     .then(
-      () => {
-        update(messageId, (current) => ({ ...current, status: "sent" }));
+      (sent) => {
+        update(messageId, (current) => ({
+          ...current,
+          // Someone else's reply got there first: this one stays in the
+          // thread.
+          reply:
+            current.reply === undefined
+              ? undefined
+              : { ...current.reply, inChat: sent.threadOnly !== true },
+          status: "sent",
+        }));
         return true;
       },
       () => false,
@@ -277,15 +305,11 @@ function failed(message: OutgoingMessage) {
  * Sends a message, shown in the conversation right away with this
  * device's copies of its attachments while they upload.
  */
-export function sendOutgoing({
-  session,
-  conversationId,
-  draft: { body, files, linkPreviews, mentions },
-}: {
-  session: AccountSession;
-  conversationId: string;
-  draft: OutgoingDraft;
-}) {
+export function sendOutgoing(
+  session: AccountSession,
+  conversationId: string,
+  { body, files, linkPreviews, mentions, reply }: OutgoingDraft,
+) {
   const messageId = Crypto.randomUUID();
   sessions.set(messageId, session);
   outbox = [
@@ -302,6 +326,7 @@ export function sendOutgoing({
       linkPreviews: linkPreviews.length > 0 ? [...linkPreviews] : undefined,
       mentions: mentions.length > 0 ? [...mentions] : undefined,
       messageId,
+      reply,
       sentAt: Date.now(),
       status: "sending",
     },

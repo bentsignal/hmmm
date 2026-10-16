@@ -15,6 +15,8 @@ import { useNotificationSettings } from "~/features/settings/notification-settin
 
 const KINDS = [
   { kind: "directMessages", label: "Direct Messages" },
+  { kind: "replies", label: "Replies to Your Messages" },
+  { kind: "threadReplies", label: "Thread Replies" },
   { kind: "reactions", label: "Reactions" },
   { kind: "invites", label: "Space Invites" },
 ] as const satisfies readonly { kind: NotificationKind; label: string }[];
@@ -77,14 +79,17 @@ export default function NotificationSettingsScreen() {
                     <OptimisticSwitch
                       key={kind}
                       label={label}
-                      value={settings[kind]}
+                      // Servers from before threads leave replies out:
+                      // they're on.
+                      value={settings[kind] ?? true}
                       onChange={(on) => set(kind, on)}
                     />
                   ))}
                   <FieldGroup.SectionFooter>
                     <Text>
-                      To quiet one person, touch and hold them in your Inbox and
-                      choose Hide Alerts.
+                      Thread Replies are new replies in threads you're in. To
+                      quiet one person, touch and hold them in your Inbox and
+                      choose Hide Alerts. To quiet one thread, tap its bell.
                     </Text>
                   </FieldGroup.SectionFooter>
                 </FieldGroup.Section>

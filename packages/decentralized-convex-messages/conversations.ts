@@ -2,12 +2,8 @@ import type { OperationArgs } from "@decentralized-convex/plugin";
 
 import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { MessagePage } from "./paging.ts";
-import type { Attachment, messagesProtocol } from "./protocol.ts";
-import { internal } from "./_generated/api.js";
+import type { messagesProtocol } from "./protocol.ts";
 import { alertsFor } from "./alerts.ts";
-import { cardsForMessage, GIVE_UP_AFTER_MS } from "./linkCache.ts";
-import { previewedUrls } from "./links.ts";
-import { recordMentions, validMentions } from "./mentions.ts";
 import {
   fail,
   findAccess,
@@ -25,8 +21,7 @@ import {
   upsertMember,
 } from "./model.ts";
 import { directConversationId } from "./naming.ts";
-import { around, newerThan, olderThan } from "./paging.ts";
-import { startFetches } from "./previews.ts";
+import { around, pageOf } from "./paging.ts";
 import { notificationSettings } from "./settings.ts";
 import { seeConversationActivity } from "./sightings.ts";
 
@@ -36,8 +31,6 @@ type Args<Operation extends keyof Mutations> = OperationArgs<
   Mutations[Operation]
 >;
 
-const MAX_BODY_LENGTH = 4_000;
-const MAX_ATTACHMENTS = 10;
 const MAX_GROUP_MEMBERS = 50;
 
 async function insertMembers(
@@ -151,78 +144,6 @@ export async function leaveConversation(
   return null;
 }
 
-/**
- * A new message's link cards: they start out from what was prefetched while
- * the message was typed, and the rest fill in as their fetches finish.
- */
-async function startLinkCards(
-  ctx: MutationCtx,
-  messageId: string,
-  body: string,
-  now: number,
-) {
-  const links = previewedUrls(body);
-  if (links.length === 0) return undefined;
-  const { cards, toFetch, waiting } = await cardsForMessage(
-    ctx,
-    messageId,
-    links,
-    now,
-  );
-  if (waiting.length > 0) {
-    await startFetches(ctx, toFetch);
-    await ctx.scheduler.runAfter(GIVE_UP_AFTER_MS, internal.previews.giveUp, {
-      messageId,
-    });
-  }
-  return cards;
-}
-
-export async function send(
-  ctx: MutationCtx,
-  self: string,
-  authorName: string,
-  args: Args<"send">,
-) {
-  const access = await requireAccess(ctx, args.conversationId, self);
-  const body = args.body.trim();
-  validateMessage(body, args.attachments);
-
-  const existing = await ctx.db
-    .query("messages")
-    .withIndex("by_message", (index) => index.eq("messageId", args.messageId))
-    .unique();
-  if (existing !== null) {
-    // A retried send returns the original; another author's ID is taken.
-    if (existing.authorId !== self) fail("MESSAGE_ID_TAKEN");
-    return toMessage(existing);
-  }
-
-  const sentAt = Date.now();
-  const linkPreviews = await startLinkCards(ctx, args.messageId, body, sentAt);
-  const mentions = await validMentions(ctx, access, self, body, args.mentions);
-  const message = {
-    attachments: args.attachments,
-    authorId: self,
-    authorName,
-    body,
-    conversationId: args.conversationId,
-    linkPreview: linkPreviews?.[0]?.preview ?? undefined,
-    linkPreviews,
-    mentions: mentions.length > 0 ? mentions : undefined,
-    messageId: args.messageId,
-    sentAt,
-  };
-  await ctx.db.insert("messages", message);
-  await recordMentions(ctx, message);
-  await ctx.db.patch(access.conversation._id, { updatedAt: sentAt });
-  await upsertMember(ctx, access, self, { lastReadAt: sentAt });
-  await ctx.scheduler.runAfter(0, internal.notifications.send, {
-    messageId: args.messageId,
-  });
-  return { ...message, linkPreview: message.linkPreview ?? null };
-}
-
 export async function markRead(
   ctx: MutationCtx,
   self: string,
@@ -260,49 +181,17 @@ export async function list(
     args.conversationId,
     self,
   );
-  const { after, around: anchor, before, conversationId } = args;
+  const { around: anchor, conversationId } = args;
   let page: MessagePage;
-  if (anchor !== undefined) {
+  if (anchor === undefined) {
+    page = await pageOf(ctx, { conversationId }, args);
+  } else {
     const centered = await around(ctx, conversationId, anchor);
     if (centered === null) fail("MESSAGE_NOT_FOUND");
     page = centered;
-  } else if (after === undefined) {
-    const older = await olderThan(ctx, conversationId, before);
-    page = {
-      hasNewer: before !== undefined,
-      hasOlder: older.hasMore,
-      messages: older.messages,
-    };
-  } else {
-    const newer = await newerThan(ctx, conversationId, after);
-    page = {
-      hasNewer: newer.hasMore,
-      hasOlder: true,
-      messages: newer.messages,
-    };
   }
   return {
     page: { ...page, messages: page.messages.map(toMessage) },
     routes: await memberAddresses(ctx, found),
   };
-}
-
-function validateMessage(body: string, attachments: readonly Attachment[]) {
-  if (body.length === 0 && attachments.length === 0) fail("EMPTY_MESSAGE");
-  if (body.length > MAX_BODY_LENGTH) fail("INVALID_MESSAGE_BODY");
-  if (attachments.length > MAX_ATTACHMENTS) fail("TOO_MANY_ATTACHMENTS");
-  const urls = attachments.flatMap((attachment) =>
-    attachment.thumbnailUrl === undefined
-      ? [attachment.url]
-      : [attachment.url, attachment.thumbnailUrl],
-  );
-  if (!urls.every(isHttpsUrl)) fail("INVALID_ATTACHMENT");
-}
-
-function isHttpsUrl(value: string) {
-  try {
-    return new URL(value).protocol === "https:";
-  } catch {
-    return false;
-  }
 }

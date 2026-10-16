@@ -5,11 +5,11 @@ import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { CreatedKind } from "./naming.ts";
 import type { AlertLevel, Conversation, Message } from "./protocol.ts";
 import { chosenAlerts } from "./alertChoice.ts";
+import { latestMessage, unreadCount } from "./chatMessages.ts";
 import { createdId, isCreatedId } from "./naming.ts";
 
 const ADDRESS_PATTERN = /^[a-z0-9][a-z0-9._-]{1,31}@[a-z0-9-]+(\.[a-z0-9-]+)+$/;
 const MAX_NAME_LENGTH = 80;
-const MAX_UNREAD = 99;
 
 export function fail(code: string): never {
   throw new ConvexError({ code });
@@ -281,33 +281,11 @@ export function toMessage(message: Doc<"messages">): Message {
     linkPreviews: message.linkPreviews,
     mentions: message.mentions,
     messageId: message.messageId,
+    quote: message.quote,
     sentAt: message.sentAt,
+    threadId: message.threadId,
+    threadOnly: message.threadOnly,
   };
-}
-
-export function latestMessage(ctx: QueryCtx, conversationId: string) {
-  return ctx.db
-    .query("messages")
-    .withIndex("by_conversation_sent", (index) =>
-      index.eq("conversationId", conversationId),
-    )
-    .order("desc")
-    .first();
-}
-
-export async function unreadCount(
-  ctx: QueryCtx,
-  conversationId: string,
-  accountId: string,
-  lastReadAt: number,
-) {
-  const unread = await ctx.db
-    .query("messages")
-    .withIndex("by_conversation_sent", (index) =>
-      index.eq("conversationId", conversationId).gt("sentAt", lastReadAt),
-    )
-    .take(MAX_UNREAD + 1);
-  return unread.filter((message) => message.authorId !== accountId).length;
 }
 
 /**

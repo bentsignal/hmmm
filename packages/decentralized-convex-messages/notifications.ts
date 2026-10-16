@@ -1,22 +1,16 @@
 import { v } from "convex/values";
 
-import type { Doc } from "./_generated/dataModel.js";
-import type { QueryCtx } from "./_generated/server.js";
+import type { ReplyPush } from "./listeners.ts";
 import { internal } from "./_generated/api.js";
 import {
   internalAction,
   internalMutation,
   internalQuery,
 } from "./_generated/server.js";
-import { alerts, alertsFor } from "./alerts.ts";
 import { badgeCount } from "./badges.ts";
 import { badgeCounts, badgeField, deliver } from "./delivery.ts";
-import {
-  findAccess,
-  getConversation,
-  getSpace,
-  memberAddresses,
-} from "./model.ts";
+import { listeners } from "./listeners.ts";
+import { getConversation, getSpace, memberAddresses } from "./model.ts";
 import { listNames } from "./naming.ts";
 import {
   accountProfile,
@@ -25,28 +19,9 @@ import {
   displayNames,
   previewText,
 } from "./pushParts.ts";
-import { notificationSettings, wantsPush } from "./settings.ts";
+import { wantsPush } from "./settings.ts";
 
-/**
- * Whether a message pushes to a member: the conversation alerts them
- * about it (everything, or messages that @mention them), and they have
- * pushes on (and, for a direct message, direct message pushes).
- */
-async function pushesTo(
-  ctx: QueryCtx,
-  message: Doc<"messages">,
-  conversation: Doc<"conversations">,
-  accountId: string,
-) {
-  const access = await findAccess(ctx, conversation.conversationId, accountId);
-  if (access === null) return false;
-  const settings = await notificationSettings(ctx, accountId);
-  if (!alerts(alertsFor(access, settings), message, accountId)) return false;
-  if (conversation.kind === "direct" && !settings.directMessages) return false;
-  return settings.enabled;
-}
-
-/** Who to notify about a message (see `pushesTo`), and what to show them. */
+/** Who to notify about a message (see `listeners`), and what to show them. */
 export const targets = internalQuery({
   args: { messageId: v.string() },
   handler: async (ctx, { messageId }) => {
@@ -59,15 +34,30 @@ export const targets = internalQuery({
     if (conversation === null) return null;
 
     const members = await memberAddresses(ctx, conversation);
-    const recipients: { accountId: string; token: string }[] = [];
-    for (const accountId of members) {
-      if (accountId === message.authorId) continue;
-      if (!(await pushesTo(ctx, message, conversation, accountId))) continue;
+    const recipients: {
+      accountId: string;
+      reply: ReplyPush;
+      threads: boolean;
+      token: string;
+    }[] = [];
+    for (const { accountId, reply } of await listeners(
+      ctx,
+      message,
+      conversation,
+      members,
+    )) {
       const rows = await ctx.db
         .query("pushTokens")
         .withIndex("by_account", (index) => index.eq("accountId", accountId))
         .collect();
-      recipients.push(...rows.map(({ token }) => ({ accountId, token })));
+      recipients.push(
+        ...rows.map(({ threads, token }) => ({
+          accountId,
+          reply,
+          threads: threads === true,
+          token,
+        })),
+      );
     }
     return {
       body: previewText(message),
@@ -84,16 +74,28 @@ export const targets = internalQuery({
       recipients,
       senderId: message.authorId,
       senderName: message.authorName,
+      threadId: message.threadId ?? null,
+      threadOnly: message.threadOnly === true,
     };
   },
 });
+
+/** A reply push's body: what it is, then the reply. */
+function replyBody(reply: ReplyPush, body: string) {
+  if (reply === null) return body;
+  const what =
+    reply === "yours" ? "Replied to your message" : "Replied in a thread";
+  return body.length === 0 ? what : `${what}: ${body}`;
+}
+
 /**
  * The account's app icon badge (see `badgeCount`), read in its own query so
  * a push to a large space doesn't count every member in one transaction.
  */
 export const badge = internalQuery({
-  args: { accountId: v.string() },
-  handler: (ctx, { accountId }) => badgeCount(ctx, accountId),
+  args: { accountId: v.string(), threads: v.optional(v.boolean()) },
+  handler: (ctx, { accountId, threads }) =>
+    badgeCount(ctx, accountId, { mentions: true, threads: threads === true }),
 });
 
 /** Who to tell about new space invitations, and the space's name. */
@@ -102,7 +104,11 @@ export const inviteTargets = internalQuery({
   handler: async (ctx, { accountIds, spaceId }) => {
     const space = await getSpace(ctx, spaceId);
     if (space === null) return null;
-    const recipients: { accountId: string; token: string }[] = [];
+    const recipients: {
+      accountId: string;
+      threads: boolean;
+      token: string;
+    }[] = [];
     for (const accountId of accountIds) {
       // Skip anyone who already answered before this ran.
       const invite = await ctx.db
@@ -117,7 +123,13 @@ export const inviteTargets = internalQuery({
         .query("pushTokens")
         .withIndex("by_account", (index) => index.eq("accountId", accountId))
         .collect();
-      recipients.push(...rows.map(({ token }) => ({ accountId, token })));
+      recipients.push(
+        ...rows.map(({ threads, token }) => ({
+          accountId,
+          threads: threads === true,
+          token,
+        })),
+      );
     }
     return { recipients, spaceName: space.name };
   },
@@ -154,11 +166,22 @@ export const send = internalAction({
 
     await deliver(
       ctx,
-      target.recipients.map(({ accountId, token }) => {
+      target.recipients.map(({ accountId, reply, threads, token }) => {
         const conversationName = conversationNameFor(accountId);
+        // A reply kept in its thread opens the thread. Its `messageId` is
+        // the original, where apps from before threads open the
+        // conversation, since the reply isn't in it.
+        const thread =
+          target.threadOnly && target.threadId !== null
+            ? {
+                messageId: target.threadId,
+                replyId: target.messageId,
+                threadId: target.threadId,
+              }
+            : {};
         return {
-          ...badgeField(badges.get(accountId)),
-          body: target.body,
+          ...badgeField(badges, { accountId, threads }),
+          body: replyBody(reply, target.body),
           // A device signed into several accounts opens the message as
           // the account it was sent to.
           data: {
@@ -170,6 +193,7 @@ export const send = internalAction({
             senderAvatarUrl: sender?.avatarUrl ?? null,
             senderId: target.senderId,
             senderName,
+            ...thread,
           },
           ...ANDROID_DELIVERY,
           // Lets the iOS Notification Service Extension rewrite it.
@@ -209,8 +233,8 @@ export const sendInvite = internalAction({
     const inviterName = inviter?.displayName ?? invitedBy.split("@")[0];
     await deliver(
       ctx,
-      target.recipients.map(({ accountId, token }) => ({
-        ...badgeField(badges.get(accountId)),
+      target.recipients.map(({ accountId, threads, token }) => ({
+        ...badgeField(badges, { accountId, threads }),
         body: `${inviterName} invited you to join ${target.spaceName}`,
         data: {
           accountId,

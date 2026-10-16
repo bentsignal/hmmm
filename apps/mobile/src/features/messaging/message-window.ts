@@ -67,18 +67,30 @@ function anchoredWindow(messageId: string) {
   } satisfies View;
 }
 
-/** Combines what every PDS returned for one page cursor. */
+/** What a window pages through: a conversation, or one thread in it. */
+export interface WindowSource {
+  readonly conversationId: string;
+  /** The thread's original message, for a thread's replies. */
+  readonly threadId?: string;
+}
+
+/**
+ * Combines what every PDS returned for one page cursor. A thread's page
+ * also has its original, from whichever PDS stores it.
+ */
 function mergeSources(
   sources: readonly {
     hasNewer: boolean;
     hasOlder: boolean;
     messages: PdsMessage[];
+    root?: PdsMessage | null;
   }[],
 ) {
   return {
     hasNewer: sources.some((source) => source.hasNewer),
     hasOlder: sources.some((source) => source.hasOlder),
     messages: sources.flatMap((source) => source.messages),
+    root: sources.find((source) => source.root != null)?.root ?? null,
   };
 }
 
@@ -96,7 +108,7 @@ function mergePages(pages: readonly { data?: { messages: PdsMessage[] } }[]) {
   );
 }
 
-function pageQuery(
+function listPageQuery(
   session: string,
   conversationId: string,
   cursor: PageCursor,
@@ -114,6 +126,25 @@ function pageQuery(
   });
 }
 
+function threadPageQuery(
+  session: string,
+  { conversationId, threadId }: Required<WindowSource>,
+  cursor: PageCursor,
+) {
+  return pdsQuery({
+    // A thread always opens at its latest replies.
+    args: { conversationId, threadId, ...("around" in cursor ? {} : cursor) },
+    options: {
+      select: (result) => {
+        const sources = pdsResult(result);
+        return sources === undefined ? undefined : mergeSources(sources);
+      },
+    },
+    query: pds.messages.thread,
+    session,
+  });
+}
+
 /**
  * Starts loading the pages a conversation opens with at its latest
  * message, ahead of the window that will show them.
@@ -123,27 +154,40 @@ export function prefetchLatestMessages(
   session: string,
   conversationId: string,
 ) {
-  for (const cursor of latestWindow(`${session} ${conversationId}`).pages) {
-    void queryClient.prefetchQuery(pageQuery(session, conversationId, cursor));
+  const windowKey = windowKeyOf(session, { conversationId });
+  for (const cursor of latestWindow(windowKey).pages) {
+    void queryClient.prefetchQuery(
+      listPageQuery(session, conversationId, cursor),
+    );
   }
 }
 
+function windowKeyOf(session: string, source: WindowSource) {
+  return [session, source.conversationId, source.threadId ?? ""].join(" ");
+}
+
 /**
- * A scrollable window over a conversation, oldest first, that can open at
- * the latest message or around a specific one and grow in either direction.
+ * A scrollable window over a conversation (or a thread's replies), oldest
+ * first, that can open at the latest message or around a specific one and
+ * grow in either direction.
  */
 export function useMessageWindow(
   session: string,
-  conversationId: string,
+  source: WindowSource,
   anchor?: string,
 ) {
-  const windowKey = `${session} ${conversationId}`;
+  const windowKey = windowKeyOf(session, source);
   const [view, setView] = useState<View>(() =>
-    anchor === undefined ? latestWindow(windowKey) : anchoredWindow(anchor),
+    anchor === undefined || source.threadId !== undefined
+      ? latestWindow(windowKey)
+      : anchoredWindow(anchor),
   );
+  const { conversationId, threadId } = source;
   const pages = useQueries({
     queries: view.pages.map((cursor) =>
-      pageQuery(session, conversationId, cursor),
+      threadId === undefined
+        ? listPageQuery(session, conversationId, cursor)
+        : threadPageQuery(session, { conversationId, threadId }, cursor),
     ),
   });
 
@@ -191,6 +235,19 @@ export function useMessageWindow(
       (page) => page.data?.messages.map((message) => message.messageId) ?? [],
     ),
     /**
+     * Each loaded page's threads: its messages' and its replies' (whose
+     * original may be on another page), for per-page summary queries.
+     */
+    pageThreadIds: pages.map((page) => [
+      ...new Set(
+        page.data?.messages.map(
+          (message) => message.threadId ?? message.messageId,
+        ) ?? [],
+      ),
+    ]),
+    /** A thread's original message, once a page has it. */
+    root: pages.find((page) => page.data?.root != null)?.data?.root ?? null,
+    /**
      * Each page by key, oldest first, with its message IDs once it has
      * loaded, and whether it is one the window opened with.
      */
@@ -199,6 +256,10 @@ export function useMessageWindow(
       key: pageKey(cursor),
       messageIds: pages[index]?.data?.messages.map(
         (message) => message.messageId,
+      ),
+      /** Its messages' threads (a reply's is its original). */
+      threadIds: pages[index]?.data?.messages.map(
+        (message) => message.threadId ?? message.messageId,
       ),
     })),
     /** Changes whenever the window reopens, so lists can remount. */

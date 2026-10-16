@@ -77,7 +77,7 @@ async function sendAs(
     authorName: author,
     body,
     conversationId,
-    mentions: mentions.length > 0 ? mentions : undefined,
+    mentions,
     messageId: `${conversationId}:${Date.now()}:${body}`,
     sentAt: Date.now(),
   };
