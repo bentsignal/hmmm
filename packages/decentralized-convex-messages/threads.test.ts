@@ -86,7 +86,10 @@ void test("a thread's first reply shows in the conversation, later ones don't", 
     shown.messages.map(({ messageId }) => messageId),
     ["root", "first"],
   );
-  const page = await thread(ctx, ME, { conversationId: GROUP, threadId: "root" });
+  const page = await thread(ctx, ME, {
+    conversationId: GROUP,
+    threadId: "root",
+  });
   assert.equal(page.page.root?.messageId, "root");
   assert.deepEqual(
     page.page.messages.map(({ messageId }) => messageId),

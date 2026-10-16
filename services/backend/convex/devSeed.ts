@@ -158,7 +158,11 @@ async function seedThread(
 ) {
   const threadId = crypto.randomUUID();
   const posts = [
-    { body: "Who's in for the lake on Saturday?", by: maya, threadId: undefined },
+    {
+      body: "Who's in for the lake on Saturday?",
+      by: maya,
+      threadId: undefined,
+    },
     { body: "I'm in! Can bring the cooler", by: jonah, threadId },
     { body: "Only if we leave after 10", by: priya, threadId },
     { body: "10 works. I'll drive", by: maya, threadId },

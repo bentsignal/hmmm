@@ -3,7 +3,6 @@ import type { OperationArgs } from "@decentralized-convex/plugin";
 import type { Doc } from "./_generated/dataModel.js";
 import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { messagesProtocol, Space } from "./protocol.ts";
-import { deleteThreads } from "./threads.ts";
 import {
   fail,
   getConversation,
@@ -18,6 +17,7 @@ import {
   unreadCount,
 } from "./model.ts";
 import { channelName } from "./naming.ts";
+import { deleteThreads } from "./threads.ts";
 
 type Mutations = (typeof messagesProtocol)["mutations"];
 type Args<Operation extends keyof Mutations> = OperationArgs<

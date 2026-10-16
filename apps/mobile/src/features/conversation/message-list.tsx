@@ -251,7 +251,9 @@ function Rows({
       // A thread starts at the top, under its original, until it fills
       // the screen. (Inverted, the content's end is the top.)
       contentContainerStyle={
-        thread === undefined ? undefined : { flexGrow: 1, justifyContent: "flex-end" }
+        thread === undefined
+          ? undefined
+          : { flexGrow: 1, justifyContent: "flex-end" }
       }
       // Room under the newest message for the composer floating over it,
       // which grows as you type, and above the oldest for the header: the

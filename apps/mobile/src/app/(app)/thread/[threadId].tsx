@@ -7,16 +7,19 @@ import type { MessageListHandle } from "~/features/conversation/message-list";
 import { useComposerBottomInset } from "~/features/conversation/composer";
 import { FloatingComposer } from "~/features/conversation/floating-composer";
 import { MessageList } from "~/features/conversation/message-list";
-import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
 import {
   THREAD_HEADER_HEIGHT,
   ThreadHeader,
 } from "~/features/conversation/thread-header";
+import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
 import { useDevTools } from "~/features/dev/dev-tools";
 import { AccountScope, useAccount } from "~/features/messaging/account";
 import { useConversation } from "~/features/messaging/conversations";
 import { useMessages } from "~/features/messaging/messages";
-import { useMarkThreadRead, useThreadState } from "~/features/messaging/threads";
+import {
+  useMarkThreadRead,
+  useThreadState,
+} from "~/features/messaging/threads";
 import { useActiveThread } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
 

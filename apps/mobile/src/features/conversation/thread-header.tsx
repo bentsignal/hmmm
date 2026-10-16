@@ -72,19 +72,19 @@ export function ThreadHeader({
             {/* Once loaded, its glass materializes. */}
             {following !== undefined && (
               <GlassCircleButton
-                  materialize
-                  icon={
-                    following
-                      ? { android: "notifications", ios: "bell" }
-                      : { android: "notifications_off", ios: "bell.slash" }
-                  }
-                  label={
-                    following
-                      ? "Turn Off Notifications for This Thread"
-                      : "Turn On Notifications for This Thread"
-                  }
-                  onPress={onToggleFollowing}
-                />
+                materialize
+                icon={
+                  following
+                    ? { android: "notifications", ios: "bell" }
+                    : { android: "notifications_off", ios: "bell.slash" }
+                }
+                label={
+                  following
+                    ? "Turn Off Notifications for This Thread"
+                    : "Turn On Notifications for This Thread"
+                }
+                onPress={onToggleFollowing}
+              />
             )}
           </View>
         </View>

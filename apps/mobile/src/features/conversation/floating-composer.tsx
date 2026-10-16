@@ -10,12 +10,12 @@ import type {
   StagedFile,
 } from "~/features/messaging/attachments";
 import type { PastedImage } from "~/lib/paste-images";
+import { useAccount } from "~/features/messaging/account";
 import {
   MAX_ATTACHMENTS,
   pickAttachments,
   stagePasted,
 } from "~/features/messaging/attachments";
-import { useAccount } from "~/features/messaging/account";
 import { useLinkPrefetch } from "~/features/messaging/link-previews";
 import { Composer, useComposerBottomInset } from "./composer";
 import {

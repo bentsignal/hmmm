@@ -13,6 +13,8 @@ import {
 } from "~/features/conversation/conversation-header";
 import { FloatingComposer } from "~/features/conversation/floating-composer";
 import { MessageList } from "~/features/conversation/message-list";
+import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
+import { useReplies } from "~/features/conversation/use-replies";
 import { useDevConversation } from "~/features/dev/dev-conversation";
 import { useDevTools } from "~/features/dev/dev-tools";
 import { AccountScope, useAccount } from "~/features/messaging/account";
@@ -20,8 +22,6 @@ import { useConversation } from "~/features/messaging/conversations";
 import { useMarkRead, useMessages } from "~/features/messaging/messages";
 import { useActiveConversation } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
-import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
-import { useReplies } from "~/features/conversation/use-replies";
 
 /** The other person in a direct conversation, whose photo heads it. */
 function otherMember(

@@ -115,7 +115,9 @@ function footnote(entry: ActivityEntry, showAccount: boolean) {
   if (item.kind === "reactions" && kind !== "direct") parts.push(`in ${title}`);
   if (spaceName !== undefined) parts.push(spaceName);
   if (item.kind !== "reactions" && item.count > 1) {
-    parts.push(counted(item.count, item.kind === "thread" ? "replies" : "messages"));
+    parts.push(
+      counted(item.count, item.kind === "thread" ? "replies" : "messages"),
+    );
   }
   if (showAccount) parts.push(usernameOf(entry.account));
   return parts.join(" · ");

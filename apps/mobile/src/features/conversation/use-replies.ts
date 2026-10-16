@@ -64,7 +64,10 @@ export function useReplies({
     cancel: () => setReplyTo(undefined),
     openThread: (message: Message) => openThread(message),
     reply: (message: Message) => {
-      if (message.threadId !== undefined || threadOf(message.id) !== undefined) {
+      if (
+        message.threadId !== undefined ||
+        threadOf(message.id) !== undefined
+      ) {
         openThread(message, true);
         return;
       }

@@ -73,10 +73,10 @@ export default function NotificationSettingsScreen() {
                   <FieldGroup.SectionFooter>
                     <Text>
                       Thread Replies are new replies in threads you're in. To
-                      quiet one person, group, or channel, touch and hold it
-                      in your Inbox and choose Hide Alerts. To quiet a whole
-                      space, turn on Hide Alerts in the space. To quiet one
-                      thread, tap its bell.
+                      quiet one person, group, or channel, touch and hold it in
+                      your Inbox and choose Hide Alerts. To quiet a whole space,
+                      turn on Hide Alerts in the space. To quiet one thread, tap
+                      its bell.
                     </Text>
                   </FieldGroup.SectionFooter>
                 </FieldGroup.Section>

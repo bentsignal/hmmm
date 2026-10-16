@@ -165,7 +165,11 @@ export async function addReply(
  * stored here too, and the conversation's member addresses so the client
  * also asks every member's PDS.
  */
-export async function thread(ctx: QueryCtx, self: string, args: Args<"thread">) {
+export async function thread(
+  ctx: QueryCtx,
+  self: string,
+  args: Args<"thread">,
+) {
   const { conversation } = await requireAccess(ctx, args.conversationId, self);
   const page = await pageOf(ctx, { threadId: args.threadId }, args);
   const root = await messageById(ctx, args.threadId);

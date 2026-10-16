@@ -14,8 +14,6 @@ import { pendingInvites } from "./model.ts";
  * accounts shows the sum once the app is open.
  */
 export async function badgeCount(ctx: QueryCtx, accountId: string) {
-  const unseen = (await activity(ctx, accountId, true)).filter(
-    isUnseen,
-  ).length;
+  const unseen = (await activity(ctx, accountId, true)).filter(isUnseen).length;
   return unseen + (await pendingInvites(ctx, accountId)).length;
 }

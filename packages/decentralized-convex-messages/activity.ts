@@ -185,7 +185,11 @@ async function threadItem(
   if (found === null || !isHeard(found)) return null;
   const key = threadKey(threadId);
   const { goneThrough, seen } = await seenState(ctx, self, key, now);
-  const since = Math.max(goneThrough, now - ACTIVITY_HORIZON, found.alertsSince);
+  const since = Math.max(
+    goneThrough,
+    now - ACTIVITY_HORIZON,
+    found.alertsSince,
+  );
   const newer = ctx.db
     .query("messages")
     .withIndex("by_thread_sent", (index) =>
@@ -313,11 +317,7 @@ async function reactionItems(
  *
  * Only this PDS's messages and reactions are listed, like the inbox.
  */
-export async function activity(
-  ctx: QueryCtx,
-  self: string,
-  threads = false,
-) {
+export async function activity(ctx: QueryCtx, self: string, threads = false) {
   const now = Date.now();
   const lookups = {
     accessTo: accessFinder(ctx, self),

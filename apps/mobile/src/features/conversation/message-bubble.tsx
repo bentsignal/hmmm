@@ -19,12 +19,7 @@ import { MenuTargetView } from "./message-actions";
 import { InteractiveMessage, TopPart } from "./message-reactions";
 import { NotSent, SendingFade } from "./message-status";
 import { linkCardsOf, visibleBody } from "./message-text";
-import {
-  QUOTE_GAP,
-  QuoteBubble,
-  ReplyCurve,
-  ThreadFooter,
-} from "./reply-card";
+import { QUOTE_GAP, QuoteBubble, ReplyCurve, ThreadFooter } from "./reply-card";
 import { replyIndent } from "./reply-parts";
 import { RevealedTime, SlideWithReveal } from "./reveal";
 import { TAPBACK_SPACE } from "./tapbacks";
@@ -247,9 +242,7 @@ function BubbleColumn({
       </InteractiveMessage>
       <NotSent message={message} />
       {card !== undefined && (
-        <View
-          style={replyIndent(isOwn)}
-        >
+        <View style={replyIndent(isOwn)}>
           <ThreadFooter message={message} card={card} isOwn={isOwn} />
         </View>
       )}

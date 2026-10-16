@@ -30,7 +30,6 @@ export interface ReplyCard {
   readonly repliers: readonly Person[];
 }
 
-
 /** Where the curve leaves the quote, from the quote's edge. */
 const CURVE_INSET = 12;
 /** The curve's line. */
@@ -82,10 +81,7 @@ export function QuoteBubble({
       label={`Reply to ${author.displayName}, open thread`}
       className="border-separator max-w-full rounded-[16px] border px-3 py-1.5"
     >
-      <Text
-        numberOfLines={1}
-        className="text-caption text-muted font-semibold"
-      >
+      <Text numberOfLines={1} className="text-caption text-muted font-semibold">
         {author.displayName}
       </Text>
       <Text numberOfLines={2} className="text-footnote text-muted">
@@ -135,7 +131,6 @@ export function ReplyCurve({
   );
 }
 
-
 /**
  * Stacked rows' quote, Discord-style: a curve from the reply's photo up
  * to a line naming the original's author and its start.
@@ -170,10 +165,7 @@ export function QuoteLine({
         className="shrink flex-row items-center gap-1.5 pl-1"
       >
         <Avatar name={author.displayName} size="xs" uri={author.avatarUrl} />
-        <Text
-          numberOfLines={1}
-          className="text-footnote text-muted shrink"
-        >
+        <Text numberOfLines={1} className="text-footnote text-muted shrink">
           <Text className="font-semibold">{author.displayName}</Text>{" "}
           {quoteText(quote)}
         </Text>
@@ -210,7 +202,11 @@ export function ThreadFooter({
             className="border-background rounded-full border"
             style={{ marginLeft: index === 0 ? 0 : -6 }}
           >
-            <Avatar name={person.displayName} size="xs" uri={person.avatarUrl} />
+            <Avatar
+              name={person.displayName}
+              size="xs"
+              uri={person.avatarUrl}
+            />
           </View>
         ))}
       </View>

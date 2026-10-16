@@ -38,11 +38,7 @@ export function MessageStacked({
   return (
     <View>
       {card !== undefined && (
-        <QuoteLine
-          message={message}
-          card={card}
-          avatarColumn={AVATAR_COLUMN}
-        />
+        <QuoteLine message={message} card={card} avatarColumn={AVATAR_COLUMN} />
       )}
       <StackedRow
         message={message}
