@@ -3,9 +3,11 @@ import { Text, View } from "react-native";
 import { ScreenList } from "~/components/screen-list";
 import { INBOX_ROW_HEIGHT } from "~/features/inbox/conversation-row";
 import { filterInbox } from "~/features/inbox/filter";
-import { InboxRow } from "~/features/inbox/inbox-row";
+import { InboxRow, ThreadInboxRow } from "~/features/inbox/inbox-row";
 import { useVisibleAccounts } from "~/features/messaging/account";
 import { useInbox } from "~/features/messaging/inbox";
+import { useInboxThreads } from "~/features/messaging/thread-lists";
+import { isDefaultInboxKinds } from "~/features/preferences/inbox-kinds";
 import { usePreference } from "~/features/preferences/store";
 
 function Empty({ title, detail }: { title: string; detail: string }) {
@@ -19,14 +21,23 @@ function Empty({ title, detail }: { title: string; detail: string }) {
   );
 }
 
-/** Home's Inbox page: every conversation, pinned first, as filtered. */
+/**
+ * Home's Inbox page: every conversation, pinned first, and the threads
+ * you follow among them, as filtered.
+ */
 export function InboxList() {
   const { conversations, isLoading } = useInbox();
   const showAccount = useVisibleAccounts().length > 1;
   const show = usePreference("inboxShow");
-  const from = usePreference("inboxFrom");
-  const filtered = show !== "all" || from !== "everything";
-  const { pinned, rest } = filterInbox(conversations ?? [], show, from);
+  const kinds = usePreference("inboxKinds");
+  const threads = useInboxThreads({ enabled: kinds.includes("threads") });
+  const filtered = show !== "all" || !isDefaultInboxKinds(kinds);
+  const { pinned, rest } = filterInbox({
+    conversations: conversations ?? [],
+    kinds,
+    show,
+    threads,
+  });
   const items = [...pinned, ...rest];
 
   function empty() {
@@ -39,10 +50,18 @@ export function InboxList() {
         />
       );
     }
+    if (kinds.length === 0) {
+      return (
+        <Empty
+          title="Nothing Here"
+          detail="Choose chats, channels, or threads in the filter."
+        />
+      );
+    }
     return show === "unread" ? (
       <Empty title="All Caught Up" detail="There are no unread messages." />
     ) : (
-      <Empty title="Nothing Here" detail="No conversations match the filter." />
+      <Empty title="Nothing Here" detail="Nothing matches the filter." />
     );
   }
 
@@ -53,9 +72,16 @@ export function InboxList() {
       estimatedItemSize={INBOX_ROW_HEIGHT}
       keyExtractor={(item) => item.key}
       ListEmptyComponent={empty()}
-      renderItem={({ item }) => (
-        <InboxRow conversation={item} showAccount={showAccount} />
-      )}
+      renderItem={({ item }) =>
+        item.kind === "conversation" ? (
+          <InboxRow
+            conversation={item.conversation}
+            showAccount={showAccount}
+          />
+        ) : (
+          <ThreadInboxRow thread={item.thread} showAccount={showAccount} />
+        )
+      }
     />
   );
 }

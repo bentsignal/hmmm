@@ -1,7 +1,7 @@
 import type { ComponentProps } from "react";
 import { pds } from "@vera/backend/pds";
 
-import type { ConversationSummary } from "./types";
+import type { ConversationSummary, ThreadSummaryRow } from "./types";
 import type { SymbolIcon } from "~/components/symbol-icon";
 import type { useRunAs } from "~/features/messaging/account";
 import { alertMenuActions } from "~/features/messaging/alerts";
@@ -9,6 +9,10 @@ import {
   showSetAlerts,
   showSetMuted,
 } from "~/features/messaging/channel-settings";
+import {
+  showThreadFollowed,
+  showThreadRead,
+} from "~/features/messaging/thread-lists";
 
 type IconName = Extract<ComponentProps<typeof SymbolIcon>["name"], object>;
 
@@ -128,6 +132,54 @@ export function inboxMenuActions(
     ...(conversation.kind === "channel" ? [hide] : []),
     ...(conversation.kind === "group" ? [leave] : []),
   ];
+}
+
+/**
+ * A thread row's long-press menu: Open Conversation, Mark as Read, and
+ * Unfollow Thread (its bell off), which also takes it out of the Inbox.
+ */
+export function threadMenuActions(
+  runAs: RunAs,
+  thread: ThreadSummaryRow,
+  openConversation: () => void,
+) {
+  const { account, conversationId, threadId } = thread;
+  const open = {
+    key: "conversation",
+    label: "Open Conversation",
+    icon: { android: "forum", ios: "bubble.left.and.bubble.right" },
+    tone: "accent",
+    onPress: openConversation,
+  } satisfies RowAction;
+  const markRead = {
+    key: "read",
+    label: "Mark as Read",
+    icon: { android: "drafts", ios: "envelope.open" },
+    tone: "accent",
+    onPress: () =>
+      void runAs(
+        account,
+        pds.messages.markThreadRead({
+          conversationId,
+          readAt: thread.lastActivityAt.getTime(),
+          threadId,
+        }),
+        { optimisticUpdate: (store) => showThreadRead(store, { threadId }) },
+      ),
+  } satisfies RowAction;
+  const unfollow = {
+    key: "unfollow",
+    label: "Unfollow Thread",
+    icon: { android: "notifications_off", ios: "bell.slash.fill" },
+    tone: "gray",
+    onPress: () => {
+      const args = { conversationId, followed: false, threadId };
+      void runAs(account, pds.messages.setThreadFollowed(args), {
+        optimisticUpdate: (store) => showThreadFollowed(store, args),
+      });
+    },
+  } satisfies RowAction;
+  return [open, ...(thread.unreadCount > 0 ? [markRead] : []), unfollow];
 }
 
 /**

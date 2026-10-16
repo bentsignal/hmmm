@@ -403,6 +403,16 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 type: "threadSummaries";
               }
             | {
+                args: {
+                  before?: number;
+                  conversationId: string;
+                  limit?: number;
+                  mine?: boolean;
+                };
+                type: "threads";
+              }
+            | { args: {}; type: "inboxThreads" }
+            | {
                 args: { conversationId: string; threadId: string };
                 type: "threadState";
               }
@@ -1248,6 +1258,243 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               repliers: Array<string>;
               replyCount: number;
               threadId: string;
+            }>;
+          }
+        | {
+            routes?: Array<string>;
+            type: "threads";
+            value: {
+              hasMore: boolean;
+              threads: Array<{
+                conversationId: string;
+                following: boolean;
+                lastReadAt: null | number;
+                lastReplyAt: number;
+                repliers: Array<string>;
+                replyCount: number;
+                root: null | {
+                  attachments: Array<{
+                    durationMs?: number;
+                    height?: number;
+                    kind: "image" | "video" | "file";
+                    mimeType: string;
+                    name: string;
+                    size: number;
+                    thumbnailUrl?: string;
+                    url: string;
+                    width?: number;
+                  }>;
+                  authorId: string;
+                  authorName: string;
+                  body: string;
+                  conversationId: string;
+                  linkPreview: null | {
+                    description?: string;
+                    imageUrl?: string;
+                    siteName?: string;
+                    title?: string;
+                    url: string;
+                    video?: {
+                      durationMs?: number;
+                      height?: number;
+                      url: string;
+                      width?: number;
+                    };
+                  };
+                  linkPreviews?: Array<{
+                    link: string;
+                    preview?: null | {
+                      description?: string;
+                      imageUrl?: string;
+                      siteName?: string;
+                      title?: string;
+                      url: string;
+                      video?: {
+                        durationMs?: number;
+                        height?: number;
+                        url: string;
+                        width?: number;
+                      };
+                    };
+                  }>;
+                  mentions?: Array<{ accountId: string; name: string }>;
+                  messageId: string;
+                  quote?: {
+                    attachment?: {
+                      durationMs?: number;
+                      height?: number;
+                      kind: "image" | "video" | "file";
+                      mimeType: string;
+                      name: string;
+                      size: number;
+                      thumbnailUrl?: string;
+                      url: string;
+                      width?: number;
+                    };
+                    authorId: string;
+                    body: string;
+                  };
+                  sentAt: number;
+                  threadId?: string;
+                  threadOnly?: boolean;
+                };
+                threadId: string;
+                unreadCount: number;
+              }>;
+            };
+          }
+        | {
+            routes?: Array<string>;
+            type: "inboxThreads";
+            value: Array<{
+              conversation: {
+                conversationId: string;
+                kind: "direct" | "group" | "channel";
+                members: Array<string>;
+                name: null | string;
+                spaceId: null | string;
+                spaceName?: string;
+              };
+              conversationId: string;
+              following: boolean;
+              lastReadAt: null | number;
+              lastReplyAt: number;
+              latest: null | {
+                attachments: Array<{
+                  durationMs?: number;
+                  height?: number;
+                  kind: "image" | "video" | "file";
+                  mimeType: string;
+                  name: string;
+                  size: number;
+                  thumbnailUrl?: string;
+                  url: string;
+                  width?: number;
+                }>;
+                authorId: string;
+                authorName: string;
+                body: string;
+                conversationId: string;
+                linkPreview: null | {
+                  description?: string;
+                  imageUrl?: string;
+                  siteName?: string;
+                  title?: string;
+                  url: string;
+                  video?: {
+                    durationMs?: number;
+                    height?: number;
+                    url: string;
+                    width?: number;
+                  };
+                };
+                linkPreviews?: Array<{
+                  link: string;
+                  preview?: null | {
+                    description?: string;
+                    imageUrl?: string;
+                    siteName?: string;
+                    title?: string;
+                    url: string;
+                    video?: {
+                      durationMs?: number;
+                      height?: number;
+                      url: string;
+                      width?: number;
+                    };
+                  };
+                }>;
+                mentions?: Array<{ accountId: string; name: string }>;
+                messageId: string;
+                quote?: {
+                  attachment?: {
+                    durationMs?: number;
+                    height?: number;
+                    kind: "image" | "video" | "file";
+                    mimeType: string;
+                    name: string;
+                    size: number;
+                    thumbnailUrl?: string;
+                    url: string;
+                    width?: number;
+                  };
+                  authorId: string;
+                  body: string;
+                };
+                sentAt: number;
+                threadId?: string;
+                threadOnly?: boolean;
+              };
+              repliers: Array<string>;
+              replyCount: number;
+              root: null | {
+                attachments: Array<{
+                  durationMs?: number;
+                  height?: number;
+                  kind: "image" | "video" | "file";
+                  mimeType: string;
+                  name: string;
+                  size: number;
+                  thumbnailUrl?: string;
+                  url: string;
+                  width?: number;
+                }>;
+                authorId: string;
+                authorName: string;
+                body: string;
+                conversationId: string;
+                linkPreview: null | {
+                  description?: string;
+                  imageUrl?: string;
+                  siteName?: string;
+                  title?: string;
+                  url: string;
+                  video?: {
+                    durationMs?: number;
+                    height?: number;
+                    url: string;
+                    width?: number;
+                  };
+                };
+                linkPreviews?: Array<{
+                  link: string;
+                  preview?: null | {
+                    description?: string;
+                    imageUrl?: string;
+                    siteName?: string;
+                    title?: string;
+                    url: string;
+                    video?: {
+                      durationMs?: number;
+                      height?: number;
+                      url: string;
+                      width?: number;
+                    };
+                  };
+                }>;
+                mentions?: Array<{ accountId: string; name: string }>;
+                messageId: string;
+                quote?: {
+                  attachment?: {
+                    durationMs?: number;
+                    height?: number;
+                    kind: "image" | "video" | "file";
+                    mimeType: string;
+                    name: string;
+                    size: number;
+                    thumbnailUrl?: string;
+                    url: string;
+                    width?: number;
+                  };
+                  authorId: string;
+                  body: string;
+                };
+                sentAt: number;
+                threadId?: string;
+                threadOnly?: boolean;
+              };
+              threadId: string;
+              unreadCount: number;
             }>;
           }
         | {

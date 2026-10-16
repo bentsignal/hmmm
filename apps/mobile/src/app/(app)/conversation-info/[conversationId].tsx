@@ -11,9 +11,15 @@ import {
   LeaveSection,
   MembersSection,
 } from "~/features/conversation-info/sections";
+import { ThreadsSection } from "~/features/conversation-info/thread-items";
 import { AccountScope, useAccount } from "~/features/messaging/account";
 import { useConversation } from "~/features/messaging/conversations";
+import { useProfileState } from "~/features/messaging/profiles";
 import { useSpace } from "~/features/messaging/spaces";
+import {
+  threadPeople,
+  useConversationThreads,
+} from "~/features/messaging/thread-lists";
 import { ProfileCard } from "~/features/profile/profile-card";
 
 const CHANNEL_GLYPH = { android: "tag", ios: "number" } as const;
@@ -26,13 +32,39 @@ interface CardProps {
   onPressAffiliated?: () => void;
 }
 
-/** The card, then inbox and alerts, members, and leaving, as allowed. */
+/** How many threads the info page lists before See All. */
+const RECENT_THREADS = 3;
+
+/**
+ * The conversation's three newest threads with their people's names, for
+ * its Threads section. Undefined until both have loaded.
+ */
+function useRecentThreads(conversationId: string) {
+  const { isLoading, threads } = useConversationThreads({
+    conversationId,
+    limit: RECENT_THREADS,
+    mine: false,
+  });
+  const recent = threads.slice(0, RECENT_THREADS);
+  const profiles = useProfileState(threadPeople(recent));
+  if (isLoading || profiles.isLoading) return undefined;
+  return { profileOf: profiles.profileOf, threads: recent };
+}
+
+type RecentThreads = NonNullable<ReturnType<typeof useRecentThreads>>;
+
+/**
+ * The card, then inbox and alerts, threads, members, and leaving, as
+ * allowed.
+ */
 function Details({
   conversation,
   card,
+  recent,
 }: {
   conversation: Conversation;
   card: CardProps;
+  recent: RecentThreads;
 }) {
   const router = useRouter();
   const { address: account } = useAccount();
@@ -43,6 +75,12 @@ function Details({
         <FieldList>
           <ProfileCard {...card} />
           <InboxSection conversation={conversation} />
+          <ThreadsSection
+            conversationId={conversationId}
+            title={card.name}
+            threads={recent.threads}
+            profileOf={recent.profileOf}
+          />
           {kind !== "direct" && (
             <MembersSection
               members={members}
@@ -72,15 +110,18 @@ function Details({
 function ChannelDetails({
   conversation,
   title,
+  recent,
 }: {
   conversation: Conversation;
   title: string;
+  recent: RecentThreads;
 }) {
   const { isLoading, space } = useSpace(conversation.spaceId ?? "");
   if (isLoading) return null;
   return (
     <Details
       conversation={conversation}
+      recent={recent}
       card={{
         glyph: CHANNEL_GLYPH,
         name: title,
@@ -95,6 +136,7 @@ function Info({ conversationId }: { conversationId: string }) {
   const { address } = useAccount();
   const { conversation, isLoading, profileOf, title } =
     useConversation(conversationId);
+  const recent = useRecentThreads(conversationId);
   // Everything fades in together once loaded.
   if (isLoading) return null;
   if (conversation === undefined) {
@@ -106,13 +148,21 @@ function Info({ conversationId }: { conversationId: string }) {
       </View>
     );
   }
+  if (recent === undefined) return null;
   if (conversation.kind === "channel") {
-    return <ChannelDetails conversation={conversation} title={title} />;
+    return (
+      <ChannelDetails
+        conversation={conversation}
+        title={title}
+        recent={recent}
+      />
+    );
   }
   if (conversation.kind === "group") {
     return (
       <Details
         conversation={conversation}
+        recent={recent}
         card={{ name: title, subtitle: "Group" }}
       />
     );
@@ -123,6 +173,7 @@ function Info({ conversationId }: { conversationId: string }) {
   return (
     <Details
       conversation={conversation}
+      recent={recent}
       card={{
         avatarUrl: profile.avatarUrl,
         name: title,
@@ -139,7 +190,7 @@ function Info({ conversationId }: { conversationId: string }) {
   );
 }
 
-/** Details for a conversation: who is in it, alerts, and leaving. */
+/** Details for a conversation: alerts, threads, who is in it, and leaving. */
 export default function ConversationInfoScreen() {
   const { account, conversationId } = useLocalSearchParams<{
     /** The signed-in account the conversation is opened as. */

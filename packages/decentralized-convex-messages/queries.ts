@@ -17,6 +17,7 @@ import {
   threadState,
   threadSummary,
 } from "./shapes.ts";
+import { threadListQueries } from "./threadOperations.ts";
 
 /** What the Messages protocol reads (see `messagesProtocol`). */
 export const queries = {
@@ -107,6 +108,7 @@ export const queries = {
     }),
     returns: v.array(threadSummary),
   }),
+  ...threadListQueries,
   /** Your place in a thread: its bell, and how far you've read. */
   threadState: defineOperation({
     args: v.object({ conversationId: v.string(), threadId: v.string() }),

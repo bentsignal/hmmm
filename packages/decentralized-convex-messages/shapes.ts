@@ -297,6 +297,53 @@ export const threadPage = v.object({
   root: v.union(v.null(), message),
 });
 
+/**
+ * A thread in a list of them, as one PDS knows it: its replies stored
+ * there, the message it answers, and the caller's place in it. Apps add
+ * up every member's PDS's listings, as with `threadSummary`.
+ */
+const threadListingFields = {
+  conversationId: v.string(),
+  /**
+   * Whether the caller is in the thread with its bell on (see
+   * `setThreadFollowed`). A thread whose bell they turned off isn't theirs.
+   */
+  following: v.boolean(),
+  /** When the newest reply here was sent. */
+  lastReplyAt: v.number(),
+  /** How far the caller has read it; null when they aren't in it here. */
+  lastReadAt: v.union(v.null(), v.number()),
+  replyCount: v.number(),
+  /** Who wrote the replies here, newest first, at most `MAX_REPLIERS`. */
+  repliers: v.array(v.string()),
+  /** The message it answers; null from a PDS that doesn't store it. */
+  root: v.union(v.null(), message),
+  threadId: v.string(),
+  /**
+   * Others' replies here after `lastReadAt`, leaving out the first (which
+   * shows, and is read, in the conversation), at most `MAX_THREAD_UNREAD`.
+   * Zero when the caller isn't following it.
+   */
+  unreadCount: v.number(),
+};
+
+export const threadListing = v.object(threadListingFields);
+
+export type ThreadListing = Infer<typeof threadListing>;
+
+/** A page of a conversation's threads, newest reply first. */
+export const threadListingPage = v.object({
+  /** Whether older threads exist beyond this page (see `threads`). */
+  hasMore: v.boolean(),
+  threads: v.array(threadListing),
+});
+
+/** At most this many threads per page of `threads`. */
+export const THREAD_PAGE_SIZE = 30;
+
+/** Unread replies counted per thread. */
+export const MAX_THREAD_UNREAD = 99;
+
 /** The caller's place in a thread. */
 export const threadState = v.object({
   /** Whether the caller hears about new replies (the thread's bell). */
@@ -329,6 +376,19 @@ export const activityConversation = v.object({
 });
 
 export type ActivityConversation = Infer<typeof activityConversation>;
+
+/** A thread the caller is in, for their inbox, with its conversation. */
+export const inboxThread = v.object({
+  ...threadListingFields,
+  conversation: activityConversation,
+  /** Its newest reply stored here. */
+  latest: v.union(v.null(), message),
+});
+
+export type InboxThread = Infer<typeof inboxThread>;
+
+/** At most this many threads in `inboxThreads`. */
+export const MAX_INBOX_THREADS = 100;
 
 /**
  * When the caller last saw an activity item on screen, and the newest

@@ -55,13 +55,45 @@ groups, and channels alike.
 - A thread push opens the thread. Pushes carry the original message's ID
   as `messageId`, so apps from before threads open the conversation there.
 
-## Finding threads (next)
+## Finding threads (decided with Shawn, 2026-10-16)
 
-- The Inbox's filter menu gets **Threads**: every thread you're in, newest
-  reply first, with unread dots.
-- A conversation's info page gets a **Threads** section with the three
-  most recent; See All opens the whole list, searchable by the text of the
-  original message and its replies. Threads aren't named.
+- **Inbox filter.** Home's left header menu on the Inbox has Show (All
+  or Unread) and Include, checkboxes for **Chats**, **Channels**, and
+  **Threads**, all ticked by default. Include replaces From
+  (Everything / Chats / Channels); a saved From carries over (Chats or
+  Channels stays that, Everything becomes all three). More kinds can join
+  the list later. Both sections sit at the top of the menu rather than
+  in a Filter submenu.
+- The menu asks to stay open while you tick. Android's does. iOS closes
+  it after each tick: React Native Screens replaces the whole native menu
+  when a check mark changes, and fixing that means patching its native
+  code, which Shawn said isn't worth it.
+- **Threads in the Inbox.** No tab or page of their own: thread rows mix
+  into the Inbox, newest reply first. A row shows the original's author,
+  the conversation, the original's first line, and "4 replies · Leo:
+  latest reply". It opens the thread. Unread shows threads with unread
+  replies (others' replies after your thread `lastReadAt`, leaving out
+  the first, which is read in the conversation). Long-press offers Open
+  Conversation, Mark as Read, and Unfollow Thread.
+- The Inbox lists only threads **you're in** with the bell on. Turning a
+  thread's bell off takes it out of the Inbox and out of Yours (as it
+  already does in Activity): the bell is how you leave a thread. Threads
+  in muted conversations and spaces, and in channels left out of the
+  Inbox, stay out, as in Activity.
+- **Conversation info.** DMs, groups, and channels get a **Threads**
+  section with the three with the newest replies, and **See All**. A row
+  shows the original's author photo, its first two lines, "4 replies · 2h
+  ago" with the newest repliers' photos, and an unread dot (you're in it,
+  with unread replies) or a bell (you're in it). The section doesn't
+  show without threads.
+- **See All** has a segmented **Yours / All** switch (All first selected,
+  since it continues the info page's list; a swipe between them would
+  fight swipe back) and Show More for older threads. It had a search
+  field at first; Shawn dropped it after testing, as not useful enough
+  for threads.
+- **The thread page's header** ("Thread" over the conversation's name)
+  opens the conversation: back to it when the thread was opened from
+  there, otherwise at the original message.
 
 ## How it works
 
@@ -78,6 +110,10 @@ groups, and channels alike.
   screen, gathered from every member's PDS like reactions.
   `messages.threadState`, `markThreadRead`, and `setThreadFollowed` are the
   caller's own.
+- `messages.threads` pages a conversation's threads (`by_conversation_reply`,
+  or the caller's `threadMembers` with `mine`), gathered from every
+  member's PDS like summaries. `messages.inboxThreads` lists the caller's threads across conversations
+  (`by_account_reply`) from their home PDS, like the inbox.
 - Like messages and reactions, replies live on their author's home PDS.
   With one production server the PDS sees every reply; with federation,
   the first-reply check and thread membership only see the PDS's own

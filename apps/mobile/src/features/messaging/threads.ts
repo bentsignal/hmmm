@@ -15,6 +15,7 @@ import type { ThreadInfo } from "~/features/conversation/types";
 import { selectionTick } from "~/lib/native-extras";
 import { useAccount } from "./account";
 import { pdsResult, pdsResultOr } from "./results";
+import { showThreadFollowed, showThreadRead } from "./thread-lists";
 
 /** No IDs, the same array each time. */
 const NONE = Object.freeze<string[]>([]);
@@ -107,11 +108,12 @@ export function useThreadSummaries(
   };
 }
 
-/** Shows a thread's bell as turned on or off. */
+/** Shows a thread's bell as turned on or off, here and in thread lists. */
 function showFollowed(
   store: PdsOptimisticLocalStore,
   args: { conversationId: string; followed: boolean; threadId: string },
 ) {
+  showThreadFollowed(store, args);
   const request = pds.messages.threadState({
     conversationId: args.conversationId,
     threadId: args.threadId,
@@ -174,7 +176,11 @@ export function useMarkThreadRead(
 ) {
   const { address } = useAccount();
   const { mutate } = useMutation(
-    pdsMutation({ mutation: pds.messages.markThreadRead, session: address }),
+    pdsMutation({
+      mutation: pds.messages.markThreadRead,
+      optimisticUpdate: showThreadRead,
+      session: address,
+    }),
   );
   const lastMarked = useRef(0);
   // eslint-disable-next-line no-restricted-syntax -- Read state lives on the server and must follow replies arriving while the thread is open.

@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import { Stack } from "expo-router";
 
+import { useFormScreenOptions } from "~/components/form-screen-options";
 import { dismissKeyboardOnSheetSwipe } from "~/features/compose/sheet";
 import { AccountScope, useAccounts } from "~/features/messaging/account";
 import { useEnsureProfile } from "~/features/messaging/directory";
@@ -17,6 +18,17 @@ export const unstable_settings = { anchor: "(tabs)" };
  * half-height sheet; Android's sheet has no header, so the button would be
  * missing, and there it's a full modal with a header instead.
  */
+/** A group adds people straight in; a space invites them. */
+function addPeopleOptions({ route }: { route: { params?: object } }) {
+  return {
+    ...TOOLBAR_SHEET,
+    title:
+      route.params !== undefined && "conversationId" in route.params
+        ? "Add People"
+        : "Invite People",
+  };
+}
+
 const TOOLBAR_SHEET =
   Platform.OS === "ios"
     ? {
@@ -50,6 +62,7 @@ export default function AppLayout() {
 }
 
 function AppStack() {
+  const formScreen = useFormScreenOptions();
   return (
     <Stack screenOptions={{ headerBackButtonDisplayMode: "minimal" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -67,6 +80,10 @@ function AppStack() {
       <Stack.Screen
         name="conversation-info/[conversationId]"
         options={{ headerTransparent: Platform.OS === "ios", title: "" }}
+      />
+      <Stack.Screen
+        name="conversation-threads/[conversationId]"
+        options={{ ...formScreen, title: "Threads" }}
       />
       <Stack.Screen
         name="profile/[address]"
@@ -129,14 +146,7 @@ function AppStack() {
       />
       <Stack.Screen
         name="add-people"
-        // A group adds people straight in; a space invites them.
-        options={({ route }) => ({
-          ...TOOLBAR_SHEET,
-          title:
-            route.params !== undefined && "conversationId" in route.params
-              ? "Add People"
-              : "Invite People",
-        })}
+        options={addPeopleOptions}
         listeners={dismissKeyboardOnSheetSwipe}
       />
       <Stack.Screen
