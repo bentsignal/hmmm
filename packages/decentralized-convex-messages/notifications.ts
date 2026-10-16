@@ -225,18 +225,17 @@ export const send = internalAction({
       ctx,
       target.recipients.map(({ accountId, reply, token }) => {
         const conversationName = conversationNameFor(accountId);
-        // A reply push opens its thread. Its `messageId` is the original,
-        // where apps from before threads open the conversation (a reply
-        // kept in its thread isn't in it).
+        // A reply kept in its thread opens the thread. Its `messageId` is
+        // the original, where apps from before threads open the
+        // conversation, since the reply isn't in it.
         const thread =
-          reply === null || target.threadId === null
-            ? {}
-            : {
+          target.threadOnly && target.threadId !== null
+            ? {
                 messageId: target.threadId,
                 replyId: target.messageId,
                 threadId: target.threadId,
-                threadOnly: target.threadOnly,
-              };
+              }
+            : {};
         return {
           ...badgeField(badges.get(accountId)),
           body: replyBody(reply, target.body),

@@ -12,6 +12,8 @@ import { useAccount } from "~/features/messaging/account";
 import { stringField } from "./presented";
 
 let activeConversationId: string | undefined;
+/** The thread on screen, whose replies' banners stay quiet. */
+let activeThreadId: string | undefined;
 /** Whether the Inbox is on screen, where new messages show in the list. */
 let inboxOnScreen = false;
 /** Whether Activity is on screen, where new reactions show in the list. */
@@ -28,6 +30,19 @@ export function useActiveConversation(conversationId: string) {
       if (activeConversationId === conversationId) {
         activeConversationId = undefined;
       }
+    };
+  });
+}
+
+/**
+ * Marks the thread as the one on screen, which suppresses its replies'
+ * banners and lets a tap on one reuse the screen.
+ */
+export function useActiveThread(threadId: string) {
+  useFocusEffect(() => {
+    activeThreadId = threadId;
+    return () => {
+      if (activeThreadId === threadId) activeThreadId = undefined;
     };
   });
 }
@@ -56,21 +71,28 @@ export function useActivityOnScreen() {
   });
 }
 
+/**
+ * Whether a notification would tell you something not already on screen.
+ * Space invitations have no conversation and always show. A message stays
+ * quiet in its own open conversation, and on the Inbox, where it shows up
+ * in the list; a reaction likewise in its conversation and on Activity;
+ * and a reply kept in its thread in that thread and on Activity.
+ */
+function isNews(data: unknown) {
+  const conversationId = stringField(data, "conversationId");
+  if (conversationId === undefined) return true;
+  const threadId = stringField(data, "threadId");
+  if (threadId !== undefined) {
+    return threadId !== activeThreadId && !activityOnScreen;
+  }
+  const listed =
+    stringField(data, "kind") === "reaction" ? activityOnScreen : inboxOnScreen;
+  return conversationId !== activeConversationId && !listed;
+}
+
 Notifications.setNotificationHandler({
   handleNotification: (notification) => {
-    const { data } = notification.request.content;
-    const conversationId = stringField(data, "conversationId");
-    // Space invitations have no conversation and always show. A message
-    // stays quiet in its own open conversation, and on the Inbox, where it
-    // shows up in the list; a reaction likewise in its conversation and on
-    // Activity.
-    const listed =
-      stringField(data, "kind") === "reaction"
-        ? activityOnScreen
-        : inboxOnScreen;
-    const visible =
-      conversationId === undefined ||
-      (conversationId !== activeConversationId && !listed);
+    const visible = isNews(notification.request.content.data);
     return Promise.resolve({
       shouldPlaySound: visible,
       // A push's badge counts only its own account; `useAppBadge` sets the
@@ -122,7 +144,8 @@ export function usePushRegistration() {
 
 /**
  * Opens the conversation when someone taps a message notification (at the
- * message, for a reaction's), and
+ * message, for a reaction's), the thread for a reply kept in its thread,
+ * and
  * Activity (where invitations are answered) when they tap a space
  * invitation.
  */
@@ -143,6 +166,22 @@ export function useNotificationRouting() {
     // Open as the account the message was sent to, at the message itself
     // so an old notification stays useful.
     const account = stringField(data, "accountId");
+    const threadId = stringField(data, "threadId");
+    if (threadId !== undefined) {
+      const thread = {
+        ...(account === undefined ? {} : { account }),
+        conversationId,
+      };
+      if (threadId === activeThreadId) router.setParams(thread);
+      else {
+        router.push({
+          params: { ...thread, threadId },
+          pathname: "/thread/[threadId]",
+        });
+      }
+      void Notifications.clearLastNotificationResponseAsync();
+      return;
+    }
     const params = {
       ...(account === undefined ? {} : { account }),
       ...(messageId === undefined ? {} : { messageId }),

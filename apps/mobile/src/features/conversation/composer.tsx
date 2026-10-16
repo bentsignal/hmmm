@@ -1,7 +1,17 @@
-import { useRef, useState } from "react";
-import { Platform, Pressable, StyleSheet, TextInput } from "react-native";
+import type { Ref } from "react";
+import { useImperativeHandle, useRef, useState } from "react";
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import Animated, {
+  FadeIn,
+  FadeOut,
   interpolate,
   useAnimatedStyle,
   withTiming,
@@ -91,11 +101,68 @@ function SendButton({
   );
 }
 
+/** What the composer can be asked to do. */
+export interface ComposerHandle {
+  /** Puts the cursor in the field, bringing the keyboard up. */
+  focus: () => void;
+}
+
+/** Who and what the next message replies to, shown over the field. */
+export interface ReplyingTo {
+  /** Who wrote the message being answered. */
+  readonly name: string;
+  /** Its text, or what it sent instead. */
+  readonly text: string;
+}
+
+/**
+ * "Replying to Maya" and the message, at the top of the field, with a
+ * button to send a plain message instead.
+ */
+function ReplyBar({
+  replyingTo,
+  onCancel,
+}: {
+  replyingTo: ReplyingTo;
+  onCancel: () => void;
+}) {
+  return (
+    <Animated.View
+      entering={FadeIn.duration(160)}
+      exiting={FadeOut.duration(120)}
+      className="flex-row items-center gap-2 pt-2 pr-2 pl-4"
+    >
+      <View className="border-accent flex-1 border-l-2 pl-2">
+        <Text numberOfLines={1} className="text-caption text-accent">
+          Replying to {replyingTo.name}
+        </Text>
+        <Text numberOfLines={1} className="text-footnote text-muted">
+          {replyingTo.text}
+        </Text>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Cancel Reply"
+        hitSlop={8}
+        onPress={onCancel}
+        className="active:opacity-60"
+      >
+        <SymbolIcon
+          name={{ android: "close", ios: "xmark.circle.fill" }}
+          size={18}
+          tintColorClassName="accent-subtle"
+        />
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 /**
  * The message field with its "+" menu and the attachments picked or pasted
  * for the message, which upload only once it's sent.
  */
 export function Composer({
+  ref,
   staged,
   onSend,
   onPick,
@@ -103,7 +170,12 @@ export function Composer({
   onRemoveStaged,
   onChangeText,
   bottomInset,
+  replyingTo,
+  onCancelReply,
+  autoFocus = false,
+  placeholder = "Message",
 }: {
+  ref?: Ref<ComposerHandle>;
   staged: readonly StagedFile[];
   /** Sends the text (possibly empty) with everything staged. */
   onSend: (text: string) => void;
@@ -115,9 +187,18 @@ export function Composer({
   onChangeText?: (text: string) => void;
   /** From `useComposerBottomInset`. */
   bottomInset: number;
+  /** Set while the next message is a reply. */
+  replyingTo?: ReplyingTo;
+  onCancelReply?: () => void;
+  /** Opens with the keyboard up. */
+  autoFocus?: boolean;
+  placeholder?: string;
 }) {
   const [draft, setDraft] = useState("");
   const input = useRef<TextInput>(null);
+  useImperativeHandle(ref, () => ({
+    focus: () => input.current?.focus(),
+  }));
   // Only the field being pasted into is focused; another conversation's
   // composer can be mounted beneath this one.
   usePastedImages((images) => {
@@ -190,6 +271,12 @@ export function Composer({
         className="flex-1 justify-center rounded-[20px]"
         style={{ minHeight: CONTROL }}
       >
+        {replyingTo !== undefined && (
+          <ReplyBar
+            replyingTo={replyingTo}
+            onCancel={() => onCancelReply?.()}
+          />
+        )}
         <StagedAttachments files={staged} onRemove={onRemoveStaged} />
         <StyledTextInput
           ref={input}
@@ -197,7 +284,8 @@ export function Composer({
           multiline
           value={draft}
           onChangeText={change}
-          placeholder={staged.length > 0 ? "Add a message" : "Message"}
+          autoFocus={autoFocus}
+          placeholder={staged.length > 0 ? "Add a message" : placeholder}
           accessibilityLabel="Message"
           // A message field never needs AutoFill suggestions.
           autoComplete="off"

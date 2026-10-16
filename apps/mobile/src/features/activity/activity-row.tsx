@@ -57,10 +57,27 @@ function Headline({
       </>
     );
   }
-  if (item.conversation.kind === "direct") return <Bold>{who}</Bold>;
+  const place =
+    item.conversation.kind === "direct" ? null : (
+      <>
+        {" in "}
+        <Bold>{title}</Bold>
+      </>
+    );
+  if (item.kind === "thread") {
+    const yours = item.root?.authorId === entry.account;
+    return (
+      <>
+        <Bold>{who}</Bold>{" "}
+        {yours ? "replied to your message" : "replied in a thread"}
+        {place}
+      </>
+    );
+  }
   return (
     <>
-      <Bold>{who}</Bold> in <Bold>{title}</Bold>
+      <Bold>{who}</Bold>
+      {place}
     </>
   );
 }
@@ -81,25 +98,56 @@ function body(entry: ActivityEntry, profileOf: ProfileOf) {
     : text;
 }
 
+/** "3 messages", or "99+ replies". */
+function counted(count: number, noun: string) {
+  const many = count >= MAX_ACTIVITY_MESSAGES;
+  return `${count}${many ? "+" : ""} ${noun}`;
+}
+
 /** Where it happened and how much, under the message. */
 function footnote(entry: ActivityEntry, showAccount: boolean) {
   const { item, title } = entry;
   const { kind, spaceName } = item.conversation;
   const parts = [];
+  if (item.kind === "thread" && item.root !== null) {
+    parts.push(`On “${messageText(item.root)}”`);
+  }
   if (item.kind === "reactions" && kind !== "direct") parts.push(`in ${title}`);
   if (spaceName !== undefined) parts.push(spaceName);
-  if (item.kind === "messages" && item.count > 1) {
-    const many = item.count >= MAX_ACTIVITY_MESSAGES;
-    parts.push(`${item.count}${many ? "+" : ""} messages`);
+  if (item.kind !== "reactions" && item.count > 1) {
+    parts.push(counted(item.count, item.kind === "thread" ? "replies" : "messages"));
   }
   if (showAccount) parts.push(usernameOf(entry.account));
   return parts.join(" · ");
 }
 
+/** Where tapping a row goes: the conversation, or a reply's thread. */
+function destination({ account, item, title }: ActivityEntry) {
+  const { conversationId } = item.conversation;
+  if (item.kind === "thread") {
+    return {
+      params: { account, conversationId, threadId: item.threadId },
+      pathname: "/thread/[threadId]" as const,
+    };
+  }
+  return {
+    params: {
+      account,
+      conversationId,
+      title,
+      // A reaction opens at the message.
+      ...(item.kind === "reactions"
+        ? { messageId: item.message.messageId }
+        : {}),
+    },
+    pathname: "/conversation/[conversationId]" as const,
+  };
+}
+
 /**
  * One Activity row: the person who acted, what happened (a reaction's
  * emoji in its headline), and a dot until it's been seen. Tapping opens
- * the conversation, at the message for a reaction.
+ * the conversation, at the message for a reaction, or a reply's thread.
  */
 export function ActivityRow({
   entry,
@@ -111,7 +159,7 @@ export function ActivityRow({
   showAccount: boolean;
 }) {
   const router = useRouter();
-  const { account, item, title, unseen } = entry;
+  const { item, unseen } = entry;
   const actor = actorsOf(item)[0] ?? "";
   const profile = profileOf(actor);
   const note = footnote(entry, showAccount);
@@ -119,17 +167,7 @@ export function ActivityRow({
   /** Opening a row is seeing it: its dot is gone when you come back. */
   function open() {
     if (unseen) void markSeen([entry]);
-    router.push({
-      pathname: "/conversation/[conversationId]",
-      params: {
-        account,
-        conversationId: item.conversation.conversationId,
-        title,
-        ...(item.kind === "reactions"
-          ? { messageId: item.message.messageId }
-          : {}),
-      },
-    });
+    router.push(destination(entry));
   }
 
   return (

@@ -47,6 +47,9 @@ export type ActivityListRow =
       readonly kind: "activity";
     };
 
+/** What Activity asks its PDS for: thread replies too. */
+export const ACTIVITY_ARGS = { threads: true };
+
 export function isUnseen(item: ActivityItem) {
   return item.seenThrough === undefined || item.at > item.seenThrough;
 }
@@ -62,9 +65,9 @@ function isGone(item: ActivityItem, now: number) {
 
 /** Who acted in an item, newest first, without repeats. */
 export function actorsOf(item: ActivityItem) {
-  return item.kind === "messages"
-    ? item.authors
-    : [...new Set(item.reactions.map(({ accountId }) => accountId))];
+  return item.kind === "reactions"
+    ? [...new Set(item.reactions.map(({ accountId }) => accountId))]
+    : item.authors;
 }
 
 /** Everyone an item's row names: who acted, and who titles the chat. */
@@ -81,7 +84,7 @@ function useActivityQueries(accounts: readonly string[]) {
   return useQueries({
     queries: accounts.map((session) =>
       pdsQuery({
-        args: {},
+        args: ACTIVITY_ARGS,
         // A server without activity (an older one) has nothing to show.
         options: { select: (result) => pdsResultOr(result, []) },
         query: pds.messages.activity,
@@ -143,7 +146,8 @@ export function useActivity(now: number) {
 /**
  * The Activity tab's badge, the app's only one: space invitations waiting
  * for an answer, plus activity not yet seen (conversations with new
- * messages and messages of yours with new reactions; muted ones left out).
+ * messages, messages of yours with new reactions, and threads with new
+ * replies; muted ones left out).
  */
 export function useActivityBadge() {
   const accounts = useVisibleAccounts().map(({ address }) => address);
@@ -165,7 +169,7 @@ function showSeen(
   sightings: readonly Sighting[],
   seenAt: number,
 ) {
-  const request = pds.messages.activity({});
+  const request = pds.messages.activity(ACTIVITY_ARGS);
   const items = store.getQuery(request);
   if (items == null) return;
   store.setQuery(

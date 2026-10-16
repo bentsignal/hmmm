@@ -2,15 +2,22 @@ import { Text } from "react-native";
 import { textParts } from "@decentralized-convex/messages";
 
 import { openLink } from "~/lib/open-link";
-import { useMenuPress } from "./message-actions";
+import { useLinkTap, useMenuPress } from "./message-actions";
 
-/** A link in the text: underlined, and holding it still opens the menu. */
+/**
+ * A link in the text: underlined, and holding it still opens the menu.
+ * Tapping it opens the link, not the message's thread.
+ */
 function Link({ text, url }: { text: string; url: string }) {
   const press = useMenuPress();
+  const tapped = useLinkTap();
   return (
     <Text
       accessibilityRole="link"
-      onPress={() => openLink(url)}
+      onPress={() => {
+        tapped?.();
+        openLink(url);
+      }}
       onLongPress={press?.onLongPress}
       onPressIn={press?.onPressIn}
       onPressOut={press?.onPressOut}
