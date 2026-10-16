@@ -7,26 +7,17 @@ import type { ConversationThread } from "~/features/messaging/thread-lists";
 import { Avatar } from "~/components/avatar";
 import { ListItem } from "~/components/list-item";
 import { SymbolIcon } from "~/components/symbol-icon";
-import { replyCountLabel } from "~/features/inbox/thread-row";
+import { replyCountLabel } from "~/features/inbox/thread-links";
 import { useAccount } from "~/features/messaging/account";
 import { messageSummary } from "~/features/messaging/inbox";
+import { MAX_REPLIER_PHOTOS } from "~/features/messaging/thread-lists";
 import { secondaryTextStyle } from "~/lib/colors";
 import { formatTimeAgo } from "~/lib/format";
 
 type ProfileOf = ReturnType<typeof useProfileState>["profileOf"];
 
-/** The newest repliers whose photos a thread's row shows. */
-const MAX_REPLIER_PHOTOS = 3;
 /** Their photos' size: the `xs` avatar. */
 const PHOTO_SIZE = 18;
-
-/** Who a thread's row shows: the original's author and newest repliers. */
-export function threadPeople(threads: readonly ConversationThread[]) {
-  return threads.flatMap((thread) => [
-    ...(thread.root === null ? [] : [thread.root.authorId]),
-    ...thread.repliers.slice(0, MAX_REPLIER_PHOTOS),
-  ]);
-}
 
 /**
  * The end of a thread's row: an unread dot when you're in it with

@@ -9,13 +9,11 @@ import { NativeHost } from "~/components/native-host";
 import { SegmentedSection } from "~/components/segmented-section";
 import { TextInput } from "~/components/text-input";
 import { useDismissKeyboardOnDrag } from "~/features/compose/dismiss-keyboard-on-drag";
-import {
-  ThreadListItem,
-  threadPeople,
-} from "~/features/conversation-info/thread-items";
+import { ThreadListItem } from "~/features/conversation-info/thread-items";
 import { AccountScope } from "~/features/messaging/account";
 import { useProfileState } from "~/features/messaging/profiles";
 import {
+  threadPeople,
   useConversationThreads,
   useThreadSearch,
 } from "~/features/messaging/thread-lists";

@@ -36,6 +36,17 @@ export interface ConversationThread {
   readonly unreadCount: number;
 }
 
+/** The newest repliers whose photos a thread's row shows. */
+export const MAX_REPLIER_PHOTOS = 3;
+
+/** Who a thread's row shows: the original's author and newest repliers. */
+export function threadPeople(threads: readonly ConversationThread[]) {
+  return threads.flatMap((thread) => [
+    ...(thread.root === null ? [] : [thread.root.authorId]),
+    ...thread.repliers.slice(0, MAX_REPLIER_PHOTOS),
+  ]);
+}
+
 /**
  * Each thread's listings across every PDS that stores some of its
  * replies, added up like thread summaries: a PDS can answer more than

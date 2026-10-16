@@ -22,7 +22,8 @@ import {
   inboxMenuActions,
   threadMenuActions,
 } from "./row-actions";
-import { conversationHref, threadHref, ThreadRowContent } from "./thread-row";
+import { conversationHref, threadHref } from "./thread-links";
+import { ThreadRowContent } from "./thread-row";
 
 /**
  * A row whose long-press opens `actions` in a Material menu that drops

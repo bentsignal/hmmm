@@ -11,15 +11,15 @@ import {
   LeaveSection,
   MembersSection,
 } from "~/features/conversation-info/sections";
-import {
-  threadPeople,
-  ThreadsSection,
-} from "~/features/conversation-info/thread-items";
+import { ThreadsSection } from "~/features/conversation-info/thread-items";
 import { AccountScope, useAccount } from "~/features/messaging/account";
 import { useConversation } from "~/features/messaging/conversations";
 import { useProfileState } from "~/features/messaging/profiles";
 import { useSpace } from "~/features/messaging/spaces";
-import { useConversationThreads } from "~/features/messaging/thread-lists";
+import {
+  threadPeople,
+  useConversationThreads,
+} from "~/features/messaging/thread-lists";
 import { ProfileCard } from "~/features/profile/profile-card";
 
 const CHANNEL_GLYPH = { android: "tag", ios: "number" } as const;

@@ -25,7 +25,8 @@ import {
   inboxMenuActions,
   threadMenuActions,
 } from "./row-actions";
-import { conversationHref, threadHref, ThreadRowContent } from "./thread-row";
+import { conversationHref, threadHref } from "./thread-links";
+import { ThreadRowContent } from "./thread-row";
 
 /** Where the text starts (unread gutter, photo, gap): the separator's inset. */
 const TEXT_INSET = 24 + 46 + 12;
