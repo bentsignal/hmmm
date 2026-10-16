@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import Animated, {
   FadeInDown,
+  interpolateColor,
   useAnimatedProps,
   useAnimatedReaction,
   useAnimatedStyle,
@@ -31,6 +32,9 @@ type ProfileOf = (address: string) => {
   displayName: string;
 };
 
+const TINT = "rgba(124, 124, 255, 0.18)";
+const TINT_CLEAR = "rgba(124, 124, 255, 0)";
+
 /** Fades a tint behind the message a conversation opened on. */
 function Highlight({ children }: { children: ReactNode }) {
   const tint = useSharedValue(1);
@@ -41,8 +45,11 @@ function Highlight({ children }: { children: ReactNode }) {
         tint.value = withDelay(800, withTiming(0, { duration: 1600 }));
     },
   );
+  // interpolateColor, not a template string: near the end of the fade the
+  // alpha prints in exponent form ("7.2e-7"), which isn't a valid color, and
+  // an invalid color thrown on the UI thread crashes the app.
   const style = useAnimatedStyle(() => ({
-    backgroundColor: `rgba(124, 124, 255, ${0.18 * tint.value})`,
+    backgroundColor: interpolateColor(tint.value, [0, 1], [TINT_CLEAR, TINT]),
   }));
   return <Animated.View style={style}>{children}</Animated.View>;
 }
