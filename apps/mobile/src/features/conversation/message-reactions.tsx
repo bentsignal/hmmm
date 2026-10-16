@@ -1,14 +1,18 @@
 import type { ComponentProps, ReactNode } from "react";
 import type { View as NativeView } from "react-native";
-import { createContext, use, useRef, useState } from "react";
+import type { AnimatedRef } from "react-native-reanimated";
+import { createContext, use, useState } from "react";
 import { View } from "react-native";
-import { LayoutAnimationConfig } from "react-native-reanimated";
+import Animated, {
+  LayoutAnimationConfig,
+  useAnimatedRef,
+} from "react-native-reanimated";
 
 import type { PreviewShape } from "./glass-message-menu";
 import type { Message } from "./types";
 import { cn } from "~/lib/cn";
 import { impact, selectionTick } from "~/lib/native-extras";
-import { Expand } from "./expand";
+import { GrowingSpace, rowOrder, useOwnLift } from "./grow";
 import {
   MessageTargetProvider,
   useIsLifted,
@@ -44,6 +48,16 @@ function useSeenWithout(reactions: readonly unknown[], loaded: boolean) {
   return seenWithout;
 }
 
+/** How a row's reactions make room for themselves (see `GrowingSpace`). */
+interface Room {
+  /** The row's order (see `rowOrder`). */
+  order: number;
+  /** Whether they arrived while the conversation was on screen. */
+  animate: boolean;
+  /** The message, measured to tell whether it's on screen. */
+  measured: AnimatedRef<NativeView>;
+}
+
 /**
  * Space above a bubble for its tapbacks, opened as the first arrives:
  * what they need beyond `roomAbove`, the space already there (the sender's
@@ -51,34 +65,56 @@ function useSeenWithout(reactions: readonly unknown[], loaded: boolean) {
  */
 function TapbackSpace({
   open,
-  animate,
   roomAbove,
+  room,
 }: {
   open: boolean;
-  animate: boolean;
   roomAbove: number;
+  room: Room;
 }) {
-  const height = Math.max(0, TAPBACK_SPACE - roomAbove);
-  if (height === 0) return null;
-  if (!animate) return open ? <View style={{ height }} /> : null;
   return (
-    <Expand open={open}>
-      <View style={{ height }} />
-    </Expand>
+    <GrowingSpace
+      height={open ? Math.max(0, TAPBACK_SPACE - roomAbove) : 0}
+      {...room}
+    />
   );
 }
 
-/** Stacked rows' chips, opened smoothly when the first arrives (`animate`). */
+/** Stacked rows' chips, under the message. */
 function Chips({
   open,
-  animate,
+  room,
   ...row
-}: ComponentProps<typeof ChipRow> & { open: boolean; animate: boolean }) {
-  if (!animate) return open ? <ChipRow {...row} /> : null;
+}: ComponentProps<typeof ChipRow> & { open: boolean; room: Room }) {
+  // Already there when the row appeared: laid out with it.
+  if (!room.animate) return open ? <ChipRow {...row} /> : null;
+  return <GrowingChips open={open} room={room} {...row} />;
+}
+
+/**
+ * Chips that arrive while you watch, in space that opens to fit them. The
+ * row moves up as it opens (see `useRowLift`), and the chips stay put:
+ * they're drawn where they end up, and pop in.
+ */
+function GrowingChips({
+  open,
+  room,
+  ...row
+}: ComponentProps<typeof ChipRow> & { open: boolean; room: Room }) {
+  const [natural, setNatural] = useState(0);
+  const stay = useOwnLift(room.order, -1);
   return (
-    <Expand open={open}>
-      <ChipRow {...row} />
-    </Expand>
+    <GrowingSpace height={open ? natural : 0} {...room}>
+      <Animated.View
+        // Laid out on its own, as wide as the row, so it has its full
+        // height whatever the space's.
+        className="absolute inset-x-0 top-0"
+        style={stay}
+        onLayout={(event) => setNatural(event.nativeEvent.layout.height)}
+      >
+        {open && <ChipRow {...row} />}
+      </Animated.View>
+    </GrowingSpace>
   );
 }
 
@@ -160,7 +196,7 @@ export function InteractiveMessage({
   const reactions = useShownReactions(message);
   const grows = useSeenWithout(reactions, message.reactions !== undefined);
   const lifted = useIsLifted(message.id);
-  const body = useRef<NativeView>(null);
+  const body = useAnimatedRef<NativeView>();
   const openReactions = useOpenReactions({
     align,
     measured: body,
@@ -170,6 +206,11 @@ export function InteractiveMessage({
   });
   const has = reactions.length > 0;
   const placement = useTapbackPlacement(tapbacksClearOf);
+  const room = {
+    animate: grows,
+    measured: body,
+    order: rowOrder(message.sentAt),
+  } satisfies Room;
   return (
     // Reactions already there when the row mounts don't pop in on scroll;
     // only one added while the conversation is open does.
@@ -184,8 +225,8 @@ export function InteractiveMessage({
         {reactionStyle === "tapbacks" && (
           <TapbackSpace
             open={has}
-            animate={grows}
             roomAbove={placement.besideName ? roomAbove : 0}
+            room={room}
           />
         )}
         <View
@@ -218,7 +259,7 @@ export function InteractiveMessage({
         {reactionStyle === "chips" && (
           <Chips
             open={has}
-            animate={grows}
+            room={room}
             reactions={reactions}
             align={align}
             onToggle={(emoji) => {

@@ -166,6 +166,7 @@ export function StagedAttachments({
 }) {
   const open = files.length > 0;
   const style = useAnimatedStyle(() => ({
+    // eslint-disable-next-line vera/no-layout-animation -- Known: re-lays out the composer, and the list under it, on each frame; to be fixed in its own PR.
     height: withTiming(open ? STRIP_HEIGHT : 0, { duration: 220 }),
     opacity: withTiming(open ? 1 : 0, { duration: 180 }),
   }));

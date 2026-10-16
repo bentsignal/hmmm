@@ -5,6 +5,7 @@ import { FlatList, Pressable, View } from "react-native";
 import { KeyboardChatScrollView } from "react-native-keyboard-controller";
 import Animated, {
   useAnimatedReaction,
+  useAnimatedRef,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -22,6 +23,7 @@ import { GlassSurface } from "~/components/glass-surface";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { cn } from "~/lib/cn";
 import { arrivedAfter, buildMessageRows } from "./build-rows";
+import { GrowthProvider } from "./grow";
 import { ANCHOR, useLatest, usePlacement } from "./list-position";
 import { useMenuKeyboard } from "./menu-keyboard";
 import { MessageActionsProvider } from "./message-actions";
@@ -289,6 +291,7 @@ export function MessageList({
   ...props
 }: MessageListProps) {
   const listRef = useRef<FlatList<MessageRow>>(null);
+  const frame = useAnimatedRef<View>();
   // Covered until laid out at its starting place, then faded in. A
   // page-colored cover fades away rather than the list fading in: glass
   // created under a fully transparent parent never draws.
@@ -314,28 +317,30 @@ export function MessageList({
       menuKeyboard={keyboard}
     >
       <RevealTimes>
-        <View style={{ flex: 1 }}>
-          <Rows
-            {...props}
-            listRef={listRef}
-            latest={latest}
-            freeze={keyboard.freeze}
-            shown={shown}
-            onReady={() => {
-              // Two frames later, once the first scroll (to the message it
-              // opened on) has drawn and the rows' mounting is done, so it
-              // can't hitch the fade's first frame.
-              requestAnimationFrame(() =>
-                requestAnimationFrame(() => {
-                  loaded.set(
-                    withTiming(1, { duration: FADE_MS }, (done) => {
-                      if (done === true) scheduleOnRN(setShown, true);
-                    }),
-                  );
-                }),
-              );
-            }}
-          />
+        <View ref={frame} style={{ flex: 1 }}>
+          <GrowthProvider list={frame}>
+            <Rows
+              {...props}
+              listRef={listRef}
+              latest={latest}
+              freeze={keyboard.freeze}
+              shown={shown}
+              onReady={() => {
+                // Two frames later, once the first scroll (to the message it
+                // opened on) has drawn and the rows' mounting is done, so it
+                // can't hitch the fade's first frame.
+                requestAnimationFrame(() =>
+                  requestAnimationFrame(() => {
+                    loaded.set(
+                      withTiming(1, { duration: FADE_MS }, (done) => {
+                        if (done === true) scheduleOnRN(setShown, true);
+                      }),
+                    );
+                  }),
+                );
+              }}
+            />
+          </GrowthProvider>
         </View>
       </RevealTimes>
       <Animated.View

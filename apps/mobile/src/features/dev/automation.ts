@@ -5,6 +5,7 @@ import { router } from "expo-router";
 import { env } from "~/env";
 import { storedAccounts } from "~/features/session/account-store";
 import { devSignInPath } from "./dev-sign-in-path";
+import { startFrames, stopFrames } from "./frames";
 
 function isAppPath(path: string): path is Href & string {
   return path.startsWith("/");
@@ -27,6 +28,8 @@ export function installDevAutomation() {
       reload() {
         DevSettings.reload();
       },
+      /** `scripts/sim.sh frames start` and `stop`: see frames.ts. */
+      frames: { start: startFrames, stop: stopFrames },
     },
   });
 }

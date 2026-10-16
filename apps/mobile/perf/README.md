@@ -54,14 +54,26 @@ What the compiler couldn't handle, and the fix:
   `.set(...)` and `.get()`.
 - A local variable with the same name as the function it's in.
 
-## Frames on a device
+## What these can't see: frames
 
-Jest can't see frames: layout, native views, and animations aren't drawn
-there. To find a stutter, measure it on a device. Run a release-like build,
-log UI-thread frames over 24ms with a temporary Reanimated `useFrameCallback`
-probe, and repeat the interaction the same way each time (open a chat by its
-route, for example). That's how the open-fade and new-message stutters in
-`.plans/message-list.md` were found.
+Everything above measures React's work on the JavaScript thread. A
+stuttering animation is usually the UI thread: an animation that changes
+layout (a height, a margin) makes the whole screen lay out again on every
+frame, and in a list that runs at 30fps. Jest draws nothing, so no test here
+sees it. Two checks cover it:
+
+- **Lint (`vera/no-layout-animation`, in CI):** fails on the ways to animate
+  layout: a layout property in a Reanimated animated style or `Keyframe`, a
+  CSS transition of one (or of every property, when there's no
+  `transitionProperty`), or a CSS animation of one. Move things with
+  `transform` and fade with `opacity`. When layout has to change, change it
+  once and draw what moved back where it was with a transform that eases to
+  zero (`GrowingSpace` in `src/features/conversation/grow.tsx`).
+- **Frames on a device (`scripts/sim.sh frames start` and `stop`):** records
+  every frame the UI thread draws in this worktree's simulator or emulator,
+  and reports the slow ones (over 1.5 refreshes). Measure any change to what
+  moves before and after, on iOS and Android; the `vera-feature` skill asks
+  for both reports in the PR.
 
 [Flashlight](https://github.com/bamlab/flashlight) measures FPS and CPU on an
 Android device. It doesn't run in CI here: it needs an Android emulator and a

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { useCSSVariable } from "uniwind";
 
 import type { Message } from "./types";
@@ -9,6 +10,7 @@ import { cn } from "~/lib/cn";
 import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
 import { BUBBLE_RADIUS, BubbleTail, TAIL_DROP } from "./bubble-shape";
+import { rowOrder, useOwnLift } from "./grow";
 import { LinkCards } from "./link-preview-card";
 import { LinkedText } from "./linked-text";
 import { MenuTargetView } from "./message-actions";
@@ -137,6 +139,35 @@ function AvatarColumn({
   );
 }
 
+/**
+ * The sender's name above a run. Tapbacks that open space under it move it
+ * up with the rows above (see `GrowingSpace`).
+ */
+function SenderName({
+  name,
+  order,
+  onEnd,
+}: {
+  name: string;
+  order: number;
+  /** Where the name's text ends, inside its padding. */
+  onEnd: (end: number) => void;
+}) {
+  const lift = useOwnLift(order);
+  return (
+    <Animated.View style={lift}>
+      <Text
+        numberOfLines={1}
+        className="text-caption text-muted px-3"
+        style={{ lineHeight: NAME_LINE, marginBottom: NAME_GAP - 2 }}
+        onLayout={(event) => onEnd(event.nativeEvent.layout.width - NAME_INSET)}
+      >
+        {name}
+      </Text>
+    </Animated.View>
+  );
+}
+
 /** A message's bubbles, with its sender's name, tapbacks, and status. */
 function BubbleColumn({
   message,
@@ -157,16 +188,11 @@ function BubbleColumn({
       className={cn("max-w-[75%] gap-0.5", isOwn ? "items-end" : "items-start")}
     >
       {name !== undefined && (
-        <Text
-          numberOfLines={1}
-          className="text-caption text-muted px-3"
-          style={{ lineHeight: NAME_LINE, marginBottom: NAME_GAP - 2 }}
-          onLayout={(event) =>
-            setNameEnd(event.nativeEvent.layout.width - NAME_INSET)
-          }
-        >
-          {name}
-        </Text>
+        <SenderName
+          name={name}
+          order={rowOrder(message.sentAt)}
+          onEnd={setNameEnd}
+        />
       )}
       <InteractiveMessage
         message={message}

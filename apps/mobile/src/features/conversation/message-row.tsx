@@ -12,6 +12,7 @@ import type { MessageRow } from "./build-rows";
 import type { MessageLayout } from "~/features/preferences/store";
 import { Arrive } from "./arrive";
 import { DaySeparator, TimeHeader } from "./day-separator";
+import { rowOrder, useRowLift } from "./grow";
 import { MessageBubble } from "./message-bubble";
 import { MessageStacked } from "./message-stacked";
 
@@ -69,16 +70,41 @@ export function Row({
   arriving,
 }: RowProps & { highlighted: boolean; arriving: boolean }) {
   return (
-    <RowShell rowKey={row.key} highlighted={highlighted} arriving={arriving}>
-      <RowContent
-        row={row}
-        self={self}
-        layout={layout}
-        profileOf={profileOf}
-        showAuthors={showAuthors}
-      />
-    </RowShell>
+    <RowLift
+      order={
+        row.type === "message"
+          ? rowOrder(row.message.sentAt)
+          : rowOrder(row.date, true)
+      }
+      // Stacked rows' reactions open below the message, so the row itself
+      // moves up as they do.
+      withOwn={layout === "stacked"}
+    >
+      <RowShell rowKey={row.key} highlighted={highlighted} arriving={arriving}>
+        <RowContent
+          row={row}
+          self={self}
+          layout={layout}
+          profileOf={profileOf}
+          showAuthors={showAuthors}
+        />
+      </RowShell>
+    </RowLift>
   );
+}
+
+/** Moves the row with the rows above a row that grows (see `useRowLift`). */
+function RowLift({
+  order,
+  withOwn,
+  children,
+}: {
+  order: number;
+  withOwn: boolean;
+  children: ReactNode;
+}) {
+  const lift = useRowLift(order, withOwn);
+  return <Animated.View style={lift}>{children}</Animated.View>;
 }
 
 /**

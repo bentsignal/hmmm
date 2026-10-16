@@ -117,6 +117,7 @@ export function Composer({
   const sentAt = useRef<number | null>(null);
   const keyboard = useReanimatedKeyboardAnimation();
   const sides = useAnimatedStyle(() => ({
+    // eslint-disable-next-line vera/no-layout-animation -- Known: re-lays out the composer on each frame of the keyboard; to be fixed in its own PR.
     paddingHorizontal:
       Platform.OS === "ios"
         ? interpolate(
