@@ -6,6 +6,7 @@ export {
   accountDomain,
   decodeDnsTxtData,
   discoverPds,
+  parsePdsManifest,
   parsePdsTxtRecord,
   PDS_DISCOVERY_RECORD_FORMAT,
   PDS_DNS_LABEL,

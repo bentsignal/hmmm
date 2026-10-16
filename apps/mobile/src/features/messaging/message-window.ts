@@ -1,4 +1,5 @@
 import type { Message as PdsMessage } from "@decentralized-convex/messages";
+import type { QueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { pdsQuery } from "@decentralized-convex/tanstack-query";
@@ -95,6 +96,38 @@ function mergePages(pages: readonly { data?: { messages: PdsMessage[] } }[]) {
   );
 }
 
+function pageQuery(
+  session: string,
+  conversationId: string,
+  cursor: PageCursor,
+) {
+  return pdsQuery({
+    args: { conversationId, ...cursor },
+    options: {
+      select: (result) => {
+        const sources = pdsResult(result);
+        return sources === undefined ? undefined : mergeSources(sources);
+      },
+    },
+    query: pds.messages.list,
+    session,
+  });
+}
+
+/**
+ * Starts loading the pages a conversation opens with at its latest
+ * message, ahead of the window that will show them.
+ */
+export function prefetchLatestMessages(
+  queryClient: QueryClient,
+  session: string,
+  conversationId: string,
+) {
+  for (const cursor of latestWindow(`${session} ${conversationId}`).pages) {
+    void queryClient.prefetchQuery(pageQuery(session, conversationId, cursor));
+  }
+}
+
 /**
  * A scrollable window over a conversation, oldest first, that can open at
  * the latest message or around a specific one and grow in either direction.
@@ -110,17 +143,7 @@ export function useMessageWindow(
   );
   const pages = useQueries({
     queries: view.pages.map((cursor) =>
-      pdsQuery({
-        args: { conversationId, ...cursor },
-        options: {
-          select: (result) => {
-            const sources = pdsResult(result);
-            return sources === undefined ? undefined : mergeSources(sources);
-          },
-        },
-        query: pds.messages.list,
-        session,
-      }),
+      pageQuery(session, conversationId, cursor),
     ),
   });
 
