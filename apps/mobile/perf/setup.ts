@@ -53,7 +53,7 @@ jest.mock("~/features/messaging/outbox", () => ({
   retryOutgoing: jest.fn(),
 }));
 
-// Signed in as `SELF` (see conversation.tsx), with every member's profile
+// Signed in as `SELF` (see messages.ts), with every member's profile
 // loaded.
 jest.mock("~/features/messaging/account", () => ({
   useAccount: () => ({ address: "me@vera.test" }),

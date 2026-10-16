@@ -12,14 +12,8 @@ import { act, render } from "@testing-library/react-native";
 import type * as ActionsModule from "~/features/conversation/message-actions";
 import type * as BubbleModule from "~/features/conversation/message-bubble";
 import type { Message } from "~/features/conversation/types";
-import {
-  Conversation,
-  message,
-  OLDER,
-  OTHER,
-  PAGE,
-  withReaction,
-} from "./conversation";
+import { Conversation } from "./conversation";
+import { message, OLDER, OTHER, PAGE, withReaction } from "./messages";
 
 /** How many times each message's bubble rendered, by message ID. */
 const mockRenders = new Map<string, number>();
@@ -70,12 +64,12 @@ async function mount(messages: readonly Message[]) {
 }
 
 /**
- * Bubbles that rendered again, other than `except`. A message's reactions
+ * Bubbles that rendered again, other than `except`'s. A message's reactions
  * render with it (twice, as a reaction lands), never on their own.
  */
-function rerendered(except: readonly string[] = []) {
+function rerendered(except?: string) {
   expect(mockActions.renders).toBeLessThanOrEqual(2 * mockRenders.size);
-  return [...mockRenders.keys()].filter((id) => !except.includes(id));
+  return [...mockRenders.keys()].filter((id) => id !== except);
 }
 
 beforeEach(() => {
@@ -88,7 +82,7 @@ test("a new message renders only itself and the row it joins", async () => {
   const update = await mount(PAGE);
   await update([...PAGE, message(50, { authorId: OTHER })]);
   // The previous newest row loses its tail as the new one joins its run.
-  expect(rerendered(["m50"]).length).toBeLessThanOrEqual(1);
+  expect(rerendered("m50").length).toBeLessThanOrEqual(1);
 });
 
 test("a reaction renders only the message it's on", async () => {

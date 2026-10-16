@@ -9,14 +9,8 @@ import { act, fireEvent, screen } from "@testing-library/react-native";
 import { measureRenders } from "reassure";
 
 import type { Message } from "~/features/conversation/types";
-import {
-  Conversation,
-  message,
-  OLDER,
-  OTHER,
-  PAGE,
-  withReaction,
-} from "./conversation";
+import { Conversation } from "./conversation";
+import { message, OLDER, OTHER, PAGE, withReaction } from "./messages";
 
 beforeEach(() => {
   jest.useFakeTimers();
