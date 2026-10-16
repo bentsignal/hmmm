@@ -4,10 +4,52 @@ import { pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
 import { useAccount } from "./account";
-import { pdsResult } from "./results";
+import { pdsResult, pdsResultOr } from "./results";
 
 export function usernameOf(address: string) {
   return address.slice(0, address.lastIndexOf("@")) || address;
+}
+
+/**
+ * Each profile as screens show it, the same object while the profile is,
+ * so rows that show it (every message in a conversation) don't redraw.
+ */
+const shownProfiles = new WeakMap<object, ShownProfile>();
+const fallbacks = new Map<string, ShownProfile>();
+
+interface ShownProfile {
+  readonly affiliated: boolean;
+  readonly avatarUrl: string | null;
+  readonly displayName: string;
+}
+
+function shownProfile(
+  address: string,
+  profile:
+    | {
+        readonly affiliated?: boolean;
+        readonly avatarUrl?: string | null;
+        readonly displayName?: string;
+      }
+    | null
+    | undefined,
+) {
+  if (profile == null) {
+    const fallback = fallbacks.get(address) ?? {
+      affiliated: false,
+      avatarUrl: null,
+      displayName: usernameOf(address),
+    };
+    fallbacks.set(address, fallback);
+    return fallback;
+  }
+  const shown = shownProfiles.get(profile) ?? {
+    affiliated: profile.affiliated === true,
+    avatarUrl: profile.avatarUrl ?? null,
+    displayName: profile.displayName ?? usernameOf(address),
+  };
+  shownProfiles.set(profile, shown);
+  return shown;
 }
 
 /**
@@ -18,14 +60,19 @@ export function usernameOf(address: string) {
 export function useProfileState(addresses: readonly string[]) {
   const { address: session } = useAccount();
   const unique = [...new Set(addresses)];
-  const profiles = useQueries({
+  // Shared structurally with the last result, so the same profiles give the
+  // same object, and `profileOf` stays the same function: rows that take it
+  // (every message in a conversation) don't redraw when nothing changed.
+  const { found, isLoading } = useQueries({
     queries: unique.map((accountId) =>
       pdsQuery({
         args: { accountId },
         options: {
-          // undefined while loading; null once known to have none.
+          // undefined while loading; null once known to have none, or once
+          // their PDS fails, so screens waiting on profiles don't wait on
+          // it forever.
           select: (result) => {
-            const sources = pdsResult(result);
+            const sources = pdsResultOr(result, []);
             return sources === undefined
               ? undefined
               : (sources.find((profile) => profile !== null) ?? null);
@@ -35,22 +82,18 @@ export function useProfileState(addresses: readonly string[]) {
         session,
       }),
     ),
+    combine: (results) => ({
+      found: Object.fromEntries(
+        unique.map((address, index) => [address, results[index]?.data]),
+      ),
+      isLoading: results.some((result) => result.data === undefined),
+    }),
   });
-  const found = new Map(
-    unique.map((address, index) => [address, profiles[index]?.data]),
-  );
   return {
-    isLoading: profiles.some((profile) => profile.data === undefined),
+    isLoading,
     /** Whether this address's profile (or its absence) is known. */
-    isLoaded: (address: string) => found.get(address) !== undefined,
-    profileOf: (address: string) => {
-      const profile = found.get(address);
-      return {
-        affiliated: profile?.affiliated === true,
-        avatarUrl: profile?.avatarUrl ?? null,
-        displayName: profile?.displayName ?? usernameOf(address),
-      };
-    },
+    isLoaded: (address: string) => found[address] !== undefined,
+    profileOf: (address: string) => shownProfile(address, found[address]),
   };
 }
 

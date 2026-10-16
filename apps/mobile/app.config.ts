@@ -76,6 +76,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       monochromeImage: "./assets/icons/vera-android-monochrome.png",
     },
     predictiveBackGestureEnabled: true,
+    // expo-media-library adds these for reading the library, which Vera
+    // never does; saving needs only WRITE_EXTERNAL_STORAGE, before Android 13.
+    blockedPermissions: [
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+    ],
     // Space invite links open in the app (verified by vera.chat's
     // assetlinks.json); Vera Dev claims only its own `/dev/join/` links.
     intentFilters: [
@@ -120,6 +126,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         // `color`. iOS badges notifications with the app icon instead.
         icon: "./assets/icons/vera-android-notification.png",
         color: "#007AFF",
+      },
+    ],
+    [
+      "expo-media-library",
+      {
+        // "Save to Photos" only adds to the library, which Android 13+ lets
+        // any app do, so it asks for none of the read permissions Play
+        // reviews (see android.blockedPermissions).
+        photosPermission: "Vera uses your photos to send them in messages.",
+        savePhotosPermission:
+          "Vera saves the photos and videos you choose to your library.",
+        granularPermissions: [],
       },
     ],
     "expo-secure-store",

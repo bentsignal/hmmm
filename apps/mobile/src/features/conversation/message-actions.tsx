@@ -2,6 +2,7 @@ import type { ReactNode, RefObject } from "react";
 import type { View as NativeView } from "react-native";
 import { createContext, use, useRef, useState } from "react";
 import { Pressable } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -14,8 +15,8 @@ import type {
   PreviewShape,
   TargetAlign,
 } from "./glass-message-menu";
-import type { Message } from "./types";
-import { impact } from "~/lib/native-extras";
+import type { Message, MessageAttachment } from "./types";
+import { impact, selectionTick } from "~/lib/native-extras";
 import { GlassMessageMenu } from "./glass-message-menu";
 
 interface MessageActions {
@@ -26,6 +27,14 @@ interface MessageActions {
 }
 
 const MessageActionsContext = createContext<MessageActions | null>(null);
+
+/** The message lifted into the menu, from when it opens until it's closed. */
+const LiftedMessageContext = createContext<string | undefined>(undefined);
+
+/** Whether this message is lifted into the menu right now. */
+export function useIsLifted(messageId: string) {
+  return use(LiftedMessageContext) === messageId;
+}
 
 export function useMessageActions() {
   const actions = use(MessageActionsContext);
@@ -42,13 +51,17 @@ export function useMessageActions() {
 export function MessageActionsProvider({
   onToggleReaction,
   onViewReactions,
-  onMenuChange,
+  menuKeyboard,
   children,
 }: {
   onToggleReaction: (messageId: string, emoji: string) => void;
   onViewReactions: (messageId: string, emoji?: string) => void;
-  /** Called just before the menu opens and as it starts to close. */
-  onMenuChange?: () => void;
+  /** What the keyboard does around the menu (see `useMenuKeyboard`). */
+  menuKeyboard?: {
+    onOpen: () => void;
+    onClosing: () => void;
+    onClosed: (backToChat: boolean) => void;
+  };
   children: ReactNode;
 }) {
   const [target, setTarget] = useState<MenuTarget | null>(null);
@@ -56,21 +69,26 @@ export function MessageActionsProvider({
     <MessageActionsContext
       value={{
         open: (next) => {
-          onMenuChange?.();
+          menuKeyboard?.onOpen();
           setTarget(next);
         },
         toggleReaction: onToggleReaction,
         viewReactions: onViewReactions,
       }}
     >
-      {children}
+      <LiftedMessageContext value={target?.message.id}>
+        {children}
+      </LiftedMessageContext>
       {target !== null && (
         <GlassMessageMenu
           target={target}
           onReact={(emoji) => onToggleReaction(target.message.id, emoji)}
-          onViewReactions={() => onViewReactions(target.message.id)}
-          onClosing={onMenuChange}
-          onClosed={() => setTarget(null)}
+          onViewReactions={(emoji) => onViewReactions(target.message.id, emoji)}
+          onClosing={menuKeyboard?.onClosing}
+          onClosed={(backToChat) => {
+            setTarget(null);
+            menuKeyboard?.onClosed(backToChat);
+          }}
         />
       )}
     </MessageActionsContext>
@@ -111,18 +129,59 @@ export function MessageTargetProvider({
   );
 }
 
+/** Two taps this close together are a double tap. */
+const DOUBLE_TAP_MS = 300;
+
+/** What a part of a message lifts into the menu, besides where it sits. */
+type LiftedPart = Omit<MenuTarget, "rect">;
+
+/** Lifts `measured` into the menu from where it sits on screen. */
+function lift(
+  open: (target: MenuTarget) => void,
+  measured: RefObject<NativeView | null>,
+  part: LiftedPart,
+) {
+  measured.current?.measureInWindow((x, y, width, height) =>
+    open({ ...part, rect: { height, width, x, y } }),
+  );
+}
+
+/**
+ * Opens a whole message's reactions, lifting `measured` (the message as it
+ * sits in the list) with `preview`, a copy of it. For the tapbacks, which
+ * belong to the message rather than one of its parts.
+ */
+export function useOpenReactions({
+  message,
+  align,
+  shape,
+  measured,
+  preview,
+}: MessageTarget & {
+  measured: RefObject<NativeView | null>;
+  preview: ReactNode;
+}) {
+  const { open } = useMessageActions();
+  return () => {
+    selectionTick();
+    lift(open, measured, { align, message, mode: "reactions", preview, shape });
+  };
+}
+
 /**
  * Makes one part of a message (its text, an attachment, a link card) open
  * the message's glass overlay on a long press, lifting `preview`, a copy of
  * just this part, from where `measured` sits. So a message with several
  * parts never lifts taller than it needs to; reactions picked there go to
  * the whole message. Spread `press` on the Pressable `measured` refers to,
- * and put `style` (the squeeze while held) on the part. Null outside a message, as
- * in the lifted copy, where the part draws as is.
+ * and put `style` (the squeeze while held) on the part. `openReactions`
+ * lifts it with who reacted instead of the actions (a double tap). Null
+ * outside a message, as in the lifted copy, where the part draws as is.
  */
 export function useMenuTarget({
   measured,
   link,
+  attachment,
   shape,
   preview,
 }: {
@@ -130,6 +189,8 @@ export function useMenuTarget({
   measured: RefObject<NativeView | null>;
   /** The link of a held card, which the menu is then about. */
   link?: string;
+  /** A held photo, video, or file, which the menu can save. */
+  attachment?: MessageAttachment;
   /** How this part lifts; the message's text shape by default. */
   shape?: PreviewShape;
   preview: ReactNode;
@@ -144,6 +205,17 @@ export function useMenuTarget({
   const { message, align } = target;
   // A message still sending (or that failed) has no menu yet.
   const holdable = message.status === undefined;
+  function openAs(mode: MenuTarget["mode"]) {
+    lift(open, measured, {
+      align,
+      attachment,
+      link,
+      message,
+      mode,
+      preview,
+      shape: shape ?? target?.shape ?? "plain",
+    });
+  }
   return {
     press: {
       delayLongPress: LONG_PRESS_MS,
@@ -151,16 +223,7 @@ export function useMenuTarget({
         if (!holdable) return;
         impact();
         scale.set(withSpring(1, RELEASE_SPRING));
-        measured.current?.measureInWindow((x, y, width, height) =>
-          open({
-            align,
-            link,
-            message,
-            preview,
-            rect: { height, width, x, y },
-            shape: shape ?? target.shape,
-          }),
-        );
+        openAs("actions");
       },
       onPressIn: () => {
         if (!holdable) return;
@@ -170,11 +233,21 @@ export function useMenuTarget({
         scale.set(withSpring(1, RELEASE_SPRING));
       },
     },
+    /** Lifts the part with who reacted, as a double tap does. */
+    openReactions: () => {
+      if (!holdable) return;
+      selectionTick();
+      openAs("reactions");
+    },
     style,
   };
 }
 
-/** A part of a message that opens its menu on a long press, lifted as is. */
+/**
+ * A part of a message that opens its menu on a long press, and its
+ * reactions on a double tap, lifted as is. The double tap is the native
+ * recognizer's: a Pressable drops the second of two quick taps.
+ */
 export function MenuTargetView({
   shape,
   children,
@@ -186,12 +259,21 @@ export function MenuTargetView({
   const ref = useRef<NativeView>(null);
   const target = useMenuTarget({ measured: ref, preview: children, shape });
   if (target === null) return children;
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .maxDelay(DOUBLE_TAP_MS)
+    .runOnJS(true)
+    .onEnd((_, success) => {
+      if (success) target.openReactions();
+    });
   return (
-    <Pressable ref={ref} {...target.press}>
-      <MenuPressContext value={target.press}>
-        <Animated.View style={target.style}>{children}</Animated.View>
-      </MenuPressContext>
-    </Pressable>
+    <GestureDetector gesture={doubleTap}>
+      <Pressable ref={ref} {...target.press}>
+        <MenuPressContext value={target.press}>
+          <Animated.View style={target.style}>{children}</Animated.View>
+        </MenuPressContext>
+      </Pressable>
+    </GestureDetector>
   );
 }
 

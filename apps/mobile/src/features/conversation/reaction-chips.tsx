@@ -2,6 +2,7 @@ import { Pressable, Text, View } from "react-native";
 import Animated, { Easing, Keyframe, ZoomOut } from "react-native-reanimated";
 
 import type { ReactionSummary } from "~/features/messaging/reactions";
+import { Emoji } from "~/components/emoji";
 import { GlassSurface } from "~/components/glass-surface";
 import { cn } from "~/lib/cn";
 import { LONG_PRESS_MS } from "./message-actions";
@@ -48,7 +49,7 @@ function Chip({
           androidClassName={reaction.mine ? "bg-accent/20" : undefined}
           className="h-[26px] flex-row items-center gap-1 rounded-full px-2"
         >
-          <Text style={{ fontSize: 13 }}>{reaction.emoji}</Text>
+          <Emoji emoji={reaction.emoji} size={13} />
           <Text
             className={cn(
               "text-footnote font-semibold",

@@ -79,3 +79,6 @@ design
 
 # per-worktree Convex deployment (scripts/backend.sh)
 .isolated-backend
+
+# Reassure measurements (`pnpm perf`)
+.reassure/

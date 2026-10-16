@@ -5,77 +5,56 @@ export const TAIL_DROP = 7;
 /** Bubble corner radius, a touch rounder than a capsule's for one line. */
 export const BUBBLE_RADIUS = 20;
 
-/**
- * A rounded bubble with iMessage's tail at its bottom-right corner: the
- * corner curves in to a waist, and the tail below it curls back out like a
- * horn to a round tip, then sweeps up into the bottom edge. The tail's
- * points were fitted to a trace of iMessage's, in points measured from the
- * bubble's right and bottom edges, and don't scale with the bubble. One
- * continuous path, so there is no seam where the tail meets the bubble.
- * `width` and `height` are the bubble's own box; the tail drops `TAIL_DROP`
- * below it.
- */
-function tailedBubblePath(width: number, height: number) {
-  const r = Math.min(BUBBLE_RADIUS, height / 2);
-  const k = r * 0.45;
-  const w = width;
-  const h = height;
-  // The corner leaves the side 20 above the bottom, or lower on a short
-  // bubble, below where the top corner ends.
-  const cornerStart = Math.max(h - 20, r);
-  // Where the tail meets the bottom edge, short of the left corner.
-  const tailEnd = Math.max(w - 21.89, r);
-  return [
-    `M ${r} 0`,
-    `L ${w - r} 0`,
-    `C ${w - k} 0 ${w} ${k} ${w} ${r}`,
-    `L ${w} ${cornerStart}`,
-    // The corner curves in to the tail's waist...
-    `C ${w} ${h - 7.65} ${w - 10.52} ${h - 4.3} ${w - 10.52} ${h - 0.07}`,
-    // ...then the tail curls back out toward the edge...
-    `C ${w - 10.52} ${h + 2.54} ${w - 9.51} ${h + 3.61} ${w - 8.42} ${h + 5.21}`,
-    // ...rounds off at the tip...
-    `A 1.03 1.03 0 0 1 ${w - 9.67} ${h + 6.73}`,
-    // ...and sweeps back up into the bottom edge.
-    `C ${w - 17.42} ${h + 3.49} ${Math.max(w - 19.39, tailEnd)} ${h} ${tailEnd} ${h}`,
-    `L ${r} ${h}`,
-    `C ${k} ${h} 0 ${h - k} 0 ${h - r}`,
-    `L 0 ${r}`,
-    `C 0 ${k} ${k} 0 ${r} 0`,
-    "Z",
-  ].join(" ");
-}
+/** The tail's box: from 20 above the bubble's bottom to the tail's tip. */
+const TAIL_WIDTH = 22;
+const TAIL_HEIGHT = 20 + TAIL_DROP;
 
 /**
- * Paints a bubble with its tail behind the bubble's content. Incoming
- * bubbles are mirrored so the tail sits at the bottom left.
+ * Just the tail and the corner it grows from, in the tail's own box: the
+ * corner curves in to a waist, the tail curls back out like a horn to a
+ * round tip and sweeps up into the bottom edge, and the rest closes inside
+ * the bubble, where it's the bubble's own color. The points were fitted to
+ * a trace of iMessage's tail, in points from the bubble's right and bottom
+ * edges, and don't scale with the bubble. Fixed, so a bubble never has to
+ * be measured to draw it.
  */
-export function TailedBubble({
-  width,
-  height,
+const TAIL_PATH = [
+  `M ${TAIL_WIDTH} 0`,
+  `C ${TAIL_WIDTH} 12.35 11.48 15.7 11.48 19.93`,
+  "C 11.48 22.54 12.49 23.61 13.58 25.21",
+  "A 1.03 1.03 0 0 1 12.33 26.73",
+  "C 4.58 23.49 2.61 20 0.11 20",
+  "L 0 20",
+  "L 0 0",
+  "Z",
+].join(" ");
+
+/**
+ * iMessage's tail on a bubble with an ordinary rounded background: drawn
+ * over the bubble's bottom corner (bottom right for yours, mirrored to the
+ * bottom left for theirs), hanging `TAIL_DROP` below it. Put it first in
+ * the bubble, so its content draws over it.
+ */
+export function BubbleTail({
   color,
   isOwn,
 }: {
-  width: number;
-  height: number;
   color: string;
   isOwn: boolean;
 }) {
   return (
-    // Sized by insets, not `width`/`height`: Svg rounds those down to whole
-    // points, which clipped the edge of bubbles with fractional widths.
     <Svg
       pointerEvents="none"
+      width={TAIL_WIDTH}
+      height={TAIL_HEIGHT}
+      viewBox={`0 0 ${TAIL_WIDTH} ${TAIL_HEIGHT}`}
       style={{
         bottom: -TAIL_DROP,
-        left: 0,
         position: "absolute",
-        right: 0,
-        top: 0,
-        transform: isOwn ? undefined : [{ scaleX: -1 }],
+        ...(isOwn ? { right: 0 } : { left: 0, transform: [{ scaleX: -1 }] }),
       }}
     >
-      <Path d={tailedBubblePath(width, height)} fill={color} />
+      <Path d={TAIL_PATH} fill={color} />
     </Svg>
   );
 }

@@ -75,6 +75,24 @@ whenever a change touches layout, navigation, platform files
 (`.ios.tsx`/`.android.tsx`), or native config, and put Android screenshots
 in the PR next to iOS ones.
 
+**Measure anything that moves.** Smooth animation is not optional, and
+neither lint nor Jest can see frames. For any change to an animation, a
+transition, or what moves when something changes (a message arriving, a
+reaction, a row growing, a list scrolling), record the UI thread's frames
+around the interaction on iOS and Android:
+
+```sh
+scripts/sim.sh frames start
+# ...do the interaction, a few times...
+scripts/sim.sh frames stop   # {"frames":…,"hz":60,"slow":0,"dropped":0,"worst":[]}
+```
+
+`slow` must be 0 while things move (one slow frame as something mounts,
+before anything moves, is the most to accept). Measure before and after
+your change, and put both reports in the PR. A slow animation usually
+animates layout (the `vera/no-layout-animation` lint rule catches the
+common ways); move things with `transform` and `opacity` instead.
+
 ## 4b. Shawn tests it on his phone
 
 The simulator is your check. Every change also gets Shawn's own test on his

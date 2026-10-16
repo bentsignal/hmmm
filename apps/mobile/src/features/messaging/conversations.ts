@@ -3,7 +3,7 @@ import type {
   LinkCard,
   Message as PdsMessage,
 } from "@decentralized-convex/messages";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 // eslint-disable-next-line no-restricted-imports -- Expo Router has no route loaders to preload suspense queries.
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { listNames } from "@decentralized-convex/messages";
@@ -88,6 +88,8 @@ export function useConversation(conversationId: string) {
     conversation: data ?? undefined,
     displayName,
     isLoading: data === undefined,
+    /** Every member's profile is known, so names and photos won't change. */
+    profilesLoaded: data != null && !profiles.isLoading,
     profileOf,
     title:
       data != null && (titled || !profiles.isLoading)
@@ -184,8 +186,97 @@ function unconfirmedMessage(
       [],
       message.items.map((item) => localAttachment(message.messageId, item)),
     ),
-    status:
-      message.status === "failed" ? ("failed" as const) : ("sending" as const),
+    // One the PDS took shows as sent, even before the conversation's
+    // pages list it.
+    status: unconfirmedStatus(message.status),
+  };
+}
+
+/**
+ * Each message as the conversation shows it, kept from render to render
+ * while what it's made from is the same, so its row doesn't redraw when
+ * something else in the conversation changes.
+ */
+const shown = new WeakMap<
+  PdsMessage | OutgoingMessage,
+  {
+    readonly message: Message;
+    readonly reactions?: readonly ReactionSummary[];
+    readonly sent?: OutgoingMessage;
+  }
+>();
+
+function shownMessage(
+  message: PdsMessage,
+  sent: OutgoingMessage | undefined,
+  reactions: readonly ReactionSummary[] | undefined,
+) {
+  const cached = shown.get(message);
+  if (
+    cached !== undefined &&
+    cached.reactions === reactions &&
+    cached.sent === sent
+  ) {
+    return cached.message;
+  }
+  const result = toMessage(
+    withPrefetched(message, sent),
+    reactions,
+    withLocalMedia(message, sent),
+  );
+  shown.set(message, { message: result, reactions, sent });
+  return result;
+}
+
+function shownUnconfirmed(
+  message: OutgoingMessage,
+  address: string,
+  conversationId: string,
+) {
+  const cached = shown.get(message);
+  if (cached !== undefined) return cached.message;
+  const result = unconfirmedMessage(message, address, conversationId);
+  shown.set(message, { message: result });
+  return result;
+}
+
+function unconfirmedStatus(status: OutgoingMessage["status"]) {
+  if (status === "sent") return undefined;
+  return status;
+}
+
+/**
+ * The pages whose messages show. The pages the window opened with wait for
+ * their messages' reactions too, so the conversation never appears and then
+ * grows under them. Pages loaded later show as soon as their messages
+ * arrive: they load past the edge of the screen, where rows that grow move
+ * nothing you're looking at, and waiting would leave you at the top of the
+ * list longer. Once shown, a page stays, even while its reactions reload.
+ */
+function useSettledPages(
+  pages: ReturnType<typeof useMessageWindow>["pages"],
+  reactionsOf: (messageId: string) => unknown,
+) {
+  const [settled, setSettled] = useState<ReadonlySet<string>>(new Set());
+  const ready = pages.filter(
+    (page) =>
+      page.messageIds !== undefined &&
+      (!page.initial ||
+        page.messageIds.every((id) => reactionsOf(id) !== undefined)),
+  );
+  const newlyReady = ready.filter((page) => !settled.has(page.key));
+  if (newlyReady.length > 0) {
+    setSettled(new Set([...settled, ...newlyReady.map((page) => page.key)]));
+  }
+  const readyKeys = new Set(ready.map((page) => page.key));
+  const shown = pages.filter(
+    (page) => settled.has(page.key) || readyKeys.has(page.key),
+  );
+  const shownKeys = new Set(shown.map((page) => page.key));
+  return {
+    /** The window's opening pages haven't all loaded yet. */
+    isLoading: pages.some((page) => page.initial && !shownKeys.has(page.key)),
+    shownIds: new Set(shown.flatMap((page) => page.messageIds ?? [])),
   };
 }
 
@@ -201,28 +292,30 @@ export function useMessages(conversationId: string, anchor?: string) {
     conversationId,
     view.pageMessageIds,
   );
+  const settled = useSettledPages(view.pages, reactionsOf);
   const outbox = useOutbox(address, conversationId);
+  const sentById = new Map(outbox.map((item) => [item.messageId, item]));
   const confirmed = new Set(view.messages.map((message) => message.messageId));
   const atLatest = !view.hasNewer;
   const unconfirmed = atLatest
     ? outbox
         .filter((message) => !confirmed.has(message.messageId))
-        .map((message) => unconfirmedMessage(message, address, conversationId))
+        .map((message) => shownUnconfirmed(message, address, conversationId))
     : [];
 
   return {
     ...view,
+    isLoading: settled.isLoading,
     messages: [
-      ...view.messages.map((message) => {
-        const sent = outbox.find(
-          (item) => item.messageId === message.messageId,
-        );
-        return toMessage(
-          withPrefetched(message, sent),
-          reactionsOf(message.messageId),
-          withLocalMedia(message, sent),
-        );
-      }),
+      ...view.messages
+        .filter((message) => settled.shownIds.has(message.messageId))
+        .map((message) =>
+          shownMessage(
+            message,
+            sentById.get(message.messageId),
+            reactionsOf(message.messageId),
+          ),
+        ),
       ...unconfirmed,
     ],
     /** Adds or removes your reaction, showing it right away. */

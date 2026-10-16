@@ -1,10 +1,6 @@
 import type { ReactNode } from "react";
 import { Alert, Pressable, Text } from "react-native";
-import Animated, {
-  FadeIn,
-  useAnimatedStyle,
-  withTiming,
-} from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import type { Message } from "./types";
 import { SymbolIcon } from "~/components/symbol-icon";
@@ -27,9 +23,14 @@ function showNotSent(messageId: string) {
   );
 }
 
+/** How see-through a message is until the PDS has it. */
+export const SENDING_OPACITY = 0.5;
+/** How long a sent message (or its time) takes to fade up to full. */
+export const SENT_FADE_MS = 300;
+
 /**
- * Fades a message in from translucent while it is sending, so a confirmed
- * send settles in place instead of swapping a "Sending…" label.
+ * Holds a message at half opacity while it is sending, then fades it up
+ * to full once the PDS has it, instead of a "Sending…" or "Delivered" label.
  */
 export function SendingFade({
   status,
@@ -38,31 +39,31 @@ export function SendingFade({
   status: Message["status"];
   children: ReactNode;
 }) {
-  const style = useAnimatedStyle(() => ({
-    opacity: withTiming(status === "sending" ? 0.75 : 1, { duration: 220 }),
-  }));
-  return <Animated.View style={style}>{children}</Animated.View>;
+  return (
+    <Animated.View
+      style={{
+        opacity: status === "sending" ? SENDING_OPACITY : 1,
+        transitionDuration: SENT_FADE_MS,
+        transitionProperty: "opacity",
+        transitionTimingFunction: "ease-out",
+      }}
+    >
+      {children}
+    </Animated.View>
+  );
 }
 
-/**
- * "Delivered" under your newest message, or "Not sent", which you tap to
- * try again or delete the message.
- */
-export function MessageMeta({
-  message,
-  delivered,
-}: {
-  message: Message;
-  delivered: boolean;
-}) {
-  if (message.status === "failed") {
-    return (
+/** "Not sent" under a message that failed: tap to try again or delete it. */
+export function NotSent({ message }: { message: Message }) {
+  if (message.status !== "failed") return null;
+  return (
+    <Animated.View entering={FadeIn.duration(200)}>
       <Pressable
         accessibilityRole="button"
         accessibilityHint="Try again or delete the message"
         onPress={() => showNotSent(message.id)}
         hitSlop={8}
-        className="flex-row items-center gap-1 px-1 active:opacity-60"
+        className="flex-row items-center gap-1 px-1 pt-0.5 active:opacity-60"
       >
         <SymbolIcon
           name={{ android: "error", ios: "exclamationmark.circle.fill" }}
@@ -73,15 +74,6 @@ export function MessageMeta({
           Not sent. Tap to try again.
         </Text>
       </Pressable>
-    );
-  }
-  if (!delivered) return null;
-  return (
-    <Animated.Text
-      entering={FadeIn.duration(240)}
-      className="text-caption text-muted px-1 pt-0.5 font-medium"
-    >
-      Delivered
-    </Animated.Text>
+    </Animated.View>
   );
 }
