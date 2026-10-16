@@ -1,6 +1,6 @@
 import type { Space } from "@decentralized-convex/messages";
 import { useRouter } from "expo-router";
-import { FieldGroup, Text } from "@expo/ui";
+import { FieldGroup } from "@expo/ui";
 
 import { SectionHeaderWithAdd } from "~/components/section-header";
 import { SectionTitle } from "~/components/section-title";
@@ -68,12 +68,6 @@ export function ChannelsSection({ space }: { space: Space }) {
           }}
         />
       ))}
-      <FieldGroup.SectionFooter>
-        <Text>
-          Touch and hold a channel to hide it from your Inbox or choose what it
-          alerts you about.
-        </Text>
-      </FieldGroup.SectionFooter>
     </FieldGroup.Section>
   );
 }

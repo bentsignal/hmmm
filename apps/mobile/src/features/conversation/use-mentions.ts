@@ -10,6 +10,7 @@ import { readDraft, saveDraftMentions } from "./drafts";
 import {
   deleteWholeMention,
   insertMention,
+  isPicked,
   keptMentions,
   mentionQuery,
   suggestions,
@@ -55,7 +56,9 @@ export function useMentions(
   return {
     /** Who the `@name` being typed could be; empty when none is. */
     people:
-      query === null || mentionable === undefined
+      query === null ||
+      mentionable === undefined ||
+      isPicked(query.query, mentions)
         ? []
         : suggestions(mentionable, query.query),
     /** For the field: where its cursor is, and putting it back. */

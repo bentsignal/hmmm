@@ -46,6 +46,15 @@ export function mentionQuery(text: string, cursor: number) {
 }
 
 /**
+ * Whether what follows an `@` is a mention already made, followed by a
+ * space: the picker is done with it, though the name could still be read
+ * as a search.
+ */
+export function isPicked(query: string, mentions: readonly Mention[]) {
+  return mentions.some(({ name }) => query.startsWith(`${name} `));
+}
+
+/**
  * Whether a person matches what's typed after the `@`: it starts their
  * display name, any word in it, or their username.
  */

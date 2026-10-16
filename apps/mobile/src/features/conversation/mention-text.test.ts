@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   deleteWholeMention,
   insertMention,
+  isPicked,
   keptMentions,
   mentionQuery,
   mentionRanges,
@@ -105,4 +106,13 @@ void test("deleting into a mention deletes all of it", () => {
     deleteWholeMention("ok @Maya Chen", "o @Maya Chen", mentions),
     null,
   );
+});
+
+void test("a picked name followed by a space is done being searched", () => {
+  const mentions = [{ accountId: "jonah@vera.chat", name: "Jonah Weiss" }];
+  const typed = "hi @Jonah Weiss ";
+  const query = mentionQuery(typed, typed.length);
+  assert.equal(query?.query, "Jonah Weiss ");
+  assert.equal(isPicked("Jonah Weiss ", mentions), true);
+  assert.equal(isPicked("Jonah W", mentions), false);
 });
