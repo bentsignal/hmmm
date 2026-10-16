@@ -8,7 +8,7 @@ import { pdsMutation } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
 import type { OutgoingDraft, OutgoingMessage } from "./outbox";
-import type { Message, ThreadInfo } from "~/features/conversation/types";
+import type { ReplyTarget, ThreadInfo } from "~/features/conversation/types";
 import { useAccount } from "./account";
 import { useMessageWindow } from "./message-window";
 import { sendOutgoing, useOutbox } from "./outbox";
@@ -124,7 +124,10 @@ function useThreads({
     const pending = sending.get(id) ?? 0;
     if (pending === 0) return known;
     return {
-      repliers: [address, ...(known?.repliers ?? [])],
+      repliers: [
+        address,
+        ...(known?.repliers ?? []).filter((replier) => replier !== address),
+      ],
       replyCount: (known?.replyCount ?? 0) + pending,
     };
   }
@@ -138,7 +141,7 @@ function useThreads({
  */
 function replyFor(
   root: PdsMessage | null,
-  replyTo: Message | undefined,
+  replyTo: ReplyTarget | undefined,
   threadOf: (id: string) => ThreadInfo | undefined,
 ) {
   if (root !== null) {
@@ -149,11 +152,10 @@ function replyFor(
     };
   }
   if (replyTo === undefined) return undefined;
-  const threadId = replyTo.threadId ?? replyTo.id;
   return {
-    inChat: threadOf(threadId) === undefined,
-    quote: quoteOf(replyTo),
-    threadId,
+    inChat: threadOf(replyTo.id) === undefined,
+    quote: replyTo.quote,
+    threadId: replyTo.id,
   };
 }
 
@@ -256,7 +258,7 @@ export function useMessages(
      * In the conversation, `replyTo` makes it its thread's first reply; in
      * a thread, it's always a reply.
      */
-    sendMessage: (draft: OutgoingDraft, replyTo?: Message) => {
+    sendMessage: (draft: OutgoingDraft, replyTo?: ReplyTarget) => {
       if (!atLatest) view.jumpToLatest();
       sendOutgoing(session, conversationId, {
         ...draft,

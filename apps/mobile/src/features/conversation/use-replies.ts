@@ -4,16 +4,18 @@ import { useRouter } from "expo-router";
 
 import type { ComposerHandle } from "./composer";
 import type { ProfileOf } from "./message-row";
-import type { Message, ThreadInfo } from "./types";
+import type { Message, ReplyTarget, ThreadInfo } from "./types";
 import { useAccount } from "~/features/messaging/account";
 import { quoteOf } from "~/features/messaging/messages";
+import { draftKey, readDraft, saveDraftReply } from "./drafts";
 import { quoteText } from "./reply-parts";
 
 /**
  * Replying from a conversation. A tap opens a message's thread. Reply
  * starts a message's thread from the conversation's own field ("Replying
  * to …" over it) while it has no replies; once it has (or on a reply), it
- * opens the thread with the keyboard up.
+ * opens the thread with the keyboard up. The reply is kept with the
+ * conversation's draft, like its text.
  */
 export function useReplies({
   composer,
@@ -32,8 +34,14 @@ export function useReplies({
 }) {
   const router = useRouter();
   const { address } = useAccount();
+  const key = draftKey(address, conversationId);
   // The message the next one replies to, starting its thread.
-  const [replyTo, setReplyTo] = useState<Message>();
+  const [replyTo, setReplyTo] = useState(() => readDraft(key).replyTo);
+
+  function replyToTarget(target: ReplyTarget | undefined) {
+    saveDraftReply(key, target);
+    setReplyTo(target);
+  }
 
   /** Opens a message's thread (a reply's own), with the keyboard if asked. */
   function openThread(message: Message, focus = false) {
@@ -57,11 +65,11 @@ export function useReplies({
       replyTo === undefined
         ? undefined
         : {
-            name: profileOf(replyTo.authorId).displayName,
-            text: quoteText(quoteOf(replyTo)),
+            name: profileOf(replyTo.quote.authorId).displayName,
+            text: quoteText(replyTo.quote),
           },
     /** The next message isn't a reply after all (or was just sent). */
-    cancel: () => setReplyTo(undefined),
+    cancel: () => replyToTarget(undefined),
     openThread: (message: Message) => openThread(message),
     reply: (message: Message) => {
       if (
@@ -71,7 +79,7 @@ export function useReplies({
         openThread(message, true);
         return;
       }
-      setReplyTo(message);
+      replyToTarget({ id: message.id, quote: quoteOf(message) });
       composer.current?.focus();
     },
   };

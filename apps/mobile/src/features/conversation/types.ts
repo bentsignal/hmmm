@@ -62,6 +62,15 @@ export interface Message {
   thread?: ThreadInfo;
 }
 
+/**
+ * The message the next one replies to from the conversation's field,
+ * starting its thread. Kept with the draft, so only what the reply needs.
+ */
+export interface ReplyTarget {
+  readonly id: string;
+  readonly quote: Quote;
+}
+
 /** Someone joining or leaving a group, shown between its messages. */
 export interface MemberNotice {
   readonly id: string;

@@ -1,23 +1,34 @@
-import type { Mention } from "@decentralized-convex/messages";
+import type {
+  Attachment,
+  Mention,
+  Quote,
+} from "@decentralized-convex/messages";
 import { Directory, File, Paths } from "expo-file-system";
 
+import type { ReplyTarget } from "./types";
 import type { StagedFile } from "~/features/messaging/attachments";
 
 /**
  * Unsent messages, one per conversation and account, kept on this device
  * only (never synced): the text, who it @mentions, and the attachments
- * picked or pasted for it, so leaving a conversation and coming back finds
- * the message as it was left.
+ * picked or pasted for it, and the message it replies to, so leaving a
+ * conversation and coming back finds the message as it was left.
  */
 export interface Draft {
   readonly text: string;
   readonly files: readonly StagedFile[];
   readonly mentions: readonly Mention[];
+  readonly replyTo?: ReplyTarget;
 }
 
 type LocalFile = NonNullable<StagedFile["poster"]>;
 
-const EMPTY = { files: [], mentions: [], text: "" } satisfies Draft;
+const EMPTY = {
+  files: [],
+  mentions: [],
+  replyTo: undefined,
+  text: "",
+} satisfies Draft;
 /** How long typing pauses before the drafts are written to disk. */
 const SAVE_DELAY_MS = 400;
 const KINDS = ["file", "image", "video"] as const;
@@ -121,14 +132,86 @@ function mentionsFrom(stored: unknown) {
   });
 }
 
+function attachmentFrom(stored: unknown) {
+  if (typeof stored !== "object" || stored === null) return undefined;
+  const kind = KINDS.find(
+    (candidate) => candidate === Reflect.get(stored, "kind"),
+  );
+  const mimeType = stringIn(stored, "mimeType");
+  const name = stringIn(stored, "name");
+  const size = numberIn(stored, "size");
+  const url = stringIn(stored, "url");
+  if (
+    kind === undefined ||
+    mimeType === undefined ||
+    name === undefined ||
+    size === undefined ||
+    url === undefined
+  ) {
+    return undefined;
+  }
+  return {
+    kind,
+    mimeType,
+    name,
+    size,
+    url,
+    ...attachmentDetails(stored),
+  } satisfies Attachment;
+}
+
+/** An attachment's optional sizes and poster. */
+function attachmentDetails(stored: object) {
+  const durationMs = numberIn(stored, "durationMs");
+  const height = numberIn(stored, "height");
+  const thumbnailUrl = stringIn(stored, "thumbnailUrl");
+  const width = numberIn(stored, "width");
+  return {
+    ...(durationMs !== undefined && { durationMs }),
+    ...(height !== undefined && { height }),
+    ...(thumbnailUrl !== undefined && { thumbnailUrl }),
+    ...(width !== undefined && { width }),
+  };
+}
+
+function quoteFrom(stored: unknown) {
+  if (typeof stored !== "object" || stored === null) return undefined;
+  const authorId = stringIn(stored, "authorId");
+  const body = stringIn(stored, "body");
+  if (authorId === undefined || body === undefined) return undefined;
+  const attachment = attachmentFrom(Reflect.get(stored, "attachment"));
+  return {
+    authorId,
+    body,
+    ...(attachment !== undefined && { attachment }),
+  } satisfies Quote;
+}
+
+function replyToFrom(stored: unknown) {
+  if (typeof stored !== "object" || stored === null) return undefined;
+  const id = stringIn(stored, "id");
+  const quote = quoteFrom(Reflect.get(stored, "quote"));
+  if (id === undefined || quote === undefined) return undefined;
+  return { id, quote } satisfies ReplyTarget;
+}
+
+/** A draft with nothing in it, which isn't kept. */
+function isEmpty(draft: Draft) {
+  return (
+    draft.text === "" && draft.files.length === 0 && draft.replyTo === undefined
+  );
+}
+
 function draftFrom(stored: unknown) {
   // Drafts saved before attachments were kept are only their text.
   if (typeof stored === "string") return { ...EMPTY, text: stored };
   if (typeof stored !== "object" || stored === null) return EMPTY;
+  const replyTo = replyToFrom(Reflect.get(stored, "replyTo"));
   return {
     files: filesFrom(Reflect.get(stored, "files")),
     mentions: mentionsFrom(Reflect.get(stored, "mentions")),
     text: stringIn(stored, "text") ?? "",
+    ...(replyTo !== undefined && { replyTo }),
   } satisfies Draft;
 }
 
@@ -137,7 +220,7 @@ function fromStored(stored: unknown) {
   if (typeof stored !== "object" || stored === null) return loaded;
   for (const [key, value] of Object.entries(stored)) {
     const draft = draftFrom(value);
-    if (draft.text !== "" || draft.files.length > 0) loaded.set(key, draft);
+    if (!isEmpty(draft)) loaded.set(key, draft);
   }
   return loaded;
 }
@@ -197,7 +280,7 @@ function scheduleSave() {
 function update(key: string, change: Partial<Draft>) {
   const all = load();
   const next = { ...(all.get(key) ?? EMPTY), ...change };
-  if (next.text === "" && next.files.length === 0) all.delete(key);
+  if (isEmpty(next)) all.delete(key);
   else all.set(key, next);
   scheduleSave();
 }
@@ -239,6 +322,11 @@ export function saveDraftText(key: string, text: string) {
 /** Saves who the text @mentions. */
 export function saveDraftMentions(key: string, mentions: readonly Mention[]) {
   update(key, { mentions });
+}
+
+/** Saves the message the draft replies to, or that it no longer does. */
+export function saveDraftReply(key: string, replyTo: ReplyTarget | undefined) {
+  update(key, { replyTo });
 }
 
 /** Saves the attachments staged for the message. */
