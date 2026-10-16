@@ -39,11 +39,18 @@ export function createNote(args: {
   };
 }
 
-export function memoryTransport(home: string) {
+/**
+ * `answerAfter` delays each subscription's first answer by that many
+ * milliseconds, like a real connection; otherwise it answers at once.
+ */
+export function memoryTransport(
+  home: string,
+  { answerAfter }: { answerAfter?: number } = {},
+) {
   const connections = new Map<string, MemoryConnection>();
   const transport = new DecentralizedConvexClient({
     connectionFactory: (url) => {
-      const connection = new MemoryConnection(url);
+      const connection = new MemoryConnection(url, answerAfter);
       connections.set(url, connection);
       return connection;
     },
@@ -56,12 +63,14 @@ export function memoryTransport(home: string) {
 }
 
 export class MemoryConnection implements FederationConnection {
+  readonly #answerAfter;
   readonly #publishers = new Set<(body: string) => void>();
   readonly #url;
   /** The last mutation's optimistic update, for tests to apply. */
   optimisticUpdate: PdsConnectionMutationOptions["optimisticUpdate"];
 
-  constructor(url: string) {
+  constructor(url: string, answerAfter?: number) {
+    this.#answerAfter = answerAfter;
     this.#url = url;
   }
 
@@ -113,8 +122,15 @@ export class MemoryConnection implements FederationConnection {
       onResult(result as FunctionReturnType<Query>);
     }
     this.#publishers.add(publish);
-    publish(this.#url);
-    return () => this.#publishers.delete(publish);
+    if (this.#answerAfter === undefined) {
+      publish(this.#url);
+      return () => this.#publishers.delete(publish);
+    }
+    const answer = setTimeout(() => publish(this.#url), this.#answerAfter);
+    return () => {
+      clearTimeout(answer);
+      this.#publishers.delete(publish);
+    };
   }
 
   emit(body: string) {
@@ -140,6 +156,10 @@ export function discoveredPds(domain: string) {
     },
     manifestUrl: `https://${domain}/.well-known/pds.json`,
   };
+}
+
+export function wait(delay: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, delay));
 }
 
 export function nextTask() {

@@ -6,6 +6,7 @@ import { SectionHeaderWithAdd } from "~/components/section-header";
 import { SectionTitle } from "~/components/section-title";
 import { useAccount } from "~/features/messaging/account";
 import { useChannelSettings } from "~/features/messaging/channel-settings";
+import { usePrefetchConversation } from "~/features/messaging/conversations";
 import { channelMenuActions } from "./channel-actions";
 import { ChannelRow } from "./channel-row";
 
@@ -17,6 +18,7 @@ export function ChannelsSection({ space }: { space: Space }) {
   const router = useRouter();
   const { address: account } = useAccount();
   const settings = useChannelSettings();
+  const prefetch = usePrefetchConversation();
   return (
     <FieldGroup.Section>
       <FieldGroup.SectionHeader>
@@ -53,7 +55,8 @@ export function ChannelsSection({ space }: { space: Space }) {
             settings,
             space,
           })}
-          onOpen={() =>
+          onOpen={() => {
+            prefetch(account, channel.conversationId);
             router.push({
               params: {
                 account,
@@ -61,8 +64,8 @@ export function ChannelsSection({ space }: { space: Space }) {
                 title: `#${channel.name}`,
               },
               pathname: "/conversation/[conversationId]",
-            })
-          }
+            });
+          }}
         />
       ))}
       <FieldGroup.SectionFooter>

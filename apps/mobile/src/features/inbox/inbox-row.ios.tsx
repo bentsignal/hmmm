@@ -17,6 +17,7 @@ import { useCSSVariable } from "uniwind";
 import type { RowAction } from "./row-actions";
 import type { ConversationSummary } from "./types";
 import { useRunAs } from "~/features/messaging/account";
+import { usePrefetchConversation } from "~/features/messaging/conversations";
 import { ConversationRowContent, INBOX_ROW_HEIGHT } from "./conversation-row";
 import { afterMenuCloses, inboxMenuActions } from "./row-actions";
 
@@ -70,10 +71,12 @@ export function InboxRow({
 }) {
   const router = useRouter();
   const runAs = useRunAs();
+  const prefetch = usePrefetchConversation();
   const colors = useToneColors();
   const { account, id, title } = conversation;
 
   function open() {
+    prefetch(account, id);
     router.push({
       pathname: "/conversation/[conversationId]",
       params: { account, conversationId: id, title },

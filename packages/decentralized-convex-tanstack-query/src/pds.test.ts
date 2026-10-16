@@ -17,6 +17,7 @@ import {
   listNotes,
   memoryTransport,
   nextTask,
+  wait,
 } from "./test-fixtures.ts";
 
 void test("produces native TanStack query and mutation options", async () => {
@@ -144,6 +145,36 @@ void test("strict queries resolve only with complete initial data", async () => 
     { body: "Hydrated live update", id: "alice" },
     { body: "https://b.test", id: "alice" },
   ]);
+
+  unsubscribe();
+  disconnect();
+  await transport.close();
+});
+
+void test("a query shown again keeps its cached result while it resubscribes", async () => {
+  const { transport } = memoryTransport("a.test", { answerAfter: 20 });
+  const queryClient = new QueryClient();
+  const disconnect = new PdsQueryClient(transport).connect(queryClient);
+  const query = pdsQuery({
+    args: { owner: "alice" },
+    options: { revealPartialResultsAfter: 0 },
+    query: listNotes,
+  });
+
+  const first = new QueryObserver(queryClient, query);
+  const unsubscribeFirst = first.subscribe(() => undefined);
+  await wait(60);
+  assert.equal(first.getCurrentResult().data?.status, "success");
+  unsubscribeFirst();
+
+  const second = new QueryObserver(queryClient, query);
+  const statuses = [second.getCurrentResult().data?.status];
+  const unsubscribe = second.subscribe((result) => {
+    statuses.push(result.data?.status);
+  });
+  await wait(60);
+  assert.equal(statuses.includes("loading"), false);
+  assert.equal(second.getCurrentResult().data?.status, "success");
 
   unsubscribe();
   disconnect();

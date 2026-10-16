@@ -4,6 +4,7 @@ import { Link } from "expo-router";
 import type { ConversationSummary } from "./types";
 import { Avatar } from "~/components/avatar";
 import { SymbolIcon } from "~/components/symbol-icon";
+import { usePrefetchConversation } from "~/features/messaging/conversations";
 import { usernameOf } from "~/features/messaging/profiles";
 import { AffiliatedBadge } from "~/features/profile/affiliated-badge";
 import { formatInboxTimestamp } from "~/lib/format";
@@ -143,6 +144,7 @@ export function ConversationRow({
   onLongPress?: () => void;
 }) {
   const { account, id, title } = conversation;
+  const prefetch = usePrefetchConversation();
   return (
     <Link
       href={{
@@ -150,6 +152,7 @@ export function ConversationRow({
         params: { account, conversationId: id, title },
       }}
       asChild
+      onPress={() => prefetch(account, id)}
     >
       <Pressable
         className="active:bg-fill flex-row"

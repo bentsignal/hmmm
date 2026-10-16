@@ -15,9 +15,13 @@ import { createFederationAuthTokenFetcher, homeToken } from "./federation-auth";
 
 /**
  * The app's one TanStack cache. Every signed-in account's PDS queries live
- * here, keyed by the account's address.
+ * here, keyed by the account's address. A screen closed in the last ten
+ * minutes (as long as a conversation reuses its pages) shows its last
+ * results right away when it opens again.
  */
-export const queryClient = new QueryClient();
+export const queryClient = new QueryClient({
+  defaultOptions: { queries: { gcTime: 10 * 60 * 1000 } },
+});
 
 function createAccountSession(stored: StoredAccount, home: DiscoveredPds) {
   const authClient = createHomeAuthClient(home, stored.storagePrefix);
@@ -29,6 +33,9 @@ function createAccountSession(stored: StoredAccount, home: DiscoveredPds) {
     session: stored.address,
   });
   pdsClient.connect(queryClient);
+  // Connects and signs in while the first screen renders, rather than once
+  // its queries start.
+  transport.connectHome();
   return {
     address: stored.address,
     authClient,
@@ -51,10 +58,18 @@ export type AccountSession = ReturnType<typeof createAccountSession>;
 
 const sessions = new Map<string, AccountSession>();
 
-/** The live session for a stored account, created once per app run. */
+/**
+ * The live session for a stored account, created once per app run, or
+ * again if its home PDS turns out to have changed since the app started
+ * with the one saved last time.
+ */
 export function accountSession(stored: StoredAccount, home: DiscoveredPds) {
   const existing = sessions.get(stored.storagePrefix);
-  if (existing !== undefined) return existing;
+  if (existing?.home === home) return existing;
+  if (existing !== undefined) {
+    existing.pds.disconnect(queryClient);
+    void existing.transport.close();
+  }
   const session = createAccountSession(stored, home);
   sessions.set(stored.storagePrefix, session);
   return session;
