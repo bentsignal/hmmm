@@ -50,7 +50,10 @@ private enum TextViewHooks {
     typealias Paste = @convention(c) (AnyObject, Selector, Any?) -> Void
     let original = unsafeBitCast(method_getImplementation(method), to: Paste.self)
     let replacement: @convention(block) (UIView, Any?) -> Void = { view, sender in
-      if accepts(view), pasteImages() { return }
+      if accepts(view), pasteImages() {
+        refreshKeyboard(view)
+        return
+      }
       original(view, selector, sender)
     }
     replace(cls, method, selector, imp_implementationWithBlock(replacement))
@@ -69,6 +72,14 @@ private enum TextViewHooks {
       return action == paste && accepts(view) && UIPasteboard.general.hasImages
     }
     replace(cls, method, selector, imp_implementationWithBlock(replacement))
+  }
+
+  /// The keyboard drops its "Paste from …" suggestion when the text changes,
+  /// and a pasted photo leaves the text as it was, so tell it to look again.
+  private static func refreshKeyboard(_ view: UIView) {
+    guard let input = view as? UITextInput, let keyboard = input.inputDelegate else { return }
+    keyboard.textWillChange(input)
+    keyboard.textDidChange(input)
   }
 
   /// Replaces the class's own method, adding one when it only inherits it,
