@@ -129,7 +129,14 @@ function AppStack() {
       />
       <Stack.Screen
         name="add-people"
-        options={{ ...TOOLBAR_SHEET, title: "Invite People" }}
+        // A group adds people straight in; a space invites them.
+        options={({ route }) => ({
+          ...TOOLBAR_SHEET,
+          title:
+            route.params !== undefined && "conversationId" in route.params
+              ? "Add People"
+              : "Invite People",
+        })}
         listeners={dismissKeyboardOnSheetSwipe}
       />
       <Stack.Screen

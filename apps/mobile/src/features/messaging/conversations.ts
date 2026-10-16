@@ -2,6 +2,7 @@ import type {
   Conversation,
   Message as PdsMessage,
 } from "@decentralized-convex/messages";
+import type { PdsOptimisticLocalStore } from "@decentralized-convex/tanstack-query";
 // eslint-disable-next-line no-restricted-imports -- Expo Router has no route loaders to preload suspense queries.
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { listNames } from "@decentralized-convex/messages";
@@ -94,12 +95,53 @@ export function useConversation(conversationId: string) {
 }
 
 /**
- * Starting a group or a direct conversation as the scoped account. Both
- * show up (and open) right away, before the PDS answers.
+ * People added to a group show as members straight away, in address order
+ * like the PDS lists them.
+ */
+function addGroupMembers(
+  store: PdsOptimisticLocalStore,
+  args: { conversationId: string; members: string[] },
+) {
+  const { conversationId } = args;
+  function withAdded(conversation: Conversation) {
+    const members = new Set([
+      ...conversation.members,
+      ...args.members.map((member) => member.trim().toLowerCase()),
+    ]);
+    return members.size === conversation.members.length
+      ? conversation
+      : { ...conversation, members: [...members].sort() };
+  }
+  const request = pds.messages.conversation({ conversationId });
+  const conversation = store.getQuery(request);
+  if (conversation != null) store.setQuery(request, withAdded(conversation));
+  for (const { request: inbox, value } of store.getAllQueries(
+    pds.messages.inbox,
+  )) {
+    if (value === undefined) continue;
+    store.setQuery(
+      inbox,
+      value.map((item) =>
+        item.conversationId === conversationId ? withAdded(item) : item,
+      ),
+    );
+  }
+}
+
+/**
+ * Starting a group or a direct conversation, or adding people to a group,
+ * as the scoped account. Each shows right away, before the PDS answers.
  */
 export function useConversationActions() {
   const { address: session } = useAccount();
   return {
+    addGroupMembers: useMutation(
+      pdsMutation({
+        mutation: pds.messages.addGroupMembers,
+        optimisticUpdate: addGroupMembers,
+        session,
+      }),
+    ),
     createGroup: useMutation(
       pdsMutation({
         mutation: pds.messages.createGroup,

@@ -52,7 +52,9 @@ first time one of these, or a read, is stored.
 
 `messages.createGroup` takes an optional `name`; apps title a group without
 one with its other members' names (`listNames`, in address order), and its
-pushes do the same for each recipient. `createGroup`, `createSpace` (for the
+pushes do the same for each recipient. Anyone in a group can add people
+with `messages.addGroupMembers` (up to 50 in all); they join straight away
+and see its earlier messages. `createGroup`, `createSpace` (for the
 space and its #general), and `createChannel` accept IDs the app made with
 `createdId(kind, creator, uuid)`, so an app can show and open the new thing
 before the PDS answers. The PDS checks that such an ID names the creator's
