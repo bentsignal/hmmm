@@ -47,6 +47,12 @@ export type ActivityListRow =
       readonly kind: "activity";
     };
 
+/**
+ * What the app asks `activity` for: each message that @mentions you as
+ * an item of its own.
+ */
+export const ACTIVITY_ARGS = { mentions: true } as const;
+
 export function isUnseen(item: ActivityItem) {
   return item.seenThrough === undefined || item.at > item.seenThrough;
 }
@@ -62,9 +68,9 @@ function isGone(item: ActivityItem, now: number) {
 
 /** Who acted in an item, newest first, without repeats. */
 export function actorsOf(item: ActivityItem) {
-  return item.kind === "messages"
-    ? item.authors
-    : [...new Set(item.reactions.map(({ accountId }) => accountId))];
+  if (item.kind === "messages") return item.authors;
+  if (item.kind === "mention") return [item.message.authorId];
+  return [...new Set(item.reactions.map(({ accountId }) => accountId))];
 }
 
 /** Everyone an item's row names: who acted, and who titles the chat. */
@@ -81,7 +87,7 @@ function useActivityQueries(accounts: readonly string[]) {
   return useQueries({
     queries: accounts.map((session) =>
       pdsQuery({
-        args: {},
+        args: ACTIVITY_ARGS,
         // A server without activity (an older one) has nothing to show.
         options: { select: (result) => pdsResultOr(result, []) },
         query: pds.messages.activity,
@@ -143,7 +149,8 @@ export function useActivity(now: number) {
 /**
  * The Activity tab's badge, the app's only one: space invitations waiting
  * for an answer, plus activity not yet seen (conversations with new
- * messages and messages of yours with new reactions; muted ones left out).
+ * messages, messages that mention you, and messages of yours with new
+ * reactions; muted ones left out).
  */
 export function useActivityBadge() {
   const accounts = useVisibleAccounts().map(({ address }) => address);
@@ -165,7 +172,7 @@ function showSeen(
   sightings: readonly Sighting[],
   seenAt: number,
 ) {
-  const request = pds.messages.activity({});
+  const request = pds.messages.activity(ACTIVITY_ARGS);
   const items = store.getQuery(request);
   if (items == null) return;
   store.setQuery(

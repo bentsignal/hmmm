@@ -9,9 +9,11 @@ import { decentralizedConvexPackage } from "./metadata.ts";
 import {
   activityItem,
   activitySighting,
+  alertLevel,
   attachment,
   conversation,
   linkCard,
+  mention,
   message,
   messagePage,
   notificationSettings,
@@ -57,11 +59,17 @@ export const messagesProtocol = definePluginProtocol({
       args: v.object({ conversationId: v.string() }),
       returns: v.null(),
     }),
+    /**
+     * `mentions` names who the body @mentions, each by the name after its
+     * `@`. Any that isn't a member of the group or channel, or whose
+     * `@name` isn't in the body, is left out; direct messages have none.
+     */
     send: defineOperation({
       args: v.object({
         attachments: v.array(attachment),
         body: v.string(),
         conversationId: v.string(),
+        mentions: v.optional(v.array(mention)),
         messageId: v.string(),
       }),
       returns: message,
@@ -100,24 +108,46 @@ export const messagesProtocol = definePluginProtocol({
       args: v.object({ conversationId: v.string(), readAt: v.number() }),
       returns: v.null(),
     }),
+    /** `setAlerts` with `none` (muted) or `all`, for older apps. */
     setMuted: defineOperation({
       args: v.object({ conversationId: v.string(), muted: v.boolean() }),
       returns: v.null(),
     }),
     /**
-     * Hides alerts for every channel in a space, or shows them again. Each
-     * channel's own `setMuted` still applies.
+     * Chooses what a conversation alerts you about. A channel's choice
+     * wins over its space's, and a space's or group's over your defaults
+     * (`groupAlerts`, `channelAlerts`); choosing what it would get anyway
+     * follows those again. Direct messages take `all` or `none`.
      */
+    setAlerts: defineOperation({
+      args: v.object({ alerts: alertLevel, conversationId: v.string() }),
+      returns: v.null(),
+    }),
+    /** `setSpaceAlerts` with `none` (muted) or `all`, for older apps. */
     setSpaceMuted: defineOperation({
       args: v.object({ muted: v.boolean(), spaceId: v.string() }),
       returns: v.null(),
     }),
-    /** Turns kinds of pushes on or off; fields left out stay as they are. */
+    /**
+     * Chooses what a space's channels alert you about, except those with
+     * their own choice (see `setAlerts`).
+     */
+    setSpaceAlerts: defineOperation({
+      args: v.object({ alerts: alertLevel, spaceId: v.string() }),
+      returns: v.null(),
+    }),
+    /**
+     * Turns kinds of pushes on or off and sets the default alerts for
+     * groups and channels; fields left out stay as they are. `groups` or
+     * `channels` (from older apps) sets that default to `all` or `none`.
+     */
     setNotificationSettings: defineOperation({
       args: v.object({
+        channelAlerts: v.optional(alertLevel),
         channels: v.optional(v.boolean()),
         directMessages: v.optional(v.boolean()),
         enabled: v.optional(v.boolean()),
+        groupAlerts: v.optional(alertLevel),
         groups: v.optional(v.boolean()),
         invites: v.optional(v.boolean()),
         reactions: v.optional(v.boolean()),
@@ -250,9 +280,14 @@ export const messagesProtocol = definePluginProtocol({
      * (one per message). Muted conversations and channels left out of the
      * inbox don't appear. An item lasts until a day after you saw it (see
      * `markActivitySeen`), and nothing older than `ACTIVITY_HORIZON` shows.
+     *
+     * With `mentions`, each message that @mentions you is its own
+     * `mention` item instead of counting toward its conversation's. A
+     * conversation that alerts you only about mentions has nothing else
+     * (without `mentions`, its item holds just those messages).
      */
     activity: defineOperation({
-      args: v.object({}),
+      args: v.object({ mentions: v.optional(v.boolean()) }),
       returns: v.array(activityItem),
     }),
     /** Which pushes you get (see `setNotificationSettings`). */

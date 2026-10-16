@@ -3,7 +3,8 @@ import { ConvexError } from "convex/values";
 import type { Doc } from "./_generated/dataModel.js";
 import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { CreatedKind } from "./naming.ts";
-import type { Conversation, Message } from "./protocol.ts";
+import type { AlertLevel, Conversation, Message } from "./protocol.ts";
+import { chosenAlerts } from "./alertChoice.ts";
 import { createdId, isCreatedId } from "./naming.ts";
 
 const ADDRESS_PATTERN = /^[a-z0-9][a-z0-9._-]{1,31}@[a-z0-9-]+(\.[a-z0-9-]+)+$/;
@@ -135,14 +136,15 @@ export async function pendingInvites(ctx: QueryCtx, accountId: string) {
 }
 
 export interface ConversationAccess {
+  /** The caller's own choice of alerts for it, if they made one. */
+  readonly alerts: AlertLevel | undefined;
   /** When alerts were last turned back on (0: never muted). */
   readonly alertsSince: number;
   readonly conversation: Doc<"conversations">;
   readonly lastReadAt: number;
   readonly member: Doc<"members"> | null;
-  readonly muted: boolean;
-  /** A channel whose whole space the caller muted. */
-  readonly spaceMuted: boolean;
+  /** A channel's: the caller's choice for its whole space, if any. */
+  readonly spaceAlerts: AlertLevel | undefined;
 }
 
 /**
@@ -164,12 +166,12 @@ export async function findAccess(
     return member === null
       ? null
       : {
+          alerts: chosenAlerts(member),
           alertsSince: member.alertsSince ?? 0,
           conversation,
           lastReadAt: member.lastReadAt,
           member,
-          muted: member.muted,
-          spaceMuted: false,
+          spaceAlerts: undefined,
         };
   }
   return channelAccess(ctx, conversation, member, accountId);
@@ -188,6 +190,7 @@ async function channelAccess(
       : await getSpaceMember(ctx, conversation.spaceId, accountId);
   if (spaceMember === null) return null;
   return {
+    alerts: chosenAlerts(member),
     alertsSince: Math.max(
       member?.alertsSince ?? 0,
       spaceMember.alertsSince ?? 0,
@@ -196,8 +199,7 @@ async function channelAccess(
     // Space members start with everything before they joined marked read.
     lastReadAt: member?.lastReadAt ?? spaceMember._creationTime,
     member,
-    muted: member?.muted ?? false,
-    spaceMuted: spaceMember.muted === true,
+    spaceAlerts: chosenAlerts(spaceMember),
   };
 }
 
@@ -219,7 +221,12 @@ export async function upsertMember(
   patch: Partial<
     Pick<
       Doc<"members">,
-      "alertsSince" | "hiddenFromInbox" | "lastReadAt" | "muted" | "pinnedAt"
+      | "alerts"
+      | "alertsSince"
+      | "hiddenFromInbox"
+      | "lastReadAt"
+      | "muted"
+      | "pinnedAt"
     >
   >,
 ) {
@@ -230,11 +237,12 @@ export async function upsertMember(
   }
   await ctx.db.insert("members", {
     accountId,
+    alerts: "alerts" in patch ? patch.alerts : access.alerts,
     alertsSince: patch.alertsSince,
     conversationId: access.conversation.conversationId,
     hiddenFromInbox: patch.hiddenFromInbox,
     lastReadAt: patch.lastReadAt ?? access.lastReadAt,
-    muted: patch.muted ?? access.muted,
+    muted: patch.muted ?? access.alerts === "none",
     pinnedAt: patch.pinnedAt,
     role: "member",
   });
@@ -271,6 +279,7 @@ export function toMessage(message: Doc<"messages">): Message {
     conversationId: message.conversationId,
     linkPreview: message.linkPreview ?? null,
     linkPreviews: message.linkPreviews,
+    mentions: message.mentions,
     messageId: message.messageId,
     sentAt: message.sentAt,
   };
@@ -301,10 +310,15 @@ export async function unreadCount(
   return unread.filter((message) => message.authorId !== accountId).length;
 }
 
+/**
+ * `alerts` is what the conversation alerts the caller about (see
+ * `alertsFor`), which the caller works out once for all they convert.
+ */
 export async function toConversation(
   ctx: QueryCtx,
   access: ConversationAccess,
   accountId: string,
+  alerts: AlertLevel,
 ): Promise<Conversation> {
   const { conversation, member } = access;
   // Concurrent reads: an inbox converts every conversation it lists.
@@ -317,11 +331,12 @@ export async function toConversation(
     unreadCount(ctx, conversation.conversationId, accountId, access.lastReadAt),
   ]);
   return {
+    alerts,
     conversationId: conversation.conversationId,
     kind: conversation.kind,
     lastMessage: lastMessage === null ? null : toMessage(lastMessage),
     members,
-    muted: access.muted,
+    muted: alerts === "none",
     name: conversation.name ?? null,
     pinnedAt: member?.pinnedAt,
     showInInbox:

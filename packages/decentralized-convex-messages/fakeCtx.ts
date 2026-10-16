@@ -19,6 +19,10 @@ const INDEXES: Record<string, Record<string, string[]>> = {
     by_account: ["accountId"],
     by_conversation_account: ["conversationId", "accountId"],
   },
+  mentions: {
+    by_account_conversation_sent: ["accountId", "conversationId", "sentAt"],
+    by_account_sent: ["accountId", "sentAt"],
+  },
   messages: {
     by_conversation_sent: ["conversationId", "sentAt"],
     by_message: ["messageId"],
@@ -91,6 +95,10 @@ export function fakeCtx(tables: Record<string, Record<string, unknown>[]>) {
         filters.push((row) => Number(row[field]) < value);
         return builder;
       },
+      lte: (field: string, value: number) => {
+        filters.push((row) => Number(row[field]) <= value);
+        return builder;
+      },
       filters,
     };
     return builder;
@@ -141,6 +149,8 @@ export function fakeCtx(tables: Record<string, Record<string, unknown>[]>) {
         },
       }),
     },
+    // Scheduled work (pushes, link previews) doesn't run in tests.
+    scheduler: { runAfter: () => Promise.resolve() },
   };
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- A partial fake of the Convex database.
   const fake = ctx as unknown as MutationCtx;

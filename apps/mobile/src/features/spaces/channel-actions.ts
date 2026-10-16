@@ -3,12 +3,14 @@ import { Alert } from "react-native";
 
 import type { RowAction } from "~/features/inbox/row-actions";
 import type { useChannelSettings } from "~/features/messaging/channel-settings";
+import { alertMenuActions, channelAlerts } from "~/features/messaging/alerts";
 
 type Settings = ReturnType<typeof useChannelSettings>;
 
 /**
- * A channel's long-press menu in its space: Show in Inbox, Hide Alerts,
- * and for owners Rename and Delete. Each shows its change right away.
+ * A channel's long-press menu in its space: Show in Inbox, its alerts (the
+ * two levels it isn't at), and for owners Rename and Delete. Each shows
+ * its change right away.
  */
 export function channelMenuActions({
   channel,
@@ -23,7 +25,6 @@ export function channelMenuActions({
 }) {
   const { conversationId } = channel;
   const shown = channel.showInInbox !== false;
-  const muted = channel.muted === true;
   const inbox = {
     key: "inbox",
     label: shown ? "Hide from Inbox" : "Show in Inbox",
@@ -36,18 +37,13 @@ export function channelMenuActions({
         .mutateAsync({ conversationId, show: !shown })
         .catch(() => Alert.alert("Couldn't Change Channel", "Try again.")),
   } satisfies RowAction;
-  const alerts = {
-    key: "alerts",
-    label: muted ? "Show Alerts" : "Hide Alerts",
-    icon: muted
-      ? { android: "notifications", ios: "bell" }
-      : { android: "notifications_off", ios: "bell.slash" },
-    tone: "gray",
-    onPress: () =>
-      void settings.setMuted
-        .mutateAsync({ conversationId, muted: !muted })
+  const alerts = alertMenuActions(
+    channelAlerts(channel, space),
+    (level) =>
+      void settings.setAlerts
+        .mutateAsync({ alerts: level, conversationId })
         .catch(() => Alert.alert("Couldn't Change Alerts", "Try again.")),
-  } satisfies RowAction;
+  ) satisfies RowAction[];
   const rename = {
     key: "rename",
     label: "Rename",
@@ -82,7 +78,7 @@ export function channelMenuActions({
   const owner = space.role === "owner";
   return [
     inbox,
-    alerts,
+    ...alerts,
     ...(owner ? [rename] : []),
     // A space keeps at least one channel.
     ...(owner && space.channels.length > 1 ? [remove] : []),

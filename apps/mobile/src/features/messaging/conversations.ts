@@ -1,6 +1,5 @@
 import type {
   Conversation,
-  LinkCard,
   Message as PdsMessage,
 } from "@decentralized-convex/messages";
 import { useEffect, useRef, useState } from "react";
@@ -10,14 +9,14 @@ import { listNames } from "@decentralized-convex/messages";
 import { pdsMutation, pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
-import type { StagedFile } from "./attachments";
-import type { OutgoingItem, OutgoingMessage } from "./outbox";
+import type { OutgoingDraft, OutgoingItem, OutgoingMessage } from "./outbox";
 import type { ReactionSummary } from "./reactions";
 import type { Message, MessageAttachment } from "~/features/conversation/types";
 import { useAccount } from "./account";
+import { withPrefetched } from "./link-previews";
 import { useMessageWindow } from "./message-window";
 import * as optimistic from "./optimistic";
-import { sendOutgoing, useOutbox, withPrefetched } from "./outbox";
+import { sendOutgoing, useOutbox } from "./outbox";
 import { useProfileState } from "./profiles";
 import { useReactions } from "./reactions";
 import { pdsResult } from "./results";
@@ -34,6 +33,7 @@ export function toMessage(
     id: message.messageId,
     linkPreview: message.linkPreview ?? undefined,
     linkPreviews: message.linkPreviews,
+    mentions: message.mentions,
     reactions,
     sentAt: new Date(message.sentAt),
   } satisfies Message;
@@ -180,6 +180,7 @@ function unconfirmedMessage(
         conversationId,
         linkPreview: null,
         linkPreviews: message.linkPreviews,
+        mentions: message.mentions,
         messageId: message.messageId,
         sentAt: message.sentAt,
       },
@@ -322,17 +323,10 @@ export function useMessages(conversationId: string, anchor?: string) {
     toggleReaction: toggle,
     /** Only set when the newest loaded message is the newest there is. */
     newestSentAt: atLatest ? view.messages.at(-1)?.sentAt : undefined,
-    /**
-     * Sends a message, shown right away; its files upload after that.
-     * `linkPreviews` are the cards it starts with (see `useLinkPrefetch`).
-     */
-    sendMessage: (
-      body: string,
-      files: readonly StagedFile[] = [],
-      linkPreviews: readonly LinkCard[] = [],
-    ) => {
+    /** Sends a message, shown right away; its files upload after that. */
+    sendMessage: (draft: OutgoingDraft) => {
       if (!atLatest) view.jumpToLatest();
-      sendOutgoing({ body, conversationId, files, linkPreviews, session });
+      sendOutgoing({ conversationId, draft, session });
     },
   };
 }

@@ -6,7 +6,7 @@ import { useQueries } from "@tanstack/react-query";
 import { pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
-import { isUnseen } from "~/features/activity/activity";
+import { ACTIVITY_ARGS, isUnseen } from "~/features/activity/activity";
 import { useAccounts } from "~/features/messaging/account";
 import { pdsResultOr } from "~/features/messaging/results";
 import { deliveredAt, dismissPresented, stringField } from "./presented";
@@ -111,7 +111,7 @@ export function useAppBadge() {
   const activity = useQueries({
     queries: accounts.map((session) =>
       pdsQuery({
-        args: {},
+        args: ACTIVITY_ARGS,
         options: { select: (result) => pdsResultOr(result, null) },
         query: pds.messages.activity,
         session,

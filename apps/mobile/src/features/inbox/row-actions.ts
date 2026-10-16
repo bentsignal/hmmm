@@ -4,7 +4,11 @@ import { pds } from "@vera/backend/pds";
 import type { ConversationSummary } from "./types";
 import type { SymbolIcon } from "~/components/symbol-icon";
 import type { useRunAs } from "~/features/messaging/account";
-import { showSetMuted } from "~/features/messaging/channel-settings";
+import { alertMenuActions } from "~/features/messaging/alerts";
+import {
+  showSetAlerts,
+  showSetMuted,
+} from "~/features/messaging/channel-settings";
 
 type IconName = Extract<ComponentProps<typeof SymbolIcon>["name"], object>;
 
@@ -44,10 +48,11 @@ function pinAction(runAs: RunAs, conversation: ConversationSummary) {
 }
 
 /**
- * An Inbox row's long-press menu: Pin, Mark as Read, Hide or Show Alerts
- * (mutes the person, group, or channel), Hide for a channel (it stays in
- * its space), and Leave Group. Rows have no swipe actions:
- * a sideways swipe on Home moves between its pages.
+ * An Inbox row's long-press menu: Pin, Mark as Read, its alerts (Hide or
+ * Show Alerts for a person; for a group or channel, the two levels it
+ * isn't at), Hide for a channel (it stays in its space), and Leave Group.
+ * Rows have no swipe actions: a sideways swipe on Home moves between its
+ * pages.
  */
 export function inboxMenuActions(
   runAs: RunAs,
@@ -82,7 +87,7 @@ export function inboxMenuActions(
       ),
   } satisfies RowAction;
   const muted = !conversation.muted;
-  const alerts = {
+  const mute = {
     key: "alerts",
     label: conversation.muted ? "Show Alerts" : "Hide Alerts",
     icon: conversation.muted
@@ -96,6 +101,15 @@ export function inboxMenuActions(
       });
     },
   } satisfies RowAction;
+  const alerts =
+    conversation.kind === "direct"
+      ? [mute]
+      : (alertMenuActions(conversation.alerts, (level) => {
+          const args = { alerts: level, conversationId: conversation.id };
+          void runAs(conversation.account, pds.messages.setAlerts(args), {
+            optimisticUpdate: (store) => showSetAlerts(store, args),
+          });
+        }) satisfies RowAction[]);
   const leave = {
     key: "leave",
     label: "Leave Group",
@@ -110,7 +124,7 @@ export function inboxMenuActions(
   return [
     pinAction(runAs, conversation),
     ...(conversation.unreadCount > 0 ? [markRead] : []),
-    alerts,
+    ...alerts,
     ...(conversation.kind === "channel" ? [hide] : []),
     ...(conversation.kind === "group" ? [leave] : []),
   ];

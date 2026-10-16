@@ -4,8 +4,10 @@ import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { MessagePage } from "./paging.ts";
 import type { Attachment, messagesProtocol } from "./protocol.ts";
 import { internal } from "./_generated/api.js";
+import { alertsFor } from "./alerts.ts";
 import { cardsForMessage, GIVE_UP_AFTER_MS } from "./linkCache.ts";
 import { previewedUrls } from "./links.ts";
+import { recordMentions, validMentions } from "./mentions.ts";
 import {
   fail,
   findAccess,
@@ -25,6 +27,7 @@ import {
 import { directConversationId } from "./naming.ts";
 import { around, newerThan, olderThan } from "./paging.ts";
 import { startFetches } from "./previews.ts";
+import { notificationSettings } from "./settings.ts";
 import { seeConversationActivity } from "./sightings.ts";
 
 type Mutations = (typeof messagesProtocol)["mutations"];
@@ -197,6 +200,7 @@ export async function send(
 
   const sentAt = Date.now();
   const linkPreviews = await startLinkCards(ctx, args.messageId, body, sentAt);
+  const mentions = await validMentions(ctx, access, self, body, args.mentions);
   const message = {
     attachments: args.attachments,
     authorId: self,
@@ -205,10 +209,12 @@ export async function send(
     conversationId: args.conversationId,
     linkPreview: linkPreviews?.[0]?.preview ?? undefined,
     linkPreviews,
+    mentions: mentions.length > 0 ? mentions : undefined,
     messageId: args.messageId,
     sentAt,
   };
   await ctx.db.insert("messages", message);
+  await recordMentions(ctx, message);
   await ctx.db.patch(access.conversation._id, { updatedAt: sentAt });
   await upsertMember(ctx, access, self, { lastReadAt: sentAt });
   await ctx.scheduler.runAfter(0, internal.notifications.send, {
@@ -232,28 +238,15 @@ export async function markRead(
   return null;
 }
 
-export async function setMuted(
-  ctx: MutationCtx,
-  self: string,
-  args: Args<"setMuted">,
-) {
-  const access = await requireAccess(ctx, args.conversationId, self);
-  // Unmuting starts clean: what came in while muted stays out of activity.
-  const unmuted = access.muted && !args.muted;
-  await upsertMember(ctx, access, self, {
-    muted: args.muted,
-    ...(unmuted ? { alertsSince: Date.now() } : {}),
-  });
-  return null;
-}
-
 export async function conversation(
   ctx: QueryCtx,
   self: string,
   args: OperationArgs<Queries["conversation"]>,
 ) {
   const access = await findAccess(ctx, args.conversationId, self);
-  return access === null ? null : toConversation(ctx, access, self);
+  if (access === null) return null;
+  const settings = await notificationSettings(ctx, self);
+  return toConversation(ctx, access, self, alertsFor(access, settings));
 }
 
 /** One page of messages, oldest first, by whichever cursor was given. */

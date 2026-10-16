@@ -1,7 +1,7 @@
 import type {
   Attachment,
   LinkCard,
-  Message as PdsMessage,
+  Mention,
 } from "@decentralized-convex/messages";
 import { useSyncExternalStore } from "react";
 import * as Crypto from "expo-crypto";
@@ -34,9 +34,19 @@ export interface OutgoingMessage {
   readonly items: readonly OutgoingItem[];
   /** Its link cards, with the previews prefetched while it was typed. */
   readonly linkPreviews: LinkCard[] | undefined;
+  /** Who it @mentions; undefined when nobody. */
+  readonly mentions: Mention[] | undefined;
   readonly sentAt: number;
   /** "sent" once the PDS has it; it stays to keep showing local media. */
   readonly status: "failed" | "sending" | "sent";
+}
+
+/** A message to send, with its first link cards (`useLinkPrefetch`). */
+export interface OutgoingDraft {
+  readonly body: string;
+  readonly files: readonly StagedFile[];
+  readonly linkPreviews: readonly LinkCard[];
+  readonly mentions: readonly Mention[];
 }
 
 /** How many uploads run at once across every message. */
@@ -205,6 +215,8 @@ async function send(
         attachments,
         body: message.body,
         conversationId: message.conversationId,
+        // Undefined (left out) when empty: older servers don't take it.
+        mentions: message.mentions,
         messageId,
       }),
     )
@@ -268,15 +280,11 @@ function failed(message: OutgoingMessage) {
 export function sendOutgoing({
   session,
   conversationId,
-  body,
-  files,
-  linkPreviews,
+  draft: { body, files, linkPreviews, mentions },
 }: {
   session: AccountSession;
   conversationId: string;
-  body: string;
-  files: readonly StagedFile[];
-  linkPreviews: readonly LinkCard[];
+  draft: OutgoingDraft;
 }) {
   const messageId = Crypto.randomUUID();
   sessions.set(messageId, session);
@@ -292,6 +300,7 @@ export function sendOutgoing({
         state: "uploading" as const,
       })),
       linkPreviews: linkPreviews.length > 0 ? [...linkPreviews] : undefined,
+      mentions: mentions.length > 0 ? [...mentions] : undefined,
       messageId,
       sentAt: Date.now(),
       status: "sending",
@@ -344,26 +353,4 @@ export function useOutbox(account: string, conversationId: string) {
     (message) =>
       message.account === account && message.conversationId === conversationId,
   );
-}
-
-/**
- * A sent message, with the link cards this device prefetched where the
- * PDS is still fetching (so a card shown when it was sent stays up).
- */
-export function withPrefetched(
-  message: PdsMessage,
-  sent: OutgoingMessage | undefined,
-) {
-  const prefetched = sent?.linkPreviews;
-  if (prefetched === undefined || message.linkPreviews === undefined) {
-    return message;
-  }
-  return {
-    ...message,
-    linkPreviews: message.linkPreviews.map((card) =>
-      card.preview === undefined
-        ? (prefetched.find(({ link }) => link === card.link) ?? card)
-        : card,
-    ),
-  };
 }

@@ -1,5 +1,7 @@
+import type { Mention } from "@decentralized-convex/messages";
+import type { ReactNode } from "react";
 import { useRef, useState } from "react";
-import { Platform, Pressable, StyleSheet, TextInput } from "react-native";
+import { Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import Animated, {
   interpolate,
@@ -9,6 +11,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { withUniwind } from "uniwind";
 
+import type { MentionCandidate } from "./mention-text";
 import type {
   AttachmentSource,
   StagedFile,
@@ -19,7 +22,9 @@ import { SymbolIcon } from "~/components/symbol-icon";
 import { cn } from "~/lib/cn";
 import { PASTE_IMAGES_NATIVE_ID, usePastedImages } from "~/lib/paste-images";
 import { AttachMenu } from "./attach-menu";
+import { MentionPicker } from "./mention-picker";
 import { StagedAttachments } from "./staged-attachments";
+import { useMentions } from "./use-mentions";
 
 const StyledTextInput = withUniwind(TextInput);
 /** Every control in the composer shares this height so they line up. */
@@ -92,39 +97,18 @@ function SendButton({
 }
 
 /**
- * The message field with its "+" menu and the attachments picked or pasted
- * for the message, which upload only once it's sent.
+ * The bar the field and its "+" menu sit in, moving in from the sides a
+ * little on iOS while the keyboard is up.
  */
-export function Composer({
-  staged,
-  onSend,
-  onPick,
-  onPaste,
-  onRemoveStaged,
-  onChangeText,
+function Bar({
   bottomInset,
+  onHeight,
+  children,
 }: {
-  staged: readonly StagedFile[];
-  /** Sends the text (possibly empty) with everything staged. */
-  onSend: (text: string) => void;
-  onPick: (source: AttachmentSource) => void;
-  /** Photos pasted into the field. */
-  onPaste: (images: readonly PastedImage[]) => void;
-  onRemoveStaged: (id: string) => void;
-  /** Every change to the text, including emptying it on send. */
-  onChangeText?: (text: string) => void;
-  /** From `useComposerBottomInset`. */
   bottomInset: number;
+  onHeight?: (height: number) => void;
+  children: ReactNode;
 }) {
-  const [draft, setDraft] = useState("");
-  const input = useRef<TextInput>(null);
-  // Only the field being pasted into is focused; another conversation's
-  // composer can be mounted beneath this one.
-  usePastedImages((images) => {
-    if (input.current?.isFocused() === true) onPaste(images);
-  });
-  /** When the field was last emptied by sending, until something is typed. */
-  const sentAt = useRef<number | null>(null);
   const keyboard = useReanimatedKeyboardAnimation();
   const sides = useAnimatedStyle(() => ({
     // eslint-disable-next-line vera/no-layout-animation -- Known: re-lays out the composer on each frame of the keyboard; to be fixed in its own PR.
@@ -137,36 +121,9 @@ export function Composer({
           )
         : ANDROID_EDGE,
   }));
-  const canSend = draft.trim().length > 0 || staged.length > 0;
-
-  function change(text: string) {
-    // Sending while iOS still offers an autocorrection for the last word
-    // (tapping send rather than space) lets the keyboard apply it after the
-    // field has cleared, putting that word back. Typing adds a letter at a
-    // time, so a whole word landing in the empty field just after a send
-    // is the keyboard's, and the field stays empty.
-    if (
-      sentAt.current !== null &&
-      text.length > 1 &&
-      Date.now() - sentAt.current < AUTOCORRECT_WINDOW_MS
-    ) {
-      input.current?.clear();
-      return;
-    }
-    if (text !== "") sentAt.current = null;
-    setDraft(text);
-    onChangeText?.(text);
-  }
-
-  function send() {
-    if (!canSend) return;
-    onSend(draft.trim());
-    change("");
-    sentAt.current = Date.now();
-  }
-
   return (
     <Animated.View
+      onLayout={(event) => onHeight?.(event.nativeEvent.layout.height)}
       className={cn(
         "flex-row items-end gap-2",
         // No glass on Android: a solid bar, down through the navigation
@@ -185,31 +142,127 @@ export function Composer({
         sides,
       ]}
     >
-      <AttachMenu onPick={onPick} />
-      <GlassSurface
-        className="flex-1 justify-center rounded-[20px]"
-        style={{ minHeight: CONTROL }}
-      >
-        <StagedAttachments files={staged} onRemove={onRemoveStaged} />
-        <StyledTextInput
-          ref={input}
-          nativeID={PASTE_IMAGES_NATIVE_ID}
-          multiline
-          value={draft}
-          onChangeText={change}
-          placeholder={staged.length > 0 ? "Add a message" : "Message"}
-          accessibilityLabel="Message"
-          // A message field never needs AutoFill suggestions.
-          autoComplete="off"
-          textContentType="none"
-          className="text-body text-foreground max-h-32 pl-4"
-          // The send button floats over this padding, so text never jumps.
-          style={{ paddingBottom: 9, paddingRight: SEND + 12, paddingTop: 9 }}
-          placeholderTextColorClassName="accent-muted"
-          cursorColorClassName="accent-accent"
-        />
-        <SendButton visible={canSend} onPress={send} />
-      </GlassSurface>
+      {children}
     </Animated.View>
+  );
+}
+
+/**
+ * The message field with its "+" menu and the attachments picked or pasted
+ * for the message, which upload only once it's sent. In a group or channel,
+ * typing `@` lists the people in it, above the field, to mention.
+ */
+export function Composer({
+  staged,
+  mentionable,
+  onSend,
+  onPick,
+  onPaste,
+  onRemoveStaged,
+  onChangeText,
+  onHeight,
+  bottomInset,
+}: {
+  staged: readonly StagedFile[];
+  /** Who can be @mentioned; undefined where nobody can. */
+  mentionable?: readonly MentionCandidate[];
+  /** Sends the text (possibly empty) and who it mentions, with everything staged. */
+  onSend: (text: string, mentions: readonly Mention[]) => void;
+  onPick: (source: AttachmentSource) => void;
+  /** Photos pasted into the field. */
+  onPaste: (images: readonly PastedImage[]) => void;
+  onRemoveStaged: (id: string) => void;
+  /** Every change to the text, including emptying it on send. */
+  onChangeText?: (text: string) => void;
+  /** The bar's height, without the people listed above it. */
+  onHeight?: (height: number) => void;
+  /** From `useComposerBottomInset`. */
+  bottomInset: number;
+}) {
+  const [draft, setDraft] = useState("");
+  const mention = useMentions(draft, mentionable);
+  const input = useRef<TextInput>(null);
+  // Only the field being pasted into is focused; another conversation's
+  // composer can be mounted beneath this one.
+  usePastedImages((images) => {
+    if (input.current?.isFocused() === true) onPaste(images);
+  });
+  /** When the field was last emptied by sending, until something is typed. */
+  const sentAt = useRef<number | null>(null);
+  const canSend = draft.trim().length > 0 || staged.length > 0;
+
+  function change(text: string) {
+    // Sending while iOS still offers an autocorrection for the last word
+    // (tapping send rather than space) lets the keyboard apply it after the
+    // field has cleared, putting that word back. Typing adds a letter at a
+    // time, so a whole word landing in the empty field just after a send
+    // is the keyboard's, and the field stays empty.
+    if (
+      sentAt.current !== null &&
+      text.length > 1 &&
+      Date.now() - sentAt.current < AUTOCORRECT_WINDOW_MS
+    ) {
+      input.current?.clear();
+      return;
+    }
+    if (text !== "") sentAt.current = null;
+    const next = mention.edited(text);
+    setDraft(next);
+    onChangeText?.(next);
+  }
+
+  function pick(person: MentionCandidate) {
+    const text = mention.pick(person);
+    if (text === null) return;
+    setDraft(text);
+    onChangeText?.(text);
+  }
+
+  function send() {
+    if (!canSend) return;
+    const text = draft.trim();
+    onSend(text, mention.take(text));
+    change("");
+    sentAt.current = Date.now();
+  }
+
+  return (
+    <View>
+      {mention.people.length > 0 && (
+        <MentionPicker
+          people={mention.people}
+          inset={Platform.OS === "ios" ? IOS_TYPING_EDGE : ANDROID_EDGE}
+          onPick={pick}
+        />
+      )}
+      <Bar bottomInset={bottomInset} onHeight={onHeight}>
+        <AttachMenu onPick={onPick} />
+        <GlassSurface
+          className="flex-1 justify-center rounded-[20px]"
+          style={{ minHeight: CONTROL }}
+        >
+          <StagedAttachments files={staged} onRemove={onRemoveStaged} />
+          <StyledTextInput
+            ref={input}
+            nativeID={PASTE_IMAGES_NATIVE_ID}
+            multiline
+            value={draft}
+            onChangeText={change}
+            {...mention.inputProps}
+            placeholder={staged.length > 0 ? "Add a message" : "Message"}
+            accessibilityLabel="Message"
+            // A message field never needs AutoFill suggestions.
+            autoComplete="off"
+            textContentType="none"
+            className="text-body text-foreground max-h-32 pl-4"
+            // The send button floats over this padding, so text never jumps.
+            style={{ paddingBottom: 9, paddingRight: SEND + 12, paddingTop: 9 }}
+            placeholderTextColorClassName="accent-muted"
+            cursorColorClassName="accent-accent"
+          />
+          <SendButton visible={canSend} onPress={send} />
+        </GlassSurface>
+      </Bar>
+    </View>
   );
 }

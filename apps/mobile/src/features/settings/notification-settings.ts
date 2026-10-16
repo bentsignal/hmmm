@@ -1,4 +1,7 @@
-import type { NotificationSettings } from "@decentralized-convex/messages";
+import type {
+  AlertLevel,
+  NotificationSettings,
+} from "@decentralized-convex/messages";
 import type { PdsOptimisticLocalStore } from "@decentralized-convex/tanstack-query";
 import { useQueries } from "@tanstack/react-query";
 import { pdsQuery } from "@decentralized-convex/tanstack-query";
@@ -7,7 +10,15 @@ import { pds } from "@vera/backend/pds";
 import { useAccounts } from "~/features/messaging/account";
 import { pdsResultOr } from "~/features/messaging/results";
 
-export type NotificationKind = keyof NotificationSettings;
+/** The kinds of notifications turned on or off with a switch. */
+export type NotificationKind = keyof {
+  [Key in keyof NotificationSettings as NotificationSettings[Key] extends boolean
+    ? Key
+    : never]: true;
+};
+
+/** The defaults for what groups and channels alert about. */
+export type AlertDefault = "channelAlerts" | "groupAlerts";
 
 function showSetting(
   store: PdsOptimisticLocalStore,
@@ -46,17 +57,28 @@ export function useNotificationSettings() {
   const supported = accounts.filter((_, index) => results[index]?.data != null);
   const settings = results.find((result) => result.data != null)?.data;
   const answered = results.every((result) => result.data !== undefined);
+  function save(change: Partial<NotificationSettings>) {
+    return Promise.all(
+      supported.map((account) =>
+        account.pds.mutate(pds.messages.setNotificationSettings(change), {
+          optimisticUpdate: (store) => showSetting(store, change),
+        }),
+      ),
+    );
+  }
   return {
     settings: settings ?? (answered ? null : undefined),
     /** Turns one kind on or off for every account, showing it right away. */
-    set: (kind: NotificationKind, on: boolean) =>
-      Promise.all(
-        supported.map((account) =>
-          account.pds.mutate(
-            pds.messages.setNotificationSettings({ [kind]: on }),
-            { optimisticUpdate: (store) => showSetting(store, { [kind]: on }) },
-          ),
-        ),
-      ),
+    set: (kind: NotificationKind, on: boolean) => save({ [kind]: on }),
+    /** Sets what groups or channels alert about unless they say otherwise. */
+    setDefault: (kind: AlertDefault, level: AlertLevel) => {
+      // Older apps read the switch, so it changes with the level.
+      const on = level !== "none";
+      return save(
+        kind === "groupAlerts"
+          ? { groupAlerts: level, groups: on }
+          : { channelAlerts: level, channels: on },
+      );
+    },
   };
 }

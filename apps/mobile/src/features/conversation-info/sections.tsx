@@ -8,8 +8,11 @@ import { pds } from "@vera/backend/pds";
 
 import { Avatar } from "~/components/avatar";
 import { ListItem } from "~/components/list-item";
+import { OptimisticChoice } from "~/components/optimistic-choice";
 import { OptimisticSwitch } from "~/components/optimistic-switch";
 import { useAccount } from "~/features/messaging/account";
+import { ALERT_CHOICES, conversationAlerts } from "~/features/messaging/alerts";
+import { showSetAlerts } from "~/features/messaging/channel-settings";
 import { useProfiles } from "~/features/messaging/profiles";
 import { useOpenProfile } from "~/features/profile/use-open-profile";
 import { secondaryTextStyle } from "~/lib/colors";
@@ -50,15 +53,16 @@ export function MembersSection({ members }: { members: readonly string[] }) {
 }
 
 /**
- * Pinning to the top of the Inbox, whether a channel shows there, and
- * iMessage's "Hide Alerts", which mutes notifications.
+ * Pinning to the top of the Inbox, whether a channel shows there, and its
+ * alerts: iMessage's "Hide Alerts" for a direct message, and for a group
+ * or channel all messages, only @mentions, or nothing.
  */
 export function InboxSection({
   conversation,
 }: {
   conversation: Pick<
     Conversation,
-    "conversationId" | "kind" | "muted" | "pinnedAt" | "showInInbox"
+    "alerts" | "conversationId" | "kind" | "muted" | "pinnedAt" | "showInInbox"
   >;
 }) {
   const { address } = useAccount();
@@ -71,6 +75,13 @@ export function InboxSection({
   );
   const setMuted = useMutation(
     pdsMutation({ mutation: pds.messages.setMuted, session: address }),
+  );
+  const setAlerts = useMutation(
+    pdsMutation({
+      mutation: pds.messages.setAlerts,
+      optimisticUpdate: showSetAlerts,
+      session: address,
+    }),
   );
   return (
     <FieldGroup.Section>
@@ -88,11 +99,27 @@ export function InboxSection({
         value={conversation.pinnedAt !== undefined}
         onChange={(pinned) => setPinned.mutateAsync({ conversationId, pinned })}
       />
-      <OptimisticSwitch
-        label="Hide Alerts"
-        value={conversation.muted}
-        onChange={(muted) => setMuted.mutateAsync({ conversationId, muted })}
-      />
+      {conversation.kind === "direct" ? (
+        <OptimisticSwitch
+          label="Hide Alerts"
+          value={conversation.muted}
+          onChange={(muted) => setMuted.mutateAsync({ conversationId, muted })}
+        />
+      ) : (
+        <OptimisticChoice
+          label="Notify Me About"
+          value={conversationAlerts(conversation)}
+          choices={ALERT_CHOICES}
+          onChange={(alerts) =>
+            setAlerts.mutateAsync({ alerts, conversationId })
+          }
+        />
+      )}
+      {conversation.kind !== "direct" && (
+        <FieldGroup.SectionFooter>
+          <Text>What shows in Activity and sends you notifications.</Text>
+        </FieldGroup.SectionFooter>
+      )}
     </FieldGroup.Section>
   );
 }

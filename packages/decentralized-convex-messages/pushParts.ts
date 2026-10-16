@@ -4,7 +4,6 @@ import { accountsProtocol } from "@decentralized-convex/accounts";
 import type { Doc } from "./_generated/dataModel.js";
 import type { QueryCtx } from "./_generated/server.js";
 import { env } from "./_generated/server.js";
-import { findAccess } from "./model.ts";
 
 // What message, reaction, and invitation pushes share.
 
@@ -17,19 +16,6 @@ export const ANDROID_DELIVERY = {
   channelId: "messages",
   priority: "high",
 } as const;
-
-/**
- * Whether an account still hears from a conversation: a member who hasn't
- * muted it (or, for a channel, its whole space).
- */
-export async function wantsAlerts(
-  ctx: QueryCtx,
-  conversation: Doc<"conversations">,
-  accountId: string,
-) {
-  const access = await findAccess(ctx, conversation.conversationId, accountId);
-  return access !== null && !access.muted && !access.spaceMuted;
-}
 
 export function previewText(message: Doc<"messages">) {
   if (message.body.length > 0) return message.body.slice(0, 200);

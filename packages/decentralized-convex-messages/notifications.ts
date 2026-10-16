@@ -1,14 +1,22 @@
 import { v } from "convex/values";
 
+import type { Doc } from "./_generated/dataModel.js";
+import type { QueryCtx } from "./_generated/server.js";
 import { internal } from "./_generated/api.js";
 import {
   internalAction,
   internalMutation,
   internalQuery,
 } from "./_generated/server.js";
+import { alerts, alertsFor } from "./alerts.ts";
 import { badgeCount } from "./badges.ts";
 import { badgeCounts, badgeField, deliver } from "./delivery.ts";
-import { getConversation, getSpace, memberAddresses } from "./model.ts";
+import {
+  findAccess,
+  getConversation,
+  getSpace,
+  memberAddresses,
+} from "./model.ts";
 import { listNames } from "./naming.ts";
 import {
   accountProfile,
@@ -16,11 +24,29 @@ import {
   conversationName,
   displayNames,
   previewText,
-  wantsAlerts,
 } from "./pushParts.ts";
-import { messagePushKind, wantsPush } from "./settings.ts";
+import { notificationSettings, wantsPush } from "./settings.ts";
 
-/** Who to notify about a message, and what to show them. */
+/**
+ * Whether a message pushes to a member: the conversation alerts them
+ * about it (everything, or messages that @mention them), and they have
+ * pushes on (and, for a direct message, direct message pushes).
+ */
+async function pushesTo(
+  ctx: QueryCtx,
+  message: Doc<"messages">,
+  conversation: Doc<"conversations">,
+  accountId: string,
+) {
+  const access = await findAccess(ctx, conversation.conversationId, accountId);
+  if (access === null) return false;
+  const settings = await notificationSettings(ctx, accountId);
+  if (!alerts(alertsFor(access, settings), message, accountId)) return false;
+  if (conversation.kind === "direct" && !settings.directMessages) return false;
+  return settings.enabled;
+}
+
+/** Who to notify about a message (see `pushesTo`), and what to show them. */
 export const targets = internalQuery({
   args: { messageId: v.string() },
   handler: async (ctx, { messageId }) => {
@@ -36,12 +62,7 @@ export const targets = internalQuery({
     const recipients: { accountId: string; token: string }[] = [];
     for (const accountId of members) {
       if (accountId === message.authorId) continue;
-      if (!(await wantsAlerts(ctx, conversation, accountId))) continue;
-      if (
-        !(await wantsPush(ctx, accountId, messagePushKind(conversation.kind)))
-      ) {
-        continue;
-      }
+      if (!(await pushesTo(ctx, message, conversation, accountId))) continue;
       const rows = await ctx.db
         .query("pushTokens")
         .withIndex("by_account", (index) => index.eq("accountId", accountId))

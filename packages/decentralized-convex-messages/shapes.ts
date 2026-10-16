@@ -54,6 +54,34 @@ export const linkCard = v.object({
 
 export type LinkCard = Infer<typeof linkCard>;
 
+/**
+ * Someone a message @mentions: their address, and the name written after
+ * the `@` in its body (their display name when it was sent). Apps bold
+ * `@name` where it appears.
+ */
+export const mention = v.object({
+  accountId: v.string(),
+  name: v.string(),
+});
+
+export type Mention = Infer<typeof mention>;
+
+/** At most this many mentions per message. */
+export const MAX_MENTIONS = 50;
+
+/**
+ * What a group or channel alerts its members about: every message, only
+ * ones that @mention them, or nothing (it stays out of activity and sends
+ * no pushes). Direct messages are `all` or `none`.
+ */
+export const alertLevel = v.union(
+  v.literal("all"),
+  v.literal("mentions"),
+  v.literal("none"),
+);
+
+export type AlertLevel = Infer<typeof alertLevel>;
+
 export const message = v.object({
   attachments: v.array(attachment),
   authorId: v.string(),
@@ -68,6 +96,8 @@ export const message = v.object({
    * link through `linkPreview`).
    */
   linkPreviews: v.optional(v.array(linkCard)),
+  /** Who it @mentions (absent when nobody, and from older PDSs). */
+  mentions: v.optional(v.array(mention)),
   messageId: v.string(),
   sentAt: v.number(),
 });
@@ -81,10 +111,16 @@ export const conversationKind = v.union(
 );
 
 export const conversation = v.object({
+  /**
+   * What it alerts the caller about, after their own choice, their
+   * space's, and their defaults (absent from older PDSs: `muted` says).
+   */
+  alerts: v.optional(alertLevel),
   conversationId: v.string(),
   kind: conversationKind,
   lastMessage: v.union(v.null(), message),
   members: v.array(v.string()),
+  /** Whether it alerts the caller about nothing (`alerts` is `none`). */
   muted: v.boolean(),
   name: v.union(v.null(), v.string()),
   // Optional so results from PDSs that predate them still validate.
@@ -102,6 +138,11 @@ export const conversation = v.object({
 export type Conversation = Infer<typeof conversation>;
 
 export const channel = v.object({
+  /**
+   * The caller's own choice for the channel; absent when it follows the
+   * space's `alerts`.
+   */
+  alerts: v.optional(alertLevel),
   conversationId: v.string(),
   /** Whether the caller hid its alerts (absent from older PDSs: no). */
   muted: v.optional(v.boolean()),
@@ -117,6 +158,12 @@ export type Channel = Infer<typeof channel>;
 export const spaceRole = v.union(v.literal("owner"), v.literal("member"));
 
 export const space = v.object({
+  /**
+   * What its channels alert the caller about, unless a channel has its
+   * own choice: theirs for the space, or their channels default (absent
+   * from older PDSs: `muted` says).
+   */
+  alerts: v.optional(alertLevel),
   channels: v.array(channel),
   /** People invited who haven't accepted yet (absent from older PDSs). */
   invited: v.optional(v.array(v.string())),
@@ -244,6 +291,16 @@ export const activityItem = v.union(
     /** Newest first. */
     reactions: v.array(reaction),
   }),
+  /** Only for apps that ask for mentions (see `activity`). */
+  v.object({
+    ...activitySeen,
+    at: v.number(),
+    conversation: activityConversation,
+    key: v.string(),
+    kind: v.literal("mention"),
+    /** The message that @mentions the caller. */
+    message,
+  }),
 );
 
 export type ActivityItem = Infer<typeof activityItem>;
@@ -270,11 +327,18 @@ export const ACTIVITY_HORIZON = 7 * 24 * 60 * 60 * 1000;
  * Which pushes an account gets. `enabled` off silences all of them; the
  * rest turn off one kind each. Muted conversations and spaces stay silent
  * either way.
+ *
+ * `groupAlerts` and `channelAlerts` are what groups and channels alert
+ * about (activity and pushes) unless the conversation or space has its
+ * own choice. `groups` and `channels` are whether those aren't `none`,
+ * for apps from before them (absent from older PDSs).
  */
 export const notificationSettings = v.object({
+  channelAlerts: v.optional(alertLevel),
   channels: v.boolean(),
   directMessages: v.boolean(),
   enabled: v.boolean(),
+  groupAlerts: v.optional(alertLevel),
   groups: v.boolean(),
   invites: v.boolean(),
   reactions: v.boolean(),

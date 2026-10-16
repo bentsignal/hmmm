@@ -70,6 +70,7 @@ export function MessageStacked({
                 <MenuTargetView>
                   <LinkedText
                     text={body}
+                    mentions={message.mentions}
                     className="text-body text-foreground"
                   />
                 </MenuTargetView>

@@ -12,7 +12,7 @@ import { ChannelRow } from "./channel-row";
 
 /**
  * The space's text channels. Tap one to open it; touch and hold for its
- * settings (Show in Inbox, Hide Alerts, and for owners Rename and Delete).
+ * settings (Show in Inbox, its alerts, and for owners Rename and Delete).
  */
 export function ChannelsSection({ space }: { space: Space }) {
   const router = useRouter();
@@ -70,8 +70,8 @@ export function ChannelsSection({ space }: { space: Space }) {
       ))}
       <FieldGroup.SectionFooter>
         <Text>
-          Touch and hold a channel to hide it from your Inbox or hide its
-          alerts.
+          Touch and hold a channel to hide it from your Inbox or choose what it
+          alerts you about.
         </Text>
       </FieldGroup.SectionFooter>
     </FieldGroup.Section>

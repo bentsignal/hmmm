@@ -2,11 +2,12 @@ import type {
   Attachment,
   LinkCard,
   LinkPreview,
+  Mention,
 } from "@decentralized-convex/messages";
 
 import type { ReactionSummary } from "~/features/messaging/reactions";
 
-export type { Attachment, LinkCard, LinkPreview };
+export type { Attachment, LinkCard, LinkPreview, Mention };
 
 /** Where an attachment of a message this device is sending stands. */
 export interface AttachmentUpload {
@@ -35,6 +36,8 @@ export interface Message {
   linkPreview?: LinkPreview;
   /** A card for each previewed link, in order (see `LinkCard`). */
   linkPreviews?: readonly LinkCard[];
+  /** Who it @mentions, by the name written after each `@`. */
+  mentions?: readonly Mention[];
   /** Undefined until the message's reactions have loaded. */
   reactions: readonly ReactionSummary[] | undefined;
   /** Set until the server confirms a message this device sent. */

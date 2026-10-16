@@ -5,7 +5,6 @@ import { fakeCtx } from "./fakeCtx.ts";
 import {
   notificationSettings,
   setNotificationSettings,
-  setSpaceMuted,
   wantsPush,
 } from "./settings.ts";
 
@@ -14,9 +13,11 @@ const ME = "me@vera.chat";
 void test("every kind of push is on until turned off", async () => {
   const { ctx } = fakeCtx({});
   assert.deepEqual(await notificationSettings(ctx, ME), {
+    channelAlerts: "all",
     channels: true,
     directMessages: true,
     enabled: true,
+    groupAlerts: "all",
     groups: true,
     invites: true,
     reactions: true,
@@ -27,9 +28,9 @@ void test("every kind of push is on until turned off", async () => {
 void test("turns one kind off, leaving the rest", async () => {
   const { ctx } = fakeCtx({});
   await setNotificationSettings(ctx, ME, { reactions: false });
-  await setNotificationSettings(ctx, ME, { groups: false });
+  await setNotificationSettings(ctx, ME, { invites: false });
   assert.equal(await wantsPush(ctx, ME, "reactions"), false);
-  assert.equal(await wantsPush(ctx, ME, "groups"), false);
+  assert.equal(await wantsPush(ctx, ME, "invites"), false);
   assert.equal(await wantsPush(ctx, ME, "directMessages"), true);
   await setNotificationSettings(ctx, ME, { reactions: true });
   assert.equal(await wantsPush(ctx, ME, "reactions"), true);
@@ -44,15 +45,31 @@ void test("turning pushes off silences every kind", async () => {
   assert.equal((await notificationSettings(ctx, ME)).directMessages, true);
 });
 
-void test("mutes and unmutes a space you're in", async () => {
-  const { ctx, rows } = fakeCtx({
-    spaceMembers: [{ accountId: ME, role: "member", spaceId: "space:1" }],
+void test("default alerts keep the older switches in step", async () => {
+  const { ctx } = fakeCtx({});
+  await setNotificationSettings(ctx, ME, { groupAlerts: "mentions" });
+  let settings = await notificationSettings(ctx, ME);
+  assert.equal(settings.groupAlerts, "mentions");
+  assert.equal(settings.groups, true);
+
+  await setNotificationSettings(ctx, ME, { channelAlerts: "none" });
+  settings = await notificationSettings(ctx, ME);
+  assert.equal(settings.channelAlerts, "none");
+  assert.equal(settings.channels, false);
+
+  // An older app's switch replaces the level.
+  await setNotificationSettings(ctx, ME, { groups: false });
+  settings = await notificationSettings(ctx, ME);
+  assert.equal(settings.groupAlerts, "none");
+  await setNotificationSettings(ctx, ME, { channels: true });
+  assert.equal((await notificationSettings(ctx, ME)).channelAlerts, "all");
+});
+
+void test("a switch turned off before alert levels means none", async () => {
+  const { ctx } = fakeCtx({
+    notificationSettings: [{ accountId: ME, groups: false }],
   });
-  await setSpaceMuted(ctx, ME, { muted: true, spaceId: "space:1" });
-  assert.equal(rows("spaceMembers")[0]?.muted, true);
-  await setSpaceMuted(ctx, ME, { muted: false, spaceId: "space:1" });
-  assert.equal(rows("spaceMembers")[0]?.muted, undefined);
-  await assert.rejects(
-    setSpaceMuted(ctx, ME, { muted: true, spaceId: "space:other" }),
-  );
+  const settings = await notificationSettings(ctx, ME);
+  assert.equal(settings.groupAlerts, "none");
+  assert.equal(settings.channelAlerts, "all");
 });

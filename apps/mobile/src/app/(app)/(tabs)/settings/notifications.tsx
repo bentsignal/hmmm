@@ -2,23 +2,38 @@ import Animated, { FadeIn } from "react-native-reanimated";
 import { Stack } from "expo-router";
 import { FieldGroup, Text } from "@expo/ui";
 
-import type { NotificationKind } from "~/features/settings/notification-settings";
+import type {
+  AlertDefault,
+  NotificationKind,
+} from "~/features/settings/notification-settings";
 import { FieldList } from "~/components/field-list";
 import { NativeHost } from "~/components/native-host";
+import { OptimisticChoice } from "~/components/optimistic-choice";
 import { OptimisticSwitch } from "~/components/optimistic-switch";
+import { ALERT_CHOICES } from "~/features/messaging/alerts";
 import { useNotificationSettings } from "~/features/settings/notification-settings";
 
 const KINDS = [
   { kind: "directMessages", label: "Direct Messages" },
-  { kind: "groups", label: "Group Chats" },
-  { kind: "channels", label: "Space Channels" },
   { kind: "reactions", label: "Reactions" },
   { kind: "invites", label: "Space Invites" },
 ] as const satisfies readonly { kind: NotificationKind; label: string }[];
 
-/** Which kinds of notifications you get, or none at all. */
+const DEFAULTS = [
+  { kind: "groupAlerts", label: "Group Chats", on: "groups" },
+  { kind: "channelAlerts", label: "Space Channels", on: "channels" },
+] as const satisfies readonly {
+  kind: AlertDefault;
+  label: string;
+  on: NotificationKind;
+}[];
+
+/**
+ * Which kinds of notifications you get, or none at all, and what groups
+ * and channels alert you about unless they say otherwise.
+ */
 export default function NotificationSettingsScreen() {
-  const { settings, set } = useNotificationSettings();
+  const { settings, set, setDefault } = useNotificationSettings();
   return (
     <>
       <Stack.Screen options={{ headerLargeTitleEnabled: false }} />
@@ -68,13 +83,30 @@ export default function NotificationSettingsScreen() {
                   ))}
                   <FieldGroup.SectionFooter>
                     <Text>
-                      To quiet one person, group, or channel, touch and hold it
-                      in your Inbox and choose Hide Alerts. To quiet a whole
-                      space, turn on Hide Alerts in the space.
+                      To quiet one person, touch and hold them in your Inbox and
+                      choose Hide Alerts.
                     </Text>
                   </FieldGroup.SectionFooter>
                 </FieldGroup.Section>
               )}
+              <FieldGroup.Section title="Groups and Channels">
+                {DEFAULTS.map(({ kind, label, on }) => (
+                  <OptimisticChoice
+                    key={kind}
+                    label={label}
+                    value={settings[kind] ?? (settings[on] ? "all" : "none")}
+                    choices={ALERT_CHOICES}
+                    onChange={(level) => setDefault(kind, level)}
+                  />
+                ))}
+                <FieldGroup.SectionFooter>
+                  <Text>
+                    What shows in Activity and sends you notifications. Each
+                    group, channel, and space can have its own: touch and hold
+                    it in your Inbox, or open its details.
+                  </Text>
+                </FieldGroup.SectionFooter>
+              </FieldGroup.Section>
             </FieldList>
           </NativeHost>
         </Animated.View>

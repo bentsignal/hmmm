@@ -49,6 +49,13 @@ function Headline({
 }) {
   const { item, title } = entry;
   const who = names(actorsOf(item), profileOf);
+  if (item.kind === "mention") {
+    return (
+      <>
+        <Bold>{who}</Bold> mentioned you in <Bold>{title}</Bold>
+      </>
+    );
+  }
   if (item.kind === "reactions") {
     const emoji = [...new Set(item.reactions.map(({ emoji }) => emoji))];
     return (
@@ -68,6 +75,7 @@ function Headline({
 /** The message: theirs, or yours that they reacted to. */
 function body(entry: ActivityEntry, profileOf: ProfileOf) {
   const { item } = entry;
+  if (item.kind === "mention") return messageText(item.message);
   if (item.kind === "reactions") {
     const { message } = item;
     return message.body.length > 0
@@ -99,7 +107,7 @@ function footnote(entry: ActivityEntry, showAccount: boolean) {
 /**
  * One Activity row: the person who acted, what happened (a reaction's
  * emoji in its headline), and a dot until it's been seen. Tapping opens
- * the conversation, at the message for a reaction.
+ * the conversation, at the message for a reaction or a mention.
  */
 export function ActivityRow({
   entry,
@@ -125,9 +133,9 @@ export function ActivityRow({
         account,
         conversationId: item.conversation.conversationId,
         title,
-        ...(item.kind === "reactions"
-          ? { messageId: item.message.messageId }
-          : {}),
+        ...(item.kind === "messages"
+          ? {}
+          : { messageId: item.message.messageId }),
       },
     });
   }

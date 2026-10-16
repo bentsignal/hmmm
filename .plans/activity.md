@@ -71,7 +71,7 @@ caller's space membership).
 
 ## Later
 
-- Mentions and replies as activity.
+- Replies as activity (mentions: see mentions.md).
 - Federation: like the inbox, activity lists only the home PDS's messages
   and reactions, and a reaction's push goes out only when the message is on
   the reactor's PDS.

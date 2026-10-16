@@ -38,10 +38,12 @@ const NAME_INSET = 12;
  */
 function Body({
   text,
+  mentions,
   isOwn,
   tail,
 }: {
   text: string;
+  mentions: Message["mentions"];
   isOwn: boolean;
   tail: boolean;
 }) {
@@ -63,6 +65,7 @@ function Body({
       {tail && fill !== undefined && <BubbleTail color={fill} isOwn={isOwn} />}
       <LinkedText
         text={text}
+        mentions={mentions}
         className={cn(
           "text-body leading-[22px]",
           isOwn ? "text-on-accent" : "text-foreground",
@@ -105,6 +108,7 @@ function Content({
             <MenuTargetView>
               <Body
                 text={body}
+                mentions={message.mentions}
                 isOwn={isOwn}
                 tail={endsGroup && cards.length === 0}
               />

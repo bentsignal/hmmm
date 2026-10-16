@@ -2,10 +2,12 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 import {
+  alertLevel,
   attachment,
   conversationKind,
   linkCard,
   linkPreview,
+  mention,
   spaceRole,
 } from "./protocol.ts";
 
@@ -25,6 +27,10 @@ export default defineSchema({
   // channels.
   members: defineTable({
     accountId: v.string(),
+    // The account's own choice of alerts; absent follows its space's (for
+    // a channel) or its defaults. `muted` is whether it's `none`, and rows
+    // from before this have only that.
+    alerts: v.optional(alertLevel),
     // When alerts were last turned back on: activity from before, while
     // muted, never shows.
     alertsSince: v.optional(v.number()),
@@ -47,11 +53,25 @@ export default defineSchema({
     conversationId: v.string(),
     linkPreview: v.optional(linkPreview),
     linkPreviews: v.optional(v.array(linkCard)),
+    mentions: v.optional(v.array(mention)),
     messageId: v.string(),
     sentAt: v.number(),
   })
     .index("by_message", ["messageId"])
     .index("by_conversation_sent", ["conversationId", "sentAt"]),
+  // One per account a message @mentions, so their activity finds it.
+  mentions: defineTable({
+    accountId: v.string(),
+    conversationId: v.string(),
+    messageId: v.string(),
+    sentAt: v.number(),
+  })
+    .index("by_account_sent", ["accountId", "sentAt"])
+    .index("by_account_conversation_sent", [
+      "accountId",
+      "conversationId",
+      "sentAt",
+    ]),
   // Link previews fetched recently, shared by everyone on this PDS, so a
   // link prefetched while typing is ready when the message is sent.
   linkPreviewCache: defineTable({
@@ -100,6 +120,9 @@ export default defineSchema({
   }).index("by_space", ["spaceId"]),
   spaceMembers: defineTable({
     accountId: v.string(),
+    // The account's choice of alerts for the space's channels (see
+    // members); absent follows its channels default.
+    alerts: v.optional(alertLevel),
     // When the space's alerts were last turned back on (see members).
     alertsSince: v.optional(v.number()),
     // Alerts hidden for every channel in the space.
@@ -126,12 +149,16 @@ export default defineSchema({
   })
     .index("by_code", ["code"])
     .index("by_space", ["spaceId"]),
-  // Kinds of pushes an account turned off; absent fields are on.
+  // Kinds of pushes an account turned off; absent fields are on. Default
+  // alerts for groups and channels are `groupAlerts` and `channelAlerts`,
+  // or else `none` where `groups` or `channels` is false, else `all`.
   notificationSettings: defineTable({
     accountId: v.string(),
+    channelAlerts: v.optional(alertLevel),
     channels: v.optional(v.boolean()),
     directMessages: v.optional(v.boolean()),
     enabled: v.optional(v.boolean()),
+    groupAlerts: v.optional(alertLevel),
     groups: v.optional(v.boolean()),
     invites: v.optional(v.boolean()),
     reactions: v.optional(v.boolean()),

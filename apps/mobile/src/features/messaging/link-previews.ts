@@ -1,10 +1,14 @@
-import type { LinkCard } from "@decentralized-convex/messages";
+import type {
+  LinkCard,
+  Message as PdsMessage,
+} from "@decentralized-convex/messages";
 import { useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { previewedUrls } from "@decentralized-convex/messages";
 import { pdsMutation, pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
+import type { OutgoingMessage } from "./outbox";
 import {
   useSearchQuery,
   useSearchText,
@@ -59,5 +63,27 @@ export function useLinkPrefetch() {
         (link) =>
           prefetched.data?.find((card) => card.link === link) ?? { link },
       ),
+  };
+}
+
+/**
+ * A sent message, with the link cards this device prefetched where the
+ * PDS is still fetching (so a card shown when it was sent stays up).
+ */
+export function withPrefetched(
+  message: PdsMessage,
+  sent: OutgoingMessage | undefined,
+) {
+  const prefetched = sent?.linkPreviews;
+  if (prefetched === undefined || message.linkPreviews === undefined) {
+    return message;
+  }
+  return {
+    ...message,
+    linkPreviews: message.linkPreviews.map((card) =>
+      card.preview === undefined
+        ? (prefetched.find(({ link }) => link === card.link) ?? card)
+        : card,
+    ),
   };
 }

@@ -18,6 +18,8 @@ type Args = OperationArgs<
 
 /** The newest reactions to the caller's messages that are looked at. */
 export const MAX_REACTIONS_SCANNED = 500;
+/** The newest mentions of the caller that are looked at. */
+export const MAX_MENTIONS_SCANNED = 200;
 const MAX_KEY_LENGTH = 300;
 /** Old sightings deleted per `markActivitySeen`, so it stays quick. */
 const MAX_PRUNED = 20;
@@ -30,6 +32,11 @@ export function messagesKey(conversationId: string) {
 /** The item for others' reactions to one of the caller's messages. */
 export function reactionsKey(messageId: string) {
   return `reactions:${messageId}`;
+}
+
+/** The item for a message that @mentions the caller. */
+export function mentionKey(messageId: string) {
+  return `mention:${messageId}`;
 }
 
 /** Every time the account saw an item, oldest first. */
@@ -95,8 +102,9 @@ export async function markActivitySeen(
 }
 
 /**
- * Reading a conversation sees its activity: its messages through
- * `readAt`, and every reaction so far to the caller's messages in it.
+ * Reading a conversation sees its activity: its messages and mentions of
+ * the caller through `readAt`, and every reaction so far to the caller's
+ * messages in it.
  */
 export async function seeConversationActivity(
   ctx: MutationCtx,
@@ -126,6 +134,23 @@ export async function seeConversationActivity(
       key: reactionsKey(messageId),
       now,
       through: now,
+    });
+  }
+  const mentions = await ctx.db
+    .query("mentions")
+    .withIndex("by_account_conversation_sent", (index) =>
+      index
+        .eq("accountId", self)
+        .eq("conversationId", conversationId)
+        .gt("sentAt", now - ACTIVITY_HORIZON)
+        .lte("sentAt", readAt),
+    )
+    .take(MAX_MENTIONS_SCANNED);
+  for (const { messageId, sentAt } of mentions) {
+    await recordSighting(ctx, self, {
+      key: mentionKey(messageId),
+      now,
+      through: sentAt,
     });
   }
 }

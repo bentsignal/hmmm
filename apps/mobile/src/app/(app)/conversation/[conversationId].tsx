@@ -1,4 +1,4 @@
-import type { LinkCard } from "@decentralized-convex/messages";
+import type { LinkCard, Mention } from "@decentralized-convex/messages";
 import { useRef, useState } from "react";
 import { Alert, Text, View } from "react-native";
 import {
@@ -7,6 +7,7 @@ import {
 } from "react-native-keyboard-controller";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 
+import type { MentionCandidate } from "~/features/conversation/mention-text";
 import type { MessageListHandle } from "~/features/conversation/message-list";
 import type {
   AttachmentSource,
@@ -47,15 +48,18 @@ import { useMessageLayout } from "~/features/preferences/store";
  */
 function FloatingComposer({
   conversationId,
+  mentionable,
   onHeight,
   onSend,
 }: {
   conversationId: string;
+  mentionable: readonly MentionCandidate[] | undefined;
   onHeight: (height: number) => void;
   onSend: (
     body: string,
     files: readonly StagedFile[],
     linkPreviews: readonly LinkCard[],
+    mentions: readonly Mention[],
   ) => void;
 }) {
   const bottomInset = useComposerBottomInset();
@@ -103,19 +107,22 @@ function FloatingComposer({
       offset={{ closed: 0, opened: bottomInset }}
       // Floats over the messages, which scroll all the way to the bottom.
       style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
-      onLayout={(event) => onHeight(event.nativeEvent.layout.height)}
     >
       <Composer
         bottomInset={bottomInset}
         staged={staged}
+        mentionable={mentionable}
+        // The people to mention open above the bar, over the messages,
+        // so only the bar leaves them room.
+        onHeight={onHeight}
         onChangeText={links.onChangeText}
         onPick={(source) => void pick(source)}
         onPaste={paste}
         onRemoveStaged={(id) =>
           setStaged((current) => current.filter((file) => file.id !== id))
         }
-        onSend={(body) => {
-          onSend(body, staged, links.cardsFor(body));
+        onSend={(body, mentions) => {
+          onSend(body, staged, links.cardsFor(body), mentions);
           setStaged([]);
           devTools.replyToMe(conversationId);
         }}
@@ -143,6 +150,23 @@ function listReady(
   profilesLoaded: boolean,
 ): layout is MessageLayout {
   return !loadingMessages && layout !== undefined && profilesLoaded;
+}
+
+/** Everyone in a group or channel but you; nobody in a direct message. */
+function mentionableIn(
+  conversation: ReturnType<typeof useConversation>["conversation"],
+  self: string,
+  profileOf: ReturnType<typeof useConversation>["profileOf"],
+) {
+  if (conversation === undefined || conversation.kind === "direct") {
+    return undefined;
+  }
+  return conversation.members
+    .filter((member) => member !== self)
+    .map((accountId) => {
+      const { avatarUrl, displayName } = profileOf(accountId);
+      return { accountId, avatarUrl, displayName };
+    });
 }
 
 /** The title from the opening screen shows until the conversation loads. */
@@ -239,9 +263,10 @@ function Conversation({
       />
       <FloatingComposer
         conversationId={conversationId}
+        mentionable={mentionableIn(conversation, address, profileOf)}
         onHeight={setComposerHeight}
-        onSend={(body, files, linkPreviews) => {
-          messages.sendMessage(body, files, linkPreviews);
+        onSend={(body, files, linkPreviews, mentions) => {
+          messages.sendMessage({ body, files, linkPreviews, mentions });
           list.current?.scrollToLatest();
         }}
       />
