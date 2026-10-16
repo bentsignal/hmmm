@@ -44,13 +44,8 @@ export function MessageStacked({
         message={message}
         author={author}
         startsGroup={startsGroup}
-        quoted={card !== undefined}
+        card={card}
       />
-      {card !== undefined && (
-        <View style={{ paddingLeft: 16 + AVATAR_COLUMN + 12 }}>
-          <ThreadFooter message={message} card={card} />
-        </View>
-      )}
     </View>
   );
 }
@@ -59,13 +54,13 @@ function StackedRow({
   message,
   author,
   startsGroup,
-  quoted,
+  card,
 }: {
   message: Message;
   author: { avatarUrl: string | null; displayName: string };
   startsGroup: boolean;
-  /** Under a quote, which leaves the space above it. */
-  quoted: boolean;
+  /** A reply card's, under its quote, which leaves the space above it. */
+  card?: ReplyCard;
 }) {
   const body = visibleBody(message);
   const cards = linkCardsOf(message);
@@ -73,7 +68,7 @@ function StackedRow({
     <View
       className={cn(
         "flex-row gap-3 px-4",
-        quoted || !startsGroup ? "pt-1.5" : "pt-5",
+        card !== undefined || !startsGroup ? "pt-1.5" : "pt-5",
       )}
     >
       <View style={{ width: AVATAR_COLUMN }}>
@@ -128,6 +123,10 @@ function StackedRow({
               {cards.length > 0 && <LinkCards cards={cards} />}
             </View>
           </SendingFade>
+          {/* Reactions go under the thread's count. */}
+          {card !== undefined && (
+            <ThreadFooter message={message} card={card} />
+          )}
         </InteractiveMessage>
         <NotSent message={message} />
       </View>

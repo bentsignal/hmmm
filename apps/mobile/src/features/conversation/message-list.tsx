@@ -22,6 +22,7 @@ import type { MessageLayout } from "~/features/preferences/store";
 import { GlassSurface } from "~/components/glass-surface";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { cn } from "~/lib/cn";
+import { useBlankSpace } from "./blank-space";
 import { arrivedAfter, newestFirst } from "./build-rows";
 import { GrowthProvider } from "./grow";
 import { ANCHOR, useLatest, usePlacement } from "./list-position";
@@ -175,6 +176,7 @@ function Rows({
 }: RowsProps) {
   const safeArea = useSafeAreaInsets();
   const rows = newestFirst(messages, layout, thread);
+  const blank = useBlankSpace(thread !== undefined);
   // Only messages that arrive while open animate in, not loaded pages.
   const [openedAt] = useState(Date.now);
   const anchorIndex =
@@ -208,6 +210,7 @@ function Rows({
           inverted
           offset={bottomInset}
           freeze={freeze}
+          blankSpace={blank.blankSpace}
           onContentInsetChange={(insets) => latest.onInsetChange(insets.top)}
         />
       )}
@@ -240,7 +243,8 @@ function Rows({
       onScroll={(event) => latest.onScroll(event.nativeEvent.contentOffset.y)}
       {...latest.scrollHandlers}
       scrollEventThrottle={16}
-      onContentSizeChange={() => {
+      onContentSizeChange={(_, height) => {
+        blank.onContentHeight(height);
         latest.onContentChange(rows[0]?.key, composerHeight);
         placement.onLaidOut();
       }}
@@ -248,13 +252,9 @@ function Rows({
       keyboardDismissMode="interactive"
       keyboardShouldPersistTaps="handled"
       contentInsetAdjustmentBehavior="never"
-      // A thread starts at the top, under its original, until it fills
-      // the screen. (Inverted, the content's end is the top.)
-      contentContainerStyle={
-        thread === undefined
-          ? undefined
-          : { flexGrow: 1, justifyContent: "flex-end" }
-      }
+      // A thread starts at the top, under its original (see
+      // `useBlankSpace`).
+      onLayout={(event) => blank.onListHeight(event.nativeEvent.layout.height)}
       // Room under the newest message for the composer floating over it,
       // which grows as you type, and above the oldest for the header: the
       // messages scroll under both. Inverted, the list's header is at the
