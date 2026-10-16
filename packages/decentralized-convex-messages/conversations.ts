@@ -21,6 +21,7 @@ import {
 } from "./model.ts";
 import { directConversationId } from "./naming.ts";
 import { around, pageOf } from "./paging.ts";
+import { MAX_MEMBER_EVENTS } from "./shapes.ts";
 import { seeConversationActivity } from "./sightings.ts";
 
 type Mutations = (typeof messagesProtocol)["mutations"];
@@ -128,7 +129,18 @@ export async function addGroupMembers(
   if (existing.size + added.length > MAX_GROUP_MEMBERS) {
     fail("INVALID_GROUP_MEMBERS");
   }
-  await insertMembers(ctx, conversation.conversationId, added);
+  const { conversationId } = conversation;
+  await insertMembers(ctx, conversationId, added);
+  const at = Date.now();
+  for (const accountId of added) {
+    await ctx.db.insert("memberEvents", {
+      accountId,
+      at,
+      by: self,
+      conversationId,
+      kind: "joined",
+    });
+  }
   return null;
 }
 
@@ -138,8 +150,45 @@ export async function leaveConversation(
   args: Args<"leaveConversation">,
 ) {
   const { member } = await requireGroup(ctx, args.conversationId, self);
-  if (member !== null) await ctx.db.delete(member._id);
+  if (member !== null) {
+    await ctx.db.delete(member._id);
+    await ctx.db.insert("memberEvents", {
+      accountId: self,
+      at: Date.now(),
+      conversationId: args.conversationId,
+      kind: "left",
+    });
+  }
   return null;
+}
+
+/** A group's joins and leaves, oldest first (see the protocol). */
+export async function memberEvents(
+  ctx: QueryCtx,
+  self: string,
+  args: OperationArgs<Queries["memberEvents"]>,
+) {
+  const { conversationId } = args;
+  const { conversation: found } = await requireAccess(
+    ctx,
+    conversationId,
+    self,
+  );
+  if (found.kind !== "group") return [];
+  const events = await ctx.db
+    .query("memberEvents")
+    .withIndex("by_conversation_at", (index) =>
+      index.eq("conversationId", conversationId),
+    )
+    .order("desc")
+    .take(MAX_MEMBER_EVENTS);
+  return events.reverse().map(({ _id, accountId, at, by, kind }) => ({
+    accountId,
+    at,
+    ...(by === undefined ? {} : { by }),
+    eventId: _id,
+    kind,
+  }));
 }
 
 export async function markRead(

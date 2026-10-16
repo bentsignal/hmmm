@@ -58,3 +58,13 @@ export interface Message {
   /** The message's thread, or a reply card's, once it has replies. */
   thread?: ThreadInfo;
 }
+
+/** Someone joining or leaving a group, shown between its messages. */
+export interface MemberNotice {
+  readonly id: string;
+  readonly kind: "joined" | "left";
+  readonly accountId: string;
+  /** Their display name, as the notice shows it. */
+  readonly name: string;
+  readonly at: Date;
+}

@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { addGroupMembers, conversation } from "./conversations.ts";
+import {
+  addGroupMembers,
+  conversation,
+  leaveConversation,
+  memberEvents,
+} from "./conversations.ts";
 import { fakeCtx } from "./fakeCtx.ts";
 
 const OWNER = "owner@vera.chat";
@@ -68,5 +73,30 @@ void test("a group holds at most 50 people", async () => {
       conversationId: GROUP,
       members: [PRIYA],
     }),
+  );
+});
+
+void test("joining and leaving show as events, oldest first", async (t) => {
+  t.mock.timers.enable({ apis: ["Date"], now: 1000 });
+  const fake = group([OWNER, MAYA]);
+  await addGroupMembers(fake.ctx, MAYA, {
+    conversationId: GROUP,
+    members: [LEO, PRIYA, OWNER],
+  });
+  t.mock.timers.tick(500);
+  await leaveConversation(fake.ctx, OWNER, { conversationId: GROUP });
+  const events = await memberEvents(fake.ctx, LEO, { conversationId: GROUP });
+  assert.deepEqual(
+    events.map(({ accountId, at, by, kind }) => ({ accountId, at, by, kind })),
+    [
+      { accountId: LEO, at: 1000, by: MAYA, kind: "joined" },
+      { accountId: PRIYA, at: 1000, by: MAYA, kind: "joined" },
+      { accountId: OWNER, at: 1500, by: undefined, kind: "left" },
+    ],
+  );
+  assert.equal(new Set(events.map(({ eventId }) => eventId)).size, 3);
+  // Whoever left can't read them any more.
+  await assert.rejects(
+    memberEvents(fake.ctx, OWNER, { conversationId: GROUP }),
   );
 });

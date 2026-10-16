@@ -207,6 +207,23 @@ export const reaction = v.object({
 export type Reaction = Infer<typeof reaction>;
 
 /**
+ * Someone joining or leaving a group, which apps show between its
+ * messages. `by` is who added someone who joined.
+ */
+export const memberEvent = v.object({
+  accountId: v.string(),
+  at: v.number(),
+  by: v.optional(v.string()),
+  eventId: v.string(),
+  kind: v.union(v.literal("joined"), v.literal("left")),
+});
+
+export type MemberEvent = Infer<typeof memberEvent>;
+
+/** `memberEvents` lists at most this many, the newest. */
+export const MAX_MEMBER_EVENTS = 200;
+
+/**
  * A message's thread as one PDS knows it: how many replies it stores and
  * who wrote the newest. Apps add up every member's PDS's summaries.
  */

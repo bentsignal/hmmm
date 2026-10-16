@@ -19,6 +19,7 @@ import { useDevConversation } from "~/features/dev/dev-conversation";
 import { useDevTools } from "~/features/dev/dev-tools";
 import { AccountScope, useAccount } from "~/features/messaging/account";
 import { useConversation } from "~/features/messaging/conversations";
+import { useMemberNotices } from "~/features/messaging/member-events";
 import { useMarkRead, useMessages } from "~/features/messaging/messages";
 import { useActiveConversation } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
@@ -33,15 +34,20 @@ function otherMember(
 }
 
 /**
- * The list shows once its messages, their reactions, and everyone's names
- * and photos are in, so nothing changes size or swaps as it fades in.
+ * The list shows once its messages, their reactions, a group's notices,
+ * and everyone's names and photos are in, so nothing changes size or swaps
+ * as it fades in.
  */
 function listReady(
-  loadingMessages: boolean,
+  parts: readonly { isLoading: boolean }[],
   layout: MessageLayout | undefined,
   profilesLoaded: boolean,
 ): layout is MessageLayout {
-  return !loadingMessages && layout !== undefined && profilesLoaded;
+  return (
+    parts.every((part) => !part.isLoading) &&
+    layout !== undefined &&
+    profilesLoaded
+  );
 }
 
 /** The title from the opening screen shows until the conversation loads. */
@@ -79,6 +85,7 @@ function Conversation({
     useConversation(conversationId);
   const layout = useMessageLayout(conversation?.kind);
   const messages = useMessages(conversationId, { anchor: anchorId });
+  const notices = useMemberNotices(conversationId, conversation, messages);
   const composer = useRef<ComposerHandle>(null);
   // Undefined until the composer is laid out: the list leaves room for it
   // under the newest message, so it waits rather than shift once it knows.
@@ -105,12 +112,13 @@ function Conversation({
     <View className="bg-background flex-1">
       <Stack.Title>{heading}</Stack.Title>
       <KeyboardGestureArea interpolator="ios" offset={60} style={{ flex: 1 }}>
-        {listReady(messages.isLoading, layout, profilesLoaded) &&
+        {listReady([messages, notices], layout, profilesLoaded) &&
           composerHeight !== undefined && (
             <MessageList
               ref={list}
               key={messages.viewKey}
               messages={messages.messages}
+              notices={notices.notices}
               self={address}
               layout={layout}
               profileOf={profileOf}

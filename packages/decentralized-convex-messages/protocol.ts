@@ -12,6 +12,7 @@ import {
   attachment,
   conversation,
   linkCard,
+  memberEvent,
   message,
   messagePage,
   notificationSettings,
@@ -313,6 +314,14 @@ export const messagesProtocol = definePluginProtocol({
         conversationId: v.string(),
       }),
       returns: messagePage,
+    }),
+    /**
+     * A group's people joining and leaving, oldest first: the newest
+     * `MAX_MEMBER_EVENTS`. Other conversations have none.
+     */
+    memberEvents: defineOperation({
+      args: v.object({ conversationId: v.string() }),
+      returns: v.array(memberEvent),
     }),
     /**
      * Reactions to the given messages, gathered from every member's PDS
