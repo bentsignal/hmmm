@@ -6,7 +6,7 @@ import {
   Text,
   View,
 } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import type { MentionCandidate } from "./mention-text";
 import { Avatar } from "~/components/avatar";
@@ -56,8 +56,10 @@ function PersonRow({
 /**
  * The people an `@` can mention, over the message field while a name is
  * typed: photo, name, and username. Tapping one puts them in the message.
- * Glass on iOS, a raised card on Android; it fades in and out, and the
- * keyboard stays up while it's tapped.
+ * Glass on iOS, a raised card on Android. It fades in, and the keyboard
+ * stays up while it's tapped. It goes at once, with no fade: the composer
+ * it sits in is held to the keyboard by its bottom, so a fading copy would
+ * drop down behind the field as the composer shrinks.
  */
 export function MentionPicker({
   people,
@@ -72,7 +74,6 @@ export function MentionPicker({
   return (
     <Animated.View
       entering={GLASS ? undefined : FadeIn.duration(140)}
-      exiting={FadeOut.duration(120)}
       className="mb-1.5 rounded-[20px]"
       style={{
         boxShadow: GLASS ? undefined : "0 4px 16px rgba(0, 0, 0, 0.12)",
