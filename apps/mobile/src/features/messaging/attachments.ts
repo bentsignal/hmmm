@@ -13,6 +13,7 @@ import {
 import { ConvexError } from "convex/values";
 
 import type { AccountSession } from "~/features/session/account-session";
+import type { PastedImage } from "~/lib/paste-images";
 import { formatBytes } from "~/lib/format";
 import { useAccount } from "./account";
 import { sendUpload } from "./upload-transports";
@@ -217,12 +218,23 @@ export async function pickAttachments(
   source: AttachmentSource,
   { limit = MAX_ATTACHMENTS, imagesOnly = false } = {},
 ) {
-  const { files, problem: pickProblem } = await (
+  const result = await (
     source === "files" ? pickFiles() : pickMedia(source, limit, imagesOnly)
   ).catch(() => {
     Alert.alert("Couldn't Add That", "Try picking it again.");
     return picked([]);
   });
+  return sendableOf(result, limit);
+}
+
+/**
+ * Up to `limit` of the files that can be sent, with an alert for the rest
+ * saying why they were left out.
+ */
+function sendableOf(
+  { files, problem: pickProblem }: ReturnType<typeof picked>,
+  limit: number,
+) {
   const problems = files.map(problemWith);
   const firstProblem =
     pickProblem ?? problems.find((problem) => problem !== undefined);
@@ -236,6 +248,22 @@ export async function pickAttachments(
     );
   }
   return sendable.slice(0, limit);
+}
+
+/**
+ * Photos pasted into the message field, ready to stage like picked ones.
+ * Those too big to send are left out with an alert.
+ */
+export function stagePasted(images: readonly PastedImage[], limit: number) {
+  const files = images.map(
+    (image) =>
+      ({
+        ...image,
+        id: Crypto.randomUUID(),
+        kind: "image",
+      }) satisfies StagedFile,
+  );
+  return sendableOf(picked(files), limit);
 }
 
 function errorCode(data: unknown) {

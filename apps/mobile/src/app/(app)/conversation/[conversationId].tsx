@@ -13,6 +13,7 @@ import type {
   StagedFile,
 } from "~/features/messaging/attachments";
 import type { MessageLayout } from "~/features/preferences/store";
+import type { PastedImage } from "~/lib/paste-images";
 import {
   Composer,
   useComposerBottomInset,
@@ -28,6 +29,7 @@ import { AccountScope, useAccount } from "~/features/messaging/account";
 import {
   MAX_ATTACHMENTS,
   pickAttachments,
+  stagePasted,
 } from "~/features/messaging/attachments";
 import {
   useConversation,
@@ -64,15 +66,21 @@ function FloatingComposer({
   // handing over files does nothing.
   const picking = useRef(false);
 
+  function full() {
+    if (staged.length < MAX_ATTACHMENTS) return false;
+    Alert.alert(
+      "Too Many Attachments",
+      `You can send up to ${MAX_ATTACHMENTS} at a time.`,
+    );
+    return true;
+  }
+
+  function add(files: readonly StagedFile[]) {
+    setStaged((current) => [...current, ...files].slice(0, MAX_ATTACHMENTS));
+  }
+
   async function pick(source: AttachmentSource) {
-    if (picking.current) return;
-    if (staged.length >= MAX_ATTACHMENTS) {
-      Alert.alert(
-        "Too Many Attachments",
-        `You can send up to ${MAX_ATTACHMENTS} at a time.`,
-      );
-      return;
-    }
+    if (picking.current || full()) return;
     // Nothing shows in the composer until the files are ready; then they
     // animate in.
     picking.current = true;
@@ -81,7 +89,12 @@ function FloatingComposer({
     }).finally(() => {
       picking.current = false;
     });
-    setStaged((current) => [...current, ...files].slice(0, MAX_ATTACHMENTS));
+    add(files);
+  }
+
+  function paste(images: readonly PastedImage[]) {
+    if (full()) return;
+    add(stagePasted(images, MAX_ATTACHMENTS - staged.length));
   }
 
   return (
@@ -97,6 +110,7 @@ function FloatingComposer({
         staged={staged}
         onChangeText={links.onChangeText}
         onPick={(source) => void pick(source)}
+        onPaste={paste}
         onRemoveStaged={(id) =>
           setStaged((current) => current.filter((file) => file.id !== id))
         }
