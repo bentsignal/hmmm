@@ -16,7 +16,7 @@ import { useNotificationSettings } from "~/features/settings/notification-settin
 const KINDS = [
   { kind: "directMessages", label: "Direct Messages" },
   { kind: "replies", label: "Replies to Your Messages" },
-  { kind: "threadReplies", label: "Thread Replies" },
+  { kind: "threadReplies", label: "Thread Updates" },
   { kind: "reactions", label: "Reactions" },
   { kind: "invites", label: "Space Invites" },
 ] as const satisfies readonly { kind: NotificationKind; label: string }[];
@@ -66,12 +66,6 @@ export default function NotificationSettingsScreen() {
                   value={settings.enabled}
                   onChange={(on) => set("enabled", on)}
                 />
-                <FieldGroup.SectionFooter>
-                  <Text>
-                    When this is off, Vera sends no notifications at all.
-                    Activity still shows what you missed.
-                  </Text>
-                </FieldGroup.SectionFooter>
               </FieldGroup.Section>
               {settings.enabled && (
                 <FieldGroup.Section title="Notify Me About">
@@ -85,13 +79,6 @@ export default function NotificationSettingsScreen() {
                       onChange={(on) => set(kind, on)}
                     />
                   ))}
-                  <FieldGroup.SectionFooter>
-                    <Text>
-                      Thread Replies are new replies in threads you're in. To
-                      quiet one person, touch and hold them in your Inbox and
-                      choose Hide Alerts. To quiet one thread, tap its bell.
-                    </Text>
-                  </FieldGroup.SectionFooter>
                 </FieldGroup.Section>
               )}
               <FieldGroup.Section title="Groups and Channels">
@@ -104,13 +91,6 @@ export default function NotificationSettingsScreen() {
                     onChange={(level) => setDefault(kind, level)}
                   />
                 ))}
-                <FieldGroup.SectionFooter>
-                  <Text>
-                    What shows in Activity and sends you notifications. Each
-                    group, channel, and space can have its own: touch and hold
-                    it in your Inbox, or open its details.
-                  </Text>
-                </FieldGroup.SectionFooter>
               </FieldGroup.Section>
             </FieldList>
           </NativeHost>

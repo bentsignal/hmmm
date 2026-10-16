@@ -115,11 +115,6 @@ export function InboxSection({
           }
         />
       )}
-      {conversation.kind !== "direct" && (
-        <FieldGroup.SectionFooter>
-          <Text>What shows in Activity and sends you notifications.</Text>
-        </FieldGroup.SectionFooter>
-      )}
     </FieldGroup.Section>
   );
 }
