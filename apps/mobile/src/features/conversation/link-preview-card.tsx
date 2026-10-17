@@ -277,7 +277,7 @@ function CardContents({
  * link. Tapping opens the link (or plays the post's video, on the video);
  * holding lifts just this card into the message's menu, about its link.
  */
-function LinkCardView({ card }: { card: LinkCard }) {
+export function LinkCardView({ card }: { card: LinkCard }) {
   const { link, preview } = card;
   const url = preview?.url ?? link;
   const video = preview?.video;
@@ -320,16 +320,5 @@ function LinkCardView({ card }: { card: LinkCard }) {
         />
       </Pressable>
     </CardFrame>
-  );
-}
-
-/** A message's link cards, in the order of its links. */
-export function LinkCards({ cards }: { cards: readonly LinkCard[] }) {
-  return (
-    <View className="gap-1">
-      {cards.map((card) => (
-        <LinkCardView key={card.link} card={card} />
-      ))}
-    </View>
   );
 }

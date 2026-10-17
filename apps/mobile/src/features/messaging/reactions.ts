@@ -14,8 +14,39 @@ export const QUICK_REACTIONS = ["❤️", "👍", "👎", "😂", "😮", "😢"
 /** No reactions, the same array each time so rows don't redraw. */
 const NONE = Object.freeze<ReactionSummary[]>([]);
 
-/** One emoji's reactions to a message, as shown under it. */
+/**
+ * Which part of a message a reaction is on: one of its attachments, by
+ * index, one of its link previews (`link-<index>`), or `message`, the
+ * message itself (its text, or its first attachment when it has no text,
+ * or its first link preview when its text is only links; see `reaction`
+ * in the protocol).
+ */
+export type ReactionPart = number | "message" | `link-${number}`;
+
+/**
+ * The part a message's attachment is: the first of a message without text
+ * is the message itself, so a reaction to it is one older apps show too.
+ */
+export function attachmentPart(
+  message: { readonly body?: string },
+  index: number,
+) {
+  return index === 0 && message.body === undefined
+    ? ("message" as const)
+    : index;
+}
+
+/** The reactions on one part of a message. */
+export function reactionsOn(
+  reactions: readonly ReactionSummary[] | undefined,
+  part: ReactionPart,
+) {
+  return (reactions ?? NONE).filter((reaction) => reaction.part === part);
+}
+
+/** One emoji's reactions to a part of a message, as shown on it. */
 export interface ReactionSummary {
+  readonly part: ReactionPart;
   readonly emoji: string;
   readonly count: number;
   /** Whether the signed-in account reacted with it. */
@@ -35,41 +66,98 @@ function chunks(ids: readonly string[]) {
   );
 }
 
+/** A reaction's part, from the protocol's `attachment` and `link`. */
+export function reactionPart({
+  attachment,
+  link,
+}: {
+  attachment?: number;
+  link?: number;
+}) {
+  if (link !== undefined) return `link-${link}` as const;
+  return attachment ?? ("message" as const);
+}
+
+/** A part as the protocol's `attachment` and `link` name it. */
+export function partArgs(part: ReactionPart) {
+  if (typeof part === "number") return { attachment: part };
+  if (part === "message") return {};
+  return { link: Number(part.slice("link-".length)) };
+}
+
+/** A part written out as text (a route's, or `overrideKey`'s), read back. */
+export function parsePart(part: string) {
+  if (part === "message") return "message" as const;
+  const link = /^link-(\d+)$/.exec(part)?.[1];
+  if (link !== undefined) return `link-${Number(link)}` as const;
+  return Number(part);
+}
+
+/** A pending toggle's key: the message, the part, and the emoji. */
+function overrideKey(messageId: string, part: ReactionPart, emoji: string) {
+  return `${messageId} ${part} ${emoji}`;
+}
+
+function parseOverrideKey(key: string) {
+  const [messageId = "", part = "", emoji = ""] = key.split(" ");
+  return { emoji, messageId, part: parsePart(part) };
+}
+
+/** The key of one emoji on one part, unique within a message. */
+function emojiKey(part: ReactionPart, emoji: string) {
+  return `${part} ${emoji}`;
+}
+
+interface Tally {
+  readonly part: ReactionPart;
+  readonly emoji: string;
+  readonly accounts: Set<string>;
+}
+
 function summarize(
   reactions: readonly Reaction[],
   self: string,
   overrides: ReadonlyMap<string, boolean>,
 ) {
-  // Who reacted with what, per message, with this device's pending toggles.
-  const byMessage = new Map<string, Map<string, Set<string>>>();
+  // Who reacted with what on each part, per message, with this device's
+  // pending toggles.
+  const byMessage = new Map<string, Map<string, Tally>>();
+  function tally(messageId: string, part: ReactionPart, emoji: string) {
+    const emojis = byMessage.get(messageId) ?? new Map<string, Tally>();
+    byMessage.set(messageId, emojis);
+    const key = emojiKey(part, emoji);
+    const found = emojis.get(key) ?? { accounts: new Set(), emoji, part };
+    emojis.set(key, found);
+    return found.accounts;
+  }
   const earliestFirst = [...reactions].sort(
     (left, right) => left.reactedAt - right.reactedAt,
   );
-  for (const { accountId, emoji, messageId } of earliestFirst) {
-    const emojis = byMessage.get(messageId) ?? new Map<string, Set<string>>();
-    emojis.set(emoji, (emojis.get(emoji) ?? new Set()).add(accountId));
-    byMessage.set(messageId, emojis);
+  for (const reaction of earliestFirst) {
+    const { accountId, emoji, messageId } = reaction;
+    tally(messageId, reactionPart(reaction), emoji).add(accountId);
   }
   for (const [key, on] of overrides) {
-    const [messageId = "", emoji = ""] = key.split(" ");
-    const emojis = byMessage.get(messageId) ?? new Map<string, Set<string>>();
-    const accounts = emojis.get(emoji) ?? new Set();
+    const { emoji, messageId, part } = parseOverrideKey(key);
+    const accounts = tally(messageId, part, emoji);
     if (on) accounts.add(self);
     else accounts.delete(self);
-    emojis.set(emoji, accounts);
-    byMessage.set(messageId, emojis);
   }
   return new Map(
     [...byMessage].map(([messageId, emojis]) => [
       messageId,
-      [...emojis]
-        .filter(([, accounts]) => accounts.size > 0)
-        .map(([emoji, accounts]) => ({
-          accounts: [...accounts],
-          count: accounts.size,
-          emoji,
-          mine: accounts.has(self),
-        })),
+      [...emojis.values()]
+        .filter(({ accounts }) => accounts.size > 0)
+        .map(
+          ({ accounts, emoji, part }) =>
+            ({
+              accounts: [...accounts],
+              count: accounts.size,
+              emoji,
+              mine: accounts.has(self),
+              part,
+            }) satisfies ReactionSummary,
+        ),
     ]),
   );
 }
@@ -147,16 +235,22 @@ export function useReactions(
     /** A message's reactions, or undefined while they are still loading. */
     reactionsOf: (messageId: string) =>
       loadedIds.has(messageId) ? (reactions[messageId] ?? NONE) : undefined,
-    toggle: (messageId: string, emoji: string) => {
+    toggle: (messageId: string, emoji: string, part: ReactionPart) => {
       const on = !(
         reactions[messageId]?.some(
-          (item) => item.emoji === emoji && item.mine,
+          (item) => item.part === part && item.emoji === emoji && item.mine,
         ) ?? false
       );
-      const key = `${messageId} ${emoji}`;
+      const key = overrideKey(messageId, part, emoji);
       setOverride(key, on);
       react.mutate(
-        { conversationId, emoji, messageId, on },
+        {
+          ...partArgs(part),
+          conversationId,
+          emoji,
+          messageId,
+          on,
+        },
         // The live query has the result by now; drop the stand-in.
         { onSettled: () => setOverride(key, undefined) },
       );

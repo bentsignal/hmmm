@@ -3,8 +3,9 @@ import type { OperationArgs } from "@decentralized-convex/plugin";
 import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { messagesProtocol } from "./protocol.ts";
 import { internal } from "./_generated/api.js";
+import { MAX_LINK_PREVIEWS } from "./links.ts";
 import { fail, memberAddresses, requireAccess } from "./model.ts";
-import { MAX_REACTION_MESSAGES } from "./protocol.ts";
+import { MAX_ATTACHMENTS, MAX_REACTION_MESSAGES } from "./protocol.ts";
 
 /** How long a new reaction waits before its push, in case it's undone. */
 const REACTION_PUSH_DELAY_MS = 3000;
@@ -25,6 +26,26 @@ function validEmoji(emoji: string) {
   );
 }
 
+/** An index under `max`: an attachment's, or a link preview's. */
+function validIndex(index: number | undefined, max: number) {
+  return (
+    index === undefined ||
+    (Number.isInteger(index) && index >= 0 && index < max)
+  );
+}
+
+/** A reaction names one part at most (see `reaction`). */
+function requireValidReaction({ attachment, emoji, link }: Args<"react">) {
+  if (
+    !validEmoji(emoji) ||
+    !validIndex(attachment, MAX_ATTACHMENTS) ||
+    !validIndex(link, MAX_LINK_PREVIEWS) ||
+    (attachment !== undefined && link !== undefined)
+  ) {
+    fail("INVALID_REACTION");
+  }
+}
+
 export async function react(
   ctx: MutationCtx,
   self: string,
@@ -32,14 +53,19 @@ export async function react(
   args: Args<"react">,
 ) {
   await requireAccess(ctx, args.conversationId, self);
-  if (!validEmoji(args.emoji)) fail("INVALID_REACTION");
+  requireValidReaction(args);
   const mine = await ctx.db
     .query("reactions")
     .withIndex("by_message_account", (index) =>
       index.eq("messageId", args.messageId).eq("accountId", self),
     )
     .collect();
-  const existing = mine.find((row) => row.emoji === args.emoji);
+  const existing = mine.find(
+    (row) =>
+      row.emoji === args.emoji &&
+      row.attachment === args.attachment &&
+      row.link === args.link,
+  );
   if (!args.on) {
     if (existing !== undefined) await ctx.db.delete(existing._id);
     return null;
@@ -54,8 +80,10 @@ export async function react(
     .unique();
   await ctx.db.insert("reactions", {
     accountId: self,
+    attachment: args.attachment,
     conversationId: args.conversationId,
     emoji: args.emoji,
+    link: args.link,
     messageId: args.messageId,
     messageAuthorId:
       message?.conversationId === args.conversationId
@@ -100,9 +128,11 @@ export async function reactions(
     found.push(
       ...rows
         .filter((row) => row.conversationId === args.conversationId)
-        .map(({ accountId, emoji, reactedAt }) => ({
+        .map(({ accountId, attachment, emoji, link, reactedAt }) => ({
           accountId,
+          attachment,
           emoji,
+          link,
           messageId,
           reactedAt,
         })),

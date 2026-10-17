@@ -24,11 +24,14 @@ const GROW_EASING = Easing.out(Easing.cubic);
  *
  * What moves: in an inverted list kept still from the bottom, a row that
  * grows pushes everything above its new space up (older rows, and the
- * parts of the row itself above the space), and nothing below it.
+ * pieces of the row itself above the space, see `usePieceLift`), and
+ * nothing below it.
  */
 interface Growth {
   /** The growing row's order (see `rowOrder`). */
   readonly pivot: SharedValue<number>;
+  /** Where in that row the space is (see `Place`). */
+  readonly place: SharedValue<number>;
   /** How far what moved is drawn from where it's laid out. */
   readonly offset: SharedValue<number>;
   /** The list, to tell whether a row is on screen. */
@@ -57,9 +60,12 @@ export function GrowthProvider({
   children: ReactNode;
 }) {
   const pivot = useSharedValue(NONE);
+  const place = useSharedValue(0);
   const offset = useSharedValue(0);
   return (
-    <GrowthContext value={{ list, offset, pivot }}>{children}</GrowthContext>
+    <GrowthContext value={{ list, offset, pivot, place }}>
+      {children}
+    </GrowthContext>
   );
 }
 
@@ -71,9 +77,8 @@ export function GrowthProvider({
  */
 function lift(
   growth: Growth,
-  order: number,
+  { order, place, measured }: Omit<SpaceProps, "animate" | "height">,
   delta: number,
-  measured: AnimatedRef<View>,
 ) {
   "worklet";
   const row = measure(measured);
@@ -83,6 +88,7 @@ function lift(
   // The same row again mid-move (its space measured again) adds to it.
   const carried = growth.pivot.get() === order ? growth.offset.get() : 0;
   growth.pivot.set(order);
+  growth.place.set(place);
   growth.offset.set(carried + delta);
   growth.offset.set(withTiming(0, { duration: GROW_MS, easing: GROW_EASING }));
 }
@@ -101,18 +107,21 @@ export function useRowLift(order: number, withOwn: boolean) {
 }
 
 /**
- * A part of the growing row above its space (the sender's name over a
- * bubble), which moves with the rows above.
+ * A piece of the growing row at `place` (see `Place`). In a row that stays
+ * where it is (bubbles), a piece above the space moves up with the rows
+ * above. In one that moves with them (stacked rows, `rowMoves`), a piece
+ * below the space stays put.
  */
-export function useOwnLift(order: number, direction: 1 | -1 = 1) {
-  const { pivot, offset } = useGrowth();
-  return useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateY: pivot.get() === order ? direction * offset.get() : 0,
-      },
-    ],
-  }));
+export function usePieceLift(order: number, place: number, rowMoves = false) {
+  const growth = useGrowth();
+  return useAnimatedStyle(() => {
+    const growing = growth.pivot.get() === order;
+    const above = growth.place.get() > place;
+    let translateY = 0;
+    if (growing && above && !rowMoves) translateY = growth.offset.get();
+    if (growing && !above && rowMoves) translateY = -growth.offset.get();
+    return { transform: [{ translateY }] };
+  });
 }
 
 /**
@@ -131,12 +140,14 @@ interface SpaceProps {
   height: number;
   /** The row's order (see `rowOrder`). */
   order: number;
+  /** Where in the row the space is (see `Place`). */
+  place: number;
   animate: boolean;
   /** The message, measured to tell whether it's on screen. */
   measured: AnimatedRef<View>;
 }
 
-function Space({ height, order, animate, measured }: SpaceProps) {
+function Space({ height, order, place, animate, measured }: SpaceProps) {
   const growth = useGrowth();
   // Opening as it mounts, when what it makes room for arrived while you
   // watched.
@@ -147,9 +158,9 @@ function Space({ height, order, animate, measured }: SpaceProps) {
       const delta = now - space.get();
       if (delta === 0) return;
       space.set(now);
-      if (animate) lift(growth, order, delta, measured);
+      if (animate) lift(growth, { measured, order, place }, delta);
     },
-    [height, animate, order],
+    [height, animate, order, place],
   );
   // eslint-disable-next-line vera/no-layout-animation -- Not animated: the height changes once, in the same frame as the lift, which does the moving.
   const style = useAnimatedStyle(() => ({ height: space.get() }));

@@ -16,6 +16,7 @@ import { scheduleOnRN } from "react-native-worklets";
 
 import type { MessageRow, ThreadHead } from "./build-rows";
 import type { Latest } from "./list-position";
+import type { ToggleReaction, ViewReactions } from "./message-actions";
 import type { ProfileOf } from "./message-row";
 import type { MemberNotice, Message } from "./types";
 import type { MessageLayout } from "~/features/preferences/store";
@@ -281,9 +282,9 @@ type MessageListProps = Omit<
 > & {
   ref?: Ref<MessageListHandle>;
   onJumpToLatest: () => void;
-  onToggleReaction: (messageId: string, emoji: string) => void;
-  /** Opens the sheet of who reacted to a message, on one emoji if given. */
-  onViewReactions: (messageId: string, emoji?: string) => void;
+  onToggleReaction: ToggleReaction;
+  /** Opens the sheet of who reacted to a part, on one emoji if given. */
+  onViewReactions: ViewReactions;
   /** A tap on a message opens its thread; absent in a thread. */
   onOpenThread?: (message: Message) => void;
   /** The menu's Reply; absent in a thread. */

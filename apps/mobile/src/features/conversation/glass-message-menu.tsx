@@ -21,6 +21,7 @@ import { useUniwind } from "uniwind";
 
 import type { MenuLayout, Rect } from "./menu-layout";
 import type { Message, MessageAttachment } from "./types";
+import type { ReactionPart } from "~/features/messaging/reactions";
 import { cn } from "~/lib/cn";
 import { selectionTick } from "~/lib/native-extras";
 import {
@@ -31,7 +32,7 @@ import {
   menuHeight,
   ReactionBar,
 } from "./glass-menu-parts";
-import { menuActions } from "./menu-actions";
+import { menuActions, targetReactions } from "./menu-actions";
 import { EDGE, menuLayout } from "./menu-layout";
 import { menuTitleHeight } from "./menu-title";
 import { REACTORS_HEIGHT, reactorsWidth } from "./reactor-rows";
@@ -45,6 +46,8 @@ export type PreviewShape = "card" | "plain";
 /** What a long press opened, and where it sits on screen. */
 export interface MenuTarget {
   readonly message: Message;
+  /** The part of it held, which reactions picked go to. */
+  readonly part: ReactionPart;
   /** Where the held element (a bubble, a link card) sits on screen. */
   readonly rect: Rect;
   readonly align: TargetAlign;
@@ -182,7 +185,7 @@ function belowSize(target: MenuTarget, actions: number, reactorsMax: number) {
   if (target.mode === "reactions") {
     return {
       height: REACTORS_HEIGHT,
-      width: reactorsWidth(target.message.reactions ?? [], reactorsMax),
+      width: reactorsWidth(targetReactions(target), reactorsMax),
     };
   }
   return {
@@ -222,7 +225,7 @@ export function GlassMessageMenu({
   const screen = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const showReactors = target.mode === "reactions";
-  const reactions = target.message.reactions ?? [];
+  const reactions = targetReactions(target);
   const reactorsMax = screen.width - EDGE * 2;
   const actions = showReactors
     ? []

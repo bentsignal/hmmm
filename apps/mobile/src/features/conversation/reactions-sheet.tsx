@@ -7,9 +7,11 @@ import { useQuery } from "@tanstack/react-query";
 import { pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
+import type { ReactionPart } from "~/features/messaging/reactions";
 import { Avatar } from "~/components/avatar";
 import { useAccount } from "~/features/messaging/account";
 import { useProfiles } from "~/features/messaging/profiles";
+import { reactionPart } from "~/features/messaging/reactions";
 import { pdsResult } from "~/features/messaging/results";
 import { cn } from "~/lib/cn";
 import { selectionTick } from "~/lib/native-extras";
@@ -147,7 +149,7 @@ function Title() {
 }
 
 /**
- * Who reacted to a message, like Discord's sheet: a tab for everyone and
+ * Who reacted to a part of a message (see `ReactionPart`), like Discord's sheet: a tab for everyone and
  * one per emoji with its count, and the people under the selected tab, each
  * with what they reacted with. It draws its own title, since a native
  * header on a sheet floats over the tabs.
@@ -155,10 +157,12 @@ function Title() {
 export function ReactionsSheet({
   conversationId,
   messageId,
+  part,
   emoji,
 }: {
   conversationId: string;
   messageId: string;
+  part: ReactionPart;
   /** The tab to open on, such as the reaction that was held. */
   emoji?: string;
 }) {
@@ -172,7 +176,9 @@ export function ReactionsSheet({
     }),
   );
   const [picked, setPicked] = useState(emoji ?? ALL);
-  const reactors = byPerson(data ?? []);
+  const reactors = byPerson(
+    (data ?? []).filter((reaction) => reactionPart(reaction) === part),
+  );
   const groups = byEmoji(reactors);
   // With one emoji, everyone already used it: no tabs, just the people.
   const tabs = groups.length > 1;

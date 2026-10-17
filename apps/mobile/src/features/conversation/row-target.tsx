@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
+import type { GestureResponderEvent } from "react-native";
 import { useId } from "react";
 import { Pressable } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
+import type { MenuPress } from "./row-touch";
 import type { Message } from "./types";
 import { impact } from "~/lib/native-extras";
 import { wasLinkTap } from "./link-tap";
@@ -24,13 +26,16 @@ const DOUBLE_TAP_MS = 200;
 /** A tap moving further than this is a drag (to reveal times), not a tap. */
 const TAP_SLOP = 10;
 
-/** Opens the menu over what the row lifts (see `useRowTarget`). */
-function openRowMenu(row: string) {
+/**
+ * Opens the menu over what the row lifts at the touch's height `y` on
+ * screen (see `useRowTarget`).
+ */
+function openRowMenu(row: string, y: number) {
   const target = rowTarget(row);
   if (target === undefined) return;
   impact();
   target.release();
-  target.lift();
+  target.lift(y);
 }
 
 /**
@@ -64,11 +69,11 @@ export function MessageRowTarget({
     .maxDelay(DOUBLE_TAP_MS)
     .runOnJS(true)
     .onBegin(rowGestureBegan)
-    .onEnd((_, success) => {
+    .onEnd((event, success) => {
       const part = touchedPart();
       if (!success || part === null) return;
       if (part !== "row") part.openMenu();
-      else if (holdable) openRowMenu(row);
+      else if (holdable) openRowMenu(row, event.absoluteY);
     });
   const singleTap = Gesture.Tap()
     // A hold opens the menu instead.
@@ -83,15 +88,15 @@ export function MessageRowTarget({
     });
   const press = {
     delayLongPress: LONG_PRESS_MS,
-    onLongPress: () => {
-      if (holdable) openRowMenu(row);
+    onLongPress: (event: GestureResponderEvent) => {
+      if (holdable) openRowMenu(row, event.nativeEvent.pageY);
     },
-    onPressIn: () => {
+    onPressIn: (event: GestureResponderEvent) => {
       reportTouch("row");
-      if (holdable) rowTarget(row)?.pressIn();
+      if (holdable) rowTarget(row)?.pressIn(event.nativeEvent.pageY);
     },
     onPressOut: () => rowTarget(row)?.release(),
-  };
+  } satisfies MenuPress;
   return (
     <RowIdContext value={row}>
       <GestureDetector gesture={Gesture.Exclusive(doubleTap, singleTap)}>

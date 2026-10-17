@@ -1,7 +1,6 @@
-import type { ComponentProps, ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { View as NativeView } from "react-native";
-import type { AnimatedRef } from "react-native-reanimated";
-import { createContext, use, useState } from "react";
+import { useState } from "react";
 import { View } from "react-native";
 import Animated, {
   LayoutAnimationConfig,
@@ -9,21 +8,22 @@ import Animated, {
 } from "react-native-reanimated";
 
 import type { PreviewShape } from "./glass-message-menu";
+import type { Parts } from "./reaction-parts";
 import type { Message } from "./types";
+import type { ReactionPart } from "~/features/messaging/reactions";
 import { cn } from "~/lib/cn";
-import { impact, selectionTick } from "~/lib/native-extras";
 import { rowOrder } from "./build-rows";
-import { GrowingSpace, useOwnLift } from "./grow";
+import { GrowingSpace } from "./grow";
 import {
   MessageTargetProvider,
-  useIsLifted,
   useLiftMessage,
-  useMessageActions,
   useSqueeze,
 } from "./message-actions";
-import { ChipRow } from "./reaction-chips";
+import { PartChips } from "./part-chips";
+import { PartsProvider, usePartReactions } from "./reaction-parts";
+import { Place } from "./row-place";
 import { useRowTarget } from "./row-touch";
-import { NAME_CLEARANCE, TAPBACK_SPACE, Tapbacks } from "./tapbacks";
+import { NAME_CLEARANCE, TAPBACK_SPACE } from "./tapbacks";
 
 /**
  * The message's reactions, keeping the last loaded ones on screen while
@@ -37,128 +37,6 @@ function useShownReactions(message: Message) {
   return message.reactions ?? lastLoaded ?? [];
 }
 
-/**
- * Whether the message was on screen without reactions: then its first one
- * arrives while you watch, and makes room for itself smoothly. A message
- * that already has reactions when it appears (opening a conversation,
- * scrolling to it) shows them in place.
- */
-function useSeenWithout(reactions: readonly unknown[], loaded: boolean) {
-  const [seenWithout, setSeenWithout] = useState(
-    loaded && reactions.length === 0,
-  );
-  if (!seenWithout && loaded && reactions.length === 0) setSeenWithout(true);
-  return seenWithout;
-}
-
-/** How a row's reactions make room for themselves (see `GrowingSpace`). */
-interface Room {
-  /** The row's order (see `rowOrder`). */
-  order: number;
-  /** Whether they arrived while the conversation was on screen. */
-  animate: boolean;
-  /** The message, measured to tell whether it's on screen. */
-  measured: AnimatedRef<NativeView>;
-}
-
-/**
- * Space above a bubble for its tapbacks, opened as the first arrives:
- * what they need beyond `roomAbove`, the space already there (the sender's
- * name), which they rise beside.
- */
-function TapbackSpace({
-  open,
-  roomAbove,
-  room,
-}: {
-  open: boolean;
-  roomAbove: number;
-  room: Room;
-}) {
-  return (
-    <GrowingSpace
-      height={open ? Math.max(0, TAPBACK_SPACE - roomAbove) : 0}
-      {...room}
-    />
-  );
-}
-
-/** Stacked rows' chips, under the message. */
-function Chips({
-  open,
-  room,
-  ...row
-}: ComponentProps<typeof ChipRow> & { open: boolean; room: Room }) {
-  const [used, setUsed] = useState(open);
-  if (open && !used) setUsed(true);
-  // Already there when the row appeared: laid out with it.
-  if (!room.animate) return open ? <ChipRow {...row} /> : null;
-  return used ? <GrowingChips open={open} room={room} {...row} /> : null;
-}
-
-/**
- * Chips that arrive while you watch, in space that opens to fit them. The
- * row moves up as it opens (see `useRowLift`), and the chips stay put:
- * they're drawn where they end up, and pop in.
- */
-function GrowingChips({
-  open,
-  room,
-  ...row
-}: ComponentProps<typeof ChipRow> & { open: boolean; room: Room }) {
-  const [natural, setNatural] = useState(0);
-  const stay = useOwnLift(room.order, -1);
-  return (
-    <View>
-      <GrowingSpace height={open ? natural : 0} {...room} />
-      <Animated.View
-        // Laid out on its own, as wide as the row, so it has its full
-        // height whatever the space's.
-        className="absolute inset-x-0 top-0"
-        style={stay}
-        onLayout={(event) => setNatural(event.nativeEvent.layout.height)}
-      >
-        {open && <ChipRow {...row} />}
-      </Animated.View>
-    </View>
-  );
-}
-
-/** Where a message's top part reports its width, so tapbacks sit on it. */
-const TopPartContext = createContext<((width: number) => void) | null>(null);
-
-/**
- * Wraps a message's top part (its first photo, its text, or its first link
- * card): tapbacks sit on that part's corner, not on the widest part's.
- */
-export function TopPart({ children }: { children: ReactNode }) {
-  const report = use(TopPartContext);
-  if (report === null) return children;
-  return (
-    <View onLayout={(event) => report(event.nativeEvent.layout.width)}>
-      {children}
-    </View>
-  );
-}
-
-/**
- * Where tapbacks go: on the top part's corner (`inset` in from the
- * message's edge), and beside the sender's name unless they'd cover it.
- */
-function useTapbackPlacement(nameEnd: number | undefined) {
-  // Where the tapbacks' left edge sits, once laid out.
-  const [left, setLeft] = useState<number>();
-  const [widths, setWidths] = useState({ body: 0, top: 0 });
-  return {
-    besideName: clearsName(nameEnd, left),
-    inset: Math.max(0, widths.body - widths.top),
-    onBodyWidth: (body: number) =>
-      setWidths((current) => ({ ...current, body })),
-    onTopWidth: (top: number) => setWidths((current) => ({ ...current, top })),
-    onPlaced: setLeft,
-  };
-}
-
 /** Whether tapbacks starting at `left` clear a name ending at `nameEnd`. */
 function clearsName(nameEnd: number | undefined, left: number | undefined) {
   if (nameEnd === undefined || left === undefined) return true;
@@ -166,14 +44,15 @@ function clearsName(nameEnd: number | undefined, left: number | undefined) {
 }
 
 /**
- * The whole message (see `useLiftMessage`): `openReactions` opens who
- * reacted to it, as its tapbacks do. When `fromRow`, a hold or double tap
- * beside its parts lifts it with its menu, squeezing it (`squeeze`, for
- * its parts) while held.
+ * The whole message (see `useLiftMessage`), which a hold or double tap
+ * beside its parts lifts with its menu when `fromRow`, squeezing it
+ * (`squeeze`, for its parts) while held. Beside a message of several
+ * parts, the one nearest the touch lifts instead, so a reaction picked
+ * there goes to the part you meant.
  */
 function useWholeMessage(
   message: Parameters<typeof useLiftMessage>[0],
-  fromRow: boolean,
+  { fromRow, severalParts }: { fromRow: boolean; severalParts: boolean },
 ) {
   const liftWhole = useLiftMessage(message);
   const squeeze = useSqueeze();
@@ -185,40 +64,97 @@ function useWholeMessage(
           release: squeeze.release,
         }
       : undefined,
+    severalParts ? "nearest" : undefined,
   );
-  return {
-    openReactions: () => {
-      selectionTick();
-      liftWhole("reactions");
-    },
-    squeeze: squeeze.style,
-  };
+  return squeeze.style;
 }
 
 /**
- * A message whose parts open the glass overlay on a long press or a double
- * tap (each wraps itself in `MenuTargetView` or uses `useMenuTarget`). Its reactions show as iMessage tapbacks over the top
- * corner (`tapbacks`, for bubbles), which show who reacted when tapped, or
- * as Slack's chips underneath (`chips`, for stacked rows), which add or
- * take back that reaction when tapped and show who reacted with it when
- * held.
+ * Space above a bubble for its top part's tapbacks, opened as the first
+ * arrives: what they need beyond `roomAbove`, the space already there
+ * (the sender's name), which they rise beside unless they'd cover it.
  */
-export function InteractiveMessage({
-  message,
-  align,
-  shape,
-  reactionStyle,
+function TapbackSpace({
+  parts,
   roomAbove = 0,
-  tapbacksClearOf,
-  liftedFromRow,
-  children,
+  clearOf,
+  left,
 }: {
-  message: Message;
+  parts: Parts;
+  roomAbove?: number;
+  /** Where the name above ends. */
+  clearOf?: number;
+  /** Where the tapbacks' left edge sits, once laid out. */
+  left?: number;
+}) {
+  const { animate, reactions } = usePartReactions(parts, parts.top);
+  const room = clearsName(clearOf, left) ? roomAbove : 0;
+  const height = reactions.length > 0 ? Math.max(0, TAPBACK_SPACE - room) : 0;
+  return (
+    <GrowingSpace
+      height={height}
+      order={parts.order}
+      place={0}
+      animate={animate}
+      measured={parts.measured}
+    />
+  );
+}
+
+/** Stacked rows' last part's chips, under the whole message. */
+function EndChips({ parts, part }: { parts: Parts; part: ReactionPart }) {
+  const { animate, reactions } = usePartReactions(parts, part);
+  return (
+    <PartChips
+      messageId={parts.message.id}
+      part={part}
+      reactions={reactions}
+      align={parts.align}
+      room={{
+        animate,
+        measured: parts.measured,
+        order: parts.order,
+        place: Place.bottom,
+      }}
+    />
+  );
+}
+
+/** How a message's parts show their reactions (see `InteractiveMessage`). */
+interface Layout {
   /** Which side the message sits on. */
   align: "end" | "start";
   /** How its text lifts. */
   shape: PreviewShape;
   reactionStyle: "chips" | "tapbacks";
+  /** The part on top, whose tapbacks rise above the message. */
+  top?: ReactionPart;
+  /** The part whose chips go under everything, footers and all. */
+  chipsAtEnd?: ReactionPart | null;
+  /**
+   * Whether room for reactions can open between its parts (a part's
+   * tapbacks above it, or chips under it), not just above or below it.
+   */
+  inner?: boolean;
+}
+
+/**
+ * A message whose parts open the glass overlay on a long press or a double
+ * tap (each wraps itself in `MenuTargetView` or uses `useMenuTarget`). Each part that takes reactions (see `Reactable`) shows
+ * its own: as iMessage tapbacks over its top corner (`tapbacks`, for
+ * bubbles), which show who reacted when tapped, or as Slack's chips under
+ * it (`chips`, for stacked rows), which add or take back that reaction
+ * when tapped and show who reacted with it when held.
+ */
+export function InteractiveMessage({
+  message,
+  roomAbove,
+  tapbacksClearOf,
+  liftedFromRow,
+  children,
+  ...layout
+}: Layout & {
+  message: Message;
   /** Space already above the message (the sender's name) tapbacks can use. */
   roomAbove?: number;
   /**
@@ -230,22 +166,36 @@ export function InteractiveMessage({
   liftedFromRow?: boolean;
   children: ReactNode;
 }) {
-  const { toggleReaction, viewReactions } = useMessageActions();
+  const { align, shape, reactionStyle, chipsAtEnd = null } = layout;
   const reactions = useShownReactions(message);
-  const grows = useSeenWithout(reactions, message.reactions !== undefined);
-  const lifted = useIsLifted(message.id);
   const body = useAnimatedRef<NativeView>();
-  const whole = useWholeMessage(
-    { align, measured: body, message, preview: children, shape },
-    liftedFromRow === true,
+  const squeeze = useWholeMessage(
+    {
+      align,
+      measured: body,
+      message,
+      part: layout.top ?? "message",
+      preview: children,
+      shape,
+    },
+    { fromRow: liftedFromRow === true, severalParts: layout.inner === true },
   );
-  const has = reactions.length > 0;
-  const placement = useTapbackPlacement(tapbacksClearOf);
-  const room = {
-    animate: grows,
+  // Where the top part's tapbacks' left edge sits, once laid out.
+  const [topLeft, setTopLeft] = useState<number>();
+  const parts = {
+    align,
+    chipsAtEnd,
+    inner: layout.inner ?? false,
+    loaded: message.reactions !== undefined,
     measured: body,
+    message,
+    onTopPlaced: setTopLeft,
     order: rowOrder(message.sentAt),
-  } satisfies Room;
+    reactionStyle,
+    reactions,
+    shape,
+    top: layout.top ?? "message",
+  } satisfies Parts;
   return (
     // Reactions already there when the row mounts don't pop in on scroll;
     // only one added while the conversation is open does.
@@ -259,19 +209,15 @@ export function InteractiveMessage({
       >
         {reactionStyle === "tapbacks" && (
           <TapbackSpace
-            open={has}
-            roomAbove={placement.besideName ? roomAbove : 0}
-            room={room}
+            parts={parts}
+            roomAbove={roomAbove}
+            clearOf={tapbacksClearOf}
+            left={topLeft}
           />
         )}
-        <View
-          ref={body}
-          onLayout={(event) =>
-            placement.onBodyWidth(event.nativeEvent.layout.width)
-          }
-        >
-          <Animated.View style={whole.squeeze}>
-            <TopPartContext value={placement.onTopWidth}>
+        <View ref={body}>
+          <Animated.View style={squeeze}>
+            <PartsProvider parts={parts}>
               <MessageTargetProvider
                 message={message}
                 align={align}
@@ -279,35 +225,11 @@ export function InteractiveMessage({
               >
                 {children}
               </MessageTargetProvider>
-            </TopPartContext>
+            </PartsProvider>
           </Animated.View>
-          {/* After the bubble, so they draw over it on every platform. */}
-          {reactionStyle === "tapbacks" && has && (
-            <Tapbacks
-              reactions={reactions}
-              align={align}
-              hidden={lifted}
-              inset={placement.inset}
-              onPlaced={placement.onPlaced}
-              onPress={whole.openReactions}
-            />
-          )}
         </View>
-        {reactionStyle === "chips" && (
-          <Chips
-            open={has}
-            room={room}
-            reactions={reactions}
-            align={align}
-            onToggle={(emoji) => {
-              selectionTick();
-              toggleReaction(message.id, emoji);
-            }}
-            onHold={(emoji) => {
-              impact();
-              viewReactions(message.id, emoji);
-            }}
-          />
+        {reactionStyle === "chips" && chipsAtEnd !== null && (
+          <EndChips parts={parts} part={chipsAtEnd} />
         )}
       </View>
     </LayoutAnimationConfig>

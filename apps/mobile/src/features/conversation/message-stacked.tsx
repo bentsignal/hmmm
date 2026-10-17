@@ -8,17 +8,15 @@ import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
 import { cn } from "~/lib/cn";
 import { formatTime } from "~/lib/format";
-import { attachmentKey } from "./attachment-key";
-import { AttachmentView } from "./attachment-view";
 import { AuthorLink } from "./author-link";
-import { LinkCards } from "./link-preview-card";
-import { LinkedText } from "./linked-text";
 import { useMessageActions, useSqueeze } from "./message-actions";
+import { lastPart, partCount } from "./message-parts";
 import { InteractiveMessage } from "./message-reactions";
 import { NotSent, SendingFade, SENT_FADE_MS } from "./message-status";
-import { linkCardsOf, visibleBody } from "./message-text";
-import { QuoteLine, RepliesFooter, ThreadFooter } from "./reply-card";
+import { StillChips } from "./part-chips";
+import { QuoteLine } from "./reply-card";
 import { useRowTarget } from "./row-touch";
+import { StackedFooter, StackedParts } from "./stacked-parts";
 
 const AVATAR_COLUMN = 36;
 
@@ -114,34 +112,10 @@ function NameLine({ message, author }: { message: Message; author: Author }) {
   );
 }
 
-/** The message itself: its text, photos and files, and link cards. */
-function Content({ message }: { message: Message }) {
-  const body = visibleBody(message);
-  const cards = linkCardsOf(message);
-  return (
-    <View className="items-start gap-1">
-      {body !== undefined && (
-        <LinkedText
-          text={body}
-          mentions={message.mentions}
-          className="text-body text-foreground"
-        />
-      )}
-      {message.attachments.map((attachment) => (
-        <AttachmentView
-          key={attachmentKey(attachment)}
-          attachment={attachment}
-          sending={message.status === "sending"}
-        />
-      ))}
-      {cards.length > 0 && <LinkCards cards={cards} />}
-    </View>
-  );
-}
-
 /**
  * What a hold or double tap on the row lifts: the photo and name, and the
- * message, across the row, laid out as in the list.
+ * message, across the row, laid out as in the list, with the chips under
+ * its parts (not the last one's, under its thread's count).
  */
 function Lifted({
   message,
@@ -157,7 +131,12 @@ function Lifted({
       <AvatarSlot message={message} author={author} startsGroup={startsGroup} />
       <View className="flex-1 gap-1">
         {startsGroup && <NameLine message={message} author={author} />}
-        <Content message={message} />
+        <StillChips
+          reactions={message.reactions ?? []}
+          chipsAtEnd={lastPart(message)}
+        >
+          <StackedParts message={message} />
+        </StillChips>
       </View>
     </View>
   );
@@ -167,7 +146,10 @@ function Lifted({
  * Lifts the row from the top of its photo and name to the bottom of the
  * message (not its thread's count or reactions) with its menu when it's
  * held or double tapped anywhere but on a photo or link card, which lift
- * themselves, and squeezes it while held. Returns the squeeze's style.
+ * themselves, and squeezes it while held. Reactions picked there go to the
+ * message (its text). A message of several parts lifts whole only from
+ * its photo and name: its text lifts on its own, and beside a part, that
+ * part lifts. Returns the squeeze's style.
  */
 function useLiftRow({
   message,
@@ -197,6 +179,7 @@ function useLiftRow({
           align: "start",
           message,
           mode: "actions",
+          part: "message",
           preview: (
             <Lifted
               message={message}
@@ -210,11 +193,10 @@ function useLiftRow({
       });
     });
   }
-  useRowTarget({
-    lift,
-    pressIn: squeeze.pressIn,
-    release: squeeze.release,
-  });
+  useRowTarget(
+    { lift, pressIn: squeeze.pressIn, release: squeeze.release },
+    partCount(message) > 1 ? "across" : undefined,
+  );
   return squeeze.style;
 }
 
@@ -235,6 +217,7 @@ function StackedRow({
   const row = useRef<View>(null);
   const content = useRef<View>(null);
   const squeeze = useLiftRow({ author, content, message, row, startsGroup });
+  const chipsAtEnd = lastPart(message);
   return (
     <View
       className={cn(
@@ -256,19 +239,16 @@ function StackedRow({
               align="start"
               shape="card"
               reactionStyle="chips"
+              // The last part's reactions go under the thread's count.
+              chipsAtEnd={chipsAtEnd}
+              inner={partCount(message) > 1}
             >
               <View ref={content}>
                 <SendingFade status={message.status}>
-                  <Content message={message} />
+                  <StackedParts message={message} />
                 </SendingFade>
               </View>
-              {/* Reactions go under the thread's count. */}
-              {card !== undefined && (
-                <ThreadFooter message={message} card={card} />
-              )}
-              {replies !== undefined && (
-                <RepliesFooter message={message} replies={replies} />
-              )}
+              <StackedFooter message={message} card={card} replies={replies} />
             </InteractiveMessage>
             <NotSent message={message} />
           </View>

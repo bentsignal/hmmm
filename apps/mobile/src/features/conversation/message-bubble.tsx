@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { useState } from "react";
 import { Text, View } from "react-native";
 import Animated from "react-native-reanimated";
@@ -7,28 +6,28 @@ import { useCSSVariable } from "uniwind";
 import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
+import { attachmentPart } from "~/features/messaging/reactions";
 import { cn } from "~/lib/cn";
 import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
 import { AuthorLink } from "./author-link";
+import { MovingQuote, MovingReplyCurve } from "./bubble-reply";
 import { BUBBLE_RADIUS, BubbleTail, TAIL_DROP } from "./bubble-shape";
+import { bubbleTopPart, topReacted } from "./bubble-top";
 import { rowOrder } from "./build-rows";
-import { useOwnLift } from "./grow";
-import { LinkCards } from "./link-preview-card";
+import { usePieceLift } from "./grow";
+import { LinkCardView } from "./link-preview-card";
 import { LinkedText } from "./linked-text";
 import { MenuTargetView } from "./message-actions";
-import { InteractiveMessage, TopPart } from "./message-reactions";
+import { linkPart, partCount } from "./message-parts";
+import { InteractiveMessage } from "./message-reactions";
 import { NotSent, SendingFade } from "./message-status";
 import { linkCardsOf, visibleBody } from "./message-text";
-import {
-  QUOTE_GAP,
-  QuoteBubble,
-  RepliesFooter,
-  ReplyCurve,
-  ThreadFooter,
-} from "./reply-card";
+import { Reactable } from "./reaction-parts";
+import { RepliesFooter, ThreadFooter } from "./reply-card";
 import { replyIndent } from "./reply-parts";
 import { RevealedTime, SlideWithReveal } from "./reveal";
+import { Place } from "./row-place";
 import { TAPBACK_SPACE } from "./tapbacks";
 
 /** Width of the avatar column beside incoming bubbles in group chats. */
@@ -85,17 +84,6 @@ function Body({
   );
 }
 
-/** `TopPart` around the message's first part only. */
-function TopPartIf({ top, children }: { top: boolean; children: ReactNode }) {
-  return top ? <TopPart>{children}</TopPart> : children;
-}
-
-/** The space between a reply's quote and its bubble. */
-function quoteGap(message: Message) {
-  const reacted = (message.reactions?.length ?? 0) > 0;
-  return QUOTE_GAP + (reacted ? TAPBACK_SPACE : 0);
-}
-
 function Content({
   message,
   isOwn,
@@ -110,6 +98,8 @@ function Content({
 }) {
   const body = visibleBody(message);
   const cards = linkCardsOf(message);
+  // Its parts top to bottom: the attachments, then the text.
+  const textPlace = message.attachments.length;
   return (
     <SendingFade status={message.status}>
       {/* 4pt between a message's parts, the same as between bubbles. */}
@@ -117,17 +107,21 @@ function Content({
         className={cn("gap-1", isOwn ? "items-end" : "items-start")}
         style={quoted ? replyIndent(isOwn) : undefined}
       >
-        {quoted && <ReplyCurve isOwn={isOwn} above={quoteGap(message)} />}
+        {quoted && <MovingReplyCurve message={message} isOwn={isOwn} />}
         {message.attachments.map((attachment, index) => (
-          <TopPartIf key={attachmentKey(attachment)} top={index === 0}>
+          <Reactable
+            key={attachmentKey(attachment)}
+            part={attachmentPart(message, index)}
+            place={index}
+          >
             <AttachmentView
               attachment={attachment}
               sending={message.status === "sending"}
             />
-          </TopPartIf>
+          </Reactable>
         ))}
         {body !== undefined && (
-          <TopPartIf top={message.attachments.length === 0}>
+          <Reactable part="message" place={textPlace}>
             <MenuTargetView>
               <Body
                 text={body}
@@ -136,15 +130,18 @@ function Content({
                 tail={endsGroup && cards.length === 0}
               />
             </MenuTargetView>
-          </TopPartIf>
+          </Reactable>
         )}
-        {cards.length > 0 && (
-          <TopPartIf
-            top={message.attachments.length === 0 && body === undefined}
+        {/* Under the text, in the order of its links. */}
+        {cards.map((card, index) => (
+          <Reactable
+            key={card.link}
+            part={linkPart(message, index)}
+            place={textPlace + 1 + index}
           >
-            <LinkCards cards={cards} />
-          </TopPartIf>
-        )}
+            <LinkCardView card={card} />
+          </Reactable>
+        ))}
       </View>
     </SendingFade>
   );
@@ -187,7 +184,7 @@ function SenderName({
   /** Where the name's text ends, inside its padding. */
   onEnd: (end: number) => void;
 }) {
-  const lift = useOwnLift(order);
+  const lift = usePieceLift(order, Place.top);
   return (
     <Animated.View style={lift}>
       <AuthorLink address={address} name={name}>
@@ -245,16 +242,14 @@ function BubbleColumn({
           onEnd={setNameEnd}
         />
       )}
-      {card !== undefined && (
-        <View style={{ marginBottom: QUOTE_GAP }}>
-          <QuoteBubble message={message} card={card} />
-        </View>
-      )}
+      {card !== undefined && <MovingQuote message={message} card={card} />}
       <InteractiveMessage
         message={message}
         align={isOwn ? "end" : "start"}
         shape="plain"
         reactionStyle="tapbacks"
+        top={bubbleTopPart(message)}
+        inner={partCount(message) > 1}
         roomAbove={besideName ? NAME_HEIGHT : 0}
         tapbacksClearOf={besideName ? nameEnd : undefined}
         liftedFromRow
@@ -282,8 +277,7 @@ function BubbleColumn({
 /** What sits above the bubble: the sender's name, and the tapbacks. */
 function aboveBubble(message: Message, named: boolean) {
   const name = named ? NAME_HEIGHT : 0;
-  const reacted = (message.reactions?.length ?? 0) > 0;
-  return Math.max(name, reacted ? TAPBACK_SPACE : 0);
+  return Math.max(name, topReacted(message) ? TAPBACK_SPACE : 0);
 }
 
 /**

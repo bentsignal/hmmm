@@ -11,6 +11,7 @@ import { Emoji } from "~/components/emoji";
 import { GlassSurface } from "~/components/glass-surface";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { QUICK_REACTIONS } from "~/features/messaging/reactions";
+import { targetReactions } from "./menu-actions";
 import { TITLE_LINE_HEIGHT, TITLE_LINES } from "./menu-title";
 
 const EMOJI = 44;
@@ -127,7 +128,7 @@ export function ReactionBar({
           style={[{ paddingHorizontal: BAR_PADDING }, content]}
         >
           {QUICK_REACTIONS.map((emoji) => {
-            const reaction = target.message.reactions?.find(
+            const reaction = targetReactions(target).find(
               (item) => item.emoji === emoji,
             );
             return (

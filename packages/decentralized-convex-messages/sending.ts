@@ -8,6 +8,7 @@ import { previewedUrls } from "./links.ts";
 import { recordMentions, validMentions } from "./mentions.ts";
 import { fail, requireAccess, toMessage, upsertMember } from "./model.ts";
 import { startFetches } from "./previews.ts";
+import { MAX_ATTACHMENTS } from "./protocol.ts";
 import { addReply, replyTo } from "./threads.ts";
 
 // Sending a message, or a reply in a thread, and who it @mentions.
@@ -15,7 +16,6 @@ import { addReply, replyTo } from "./threads.ts";
 type Args = OperationArgs<(typeof messagesProtocol)["mutations"]["send"]>;
 
 const MAX_BODY_LENGTH = 4_000;
-const MAX_ATTACHMENTS = 10;
 
 /**
  * A new message's link cards: they start out from what was prefetched while

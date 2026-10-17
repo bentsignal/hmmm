@@ -1,8 +1,14 @@
 import type { MenuAction } from "./glass-menu-parts";
 import type { MenuTarget } from "./glass-message-menu";
+import { reactionsOn } from "~/features/messaging/reactions";
 import { canCopy, copyText, selectionTick } from "~/lib/native-extras";
 import { linkActions } from "./link-actions";
 import { canSaveToPhotos, saveToPhotos } from "./save-media";
+
+/** The reactions on the part that was held. */
+export function targetReactions(target: MenuTarget) {
+  return reactionsOn(target.message.reactions, target.part);
+}
 
 /** Reply, in a conversation (not a thread). */
 function replyAction(
@@ -27,7 +33,7 @@ function replyAction(
  * links and all), and View Reactions once anyone has reacted.
  */
 export function menuActions(
-  { attachment, link, message }: MenuTarget,
+  target: MenuTarget,
   {
     close,
     onReply,
@@ -39,6 +45,7 @@ export function menuActions(
     onViewReactions: () => void;
   },
 ) {
+  const { attachment, link, message } = target;
   const { body } = message;
   const save =
     attachment !== undefined && canSaveToPhotos(attachment)
@@ -70,7 +77,7 @@ export function menuActions(
         ]
       : [];
   const viewReactions =
-    (message.reactions?.length ?? 0) > 0
+    targetReactions(target).length > 0
       ? [
           {
             icon: { android: "groups", ios: "person.2" },
