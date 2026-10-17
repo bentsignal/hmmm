@@ -1,11 +1,12 @@
+import type { SharedValue } from "react-native-reanimated";
 import { Pressable, View } from "react-native";
 import Animated, {
+  Easing,
   Keyframe,
   useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
-  ZoomOut,
 } from "react-native-reanimated";
 
 import type { ReactionSummary } from "~/features/messaging/reactions";
@@ -39,7 +40,20 @@ const POP_IN = new Keyframe({
   60: { opacity: 1, transform: [{ scale: 1.12 }] },
   100: { transform: [{ scale: 1 }] },
 }).duration(320);
-const POP_OUT = ZoomOut.duration(160);
+/**
+ * The pop in reverse: a small swell, then shrinking as it fades, so it
+ * never ends as a dot. It starts fully shown even if it went while the
+ * message was lifted, so you see the one you took back leave.
+ */
+const POP_OUT = new Keyframe({
+  0: { opacity: 1, transform: [{ scale: 1 }] },
+  30: { opacity: 1, transform: [{ scale: 1.08 }] },
+  100: {
+    easing: Easing.in(Easing.cubic),
+    opacity: 0,
+    transform: [{ scale: 0.3 }],
+  },
+}).duration(260);
 
 /** One person's reaction, newest last. */
 interface Tapback {
@@ -70,7 +84,17 @@ function tapbacksOf(reactions: readonly ReactionSummary[], self: string) {
  * with the emoji in the middle, and a fine ring the page's color that keeps
  * it apart from the bubble and the tapbacks it overlaps.
  */
-function TapbackBubble({ tapback }: { tapback: Tapback }) {
+function TapbackBubble({
+  tapback,
+  fade,
+}: {
+  tapback: Tapback;
+  /** How shown it is while it's here (see `useHiddenFade`). */
+  fade: SharedValue<number>;
+}) {
+  // On the bubble, not around them all: one that leaves takes its own
+  // opacity with it, where a faded container would hide its way out.
+  const style = useAnimatedStyle(() => ({ opacity: fade.get() }));
   return (
     <Animated.View
       entering={POP_IN}
@@ -79,7 +103,7 @@ function TapbackBubble({ tapback }: { tapback: Tapback }) {
         "border-background items-center justify-center rounded-full",
         tapback.mine ? "bg-bubble-outgoing" : "bg-bubble-incoming",
       )}
-      style={{ borderWidth: RING, height: SIZE, width: SIZE }}
+      style={[{ borderWidth: RING, height: SIZE, width: SIZE }, style]}
     >
       <Emoji emoji={tapback.emoji} size={EMOJI_SIZE} />
     </Animated.View>
@@ -121,15 +145,14 @@ export function Tapbacks({
     .join(", ");
   const fade = useHiddenFade(hidden);
   return (
-    <Animated.View
+    <View
       className="absolute"
       onLayout={(event) => onPlaced?.(event.nativeEvent.layout.x)}
-      style={[
+      style={
         incoming
           ? { right: CENTER_INSET - SIZE / 2 + inset, top: -TAPBACK_SPACE }
-          : { left: CENTER_INSET - SIZE / 2 + inset, top: -TAPBACK_SPACE },
-        fade,
-      ]}
+          : { left: CENTER_INSET - SIZE / 2 + inset, top: -TAPBACK_SPACE }
+      }
     >
       <Pressable
         accessibilityRole="button"
@@ -149,11 +172,11 @@ export function Tapbacks({
                 : { marginRight: index === 0 ? 0 : STACK_OFFSET - SIZE }
             }
           >
-            <TapbackBubble tapback={tapback} />
+            <TapbackBubble tapback={tapback} fade={fade} />
           </View>
         ))}
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -174,5 +197,5 @@ function useHiddenFade(hidden: boolean) {
     },
     [hidden],
   );
-  return useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return opacity;
 }
