@@ -91,7 +91,7 @@ function NameLine({ message, author }: { message: Message; author: Author }) {
   return (
     <View className="flex-row items-baseline gap-2">
       <AuthorLink address={message.authorId} name={author.displayName}>
-        <Text className="text-subhead text-foreground font-semibold">
+        <Text className="text-subhead text-foreground font-bold">
           {author.displayName}
         </Text>
       </AuthorLink>
