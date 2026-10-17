@@ -7,7 +7,8 @@
     "./api": "./convex/_generated/api.js",
     "./pds": "./pds.ts",
     "./dataModel": "./convex/_generated/dataModel.d.ts",
-    "./upload-limits": "./upload-limits.ts"
+    "./upload-limits": "./upload-limits.ts",
+    "./breaking-version": "./breaking-version.ts"
   },
   "scripts": {
     "clean": "git clean -xdf .cache .turbo node_modules",

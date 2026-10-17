@@ -17,8 +17,11 @@ import {
 } from "~/features/session/session-provider";
 import {
   installAppUpdates,
+  noteTouch,
   UpdateNavigation,
 } from "~/features/updates/app-updates";
+import { UpdateCover } from "~/features/updates/update-cover";
+import { WatchBreakingVersion } from "~/features/updates/watch-breaking-version";
 
 void SplashScreen.preventAutoHideAsync();
 // The splash is a plain background, so the app fades in over it.
@@ -61,14 +64,16 @@ function Navigator() {
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }} onTouchStart={noteTouch}>
       <ThemeProvider value={useNavigationTheme()}>
         <KeyboardProvider>
           <QueryClientProvider client={queryClient}>
             <SessionProvider fallback={null}>
               <UpdateNavigation />
+              <WatchBreakingVersion />
               <Navigator />
             </SessionProvider>
+            <UpdateCover />
           </QueryClientProvider>
         </KeyboardProvider>
       </ThemeProvider>
