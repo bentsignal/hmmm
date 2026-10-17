@@ -122,7 +122,8 @@ async function fetchTweet(id: string): Promise<LinkPreview | null> {
     ? null
     : {
         ...preview,
-        description: clean(preview.description),
+        // Already tidy, line breaks and all (see `tweetText`).
+        description: preview.description?.slice(0, MAX_TEXT_LENGTH),
         title: clean(preview.title),
       };
 }
