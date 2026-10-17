@@ -1,20 +1,10 @@
-import type { Editing, ReplyingTo } from "./reply-bar";
+import type { ReplyingTo } from "./reply-bar";
 import type { EditSession } from "./use-editing";
 import type { StagedFile } from "~/features/messaging/attachments";
 import { EditBar, ReplyBar } from "./reply-bar";
 import { StagedAttachments } from "./staged-attachments";
 
-// The top of the message field, over its text, and what it takes to send.
-
-/** Whether there's something to send, or an edit to save. */
-export function canSendNow(
-  draft: string,
-  staged: readonly StagedFile[],
-  editing: Editing | undefined,
-) {
-  if (draft.trim().length > 0) return true;
-  return editing === undefined ? staged.length > 0 : editing.canEmpty;
-}
+// The top of the message field, over its text.
 
 /**
  * What sits over the text in the field: what it's editing or replying to,

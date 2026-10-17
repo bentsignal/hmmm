@@ -6,6 +6,7 @@ import { Alert } from "react-native";
 import type { ComposerHandle } from "./composer";
 import type { Editing } from "./reply-bar";
 import type { Message } from "./types";
+import type { StagedFile } from "~/features/messaging/attachments";
 import { useAccount } from "~/features/messaging/account";
 import { useMessageEdits } from "~/features/messaging/edits";
 import { quoteOf } from "~/features/messaging/messages";
@@ -16,6 +17,16 @@ import {
   saveDraftText,
 } from "./drafts";
 import { quoteText } from "./reply-parts";
+
+/** Whether there's something to send, or an edit to save. */
+export function canSendNow(
+  draft: string,
+  staged: readonly StagedFile[],
+  editing: Editing | undefined,
+) {
+  if (draft.trim().length > 0) return true;
+  return editing === undefined ? staged.length > 0 : editing.canEmpty;
+}
 
 function sameMentions(
   left: readonly Mention[] | undefined,

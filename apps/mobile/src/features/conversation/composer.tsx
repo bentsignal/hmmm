@@ -25,8 +25,9 @@ import { cn } from "~/lib/cn";
 import { PASTE_IMAGES_NATIVE_ID, usePastedImages } from "~/lib/paste-images";
 import { AttachMenu } from "./attach-menu";
 import { readDraft, saveDraftText } from "./drafts";
-import { canSendNow, FieldTop } from "./field-top";
+import { FieldTop } from "./field-top";
 import { MentionPicker } from "./mention-picker";
+import { canSendNow } from "./use-editing";
 import { useMentions } from "./use-mentions";
 
 const StyledTextInput = withUniwind(TextInput);
