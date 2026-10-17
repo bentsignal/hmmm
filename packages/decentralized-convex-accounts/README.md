@@ -15,6 +15,13 @@ carries the Accounts protocol and dependency metadata.
 The host supplies authenticated `accountId` identity through the generic PDS
 router; Accounts does not choose or depend on an authentication provider.
 
+## Profiles on other servers
+
+A PDS keeps only its own accounts' profiles. Asked by `getProfile` for one it
+doesn't have, it answers `null` and routes the query to that account's home
+PDS, as Messages routes a conversation's members, so a client asking through
+any account still gets the profile.
+
 ## Affiliated accounts
 
 A PDS can vouch that some of its own accounts speak for it, such as its
