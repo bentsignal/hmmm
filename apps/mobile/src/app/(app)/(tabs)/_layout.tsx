@@ -2,6 +2,7 @@ import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useCSSVariable } from "uniwind";
 
 import { useActivityBadge } from "~/features/activity/activity";
+import { useHomeBadge } from "~/features/home/home-badge";
 import {
   blurNativeSearch,
   focusNativeSearch,
@@ -9,8 +10,9 @@ import {
 
 export default function TabsLayout() {
   const accent = useCSSVariable("--color-accent");
-  // Only Activity has a badge: everything you haven't seen yet. Home's
-  // rows still show their own unread dots.
+  // Home's badge counts its unread rows; Activity's, what's about you
+  // that you haven't seen yet.
+  const home = useHomeBadge();
   const activity = useActivityBadge();
   return (
     <NativeTabs tintColor={typeof accent === "string" ? accent : undefined}>
@@ -22,6 +24,9 @@ export default function TabsLayout() {
           sf={{ default: "house", selected: "house.fill" }}
           md="home"
         />
+        {home > 0 && (
+          <NativeTabs.Trigger.Badge>{String(home)}</NativeTabs.Trigger.Badge>
+        )}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="activity">
         <NativeTabs.Trigger.Label>Activity</NativeTabs.Trigger.Label>

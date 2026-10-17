@@ -1,6 +1,6 @@
 import type { Channel } from "@decentralized-convex/messages";
 import type { ListItemProps } from "@expo/ui";
-import { Row } from "@expo/ui";
+import { RNHostView, Row } from "@expo/ui";
 
 import type { RowAction } from "~/features/inbox/row-actions";
 import { ListItem } from "~/components/list-item";
@@ -51,7 +51,12 @@ export function ChannelListItem({
               tintColorClassName="accent-muted"
             />
           )}
-          <UnreadBadge count={channel.unreadCount} />
+          {/* Sized to the badge; a native row would stretch it. */}
+          {channel.unreadCount > 0 && (
+            <RNHostView matchContents>
+              <UnreadBadge count={channel.unreadCount} />
+            </RNHostView>
+          )}
         </Row>
       }
       modifiers={modifiers}

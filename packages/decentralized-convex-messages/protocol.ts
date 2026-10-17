@@ -5,18 +5,20 @@ import {
 } from "@decentralized-convex/plugin";
 import { v } from "convex/values";
 
+import { activitySighting } from "./activityShapes.ts";
 import { decentralizedConvexPackage } from "./metadata.ts";
 import { queries } from "./queries.ts";
 import {
-  activitySighting,
   alertLevel,
   attachment,
+  inboxKind,
   mention,
   message,
   notificationSettingsChange,
   spaceInviteLink,
 } from "./shapes.ts";
 
+export * from "./activityShapes.ts";
 export * from "./shapes.ts";
 
 export const messagesProtocol = definePluginProtocol({
@@ -266,10 +268,17 @@ export const messagesProtocol = definePluginProtocol({
     /**
      * Registers this device for the account's pushes. Apps that show
      * threads pass `threads`, so a push's badge counts threads' replies
-     * (older apps can't see or clear them).
+     * (older apps can't see or clear them). Apps whose Activity is about
+     * you pass `inbox`, the kinds of rows their Inbox lists, so a push's
+     * badge counts those rows with something new, plus activity about you
+     * (see `badgeCount`); they register again when it changes.
      */
     registerPushToken: defineOperation({
-      args: v.object({ threads: v.optional(v.boolean()), token: v.string() }),
+      args: v.object({
+        inbox: v.optional(v.array(inboxKind)),
+        threads: v.optional(v.boolean()),
+        token: v.string(),
+      }),
       returns: v.null(),
     }),
     unregisterPushToken: defineOperation({

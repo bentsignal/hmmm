@@ -60,7 +60,7 @@ function symbol(name: SFSymbol) {
 export function HomeMenu({ page }: { page: HomePage }) {
   const { accounts, filter } = useSession();
   const show = usePreference("inboxShow");
-  const kinds = usePreference("inboxKinds");
+  const kinds = usePreference("inboxIncludes");
   const sort = usePreference("spacesSort");
   const inboxFiltered = show !== "all" || !isDefaultInboxKinds(kinds);
   const narrowed = filter !== null || (page === "inbox" && inboxFiltered);

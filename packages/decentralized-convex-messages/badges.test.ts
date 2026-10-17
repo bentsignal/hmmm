@@ -160,3 +160,63 @@ void test("is zero with nothing waiting", async (t) => {
   at(t);
   assert.equal(await badgeCount(fakeCtx({}).ctx, ME, { threads: true }), 0);
 });
+
+void test("with an Inbox, counts its unread rows instead of conversations' activity", async (t) => {
+  at(t);
+  const { ctx } = fakeCtx({
+    conversations: [
+      conversation("direct:a", "direct"),
+      conversation("group:quiet", "group"),
+      conversation("group:muted", "group"),
+      conversation("channel:general", "channel", "space:1"),
+    ],
+    members: [
+      member("direct:a"),
+      member("group:quiet", { alerts: "mentions" }),
+      member("group:muted", { alerts: "none" }),
+    ],
+    messages: [
+      // Several new messages are one row.
+      message("direct:a", FRIEND, NOW - 2 * HOUR),
+      message("direct:a", FRIEND, NOW - HOUR),
+      // Rows that don't alert about every message keep only their dot.
+      message("group:quiet", FRIEND, NOW - HOUR),
+      message("group:muted", FRIEND, NOW - HOUR),
+      message("channel:general", FRIEND, NOW - HOUR),
+    ],
+    spaceMembers: [{ accountId: ME, role: "member", spaceId: "space:1" }],
+    spaces: [{ createdBy: FRIEND, name: "One", spaceId: "space:1" }],
+  });
+  const shows = { mentions: true, threads: true };
+  assert.equal(await badgeCount(ctx, ME, shows, ["chats", "channels"]), 2);
+  assert.equal(await badgeCount(ctx, ME, shows, ["chats"]), 1);
+  assert.equal(await badgeCount(ctx, ME, shows, []), 0);
+});
+
+void test("with threads in the Inbox, counts those with unread replies", async (t) => {
+  at(t);
+  const { ctx } = fakeCtx({
+    conversations: [conversation("group:b", "group")],
+    members: [member("group:b", { lastReadAt: NOW })],
+    messages: [
+      {
+        ...message("group:b", FRIEND, NOW - HOUR),
+        threadId: "root",
+        threadOnly: true,
+      },
+    ],
+    threadMembers: [
+      {
+        accountId: ME,
+        conversationId: "group:b",
+        lastReadAt: NOW - 2 * HOUR,
+        lastReplyAt: NOW - HOUR,
+        threadId: "root",
+      },
+    ],
+  });
+  const shows = { mentions: true, threads: true };
+  // The thread's Activity row, and with threads, its Inbox row too.
+  assert.equal(await badgeCount(ctx, ME, shows, ["chats"]), 1);
+  assert.equal(await badgeCount(ctx, ME, shows, ["chats", "threads"]), 2);
+});
