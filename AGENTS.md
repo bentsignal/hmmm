@@ -141,7 +141,11 @@ Lint enforces the React rules: the React Compiler handles memoization (no
 (`pdsQuery`/`pdsMutation`), never fetched in an effect; and `useEffect` is
 banned except with an `eslint-disable-next-line` comment saying why nothing
 else works. CI also exports the iOS bundle and labels PRs that change native
-code ("📱 Native Change"), since those need a store build to ship.
+code ("📱 Native Change"), since those need a store build to ship, and PRs
+that raise the backend's breaking version ("💥 Breaking Backend"), since
+those must ship with `--with-backend` (docs/releasing.md → Breaking backend
+changes). Every PR says "Breaking backend change: no" or "yes" in its
+release notes, and CI checks it against the file.
 
 Two more rules, also enforced by lint:
 

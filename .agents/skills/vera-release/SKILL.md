@@ -40,8 +40,11 @@ gh pr view <n> --json title,body   # for each merged PR it lists
 ```
 
 Each merged PR's description ends with a "Release notes" section (backend,
-native change, deploy needed); start from those, together with
-`docs/next-release.md`.
+native change, deploy needed, breaking backend change); start from those,
+together with `docs/next-release.md`. A merged PR labeled "💥 Breaking
+Backend" (or `plan` saying BREAKING) means this release ships with
+`--with-backend`, and open apps on older versions show "Updating Vera…" for
+a few seconds; tell Shawn so he can time it.
 
 Send Shawn:
 

@@ -58,9 +58,11 @@ Every backend change has to keep working with the app version before it,
 which open apps keep running until their update lands. If one can't (a
 removed or renamed function, a result old apps can't read), raise
 `BREAKING_VERSION` in `services/backend/breaking-version.ts` by one in the
-same PR, and say so in the PR's release notes: open older apps then update
-themselves the moment the backend deploys (`docs/releasing.md` → Breaking
-backend changes).
+same PR: open older apps then update themselves the moment the backend
+deploys (`docs/releasing.md` → Breaking backend changes). Say "Breaking
+backend change: yes" in the PR's release notes, with why it can't stay
+compatible; every other PR says "no". CI fails a PR whose line doesn't
+match the file, and labels a raise "💥 Breaking Backend".
 
 ## 3. Build it
 
@@ -215,8 +217,8 @@ gh pr create --base main --title "<title>" --body-file <body.md>
 ```
 
 Follow `.github/pull_request_template.md`: summary, evidence, how it was
-tested, the backend used, whether native code changed, and extra release
-steps.
+tested, the backend used, whether native code changed, whether it's a
+breaking backend change, and extra release steps.
 
 **Extra release steps.** If the next release has to do anything for this
 change beyond `pnpm release` (deploy something outside Convex such as
@@ -232,7 +234,10 @@ thread with the T3 `link_pull_request` tool. Review your own diff
 CI (`gh pr checks --watch`) and fix failures. Make sure the CI workflow
 actually ran (lint, typecheck, test, format, react-doctor, bundle), not just
 the fingerprint check. If the "📱 Native Change"
-label appears, say so: the next release then needs a store build.
+label appears, say so: the next release then needs a store build. If the
+"💥 Breaking Backend" label is on it, say so too: the release must ship it
+with `--with-backend`, and open apps on older versions will show "Updating
+Vera…" for a few seconds when it does.
 
 Then tell Shawn it's ready to test, with the PR link, a two-line summary,
 what to try on his phone (concrete steps for this change), whether it needs

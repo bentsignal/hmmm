@@ -6,13 +6,19 @@
 // release agent is required to work through, so nothing depends on someone
 // remembering to pass it on.
 //
+// It also checks the "Breaking backend change" line against
+// services/backend/breaking-version.ts: "yes" exactly when the PR raises
+// BREAKING_VERSION, by one. The workflow labels such PRs
+// "💥 Breaking Backend".
+//
 //   PR_BODY="..." BASE_SHA=<sha> node --experimental-strip-types scripts/check-release-steps.ts
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 
 const CHECKLIST = "docs/next-release.md";
 // Nothing in `pnpm release` deploys these, so a change to them always needs
 // a step.
 const UNRELEASED_PATHS = ["infra/"];
+const BREAKING_FILE = "services/backend/breaking-version.ts";
 
 function fail(message: string): never {
   console.error(`release steps: ${message}`);
@@ -60,3 +66,45 @@ if (unreleased.length > 0 && !addsSteps) {
 console.log(
   `release steps: ${none ? "none" : value}${addsSteps ? ` (${CHECKLIST} changed)` : ""}`,
 );
+
+/** BREAKING_VERSION in a commit, if the file has it there. */
+function breakingVersionAt(ref: string) {
+  const source = spawnSync("git", ["show", `${ref}:${BREAKING_FILE}`], {
+    encoding: "utf8",
+  }).stdout;
+  const version = /BREAKING_VERSION = (\d+)/.exec(source)?.[1];
+  return version === undefined ? undefined : Number(version);
+}
+
+const breakingLine = /^\s*-\s*Breaking backend change:(.*)$/im.exec(body);
+if (breakingLine === null) {
+  fail(
+    'the description\'s Release notes need a "- Breaking backend change:" line (see .github/pull_request_template.md): "no", or "yes" when this raises BREAKING_VERSION.',
+  );
+}
+const breakingValue = (breakingLine[1] ?? "")
+  .replace(/<!--[\s\S]*?-->/g, "")
+  .trim();
+const saysBreaking = /^yes\b/i.test(breakingValue);
+if (!saysBreaking && !/^no\b/i.test(breakingValue)) {
+  fail('"Breaking backend change:" must start with "no" or "yes".');
+}
+const before = breakingVersionAt(base);
+const after = breakingVersionAt("HEAD");
+const raised = before !== undefined && after !== before;
+if (raised && after !== before + 1) {
+  fail(
+    `BREAKING_VERSION goes from ${String(before)} to ${String(after)}; it only ever goes up by one.`,
+  );
+}
+if (raised && !saysBreaking) {
+  fail(
+    `this PR raises BREAKING_VERSION to ${String(after)}, so "Breaking backend change:" must say yes, and why the backend change can't stay compatible.`,
+  );
+}
+if (saysBreaking && !raised) {
+  fail(
+    `"Breaking backend change:" says yes, but ${BREAKING_FILE} isn't raised. Raise BREAKING_VERSION by one, or make the change compatible with the app before it and say no.`,
+  );
+}
+console.log(`breaking backend change: ${saysBreaking ? breakingValue : "no"}`);
