@@ -14,16 +14,10 @@ import {
 import { alerts, alertsFor } from "./alerts.ts";
 import { inboxAccess } from "./inbox.ts";
 import { toMessage } from "./model.ts";
+import { mentionItems, reactionItems, replyItems } from "./personalActivity.ts";
 import { ACTIVITY_HORIZON, MAX_ACTIVITY_MESSAGES } from "./protocol.ts";
 import { notificationSettings } from "./settings.ts";
-import {
-  MAX_MENTIONS_SCANNED,
-  MAX_REACTIONS_SCANNED,
-  mentionKey,
-  messagesKey,
-  reactionsKey,
-  threadKey,
-} from "./sightings.ts";
+import { messagesKey, threadKey } from "./sightings.ts";
 
 /** Messages read to fill one conversation's item, the caller's included. */
 const MAX_MESSAGES_SCANNED = 300;
@@ -118,6 +112,21 @@ async function messagesItem(
   };
 }
 
+/** Messages others sent, an item per conversation in the inbox. */
+async function messagesItems(ctx: QueryCtx, scope: Scope) {
+  const conversations = (await inboxAccess(ctx, scope.self, true)).flatMap(
+    (access) => {
+      const level = alertsFor(access, scope.settings);
+      return isHeard(access, level) ? [{ access, level }] : [];
+    },
+  );
+  return Promise.all(
+    conversations.map(({ access, level }) =>
+      messagesItem(ctx, scope, access, level),
+    ),
+  );
+}
+
 /**
  * Replies others sent in one thread the caller is in that still show, if
  * any. The thread's first reply is left out: it shows in the
@@ -188,100 +197,9 @@ async function threadItems(ctx: QueryCtx, scope: Scope) {
   );
 }
 
-/** Others' reactions to the caller's messages that still show, by message. */
-async function reactionItems(ctx: QueryCtx, scope: Scope) {
-  const { accessTo, describe, now, self, settings } = scope;
-  const rows = await ctx.db
-    .query("reactions")
-    .withIndex("by_author_reacted", (index) =>
-      index.eq("messageAuthorId", self).gt("reactedAt", now - ACTIVITY_HORIZON),
-    )
-    .order("desc")
-    .take(MAX_REACTIONS_SCANNED);
-  const byMessage = new Map<string, Doc<"reactions">[]>();
-  for (const row of rows) {
-    if (row.accountId === self) continue;
-    byMessage.set(row.messageId, [
-      ...(byMessage.get(row.messageId) ?? []),
-      row,
-    ]);
-  }
-  return Promise.all(
-    [...byMessage].map(
-      async ([messageId, reactions]): Promise<ActivityItem | null> => {
-        const conversationId = reactions[0]?.conversationId ?? "";
-        const found = await accessTo(conversationId);
-        if (found === null || !isHeard(found, alertsFor(found, settings))) {
-          return null;
-        }
-        const key = reactionsKey(messageId);
-        const { goneThrough, seen } = await seenState(ctx, self, key, now);
-        const shown = reactions.filter(
-          ({ reactedAt }) =>
-            reactedAt > Math.max(goneThrough, found.alertsSince),
-        );
-        const newest = shown[0];
-        if (newest === undefined) return null;
-        const message = await messageById(ctx, messageId);
-        if (message?.authorId !== self) return null;
-        return {
-          ...seen,
-          at: newest.reactedAt,
-          conversation: await describe(found.conversation),
-          key,
-          kind: "reactions",
-          message: toMessage(message),
-          reactions: shown.map(({ accountId, emoji, reactedAt }) => ({
-            accountId,
-            emoji,
-            messageId,
-            reactedAt,
-          })),
-        };
-      },
-    ),
-  );
-}
-
-/**
- * Messages that @mention the caller and still show, an item each. A
- * mention shows from any conversation that alerts about something, even a
- * channel left out of the inbox. One in a reply kept in its thread shows
- * only to apps that show threads, since only they can open it.
- */
-async function mentionItems(ctx: QueryCtx, scope: Scope) {
-  const { accessTo, describe, now, self, settings } = scope;
-  const rows = await ctx.db
-    .query("mentions")
-    .withIndex("by_account_sent", (index) =>
-      index.eq("accountId", self).gt("sentAt", now - ACTIVITY_HORIZON),
-    )
-    .order("desc")
-    .take(MAX_MENTIONS_SCANNED);
-  return Promise.all(
-    rows.map(async (row): Promise<ActivityItem | null> => {
-      if (row.threadId !== undefined && !scope.threads) return null;
-      const found = await accessTo(row.conversationId);
-      if (found === null || alertsFor(found, settings) === "none") return null;
-      const key = mentionKey(row.messageId);
-      const { goneThrough, seen } = await seenState(ctx, self, key, now);
-      if (row.sentAt <= Math.max(goneThrough, found.alertsSince)) return null;
-      const message = await messageById(ctx, row.messageId);
-      if (message === null || message.authorId === self) return null;
-      return {
-        ...seen,
-        at: message.sentAt,
-        conversation: await describe(found.conversation),
-        key,
-        kind: "mention",
-        message: toMessage(message),
-      };
-    }),
-  );
-}
-
 /** What the app asking for activity shows (see `activity`). */
 export interface ActivityOptions {
+  readonly aboutYou?: boolean;
   readonly mentions?: boolean;
   readonly threads?: boolean;
 }
@@ -298,6 +216,10 @@ export interface ActivityOptions {
  * of the inbox (except for mentions), activity seen over a day ago, and
  * anything older than `ACTIVITY_HORIZON`.
  *
+ * With `aboutYou`, only what's about the caller shows: no conversation
+ * items (the Inbox has those), and replies to their messages sent in a
+ * conversation are items of their own.
+ *
  * Only this PDS's messages and reactions are listed, like the inbox.
  */
 export async function activity(
@@ -306,6 +228,7 @@ export async function activity(
   options: ActivityOptions = {},
 ) {
   const scope: Scope = {
+    aboutYou: options.aboutYou === true,
     accessTo: accessFinder(ctx, self),
     describe: conversationDescriber(ctx),
     mentions: options.mentions === true,
@@ -314,23 +237,14 @@ export async function activity(
     settings: await notificationSettings(ctx, self),
     threads: options.threads === true,
   };
-  const conversations = (await inboxAccess(ctx, self, true)).flatMap(
-    (access) => {
-      const level = alertsFor(access, scope.settings);
-      return isHeard(access, level) ? [{ access, level }] : [];
-    },
-  );
-  const [messages, reactions, mentions, replies] = await Promise.all([
-    Promise.all(
-      conversations.map(({ access, level }) =>
-        messagesItem(ctx, scope, access, level),
-      ),
-    ),
+  const [messages, reactions, mentions, replies, threads] = await Promise.all([
+    scope.aboutYou ? [] : messagesItems(ctx, scope),
     reactionItems(ctx, scope),
     scope.mentions ? mentionItems(ctx, scope) : [],
+    scope.aboutYou ? replyItems(ctx, scope) : [],
     scope.threads ? threadItems(ctx, scope) : [],
   ]);
-  return [...messages, ...reactions, ...mentions, ...replies]
+  return [...messages, ...reactions, ...mentions, ...replies, ...threads]
     .filter((item): item is ActivityItem => item !== null)
     .sort((left, right) => right.at - left.at);
 }

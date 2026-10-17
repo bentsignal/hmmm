@@ -29,7 +29,7 @@ function Empty() {
         All Caught Up
       </Text>
       <Text className="text-subhead text-muted text-center">
-        New messages and reactions to yours show up here.
+        Mentions, replies, and reactions to your messages show up here.
       </Text>
     </View>
   );
