@@ -8,14 +8,17 @@ import {
   botAddress,
   botIdentity,
   BOTS,
+  identityFor,
   latestMessageBy,
   listField,
+  named,
   pick,
   queryAs,
   REPLIES,
   requireCaller,
   requireDevTools,
 } from "./devBots";
+import { seedReleaseTest } from "./devReleaseTest";
 import {
   longThreadAnchor,
   seedDirects,
@@ -46,6 +49,24 @@ export const seed = action({
     await seedGroup(ctx, me, authors);
     await seedSpaceInvite(ctx, me, bots);
     return { spaceId: await seedSpace(ctx, me, bots, authors) };
+  },
+});
+
+/**
+ * Conversations for a release test (see devReleaseTest.ts), for an account
+ * on this PDS by username. Run from the CLI:
+ * `npx convex run dev:releaseTest '{"username":"ios"}'`.
+ */
+export const releaseTest = internalAction({
+  args: { username: v.string() },
+  handler: async (ctx, { username }) => {
+    requireDevTools();
+    const address = botAddress(username);
+    await seedProfiles(ctx);
+    return seedReleaseTest(
+      ctx,
+      await named(ctx, identityFor(address, username)),
+    );
   },
 });
 

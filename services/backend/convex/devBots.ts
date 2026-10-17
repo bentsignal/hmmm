@@ -158,8 +158,12 @@ export async function requireCaller(ctx: ActionCtx) {
   if (identity === null || accountId === null) {
     throw new ConvexError({ code: "AUTHENTICATED_ACCOUNT_REQUIRED" });
   }
-  const caller = identityFor(accountId, identity.name ?? accountId);
-  // Their display name, as the app writes it in an @mention.
+  return named(ctx, identityFor(accountId, identity.name ?? accountId));
+}
+
+/** The account under its display name, as the app writes it in an @mention. */
+export async function named(ctx: ActionCtx, caller: Identity) {
+  const { accountId } = caller;
   const profile = await ctx.runQuery(
     components.accounts.dispatcher.dispatchQuery,
     {
