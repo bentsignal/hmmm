@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { Rect } from "./menu-layout.ts";
-import { EDGE, GAP, LIFT, menuLayout } from "./menu-layout.ts";
+import { EDGE, GAP, GROW_EDGE, LIFT, menuLayout } from "./menu-layout.ts";
 
 const screen = { height: 800, width: 400 };
 const insets = { bottom: 30, top: 50 };
@@ -55,4 +55,22 @@ void test("the bar and actions line up with the element's side, on screen", () =
   const start = layout({ height: 60, width: 100, x: 16, y: 300 }, "start");
   assert.equal(start.menuLeft, 16);
   assert.equal(start.barLeft, 16);
+});
+
+void test("an element as wide as the screen grows from its middle, on screen", () => {
+  const frame = { height: 60, width: 380, x: 10, y: 300 };
+  const result = layout(frame, "start");
+  assert.ok(result.fromMiddle);
+  assert.ok(result.scale > 1);
+  const width = frame.width * result.scale;
+  const left = frame.x + frame.width / 2 - width / 2;
+  assert.ok(left >= GROW_EDGE - 1e-9);
+  assert.ok(left + width <= screen.width - GROW_EDGE + 1e-9);
+});
+
+void test("an element with room grows from its side", () => {
+  assert.equal(
+    layout({ height: 60, width: 200, x: 16, y: 300 }, "start").fromMiddle,
+    false,
+  );
 });

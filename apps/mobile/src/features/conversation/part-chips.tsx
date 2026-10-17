@@ -1,7 +1,7 @@
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import type { View as NativeView } from "react-native";
 import type { AnimatedRef } from "react-native-reanimated";
-import { useState } from "react";
+import { createContext, use, useState } from "react";
 import { View } from "react-native";
 import Animated from "react-native-reanimated";
 
@@ -9,6 +9,7 @@ import type {
   ReactionPart,
   ReactionSummary,
 } from "~/features/messaging/reactions";
+import { reactionsOn } from "~/features/messaging/reactions";
 import { impact, selectionTick } from "~/lib/native-extras";
 import { GrowingSpace, usePieceLift } from "./grow";
 import { useMessageActions } from "./message-actions";
@@ -100,5 +101,64 @@ export function PartChips({
         viewReactions(messageId, part, emoji);
       }}
     />
+  );
+}
+
+/**
+ * A stacked row's reactions in its lifted copy, which its parts draw still
+ * under them, as in the list, so the copy lines up with the row.
+ */
+const StillChipsContext = createContext<{
+  readonly reactions: readonly ReactionSummary[];
+  readonly chipsAtEnd: ReactionPart | null;
+} | null>(null);
+
+/** The lifted copy of a stacked row (see `StillChipsContext`). */
+export function StillChips({
+  reactions,
+  chipsAtEnd,
+  children,
+}: {
+  reactions: readonly ReactionSummary[];
+  chipsAtEnd: ReactionPart | null;
+  children: ReactNode;
+}) {
+  return (
+    <StillChipsContext value={{ chipsAtEnd, reactions }}>
+      {children}
+    </StillChipsContext>
+  );
+}
+
+/** Nothing: the lifted copy's chips only show what's there. */
+function still() {
+  return undefined;
+}
+
+/** A part in a lifted copy, with its chips under it when it has its own. */
+export function StillPart({
+  part,
+  children,
+}: {
+  part: ReactionPart;
+  children: ReactNode;
+}) {
+  const copy = use(StillChipsContext);
+  const reactions = copy === null ? [] : reactionsOn(copy.reactions, part);
+  if (copy === null || part === copy.chipsAtEnd || reactions.length === 0) {
+    return children;
+  }
+  return (
+    <View className="items-start self-stretch">
+      {children}
+      <View className="self-stretch">
+        <ChipRow
+          reactions={reactions}
+          align="start"
+          onToggle={still}
+          onHold={still}
+        />
+      </View>
+    </View>
   );
 }

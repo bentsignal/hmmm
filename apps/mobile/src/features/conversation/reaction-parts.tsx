@@ -12,13 +12,14 @@ import type {
   ReactionSummary,
 } from "~/features/messaging/reactions";
 import { reactionsOn } from "~/features/messaging/reactions";
+import { selectionTick } from "~/lib/native-extras";
 import { GrowingSpace, usePieceLift } from "./grow";
 import {
   ReactionPartProvider,
   useIsLifted,
-  useOpenReactions,
+  useLiftMessage,
 } from "./message-actions";
-import { PartChips } from "./part-chips";
+import { PartChips, StillPart } from "./part-chips";
 import { TAPBACK_SPACE, Tapbacks } from "./tapbacks";
 
 /** A message's reactions, as its parts (see `Reactable`) show them. */
@@ -100,7 +101,7 @@ export function Reactable({
   children: ReactNode;
 }) {
   const parts = use(PartsContext);
-  if (parts === null) return children;
+  if (parts === null) return <StillPart part={part}>{children}</StillPart>;
   return parts.reactionStyle === "tapbacks" ? (
     <TapbackPart parts={parts} part={part} place={place}>
       {children}
@@ -126,7 +127,7 @@ function TapbackPart({
   const { animate, reactions } = usePartReactions(parts, part);
   const ref = useRef<NativeView>(null);
   const lifted = useIsLifted(parts.message.id, part);
-  const openReactions = useOpenReactions({
+  const liftPart = useLiftMessage({
     align: parts.align,
     measured: ref,
     message: parts.message,
@@ -158,7 +159,10 @@ function TapbackPart({
               align={parts.align}
               hidden={lifted}
               onPlaced={top ? parts.onTopPlaced : undefined}
-              onPress={openReactions}
+              onPress={() => {
+                selectionTick();
+                liftPart("reactions");
+              }}
             />
           )}
         </Piece>

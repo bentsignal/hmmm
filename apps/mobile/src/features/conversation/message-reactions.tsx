@@ -2,7 +2,10 @@ import type { ReactNode } from "react";
 import type { View as NativeView } from "react-native";
 import { useState } from "react";
 import { View } from "react-native";
-import { LayoutAnimationConfig, useAnimatedRef } from "react-native-reanimated";
+import Animated, {
+  LayoutAnimationConfig,
+  useAnimatedRef,
+} from "react-native-reanimated";
 
 import type { PreviewShape } from "./glass-message-menu";
 import type { Parts } from "./reaction-parts";
@@ -11,10 +14,15 @@ import type { ReactionPart } from "~/features/messaging/reactions";
 import { cn } from "~/lib/cn";
 import { rowOrder } from "./build-rows";
 import { GrowingSpace } from "./grow";
-import { MessageTargetProvider } from "./message-actions";
+import {
+  MessageTargetProvider,
+  useLiftMessage,
+  useSqueeze,
+} from "./message-actions";
 import { PartChips } from "./part-chips";
 import { PartsProvider, usePartReactions } from "./reaction-parts";
 import { Place } from "./row-place";
+import { useRowTarget } from "./row-touch";
 import { NAME_CLEARANCE, TAPBACK_SPACE } from "./tapbacks";
 
 /**
@@ -33,6 +41,32 @@ function useShownReactions(message: Message) {
 function clearsName(nameEnd: number | undefined, left: number | undefined) {
   if (nameEnd === undefined || left === undefined) return true;
   return nameEnd + NAME_CLEARANCE <= left;
+}
+
+/**
+ * The whole message (see `useLiftMessage`), which a hold or double tap
+ * beside its parts lifts with its menu when `fromRow`, squeezing it
+ * (`squeeze`, for its parts) while held. Beside a message of several
+ * parts, the one nearest the touch lifts instead, so a reaction picked
+ * there goes to the part you meant.
+ */
+function useWholeMessage(
+  message: Parameters<typeof useLiftMessage>[0],
+  { fromRow, severalParts }: { fromRow: boolean; severalParts: boolean },
+) {
+  const liftWhole = useLiftMessage(message);
+  const squeeze = useSqueeze();
+  useRowTarget(
+    fromRow
+      ? {
+          lift: () => liftWhole("actions"),
+          pressIn: squeeze.pressIn,
+          release: squeeze.release,
+        }
+      : undefined,
+    severalParts ? "nearest" : undefined,
+  );
+  return squeeze.style;
 }
 
 /**
@@ -105,9 +139,8 @@ interface Layout {
 }
 
 /**
- * A message whose parts open the glass overlay on a long press, and their
- * reactions on a double tap (each wraps itself in `MenuTargetView` or uses
- * `useMenuTarget`). Each part that takes reactions (see `Reactable`) shows
+ * A message whose parts open the glass overlay on a long press or a double
+ * tap (each wraps itself in `MenuTargetView` or uses `useMenuTarget`). Each part that takes reactions (see `Reactable`) shows
  * its own: as iMessage tapbacks over its top corner (`tapbacks`, for
  * bubbles), which show who reacted when tapped, or as Slack's chips under
  * it (`chips`, for stacked rows), which add or take back that reaction
@@ -117,6 +150,7 @@ export function InteractiveMessage({
   message,
   roomAbove,
   tapbacksClearOf,
+  liftedFromRow,
   children,
   ...layout
 }: Layout & {
@@ -128,11 +162,24 @@ export function InteractiveMessage({
    * their own instead, between the name and the bubble, as in Messages.
    */
   tapbacksClearOf?: number;
+  /** A hold or double tap beside its parts lifts it all (bubbles). */
+  liftedFromRow?: boolean;
   children: ReactNode;
 }) {
   const { align, shape, reactionStyle, chipsAtEnd = null } = layout;
   const reactions = useShownReactions(message);
   const body = useAnimatedRef<NativeView>();
+  const squeeze = useWholeMessage(
+    {
+      align,
+      measured: body,
+      message,
+      part: layout.top ?? "message",
+      preview: children,
+      shape,
+    },
+    { fromRow: liftedFromRow === true, severalParts: layout.inner === true },
+  );
   // Where the top part's tapbacks' left edge sits, once laid out.
   const [topLeft, setTopLeft] = useState<number>();
   const parts = {
@@ -169,15 +216,17 @@ export function InteractiveMessage({
           />
         )}
         <View ref={body}>
-          <PartsProvider parts={parts}>
-            <MessageTargetProvider
-              message={message}
-              align={align}
-              shape={shape}
-            >
-              {children}
-            </MessageTargetProvider>
-          </PartsProvider>
+          <Animated.View style={squeeze}>
+            <PartsProvider parts={parts}>
+              <MessageTargetProvider
+                message={message}
+                align={align}
+                shape={shape}
+              >
+                {children}
+              </MessageTargetProvider>
+            </PartsProvider>
+          </Animated.View>
         </View>
         {reactionStyle === "chips" && chipsAtEnd !== null && (
           <EndChips parts={parts} part={chipsAtEnd} />

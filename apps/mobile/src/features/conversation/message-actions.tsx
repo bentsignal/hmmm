@@ -2,7 +2,6 @@ import type { ReactNode, RefObject } from "react";
 import type { View as NativeView } from "react-native";
 import { createContext, use, useRef, useState } from "react";
 import { Pressable } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -15,11 +14,12 @@ import type {
   PreviewShape,
   TargetAlign,
 } from "./glass-message-menu";
+import type { LiftMode } from "./row-touch";
 import type { Message, MessageAttachment } from "./types";
 import type { ReactionPart } from "~/features/messaging/reactions";
-import { impact, selectionTick } from "~/lib/native-extras";
+import { impact } from "~/lib/native-extras";
 import { GlassMessageMenu } from "./glass-message-menu";
-import { wasLinkTap } from "./link-tap";
+import { MenuPressContext, reportTouch, usePartTarget } from "./row-touch";
 
 /** Adds or takes back your reaction on a part of a message. */
 export type ToggleReaction = (
@@ -190,14 +190,6 @@ export function MessageTargetProvider({
   );
 }
 
-/**
- * Two taps this close together are a double tap. A single tap waits this
- * long to be sure it isn't one.
- */
-const DOUBLE_TAP_MS = 200;
-/** A tap moving further than this is a drag (to reveal times), not a tap. */
-const TAP_SLOP = 10;
-
 /** What a part of a message lifts into the menu, besides where it sits. */
 type LiftedPart = Omit<MenuTarget, "rect">;
 
@@ -213,10 +205,12 @@ function lift(
 }
 
 /**
- * Opens the reactions on a part of a message, lifting `measured` (the part
- * as it sits in the list) with `preview`, a copy of it. For its tapbacks.
+ * Lifts a part of a message, `measured` (the part as it sits in the list)
+ * with `preview`, a copy of it, and the reactions picked go to the part:
+ * for its tapbacks, and for a hold or double tap beside a message of one
+ * part.
  */
-export function useOpenReactions({
+export function useLiftMessage({
   message,
   align,
   shape,
@@ -229,16 +223,29 @@ export function useOpenReactions({
   preview: ReactNode;
 }) {
   const { open } = useMessageActions();
-  return () => {
-    selectionTick();
-    lift(open, measured, {
-      align,
-      message,
-      mode: "reactions",
-      part,
-      preview,
-      shape,
-    });
+  return (mode: LiftMode) => {
+    lift(open, measured, { align, message, mode, part, preview, shape });
+  };
+}
+
+/**
+ * The squeeze while something is held, as iOS does: it shrinks a little
+ * toward the hold's length, and springs back as it lifts or is let go. Put
+ * `style` on what squeezes.
+ */
+export function useSqueeze() {
+  const scale = useSharedValue(1);
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+  return {
+    pressIn: () => {
+      scale.set(withTiming(PRESS_SCALE, { duration: LONG_PRESS_MS }));
+    },
+    release: () => {
+      scale.set(withSpring(1, RELEASE_SPRING));
+    },
+    style,
   };
 }
 
@@ -249,9 +256,10 @@ export function useOpenReactions({
  * parts never lifts taller than it needs to; reactions picked there go to
  * the part (see `ReactionPartProvider`). Spread `press` on the Pressable
  * `measured` refers to, and put `style` (the squeeze while held) on the
- * part. `openReactions`
- * lifts it with who reacted instead of the actions (a double tap). Null
- * outside a message, as in the lifted copy, where the part draws as is.
+ * part. `openMenu` opens it as a hold does (a double tap). A hold or
+ * double tap beside it in its row can lift it too (see `usePartTarget`).
+ * Null outside a message, as in the lifted copy, where the part draws as
+ * is.
  */
 export function useMenuTarget({
   measured,
@@ -273,59 +281,58 @@ export function useMenuTarget({
   const target = use(MessageTargetContext);
   const part = use(ReactionPartContext);
   const { open } = useMessageActions();
-  const scale = useSharedValue(1);
-  const style = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-  if (target === null) return null;
-  const { message, align } = target;
+  const squeeze = useSqueeze();
   // A message still sending (or that failed) has no menu yet.
-  const holdable = message.status === undefined;
-  function openAs(mode: MenuTarget["mode"]) {
+  const holdable = target !== null && target.message.status === undefined;
+  function liftPart() {
+    if (target === null) return;
     lift(open, measured, {
-      align,
+      align: target.align,
       attachment,
       link,
-      message,
-      mode,
+      message: target.message,
+      mode: "actions",
       part,
       preview,
-      shape: shape ?? target?.shape ?? "plain",
+      shape: shape ?? target.shape,
     });
   }
+  usePartTarget(
+    holdable
+      ? {
+          lift: liftPart,
+          measured,
+          pressIn: squeeze.pressIn,
+          release: squeeze.release,
+        }
+      : undefined,
+  );
+  if (target === null) return null;
+  function openMenu() {
+    if (!holdable) return;
+    impact();
+    squeeze.release();
+    liftPart();
+  }
   return {
+    openMenu,
     press: {
       delayLongPress: LONG_PRESS_MS,
-      onLongPress: () => {
-        if (!holdable) return;
-        impact();
-        scale.set(withSpring(1, RELEASE_SPRING));
-        openAs("actions");
-      },
+      onLongPress: openMenu,
       onPressIn: () => {
-        if (!holdable) return;
-        scale.set(withTiming(PRESS_SCALE, { duration: LONG_PRESS_MS }));
+        if (holdable) squeeze.pressIn();
       },
-      onPressOut: () => {
-        scale.set(withSpring(1, RELEASE_SPRING));
-      },
+      onPressOut: squeeze.release,
     },
-    /** Lifts the part with who reacted, as a double tap does. */
-    openReactions: () => {
-      if (!holdable) return;
-      selectionTick();
-      openAs("reactions");
-    },
-    style,
+    style: squeeze.style,
   };
 }
 
 /**
- * A part of a message that opens its menu on a long press, its reactions
- * on a double tap, and in a conversation its thread on a single tap,
- * lifted as is. The taps are the native recognizers': a Pressable drops
- * the second of two quick taps. A single tap fires once a double tap can
- * no longer begin.
+ * A part of a message that opens its menu on a long press, lifted as is.
+ * Its taps are its row's (see `MessageRowTarget`): a double tap opens its
+ * menu as a hold does, and in a conversation a single tap opens its
+ * thread.
  */
 export function MenuTargetView({
   shape,
@@ -337,47 +344,19 @@ export function MenuTargetView({
 }) {
   const ref = useRef<NativeView>(null);
   const target = useMenuTarget({ measured: ref, preview: children, shape });
-  const messageTarget = use(MessageTargetContext);
-  const { openThread } = useMessageActions();
-  if (target === null || messageTarget === null) return children;
-  const { message } = messageTarget;
-  const doubleTap = Gesture.Tap()
-    .numberOfTaps(2)
-    .maxDelay(DOUBLE_TAP_MS)
-    .runOnJS(true)
-    .onEnd((_, success) => {
-      if (success) target.openReactions();
-    });
-  const singleTap = Gesture.Tap()
-    // A hold opens the menu instead.
-    .maxDuration(LONG_PRESS_MS)
-    .maxDistance(TAP_SLOP)
-    .enabled(openThread !== undefined && message.status === undefined)
-    .runOnJS(true)
-    .onEnd((_, success) => {
-      if (!success || wasLinkTap()) return;
-      openThread?.(message);
-    });
+  if (target === null) return children;
+  const press = {
+    ...target.press,
+    onPressIn: () => {
+      reportTouch({ openMenu: target.openMenu });
+      target.press.onPressIn();
+    },
+  };
   return (
-    <GestureDetector gesture={Gesture.Exclusive(doubleTap, singleTap)}>
-      <Pressable ref={ref} {...target.press}>
-        <MenuPressContext value={target.press}>
-          <Animated.View style={target.style}>{children}</Animated.View>
-        </MenuPressContext>
-      </Pressable>
-    </GestureDetector>
+    <Pressable ref={ref} {...press}>
+      <MenuPressContext value={press}>
+        <Animated.View style={target.style}>{children}</Animated.View>
+      </MenuPressContext>
+    </Pressable>
   );
-}
-
-type MenuPress = NonNullable<ReturnType<typeof useMenuTarget>>["press"];
-
-const MenuPressContext = createContext<MenuPress | null>(null);
-
-/**
- * The hold of the part around it, for a pressable inside it (a link in a
- * message's text), which would otherwise take the hold from the part.
- * Null in the lifted copy.
- */
-export function useMenuPress() {
-  return use(MenuPressContext);
 }
