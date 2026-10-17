@@ -8,10 +8,11 @@ import {
   internalQuery,
 } from "./_generated/server.js";
 import { badgeCount } from "./badges.ts";
-import { badgeCounts, badgeField, deliver } from "./delivery.ts";
+import { badgeCounts, badgeField, deliver, recipientOf } from "./delivery.ts";
 import { listeners } from "./listeners.ts";
 import { getConversation, getSpace, memberAddresses } from "./model.ts";
 import { listNames } from "./naming.ts";
+import { inboxKind } from "./protocol.ts";
 import {
   accountProfile,
   ANDROID_DELIVERY,
@@ -34,12 +35,9 @@ export const targets = internalQuery({
     if (conversation === null) return null;
 
     const members = await memberAddresses(ctx, conversation);
-    const recipients: {
-      accountId: string;
+    const recipients: (ReturnType<typeof recipientOf> & {
       reply: ReplyPush;
-      threads: boolean;
-      token: string;
-    }[] = [];
+    })[] = [];
     for (const { accountId, reply } of await listeners(
       ctx,
       message,
@@ -50,14 +48,7 @@ export const targets = internalQuery({
         .query("pushTokens")
         .withIndex("by_account", (index) => index.eq("accountId", accountId))
         .collect();
-      recipients.push(
-        ...rows.map(({ threads, token }) => ({
-          accountId,
-          reply,
-          threads: threads === true,
-          token,
-        })),
-      );
+      recipients.push(...rows.map((row) => ({ ...recipientOf(row), reply })));
     }
     return {
       body: previewText(message),
@@ -93,9 +84,18 @@ function replyBody(reply: ReplyPush, body: string) {
  * a push to a large space doesn't count every member in one transaction.
  */
 export const badge = internalQuery({
-  args: { accountId: v.string(), threads: v.optional(v.boolean()) },
-  handler: (ctx, { accountId, threads }) =>
-    badgeCount(ctx, accountId, { mentions: true, threads: threads === true }),
+  args: {
+    accountId: v.string(),
+    inbox: v.optional(v.array(inboxKind)),
+    threads: v.optional(v.boolean()),
+  },
+  handler: (ctx, { accountId, inbox, threads }) =>
+    badgeCount(
+      ctx,
+      accountId,
+      { mentions: true, threads: threads === true },
+      inbox,
+    ),
 });
 
 /** Who to tell about new space invitations, and the space's name. */
@@ -104,11 +104,7 @@ export const inviteTargets = internalQuery({
   handler: async (ctx, { accountIds, spaceId }) => {
     const space = await getSpace(ctx, spaceId);
     if (space === null) return null;
-    const recipients: {
-      accountId: string;
-      threads: boolean;
-      token: string;
-    }[] = [];
+    const recipients: ReturnType<typeof recipientOf>[] = [];
     for (const accountId of accountIds) {
       // Skip anyone who already answered before this ran.
       const invite = await ctx.db
@@ -123,13 +119,7 @@ export const inviteTargets = internalQuery({
         .query("pushTokens")
         .withIndex("by_account", (index) => index.eq("accountId", accountId))
         .collect();
-      recipients.push(
-        ...rows.map(({ threads, token }) => ({
-          accountId,
-          threads: threads === true,
-          token,
-        })),
-      );
+      recipients.push(...rows.map(recipientOf));
     }
     return { recipients, spaceName: space.name };
   },
@@ -166,7 +156,8 @@ export const send = internalAction({
 
     await deliver(
       ctx,
-      target.recipients.map(({ accountId, reply, threads, token }) => {
+      target.recipients.map((recipient) => {
+        const { accountId, reply, token } = recipient;
         const conversationName = conversationNameFor(accountId);
         // A reply kept in its thread opens the thread. Its `messageId` is
         // the original, where apps from before threads open the
@@ -180,7 +171,7 @@ export const send = internalAction({
               }
             : {};
         return {
-          ...badgeField(badges, { accountId, threads }),
+          ...badgeField(badges, recipient),
           body: replyBody(reply, target.body),
           // A device signed into several accounts opens the message as
           // the account it was sent to.
@@ -233,11 +224,11 @@ export const sendInvite = internalAction({
     const inviterName = inviter?.displayName ?? invitedBy.split("@")[0];
     await deliver(
       ctx,
-      target.recipients.map(({ accountId, threads, token }) => ({
-        ...badgeField(badges, { accountId, threads }),
+      target.recipients.map((recipient) => ({
+        ...badgeField(badges, recipient),
         body: `${inviterName} invited you to join ${target.spaceName}`,
         data: {
-          accountId,
+          accountId: recipient.accountId,
           invitedBy,
           kind: "spaceInvite",
           spaceId,
@@ -246,7 +237,7 @@ export const sendInvite = internalAction({
         ...ANDROID_DELIVERY,
         sound: "default",
         title: target.spaceName,
-        to: token,
+        to: recipient.token,
       })),
     );
   },

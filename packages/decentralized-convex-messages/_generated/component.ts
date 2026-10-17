@@ -201,7 +201,11 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               }
             | { args: { conversationId: string }; type: "deleteChannel" }
             | {
-                args: { threads?: boolean; token: string };
+                args: {
+                  inbox?: Array<"chats" | "channels" | "threads">;
+                  threads?: boolean;
+                  token: string;
+                };
                 type: "registerPushToken";
               }
             | { args: { token: string }; type: "unregisterPushToken" };
@@ -371,7 +375,11 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           operation:
             | { args: { channels?: boolean }; type: "inbox" }
             | {
-                args: { mentions?: boolean; threads?: boolean };
+                args: {
+                  aboutYou?: boolean;
+                  mentions?: boolean;
+                  threads?: boolean;
+                };
                 type: "activity";
               }
             | { args: {}; type: "notificationSettings" }
@@ -695,6 +703,87 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   };
                   key: string;
                   kind: "mention";
+                  message: {
+                    attachments: Array<{
+                      durationMs?: number;
+                      height?: number;
+                      kind: "image" | "video" | "file";
+                      mimeType: string;
+                      name: string;
+                      size: number;
+                      thumbnailUrl?: string;
+                      url: string;
+                      width?: number;
+                    }>;
+                    authorId: string;
+                    authorName: string;
+                    body: string;
+                    conversationId: string;
+                    linkPreview: null | {
+                      description?: string;
+                      imageUrl?: string;
+                      siteName?: string;
+                      title?: string;
+                      url: string;
+                      video?: {
+                        durationMs?: number;
+                        height?: number;
+                        url: string;
+                        width?: number;
+                      };
+                    };
+                    linkPreviews?: Array<{
+                      link: string;
+                      preview?: null | {
+                        description?: string;
+                        imageUrl?: string;
+                        siteName?: string;
+                        title?: string;
+                        url: string;
+                        video?: {
+                          durationMs?: number;
+                          height?: number;
+                          url: string;
+                          width?: number;
+                        };
+                      };
+                    }>;
+                    mentions?: Array<{ accountId: string; name: string }>;
+                    messageId: string;
+                    quote?: {
+                      attachment?: {
+                        durationMs?: number;
+                        height?: number;
+                        kind: "image" | "video" | "file";
+                        mimeType: string;
+                        name: string;
+                        size: number;
+                        thumbnailUrl?: string;
+                        url: string;
+                        width?: number;
+                      };
+                      authorId: string;
+                      body: string;
+                    };
+                    sentAt: number;
+                    threadId?: string;
+                    threadOnly?: boolean;
+                  };
+                  seenAt?: number;
+                  seenThrough?: number;
+                }
+              | {
+                  at: number;
+                  conversation: {
+                    conversationId: string;
+                    kind: "direct" | "group" | "channel";
+                    members: Array<string>;
+                    name: null | string;
+                    spaceId: null | string;
+                    spaceName?: string;
+                  };
+                  key: string;
+                  kind: "reply";
                   message: {
                     attachments: Array<{
                       durationMs?: number;

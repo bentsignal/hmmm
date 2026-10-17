@@ -9,25 +9,41 @@ import {
 
 const EVERY_KIND = ["chats", "channels", "threads"];
 
+const DEFAULT = ["chats", "channels"];
+
 void test("an Inbox filter saved before threads keeps its kinds", () => {
   assert.deepEqual(storedInboxKinds({ inboxFrom: "chats" }), ["chats"]);
   assert.deepEqual(storedInboxKinds({ inboxFrom: "channels" }), ["channels"]);
   // Everything, a space filter from even earlier, or nothing saved lists
-  // every kind, threads too.
-  assert.deepEqual(storedInboxKinds({ inboxFrom: "everything" }), EVERY_KIND);
-  assert.deepEqual(storedInboxKinds({ inboxFrom: "space:1" }), EVERY_KIND);
-  assert.deepEqual(storedInboxKinds({}), EVERY_KIND);
+  // the default, without threads.
+  assert.deepEqual(storedInboxKinds({ inboxFrom: "everything" }), DEFAULT);
+  assert.deepEqual(storedInboxKinds({ inboxFrom: "space:1" }), DEFAULT);
+  assert.deepEqual(storedInboxKinds({}), DEFAULT);
+});
+
+void test("every kind, saved when that was the default, becomes the default", () => {
+  assert.deepEqual(storedInboxKinds({ inboxKinds: EVERY_KIND }), DEFAULT);
+  // Any other choice stays.
+  assert.deepEqual(storedInboxKinds({ inboxKinds: ["chats", "threads"] }), [
+    "chats",
+    "threads",
+  ]);
+  // Chosen since: every kind stays every kind.
+  assert.deepEqual(
+    storedInboxKinds({ inboxIncludes: EVERY_KIND, inboxKinds: ["chats"] }),
+    EVERY_KIND,
+  );
 });
 
 void test("saved kinds win, in menu order, without unknown ones", () => {
   assert.deepEqual(
     storedInboxKinds({
       inboxFrom: "chats",
-      inboxKinds: ["threads", "spaces", "chats", "chats"],
+      inboxIncludes: ["threads", "spaces", "chats", "chats"],
     }),
     ["chats", "threads"],
   );
-  assert.deepEqual(storedInboxKinds({ inboxKinds: [] }), []);
+  assert.deepEqual(storedInboxKinds({ inboxIncludes: [] }), []);
 });
 
 void test("ticking and unticking a kind", () => {
@@ -39,7 +55,7 @@ void test("ticking and unticking a kind", () => {
   assert.deepEqual(toggledInboxKind(["chats", "threads"], "chats"), [
     "threads",
   ]);
-  assert.equal(isDefaultInboxKinds(["threads", "channels", "chats"]), true);
-  assert.equal(isDefaultInboxKinds(["chats", "channels"]), false);
+  assert.equal(isDefaultInboxKinds(["channels", "chats"]), true);
+  assert.equal(isDefaultInboxKinds(["chats", "channels", "threads"]), false);
   assert.equal(isDefaultInboxKinds(["chats"]), false);
 });
