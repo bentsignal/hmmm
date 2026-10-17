@@ -30,6 +30,8 @@ export interface Preferences {
   /** The kinds ticked, in `INBOX_KINDS` order. */
   readonly inboxIncludes: readonly InboxKind[];
   readonly inboxShow: InboxShow;
+  /** The tab bar runs right to left, putting Home on the right. */
+  readonly reverseTabBar: boolean;
   readonly spacesSort: SpacesSort;
   readonly theme: ThemeId;
 }
@@ -41,6 +43,7 @@ const DEFAULTS = {
   channelLayout: "stacked",
   inboxIncludes: DEFAULT_INBOX_KINDS,
   inboxShow: "all",
+  reverseTabBar: false,
   spacesSort: "name",
   theme: "blue",
 } satisfies Preferences;
@@ -95,6 +98,7 @@ function fromStored(stored: unknown) {
       ["all", "unread"],
       DEFAULTS.inboxShow,
     ),
+    reverseTabBar: Reflect.get(stored, "reverseTabBar") === true,
     spacesSort: pick(
       Reflect.get(stored, "spacesSort"),
       ["name", "newest", "oldest"],

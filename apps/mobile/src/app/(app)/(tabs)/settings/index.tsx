@@ -3,7 +3,10 @@ import { NativeHost } from "~/components/native-host";
 import { TabTitle } from "~/components/tab-title";
 import { AboutSection } from "~/features/settings/about-section";
 import { AccountsSection } from "~/features/settings/accounts-section";
-import { DisplaySection } from "~/features/settings/display-section";
+import {
+  DisplaySection,
+  ExperimentalSection,
+} from "~/features/settings/display-section";
 import { NotificationsSection } from "~/features/settings/notifications-section";
 import {
   AppIconSection,
@@ -21,6 +24,7 @@ export default function SettingsScreen() {
           <DisplaySection />
           <ThemesSection />
           <AppIconSection />
+          <ExperimentalSection />
           <AboutSection />
         </FieldList>
       </NativeHost>
