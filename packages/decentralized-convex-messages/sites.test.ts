@@ -100,6 +100,28 @@ void test("tweetPreview shows a photo tweet's first photo, with no video", () =>
   assert.equal(preview.video, undefined);
 });
 
+void test("tweetPreview keeps a tweet's line breaks, not its blank lines", () => {
+  const preview = tweetPreview({
+    __typename: "Tweet",
+    id_str: "1",
+    text: "Headline  \n\n  First  paragraph\nSecond",
+    user: { name: "A", screen_name: "a" },
+  });
+  assert.equal(preview?.description, "Headline\nFirst paragraph\nSecond");
+});
+
+void test("tweetPreview marks a long post, which comes cut, with an ellipsis", () => {
+  const preview = tweetPreview({
+    __typename: "Tweet",
+    entities: { media: [{ url: "https://t.co/photo" }] },
+    id_str: "1",
+    note_tweet: { id: "Tm90ZVR3ZWV0" },
+    text: "so Jackson jumped at the https://t.co/photo",
+    user: { name: "A", screen_name: "a" },
+  });
+  assert.equal(preview?.description, "so Jackson jumped at the…");
+});
+
 void test("tweetPreview has nothing for a missing tweet", () => {
   assert.equal(tweetPreview({}), null);
   assert.equal(tweetPreview({ __typename: "TweetTombstone" }), null);
