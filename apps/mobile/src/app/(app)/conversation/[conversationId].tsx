@@ -26,10 +26,12 @@ import { useActiveConversation } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
 
 /**
- * What the header shows. The title from the opening screen shows until the
- * conversation's own is known; then its title, photo, and badge arrive
- * together, so the name capsule changes at most once instead of shifting
- * as each piece loads.
+ * What the header shows: the title, photo, and badge arrive together, so
+ * the name capsule changes at most once instead of shifting as each piece
+ * loads. A group or channel shows the title from the opening screen until
+ * its own is known. A direct conversation waits for the other person's
+ * profile instead, usually already loaded, since their badge would
+ * otherwise widen the capsule when it arrived.
  */
 function headerFor(
   { kind, members, profileOf, title }: ReturnType<typeof useConversation>,
@@ -37,7 +39,8 @@ function headerFor(
   initialTitle: string | undefined,
 ) {
   if (title === "") {
-    return { affiliated: false, avatarUrl: null, title: initialTitle ?? "" };
+    const shown = kind === "direct" ? "" : (initialTitle ?? "");
+    return { affiliated: false, avatarUrl: null, title: shown };
   }
   const other =
     kind === "direct" ? members.find((member) => member !== self) : undefined;
@@ -112,7 +115,11 @@ function Conversation({
     title: heading,
   });
   if (!isLoading && conversation === undefined) {
-    return <MissingConversation heading={heading} />;
+    return (
+      <MissingConversation
+        heading={heading === "" ? (initialTitle ?? "") : heading}
+      />
+    );
   }
 
   return (

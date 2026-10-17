@@ -2,7 +2,6 @@ import type { SymbolViewProps } from "expo-symbols";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   FadeIn,
-  FadeOut,
   LayoutAnimationConfig,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -119,7 +118,11 @@ export function GlassCircleButton({
   );
 }
 
-/** The photo, `#` for channels, or initials, cross-fading as data loads. */
+/**
+ * The photo, `#` for channels, or initials, fading in over a blank circle
+ * as data loads. Nothing fades out: a fading copy is left where the photo
+ * was before the name capsule widened the header, so it would jump aside.
+ */
 function HeaderAvatar({
   title,
   kind,
@@ -132,10 +135,10 @@ function HeaderAvatar({
   const isChannel = kind === "channel" || title.startsWith("#");
   return (
     <View style={{ height: AVATAR, width: AVATAR }}>
+      <Avatar name="" size="header" />
       <Animated.View
         key={isChannel ? "channel" : title}
         entering={FadeIn.duration(200)}
-        exiting={FadeOut.duration(200)}
         className="absolute"
       >
         <Avatar
