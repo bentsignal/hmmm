@@ -3,17 +3,16 @@ import { useId } from "react";
 import { Pressable } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
-import type { LiftMode } from "./row-touch";
 import type { Message } from "./types";
-import { impact, selectionTick } from "~/lib/native-extras";
+import { impact } from "~/lib/native-extras";
 import { wasLinkTap } from "./link-tap";
 import { LONG_PRESS_MS, useMessageActions } from "./message-actions";
 import {
-  liftRow,
   MenuPressContext,
   reportTouch,
   rowGestureBegan,
   RowIdContext,
+  rowTarget,
   touchedPart,
 } from "./row-touch";
 
@@ -25,20 +24,22 @@ const DOUBLE_TAP_MS = 200;
 /** A tap moving further than this is a drag (to reveal times), not a tap. */
 const TAP_SLOP = 10;
 
-/** Lifts what the row lifts (see `useRowTarget`), with its haptic. */
-function liftWhole(row: string, mode: LiftMode) {
-  if (mode === "actions") impact();
-  else selectionTick();
-  liftRow(row, mode);
+/** Opens the menu over what the row lifts (see `useRowTarget`). */
+function openRowMenu(row: string) {
+  const target = rowTarget(row);
+  if (target === undefined) return;
+  impact();
+  target.release();
+  target.lift();
 }
 
 /**
  * A message's row, across the screen and from the top of the sender's name
  * to the bottom of the message, which takes its taps, double taps, and
  * holds wherever they land: a tap opens the message's thread in a
- * conversation, a double tap lifts it with who reacted, and a hold lifts
- * it with its actions. On a part with its own menu (`MenuTargetView`), a
- * double tap lifts just that part, and a hold is the part's own. Parts
+ * conversation, and a double tap or a hold lifts it with its menu, the
+ * same either way. On a part with its own menu (`MenuTargetView`), a
+ * double tap lifts just that part, as a hold on it does. Parts
  * that are buttons of their own (a photo, a link card, the thread's count,
  * a reaction) keep their touches to themselves.
  *
@@ -66,8 +67,8 @@ export function MessageRowTarget({
     .onEnd((_, success) => {
       const part = touchedPart();
       if (!success || part === null) return;
-      if (part !== "row") part.openReactions();
-      else if (holdable) liftWhole(row, "reactions");
+      if (part !== "row") part.openMenu();
+      else if (holdable) openRowMenu(row);
     });
   const singleTap = Gesture.Tap()
     // A hold opens the menu instead.
@@ -83,10 +84,13 @@ export function MessageRowTarget({
   const press = {
     delayLongPress: LONG_PRESS_MS,
     onLongPress: () => {
-      if (holdable) liftWhole(row, "actions");
+      if (holdable) openRowMenu(row);
     },
-    onPressIn: () => reportTouch("row"),
-    onPressOut: () => undefined,
+    onPressIn: () => {
+      reportTouch("row");
+      if (holdable) rowTarget(row)?.pressIn();
+    },
+    onPressOut: () => rowTarget(row)?.release(),
   };
   return (
     <RowIdContext value={row}>

@@ -134,8 +134,10 @@ function Lifted({
   const card = target.shape === "card";
   const { scale, shift } = layout;
   // Its top corner on its side stays put, so it lines up with the bar and
-  // the actions however much it grows or shrinks.
-  const origin = `${target.align === "end" ? "right" : "left"} top`;
+  // the actions however much it grows or shrinks. One as wide as the
+  // conversation grows from its middle, staying on screen.
+  const corner = target.align === "end" ? "right" : "left";
+  const origin = `${layout.fromMiddle ? "center" : corner} top`;
   const style = useAnimatedStyle(() => ({
     shadowOpacity: clamp(progress.value, 0, 1) * 0.22,
     transform: [

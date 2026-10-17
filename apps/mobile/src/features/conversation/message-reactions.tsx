@@ -19,6 +19,7 @@ import {
   useIsLifted,
   useLiftMessage,
   useMessageActions,
+  useSqueeze,
 } from "./message-actions";
 import { ChipRow } from "./reaction-chips";
 import { useRowTarget } from "./row-touch";
@@ -165,26 +166,38 @@ function clearsName(nameEnd: number | undefined, left: number | undefined) {
 }
 
 /**
- * Opens who reacted to the whole message (see `useLiftMessage`), as its
- * tapbacks do. When `fromRow`, a hold or double tap beside its parts lifts
- * the whole message too.
+ * The whole message (see `useLiftMessage`): `openReactions` opens who
+ * reacted to it, as its tapbacks do. When `fromRow`, a hold or double tap
+ * beside its parts lifts it with its menu, squeezing it (`squeeze`, for
+ * its parts) while held.
  */
 function useWholeMessage(
   message: Parameters<typeof useLiftMessage>[0],
   fromRow: boolean,
 ) {
   const liftWhole = useLiftMessage(message);
-  useRowTarget(fromRow ? liftWhole : undefined);
-  return () => {
-    selectionTick();
-    liftWhole("reactions");
+  const squeeze = useSqueeze();
+  useRowTarget(
+    fromRow
+      ? {
+          lift: () => liftWhole("actions"),
+          pressIn: squeeze.pressIn,
+          release: squeeze.release,
+        }
+      : undefined,
+  );
+  return {
+    openReactions: () => {
+      selectionTick();
+      liftWhole("reactions");
+    },
+    squeeze: squeeze.style,
   };
 }
 
 /**
- * A message whose parts open the glass overlay on a long press, and its
- * reactions on a double tap (each wraps itself in `MenuTargetView` or uses
- * `useMenuTarget`). Its reactions show as iMessage tapbacks over the top
+ * A message whose parts open the glass overlay on a long press or a double
+ * tap (each wraps itself in `MenuTargetView` or uses `useMenuTarget`). Its reactions show as iMessage tapbacks over the top
  * corner (`tapbacks`, for bubbles), which show who reacted when tapped, or
  * as Slack's chips underneath (`chips`, for stacked rows), which add or
  * take back that reaction when tapped and show who reacted with it when
@@ -222,7 +235,7 @@ export function InteractiveMessage({
   const grows = useSeenWithout(reactions, message.reactions !== undefined);
   const lifted = useIsLifted(message.id);
   const body = useAnimatedRef<NativeView>();
-  const openReactions = useWholeMessage(
+  const whole = useWholeMessage(
     { align, measured: body, message, preview: children, shape },
     liftedFromRow === true,
   );
@@ -257,15 +270,17 @@ export function InteractiveMessage({
             placement.onBodyWidth(event.nativeEvent.layout.width)
           }
         >
-          <TopPartContext value={placement.onTopWidth}>
-            <MessageTargetProvider
-              message={message}
-              align={align}
-              shape={shape}
-            >
-              {children}
-            </MessageTargetProvider>
-          </TopPartContext>
+          <Animated.View style={whole.squeeze}>
+            <TopPartContext value={placement.onTopWidth}>
+              <MessageTargetProvider
+                message={message}
+                align={align}
+                shape={shape}
+              >
+                {children}
+              </MessageTargetProvider>
+            </TopPartContext>
+          </Animated.View>
           {/* After the bubble, so they draw over it on every platform. */}
           {reactionStyle === "tapbacks" && has && (
             <Tapbacks
@@ -274,7 +289,7 @@ export function InteractiveMessage({
               hidden={lifted}
               inset={placement.inset}
               onPlaced={placement.onPlaced}
-              onPress={openReactions}
+              onPress={whole.openReactions}
             />
           )}
         </View>

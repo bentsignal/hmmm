@@ -7,7 +7,7 @@ import type { useMenuTarget } from "./message-actions";
 export type LiftMode = MenuTarget["mode"];
 
 /** What a touch on a message's row landed on: the row, or a part's text. */
-export type TouchedPart = "row" | { readonly openReactions: () => void };
+export type TouchedPart = "row" | { readonly openMenu: () => void };
 
 /**
  * Where the latest touch landed, as the row or a part with its own menu
@@ -46,9 +46,15 @@ export function touchedPart() {
   return touch.part;
 }
 
-/** What a hold or double tap beside a message's parts lifts. */
-interface RowTarget {
-  readonly lift: (mode: LiftMode) => void;
+/**
+ * What a hold or double tap beside a message's parts lifts: the whole
+ * message for a bubble, the whole row for a stacked message. It squeezes
+ * while held, as the parts do.
+ */
+export interface RowTarget {
+  readonly lift: () => void;
+  readonly pressIn: () => void;
+  readonly release: () => void;
 }
 
 /** What each message row lifts, by the row's ID (see `useRowTarget`). */
@@ -58,26 +64,29 @@ const rowTargets = new Map<string, RowTarget>();
 export const RowIdContext = createContext<string | null>(null);
 
 /**
- * Makes `lift` what a hold or double tap across the message's row lifts:
- * the whole message for a bubble, the whole row for a stacked message.
- * Leaves it be when undefined.
+ * Makes `target` what a hold or double tap across the message's row
+ * lifts. Leaves it be when undefined.
  */
-export function useRowTarget(lift: ((mode: LiftMode) => void) | undefined) {
+export function useRowTarget(target: RowTarget | undefined) {
   const id = use(RowIdContext);
   useImperativeHandle(
-    lift === undefined || id === null
+    target === undefined || id === null
       ? null
-      : (target: RowTarget | null) => {
-          if (target === null) rowTargets.delete(id);
-          else rowTargets.set(id, target);
+      : (handle: RowTarget | null) => {
+          if (handle === null) rowTargets.delete(id);
+          else rowTargets.set(id, handle);
         },
-    () => ({ lift: (mode: LiftMode) => lift?.(mode) }),
+    () => ({
+      lift: () => target?.lift(),
+      pressIn: () => target?.pressIn(),
+      release: () => target?.release(),
+    }),
   );
 }
 
-/** Lifts what the row `id` lifts (see `useRowTarget`). */
-export function liftRow(id: string, mode: LiftMode) {
-  rowTargets.get(id)?.lift(mode);
+/** What the row `id` lifts (see `useRowTarget`), once it's registered. */
+export function rowTarget(id: string) {
+  return rowTargets.get(id);
 }
 
 export type MenuPress = NonNullable<ReturnType<typeof useMenuTarget>>["press"];

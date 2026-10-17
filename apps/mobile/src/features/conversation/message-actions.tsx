@@ -16,7 +16,7 @@ import type {
 } from "./glass-message-menu";
 import type { LiftMode } from "./row-touch";
 import type { Message, MessageAttachment } from "./types";
-import { impact, selectionTick } from "~/lib/native-extras";
+import { impact } from "~/lib/native-extras";
 import { GlassMessageMenu } from "./glass-message-menu";
 import { MenuPressContext, reportTouch } from "./row-touch";
 
@@ -183,14 +183,35 @@ export function useLiftMessage({
 }
 
 /**
+ * The squeeze while something is held, as iOS does: it shrinks a little
+ * toward the hold's length, and springs back as it lifts or is let go. Put
+ * `style` on what squeezes.
+ */
+export function useSqueeze() {
+  const scale = useSharedValue(1);
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+  return {
+    pressIn: () => {
+      scale.set(withTiming(PRESS_SCALE, { duration: LONG_PRESS_MS }));
+    },
+    release: () => {
+      scale.set(withSpring(1, RELEASE_SPRING));
+    },
+    style,
+  };
+}
+
+/**
  * Makes one part of a message (its text, an attachment, a link card) open
  * the message's glass overlay on a long press, lifting `preview`, a copy of
  * just this part, from where `measured` sits. So a message with several
  * parts never lifts taller than it needs to; reactions picked there go to
  * the whole message. Spread `press` on the Pressable `measured` refers to,
- * and put `style` (the squeeze while held) on the part. `openReactions`
- * lifts it with who reacted instead of the actions (a double tap). Null
- * outside a message, as in the lifted copy, where the part draws as is.
+ * and put `style` (the squeeze while held) on the part. `openMenu` opens
+ * it as a hold does (a double tap). Null outside a message, as in the
+ * lifted copy, where the part draws as is.
  */
 export function useMenuTarget({
   measured,
@@ -211,56 +232,43 @@ export function useMenuTarget({
 }) {
   const target = use(MessageTargetContext);
   const { open } = useMessageActions();
-  const scale = useSharedValue(1);
-  const style = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  const squeeze = useSqueeze();
   if (target === null) return null;
   const { message, align } = target;
   // A message still sending (or that failed) has no menu yet.
   const holdable = message.status === undefined;
-  function openAs(mode: MenuTarget["mode"]) {
+  function openMenu() {
+    if (!holdable) return;
+    impact();
+    squeeze.release();
     lift(open, measured, {
       align,
       attachment,
       link,
       message,
-      mode,
+      mode: "actions",
       preview,
       shape: shape ?? target?.shape ?? "plain",
     });
   }
   return {
+    openMenu,
     press: {
       delayLongPress: LONG_PRESS_MS,
-      onLongPress: () => {
-        if (!holdable) return;
-        impact();
-        scale.set(withSpring(1, RELEASE_SPRING));
-        openAs("actions");
-      },
+      onLongPress: openMenu,
       onPressIn: () => {
-        if (!holdable) return;
-        scale.set(withTiming(PRESS_SCALE, { duration: LONG_PRESS_MS }));
+        if (holdable) squeeze.pressIn();
       },
-      onPressOut: () => {
-        scale.set(withSpring(1, RELEASE_SPRING));
-      },
+      onPressOut: squeeze.release,
     },
-    /** Lifts the part with who reacted, as a double tap does. */
-    openReactions: () => {
-      if (!holdable) return;
-      selectionTick();
-      openAs("reactions");
-    },
-    style,
+    style: squeeze.style,
   };
 }
 
 /**
  * A part of a message that opens its menu on a long press, lifted as is.
- * Its taps are its row's (see `MessageRowTarget`): a double tap lifts this
- * part with who reacted, and in a conversation a single tap opens its
+ * Its taps are its row's (see `MessageRowTarget`): a double tap opens its
+ * menu as a hold does, and in a conversation a single tap opens its
  * thread.
  */
 export function MenuTargetView({
@@ -277,7 +285,7 @@ export function MenuTargetView({
   const press = {
     ...target.press,
     onPressIn: () => {
-      reportTouch({ openReactions: target.openReactions });
+      reportTouch({ openMenu: target.openMenu });
       target.press.onPressIn();
     },
   };

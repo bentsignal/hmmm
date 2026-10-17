@@ -13,7 +13,7 @@ import { AttachmentView } from "./attachment-view";
 import { AuthorLink } from "./author-link";
 import { LinkCards } from "./link-preview-card";
 import { LinkedText } from "./linked-text";
-import { useMessageActions } from "./message-actions";
+import { useMessageActions, useSqueeze } from "./message-actions";
 import { InteractiveMessage } from "./message-reactions";
 import { NotSent, SendingFade, SENT_FADE_MS } from "./message-status";
 import { linkCardsOf, visibleBody } from "./message-text";
@@ -165,8 +165,9 @@ function Lifted({
 
 /**
  * Lifts the row from the top of its photo and name to the bottom of the
- * message (not its thread's count or reactions) when it's held or double
- * tapped anywhere but on a photo or link card, which lift themselves.
+ * message (not its thread's count or reactions) with its menu when it's
+ * held or double tapped anywhere but on a photo or link card, which lift
+ * themselves, and squeezes it while held. Returns the squeeze's style.
  */
 function useLiftRow({
   message,
@@ -184,13 +185,18 @@ function useLiftRow({
   content: RefObject<View | null>;
 }) {
   const { open } = useMessageActions();
-  useRowTarget((mode) => {
-    row.current?.measureInWindow((x, y, width) => {
-      content.current?.measureInWindow((_x, top, _width, height) => {
+  const squeeze = useSqueeze();
+  function lift() {
+    const measured = row.current;
+    if (measured === null) return;
+    measured.measureInWindow((x, y, width) => {
+      // Where the message ends in the row, laid out: the squeeze inside
+      // the row doesn't move it.
+      content.current?.measureLayout(measured, (_x, top, _width, height) => {
         open({
           align: "start",
           message,
-          mode,
+          mode: "actions",
           preview: (
             <Lifted
               message={message}
@@ -198,12 +204,18 @@ function useLiftRow({
               startsGroup={startsGroup}
             />
           ),
-          rect: { height: top + height - y, width, x, y },
+          rect: { height: top + height, width, x, y },
           shape: "card",
         });
       });
     });
+  }
+  useRowTarget({
+    lift,
+    pressIn: squeeze.pressIn,
+    release: squeeze.release,
   });
+  return squeeze.style;
 }
 
 function StackedRow({
@@ -222,7 +234,7 @@ function StackedRow({
 }) {
   const row = useRef<View>(null);
   const content = useRef<View>(null);
-  useLiftRow({ author, content, message, row, startsGroup });
+  const squeeze = useLiftRow({ author, content, message, row, startsGroup });
   return (
     <View
       className={cn(
@@ -230,35 +242,37 @@ function StackedRow({
         card !== undefined || !startsGroup ? "pt-1.5" : "pt-5",
       )}
     >
-      <View ref={row} className="flex-row gap-3">
-        <AvatarSlot
-          message={message}
-          author={author}
-          startsGroup={startsGroup}
-        />
-        <View className="flex-1 gap-1">
-          {startsGroup && <NameLine message={message} author={author} />}
-          <InteractiveMessage
+      <View ref={row}>
+        <Animated.View className="flex-row gap-3" style={squeeze}>
+          <AvatarSlot
             message={message}
-            align="start"
-            shape="card"
-            reactionStyle="chips"
-          >
-            <View ref={content}>
-              <SendingFade status={message.status}>
-                <Content message={message} />
-              </SendingFade>
-            </View>
-            {/* Reactions go under the thread's count. */}
-            {card !== undefined && (
-              <ThreadFooter message={message} card={card} />
-            )}
-            {replies !== undefined && (
-              <RepliesFooter message={message} replies={replies} />
-            )}
-          </InteractiveMessage>
-          <NotSent message={message} />
-        </View>
+            author={author}
+            startsGroup={startsGroup}
+          />
+          <View className="flex-1 gap-1">
+            {startsGroup && <NameLine message={message} author={author} />}
+            <InteractiveMessage
+              message={message}
+              align="start"
+              shape="card"
+              reactionStyle="chips"
+            >
+              <View ref={content}>
+                <SendingFade status={message.status}>
+                  <Content message={message} />
+                </SendingFade>
+              </View>
+              {/* Reactions go under the thread's count. */}
+              {card !== undefined && (
+                <ThreadFooter message={message} card={card} />
+              )}
+              {replies !== undefined && (
+                <RepliesFooter message={message} replies={replies} />
+              )}
+            </InteractiveMessage>
+            <NotSent message={message} />
+          </View>
+        </Animated.View>
       </View>
     </View>
   );

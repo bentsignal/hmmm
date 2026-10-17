@@ -19,14 +19,18 @@ export const GAP = 10;
 export const EDGE = 12;
 /** How much the lifted element grows, where it has room to. */
 export const LIFT = 0.035;
+/** How near the screen's edges an element growing from its middle comes. */
+export const GROW_EDGE = 2;
 
 export interface MenuLayout {
   /**
-   * How much the element is scaled, from its top corner on its side: it
-   * grows a little as it lifts, or shrinks when it's too tall to leave room
-   * for the bar and the actions.
+   * How much the element is scaled, from its top corner on its side (or
+   * its top middle, when `fromMiddle`): it grows a little as it lifts, or
+   * shrinks when it's too tall to leave room for the bar and the actions.
    */
   readonly scale: number;
+  /** Whether it grows from its middle, being too wide to from its side. */
+  readonly fromMiddle: boolean;
   /** How far the element moves so the bar and actions fit on screen. */
   readonly shift: number;
   readonly barTop: number;
@@ -66,19 +70,29 @@ export function menuLayout({
     EDGE -
     (menu.height > 0 ? menu.height + GAP : 0);
   const room = Math.max(0, maxBottom - minTop);
-  // It grows no closer to the far edge than it sits to its own, so an
-  // element as wide as the conversation (a stacked row) stays on screen.
+  // Growing from its side, it would come nearer the far edge than it sits
+  // to its own. One too wide for that (a stacked row) grows from its
+  // middle instead, as far as the screen's edges allow.
   const margin =
     align === "end" ? screen.width - frame.x - frame.width : frame.x;
-  const fits = Math.max(
-    1,
-    (screen.width - margin * 2) / Math.max(1, frame.width),
+  const fromMiddle = frame.width * (1 + LIFT) > screen.width - margin * 2;
+  const middle = frame.x + frame.width / 2;
+  const widest = fromMiddle
+    ? (Math.min(middle, screen.width - middle) - GROW_EDGE) * 2
+    : Infinity;
+  const scale = Math.min(
+    1 + LIFT,
+    Math.max(1, widest / Math.max(1, frame.width)),
+    room / Math.max(1, frame.height),
   );
-  const scale = Math.min(1 + LIFT, fits, room / Math.max(1, frame.height));
   const height = frame.height * scale;
   const width = frame.width * scale;
   const top = Math.max(minTop, Math.min(frame.y, maxBottom - height));
-  const left = align === "end" ? frame.x + frame.width - width : frame.x;
+  const left = fromMiddle
+    ? middle - width / 2
+    : align === "end"
+      ? frame.x + frame.width - width
+      : frame.x;
   function side(itemWidth: number) {
     const x = align === "end" ? left + width - itemWidth : left;
     return Math.max(EDGE, Math.min(x, screen.width - itemWidth - EDGE));
@@ -86,6 +100,7 @@ export function menuLayout({
   return {
     barLeft: side(bar.width),
     barTop: top - GAP - bar.height,
+    fromMiddle,
     menuLeft: side(menu.width),
     menuTop: top + height + GAP,
     scale,
