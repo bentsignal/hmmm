@@ -11,4 +11,4 @@
 // with `pnpm release ota production "<notes>" --with-backend`, which
 // publishes the update seconds after the deploy (docs/releasing.md).
 
-export const BREAKING_VERSION = 2;
+export const BREAKING_VERSION = 3;
