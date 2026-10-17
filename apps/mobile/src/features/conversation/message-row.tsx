@@ -204,7 +204,6 @@ function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
           message={message}
           author={profileOf(message.authorId)}
           startsGroup={row.startsGroup}
-          endsGroup={row.endsGroup}
           card={card}
           replies={replies}
         />

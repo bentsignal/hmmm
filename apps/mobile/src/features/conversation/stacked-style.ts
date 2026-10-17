@@ -2,141 +2,183 @@ import { useSyncExternalStore } from "react";
 
 // Development only: variations on stacked rows to flip through in a
 // conversation (see `StackedStylePicker`), so Shawn can pick what reads
-// most clearly. The first is what ships; the rest change a few knobs each.
+// most clearly. The first is what ships; the rest build on the thread pill
+// and change how strongly each piece of text stands out.
+
+/** How a thread's count looks under a stacked row. */
+type ThreadLook = "blue-pill" | "bold-pill" | "link" | "outline-pill" | "pill";
 
 /** How a stacked conversation draws its rows. */
 export interface StackedStyle {
   readonly name: string;
   /** What it changes, under the name in the picker. */
   readonly note: string;
-  /** Space above a sender's first message (and a reply). */
-  readonly groupGap: number;
-  /** Space between one sender's messages. */
-  readonly messageGap: number;
+  /** The sender's name: today's semibold, or bold. */
+  readonly boldNames: boolean;
+  /** The sender's name: the text's color, or one of its own per person. */
+  readonly nameColor: "foreground" | "person";
+  /** The message text: full strength, or a shade softer than the name. */
+  readonly softText: boolean;
+  /** The time beside the name: gray, or fainter. */
+  readonly faintTime: boolean;
   /** The message text's line height, or the font's own. */
   readonly lineHeight?: number;
-  /** The sender's name: today's subhead, or body size. */
-  readonly bigNames: boolean;
-  /** The sender's photo: 36pt, or 40pt. */
-  readonly bigAvatar: boolean;
-  /** A hairline above each sender's group, under the photo column. */
-  readonly divider: boolean;
-  /** Each sender's group on a faint rounded card. */
-  readonly card: boolean;
-  /** Reactions: glass chips, or small flat ones. */
-  readonly chips: "flat" | "glass";
-  /** A thread's count: accent text, muted text, or a filled pill. */
-  readonly threadLink: "accent" | "muted" | "pill";
-  /**
-   * What a reply answers: the curve and line above the photo, or a
-   * quoted block under the name, inside the message.
-   */
-  readonly quote: "block" | "curve";
+  /** A thread's count: today's blue text, or a pill. */
+  readonly thread: ThreadLook;
 }
 
 const CURRENT = {
-  bigAvatar: false,
-  bigNames: false,
-  card: false,
-  chips: "glass",
-  divider: false,
-  groupGap: 20,
+  boldNames: false,
+  faintTime: false,
   lineHeight: undefined,
-  messageGap: 6,
   name: "Current",
+  nameColor: "foreground",
   note: "What ships today",
-  quote: "curve",
-  threadLink: "accent",
+  softText: false,
+  thread: "link",
+} satisfies StackedStyle;
+
+const PILL = {
+  ...CURRENT,
+  name: "Thread pill",
+  note: "A thread's replies as a button",
+  thread: "pill",
+} satisfies StackedStyle;
+
+const NAMES_FIRST = {
+  ...PILL,
+  boldNames: true,
+  faintTime: true,
+  softText: true,
 } satisfies StackedStyle;
 
 export const STACKED_STYLES = [
   CURRENT,
+  PILL,
+  { ...PILL, boldNames: true, name: "Bold names", note: "Pill, names in bold" },
   {
-    ...CURRENT,
-    groupGap: 32,
-    lineHeight: 23,
-    messageGap: 10,
-    name: "More room",
-    note: "Taller lines, more space between messages and senders",
+    ...PILL,
+    name: "Soft text",
+    note: "Pill, message text a shade softer than names",
+    softText: true,
   },
   {
-    ...CURRENT,
-    divider: true,
-    groupGap: 28,
+    ...PILL,
+    faintTime: true,
+    name: "Faint times",
+    note: "Pill, times fainter beside the name",
+  },
+  {
+    ...PILL,
+    name: "Colored names",
+    nameColor: "person",
+    note: "Pill, each person's name in their own color",
+  },
+  {
+    ...PILL,
+    name: "Blue pill",
+    note: "The pill tinted blue, with blue text",
+    thread: "blue-pill",
+  },
+  {
+    ...PILL,
+    name: "Bold pill",
+    note: "The pill bigger, its text bold",
+    thread: "bold-pill",
+  },
+  {
+    ...PILL,
+    name: "Outlined pill",
+    note: "The pill as an outline",
+    thread: "outline-pill",
+  },
+  {
+    ...NAMES_FIRST,
+    name: "Names first",
+    note: "Bold names, softer text, fainter times",
+  },
+  {
+    ...NAMES_FIRST,
+    name: "Names first, blue pill",
+    note: "Names first, with the blue pill",
+    thread: "blue-pill",
+  },
+  {
+    ...NAMES_FIRST,
+    name: "Names first, bold pill",
+    note: "Names first, with the bold pill",
+    thread: "bold-pill",
+  },
+  {
+    ...NAMES_FIRST,
+    name: "Colors first",
+    nameColor: "person",
+    note: "Colored bold names, softer text, fainter times",
+  },
+  {
+    ...NAMES_FIRST,
     lineHeight: 22,
-    name: "Rules",
-    note: "A hairline above each sender",
-  },
-  {
-    ...CURRENT,
-    chips: "flat",
-    name: "Quiet extras",
-    note: "Flat reactions, gray reply counts",
-    threadLink: "muted",
-  },
-  {
-    ...CURRENT,
-    name: "Quote inside",
-    note: "What a reply answers sits under the name",
-    quote: "block",
-  },
-  {
-    ...CURRENT,
-    name: "Thread pill",
-    note: "A thread's replies as a button",
-    threadLink: "pill",
-  },
-  {
-    ...CURRENT,
-    bigAvatar: true,
-    bigNames: true,
-    groupGap: 26,
-    lineHeight: 22,
-    name: "Strong names",
-    note: "Bigger names and photos",
-  },
-  {
-    ...CURRENT,
-    card: true,
-    chips: "flat",
-    groupGap: 10,
-    lineHeight: 22,
-    name: "Cards",
-    note: "Each sender's run on a card",
-  },
-  {
-    ...CURRENT,
-    chips: "flat",
-    groupGap: 30,
-    lineHeight: 23,
-    messageGap: 8,
-    name: "Mix",
-    note: "More room, quiet extras, quote inside, thread pill",
-    quote: "block",
-    threadLink: "pill",
-  },
-  {
-    ...CURRENT,
-    chips: "flat",
-    divider: true,
-    groupGap: 28,
-    lineHeight: 23,
-    messageGap: 8,
-    name: "Mix + rules",
-    note: "The mix, with a hairline above each sender",
-    quote: "block",
-    threadLink: "muted",
+    name: "Names first, taller lines",
+    note: "Names first, blue pill, more space between lines",
+    thread: "blue-pill",
   },
 ] satisfies readonly StackedStyle[];
 
-/** The photo column's width. */
-export function avatarColumn(style: StackedStyle) {
-  return style.bigAvatar ? 40 : 36;
-}
+/** The pill's background, text, and arrow, for each pill look. */
+export const PILL_LOOKS = {
+  "blue-pill": {
+    arrow: "accent-accent",
+    box: "bg-accent/15 py-1",
+    text: "text-footnote text-accent font-semibold",
+  },
+  "bold-pill": {
+    arrow: "accent-foreground",
+    box: "bg-fill py-1.5",
+    text: "text-subhead text-foreground font-bold",
+  },
+  "outline-pill": {
+    arrow: "accent-muted",
+    box: "border-separator border py-1",
+    text: "text-footnote text-foreground font-semibold",
+  },
+  pill: {
+    arrow: "accent-muted",
+    box: "bg-fill py-1",
+    text: "text-footnote text-foreground font-semibold",
+  },
+};
 
-/** The row's padding at either side. */
-export function rowInset(style: StackedStyle) {
-  return style.card ? 12 : 16;
+// iOS's system colors, in their high-contrast shades, so a name reads on
+// either background.
+const PERSON_COLORS = {
+  dark: [
+    "#ff6961",
+    "#ffb340",
+    "#30db5b",
+    "#70d7ff",
+    "#409cff",
+    "#7d7aff",
+    "#da8fff",
+    "#ff6482",
+  ],
+  light: [
+    "#d70015",
+    "#c93400",
+    "#248a3d",
+    "#0071a4",
+    "#0040dd",
+    "#3634a3",
+    "#8944ab",
+    "#d30f45",
+  ],
+};
+
+/** The same color for a person every time, from their address. */
+export function personColor(address: string, theme: string) {
+  let hash = 0;
+  for (const char of address) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  const colors = theme === "dark" ? PERSON_COLORS.dark : PERSON_COLORS.light;
+  return colors[hash % colors.length];
 }
 
 // In memory: it survives hot reloads, and a full reload starts over.

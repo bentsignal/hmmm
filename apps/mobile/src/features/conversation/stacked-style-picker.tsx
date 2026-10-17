@@ -82,7 +82,7 @@ function Picker() {
       <GestureDetector gesture={swipe}>
         <View className="bg-background-elevated border-separator flex-row items-center rounded-full border px-1 py-1 shadow-md">
           <Arrow by={-1} />
-          <View className="w-[220px] items-center">
+          <View className="w-[250px] items-center">
             <Text className="text-footnote text-foreground font-semibold">
               {index + 1}/{STACKED_STYLES.length} · {style.name}
             </Text>

@@ -6,7 +6,6 @@ import { Emoji } from "~/components/emoji";
 import { GlassSurface } from "~/components/glass-surface";
 import { cn } from "~/lib/cn";
 import { LONG_PRESS_MS } from "./message-actions";
-import { useStackedStyle } from "./stacked-style";
 
 /**
  * Reactions pop in when they arrive and shrink away when taken back. One
@@ -33,7 +32,6 @@ function Chip({
   onPress: () => void;
   onLongPress: () => void;
 }) {
-  const { chips } = useStackedStyle();
   return (
     <Animated.View entering={POP_IN} exiting={POP_OUT}>
       <Pressable
@@ -45,41 +43,22 @@ function Chip({
         delayLongPress={LONG_PRESS_MS}
         onLongPress={onLongPress}
       >
-        {chips === "flat" ? (
-          <View
+        <GlassSurface
+          isInteractive
+          tintColorClassName={reaction.mine ? "accent-accent/25" : undefined}
+          androidClassName={reaction.mine ? "bg-accent/20" : undefined}
+          className="h-[26px] flex-row items-center gap-1 rounded-full px-2"
+        >
+          <Emoji emoji={reaction.emoji} size={13} />
+          <Text
             className={cn(
-              "h-[24px] flex-row items-center gap-1 rounded-full px-1.5",
-              reaction.mine ? "bg-accent/20" : "bg-fill",
+              "text-footnote font-semibold",
+              reaction.mine ? "text-accent" : "text-muted",
             )}
           >
-            <Emoji emoji={reaction.emoji} size={12} />
-            <Text
-              className={cn(
-                "text-caption font-semibold",
-                reaction.mine ? "text-accent" : "text-muted",
-              )}
-            >
-              {reaction.count}
-            </Text>
-          </View>
-        ) : (
-          <GlassSurface
-            isInteractive
-            tintColorClassName={reaction.mine ? "accent-accent/25" : undefined}
-            androidClassName={reaction.mine ? "bg-accent/20" : undefined}
-            className="h-[26px] flex-row items-center gap-1 rounded-full px-2"
-          >
-            <Emoji emoji={reaction.emoji} size={13} />
-            <Text
-              className={cn(
-                "text-footnote font-semibold",
-                reaction.mine ? "text-accent" : "text-muted",
-              )}
-            >
-              {reaction.count}
-            </Text>
-          </GlassSurface>
-        )}
+            {reaction.count}
+          </Text>
+        </GlassSurface>
       </Pressable>
     </Animated.View>
   );

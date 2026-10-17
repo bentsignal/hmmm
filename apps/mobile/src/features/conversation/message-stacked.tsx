@@ -2,6 +2,7 @@ import type { RefObject } from "react";
 import { useRef } from "react";
 import { Text, View } from "react-native";
 import Animated from "react-native-reanimated";
+import { useUniwind } from "uniwind";
 
 import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
@@ -14,11 +15,12 @@ import { lastPart, partCount } from "./message-parts";
 import { InteractiveMessage } from "./message-reactions";
 import { NotSent, SendingFade, SENT_FADE_MS } from "./message-status";
 import { StillChips } from "./part-chips";
-import { QuoteBlock, QuoteLine } from "./reply-card";
+import { QuoteLine } from "./reply-card";
 import { useRowTarget } from "./row-touch";
-import { GroupFrame } from "./stacked-frame";
 import { StackedFooter, StackedParts } from "./stacked-parts";
-import { avatarColumn, rowInset, useStackedStyle } from "./stacked-style";
+import { personColor, useStackedStyle } from "./stacked-style";
+
+const AVATAR_COLUMN = 36;
 
 /**
  * Slack/Discord-style: everyone left-aligned with a photo and name. A
@@ -29,35 +31,21 @@ export function MessageStacked({
   message,
   author,
   startsGroup,
-  endsGroup,
   card,
   replies,
 }: {
   message: Message;
   author: { avatarUrl: string | null; displayName: string };
   startsGroup: boolean;
-  endsGroup: boolean;
   /** Set for a reply in the conversation. */
   card?: ReplyCard;
   /** Set for a thread's original in the conversation. */
   replies?: ThreadReplies;
 }) {
-  const style = useStackedStyle();
-  const quoteAbove = card !== undefined && style.quote === "curve";
   return (
-    <GroupFrame
-      opens={startsGroup || card !== undefined}
-      closes={endsGroup}
-      quoteAbove={quoteAbove}
-    >
-      {quoteAbove && (
-        <View style={{ paddingHorizontal: rowInset(style) }}>
-          <QuoteLine
-            message={message}
-            card={card}
-            avatarColumn={avatarColumn(style)}
-          />
-        </View>
+    <View>
+      {card !== undefined && (
+        <QuoteLine message={message} card={card} avatarColumn={AVATAR_COLUMN} />
       )}
       <StackedRow
         message={message}
@@ -66,7 +54,7 @@ export function MessageStacked({
         card={card}
         replies={replies}
       />
-    </GroupFrame>
+    </View>
   );
 }
 
@@ -85,20 +73,15 @@ function AvatarSlot({
   author: Author;
   startsGroup: boolean;
 }) {
-  const style = useStackedStyle();
   return (
-    <View style={{ width: avatarColumn(style) }}>
+    <View style={{ width: AVATAR_COLUMN }}>
       {startsGroup && (
         <AuthorLink
           address={message.authorId}
           name={author.displayName}
           repeated
         >
-          <Avatar
-            name={author.displayName}
-            size={style.bigAvatar ? "rowLarge" : "row"}
-            uri={author.avatarUrl}
-          />
+          <Avatar name={author.displayName} size="row" uri={author.avatarUrl} />
         </AuthorLink>
       )}
     </View>
@@ -107,15 +90,21 @@ function AvatarSlot({
 
 /** The sender's name and the time, above the first message of a run. */
 function NameLine({ message, author }: { message: Message; author: Author }) {
-  const { bigNames } = useStackedStyle();
+  const { boldNames, faintTime, nameColor } = useStackedStyle();
+  const { theme } = useUniwind();
   return (
     <View className="flex-row items-baseline gap-2">
       <AuthorLink address={message.authorId} name={author.displayName}>
         <Text
           className={cn(
-            "text-foreground font-semibold",
-            bigNames ? "text-body" : "text-subhead",
+            "text-subhead text-foreground",
+            boldNames ? "font-bold" : "font-semibold",
           )}
+          style={
+            nameColor === "person"
+              ? { color: personColor(message.authorId, theme) }
+              : undefined
+          }
         >
           {author.displayName}
         </Text>
@@ -123,7 +112,7 @@ function NameLine({ message, author }: { message: Message; author: Author }) {
       {/* Always laid out, so the name never shifts; it fades in once the
           message is sent. */}
       <Animated.Text
-        className="text-caption text-muted"
+        className={cn("text-caption", faintTime ? "text-subtle" : "text-muted")}
         style={{
           opacity: message.status === undefined ? 1 : 0,
           transitionDuration: SENT_FADE_MS,
@@ -146,22 +135,16 @@ function Lifted({
   message,
   author,
   startsGroup,
-  card,
 }: {
   message: Message;
   author: Author;
   startsGroup: boolean;
-  card?: ReplyCard;
 }) {
-  const { quote } = useStackedStyle();
   return (
     <View className="flex-row gap-3">
       <AvatarSlot message={message} author={author} startsGroup={startsGroup} />
       <View className="flex-1 gap-1">
         {startsGroup && <NameLine message={message} author={author} />}
-        {card !== undefined && quote === "block" && (
-          <QuoteBlock message={message} card={card} />
-        )}
         <StillChips
           reactions={message.reactions ?? []}
           chipsAtEnd={lastPart(message)}
@@ -186,14 +169,12 @@ function useLiftRow({
   message,
   author,
   startsGroup,
-  card,
   row,
   content,
 }: {
   message: Message;
   author: Author;
   startsGroup: boolean;
-  card?: ReplyCard;
   /** The row's photo and name, and its message, without the padding. */
   row: RefObject<View | null>;
   /** The message, whose bottom is the lifted row's. */
@@ -218,7 +199,6 @@ function useLiftRow({
               message={message}
               author={author}
               startsGroup={startsGroup}
-              card={card}
             />
           ),
           rect: { height: top + height, width, x, y },
@@ -250,24 +230,14 @@ function StackedRow({
 }) {
   const row = useRef<View>(null);
   const content = useRef<View>(null);
-  const style = useStackedStyle();
-  const squeeze = useLiftRow({
-    author,
-    card,
-    content,
-    message,
-    row,
-    startsGroup,
-  });
+  const squeeze = useLiftRow({ author, content, message, row, startsGroup });
   const chipsAtEnd = lastPart(message);
-  const quoteInside = card !== undefined && style.quote === "block";
   return (
     <View
-      style={{
-        paddingHorizontal: rowInset(style),
-        // Under the quote line above it.
-        paddingTop: card !== undefined && !quoteInside ? 6 : 0,
-      }}
+      className={cn(
+        "px-4",
+        card !== undefined || !startsGroup ? "pt-1.5" : "pt-5",
+      )}
     >
       <View ref={row}>
         <Animated.View className="flex-row gap-3" style={squeeze}>
@@ -278,7 +248,6 @@ function StackedRow({
           />
           <View className="flex-1 gap-1">
             {startsGroup && <NameLine message={message} author={author} />}
-            {quoteInside && <QuoteBlock message={message} card={card} />}
             <InteractiveMessage
               message={message}
               align="start"
