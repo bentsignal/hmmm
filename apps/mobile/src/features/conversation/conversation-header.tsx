@@ -135,7 +135,9 @@ function HeaderAvatar({
   const isChannel = kind === "channel" || title.startsWith("#");
   return (
     <View style={{ height: AVATAR, width: AVATAR }}>
-      <Avatar name="" size="header" />
+      {/* With the photo under the one fading in, so the blank circle's
+          gray stays inside its edge as `Avatar` keeps it, with no ring. */}
+      <Avatar name="" size="header" uri={avatarUrl} />
       <Animated.View
         key={isChannel ? "channel" : title}
         entering={FadeIn.duration(200)}
