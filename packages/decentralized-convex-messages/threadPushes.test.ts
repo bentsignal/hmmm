@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { setAlerts } from "./alerts.ts";
 import { listeners } from "./listeners.ts";
-import { GROUP, LEO, MAYA, ME, setup } from "./threadTesting.ts";
+import { GROUP, LEO, MAYA, ME, setup } from "./threads.testing.ts";
 
 /** Who hears about a stored message, and as what. */
 async function heardOf(
