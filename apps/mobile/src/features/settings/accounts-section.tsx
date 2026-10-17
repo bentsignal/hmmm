@@ -5,7 +5,6 @@ import { FieldGroup, Text } from "@expo/ui";
 import type { StoredAccount } from "~/features/session/account-store";
 import { Avatar } from "~/components/avatar";
 import { ListItem } from "~/components/list-item";
-import { SectionHeaderWithAdd } from "~/components/section-header";
 import { SymbolIcon } from "~/components/symbol-icon";
 import {
   AccountScope,
@@ -39,7 +38,7 @@ function AccountRow() {
       onPress={() =>
         router.push({
           params: { account: address, title: displayName },
-          pathname: "/settings/account",
+          pathname: "/more/account",
         })
       }
     >
@@ -87,21 +86,13 @@ function UnreachableAccountRow({ account }: { account: StoredAccount }) {
 
 /**
  * Every signed-in account, like the accounts list in a mail app, with any
- * whose server can't be reached at the end. The plus in the header adds
- * one, on the right where a thumb reaches it.
+ * whose server can't be reached at the end.
  */
 export function AccountsSection() {
-  const router = useRouter();
   const accounts = useAccounts();
   const { unreachable } = useSession();
   return (
     <FieldGroup.Section>
-      <FieldGroup.SectionHeader>
-        <SectionHeaderWithAdd
-          title="Accounts"
-          onAdd={() => router.push("/add-account")}
-        />
-      </FieldGroup.SectionHeader>
       {accounts.map((account) => (
         <AccountScope key={account.address} address={account.address}>
           <AccountRow />

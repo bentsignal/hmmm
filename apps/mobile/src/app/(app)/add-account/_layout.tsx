@@ -4,7 +4,7 @@ import { useFormScreenOptions } from "~/components/form-screen-options";
 
 export const unstable_settings = { anchor: "index" };
 
-/** Settings' "Add Account": the signed-out screens, in a modal. */
+/** Accounts' "Add Account": the signed-out screens, in a modal. */
 export default function AddAccountLayout() {
   const formScreen = useFormScreenOptions();
   return (
