@@ -56,6 +56,8 @@ Shawn starts each feature or fix in its own T3 Code worktree and thread
   (`scripts/phone.sh up`) only when he comes to test, and stop it
   (`scripts/phone.sh down`) as soon as he reports back, so one worktree
   serves his phone at a time.
+- When Shawn says to close it out, follow the `close-it-out` skill: it
+  merges, updates the dev backend if needed, and settles the thread.
 - Merge only after Shawn approves that PR in the thread ("merge it", "ship
   it", "approved"), with a merge commit, deleting the branch. Approval of
   one PR is not approval of another.
