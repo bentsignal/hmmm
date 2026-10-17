@@ -7,7 +7,8 @@ import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
 import { LinkCardView } from "./link-preview-card";
 import { LinkedText } from "./linked-text";
-import { linkPart } from "./message-parts";
+import { MenuTargetView } from "./message-actions";
+import { linkPart, partCount } from "./message-parts";
 import { linkCardsOf, visibleBody } from "./message-text";
 import { Placed, Reactable } from "./reaction-parts";
 import { RepliesFooter, ThreadFooter } from "./reply-card";
@@ -15,21 +16,30 @@ import { RepliesFooter, ThreadFooter } from "./reply-card";
 /**
  * A message's parts, top to bottom: its text, its attachments, and its
  * link cards (the first is the text's own when the text is all links).
- * Its thread's count goes after them. The text holds the row (see `MessageRowTarget`).
+ * Its thread's count goes after them. In a message of several parts, the
+ * text lifts on its own when held, as the others do; alone, it holds the
+ * whole row (see `MessageRowTarget`).
  */
 export function StackedParts({ message }: { message: Message }) {
   const body = visibleBody(message);
   const cards = linkCardsOf(message);
   const cardsPlace = message.attachments.length + 1;
+  const text = body !== undefined && (
+    <LinkedText
+      text={body}
+      mentions={message.mentions}
+      className="text-body text-foreground"
+    />
+  );
   return (
     <View className="items-start gap-1">
       {body !== undefined && (
         <Reactable part="message" place={0}>
-          <LinkedText
-            text={body}
-            mentions={message.mentions}
-            className="text-body text-foreground"
-          />
+          {partCount(message) > 1 ? (
+            <MenuTargetView>{text}</MenuTargetView>
+          ) : (
+            text
+          )}
         </Reactable>
       )}
       {message.attachments.map((attachment, index) => (

@@ -147,8 +147,9 @@ function Lifted({
  * message (not its thread's count or reactions) with its menu when it's
  * held or double tapped anywhere but on a photo or link card, which lift
  * themselves, and squeezes it while held. Reactions picked there go to the
- * message (its text). Beside a photo or link card of a message with
- * several parts, that part lifts instead. Returns the squeeze's style.
+ * message (its text). A message of several parts lifts whole only from
+ * its photo and name: its text lifts on its own, and beside a part, that
+ * part lifts. Returns the squeeze's style.
  */
 function useLiftRow({
   message,
