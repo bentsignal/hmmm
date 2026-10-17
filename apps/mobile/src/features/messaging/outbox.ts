@@ -47,13 +47,16 @@ export interface OutgoingMessage {
 
 /** Where a reply this device is sending goes. */
 export interface OutgoingReply {
-  /** The message it answers. */
+  /** Its thread: the thread's original. */
   readonly threadId: string;
-  /** What it quotes of that message, in its card in the conversation. */
+  /** The message it answers when that's a reply in the thread. */
+  readonly answers?: string;
+  /** What it quotes of the message it answers, in its card. */
   readonly quote: Quote;
   /**
-   * Whether it shows in the conversation too: the thread's first reply.
-   * It starts out as this device expects, and the PDS has the last word.
+   * Whether it shows in the conversation too: sent from there, rather
+   * than in the thread. The PDS has the last word (an older one shows
+   * only a thread's first reply there).
    */
   readonly inChat: boolean;
 }
@@ -215,15 +218,14 @@ async function send(
         // Undefined (left out) when empty: older servers don't take it.
         mentions: message.mentions,
         messageId,
-        threadId: message.reply?.threadId,
+        ...replyArgs(message.reply),
       }),
     )
     .then(
       (sent) => {
         update(messageId, (current) => ({
           ...current,
-          // Someone else's reply got there first: this one stays in the
-          // thread.
+          // Where the PDS put it (see `inChat`).
           reply:
             current.reply === undefined
               ? undefined
@@ -246,6 +248,15 @@ async function send(
       current.status === "sent" ? current : failed(current),
     );
   }
+}
+
+/** What `send` takes for a reply: the message it answers, and where it shows. */
+function replyArgs(reply: OutgoingReply | undefined) {
+  if (reply === undefined) return {};
+  return {
+    threadId: reply.answers ?? reply.threadId,
+    threadOnly: !reply.inChat,
+  };
 }
 
 /** Uploads whatever hasn't uploaded yet, then sends the message. */

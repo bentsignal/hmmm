@@ -102,7 +102,6 @@ function Conversation({
     composer,
     conversationId,
     profileOf,
-    threadOf: messages.threadOf,
     title: heading,
   });
   if (!isLoading && conversation === undefined) {

@@ -1,86 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { TestContext } from "node:test";
 
 import { activity } from "./activity.ts";
-import { setAlerts } from "./alerts.ts";
 import { badgeCount } from "./badges.ts";
-import { fakeCtx } from "./fakeCtx.ts";
-import { listeners } from "./listeners.ts";
-import { recordMentions } from "./mentions.ts";
 import { olderThan } from "./paging.ts";
 import { seeConversationActivity } from "./sightings.ts";
 import {
-  addReply,
   markThreadRead,
-  replyTo,
   setThreadFollowed,
   thread,
   threadState,
   threadSummaries,
 } from "./threads.ts";
+import { GROUP, LEO, MAYA, ME, NOW, setup } from "./threadTesting.ts";
 
-const ME = "me@vera.chat";
-const MAYA = "maya@vera.chat";
-const LEO = "leo@vera.chat";
-const GROUP = "group:vera.chat:1";
-const HOUR = 60 * 60 * 1000;
-const NOW = 30 * 24 * HOUR;
-
-function setup(t: TestContext) {
-  t.mock.timers.enable({ apis: ["Date"], now: NOW });
-  const fake = fakeCtx({
-    conversations: [
-      { conversationId: GROUP, createdBy: ME, kind: "group", updatedAt: 0 },
-    ],
-    members: [ME, MAYA, LEO].map((accountId) => ({
-      accountId,
-      conversationId: GROUP,
-      lastReadAt: 0,
-      muted: false,
-      role: "member",
-    })),
-  });
-  /**
-   * Stores a message as `send` does, a minute after the last one. (`send`
-   * itself schedules pushes, which these tests can't load.)
-   */
-  async function say(
-    author: string,
-    messageId: string,
-    threadId?: string,
-    mentions?: { accountId: string; name: string }[],
-  ) {
-    t.mock.timers.tick(60_000);
-    const sentAt = Date.now();
-    const reply =
-      threadId === undefined
-        ? undefined
-        : await replyTo(fake.ctx, GROUP, threadId);
-    const message = {
-      attachments: [],
-      authorId: author,
-      authorName: author,
-      body: `${messageId} from ${author}`,
-      conversationId: GROUP,
-      mentions,
-      messageId,
-      quote: reply?.quote,
-      sentAt,
-      threadId: reply?.threadId,
-      threadOnly: reply?.threadOnly,
-    };
-    await fake.ctx.db.insert("messages", message);
-    await recordMentions(fake.ctx, message);
-    if (reply !== undefined) {
-      await addReply(fake.ctx, { ...reply, authorId: author, sentAt });
-    }
-    return message;
-  }
-  return { ...fake, say };
-}
-
-void test("a thread's first reply shows in the conversation, later ones don't", async (t) => {
+void test("from older apps, only a thread's first reply shows in the conversation", async (t) => {
   const { ctx, say } = setup(t);
   await say(ME, "root");
   const first = await say(MAYA, "first", "root");
@@ -109,13 +43,48 @@ void test("a thread's first reply shows in the conversation, later ones don't", 
   );
 });
 
-void test("a reply to a reply goes to the original's thread", async (t) => {
+void test("the sender chooses whether a reply shows in the conversation", async (t) => {
+  const { ctx, say } = setup(t);
+  await say(ME, "root");
+  // Sent in the thread, even as its first reply: it stays there.
+  const kept = await say(MAYA, "kept", "root", { threadOnly: true });
+  // Sent from the conversation, though the thread has replies: it shows.
+  const shown = await say(LEO, "shown", "root", { threadOnly: false });
+  assert.equal(kept.threadOnly, true);
+  assert.equal(shown.threadOnly, undefined);
+
+  const chat = await olderThan(ctx, { conversationId: GROUP }, undefined);
+  assert.deepEqual(
+    chat.messages.map(({ messageId }) => messageId),
+    ["root", "shown"],
+  );
+  const page = await thread(ctx, ME, {
+    conversationId: GROUP,
+    threadId: "root",
+  });
+  assert.deepEqual(
+    page.page.messages.map(({ messageId }) => messageId),
+    ["kept", "shown"],
+  );
+  const { summaries } = await threadSummaries(ctx, ME, {
+    conversationId: GROUP,
+    messageIds: ["root"],
+  });
+  assert.equal(summaries[0]?.replyCount, 2);
+});
+
+void test("a reply to a reply goes to the original's thread, quoting the reply", async (t) => {
   const { say } = setup(t);
   await say(ME, "root");
   await say(MAYA, "first", "root");
   const nested = await say(LEO, "nested", "first");
   assert.equal(nested.threadId, "root");
   assert.equal(nested.threadOnly, true);
+  assert.deepEqual(nested.quote, {
+    attachment: undefined,
+    authorId: MAYA,
+    body: "first from maya@vera.chat",
+  });
 });
 
 void test("summarizes threads and tracks who's in them", async (t) => {
@@ -220,7 +189,9 @@ void test("a mention in a thread reply is its own item, seen in the thread", asy
   await say(ME, "root");
   await say(MAYA, "first", "root");
   await say(LEO, "plain", "root");
-  await say(LEO, "ping", "root", [{ accountId: ME, name: "Me" }]);
+  await say(LEO, "ping", "root", {
+    mentions: [{ accountId: ME, name: "Me" }],
+  });
   const shows = { mentions: true, threads: true };
   const items = await activity(ctx, ME, shows);
   const mention = items.find(({ kind }) => kind === "mention");
@@ -250,37 +221,4 @@ void test("a mention in a thread reply is its own item, seen in the thread", asy
     ({ kind }) => kind === "mention",
   );
   assert.notEqual(read?.seenThrough, undefined);
-});
-
-void test("a thread reply pushes to the thread and to whoever it mentions", async (t) => {
-  const { ctx, say } = setup(t);
-  await say(ME, "root");
-  await say(MAYA, "first", "root");
-  await say(MAYA, "ping", "root", [{ accountId: LEO, name: "Leo" }]);
-  const [message, conversation] = await Promise.all([
-    ctx.db
-      .query("messages")
-      .withIndex("by_message", (index) => index.eq("messageId", "ping"))
-      .unique(),
-    ctx.db
-      .query("conversations")
-      .withIndex("by_conversation", (index) =>
-        index.eq("conversationId", GROUP),
-      )
-      .unique(),
-  ]);
-  assert.ok(message !== null && conversation !== null);
-  const found = { conversation, message };
-  function heard() {
-    return listeners(ctx, found.message, found.conversation, [ME, MAYA, LEO]);
-  }
-  assert.deepEqual(await heard(), [
-    { accountId: ME, reply: "yours" },
-    { accountId: LEO, reply: "thread" },
-  ]);
-  // At mentions, the thread still reaches you; at none, nothing does.
-  await setAlerts(ctx, ME, { alerts: "mentions", conversationId: GROUP });
-  assert.equal((await heard()).length, 2);
-  await setAlerts(ctx, ME, { alerts: "none", conversationId: GROUP });
-  assert.deepEqual(await heard(), [{ accountId: LEO, reply: "thread" }]);
 });

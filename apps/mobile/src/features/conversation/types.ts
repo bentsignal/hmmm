@@ -51,24 +51,30 @@ export interface Message {
   reactions: readonly ReactionSummary[] | undefined;
   /** Set until the server confirms a message this device sent. */
   status?: "failed" | "sending";
-  /** A reply's thread: the ID of the message it answers. */
+  /** A reply's thread: the ID of its original. */
   threadId?: string;
   /**
    * What a reply shown in the conversation quotes of the message it
    * answers (its reply card). Left off in the thread itself.
    */
   quote?: Quote;
-  /** The message's thread, or a reply card's, once it has replies. */
+  /**
+   * The message's thread, or a reply card's, once it has replies. Left off
+   * in the thread itself, which counts its replies above them.
+   */
   thread?: ThreadInfo;
 }
 
 /**
- * The message the next one replies to from the conversation's field,
- * starting its thread. Kept with the draft, so only what the reply needs.
+ * The message the next one replies to from the conversation's field. The
+ * reply shows in the conversation, quoting it, and joins its thread. Kept
+ * with the draft, so only what the reply needs.
  */
 export interface ReplyTarget {
   readonly id: string;
   readonly quote: Quote;
+  /** The thread it joins when the message is a reply (threads are flat). */
+  readonly threadId?: string;
 }
 
 /** Someone joining or leaving a group, shown between its messages. */

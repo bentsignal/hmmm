@@ -41,7 +41,6 @@ export function FloatingComposer({
   onSend,
   replyingTo,
   onCancelReply,
-  autoFocus,
   placeholder,
 }: {
   ref?: Ref<ComposerHandle>;
@@ -55,8 +54,6 @@ export function FloatingComposer({
   /** Set while the next message is a reply (see `Composer`). */
   replyingTo?: ReplyingTo;
   onCancelReply?: () => void;
-  /** Opens with the keyboard up. */
-  autoFocus?: boolean;
   placeholder?: string;
 }) {
   const bottomInset = useComposerBottomInset();
@@ -129,7 +126,6 @@ export function FloatingComposer({
         onHeight={onHeight}
         replyingTo={replyingTo}
         onCancelReply={onCancelReply}
-        autoFocus={autoFocus}
         placeholder={placeholder}
         onChangeText={links.onChangeText}
         onPick={(source) => void pick(source)}

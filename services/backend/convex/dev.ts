@@ -163,6 +163,8 @@ export const say = internalAction({
         mentions: mention === undefined ? undefined : [mention],
         messageId: crypto.randomUUID(),
         threadId,
+        // Answered in the thread, so it stays there.
+        threadOnly: threadId === undefined ? undefined : true,
       },
       type: "send",
     });

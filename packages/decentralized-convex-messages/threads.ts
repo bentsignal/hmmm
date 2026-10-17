@@ -8,9 +8,9 @@ import { pageOf } from "./paging.ts";
 import { MAX_REACTION_MESSAGES, MAX_REPLIERS } from "./protocol.ts";
 import { recordSighting, seeMentions, threadKey } from "./sightings.ts";
 
-// Replies and threads. A reply is a message with `threadId`, the ID of the
-// message it answers (its original). Threads are flat. The first reply
-// shows in the conversation; later ones are `threadOnly`.
+// Replies and threads. A reply is a message with `threadId`, the ID of its
+// thread's original. Threads are flat. A reply sent from the conversation
+// shows there too; one sent in the thread is `threadOnly`.
 
 type Operations = (typeof messagesProtocol)["mutations"] &
   (typeof messagesProtocol)["queries"];
@@ -18,7 +18,7 @@ type Args<Operation extends keyof Operations> = OperationArgs<
   Operations[Operation]
 >;
 
-/** How much of the original's text a reply keeps in its quote. */
+/** How much of the answered message's text a reply keeps in its quote. */
 const QUOTE_LENGTH = 300;
 
 export function messageById(ctx: QueryCtx, messageId: string) {
@@ -56,11 +56,11 @@ export function threadMembers(ctx: QueryCtx, threadId: string) {
     .collect();
 }
 
-function quoteOf(original: Doc<"messages">): Quote {
+function quoteOf(answered: Doc<"messages">): Quote {
   return {
-    attachment: original.attachments[0],
-    authorId: original.authorId,
-    body: original.body.slice(0, QUOTE_LENGTH),
+    attachment: answered.attachments[0],
+    authorId: answered.authorId,
+    body: answered.body.slice(0, QUOTE_LENGTH),
   };
 }
 
@@ -84,23 +84,33 @@ async function originalOf(
 }
 
 /**
- * Where a new reply goes: its thread, its quote of the original, and
- * whether it stays in the thread (every reply after the first).
+ * Where a new reply to `threadId` goes: its original's thread, its quote
+ * of the message it answers (a reply, when it names one), and whether it
+ * stays in the thread. The sender says that with `threadOnly`; without it
+ * (older apps), only the thread's first reply shows in the conversation.
  */
 export async function replyTo(
   ctx: QueryCtx,
   conversationId: string,
   threadId: string,
+  threadOnly?: boolean,
 ) {
   const original = await originalOf(ctx, conversationId, threadId);
+  const answered =
+    original.messageId === threadId
+      ? original
+      : await messageById(ctx, threadId);
   const thread = await threadRow(ctx, original.messageId);
+  const staysInThread =
+    threadOnly ?? (thread !== null && thread.replyCount > 0);
   return {
     conversationId,
-    quote: quoteOf(original),
+    quote: quoteOf(answered ?? original),
     rootAuthorId: original.authorId,
     rootSentAt: original.sentAt,
     threadId: original.messageId,
-    threadOnly: thread !== null && thread.replyCount > 0 ? true : undefined,
+    // Left out, not false, for one shown in the conversation (`by_chat_sent`).
+    threadOnly: staysInThread ? true : undefined,
   };
 }
 

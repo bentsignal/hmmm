@@ -239,7 +239,6 @@ export function Composer({
   bottomInset,
   replyingTo,
   onCancelReply,
-  autoFocus = false,
   placeholder = "Message",
 }: {
   ref?: Ref<ComposerHandle>;
@@ -263,8 +262,6 @@ export function Composer({
   /** Set while the next message is a reply. */
   replyingTo?: ReplyingTo;
   onCancelReply?: () => void;
-  /** Opens with the keyboard up. */
-  autoFocus?: boolean;
   placeholder?: string;
 }) {
   const input = useRef<TextInput>(null);
@@ -317,7 +314,6 @@ export function Composer({
             value={draft}
             onChangeText={change}
             onSelectionChange={mention.onSelectionChange}
-            autoFocus={autoFocus}
             placeholder={staged.length > 0 ? "Add a message" : placeholder}
             accessibilityLabel="Message"
             // A message field never needs AutoFill suggestions.

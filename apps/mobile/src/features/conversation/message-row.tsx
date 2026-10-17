@@ -9,7 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import type { MessageRow } from "./build-rows";
-import type { ReplyCard } from "./reply-card";
+import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
 import type { MessageLayout } from "~/features/preferences/store";
 import { Arrive } from "./arrive";
@@ -144,19 +144,33 @@ function RowShell({
   return highlighted ? <Highlight>{children}</Highlight> : children;
 }
 
-/** What a thread's first reply shows around it in the conversation. */
+function personOf(address: string, profileOf: ProfileOf) {
+  return { address, ...profileOf(address) };
+}
+
+/** What a reply shows around it in the conversation. */
 function replyCard(message: Message, profileOf: ProfileOf) {
   if (message.quote === undefined) return undefined;
-  function person(address: string) {
-    return { address, ...profileOf(address) };
-  }
   const repliers = message.thread?.repliers ?? [];
   return {
     more: (message.thread?.replyCount ?? 1) - 1,
     quote: message.quote,
-    quoteAuthor: person(message.quote.authorId),
-    repliers: repliers.map(person),
+    quoteAuthor: personOf(message.quote.authorId, profileOf),
+    repliers: repliers.map((address) => personOf(address, profileOf)),
   } satisfies ReplyCard;
+}
+
+/** What a thread's original shows under it in the conversation. */
+function threadReplies(message: Message, profileOf: ProfileOf) {
+  if (message.threadId !== undefined || message.thread === undefined) {
+    return undefined;
+  }
+  return {
+    count: message.thread.replyCount,
+    repliers: message.thread.repliers.map((address) =>
+      personOf(address, profileOf),
+    ),
+  } satisfies ThreadReplies;
 }
 
 function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
@@ -181,6 +195,7 @@ function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
   }
   const { message } = row;
   const card = replyCard(message, profileOf);
+  const replies = threadReplies(message, profileOf);
   if (stacked) {
     return (
       <MessageStacked
@@ -188,6 +203,7 @@ function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
         author={profileOf(message.authorId)}
         startsGroup={row.startsGroup}
         card={card}
+        replies={replies}
       />
     );
   }
@@ -199,6 +215,7 @@ function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
       startsGroup={row.startsGroup}
       endsGroup={row.endsGroup}
       card={card}
+      replies={replies}
     />
   );
 }

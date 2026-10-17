@@ -74,6 +74,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   mentions?: Array<{ accountId: string; name: string }>;
                   messageId: string;
                   threadId?: string;
+                  threadOnly?: boolean;
                 };
                 type: "send";
               }

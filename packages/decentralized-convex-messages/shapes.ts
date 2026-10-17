@@ -111,17 +111,18 @@ export const message = v.object({
   /** Who it @mentions (absent when nobody, and from older PDSs). */
   mentions: v.optional(v.array(mention)),
   messageId: v.string(),
-  /** A reply's quote of the message it answers (see `threadId`). */
+  /** A reply's quote of the message it answers, which may be a reply. */
   quote: v.optional(quote),
   sentAt: v.number(),
   /**
-   * A reply's thread: the ID of the message it answers. Threads are flat,
-   * so this is never another reply's ID.
+   * A reply's thread: the ID of its original. Threads are flat, so this is
+   * never another reply's ID.
    */
   threadId: v.optional(v.string()),
   /**
-   * A reply after its thread's first, which stays in the thread: `list`
-   * leaves these out, so the conversation shows only each first reply.
+   * A reply that stays in its thread (sent there, or from an older app
+   * after the thread's first): `list` leaves these out, so the
+   * conversation shows only the replies sent from it.
    */
   threadOnly: v.optional(v.boolean()),
 });

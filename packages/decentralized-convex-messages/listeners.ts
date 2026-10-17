@@ -56,7 +56,7 @@ function hearsMessage(
 
 /**
  * What a member hears of a message in the conversation: a reply to their
- * message (a thread's first reply), the message, or (undefined) nothing.
+ * message, the message, or (undefined) nothing.
  */
 async function chatPush(
   ctx: QueryCtx,
@@ -131,12 +131,27 @@ async function threadListeners(
   return heard;
 }
 
+/** Each account in a reply's thread; none for a message that isn't one. */
+async function threadMembersOf(ctx: QueryCtx, message: Doc<"messages">) {
+  if (message.threadId === undefined) {
+    return new Map<string, Doc<"threadMembers">>();
+  }
+  return new Map(
+    (await threadMembers(ctx, message.threadId)).map((member) => [
+      member.accountId,
+      member,
+    ]),
+  );
+}
+
 /**
  * Who hears about a message, and as what. A message in the conversation
- * (a thread's first reply included) goes to the members it alerts; its
- * original's author hears of a first reply as a reply to their message
- * at any level but `none`, unless they turned those off. A reply kept in
- * its thread goes to the people in the thread (see `threadPush`).
+ * (a reply sent from there included) goes to the members it alerts; the
+ * author of the message a reply answers hears of it as a reply to their
+ * message at any level but `none`, unless they turned those off, and
+ * anyone else in its thread whom it doesn't alert hears of it as a thread
+ * reply. A reply kept in its thread goes to the people in the thread (see
+ * `threadPush`).
  */
 export async function listeners(
   ctx: QueryCtx,
@@ -147,10 +162,16 @@ export async function listeners(
   if (message.threadOnly === true && message.threadId !== undefined) {
     return threadListeners(ctx, message, message.threadId, members);
   }
+  const inThread = await threadMembersOf(ctx, message);
   const heard = new Array<Listener>();
   for (const accountId of members) {
     if (accountId === message.authorId) continue;
-    const reply = await chatPush(ctx, message, conversation, accountId);
+    const asMessage = await chatPush(ctx, message, conversation, accountId);
+    const member = inThread.get(accountId);
+    const reply =
+      asMessage === undefined && member !== undefined
+        ? await threadPush(ctx, message, accountId, member)
+        : asMessage;
     if (reply !== undefined) heard.push({ accountId, reply });
   }
   return heard;

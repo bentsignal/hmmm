@@ -53,9 +53,12 @@ export const messagesProtocol = definePluginProtocol({
       returns: v.null(),
     }),
     /**
-     * With `threadId`, a reply in that message's thread (a reply's own
-     * thread when it names a reply). The thread's first reply also shows
-     * in the conversation; later ones come back with `threadOnly`.
+     * With `threadId`, a reply to that message, in its thread (a reply's
+     * own thread when it names a reply), quoting it. `threadOnly: true`
+     * keeps it in the thread (sent from there); `false` shows it in the
+     * conversation too (sent from there). Left out, as older apps do, only
+     * the thread's first reply shows in the conversation. Replies kept in
+     * the thread come back with `threadOnly`.
      * `mentions` names who the body @mentions by the name after each `@`;
      * any not in the group or channel, or not in the body, is left out.
      */
@@ -67,6 +70,7 @@ export const messagesProtocol = definePluginProtocol({
         mentions: v.optional(v.array(mention)),
         messageId: v.string(),
         threadId: v.optional(v.string()),
+        threadOnly: v.optional(v.boolean()),
       }),
       returns: message,
     }),

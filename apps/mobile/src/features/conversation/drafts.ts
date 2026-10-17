@@ -192,7 +192,7 @@ function replyToFrom(stored: unknown) {
   const id = stringIn(stored, "id");
   const quote = quoteFrom(Reflect.get(stored, "quote"));
   if (id === undefined || quote === undefined) return undefined;
-  return { id, quote } satisfies ReplyTarget;
+  return { id, quote, threadId: stringIn(stored, "threadId") };
 }
 
 /** A draft with nothing in it, which isn't kept. */
