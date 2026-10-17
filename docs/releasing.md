@@ -63,6 +63,21 @@ Fingerprints differ between macOS and Linux. Builds and updates both run on
 Shawn's Mac, so they match. CI's "📱 Native Change" label compares the PR's
 base and head on Linux, which is consistent within that one run.
 
+### When an update goes in
+
+The app checks for an update on every launch and every return from the
+background, and downloads it without showing anything
+(`apps/mobile/src/features/updates`). If the download finishes within about
+3 seconds of opening, the app restarts into it behind a splash-colored
+screen and reopens on the screen it was on. It doesn't restart while a
+message is sending or failed, or a change is still on its way to a server,
+since a restart would lose them. A slower download waits for the next open,
+and a launch always starts on the newest downloaded update. So an app left
+in the background through a release picks up the update as it comes back,
+instead of running old code against the new backend. An app still running
+code from before this (the 2026-10-16 update and earlier) takes two
+launches to get its next update: one to download it, one to run it.
+
 ## Release history in git
 
 Every release is an annotated tag on the commit it shipped, with the runtime
@@ -119,8 +134,9 @@ the release a PR removes the finished steps.
      (`pnpm release backend production`). Old app versions keep talking to
      it, so backend changes must stay compatible with them.
    - OTA: `pnpm release ota production "<notes>"`. TestFlight and App Store
-     users get it on the next launch, Shawn included, so his check of the
-     real app comes after it's out; a bad update is rolled back.
+     users get it the next time they open the app, Shawn included, so his
+     check of the real app comes after it's out; a bad update is rolled
+     back.
    - Store: `pnpm release build production` (release Xcode, uploads to App
      Store Connect), then `pnpm release testflight <build> <notes.md>`. The
      Team group gets the build at once; Friends get it after Beta App
