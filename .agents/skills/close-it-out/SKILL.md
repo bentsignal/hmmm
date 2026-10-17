@@ -1,6 +1,6 @@
 ---
 name: close-it-out
-description: Finish a piece of work in its worktree once Shawn is happy with it, covering merging its PR, tearing down an isolated backend, pushing main's backend to the shared dev deployment when the backend changed, stopping devices and dev servers, and settling the T3 Code thread. Use when Shawn says to close it out, wrap it up, finish up, or close out a piece of work.
+description: Finish a piece of work in its worktree once Shawn is happy with it, covering merging its PR, tearing down an isolated backend, pushing main's backend to the shared dev deployment when the backend changed, stopping devices and dev servers, and settling the T3 Code thread. Use when Shawn says to close it out, wrap it up, or finish up a piece of work, or approves its PR to merge ("merge it", "ship it", "approved").
 ---
 
 # Close it out
@@ -11,12 +11,18 @@ and nothing else. Do each step that applies, in order, without asking.
 
 ## 1. Stop what's running
 
+The dev server has been up since the work was ready to test. Bring it and
+every device down, then check nothing is left:
+
 ```sh
-scripts/phone.sh down        # if it's serving his phone
-scripts/sim.sh down          # and --android down, if either is up
+scripts/phone.sh down; scripts/phone.sh --android down
+scripts/sim.sh down; scripts/sim.sh --android down
+scripts/sim.sh status        # ios: none, android: none, metro: stopped
 ```
 
-Close any device in T3's Device panel (`device_close`).
+If this worktree had its own dev client, `phone.sh down` prints main's
+install link: send it so Shawn can put main's dev client back. Close any
+device in T3's Device panel (`device_close`).
 
 ## 2. Check the PR is ready
 
