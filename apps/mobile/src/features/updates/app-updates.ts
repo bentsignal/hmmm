@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { AppState } from "react-native";
+import { AppState, Keyboard } from "react-native";
 import { File, Paths } from "expo-file-system";
 import { useNavigationContainerRef } from "expo-router";
 import * as Updates from "expo-updates";
@@ -10,28 +10,39 @@ import { hasUnsentMessages } from "~/features/messaging/outbox";
 import { queryClient } from "~/features/session/account-session";
 import { canRestartForUpdate } from "./restart-policy";
 
-// Over-the-air updates go in as the app opens, so nobody keeps running old
-// code against a newer backend. Every launch and every return from the
-// background checks for one and downloads it, showing nothing. When it's
-// ready while the app is still opening (`OPEN_WINDOW_MS`), the app restarts
-// into it behind a screen like the splash and reopens on the same screen. A
-// slower download waits for the next open, or the next launch, which starts
-// on the newest downloaded update by itself.
+// Over-the-air updates go in as soon as they can without interrupting
+// anyone, so nobody keeps running old code against a newer backend. Every
+// launch and every return from the background checks for one, and so does
+// every minute in the foreground; it downloads without showing anything.
+// The app then restarts into it behind a screen like the splash and reopens
+// on the same screen: at once while it's still opening, otherwise at the
+// first quiet moment (see `restart-policy.ts`).
 
 type NavigationRef = ReturnType<typeof useNavigationContainerRef>;
 type RootState = NonNullable<Parameters<NavigationRef["resetRoot"]>[0]>;
 
+/** How often an app in the foreground checks for an update. */
+const CHECK_EVERY_MS = 60_000;
+/** How often the foreground timer runs: checks, and watching for a pause. */
+const TICK_MS = 1_000;
 /** A screen saved longer ago than this belongs to some other restart. */
 const RESTORE_WITHIN_MS = 30_000;
 /** How long to wait for the navigator to mount before giving up on it. */
 const RESTORE_FRAMES = 60;
 
 let openedAt = Date.now();
+let touchedAt = openedAt;
+let checkedAt = 0;
 let checking = false;
 let downloaded = false;
+let restarting = false;
+let ticker: ReturnType<typeof setInterval> | undefined;
 let navigation: NavigationRef | undefined;
 
-/** Checks for updates on launch and on every return from the background. */
+/**
+ * Checks for updates on launch, on every return from the background, and
+ * every minute in the foreground.
+ */
 export function installAppUpdates() {
   if (__DEV__ || !Updates.isEnabled) return;
   // "inactive" (Control Center, Face ID, a system alert) isn't an open; only
@@ -39,23 +50,42 @@ export function installAppUpdates() {
   // notification, waits for the app to open too.
   let wasInBackground = AppState.currentState === "background";
   AppState.addEventListener("change", (state) => {
-    if (state === "background") wasInBackground = true;
+    if (state === "background") {
+      wasInBackground = true;
+      clearInterval(ticker);
+      ticker = undefined;
+    }
     if (state !== "active" || !wasInBackground) return;
     wasInBackground = false;
-    void onOpen();
+    onOpen();
   });
-  if (!wasInBackground) void onOpen();
+  if (!wasInBackground) onOpen();
 }
 
-async function onOpen() {
+/** Marks the screen as in use; the root view calls it on every touch. */
+export function noteTouch() {
+  touchedAt = Date.now();
+}
+
+function onOpen() {
   openedAt = Date.now();
-  if (!downloaded) {
-    if (checking) return;
-    checking = true;
-    // Offline, or the update server is down: the next open tries again.
-    downloaded = await download().catch(() => false);
-    checking = false;
-  }
+  touchedAt = openedAt;
+  ticker ??= setInterval(tick, TICK_MS);
+  void (downloaded ? restartIfUnnoticed() : check());
+}
+
+function tick() {
+  if (downloaded) void restartIfUnnoticed();
+  else if (Date.now() - checkedAt >= CHECK_EVERY_MS) void check();
+}
+
+async function check() {
+  if (checking) return;
+  checking = true;
+  checkedAt = Date.now();
+  // Offline, or the update server is down: the next check tries again.
+  downloaded = await download().catch(() => false);
+  checking = false;
   if (downloaded) await restartIfUnnoticed();
 }
 
@@ -63,8 +93,8 @@ async function onOpen() {
 async function download() {
   // At launch this waits for the update the native side is already
   // downloading, then finds it on disk.
-  const check = await Updates.checkForUpdateAsync();
-  if (!check.isAvailable && !check.isRollBackToEmbedded) return false;
+  const update = await Updates.checkForUpdateAsync();
+  if (!update.isAvailable && !update.isRollBackToEmbedded) return false;
   const fetched = await Updates.fetchUpdateAsync();
   return fetched.isNew || fetched.isRollBackToEmbedded;
 }
@@ -73,12 +103,16 @@ async function restartIfUnnoticed() {
   const now = Date.now();
   const ready = canRestartForUpdate({
     active: AppState.currentState === "active",
+    keyboardVisible: Keyboard.isVisible(),
     now,
     openedAt,
     pendingMutations: queryClient.isMutating(),
+    touchedAt,
     unsentMessages: hasUnsentMessages(),
+    viewingMedia: focusedScreen() === "media",
   });
-  if (!ready) return;
+  if (!ready || restarting) return;
+  restarting = true;
   saveDraftsNow();
   saveScreen(now);
   try {
@@ -92,7 +126,8 @@ async function restartIfUnnoticed() {
       },
     });
   } catch {
-    // The update goes in on the next launch instead.
+    // The update goes in on the next launch instead; `restarting` stays set
+    // so this launch doesn't keep trying.
     forgetScreen();
   }
 }
@@ -132,6 +167,20 @@ function partialState(state: Navigated): Navigated {
       state: route.state && partialState(route.state),
     })),
   };
+}
+
+/** The name of the screen in front, at the end of the focused routes. */
+function focusedScreen() {
+  if (navigation?.isReady() !== true) return undefined;
+  return focusedIn(navigation.getRootState());
+}
+
+function focusedIn(root: Navigated) {
+  let route = root.routes[root.index ?? 0];
+  while (route?.state !== undefined) {
+    route = route.state.routes[route.state.index ?? 0];
+  }
+  return route?.name;
 }
 
 function saveScreen(now: number) {

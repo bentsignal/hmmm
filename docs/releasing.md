@@ -65,18 +65,23 @@ base and head on Linux, which is consistent within that one run.
 
 ### When an update goes in
 
-The app checks for an update on every launch and every return from the
-background, and downloads it without showing anything
-(`apps/mobile/src/features/updates`). If the download finishes within about
-3 seconds of opening, the app restarts into it behind a splash-colored
-screen and reopens on the screen it was on. It doesn't restart while a
-message is sending or failed, or a change is still on its way to a server,
-since a restart would lose them. A slower download waits for the next open,
-and a launch always starts on the newest downloaded update. So an app left
-in the background through a release picks up the update as it comes back,
-instead of running old code against the new backend. An app still running
-code from before this (the 2026-10-16 update and earlier) takes two
-launches to get its next update: one to download it, one to run it.
+The app checks for an update on every launch, every return from the
+background, and every minute in the foreground, and downloads it without
+showing anything (`apps/mobile/src/features/updates`). Then it restarts into
+it behind a splash-colored screen and reopens on the screen it was on:
+
+- at once, if the update is ready within about 3 seconds of opening;
+- otherwise at the first quiet moment: 10 seconds with no touches, the
+  keyboard down, and no photo or video open. Someone typing, scrolling, or
+  watching a video is never interrupted; someone reading sees a blink.
+
+It never restarts while a message is sending or failed, or a change is still
+on its way to a server, since a restart would lose them. A launch always
+starts on the newest downloaded update. So within about a minute of an
+update going out, every open app has it, and nobody keeps running old code
+against a new backend for long. Backend changes still have to stay
+compatible with the app version before them: the production deploy comes
+first, so open apps run the old code against it until their update lands.
 
 ## Release history in git
 

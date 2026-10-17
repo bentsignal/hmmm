@@ -146,8 +146,8 @@ current runtime, and says which it skipped.
 Shawn's TestFlight app gets an OTA at the same moment as everyone else, so
 his check of the real app happens after it's out. Tell him it's live and
 ask him to open Vera, or switch back to it: it restarts into the update
-within a few seconds of opening (see `docs/releasing.md` → When an update
-goes in). If something is wrong, roll back (below).
+within a few seconds of opening, and an app left open gets it within about a
+minute, at a pause (see `docs/releasing.md` → When an update goes in). If something is wrong, roll back (below).
 
 **Store build (iOS):**
 

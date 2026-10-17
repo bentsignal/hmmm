@@ -17,6 +17,7 @@ import {
 } from "~/features/session/session-provider";
 import {
   installAppUpdates,
+  noteTouch,
   UpdateNavigation,
 } from "~/features/updates/app-updates";
 
@@ -61,7 +62,7 @@ function Navigator() {
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }} onTouchStart={noteTouch}>
       <ThemeProvider value={useNavigationTheme()}>
         <KeyboardProvider>
           <QueryClientProvider client={queryClient}>
