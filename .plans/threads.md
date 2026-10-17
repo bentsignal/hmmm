@@ -1,9 +1,13 @@
 # Replies and threads (decided with Shawn, 2026-10-16)
 
-Slack's model, with one change: a thread's first reply also shows in the
-conversation, so people see that a thread started. Threads are flat (a
-reply belongs to its thread, never to another reply) and work in DMs,
-groups, and channels alike.
+Slack's model, with one change: where you reply decides where the reply
+shows. Reply from the conversation (long-press or double-tap, then Reply)
+and it shows in the conversation, quoting the message, and joins that
+message's thread. Reply in the thread and it stays there. There is no "also
+send to the conversation" checkbox. Threads are flat (a reply belongs to
+its thread, never to another reply) and work in DMs, groups, and channels
+alike. (Revised with Shawn, 2026-10-16: at first only a thread's first
+reply showed in the conversation, whichever way it was sent.)
 
 ## Starting and opening a thread
 
@@ -12,26 +16,29 @@ groups, and channels alike.
   Tapping a reply opens the thread it belongs to. Photos, videos, and
   links keep their own taps. A single tap waits 200ms to rule out a
   double tap (which still shows reactions).
-- **Reply** is the first action in the long-press menu.
-  - On a message with no replies yet, it replies from the conversation: a
-    "Replying to …" bar sits over the composer, and the sent reply shows in
-    the conversation as a reply card.
-  - On a message that already has a thread, or on a reply, it opens the
-    thread page with the keyboard up.
+- **Reply** is the first action in the long-press menu. It always replies
+  from the conversation: a "Replying to …" bar sits over the composer, and
+  the sent reply shows in the conversation as a reply card, even when the
+  message's thread already has replies. Several people replying this way
+  each get their own card; all of them join the message's one thread.
+  - On a reply, it quotes that reply and joins the thread it's in.
   - The thread page has no Reply action: everything there replies to the
-    thread.
+    thread, and stays there, even a thread's first reply.
 - No "also send to the conversation" option.
 
 ## In the conversation
 
-- A thread's **first reply** shows in the conversation as a **reply card**:
-  the original message, small, with a curve from under its bottom-left
-  corner down to the reply. Tapping it opens the thread.
-- Later replies stay in the thread. The card counts them ("4 more
-  replies"); nothing new is added to the bottom of the conversation, and
-  the conversation doesn't move up the Inbox or gain unread messages.
-- If two people send a first reply at the same moment, whichever the PDS
-  stores first is the one in the conversation.
+- A reply sent from the conversation shows there as a **reply card**: the
+  message it answers, small, with a curve from under its bottom-left
+  corner down to the reply, and how many other replies its thread has
+  ("View 4 more replies"). Tapping it opens the thread.
+- A thread's **original** shows its count under it ("5 replies", with the
+  newest repliers' photos), Slack-style, whenever it has replies, so a
+  thread started on the thread page shows in the conversation too.
+  Tapping it opens the thread.
+- Replies sent in the thread stay there: nothing new is added to the
+  bottom of the conversation, and the conversation doesn't move up the
+  Inbox or gain unread messages.
 
 ## Who's in a thread
 
@@ -44,13 +51,15 @@ groups, and channels alike.
 - Settings → Notifications gets **Replies to Your Messages** and **Thread
   Replies**. The original message's author hears about replies through
   the first; everyone else in the thread through the second.
-- The first reply is also a message in the conversation. Its author's
-  original gets "Replied to your message" (or, with that switch off, the
-  usual message push); everyone else gets the usual message push.
+- A reply sent from the conversation is also a message there. The author
+  of the message it answers gets "Replied to your message" (or, with that
+  switch off, the usual message push); everyone else gets the usual
+  message push, and anyone in the thread whom the conversation doesn't
+  alert (say, at Mentions) hears of it as a thread reply.
 - A muted conversation (or space) silences its threads too. They still
   show in Activity.
-- Activity has one row per thread with new replies (the replies after the
-  first, which shows as a message in the conversation's row). It opens the
+- Activity has one row per thread with new replies (the ones kept in the
+  thread; those sent from the conversation show in its row). It opens the
   thread and counts toward the badge. Opening the thread sees it.
 - A thread push opens the thread. Pushes carry the original message's ID
   as `messageId`, so apps from before threads open the conversation there.
@@ -73,7 +82,7 @@ groups, and channels alike.
   the conversation, the original's first line, and "4 replies · Leo:
   latest reply". It opens the thread. Unread shows threads with unread
   replies (others' replies after your thread `lastReadAt`, leaving out
-  the first, which is read in the conversation). Long-press offers Open
+  those sent from the conversation, which are read there). Long-press offers Open
   Conversation, Mark as Read, and Unfollow Thread.
 - The Inbox lists only threads **you're in** with the bell on. Turning a
   thread's bell off takes it out of the Inbox and out of Yours (as it
@@ -97,11 +106,18 @@ groups, and channels alike.
 
 ## How it works
 
-- A reply is a message with `threadId` (its original's ID). The PDS sets
-  `threadOnly` on every reply after the first; `list`, unread counts, the
-  Inbox's last message, and Activity's message rows leave those out
-  (`by_chat_sent`). A reply also stores a `quote` of its original (author,
-  text, first attachment) for the card.
+- A reply is a message with `threadId` (its original's ID). `send` takes
+  `threadOnly` from the app: true from the thread page, false from the
+  conversation. Without it (apps from before this), the PDS sets
+  `threadOnly` on every reply after the thread's first. `list`, unread
+  counts, the Inbox's last message, and Activity's message rows leave
+  `threadOnly` replies out (`by_chat_sent`). A reply also stores a `quote`
+  of the message it answers (author, text, first attachment) for the card:
+  `send`'s `threadId` may name a reply, which is quoted while the reply
+  joins its original's thread.
+- Apps from before this show a thread only through its first reply's card,
+  so a thread started on the thread page doesn't show in their
+  conversation.
 - `threads` holds each thread's reply count and newest reply on the PDS;
   `threadMembers` holds each account's place in a thread: read state,
   newest reply, and whether they turned its bell off.
@@ -116,5 +132,5 @@ groups, and channels alike.
   (`by_account_reply`) from their home PDS, like the inbox.
 - Like messages and reactions, replies live on their author's home PDS.
   With one production server the PDS sees every reply; with federation,
-  the first-reply check and thread membership only see the PDS's own
-  replies.
+  thread membership (and older apps' first-reply check) only see the PDS's
+  own replies.

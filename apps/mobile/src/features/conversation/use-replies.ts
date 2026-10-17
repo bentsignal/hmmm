@@ -4,24 +4,23 @@ import { useRouter } from "expo-router";
 
 import type { ComposerHandle } from "./composer";
 import type { ProfileOf } from "./message-row";
-import type { Message, ReplyTarget, ThreadInfo } from "./types";
+import type { Message, ReplyTarget } from "./types";
 import { useAccount } from "~/features/messaging/account";
 import { quoteOf } from "~/features/messaging/messages";
 import { draftKey, readDraft, saveDraftReply } from "./drafts";
 import { quoteText } from "./reply-parts";
 
 /**
- * Replying from a conversation. A tap opens a message's thread. Reply
- * starts a message's thread from the conversation's own field ("Replying
- * to …" over it) while it has no replies; once it has (or on a reply), it
- * opens the thread with the keyboard up. The reply is kept with the
- * conversation's draft, like its text.
+ * Replying from a conversation. A tap opens a message's thread, where
+ * replies stay. Reply answers a message from the conversation's own field
+ * ("Replying to …" over it): the reply shows in the conversation and joins
+ * the message's thread (a reply's own, since threads are flat). The reply
+ * is kept with the conversation's draft, like its text.
  */
 export function useReplies({
   composer,
   conversationId,
   title,
-  threadOf,
   profileOf,
 }: {
   /** The conversation's field, which takes the reply. */
@@ -29,7 +28,6 @@ export function useReplies({
   conversationId: string;
   /** The conversation's name, which the thread shows until it loads. */
   title: string;
-  threadOf: (id: string) => ThreadInfo | undefined;
   profileOf: ProfileOf;
 }) {
   const router = useRouter();
@@ -43,13 +41,12 @@ export function useReplies({
     setReplyTo(target);
   }
 
-  /** Opens a message's thread (a reply's own), with the keyboard if asked. */
-  function openThread(message: Message, focus = false) {
+  /** Opens a message's thread (a reply's own). */
+  function openThread(message: Message) {
     router.push({
       params: {
         account: address,
         conversationId,
-        ...(focus ? { focus: "1" } : {}),
         threadId: message.threadId ?? message.id,
         title,
       },
@@ -70,16 +67,13 @@ export function useReplies({
           },
     /** The next message isn't a reply after all (or was just sent). */
     cancel: () => replyToTarget(undefined),
-    openThread: (message: Message) => openThread(message),
+    openThread,
     reply: (message: Message) => {
-      if (
-        message.threadId !== undefined ||
-        threadOf(message.id) !== undefined
-      ) {
-        openThread(message, true);
-        return;
-      }
-      replyToTarget({ id: message.id, quote: quoteOf(message) });
+      replyToTarget({
+        id: message.id,
+        quote: quoteOf(message),
+        threadId: message.threadId,
+      });
       composer.current?.focus();
     },
   };

@@ -7,9 +7,10 @@ import { cn } from "~/lib/cn";
 import { useMessageActions } from "./message-actions";
 import { quoteText, REPLY_INDENT } from "./reply-parts";
 
-// A thread's first reply, as the conversation shows it: the message it
-// answers, small, with a curve from under it down into the reply, and how
-// many more replies the thread has. Tapping any of it opens the thread.
+// A reply as the conversation shows it: the message it answers, small,
+// with a curve from under it down into the reply, and how many more
+// replies the thread has. A thread's original shows how many it has under
+// it. Tapping any of it opens the thread.
 
 /** Someone the card names or shows. */
 export interface Person {
@@ -174,7 +175,15 @@ export function QuoteLine({
   );
 }
 
-/** "View 4 more replies", with the newest repliers' photos. */
+/** What a thread's original shows under it in the conversation. */
+export interface ThreadReplies {
+  /** Every reply in the thread. */
+  readonly count: number;
+  /** Who wrote the newest ones. */
+  readonly repliers: readonly Person[];
+}
+
+/** "View 4 more replies", under a reply. */
 export function ThreadFooter({
   message,
   card,
@@ -185,7 +194,48 @@ export function ThreadFooter({
   isOwn?: boolean;
 }) {
   if (card.more <= 0) return null;
-  const label = `View ${card.more} more ${card.more === 1 ? "reply" : "replies"}`;
+  return (
+    <RepliersLink
+      message={message}
+      label={`View ${card.more} more ${card.more === 1 ? "reply" : "replies"}`}
+      repliers={card.repliers}
+      isOwn={isOwn}
+    />
+  );
+}
+
+/** "4 replies", under a thread's original. */
+export function RepliesFooter({
+  message,
+  replies,
+  isOwn = false,
+}: {
+  message: Message;
+  replies: ThreadReplies;
+  isOwn?: boolean;
+}) {
+  return (
+    <RepliersLink
+      message={message}
+      label={`${replies.count} ${replies.count === 1 ? "reply" : "replies"}`}
+      repliers={replies.repliers}
+      isOwn={isOwn}
+    />
+  );
+}
+
+/** A thread's count, with the newest repliers' photos, opening it. */
+function RepliersLink({
+  message,
+  label,
+  repliers,
+  isOwn,
+}: {
+  message: Message;
+  label: string;
+  repliers: readonly Person[];
+  isOwn: boolean;
+}) {
   return (
     <ThreadLink
       message={message}
@@ -196,7 +246,7 @@ export function ThreadFooter({
       )}
     >
       <View className="flex-row">
-        {card.repliers.slice(0, FOOTER_FACES).map((person, index) => (
+        {repliers.slice(0, FOOTER_FACES).map((person, index) => (
           <View
             key={person.address}
             className="border-background rounded-full border"

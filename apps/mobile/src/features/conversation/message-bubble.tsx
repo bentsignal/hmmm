@@ -4,7 +4,7 @@ import { Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useCSSVariable } from "uniwind";
 
-import type { ReplyCard } from "./reply-card";
+import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
 import { cn } from "~/lib/cn";
@@ -19,7 +19,13 @@ import { MenuTargetView } from "./message-actions";
 import { InteractiveMessage, TopPart } from "./message-reactions";
 import { NotSent, SendingFade } from "./message-status";
 import { linkCardsOf, visibleBody } from "./message-text";
-import { QUOTE_GAP, QuoteBubble, ReplyCurve, ThreadFooter } from "./reply-card";
+import {
+  QUOTE_GAP,
+  QuoteBubble,
+  RepliesFooter,
+  ReplyCurve,
+  ThreadFooter,
+} from "./reply-card";
 import { replyIndent } from "./reply-parts";
 import { RevealedTime, SlideWithReveal } from "./reveal";
 import { TAPBACK_SPACE } from "./tapbacks";
@@ -191,8 +197,9 @@ function SenderName({
 
 /**
  * A message's bubbles, with its sender's name, tapbacks, and status. A
- * thread's first reply shows the message it answers above it, and how many
- * more replies there are under it (see `ReplyCard`).
+ * reply shows the message it answers above it, and how many more replies
+ * there are under it (see `ReplyCard`); a thread's original, how many it
+ * has.
  */
 function BubbleColumn({
   message,
@@ -200,6 +207,7 @@ function BubbleColumn({
   name,
   endsGroup,
   card,
+  replies,
 }: {
   message: Message;
   isOwn: boolean;
@@ -207,6 +215,7 @@ function BubbleColumn({
   name?: string;
   endsGroup: boolean;
   card?: ReplyCard;
+  replies?: ThreadReplies;
 }) {
   // Where the name's text ends, inside its padding.
   const [nameEnd, setNameEnd] = useState<number>();
@@ -250,6 +259,9 @@ function BubbleColumn({
           <ThreadFooter message={message} card={card} isOwn={isOwn} />
         </View>
       )}
+      {replies !== undefined && (
+        <RepliesFooter message={message} replies={replies} isOwn={isOwn} />
+      )}
     </View>
   );
 }
@@ -273,6 +285,7 @@ export function MessageBubble({
   startsGroup,
   endsGroup,
   card,
+  replies,
 }: {
   message: Message;
   isOwn: boolean;
@@ -280,8 +293,10 @@ export function MessageBubble({
   author?: { avatarUrl: string | null; displayName: string };
   startsGroup: boolean;
   endsGroup: boolean;
-  /** Set for a thread's first reply in the conversation. */
+  /** Set for a reply in the conversation. */
   card?: ReplyCard;
+  /** Set for a thread's original in the conversation. */
+  replies?: ThreadReplies;
 }) {
   const showAuthor = author !== undefined && !isOwn;
   return (
@@ -300,6 +315,7 @@ export function MessageBubble({
             name={startsGroup && showAuthor ? author.displayName : undefined}
             endsGroup={endsGroup}
             card={card}
+            replies={replies}
           />
         </View>
       </SlideWithReveal>

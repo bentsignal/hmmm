@@ -114,13 +114,14 @@ function unconfirmedMessage(
 
 /**
  * How a message shows: in the conversation (where a reply shows as a card
- * quoting its original, with its thread's count), or in its thread.
+ * quoting the message it answers, and a reply or original with its
+ * thread's count), or in its thread.
  */
 export interface Shown {
   readonly reactions: readonly ReactionSummary[] | undefined;
   readonly sent: OutgoingMessage | undefined;
   readonly thread: ThreadInfo | undefined;
-  /** In a thread, a reply shows without its quote. */
+  /** In a thread, a message shows without its quote or thread. */
   readonly inThread: boolean;
 }
 
@@ -148,7 +149,7 @@ function shownAs(message: Message, how: Shown) {
   return {
     ...message,
     quote: how.inThread ? undefined : message.quote,
-    thread: how.thread,
+    thread: how.inThread ? undefined : how.thread,
   };
 }
 

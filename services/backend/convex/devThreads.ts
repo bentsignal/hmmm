@@ -5,29 +5,45 @@ import { asAccount, botIdentity, BOTS, identityFor } from "./devBots";
 
 // Development only: threads for the seeded group and space. See dev.ts.
 
+/** A post in a seeded thread (see `seedThread`). */
+interface Post {
+  readonly body: string;
+  readonly by: Identity;
+  readonly mentions?: Author;
+  /** Replied to from the conversation, so it shows there too. */
+  readonly inChat?: boolean;
+  /** The earlier post it answers, by index; the first post otherwise. */
+  readonly answers?: number;
+}
+
 /**
- * A message with a thread: the first post, then its replies. The first
- * reply shows in the conversation, the rest only in the thread.
+ * A message with a thread: the first post, then its replies, sent in the
+ * thread unless `inChat`.
  */
 async function seedThread(
   ctx: ActionCtx,
   conversationId: string,
-  posts: readonly { body: string; by: Identity; mentions?: Author }[],
+  posts: readonly Post[],
 ) {
-  const threadId = crypto.randomUUID();
-  for (const [index, { body, by, mentions }] of posts.entries()) {
+  const sent = posts.map((post) => ({
+    ...post,
+    messageId: crypto.randomUUID(),
+  }));
+  for (const [index, post] of sent.entries()) {
     const isRoot = index === 0;
-    await asAccount(ctx, by, {
+    const answered = sent[post.answers ?? 0]?.messageId;
+    await asAccount(ctx, post.by, {
       args: {
         attachments: [],
-        body,
+        body: post.body,
         conversationId,
         mentions:
-          mentions === undefined
+          post.mentions === undefined
             ? undefined
-            : [{ accountId: mentions.address, name: mentions.name }],
-        messageId: isRoot ? threadId : crypto.randomUUID(),
-        threadId: isRoot ? undefined : threadId,
+            : [{ accountId: post.mentions.address, name: post.mentions.name }],
+        messageId: post.messageId,
+        threadId: isRoot ? undefined : answered,
+        threadOnly: isRoot ? undefined : post.inChat !== true,
       },
       type: "send",
     });
@@ -35,9 +51,10 @@ async function seedThread(
 }
 
 /**
- * The group's threads: one the account isn't in (whose last reply
- * @mentions it), one it started, and one it replied to. The last reply in
- * each of its own is unread.
+ * The group's threads: one the account isn't in, kept to the thread (whose
+ * last reply @mentions it), one it started, and one it replied to from the
+ * conversation, answered there too. The last reply in each of its own is
+ * unread.
  */
 export async function seedGroupThreads(
   ctx: ActionCtx,
@@ -59,13 +76,14 @@ export async function seedGroupThreads(
   ]);
   await seedThread(ctx, conversationId, [
     { body: "Anyone know a good brunch spot near the lake?", by: self },
-    { body: "The Dockside does great pancakes", by: jonah },
+    { body: "The Dockside does great pancakes", by: jonah, inChat: true },
     { body: "+1 for the Dockside, get there before 10", by: priya },
   ]);
   await seedThread(ctx, conversationId, [
     { body: "Made a playlist for the drive 🎶", by: jonah },
-    { body: "Add some Fleetwood Mac", by: self },
-    { body: "Already on it", by: maya },
+    { body: "Add some Fleetwood Mac", by: self, inChat: true },
+    { answers: 1, body: "Already on it", by: maya, inChat: true },
+    { body: "Added Dreams and Go Your Own Way", by: maya },
   ]);
 }
 
@@ -82,7 +100,7 @@ export async function seedChannelThread(
   ];
   await seedThread(ctx, conversationId, [
     { body: "Release notes draft is up, comments welcome", by: leo },
-    { body: "Looks good! Typo in the second paragraph", by: maya },
+    { body: "Looks good! Typo in the second paragraph", by: maya, inChat: true },
     {
       body: "Should we mention the new filter?",
       by: identityFor(me.address, me.name),

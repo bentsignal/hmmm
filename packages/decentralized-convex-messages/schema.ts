@@ -65,9 +65,9 @@ export default defineSchema({
     linkPreviews: v.optional(v.array(linkCard)),
     mentions: v.optional(v.array(mention)),
     messageId: v.string(),
-    // A reply's quote of its original, its thread (the original's ID), and
-    // whether it stays out of the conversation (every reply after the
-    // first). See `message` in the protocol.
+    // A reply's quote of the message it answers, its thread (the original's
+    // ID), and whether it stays out of the conversation (one sent in the
+    // thread). See `message` in the protocol.
     quote: v.optional(quote),
     sentAt: v.number(),
     threadId: v.optional(v.string()),

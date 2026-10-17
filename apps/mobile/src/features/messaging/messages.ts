@@ -135,27 +135,26 @@ function useThreads({
 }
 
 /**
- * Where a new message goes: in a thread, a reply to its original (the
- * thread's first, to show in the conversation, while it has none); in the
- * conversation, a reply to `replyTo` if given, which starts its thread.
+ * Where a new message goes: in a thread, a reply to its original that
+ * stays there; in the conversation, a reply to `replyTo` if given, which
+ * shows there and joins its thread.
  */
 function replyFor(
   root: PdsMessage | null,
   replyTo: ReplyTarget | undefined,
-  threadOf: (id: string) => ThreadInfo | undefined,
 ) {
   if (root !== null) {
-    return {
-      inChat: threadOf(root.messageId) === undefined,
-      quote: quoteOf(root),
-      threadId: root.messageId,
-    };
+    return { inChat: false, quote: quoteOf(root), threadId: root.messageId };
   }
   if (replyTo === undefined) return undefined;
+  if (replyTo.threadId === undefined) {
+    return { inChat: true, quote: replyTo.quote, threadId: replyTo.id };
+  }
   return {
-    inChat: threadOf(replyTo.id) === undefined,
+    answers: replyTo.id,
+    inChat: true,
     quote: replyTo.quote,
-    threadId: replyTo.id,
+    threadId: replyTo.threadId,
   };
 }
 
@@ -247,22 +246,20 @@ export function useMessages(
     root: root === null ? undefined : shownMessage(root, how(root)),
     /** How many replies a thread has. */
     replyCount: replyCountOf(threads.threadOf, threadId),
-    /** A message's thread, if it has replies (see `ThreadInfo`). */
-    threadOf: threads.threadOf,
     /** Adds or removes your reaction, showing it right away. */
     toggleReaction: toggle,
     /** Only set when the newest loaded message is the newest there is. */
     newestSentAt: newestSentAt(view),
     /**
      * Sends a message, shown right away; its files upload after that.
-     * In the conversation, `replyTo` makes it its thread's first reply; in
-     * a thread, it's always a reply.
+     * In the conversation, `replyTo` makes it a reply shown there; in a
+     * thread, it's always a reply, kept there.
      */
     sendMessage: (draft: OutgoingDraft, replyTo?: ReplyTarget) => {
       if (!atLatest) view.jumpToLatest();
       sendOutgoing(session, conversationId, {
         ...draft,
-        reply: replyFor(root, replyTo, threads.threadOf),
+        reply: replyFor(root, replyTo),
       });
     },
   };

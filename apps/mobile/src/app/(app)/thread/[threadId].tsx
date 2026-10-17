@@ -101,13 +101,10 @@ function shownList<Layout, Root>({
 function Thread({
   conversationId,
   threadId,
-  focus,
   initialTitle,
 }: {
   conversationId: string;
   threadId: string;
-  /** Opens with the keyboard up, to reply. */
-  focus: boolean;
   initialTitle?: string;
 }) {
   const composerBottomInset = useComposerBottomInset();
@@ -182,7 +179,6 @@ function Thread({
         <FloatingComposer
           // A thread's draft is its own, apart from the conversation's.
           draftId={`${conversationId} thread:${threadId}`}
-          autoFocus={focus}
           placeholder="Reply"
           mentionable={mentionableIn(conversation, address, profileOf)}
           onHeight={setComposerHeight}
@@ -198,13 +194,11 @@ function Thread({
 }
 
 export default function ThreadScreen() {
-  const { account, conversationId, focus, threadId, title } =
+  const { account, conversationId, threadId, title } =
     useLocalSearchParams<{
       /** The signed-in account this thread is opened as. */
       account?: string;
       conversationId: string;
-      /** "1" to open with the keyboard up. */
-      focus?: string;
       threadId: string;
       /** The conversation's name, shown until it loads. */
       title?: string;
@@ -215,7 +209,6 @@ export default function ThreadScreen() {
         key={`${account ?? ""}:${conversationId}:${threadId}`}
         conversationId={conversationId}
         threadId={threadId}
-        focus={focus === "1"}
         initialTitle={title}
       />
     </AccountScope>

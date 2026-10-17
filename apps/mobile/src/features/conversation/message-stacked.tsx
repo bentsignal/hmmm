@@ -1,7 +1,7 @@
 import { Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 
-import type { ReplyCard } from "./reply-card";
+import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
 import { cn } from "~/lib/cn";
@@ -14,26 +14,29 @@ import { MenuTargetView } from "./message-actions";
 import { InteractiveMessage } from "./message-reactions";
 import { NotSent, SendingFade, SENT_FADE_MS } from "./message-status";
 import { linkCardsOf, visibleBody } from "./message-text";
-import { QuoteLine, ThreadFooter } from "./reply-card";
+import { QuoteLine, RepliesFooter, ThreadFooter } from "./reply-card";
 
 const AVATAR_COLUMN = 36;
 
 /**
  * Slack/Discord-style: everyone left-aligned with a photo and name. A
- * thread's first reply has a line quoting the message it answers above it
- * (see `ReplyCard`).
+ * reply has a line quoting the message it answers above it (see
+ * `ReplyCard`), and a thread's original its count under it.
  */
 export function MessageStacked({
   message,
   author,
   startsGroup,
   card,
+  replies,
 }: {
   message: Message;
   author: { avatarUrl: string | null; displayName: string };
   startsGroup: boolean;
-  /** Set for a thread's first reply in the conversation. */
+  /** Set for a reply in the conversation. */
   card?: ReplyCard;
+  /** Set for a thread's original in the conversation. */
+  replies?: ThreadReplies;
 }) {
   return (
     <View>
@@ -45,6 +48,7 @@ export function MessageStacked({
         author={author}
         startsGroup={startsGroup}
         card={card}
+        replies={replies}
       />
     </View>
   );
@@ -55,12 +59,14 @@ function StackedRow({
   author,
   startsGroup,
   card,
+  replies,
 }: {
   message: Message;
   author: { avatarUrl: string | null; displayName: string };
   startsGroup: boolean;
   /** A reply card's, under its quote, which leaves the space above it. */
   card?: ReplyCard;
+  replies?: ThreadReplies;
 }) {
   const body = visibleBody(message);
   const cards = linkCardsOf(message);
@@ -126,6 +132,9 @@ function StackedRow({
           </SendingFade>
           {/* Reactions go under the thread's count. */}
           {card !== undefined && <ThreadFooter message={message} card={card} />}
+          {replies !== undefined && (
+            <RepliesFooter message={message} replies={replies} />
+          )}
         </InteractiveMessage>
         <NotSent message={message} />
       </View>
