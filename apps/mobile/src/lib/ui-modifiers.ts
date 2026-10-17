@@ -22,6 +22,8 @@ export const destructive = [] satisfies ModifierConfig[];
 export const dismissKeyboardOnScroll = [] satisfies ModifierConfig[];
 export const edgeToEdgeRow = [] satisfies ModifierConfig[];
 export const plainRow = [] satisfies ModifierConfig[];
+/** The first section under a large title, held off it when it has no header. */
+export const belowLargeTitle = [] satisfies ModifierConfig[];
 export function choiceButton(_label: string, _selected: boolean) {
   return [] satisfies ModifierConfig[];
 }

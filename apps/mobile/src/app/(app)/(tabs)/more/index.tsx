@@ -5,6 +5,7 @@ import { FieldList } from "~/components/field-list";
 import { NativeHost } from "~/components/native-host";
 import { NavigationRow } from "~/components/navigation-row";
 import { TabTitle } from "~/components/tab-title";
+import { belowLargeTitle } from "~/lib/ui-modifiers";
 
 /**
  * The More tab: settings, notifications, accounts, and about, each on its
@@ -17,7 +18,7 @@ export default function MoreScreen() {
       <TabTitle title="More" />
       <NativeHost style={{ flex: 1 }}>
         <FieldList>
-          <FieldGroup.Section>
+          <FieldGroup.Section modifiers={belowLargeTitle}>
             <NavigationRow
               icon={{ android: "settings", ios: "gearshape.fill" }}
               label="Settings"
