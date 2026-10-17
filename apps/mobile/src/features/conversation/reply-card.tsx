@@ -6,6 +6,7 @@ import { Avatar } from "~/components/avatar";
 import { cn } from "~/lib/cn";
 import { useMessageActions } from "./message-actions";
 import { quoteText, REPLY_INDENT } from "./reply-parts";
+import { useMenuPress } from "./row-touch";
 
 // A reply as the conversation shows it: the message it answers, small,
 // with a curve from under it down into the reply, and how many more
@@ -42,7 +43,7 @@ export const QUOTE_GAP = 4;
 /** Most repliers' photos the footer shows. */
 const FOOTER_FACES = 3;
 
-/** Opens the reply's thread when pressed. */
+/** Opens the reply's thread when pressed; holding it holds the row. */
 function ThreadLink({
   message,
   label,
@@ -55,8 +56,11 @@ function ThreadLink({
   children: ReactNode;
 }) {
   const { openThread } = useMessageActions();
+  const hold = useMenuPress();
   return (
     <Pressable
+      delayLongPress={hold?.delayLongPress}
+      onLongPress={hold?.onLongPress}
       accessibilityRole="button"
       accessibilityLabel={label}
       disabled={openThread === undefined}

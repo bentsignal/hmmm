@@ -28,8 +28,10 @@ export interface Preferences {
   readonly groupLayout: MessageLayout;
   readonly channelLayout: MessageLayout;
   /** The kinds ticked, in `INBOX_KINDS` order. */
-  readonly inboxKinds: readonly InboxKind[];
+  readonly inboxIncludes: readonly InboxKind[];
   readonly inboxShow: InboxShow;
+  /** The tab bar runs right to left, putting Home on the right. */
+  readonly reverseTabBar: boolean;
   readonly spacesSort: SpacesSort;
   readonly theme: ThemeId;
 }
@@ -39,8 +41,9 @@ const DEFAULTS = {
   directLayout: "bubbles",
   groupLayout: "stacked",
   channelLayout: "stacked",
-  inboxKinds: DEFAULT_INBOX_KINDS,
+  inboxIncludes: DEFAULT_INBOX_KINDS,
   inboxShow: "all",
+  reverseTabBar: false,
   spacesSort: "name",
   theme: "blue",
 } satisfies Preferences;
@@ -89,12 +92,13 @@ function fromStored(stored: unknown) {
       LAYOUTS,
       DEFAULTS.channelLayout,
     ),
-    inboxKinds: storedInboxKinds(stored),
+    inboxIncludes: storedInboxKinds(stored),
     inboxShow: pick(
       Reflect.get(stored, "inboxShow"),
       ["all", "unread"],
       DEFAULTS.inboxShow,
     ),
+    reverseTabBar: Reflect.get(stored, "reverseTabBar") === true,
     spacesSort: pick(
       Reflect.get(stored, "spacesSort"),
       ["name", "newest", "oldest"],
@@ -137,7 +141,7 @@ export function setPreference<Key extends keyof Preferences>(
 
 /** Ticks a kind of Inbox row, or unticks it. */
 export function toggleInboxKind(kind: InboxKind) {
-  setPreference("inboxKinds", toggledInboxKind(current.inboxKinds, kind));
+  setPreference("inboxIncludes", toggledInboxKind(current.inboxIncludes, kind));
 }
 
 export function usePreference<Key extends keyof Preferences>(key: Key) {

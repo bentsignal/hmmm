@@ -10,6 +10,7 @@
 
 import type * as activity from "../activity.js";
 import type * as activityScope from "../activityScope.js";
+import type * as activityShapes from "../activityShapes.js";
 import type * as agents from "../agents.js";
 import type * as alertChoice from "../alertChoice.js";
 import type * as alerts from "../alerts.js";
@@ -33,6 +34,7 @@ import type * as naming from "../naming.js";
 import type * as notifications from "../notifications.js";
 import type * as opengraph from "../opengraph.js";
 import type * as paging from "../paging.js";
+import type * as personalActivity from "../personalActivity.js";
 import type * as previews from "../previews.js";
 import type * as protocol from "../protocol.js";
 import type * as pushParts from "../pushParts.js";
@@ -60,6 +62,7 @@ import { anyApi, componentsGeneric } from "convex/server";
 const fullApi: ApiFromModules<{
   activity: typeof activity;
   activityScope: typeof activityScope;
+  activityShapes: typeof activityShapes;
   agents: typeof agents;
   alertChoice: typeof alertChoice;
   alerts: typeof alerts;
@@ -83,6 +86,7 @@ const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   opengraph: typeof opengraph;
   paging: typeof paging;
+  personalActivity: typeof personalActivity;
   previews: typeof previews;
   protocol: typeof protocol;
   pushParts: typeof pushParts;

@@ -7,6 +7,7 @@ import { pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
 import { ACTIVITY_ARGS, isUnseen } from "~/features/activity/activity";
+import { useHomeQueries } from "~/features/home/home-badge";
 import { useAccounts } from "~/features/messaging/account";
 import { pdsResultOr } from "~/features/messaging/results";
 import { deliveredAt, dismissPresented, stringField } from "./presented";
@@ -84,11 +85,12 @@ function isAnswered(
 }
 
 /**
- * Keeps the app icon badge equal to the Activity tab's: activity not yet
- * seen plus pending space invitations, summed over every signed-in account
- * (the tab follows the account filter; the icon doesn't). Activity and
- * invites are live queries, so seeing a row or answering an invite, here
- * or on another device, updates it.
+ * Keeps the app icon badge equal to the Home and Activity tabs' together:
+ * the Inbox rows Home lists with something unread, plus activity not yet
+ * seen and pending space invitations, summed over every signed-in account
+ * (the tabs follow the account filter; the icon doesn't). These are live
+ * queries, so reading a conversation, seeing a row, or answering an
+ * invite, here or on another device, updates it.
  *
  * A push sets the badge to its own account's count, because the server
  * knows nothing of the device's other accounts. With several accounts the
@@ -103,16 +105,8 @@ function isAnswered(
 export function useAppBadge() {
   const accounts = useAccounts().map((account) => account.address);
   // undefined while loading, null if the PDS couldn't answer.
-  const inboxes = useQueries({
-    queries: accounts.map((session) =>
-      pdsQuery({
-        args: { channels: true },
-        options: { select: (result) => pdsResultOr(result, null) },
-        query: pds.messages.inbox,
-        session,
-      }),
-    ),
-  });
+  const home = useHomeQueries(accounts);
+  const { inboxes } = home;
   const invites = useQueries({
     queries: accounts.map((session) =>
       pdsQuery({
@@ -134,9 +128,9 @@ export function useAppBadge() {
     ),
   });
 
-  const loaded = [...inboxes, ...invites, ...activity].every(
-    (result) => result.data !== undefined,
-  );
+  const loaded =
+    home.loaded &&
+    [...invites, ...activity].every((result) => result.data !== undefined);
   const unseen = activity
     .flatMap((result) => result.data ?? [])
     .filter(isUnseen).length;
@@ -144,7 +138,7 @@ export function useAppBadge() {
     (sum, result) => sum + (result.data?.length ?? 0),
     0,
   );
-  const total = loaded ? unseen + pending : undefined;
+  const total = loaded ? unseen + pending + home.count : undefined;
 
   /** Matches a notification to its account's conversation or invitation. */
   function isSettled(notification: Notifications.Notification) {
@@ -180,7 +174,7 @@ export function useAppBadge() {
   });
 
   // Changes whenever any count or read state does.
-  const version = [...inboxes, ...invites, ...activity]
+  const version = [...inboxes, ...home.threads, ...invites, ...activity]
     .map((result) => result.dataUpdatedAt)
     .join(" ");
   // eslint-disable-next-line no-restricted-syntax -- The icon badge and delivered notifications are OS state outside React, synced whenever the counts change.

@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api.js";
 import { internalAction, internalQuery } from "./_generated/server.js";
 import { alertsOf } from "./alerts.ts";
-import { badgeCounts, badgeField, deliver } from "./delivery.ts";
+import { badgeCounts, badgeField, deliver, recipientOf } from "./delivery.ts";
 import { getConversation } from "./model.ts";
 import {
   accountProfile,
@@ -50,11 +50,7 @@ export const reactionTargets = internalQuery({
       message: previewText(message),
       // A reaction to a reply kept in its thread opens the thread.
       threadId: message.threadOnly === true ? (message.threadId ?? null) : null,
-      recipients: tokens.map(({ threads, token }) => ({
-        accountId: author,
-        threads: threads === true,
-        token,
-      })),
+      recipients: tokens.map(recipientOf),
     };
   },
 });
@@ -88,14 +84,14 @@ export const sendReaction = internalAction({
     const { conversationName } = target;
     await deliver(
       ctx,
-      target.recipients.map(({ accountId, threads, token }) => ({
-        ...badgeField(badges, { accountId, threads }),
+      target.recipients.map((recipient) => ({
+        ...badgeField(badges, recipient),
         body:
           target.message.length > 0
             ? `Reacted ${emoji} to “${target.message}”`
             : `Reacted ${emoji} to your message`,
         data: {
-          accountId,
+          accountId: recipient.accountId,
           conversationId: target.conversationId,
           conversationName,
           emoji,
@@ -112,7 +108,7 @@ export const sendReaction = internalAction({
         ...(conversationName === null ? {} : { subtitle: conversationName }),
         threadId: target.conversationId,
         title: senderName,
-        to: token,
+        to: recipient.token,
       })),
     );
   },

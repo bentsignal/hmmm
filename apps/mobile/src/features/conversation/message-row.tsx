@@ -20,6 +20,7 @@ import { MemberNotice } from "./member-notice";
 import { MessageBubble } from "./message-bubble";
 import { MessageStacked } from "./message-stacked";
 import { RepliesDivider } from "./replies-divider";
+import { MessageRowTarget } from "./row-target";
 
 export type ProfileOf = (address: string) => {
   avatarUrl: string | null;
@@ -196,26 +197,27 @@ function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
   const { message } = row;
   const card = replyCard(message, profileOf);
   const replies = threadReplies(message, profileOf);
-  if (stacked) {
-    return (
-      <MessageStacked
-        message={message}
-        author={profileOf(message.authorId)}
-        startsGroup={row.startsGroup}
-        card={card}
-        replies={replies}
-      />
-    );
-  }
   return (
-    <MessageBubble
-      message={message}
-      isOwn={message.authorId === self}
-      author={showAuthors ? profileOf(message.authorId) : undefined}
-      startsGroup={row.startsGroup}
-      endsGroup={row.endsGroup}
-      card={card}
-      replies={replies}
-    />
+    <MessageRowTarget message={message}>
+      {stacked ? (
+        <MessageStacked
+          message={message}
+          author={profileOf(message.authorId)}
+          startsGroup={row.startsGroup}
+          card={card}
+          replies={replies}
+        />
+      ) : (
+        <MessageBubble
+          message={message}
+          isOwn={message.authorId === self}
+          author={showAuthors ? profileOf(message.authorId) : undefined}
+          startsGroup={row.startsGroup}
+          endsGroup={row.endsGroup}
+          card={card}
+          replies={replies}
+        />
+      )}
+    </MessageRowTarget>
   );
 }

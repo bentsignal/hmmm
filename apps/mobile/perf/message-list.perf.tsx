@@ -65,10 +65,11 @@ async function mount(messages: readonly Message[]) {
 
 /**
  * Bubbles that rendered again, other than `except`'s. A message's reactions
- * render with it (twice, as a reaction lands), never on their own.
+ * render with it (twice, as a reaction lands), and its row's thread target
+ * once, never on their own.
  */
 function rerendered(except?: string) {
-  expect(mockActions.renders).toBeLessThanOrEqual(2 * mockRenders.size);
+  expect(mockActions.renders).toBeLessThanOrEqual(3 * mockRenders.size);
   return [...mockRenders.keys()].filter((id) => id !== except);
 }
 
