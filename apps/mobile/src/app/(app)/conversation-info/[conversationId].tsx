@@ -148,7 +148,8 @@ function Info({ conversationId }: { conversationId: string }) {
       </View>
     );
   }
-  if (recent === undefined) return null;
+  // The title waits for the names it's made of.
+  if (recent === undefined || title === "") return null;
   if (conversation.kind === "channel") {
     return (
       <ChannelDetails
