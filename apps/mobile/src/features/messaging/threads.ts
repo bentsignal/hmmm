@@ -96,21 +96,21 @@ export function useThreadSummaries(
     });
   }
   const { loaded, ownLoaded, threads } = useQueries({
-    queries: batches.map((messageIds) => ({
-      ...summaries(messageIds),
-      placeholderData: held.placeholder(messageIds, summaries),
-    })),
-    combine: (results) => ({
-      loaded: batches.flatMap((messageIds, index) =>
-        results[index]?.data === undefined ? NONE : messageIds,
-      ),
-      ownLoaded: batches.filter(
-        (_, index) =>
-          results[index]?.data !== undefined &&
-          !results[index].isPlaceholderData,
-      ),
-      threads: combine(results.flatMap((result) => result.data ?? [])),
-    }),
+    queries: batches.map(summaries),
+    combine: (results) => {
+      const answers = batches.map((messageIds, index) =>
+        held.answer(messageIds, results[index]?.data, summaries),
+      );
+      return {
+        loaded: batches.flatMap((messageIds, index) =>
+          answers[index] === undefined ? NONE : messageIds,
+        ),
+        ownLoaded: batches.filter(
+          (_, index) => results[index]?.data !== undefined,
+        ),
+        threads: combine(answers.flatMap((answer) => answer ?? [])),
+      };
+    },
   });
   held.remember(ownLoaded);
   const loadedIds = new Set(loaded);

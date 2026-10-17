@@ -190,30 +190,30 @@ export function useReactions(
     });
   }
   const { loaded, ownLoaded, reactions } = useQueries({
-    queries: batches.map((messageIds) => ({
-      ...reactionsQuery(messageIds),
-      placeholderData: held.placeholder(messageIds, reactionsQuery),
-    })),
+    queries: batches.map(reactionsQuery),
     // TanStack shares this structurally with the last result, so a message
     // whose reactions didn't change keeps the same array and its row
     // doesn't redraw.
-    combine: (results) => ({
-      loaded: batches.flatMap((messageIds, index) =>
-        results[index]?.data === undefined ? [] : messageIds,
-      ),
-      ownLoaded: batches.filter(
-        (_, index) =>
-          results[index]?.data !== undefined &&
-          !results[index].isPlaceholderData,
-      ),
-      reactions: Object.fromEntries(
-        summarize(
-          results.flatMap((result) => result.data ?? []),
-          session,
-          overrides,
+    combine: (results) => {
+      const answers = batches.map((messageIds, index) =>
+        held.answer(messageIds, results[index]?.data, reactionsQuery),
+      );
+      return {
+        loaded: batches.flatMap((messageIds, index) =>
+          answers[index] === undefined ? [] : messageIds,
         ),
-      ),
-    }),
+        ownLoaded: batches.filter(
+          (_, index) => results[index]?.data !== undefined,
+        ),
+        reactions: Object.fromEntries(
+          summarize(
+            answers.flatMap((answer) => answer ?? []),
+            session,
+            overrides,
+          ),
+        ),
+      };
+    },
   });
   held.remember(ownLoaded);
   const react = useMutation(
