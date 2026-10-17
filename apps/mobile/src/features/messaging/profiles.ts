@@ -3,7 +3,8 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import { pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
-import { useAccount } from "./account";
+import { domainOf } from "~/features/compose/people-match";
+import { useAccount, useAccounts } from "./account";
 import { pdsResult, pdsResultOr } from "./results";
 
 export function usernameOf(address: string) {
@@ -53,12 +54,27 @@ function shownProfile(
 }
 
 /**
+ * Which signed-in account asks for a profile: one on the same server, which
+ * keeps it, or else the account in use (its server asks the home server).
+ * Every screen asks the same way, so they share what's already loaded: the
+ * Inbox's rows and the conversation opened from one, whichever account the
+ * Inbox shows it under.
+ */
+function useProfileSession() {
+  const { address: self } = useAccount();
+  const accounts = useAccounts();
+  return (address: string) =>
+    accounts.find((account) => domainOf(account.address) === domainOf(address))
+      ?.address ?? self;
+}
+
+/**
  * Profiles by address, falling back to the username and no photo, and
  * whether every one has loaded (so screens can wait instead of flashing
  * usernames that then change to display names).
  */
 export function useProfileState(addresses: readonly string[]) {
-  const { address: session } = useAccount();
+  const sessionFor = useProfileSession();
   const unique = [...new Set(addresses)];
   // Shared structurally with the last result, so the same profiles give the
   // same object, and `profileOf` stays the same function: rows that take it
@@ -79,7 +95,7 @@ export function useProfileState(addresses: readonly string[]) {
           },
         },
         query: pds.accounts.getProfile,
-        session,
+        session: sessionFor(accountId),
       }),
     ),
     combine: (results) => ({
@@ -113,7 +129,7 @@ export function useDisplayNames(addresses: readonly string[]) {
  * `isLoading` holds until their PDS answers, so screens can fade it in.
  */
 export function useProfile(address: string) {
-  const { address: session } = useAccount();
+  const session = useProfileSession()(address);
   const { data } = useQuery(
     pdsQuery({
       args: { accountId: address },

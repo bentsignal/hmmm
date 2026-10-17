@@ -1,5 +1,5 @@
 import type { BetterAuthPlugin } from "better-auth";
-import type { JwtOptions } from "better-auth/plugins/jwt";
+import type { Jwk, JwtOptions } from "better-auth/plugins/jwt";
 import { discoverPds } from "@decentralized-convex/address";
 import { createAuthEndpoint, sessionMiddleware } from "better-auth/api";
 import { signJWT } from "better-auth/plugins/jwt";
@@ -7,6 +7,36 @@ import { createRemoteJWKSet, decodeJwt, jwtVerify } from "jose";
 import { z } from "zod";
 
 import type { BetterAuthPdsRuntimeConfig } from "./adapter.ts";
+
+/** A signing key as the Convex adapter returns it, with numbers for dates. */
+type StoredJwk = Omit<Jwk, "createdAt" | "expiresAt"> & {
+  createdAt: Date | number;
+  expiresAt?: Date | number;
+};
+
+/**
+ * Better Auth sorts signing keys by `createdAt.getTime()`, but the Convex
+ * adapter returns dates as numbers, so signing failed once a PDS had more
+ * than one key. This reads them back as dates, as the Convex plugin does.
+ */
+export const convexJwks = {
+  createJwk: (webKey, ctx) =>
+    ctx.context.adapter.create({
+      data: { ...webKey, createdAt: new Date() },
+      model: "jwks",
+    }),
+  getJwks: async (ctx) => {
+    const keys = await ctx.context.adapter.findMany<StoredJwk>({
+      model: "jwks",
+      sortBy: { direction: "desc", field: "createdAt" },
+    });
+    return keys.map(({ createdAt, expiresAt, ...key }) => ({
+      ...key,
+      createdAt: new Date(createdAt),
+      ...(expiresAt === undefined ? {} : { expiresAt: new Date(expiresAt) }),
+    }));
+  },
+} satisfies JwtOptions["adapter"];
 
 const assertionBody = z.object({ audience: z.string().min(1) });
 const exchangeBody = z.object({ assertion: z.string().min(1) });
@@ -16,6 +46,7 @@ export function createFederationPlugin(
 ): BetterAuthPlugin {
   const accountDomain = normalizeDomain(options.accountDomain);
   const jwtOptions = {
+    adapter: convexJwks,
     jwt: {
       audience: "convex",
       expirationTime: "15m",

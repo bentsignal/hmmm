@@ -12,6 +12,7 @@ import { pds } from "@vera/backend/pds";
 import type { ReactionSummary } from "./reactions";
 import type { Message, MessageAttachment } from "~/features/conversation/types";
 import { useAccount } from "./account";
+import { directConversation } from "./direct";
 import * as optimistic from "./optimistic";
 import { useProfileState } from "./profiles";
 import { pdsResult } from "./results";
@@ -63,6 +64,29 @@ export function conversationTitle(
   return displayName(other ?? self);
 }
 
+/**
+ * Its title once every name in it is known, or "" until then. A direct
+ * conversation's title is the other person's name, and an unnamed group's
+ * is its members' names: they wait, rather than show usernames that then
+ * change.
+ */
+function settledTitle(
+  conversation:
+    | Pick<Conversation, "kind" | "members" | "name">
+    | null
+    | undefined,
+  namesLoaded: boolean,
+  self: string,
+  displayName: (id: string) => string,
+) {
+  if (conversation == null) return "";
+  const { kind, name } = conversation;
+  const ofNames = kind === "direct" || (kind === "group" && name === null);
+  return ofNames && !namesLoaded
+    ? ""
+    : conversationTitle(conversation, self, displayName);
+}
+
 export function useConversation(conversationId: string) {
   const { address } = useAccount();
   const { data } = useQuery(
@@ -73,25 +97,25 @@ export function useConversation(conversationId: string) {
       session: address,
     }),
   );
-  const profiles = useProfileState(data?.members ?? []);
+  const known = data === undefined ? directConversation(conversationId) : data;
+  const profiles = useProfileState(known?.members ?? []);
   const { profileOf } = profiles;
   function displayName(account: string) {
     return profileOf(account).displayName;
   }
-  // An unnamed group's title is its members' names: wait for them, rather
-  // than show usernames that then change.
-  const titled = data != null && !(data.kind === "group" && data.name === null);
   return {
     conversation: data ?? undefined,
     displayName,
     isLoading: data === undefined,
+    /** Its kind, known before it loads for a direct conversation. */
+    kind: known?.kind,
+    /** Its members, known before it loads for a direct conversation. */
+    members: known?.members ?? [],
     /** Every member's profile is known, so names and photos won't change. */
     profilesLoaded: data != null && !profiles.isLoading,
     profileOf,
-    title:
-      data != null && (titled || !profiles.isLoading)
-        ? conversationTitle(data, address, displayName)
-        : "",
+    /** Empty until every name it's made of is known, so it never changes. */
+    title: settledTitle(known, !profiles.isLoading, address, displayName),
   };
 }
 

@@ -25,13 +25,28 @@ import { useMarkRead, useMessages } from "~/features/messaging/messages";
 import { useActiveConversation } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
 
-/** The other person in a direct conversation, whose photo heads it. */
-function otherMember(
-  conversation: ReturnType<typeof useConversation>["conversation"],
+/**
+ * What the header shows: the title, photo, and badge arrive together, so
+ * the name capsule changes at most once instead of shifting as each piece
+ * loads. A group or channel shows the title from the opening screen until
+ * its own is known. A direct conversation waits for the other person's
+ * profile instead, usually already loaded, since their badge would
+ * otherwise widen the capsule when it arrived.
+ */
+function headerFor(
+  { kind, members, profileOf, title }: ReturnType<typeof useConversation>,
   self: string,
+  initialTitle: string | undefined,
 ) {
-  if (conversation?.kind !== "direct") return undefined;
-  return conversation.members.find((member) => member !== self);
+  if (title === "") {
+    const shown = kind === "direct" ? "" : (initialTitle ?? "");
+    return { affiliated: false, avatarUrl: null, title: shown };
+  }
+  const other =
+    kind === "direct" ? members.find((member) => member !== self) : undefined;
+  if (other === undefined) return { affiliated: false, avatarUrl: null, title };
+  const { affiliated, avatarUrl } = profileOf(other);
+  return { affiliated, avatarUrl, title };
 }
 
 /**
@@ -49,11 +64,6 @@ function listReady(
     layout !== undefined &&
     profilesLoaded
   );
-}
-
-/** The title from the opening screen shows until the conversation loads. */
-function headingFor(title: string, initialTitle: string | undefined) {
-  return title === "" ? (initialTitle ?? "") : title;
 }
 
 function MissingConversation({ heading }: { heading: string }) {
@@ -82,8 +92,8 @@ function Conversation({
   const { address } = useAccount();
   const devTools = useDevTools();
   const viewReactions = useReactionsSheet(conversationId);
-  const { conversation, isLoading, profileOf, profilesLoaded, title } =
-    useConversation(conversationId);
+  const loaded = useConversation(conversationId);
+  const { conversation, isLoading, profileOf, profilesLoaded } = loaded;
   const layout = useMessageLayout(conversation?.kind);
   const messages = useMessages(conversationId, { anchor: anchorId });
   const notices = useMemberNotices(conversationId, conversation, messages);
@@ -96,8 +106,8 @@ function Conversation({
   useActiveConversation(conversationId);
   useDevConversation(messages);
 
-  const heading = headingFor(title, initialTitle);
-  const other = otherMember(conversation, address);
+  const header = headerFor(loaded, address, initialTitle);
+  const heading = header.title;
   const replies = useReplies({
     composer,
     conversationId,
@@ -105,7 +115,11 @@ function Conversation({
     title: heading,
   });
   if (!isLoading && conversation === undefined) {
-    return <MissingConversation heading={heading} />;
+    return (
+      <MissingConversation
+        heading={heading === "" ? (initialTitle ?? "") : heading}
+      />
+    );
   }
 
   return (
@@ -140,9 +154,9 @@ function Conversation({
       </KeyboardGestureArea>
       <ConversationHeader
         title={heading}
-        kind={conversation?.kind}
-        avatarUrl={other === undefined ? null : profileOf(other).avatarUrl}
-        affiliated={other !== undefined && profileOf(other).affiliated}
+        kind={loaded.kind}
+        avatarUrl={header.avatarUrl}
+        affiliated={header.affiliated}
         onOpenInfo={() =>
           router.push({
             params: { account: address, conversationId, title: heading },

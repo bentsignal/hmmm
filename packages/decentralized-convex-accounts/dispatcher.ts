@@ -1,4 +1,7 @@
-import { defineComponentDispatchers } from "@decentralized-convex/server";
+import {
+  defineComponentDispatchers,
+  routedQueryResult,
+} from "@decentralized-convex/server";
 import { ConvexError } from "convex/values";
 
 import type { QueryCtx } from "./_generated/server.js";
@@ -43,8 +46,13 @@ export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
         if (identity === null) return null;
         return findProfile(ctx, requireAccountId(identity));
       },
-      getProfile: (ctx, { args }) =>
-        findProfile(ctx, args.accountId.trim().toLowerCase()),
+      getProfile: async (ctx, { args }) => {
+        const accountId = args.accountId.trim().toLowerCase();
+        const profile = await findProfile(ctx, accountId);
+        // A PDS keeps only its own accounts' profiles, so one it doesn't
+        // have is asked of the account's home PDS too.
+        return profile ?? routedQueryResult(null, [accountId]);
+      },
     },
   },
   mutation,
