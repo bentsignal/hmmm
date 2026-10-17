@@ -1,4 +1,4 @@
-import { FieldGroup, Row, Spacer, Text } from "@expo/ui";
+import { FieldGroup, Row, Spacer, Switch, Text } from "@expo/ui";
 
 import type { ConversationKind } from "~/features/inbox/types";
 import type { Appearance, MessageLayout } from "~/features/preferences/store";
@@ -64,5 +64,22 @@ export function DisplaySection() {
         ))}
       </FieldGroup.Section>
     </>
+  );
+}
+
+/** Opt-in options people can try, off until they switch them on. */
+export function ExperimentalSection() {
+  const reversed = usePreference("reverseTabBar");
+  return (
+    <FieldGroup.Section title="Experimental">
+      <Switch
+        label="Reverse Tab Bar"
+        value={reversed}
+        onValueChange={(on) => setPreference("reverseTabBar", on)}
+      />
+      <FieldGroup.SectionFooter>
+        <Text>Puts Home on the right and Settings on the left.</Text>
+      </FieldGroup.SectionFooter>
+    </FieldGroup.Section>
   );
 }
