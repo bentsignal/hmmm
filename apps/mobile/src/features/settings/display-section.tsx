@@ -77,9 +77,6 @@ export function ExperimentalSection() {
         value={reversed}
         onValueChange={(on) => setPreference("reverseTabBar", on)}
       />
-      <FieldGroup.SectionFooter>
-        <Text>Puts Home on the right and Settings on the left.</Text>
-      </FieldGroup.SectionFooter>
     </FieldGroup.Section>
   );
 }

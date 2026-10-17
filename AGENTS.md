@@ -165,6 +165,10 @@ Two more rules, also enforced by lint:
   for typing to pause, and the previous results stay up until the next ones
   arrive.
 
+**No explanation text under self-explanatory UI.** Don't add footers,
+captions, or hint text that explain an option, button, or field whose
+label already says what it does. Add one only when Shawn asks for it.
+
 ## Decentralized Convex release invariant
 
 All official `@decentralized-convex/*` packages and the wire protocol use one
