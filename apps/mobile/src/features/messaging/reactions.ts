@@ -5,6 +5,7 @@ import { MAX_REACTION_MESSAGES } from "@decentralized-convex/messages";
 import { pdsMutation, pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
+import { useHeldBatches } from "./held-batches";
 import { pdsResultOr } from "./results";
 
 /** The emoji offered first when reacting, in order. */
@@ -86,26 +87,36 @@ export function useReactions(
     new Map(),
   );
   const batches = pageMessageIds.flatMap(chunks);
-  const { loaded, reactions } = useQueries({
-    queries: batches.map((messageIds) =>
-      pdsQuery({
-        args: { conversationId, messageIds },
-        options: {
-          enabled: messageIds.length > 0,
-          // A PDS that can't answer leaves the messages without reactions
-          // rather than holding them back.
-          select: (result) => pdsResultOr(result, [])?.flat(),
-        },
-        query: pds.messages.reactions,
-        session,
-      }),
-    ),
+  const held = useHeldBatches();
+  function reactionsQuery(messageIds: readonly string[]) {
+    return pdsQuery({
+      args: { conversationId, messageIds: [...messageIds] },
+      options: {
+        enabled: messageIds.length > 0,
+        // A PDS that can't answer leaves the messages without reactions
+        // rather than holding them back.
+        select: (result) => pdsResultOr(result, [])?.flat(),
+      },
+      query: pds.messages.reactions,
+      session,
+    });
+  }
+  const { loaded, ownLoaded, reactions } = useQueries({
+    queries: batches.map((messageIds) => ({
+      ...reactionsQuery(messageIds),
+      placeholderData: held.placeholder(messageIds, reactionsQuery),
+    })),
     // TanStack shares this structurally with the last result, so a message
     // whose reactions didn't change keeps the same array and its row
     // doesn't redraw.
     combine: (results) => ({
       loaded: batches.flatMap((messageIds, index) =>
         results[index]?.data === undefined ? [] : messageIds,
+      ),
+      ownLoaded: batches.filter(
+        (_, index) =>
+          results[index]?.data !== undefined &&
+          !results[index].isPlaceholderData,
       ),
       reactions: Object.fromEntries(
         summarize(
@@ -116,6 +127,7 @@ export function useReactions(
       ),
     }),
   });
+  held.remember(ownLoaded);
   const react = useMutation(
     pdsMutation({ mutation: pds.messages.react, session }),
   );

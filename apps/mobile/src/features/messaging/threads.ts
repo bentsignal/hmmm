@@ -14,6 +14,7 @@ import { pds } from "@vera/backend/pds";
 import type { ThreadInfo } from "~/features/conversation/types";
 import { selectionTick } from "~/lib/native-extras";
 import { useAccount } from "./account";
+import { useHeldBatches } from "./held-batches";
 import { pdsResult, pdsResultOr } from "./results";
 import { showThreadFollowed, showThreadRead } from "./thread-lists";
 
@@ -81,26 +82,37 @@ export function useThreadSummaries(
   pageThreadIds: readonly (readonly string[])[],
 ) {
   const batches = pageThreadIds.flatMap(chunks);
-  const { loaded, threads } = useQueries({
-    queries: batches.map((messageIds) =>
-      pdsQuery({
-        args: { conversationId, messageIds },
-        options: {
-          enabled: messageIds.length > 0,
-          // A PDS that can't answer (an older one) has no threads.
-          select: (result) => pdsResultOr(result, [])?.flat(),
-        },
-        query: pds.messages.threadSummaries,
-        session,
-      }),
-    ),
+  const held = useHeldBatches();
+  function summaries(messageIds: readonly string[]) {
+    return pdsQuery({
+      args: { conversationId, messageIds: [...messageIds] },
+      options: {
+        enabled: messageIds.length > 0,
+        // A PDS that can't answer (an older one) has no threads.
+        select: (result) => pdsResultOr(result, [])?.flat(),
+      },
+      query: pds.messages.threadSummaries,
+      session,
+    });
+  }
+  const { loaded, ownLoaded, threads } = useQueries({
+    queries: batches.map((messageIds) => ({
+      ...summaries(messageIds),
+      placeholderData: held.placeholder(messageIds, summaries),
+    })),
     combine: (results) => ({
       loaded: batches.flatMap((messageIds, index) =>
         results[index]?.data === undefined ? NONE : messageIds,
       ),
+      ownLoaded: batches.filter(
+        (_, index) =>
+          results[index]?.data !== undefined &&
+          !results[index].isPlaceholderData,
+      ),
       threads: combine(results.flatMap((result) => result.data ?? [])),
     }),
   });
+  held.remember(ownLoaded);
   const loadedIds = new Set(loaded);
   return {
     isLoaded: (threadId: string) => loadedIds.has(threadId),
