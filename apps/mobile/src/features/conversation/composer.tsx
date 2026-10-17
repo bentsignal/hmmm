@@ -49,6 +49,21 @@ const IOS_TYPING_EDGE = 16;
 const ANDROID_EDGE = 12;
 /** The bar's padding above and below the controls. */
 const PADDING = 8;
+/**
+ * The field's padding around its text. On iOS, UIKit lays a line out
+ * taller than React Native measures it (21pt against 20.33), so a field
+ * with text in it was a little too short for its text and could scroll.
+ * Low on the screen, iOS also pads a scrolling field's bottom out of the
+ * home indicator's inset, and with the keyboard down the text could sit
+ * about 6pt high until the keyboard came back. A whole-point line height makes
+ * both measure the same, so the text always fits. iOS puts the extra line
+ * height above the text, so a point moves from the top to the bottom to
+ * keep it centered. The field stays `CONTROL` tall.
+ */
+const TEXT_SPACING =
+  Platform.OS === "ios"
+    ? { lineHeight: 22, paddingBottom: 10, paddingTop: 8 }
+    : { paddingBottom: 9, paddingTop: 9 };
 
 /**
  * Space to leave below the composer bar for the home indicator or the
@@ -321,7 +336,7 @@ export function Composer({
             textContentType="none"
             className="text-body text-foreground max-h-32 pl-4"
             // The send button floats over this padding, so text never jumps.
-            style={{ paddingBottom: 9, paddingRight: SEND + 12, paddingTop: 9 }}
+            style={{ ...TEXT_SPACING, paddingRight: SEND + 12 }}
             placeholderTextColorClassName="accent-muted"
             cursorColorClassName="accent-accent"
           />
