@@ -15,12 +15,17 @@ import {
   SessionProvider,
   useSession,
 } from "~/features/session/session-provider";
+import {
+  installAppUpdates,
+  UpdateNavigation,
+} from "~/features/updates/app-updates";
 
 void SplashScreen.preventAutoHideAsync();
 // The splash is a plain background, so the app fades in over it.
 SplashScreen.setOptions({ duration: 250, fade: true });
 applyStoredPreferences();
 installDevAutomation();
+installAppUpdates();
 
 function useNavigationTheme() {
   const scheme = useColorScheme();
@@ -61,6 +66,7 @@ export default function RootLayout() {
         <KeyboardProvider>
           <QueryClientProvider client={queryClient}>
             <SessionProvider fallback={null}>
+              <UpdateNavigation />
               <Navigator />
             </SessionProvider>
           </QueryClientProvider>

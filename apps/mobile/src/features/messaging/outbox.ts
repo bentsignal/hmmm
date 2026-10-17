@@ -12,6 +12,7 @@ import { pds } from "@vera/backend/pds";
 import type { StagedFile } from "./attachments";
 import type { AccountSession } from "~/features/session/account-session";
 import { TooLargeError, uploadStaged } from "./attachments";
+import { setUploadProgress } from "./upload-progress";
 
 // Messages this device sent that the PDS hasn't confirmed yet, with their
 // uploads. They live outside React, so leaving the conversation doesn't
@@ -132,31 +133,9 @@ function pruneSent() {
   }
 }
 
-// Upload progress changes many times a second, so it has its own store
-// that only the progress ring reads, instead of re-rendering the list.
-
-const progress = new Map<string, number>();
-const progressListeners = new Map<string, Set<() => void>>();
-
-function setProgress(itemId: string, fraction: number) {
-  // Whole percents, so a fast upload doesn't redraw for every packet.
-  const rounded = Math.round(fraction * 100) / 100;
-  if (progress.get(itemId) === rounded) return;
-  progress.set(itemId, rounded);
-  for (const listener of progressListeners.get(itemId) ?? []) listener();
-}
-
-/** How much of an attachment has uploaded, from 0 to 1. */
-export function useUploadProgress(itemId: string) {
-  return useSyncExternalStore(
-    (listener) => {
-      const set = progressListeners.get(itemId) ?? new Set();
-      set.add(listener);
-      progressListeners.set(itemId, set);
-      return () => set.delete(listener);
-    },
-    () => progress.get(itemId) ?? 0,
-  );
+/** Whether any message is still sending or failed: a restart loses them. */
+export function hasUnsentMessages() {
+  return outbox.some((message) => message.status !== "sent");
 }
 
 // A small queue, so ten videos don't all fight for the connection.
@@ -191,10 +170,10 @@ async function upload(
   messageId: string,
   item: OutgoingItem,
 ) {
-  setProgress(item.id, 0);
+  setUploadProgress(item.id, 0);
   const attachment = await withUploadSlot(() =>
     uploadStaged(session, item.file, (fraction) =>
-      setProgress(item.id, fraction),
+      setUploadProgress(item.id, fraction),
     ),
   ).catch((error: unknown) => {
     updateItem(messageId, item.id, {

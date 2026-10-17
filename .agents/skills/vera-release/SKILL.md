@@ -145,8 +145,9 @@ current runtime, and says which it skipped.
 
 Shawn's TestFlight app gets an OTA at the same moment as everyone else, so
 his check of the real app happens after it's out. Tell him it's live and
-ask him to open Vera twice (download, then run); if something is wrong,
-roll back (below).
+ask him to open Vera, or switch back to it: it restarts into the update
+within a few seconds of opening (see `docs/releasing.md` → When an update
+goes in). If something is wrong, roll back (below).
 
 **Store build (iOS):**
 
@@ -234,8 +235,9 @@ After `ota production`:
     -H "accept: multipart/mixed" | grep -oE '"id":"[^"]+"' | head -1
   ```
 
-- On a device, Settings → About shows the running update's ID after the app
-  is opened twice (download, then run). Without a signed-in Vera account,
+- On a device, Settings → About shows the running update's ID once the app
+  restarts into it as it opens (on a slow connection, at the open after).
+  Without a signed-in Vera account,
   open the Play build twice on an Android device or emulator connected to
   `adb` (installing it needs a Google account on the "Vera testers" list),
   and read

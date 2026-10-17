@@ -277,6 +277,13 @@ function scheduleSave() {
   saveTimer = setTimeout(save, SAVE_DELAY_MS);
 }
 
+/** Writes a save still waiting on a pause in typing, before the app restarts. */
+export function saveDraftsNow() {
+  if (saveTimer === undefined) return;
+  clearTimeout(saveTimer);
+  save();
+}
+
 function update(key: string, change: Partial<Draft>) {
   const all = load();
   const next = { ...(all.get(key) ?? EMPTY), ...change };
