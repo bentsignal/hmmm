@@ -1,6 +1,6 @@
-import { Alert, Pressable, Text as RNText, View } from "react-native";
+import { Alert, Pressable, Text as RNText } from "react-native";
 import { useRouter } from "expo-router";
-import { Button, FieldGroup, RNHostView, Text } from "@expo/ui";
+import { FieldGroup, RNHostView, Text } from "@expo/ui";
 
 import type { StoredAccount } from "~/features/session/account-store";
 import { Avatar } from "~/components/avatar";
@@ -16,7 +16,6 @@ import { useMyProfile } from "~/features/messaging/directory";
 import { useSession } from "~/features/session/session-provider";
 import { cn } from "~/lib/cn";
 import { secondaryTextStyle } from "~/lib/colors";
-import { linkButton } from "~/lib/ui-modifiers";
 import { removeUnreachableAccount } from "./sign-out";
 
 /** The account's name and photo, and a way to open its screen. */
@@ -54,15 +53,14 @@ function confirmUnreachable(account: StoredAccount, retry: () => void) {
   );
 }
 
-/** With one account: a card for it, like the account card atop iOS Settings. */
-function ProfileCard() {
-  const router = useRouter();
+/** With one account: a row for it, like the accounts list in a mail app. */
+function AccountCard() {
   const card = useAccountCard();
   return (
     <FieldGroup.Section>
       <ListItem
         leading={
-          <Avatar name={card.displayName} size="lg" uri={card.avatarUrl} />
+          <Avatar name={card.displayName} size="md" uri={card.avatarUrl} />
         }
         trailing={
           <SymbolIcon
@@ -77,16 +75,10 @@ function ProfileCard() {
         }
         onPress={card.open}
       >
-        <Text textStyle={{ fontSize: 22, fontWeight: "600" }}>
+        <Text textStyle={{ fontSize: 17, fontWeight: "600" }}>
           {card.displayName}
         </Text>
       </ListItem>
-      <Button
-        label="Add Account"
-        variant="text"
-        modifiers={linkButton}
-        onPress={() => router.push("/add-account")}
-      />
     </FieldGroup.Section>
   );
 }
@@ -143,11 +135,9 @@ function AccountTile() {
 
 /**
  * With more than one account: every account side by side, scrolling when
- * they don't fit, with any whose server can't be reached dimmed, and a
- * plus at the end to add another.
+ * they don't fit, with any whose server can't be reached dimmed.
  */
 function AccountStrip() {
-  const router = useRouter();
   const accounts = useAccounts();
   const { retryUnreachable, unreachable } = useSession();
   return (
@@ -169,27 +159,13 @@ function AccountStrip() {
             <Avatar name={account.address} size="header" uri={null} />
           </Tile>
         ))}
-        <Tile
-          label="Add Account"
-          caption="Add"
-          onPress={() => router.push("/add-account")}
-        >
-          <View className="bg-fill size-[52px] items-center justify-center rounded-full">
-            <SymbolIcon
-              name={{ android: "add", ios: "plus" }}
-              size={22}
-              weight="semibold"
-              tintColorClassName="accent-accent"
-            />
-          </View>
-        </Tile>
       </Carousel>
     </FieldGroup.Section>
   );
 }
 
 /**
- * The top of More: the signed-in account as a card, or every account in a
+ * The top of More: the signed-in account as a row, or every account in a
  * strip once there's more than one. Each opens that account's screen.
  */
 export function AccountsSection() {
@@ -199,7 +175,7 @@ export function AccountsSection() {
   if (only && accounts.length === 1 && unreachable.length === 0) {
     return (
       <AccountScope address={only.address}>
-        <ProfileCard />
+        <AccountCard />
       </AccountScope>
     );
   }
