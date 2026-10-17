@@ -57,8 +57,6 @@ export function AboutSection() {
       <Detail label="Version" value={appVersion()} />
       <Detail label="Channel" value={channel()} />
       <Detail label="Update" value={runningUpdate()} />
-      {/* Temporary: shows that a breaking update arrived in an open app. */}
-      <Detail label="Update test" value="Breaking" />
       {published && (
         <Detail
           label="Published"
