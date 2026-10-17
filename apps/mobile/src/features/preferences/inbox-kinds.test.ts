@@ -21,12 +21,11 @@ void test("an Inbox filter saved before threads keeps its kinds", () => {
   assert.deepEqual(storedInboxKinds({}), DEFAULT);
 });
 
-void test("every kind, saved when that was the default, becomes the default", () => {
+void test("kinds saved when threads were on at first lose threads once", () => {
   assert.deepEqual(storedInboxKinds({ inboxKinds: EVERY_KIND }), DEFAULT);
-  // Any other choice stays.
+  // The rest of the choice stays.
   assert.deepEqual(storedInboxKinds({ inboxKinds: ["chats", "threads"] }), [
     "chats",
-    "threads",
   ]);
   // Chosen since: every kind stays every kind.
   assert.deepEqual(

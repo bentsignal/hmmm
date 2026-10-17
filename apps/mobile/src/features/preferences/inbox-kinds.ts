@@ -18,24 +18,21 @@ export const DEFAULT_INBOX_KINDS = INBOX_KINDS.filter(
 
 /**
  * The kinds saved in stored preferences (`inboxIncludes`). Builds from
- * when every kind was ticked at first saved theirs as `inboxKinds`: every
- * kind there becomes the default now, without threads, and any other
- * choice stays. Builds before threads saved one choice (`inboxFrom`):
- * Chats or Channels stays that, and Everything (the default then, as was
- * a space filter from even earlier) becomes the default.
+ * when Threads was ticked at first saved theirs as `inboxKinds`: those
+ * keep their choice without Threads, which starts off for everyone once
+ * (Shawn's call), and can be ticked again. Builds before threads saved
+ * one choice (`inboxFrom`): Chats or Channels stays that, and Everything
+ * (the default then, as was a space filter from even earlier) becomes
+ * the default.
  */
 export function storedInboxKinds(stored: object) {
   return (
     savedKinds(Reflect.get(stored, "inboxIncludes")) ??
-    fromEveryKindTicked(savedKinds(Reflect.get(stored, "inboxKinds"))) ??
+    savedKinds(Reflect.get(stored, "inboxKinds"))?.filter(
+      (kind) => kind !== "threads",
+    ) ??
     kindsFromChoice(Reflect.get(stored, "inboxFrom"))
   );
-}
-
-function fromEveryKindTicked(kinds: InboxKind[] | undefined) {
-  return kinds?.length === INBOX_KINDS.length
-    ? [...DEFAULT_INBOX_KINDS]
-    : kinds;
 }
 
 /** The kinds in a saved list, or undefined when none was saved. */

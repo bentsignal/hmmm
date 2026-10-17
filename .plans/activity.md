@@ -30,7 +30,9 @@ covers the rest. This replaces parts of the sections below, as noted there.
   Activity. Show (All or Unread) doesn't change it. Threads count when
   Include lists them.
 - **The Inbox lists Chats and Channels by default**; Threads is off,
-  since threads you're in are in Activity. Channels stay in by default
+  since threads you're in are in Activity. The update turns Threads off
+  once for everyone who had it ticked (Shawn's call); they can tick it
+  again, and that sticks. Channels stay in by default
   (Shawn's choice): hide busy ones from the Inbox, set them to Mentions,
   or untick Channels to keep them off Home's badge.
 - **The app icon badge** (and each push's) is Home's count plus

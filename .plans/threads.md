@@ -70,8 +70,8 @@ reply showed in the conversation, whichever way it was sent.)
   or Unread) and Include, checkboxes for **Chats**, **Channels**, and
   **Threads**. Chats and Channels are ticked by default; Threads was too
   until 2026-10-17, when Activity became about you (see
-  `.plans/activity.md`), and a saved choice of all three became the new
-  default once. Include replaces From
+  `.plans/activity.md`), and that update turned Threads off once for
+  everyone, keeping the rest of a saved choice (Shawn's call). Include replaces From
   (Everything / Chats / Channels); a saved From carries over (Chats or
   Channels stays that, Everything becomes the default). More kinds can join
   the list later. Both sections sit at the top of the menu rather than
