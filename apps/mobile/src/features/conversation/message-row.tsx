@@ -175,31 +175,27 @@ function threadReplies(message: Message, profileOf: ProfileOf) {
 }
 
 /**
- * A thread's original or a reply, which opens the thread from a tap
- * anywhere across its row, beside a short message too. The message's own
- * parts take their touches first, so holding or double tapping one still
- * lifts just that part. Every message row has one, so a message gaining
- * its first reply keeps its views; it's off for the rest, and in a thread,
- * where those taps go on to the list (dismissing the keyboard).
+ * A message's row, which opens its thread (or starts one) from a tap
+ * anywhere across it, from the top of the sender's name to the bottom of
+ * the message: beside a short message or a photo too. The message's own
+ * parts take their touches first, so a photo still opens, and holding or
+ * double tapping a part still lifts just that part. Off in a thread.
  */
 function ThreadRow({
   message,
-  threaded,
   children,
 }: {
   message: Message;
-  threaded: boolean;
   children: ReactNode;
 }) {
   const { openThread } = useMessageActions();
   return (
     <Pressable
-      // Not one element to VoiceOver: the thread's count and quote are its
-      // buttons, and the message's parts keep their own.
+      // Not one element to VoiceOver: the message's parts keep their own,
+      // and the thread's count and quote are its buttons.
       accessible={false}
-      disabled={
-        !threaded || openThread === undefined || message.status !== undefined
-      }
+      // A message still sending (or that failed) has no thread yet.
+      disabled={openThread === undefined || message.status !== undefined}
       onPress={() => openThread?.(message)}
     >
       {children}
@@ -231,10 +227,7 @@ function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
   const card = replyCard(message, profileOf);
   const replies = threadReplies(message, profileOf);
   return (
-    <ThreadRow
-      message={message}
-      threaded={card !== undefined || replies !== undefined}
-    >
+    <ThreadRow message={message}>
       {stacked ? (
         <MessageStacked
           message={message}
