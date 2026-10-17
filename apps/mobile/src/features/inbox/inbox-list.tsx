@@ -29,7 +29,7 @@ export function InboxList() {
   const { conversations, isLoading } = useInbox();
   const showAccount = useVisibleAccounts().length > 1;
   const show = usePreference("inboxShow");
-  const kinds = usePreference("inboxKinds");
+  const kinds = usePreference("inboxIncludes");
   const threads = useInboxThreads({ enabled: kinds.includes("threads") });
   const filtered = show !== "all" || !isDefaultInboxKinds(kinds);
   const { pinned, rest } = filterInbox({

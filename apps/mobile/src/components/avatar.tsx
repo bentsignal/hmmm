@@ -50,30 +50,36 @@ export function Avatar({
 }) {
   const { box, text, glyph: glyphSize } = SIZES[size];
   return (
-    <View
-      accessibilityLabel={name}
-      className={cn("items-center justify-center rounded-full", box)}
-      style={{ experimental_backgroundImage: MONOGRAM_GRADIENT }}
-    >
-      {glyph === undefined ? (
-        <Text className={cn("font-semibold text-white", text)}>
-          {initials(name)}
-        </Text>
-      ) : (
-        <SymbolIcon
-          name={glyph}
-          size={glyphSize}
-          weight="semibold"
-          tintColor="#ffffff"
-        />
-      )}
+    <View accessibilityLabel={name} className={cn("rounded-full", box)}>
+      <View
+        className={cn(
+          "absolute items-center justify-center rounded-full",
+          // Under a photo, the monogram stays a point inside its edge, so
+          // the gray doesn't show through the photo's smoothed rim as a ring.
+          uri ? "inset-px" : "inset-0",
+        )}
+        style={{ experimental_backgroundImage: MONOGRAM_GRADIENT }}
+      >
+        {glyph === undefined ? (
+          <Text className={cn("font-semibold text-white", text)}>
+            {initials(name)}
+          </Text>
+        ) : (
+          <SymbolIcon
+            name={glyph}
+            size={glyphSize}
+            weight="semibold"
+            tintColor="#ffffff"
+          />
+        )}
+      </View>
       {uri ? (
         <StyledImage
           source={{ uri }}
           contentFit="cover"
           // Fades over the initials instead of popping in.
           transition={180}
-          className={cn("absolute rounded-full", box)}
+          className="absolute inset-0 rounded-full"
         />
       ) : null}
     </View>

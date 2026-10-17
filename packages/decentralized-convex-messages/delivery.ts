@@ -1,23 +1,40 @@
+import type { Doc } from "./_generated/dataModel.js";
 import type { ActionCtx } from "./_generated/server.js";
+import type { InboxKind } from "./protocol.ts";
 import { internal } from "./_generated/api.js";
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 const EXPO_BATCH_SIZE = 100;
 
-/** A device a push goes to, and whether its app shows threads. */
+/**
+ * A device a push goes to: whether its app shows threads, and the kinds
+ * of rows its Inbox lists if its app badges Home.
+ */
 interface Recipient {
   readonly accountId: string;
+  readonly inbox?: readonly InboxKind[];
   readonly threads?: boolean;
 }
 
-function badgeKey({ accountId, threads }: Recipient) {
-  return `${accountId} ${threads === true ? "threads" : ""}`;
+/** The device with a push token, as a push's recipient. */
+export function recipientOf(row: Doc<"pushTokens">) {
+  return {
+    accountId: row.accountId,
+    inbox: row.inbox,
+    threads: row.threads === true,
+    token: row.token,
+  };
+}
+
+function badgeKey({ accountId, inbox, threads }: Recipient) {
+  const home = inbox === undefined ? "" : inbox.join(",");
+  return `${accountId} ${threads === true ? "threads" : ""} ${home}`;
 }
 
 /**
- * Each recipient's badge, counting threads only for apps that show them.
- * A failed count leaves that push without a badge rather than holding up
- * the notification.
+ * Each recipient's badge, counting threads only for apps that show them,
+ * and Home only for apps that badge it. A failed count leaves that push
+ * without a badge rather than holding up the notification.
  */
 export async function badgeCounts(
   ctx: ActionCtx,
@@ -27,10 +44,11 @@ export async function badgeCounts(
     recipients.map((recipient) => [badgeKey(recipient), recipient]),
   );
   const counts = await Promise.all(
-    [...unique].map(async ([key, { accountId, threads }]) => {
+    [...unique].map(async ([key, { accountId, inbox, threads }]) => {
       const count = await ctx
         .runQuery(internal.notifications.badge, {
           accountId,
+          inbox: inbox === undefined ? undefined : [...inbox],
           threads: threads === true,
         })
         .catch((error: unknown) => {

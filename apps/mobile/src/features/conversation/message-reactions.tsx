@@ -17,10 +17,12 @@ import { GrowingSpace, useOwnLift } from "./grow";
 import {
   MessageTargetProvider,
   useIsLifted,
+  useLiftMessage,
   useMessageActions,
-  useOpenReactions,
+  useSqueeze,
 } from "./message-actions";
 import { ChipRow } from "./reaction-chips";
+import { useRowTarget } from "./row-touch";
 import { NAME_CLEARANCE, TAPBACK_SPACE, Tapbacks } from "./tapbacks";
 
 /**
@@ -164,9 +166,38 @@ function clearsName(nameEnd: number | undefined, left: number | undefined) {
 }
 
 /**
- * A message whose parts open the glass overlay on a long press, and its
- * reactions on a double tap (each wraps itself in `MenuTargetView` or uses
- * `useMenuTarget`). Its reactions show as iMessage tapbacks over the top
+ * The whole message (see `useLiftMessage`): `openReactions` opens who
+ * reacted to it, as its tapbacks do. When `fromRow`, a hold or double tap
+ * beside its parts lifts it with its menu, squeezing it (`squeeze`, for
+ * its parts) while held.
+ */
+function useWholeMessage(
+  message: Parameters<typeof useLiftMessage>[0],
+  fromRow: boolean,
+) {
+  const liftWhole = useLiftMessage(message);
+  const squeeze = useSqueeze();
+  useRowTarget(
+    fromRow
+      ? {
+          lift: () => liftWhole("actions"),
+          pressIn: squeeze.pressIn,
+          release: squeeze.release,
+        }
+      : undefined,
+  );
+  return {
+    openReactions: () => {
+      selectionTick();
+      liftWhole("reactions");
+    },
+    squeeze: squeeze.style,
+  };
+}
+
+/**
+ * A message whose parts open the glass overlay on a long press or a double
+ * tap (each wraps itself in `MenuTargetView` or uses `useMenuTarget`). Its reactions show as iMessage tapbacks over the top
  * corner (`tapbacks`, for bubbles), which show who reacted when tapped, or
  * as Slack's chips underneath (`chips`, for stacked rows), which add or
  * take back that reaction when tapped and show who reacted with it when
@@ -179,6 +210,7 @@ export function InteractiveMessage({
   reactionStyle,
   roomAbove = 0,
   tapbacksClearOf,
+  liftedFromRow,
   children,
 }: {
   message: Message;
@@ -194,6 +226,8 @@ export function InteractiveMessage({
    * their own instead, between the name and the bubble, as in Messages.
    */
   tapbacksClearOf?: number;
+  /** A hold or double tap beside its parts lifts it all (bubbles). */
+  liftedFromRow?: boolean;
   children: ReactNode;
 }) {
   const { toggleReaction, viewReactions } = useMessageActions();
@@ -201,13 +235,10 @@ export function InteractiveMessage({
   const grows = useSeenWithout(reactions, message.reactions !== undefined);
   const lifted = useIsLifted(message.id);
   const body = useAnimatedRef<NativeView>();
-  const openReactions = useOpenReactions({
-    align,
-    measured: body,
-    message,
-    preview: children,
-    shape,
-  });
+  const whole = useWholeMessage(
+    { align, measured: body, message, preview: children, shape },
+    liftedFromRow === true,
+  );
   const has = reactions.length > 0;
   const placement = useTapbackPlacement(tapbacksClearOf);
   const room = {
@@ -239,15 +270,17 @@ export function InteractiveMessage({
             placement.onBodyWidth(event.nativeEvent.layout.width)
           }
         >
-          <TopPartContext value={placement.onTopWidth}>
-            <MessageTargetProvider
-              message={message}
-              align={align}
-              shape={shape}
-            >
-              {children}
-            </MessageTargetProvider>
-          </TopPartContext>
+          <Animated.View style={whole.squeeze}>
+            <TopPartContext value={placement.onTopWidth}>
+              <MessageTargetProvider
+                message={message}
+                align={align}
+                shape={shape}
+              >
+                {children}
+              </MessageTargetProvider>
+            </TopPartContext>
+          </Animated.View>
           {/* After the bubble, so they draw over it on every platform. */}
           {reactionStyle === "tapbacks" && has && (
             <Tapbacks
@@ -256,7 +289,7 @@ export function InteractiveMessage({
               hidden={lifted}
               inset={placement.inset}
               onPlaced={placement.onPlaced}
-              onPress={openReactions}
+              onPress={whole.openReactions}
             />
           )}
         </View>

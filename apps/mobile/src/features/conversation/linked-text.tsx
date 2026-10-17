@@ -7,7 +7,7 @@ import { useAccount } from "~/features/messaging/account";
 import { openLink } from "~/lib/open-link";
 import { linkTapped } from "./link-tap";
 import { mentionRanges } from "./mention-text";
-import { useMenuPress } from "./message-actions";
+import { useMenuPress } from "./row-touch";
 
 /**
  * A link in the text: underlined, and holding it still opens the menu.

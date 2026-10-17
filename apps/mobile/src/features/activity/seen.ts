@@ -15,7 +15,7 @@ import { markSeen } from "./activity";
  * How long a row must stay entirely on screen to count as seen. Long
  * enough that you see its dot before it fades.
  */
-const DWELL_MS = 1100;
+const DWELL_MS = 500;
 /** How soon to look again at a row the list hasn't laid out yet. */
 const MEASURE_RETRY_MS = 200;
 /** Rounding slack, in points, when checking a row is entirely on screen. */

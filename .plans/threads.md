@@ -68,9 +68,12 @@ reply showed in the conversation, whichever way it was sent.)
 
 - **Inbox filter.** Home's left header menu on the Inbox has Show (All
   or Unread) and Include, checkboxes for **Chats**, **Channels**, and
-  **Threads**, all ticked by default. Include replaces From
+  **Threads**. Chats and Channels are ticked by default; Threads was too
+  until 2026-10-17, when Activity became about you (see
+  `.plans/activity.md`), and that update turned Threads off once for
+  everyone, keeping the rest of a saved choice (Shawn's call). Include replaces From
   (Everything / Chats / Channels); a saved From carries over (Chats or
-  Channels stays that, Everything becomes all three). More kinds can join
+  Channels stays that, Everything becomes the default). More kinds can join
   the list later. Both sections sit at the top of the menu rather than
   in a Filter submenu.
 - The menu asks to stay open while you tick. Android's does. iOS closes

@@ -4,6 +4,53 @@ A tab for what you missed since you last looked: new messages, reactions to
 your messages, and space invitations, in one list. Alongside it, control
 over which notifications you get.
 
+## Activity is about you (decided with Shawn, 2026-10-17)
+
+A friend's point: a feed of every new message repeats the Inbox. Activity
+now lists only what's about you, so it has more signal than noise; Home
+covers the rest. This replaces parts of the sections below, as noted there.
+
+- **Activity lists** mentions, replies to your messages, replies in
+  threads you're in, reactions to your messages, and space invitations.
+  New messages in DMs, groups, and channels aren't in it anymore; the
+  Inbox has them.
+- **Replies to your messages** sent in the conversation (a reply card)
+  are a row each: "Maya replied to your message in Weekend crew", the
+  reply, and "On “your message”". Tapping opens the conversation at the
+  reply. They show from groups and channels at any level but Hide Alerts
+  (like mentions), not from a thread whose bell you turned off, and not
+  when the reply mentions you too (its mention shows). In a DM everything
+  is to you already, so the Inbox has those. Replies kept in the thread
+  are the thread's row, as before.
+- **Home has a badge**: the Inbox rows it lists with something unread,
+  one each however many messages, so it follows what you show and hide
+  (Include's kinds, Hide from Inbox). A row counts only if it alerts you
+  about every message: one at Mentions or Hide Alerts keeps its unread
+  dot without counting, since its mentions and replies to you are in
+  Activity. Show (All or Unread) doesn't change it. Threads count when
+  Include lists them.
+- **The Inbox lists Chats and Channels by default**; Threads is off,
+  since threads you're in are in Activity. The update turns Threads off
+  once for everyone who had it ticked (Shawn's call); they can tick it
+  again, and that sticks. Channels stay in by default
+  (Shawn's choice): hide busy ones from the Inbox, set them to Mentions,
+  or untick Channels to keep them off Home's badge.
+- **The app icon badge** (and each push's) is Home's count plus
+  Activity's. Something can count in both (a mention in a group shows as
+  the group's unread row and as a mention); that's on purpose, since each
+  tab clears its own. The app tells the server which kinds its Inbox
+  lists when it registers for pushes, and again when they change, so a
+  push's badge matches.
+- **Pushes stay as they were.** Activity is what's about you; pushes are
+  what you asked to be interrupted for. Every push about you has a row in
+  Activity, and the rest (a DM, a group or channel at All) land on Home,
+  so each push has a place that clears it.
+- **Seen sooner**: a row counts as seen after half a second fully on
+  screen, not 1.1 seconds.
+- Apps from before this keep the old Activity: `activity` lists
+  conversations unless asked for `aboutYou`, and a push token without
+  `inbox` gets the old badge.
+
 ## Activity
 
 - Tabs: **Home · Activity · Settings · Search**. Activity sits between
@@ -14,7 +61,7 @@ over which notifications you get.
   reacted, with what, and your message).
 - **Seen means on screen.** A row counts as seen only once it has been
   entirely on screen (not under the header or tab bar, not a sliver at an
-  edge) for 1.1 seconds, with the tab focused and the app in front. Its dot
+  edge) for half a second (1.1 seconds until 2026-10-17), with the tab focused and the app in front. Its dot
   then fades out, so you see it go. Tapping a row also sees it, and so does
   reading its conversation anywhere (from Home, or a push): its messages up
   to what you read and every reaction in it so far (2026-10-14).
@@ -26,7 +73,8 @@ over which notifications you get.
   stays until every invitation is answered. Home's Spaces page no longer
   has an Invites row, and tapping an invitation's notification opens
   Activity.
-- **Activity has the app's only badge** (decided 2026-10-13): pending
+- **Activity has the app's only badge** (decided 2026-10-13; replaced
+  2026-10-17, when Home got its own, above): pending
   invitations plus every activity row not yet seen (new messages and new
   reactions; muted conversations and spaces left out). Home has no badge;
   its rows keep their unread dots, muted ones included. The app icon badge

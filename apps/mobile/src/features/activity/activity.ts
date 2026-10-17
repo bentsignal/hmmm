@@ -48,10 +48,11 @@ export type ActivityListRow =
     };
 
 /**
- * What Activity asks its PDS for: thread replies, and each message that
- * @mentions you as an item of its own.
+ * What Activity asks its PDS for: what's about you, which leaves others'
+ * messages to the Inbox. Thread replies, and each message that @mentions
+ * you or replies to yours, are items of their own.
  */
-export const ACTIVITY_ARGS = { mentions: true, threads: true };
+export const ACTIVITY_ARGS = { aboutYou: true, mentions: true, threads: true };
 
 export function isUnseen(item: ActivityItem) {
   return item.seenThrough === undefined || item.at > item.seenThrough;
@@ -71,7 +72,9 @@ export function actorsOf(item: ActivityItem) {
   if (item.kind === "reactions") {
     return [...new Set(item.reactions.map(({ accountId }) => accountId))];
   }
-  return item.kind === "mention" ? [item.message.authorId] : item.authors;
+  return item.kind === "mention" || item.kind === "reply"
+    ? [item.message.authorId]
+    : item.authors;
 }
 
 /** Everyone an item's row names: who acted, and who titles the chat. */
@@ -148,10 +151,10 @@ export function useActivity(now: number) {
 }
 
 /**
- * The Activity tab's badge, the app's only one: space invitations waiting
- * for an answer, plus activity not yet seen (conversations with new
- * messages, messages that mention you, messages of yours with new
- * reactions, and threads with new replies; muted ones left out).
+ * The Activity tab's badge: space invitations waiting for an answer, plus
+ * activity not yet seen (messages that mention you or reply to yours,
+ * messages of yours with new reactions, and threads with new replies;
+ * muted ones left out). Home has its own (`useHomeBadge`).
  */
 export function useActivityBadge() {
   const accounts = useVisibleAccounts().map(({ address }) => address);

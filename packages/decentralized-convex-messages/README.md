@@ -108,12 +108,17 @@ of the inbox don't appear. With `{ mentions: true }`, each message that
 @mentions the caller is a `mention` item of its own (from any conversation
 not at `none`), and a conversation at `mentions` shows nothing else;
 without it, a conversation at `mentions` lists just the messages that
-mention the caller. Apps report items that came into view with
+mention the caller. With `{ aboutYou: true }`, activity is only what's
+about the caller: no conversation items (the inbox has those), and each
+reply to the caller's message sent in a group or channel is a `reply`
+item of its own (from any conversation not at `none`, unless the caller
+turned the thread's bell off, or it also mentions them). Apps report items
+that came into view with
 `messages.markActivitySeen` (each item's `key`, through its newest activity
 `at`); an item stays for a day after it's seen (`ACTIVITY_SEEN_LIFETIME`),
 then goes until something newer happens in it. `markRead` sees a
-conversation's activity too (its messages up to `readAt`, and its reactions
-so far). Unmuting a conversation or space starts clean: activity from while
+conversation's activity too (its messages, mentions, and replies to the
+caller up to `readAt`, and its reactions so far). Unmuting a conversation or space starts clean: activity from while
 it was muted never shows. Nothing older than a week
 (`ACTIVITY_HORIZON`) shows, seen or not. Reactions name the message's
 author (`messageAuthorId`) when the message is stored on the reactor's
@@ -167,6 +172,11 @@ and `data` of `accountId`, `invitedBy`, `kind: "spaceInvite"`, `spaceId`, and
 `badge` is what an app's activity view would count: the recipient's
 `activity` items not yet seen (muted conversations and spaces, and channels
 left out of the inbox, don't count), plus their pending space invitations.
+A device whose app registered its token with `inbox` (the kinds of rows
+its Inbox lists: `chats`, `channels`, `threads`) counts activity about the
+caller instead (`aboutYou`), plus each Inbox row of those kinds with
+something unread: direct messages, groups, and channels that alert about
+every message, and threads the caller is in with unread replies.
 Only this PDS's data is counted, and a push knows only its own account, so
 an app signed into several accounts should set the total itself while it
 runs.

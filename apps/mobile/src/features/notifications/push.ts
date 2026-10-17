@@ -9,6 +9,7 @@ import { pds } from "@vera/backend/pds";
 
 import { env } from "~/env";
 import { useAccount } from "~/features/messaging/account";
+import { usePreference } from "~/features/preferences/store";
 import { stringField } from "./presented";
 
 let activeConversationId: string | undefined;
@@ -127,20 +128,25 @@ export async function getPushToken() {
   return data;
 }
 
-/** Registers this device for the account's message notifications. */
+/**
+ * Registers this device for the account's message notifications, with
+ * the kinds of rows its Inbox lists, so a push's badge counts what Home's
+ * does. Registers again when they change.
+ */
 export function usePushRegistration() {
   const { address } = useAccount();
+  const kinds = usePreference("inboxIncludes");
   const register = useMutation(
     pdsMutation({ mutation: pds.messages.registerPushToken, session: address }),
   );
   const { mutate } = register;
-  // eslint-disable-next-line no-restricted-syntax -- Registers this device with the OS push service and the server once per sign-in.
+  // eslint-disable-next-line no-restricted-syntax -- Registers this device with the OS push service and the server once per sign-in, and again when the Inbox's kinds (which the server's badge counts) change.
   useEffect(() => {
     void getPushToken().then((token) => {
       // This app shows threads, so its pushes' badges count them.
-      if (token !== null) mutate({ threads: true, token });
+      if (token !== null) mutate({ inbox: [...kinds], threads: true, token });
     });
-  }, [mutate]);
+  }, [kinds, mutate]);
 }
 
 /**
