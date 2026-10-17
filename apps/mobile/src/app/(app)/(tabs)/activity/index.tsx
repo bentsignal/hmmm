@@ -52,6 +52,28 @@ function listRows(
 }
 
 /**
+ * Whether a row shows the same as before, so the list can skip redrawing
+ * it. Rows are made anew on every change to the list, but an unchanged
+ * activity item is the same object.
+ */
+function sameRow(previous: ActivityListRow, row: ActivityListRow) {
+  if (previous.kind === "invites" || row.kind === "invites") {
+    return (
+      previous.kind === "invites" &&
+      row.kind === "invites" &&
+      previous.invites === row.invites
+    );
+  }
+  const [before, after] = [previous.entry, row.entry];
+  return (
+    before.item === after.item &&
+    before.key === after.key &&
+    before.title === after.title &&
+    before.unseen === after.unseen
+  );
+}
+
+/**
  * Fills the part of the screen clear of the header and tab bar. On iOS
  * the list scrolls under both, and the native safe area includes them.
  * On Android the list sits between them already, and the safe area would
@@ -92,7 +114,7 @@ export default function ActivityScreen() {
   const invites = useSpaceInvites();
   const showAccount = useVisibleAccounts().length > 1;
   const rows = listRows(invites.invites, entries ?? []);
-  const { attachList, check, onSafeArea, onViewableItemsChanged } =
+  const { attachList, onSafeArea, onScroll, onViewableItemsChanged } =
     useSeenTracking();
   return (
     <>
@@ -103,8 +125,9 @@ export default function ActivityScreen() {
         data={rows}
         estimatedItemSize={88}
         keyExtractor={(row) => row.key}
+        itemsAreEqual={sameRow}
         ListEmptyComponent={<Empty />}
-        onScroll={check}
+        onScroll={onScroll}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={CANDIDATE_VIEWABILITY}
         renderItem={({ item }) => {

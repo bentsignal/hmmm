@@ -20,12 +20,53 @@ const DWELL_MS = 500;
 const MEASURE_RETRY_MS = 200;
 /** Rounding slack, in points, when checking a row is entirely on screen. */
 const SLACK = 1;
+/**
+ * How long the list must be still before seen rows are reported. Reporting
+ * changes the rows and the tab badges, and redrawing them mid-scroll makes
+ * the list stutter and drop the finger.
+ */
+const SETTLE_MS = 250;
 
 /**
  * Rows Legend List reports as at least partly in the list's frame. The
  * frame runs under the header and tab bar, so these are only candidates.
  */
 export const CANDIDATE_VIEWABILITY = { itemVisiblePercentThreshold: 1 };
+
+/**
+ * Holds rows seen while the list moves and reports them once it has been
+ * still for `SETTLE_MS`. A row that fails to save leaves `sent`, so it's
+ * tried again the next time it's on screen.
+ */
+function createSeenReporter(sent: Set<string>) {
+  const held = new Array<ActivityEntry>();
+  let scrolledAt = 0;
+
+  function report() {
+    const seen = held.splice(0);
+    if (seen.length === 0) return;
+    void markSeen(seen).then((saved) => {
+      if (!saved) for (const { key } of seen) sent.delete(key);
+    });
+  }
+
+  return {
+    report,
+    hold: (entry: ActivityEntry) => {
+      sent.add(entry.key);
+      held.push(entry);
+    },
+    scrolled: () => {
+      scrolledAt = Date.now();
+    },
+    /** Reports if the list is still; otherwise how long until it settles. */
+    reportIfSettled: (now: number) => {
+      const settlesIn = scrolledAt + SETTLE_MS - now;
+      if (settlesIn <= 0) report();
+      return held.length > 0 ? settlesIn : Infinity;
+    },
+  };
+}
 
 /**
  * Works out which Activity rows have really been seen: entirely on screen,
@@ -42,8 +83,9 @@ function createSeenTracker() {
   const candidates = new Map<string, ActivityEntry>();
   // When each row came entirely on screen, by key.
   const since = new Map<string, number>();
-  // Rows already reported.
+  // Rows already reported, or held to report once the list settles.
   const sent = new Set<string>();
+  const reporter = createSeenReporter(sent);
 
   /**
    * Whether the row is entirely in `area`, by the list's layout, or
@@ -93,7 +135,10 @@ function createSeenTracker() {
     return { seen: true, wait: Infinity };
   }
 
-  /** Reports rows that stayed on screen long enough; waits for the rest. */
+  /**
+   * Reports rows that stayed on screen long enough, once the list is
+   * still; waits for the rest.
+   */
   function check() {
     clearTimeout(timer);
     timer = undefined;
@@ -103,27 +148,23 @@ function createSeenTracker() {
       return;
     }
     const now = Date.now();
-    const seen = new Array<ActivityEntry>();
     let wait = Number.POSITIVE_INFINITY;
     for (const [key, entry] of candidates) {
       if (!entry.unseen || sent.has(key)) continue;
       const result = step(state, key, now);
       wait = Math.min(wait, result.wait);
-      if (!result.seen) continue;
-      sent.add(key);
-      seen.push(entry);
+      if (result.seen) reporter.hold(entry);
     }
-    if (seen.length > 0) {
-      void markSeen(seen).then((saved) => {
-        // Try again the next time they're on screen.
-        if (!saved) for (const { key } of seen) sent.delete(key);
-      });
-    }
+    wait = Math.min(wait, reporter.reportIfSettled(now));
     if (Number.isFinite(wait)) timer = setTimeout(check, wait + 16);
   }
 
   return {
-    check,
+    /** The list's `onScroll`. */
+    onScroll: () => {
+      reporter.scrolled();
+      check();
+    },
     /** The list's ref callback. */
     attachList: (ref: LegendListRef | null) => {
       list = ref ?? undefined;
@@ -154,6 +195,8 @@ function createSeenTracker() {
         since.clear();
         clearTimeout(timer);
         subscription.remove();
+        // They were seen; leaving the tab doesn't wait for the list.
+        reporter.report();
       };
     },
   };
