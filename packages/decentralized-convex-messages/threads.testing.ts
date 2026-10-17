@@ -4,7 +4,8 @@ import { fakeCtx } from "./fakeCtx.ts";
 import { recordMentions } from "./mentions.ts";
 import { addReply, replyTo } from "./threads.ts";
 
-// Tests only: a group with three members, and messages sent in it.
+// Tests only: a group with three members, and messages sent in it. The
+// second dot in its name keeps Convex from bundling it as a module.
 
 export const ME = "me@vera.chat";
 export const MAYA = "maya@vera.chat";

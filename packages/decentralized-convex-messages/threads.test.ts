@@ -5,6 +5,7 @@ import { activity } from "./activity.ts";
 import { badgeCount } from "./badges.ts";
 import { olderThan } from "./paging.ts";
 import { seeConversationActivity } from "./sightings.ts";
+import { GROUP, LEO, MAYA, ME, NOW, setup } from "./threads.testing.ts";
 import {
   markThreadRead,
   setThreadFollowed,
@@ -12,7 +13,6 @@ import {
   threadState,
   threadSummaries,
 } from "./threads.ts";
-import { GROUP, LEO, MAYA, ME, NOW, setup } from "./threadTesting.ts";
 
 void test("from older apps, only a thread's first reply shows in the conversation", async (t) => {
   const { ctx, say } = setup(t);
