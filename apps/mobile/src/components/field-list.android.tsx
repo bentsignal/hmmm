@@ -11,6 +11,7 @@ import { background, fillMaxSize } from "@expo/ui/jetpack-compose/modifiers";
 export function FieldList({
   modifiers,
   clearsNavigationBar = false,
+  clearsStatusBar = false,
   children,
 }: {
   modifiers?: ModifierConfig[];
@@ -19,15 +20,21 @@ export function FieldList({
    * screens outside the tabs draw under.
    */
   clearsNavigationBar?: boolean;
+  /**
+   * Keeps the start of the list clear of the status bar, on a screen
+   * without a header.
+   */
+  clearsStatusBar?: boolean;
   children: ReactNode;
 }) {
   const colors = useMaterialColors();
   const insets = useSafeAreaInsets();
   const bottom = 16 + (clearsNavigationBar ? insets.bottom : 0);
+  const top = 16 + (clearsStatusBar ? insets.top : 0);
   return (
     <LazyColumn
       verticalArrangement={{ spacedBy: 24 }}
-      contentPadding={{ bottom, end: 16, start: 16, top: 16 }}
+      contentPadding={{ bottom, end: 16, start: 16, top }}
       modifiers={[
         fillMaxSize(),
         background(colors.surface),

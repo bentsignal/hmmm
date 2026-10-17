@@ -9,7 +9,6 @@ import {
   frame,
   listRowBackground,
   listRowInsets,
-  listSectionMargins,
   scrollDismissesKeyboard,
 } from "@expo/ui/swift-ui/modifiers";
 
@@ -53,13 +52,6 @@ export const edgeToEdgeRow = [
 export const plainRow = [
   frame({ maxWidth: Infinity }),
   listRowBackground("clear"),
-];
-/**
- * The first section under a large title, when it has no header to hold it
- * off the title.
- */
-export const belowLargeTitle = [
-  listSectionMargins({ edges: "top", length: 28 }),
 ];
 /** One choice in a row of custom-drawn options, read as a labeled button. */
 export function choiceButton(label: string, selected: boolean) {

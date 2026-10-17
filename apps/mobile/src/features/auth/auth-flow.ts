@@ -32,7 +32,7 @@ export function useAuthFlow() {
     const before = storedAccounts().length;
     const error = await run();
     if (storedAccounts().length > before) {
-      if (adding) router.dismissTo("/more/accounts");
+      if (adding) router.dismissTo("/you/accounts");
       return;
     }
     running.current = false;

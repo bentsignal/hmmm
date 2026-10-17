@@ -1,33 +1,32 @@
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { FieldGroup } from "@expo/ui";
 
 import { FieldList } from "~/components/field-list";
 import { NativeHost } from "~/components/native-host";
 import { NavigationRow } from "~/components/navigation-row";
-import { TabTitle } from "~/components/tab-title";
-import { belowLargeTitle } from "~/lib/ui-modifiers";
 
 /**
- * The More tab: settings, notifications, accounts, and about, each on its
- * own screen, with room for more (contacts) as the app grows.
+ * The You tab: settings, notifications, accounts, and about, each on its
+ * own screen, with room for more (contacts) as the app grows. The tab bar
+ * already names it, so it has no title.
  */
-export default function MoreScreen() {
+export default function YouScreen() {
   const router = useRouter();
   return (
     <>
-      <TabTitle title="More" />
+      <Stack.Screen options={{ headerShown: false, title: "You" }} />
       <NativeHost style={{ flex: 1 }}>
-        <FieldList>
-          <FieldGroup.Section modifiers={belowLargeTitle}>
+        <FieldList clearsStatusBar>
+          <FieldGroup.Section>
             <NavigationRow
               icon={{ android: "settings", ios: "gearshape.fill" }}
               label="Settings"
-              onPress={() => router.push("/more/settings")}
+              onPress={() => router.push("/you/settings")}
             />
             <NavigationRow
               icon={{ android: "notifications", ios: "bell.badge.fill" }}
               label="Notifications"
-              onPress={() => router.push("/more/notifications")}
+              onPress={() => router.push("/you/notifications")}
             />
             <NavigationRow
               icon={{
@@ -35,14 +34,14 @@ export default function MoreScreen() {
                 ios: "person.crop.circle.fill",
               }}
               label="Accounts"
-              onPress={() => router.push("/more/accounts")}
+              onPress={() => router.push("/you/accounts")}
             />
           </FieldGroup.Section>
           <FieldGroup.Section>
             <NavigationRow
               icon={{ android: "info", ios: "info.circle.fill" }}
               label="About"
-              onPress={() => router.push("/more/about")}
+              onPress={() => router.push("/you/about")}
             />
           </FieldGroup.Section>
         </FieldList>
