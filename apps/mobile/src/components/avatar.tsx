@@ -15,6 +15,7 @@ const SIZES = {
   xs: { box: "size-[18px]", text: "text-[8px]", glyph: 9 },
   sm: { box: "size-7", text: "text-caption", glyph: 13 },
   row: { box: "size-9", text: "text-footnote", glyph: 16 },
+  rowLarge: { box: "size-10", text: "text-subhead", glyph: 18 },
   list: { box: "size-[46px]", text: "text-[19px]", glyph: 20 },
   md: { box: "size-12", text: "text-headline", glyph: 21 },
   header: { box: "size-[52px]", text: "text-[21px]", glyph: 23 },

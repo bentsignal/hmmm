@@ -3,10 +3,12 @@ import { Pressable, Text, View } from "react-native";
 
 import type { Message, Quote } from "./types";
 import { Avatar } from "~/components/avatar";
+import { SymbolIcon } from "~/components/symbol-icon";
 import { cn } from "~/lib/cn";
 import { useMessageActions } from "./message-actions";
 import { quoteText, REPLY_INDENT } from "./reply-parts";
 import { useMenuPress } from "./row-touch";
+import { useStackedStyle } from "./stacked-style";
 
 // A reply as the conversation shows it: the message it answers, small,
 // with a curve from under it down into the reply, and how many more
@@ -151,7 +153,7 @@ export function QuoteLine({
   avatarColumn: number;
 }) {
   return (
-    <View className="flex-row items-end px-4 pt-4">
+    <View className="flex-row items-end">
       <View
         className="border-separator"
         style={{
@@ -179,6 +181,42 @@ export function QuoteLine({
   );
 }
 
+/**
+ * Stacked rows' quote inside the reply, under the sender's name: a bar
+ * beside the original's author and its start, as a quoted email shows it.
+ */
+export function QuoteBlock({
+  message,
+  card: { quote, quoteAuthor: author },
+}: {
+  message: Message;
+  card: ReplyCard;
+}) {
+  return (
+    <ThreadLink
+      message={message}
+      label={`Reply to ${author.displayName}, open thread`}
+      className="flex-row self-stretch py-0.5"
+    >
+      <View className="bg-separator w-[3px] rounded-full" />
+      <View className="shrink gap-0.5 py-0.5 pl-2.5">
+        <View className="flex-row items-center gap-1.5">
+          <Avatar name={author.displayName} size="xs" uri={author.avatarUrl} />
+          <Text
+            numberOfLines={1}
+            className="text-footnote text-muted shrink font-semibold"
+          >
+            {author.displayName}
+          </Text>
+        </View>
+        <Text numberOfLines={2} className="text-footnote text-muted">
+          {quoteText(quote)}
+        </Text>
+      </View>
+    </ThreadLink>
+  );
+}
+
 /** What a thread's original shows under it in the conversation. */
 export interface ThreadReplies {
   /** Every reply in the thread. */
@@ -191,7 +229,7 @@ export interface ThreadReplies {
 export function ThreadFooter({
   message,
   card,
-  isOwn = false,
+  isOwn,
 }: {
   message: Message;
   card: ReplyCard;
@@ -212,7 +250,7 @@ export function ThreadFooter({
 export function RepliesFooter({
   message,
   replies,
-  isOwn = false,
+  isOwn,
 }: {
   message: Message;
   replies: ThreadReplies;
@@ -238,15 +276,22 @@ function RepliersLink({
   message: Message;
   label: string;
   repliers: readonly Person[];
-  isOwn: boolean;
+  /** Which side a bubble's on; unset for stacked rows. */
+  isOwn?: boolean;
 }) {
+  const { threadLink } = useStackedStyle();
+  // Bubbles keep theirs; the stacked styles only change stacked rows'.
+  const look = isOwn === undefined ? threadLink : "accent";
   return (
     <ThreadLink
       message={message}
       label={label}
       className={cn(
-        "flex-row items-center gap-1.5 pt-1",
-        isOwn && "flex-row-reverse",
+        "flex-row items-center gap-1.5",
+        look === "pill"
+          ? "bg-fill mt-1.5 self-start rounded-full py-1 pr-2.5 pl-1.5"
+          : "pt-1",
+        isOwn === true && "flex-row-reverse",
       )}
     >
       <View className="flex-row">
@@ -264,7 +309,24 @@ function RepliersLink({
           </View>
         ))}
       </View>
-      <Text className="text-footnote text-accent font-semibold">{label}</Text>
+      <Text
+        className={cn(
+          "text-footnote font-semibold",
+          look === "accent" && "text-accent",
+          look === "muted" && "text-muted",
+          look === "pill" && "text-foreground",
+        )}
+      >
+        {label}
+      </Text>
+      {look === "pill" && (
+        <SymbolIcon
+          name={{ android: "chevron_right", ios: "chevron.right" }}
+          size={10}
+          weight="bold"
+          tintColorClassName="accent-muted"
+        />
+      )}
     </ThreadLink>
   );
 }

@@ -14,6 +14,7 @@ import {
 import { FloatingComposer } from "~/features/conversation/floating-composer";
 import { mentionableIn } from "~/features/conversation/mentionable";
 import { MessageList } from "~/features/conversation/message-list";
+import { StackedStylePicker } from "~/features/conversation/stacked-style-picker";
 import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
 import { useReplies } from "~/features/conversation/use-replies";
 import { useDevConversation } from "~/features/dev/dev-conversation";
@@ -164,6 +165,7 @@ function Conversation({
           })
         }
       />
+      <StackedStylePicker layout={layout} />
       <FloatingComposer
         ref={composer}
         draftId={conversationId}

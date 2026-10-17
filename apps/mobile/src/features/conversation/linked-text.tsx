@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { StyleProp, TextStyle } from "react-native";
 import { Text } from "react-native";
 import { textParts } from "@decentralized-convex/messages";
 
@@ -52,10 +53,12 @@ export function LinkedText({
   text,
   mentions,
   className,
+  style,
 }: {
   text: string;
   mentions?: readonly Mention[];
   className: string;
+  style?: StyleProp<TextStyle>;
 }) {
   const { address } = useAccount();
   const parts = new Array<ReactNode>();
@@ -77,5 +80,9 @@ export function LinkedText({
     at = range.end;
   }
   parts.push(...withLinks(text.slice(at), at));
-  return <Text className={className}>{parts}</Text>;
+  return (
+    <Text className={className} style={style}>
+      {parts}
+    </Text>
+  );
 }

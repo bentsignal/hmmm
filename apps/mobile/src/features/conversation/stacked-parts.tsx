@@ -12,6 +12,7 @@ import { linkPart, partCount } from "./message-parts";
 import { linkCardsOf, visibleBody } from "./message-text";
 import { Placed, Reactable } from "./reaction-parts";
 import { RepliesFooter, ThreadFooter } from "./reply-card";
+import { useStackedStyle } from "./stacked-style";
 
 /**
  * A message's parts, top to bottom: its text, its attachments, and its
@@ -21,6 +22,7 @@ import { RepliesFooter, ThreadFooter } from "./reply-card";
  * whole row (see `MessageRowTarget`).
  */
 export function StackedParts({ message }: { message: Message }) {
+  const { lineHeight } = useStackedStyle();
   const body = visibleBody(message);
   const cards = linkCardsOf(message);
   const cardsPlace = message.attachments.length + 1;
@@ -29,6 +31,7 @@ export function StackedParts({ message }: { message: Message }) {
       text={body}
       mentions={message.mentions}
       className="text-body text-foreground"
+      style={lineHeight === undefined ? undefined : { lineHeight }}
     />
   );
   return (
