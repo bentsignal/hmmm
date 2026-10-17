@@ -79,6 +79,8 @@ export function accessFinder(ctx: QueryCtx, self: string) {
 
 /** What one call of `activity` works from. */
 export interface Scope {
+  /** Whether only what's about the caller shows (see `activity`). */
+  readonly aboutYou: boolean;
   readonly accessTo: ReturnType<typeof accessFinder>;
   readonly describe: ReturnType<typeof conversationDescriber>;
   /** Whether mentions are their own items (see `activity`). */

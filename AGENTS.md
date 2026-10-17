@@ -49,13 +49,12 @@ Shawn starts each feature or fix in its own T3 Code worktree and thread
   them in the PR description. Never commit PR assets.
 - Keep each pull request to one coherent change, with a description covering
   the summary, the evidence, and the validation that was run.
-- Open the PR, review your own diff, wait for CI to pass, then tell Shawn it
-  is ready to test and **stop**. Shawn tests every change on his phone in
-  its worktree before it merges, and you refine it on the branch until he's
-  happy; the release doesn't re-test each change. Start the dev server
-  (`scripts/phone.sh up`) only when he comes to test, and stop it
-  (`scripts/phone.sh down`) as soon as he reports back, so one worktree
-  serves his phone at a time.
+- Open the PR, review your own diff, wait for CI to pass, start the dev
+  server (`scripts/phone.sh up`), then tell Shawn it is ready to test and
+  **stop**. Shawn tests every change on his phone in its worktree before it
+  merges, and you refine it on the branch until he's happy; the release
+  doesn't re-test each change. The dev server stays up through the rounds
+  of feedback and comes down when the work is closed out.
 - Merge only after Shawn approves that PR in the thread ("merge it", "ship
   it", "approved"), with a merge commit, deleting the branch. Approval of
   one PR is not approval of another.
@@ -96,15 +95,14 @@ App Store, production) and **Vera Dev** (`chat.vera.app.dev`, amber icon,
 dev PDS). Every development binary is Vera Dev; only store builds are Vera.
 See [apps/mobile/README.md](apps/mobile/README.md#vera-dev).
 
-- **Day to day, Vera Dev is main's dev client.** When Shawn comes to test
-  your worktree, run `scripts/phone.sh up` (`--android` for his Android
+- **Day to day, Vera Dev is main's dev client.** When your worktree's work
+  is ready to test, run `scripts/phone.sh up` (`--android` for his Android
   phone) in it. It serves the worktree's Metro on the Mac's Wi-Fi address
   (the phone must be on the same network). Tell him the **server address**
   it prints (`server: http://<IP>:<port>`), first and on its own line: he
   opens Vera Dev and picks that one from its list, where several worktrees'
   servers can show up at once. Don't send QR codes or the open link unless
   he asks. JavaScript changes then hot-reload on his phone with no build.
-  Never start it before he asks.
 - **Native builds only when native code changed.** `phone.sh up` compares
   the worktree's native fingerprint with main's. A worktree that changed
   native code gets its own dev client (built once, about 15 minutes, and
@@ -122,7 +120,7 @@ See [apps/mobile/README.md](apps/mobile/README.md#vera-dev).
   or to check update or channel behavior, which a dev client can't show.
   It replaces the dev client in the Vera Dev slot; he reinstalls main's
   from `scripts/phone.sh main`.
-- `scripts/phone.sh down` as soon as he's done with it, like the simulators.
+- Keep it up until the work is closed out, then `scripts/phone.sh down`.
 
 ## Required validation after changes
 
@@ -164,6 +162,10 @@ Two more rules, also enforced by lint:
   (`apps/mobile/src/features/search/use-search-query.ts`): the query waits
   for typing to pause, and the previous results stay up until the next ones
   arrive.
+
+**No explanation text under self-explanatory UI.** Don't add footers,
+captions, or hint text that explain an option, button, or field whose
+label already says what it does. Add one only when Shawn asks for it.
 
 ## Decentralized Convex release invariant
 

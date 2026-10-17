@@ -28,6 +28,7 @@ const INDEXES: Record<string, Record<string, string[]>> = {
     by_chat_sent: ["conversationId", "threadOnly", "sentAt"],
     by_conversation_sent: ["conversationId", "sentAt"],
     by_message: ["messageId"],
+    by_quote_author_sent: ["quote.authorId", "sentAt"],
     by_thread_sent: ["threadId", "sentAt"],
   },
   notificationSettings: { by_account: ["accountId"] },
@@ -53,6 +54,18 @@ const INDEXES: Record<string, Record<string, string[]>> = {
     by_thread: ["threadId"],
   },
 };
+
+/** A row's field, or a nested one (`quote.authorId`). */
+function valueAt(row: Record<string, unknown>, path: string) {
+  let value: unknown = row;
+  for (const key of path.split(".")) {
+    value =
+      typeof value === "object" && value !== null
+        ? Reflect.get(value, key)
+        : undefined;
+  }
+  return value;
+}
 
 function compare(left: unknown, right: unknown) {
   if (typeof left === "number" && typeof right === "number") {
@@ -84,7 +97,7 @@ export function fakeCtx(tables: Record<string, Record<string, unknown>[]>) {
       .filter((row) => filters.every((filter) => filter(row)))
       .sort((left, right) => {
         for (const field of [...fields, "_creationTime"]) {
-          const order = compare(left[field], right[field]);
+          const order = compare(valueAt(left, field), valueAt(right, field));
           if (order !== 0) return order;
         }
         return 0;
@@ -95,19 +108,19 @@ export function fakeCtx(tables: Record<string, Record<string, unknown>[]>) {
     const filters: Filter[] = [];
     const builder = {
       eq: (field: string, value: unknown) => {
-        filters.push((row) => row[field] === value);
+        filters.push((row) => valueAt(row, field) === value);
         return builder;
       },
       gt: (field: string, value: number) => {
-        filters.push((row) => Number(row[field]) > value);
+        filters.push((row) => Number(valueAt(row, field)) > value);
         return builder;
       },
       lt: (field: string, value: number) => {
-        filters.push((row) => Number(row[field]) < value);
+        filters.push((row) => Number(valueAt(row, field)) < value);
         return builder;
       },
       lte: (field: string, value: number) => {
-        filters.push((row) => Number(row[field]) <= value);
+        filters.push((row) => Number(valueAt(row, field)) <= value);
         return builder;
       },
       filters,

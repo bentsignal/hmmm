@@ -228,3 +228,35 @@ export async function inboxThreads(ctx: QueryCtx, self: string) {
     (item): item is InboxThread => item !== null,
   );
 }
+
+/**
+ * How many of the threads `inboxThreads` lists have unread replies, for
+ * the badge.
+ */
+export async function unreadThreadCount(ctx: QueryCtx, self: string) {
+  const accessTo = accessFinder(ctx, self);
+  const settings = await notificationSettings(ctx, self);
+  const memberships = ctx.db
+    .query("threadMembers")
+    .withIndex("by_account_reply", (index) => index.eq("accountId", self))
+    .order("desc");
+  const unread: Promise<number>[] = [];
+  let scanned = 0;
+  for await (const member of memberships) {
+    scanned += 1;
+    if (member.unfollowed !== true) {
+      const access = await accessTo(member.conversationId);
+      if (access !== null && isHeard(access, alertsFor(access, settings))) {
+        unread.push(
+          // Nothing newer than when it was read: nothing to count.
+          member.lastReplyAt <= member.lastReadAt
+            ? Promise.resolve(0)
+            : unreadReplies(ctx, self, member.threadId, member.lastReadAt),
+        );
+      }
+    }
+    if (unread.length >= MAX_INBOX_THREADS) break;
+    if (scanned >= MAX_MEMBERSHIPS_SCANNED) break;
+  }
+  return (await Promise.all(unread)).filter((count) => count > 0).length;
+}

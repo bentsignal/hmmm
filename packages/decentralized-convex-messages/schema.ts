@@ -5,6 +5,7 @@ import {
   alertLevel,
   attachment,
   conversationKind,
+  inboxKind,
   linkCard,
   linkPreview,
   mention,
@@ -77,7 +78,9 @@ export default defineSchema({
     .index("by_conversation_sent", ["conversationId", "sentAt"])
     // What the conversation shows: `threadOnly` undefined.
     .index("by_chat_sent", ["conversationId", "threadOnly", "sentAt"])
-    .index("by_thread_sent", ["threadId", "sentAt"]),
+    .index("by_thread_sent", ["threadId", "sentAt"])
+    // Replies to an account's messages, so their activity finds them.
+    .index("by_quote_author_sent", ["quote.authorId", "sentAt"]),
   // One per account a message @mentions, so their activity finds it.
   mentions: defineTable({
     accountId: v.string(),
@@ -219,6 +222,9 @@ export default defineSchema({
   }).index("by_account", ["accountId"]),
   pushTokens: defineTable({
     accountId: v.string(),
+    // The kinds of rows the device's Inbox lists, from apps whose Activity
+    // is about you (see `registerPushToken`).
+    inbox: v.optional(v.array(inboxKind)),
     // The app on this device shows threads (see `registerPushToken`).
     threads: v.optional(v.boolean()),
     token: v.string(),

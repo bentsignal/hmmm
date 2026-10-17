@@ -1,8 +1,8 @@
 import { defineOperation } from "@decentralized-convex/plugin";
 import { v } from "convex/values";
 
+import { activityItem } from "./activityShapes.ts";
 import {
-  activityItem,
   conversation,
   linkCard,
   memberEvent,
@@ -35,13 +35,17 @@ export const queries = {
    * (one item per conversation) and others' reactions to your messages
    * (one per message). With `threads`, also new replies in threads
    * you're in (one per thread); with `mentions`, each message that
-   * @mentions you is its own `mention` item. Each conversation shows
-   * what it alerts you about, and channels left out of the inbox show
-   * only mentions. An item lasts until a day after you saw it (see
-   * `markActivitySeen`), and nothing older than `ACTIVITY_HORIZON` shows.
+   * @mentions you is its own `mention` item. With `aboutYou`, only what's
+   * about you: no `messages` items (the Inbox has those), and each reply
+   * to your message sent in a group or channel is its own `reply` item.
+   * Each conversation shows what it alerts you about, and channels left
+   * out of the inbox show only mentions and replies. An item lasts until a
+   * day after you saw it (see `markActivitySeen`), and nothing older than
+   * `ACTIVITY_HORIZON` shows.
    */
   activity: defineOperation({
     args: v.object({
+      aboutYou: v.optional(v.boolean()),
       mentions: v.optional(v.boolean()),
       threads: v.optional(v.boolean()),
     }),
