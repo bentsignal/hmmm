@@ -28,7 +28,8 @@ import { useMenuKeyboard } from "./menu-keyboard";
 import { MessageActionsProvider } from "./message-actions";
 import { Row } from "./message-row";
 import { RevealTimes } from "./reveal";
-import { BelowNewest, belowNewestHeight } from "./typing-indicator";
+import { BelowNewest } from "./typing-indicator";
+import { belowNewestHeight } from "./typing-space";
 
 /** What the conversation screen can ask of its list. */
 export interface MessageListHandle {

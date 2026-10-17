@@ -15,27 +15,12 @@ import type { MessageLayout } from "~/features/preferences/store";
 import { typingLabel } from "~/features/messaging/typing-state";
 import { BUBBLE_RADIUS } from "./bubble-shape";
 import { Dots, Faces, useOnMount } from "./typing-parts";
+import { BUBBLE_SPACE, STACKED_SPACE, typingSpaceHeight } from "./typing-space";
 
 // Who's typing, under the newest message. The list keeps a fixed space for
-// it while anyone types (see `typingSpaceHeight`), so the messages move
+// it while anyone types (see `typing-space.ts`), so the messages move
 // only when the first person starts and the last one stops, and the people
 // in it change in place.
-
-/**
- * The space the indicator takes under the newest message, the same as a
- * one-line message starting a run: when the typing becomes that message,
- * it lands right where the indicator was, and nothing moves.
- */
-const BUBBLE_SPACE = { bottom: 7, bubble: 38, top: 14 };
-const STACKED_SPACE = { bottom: 2, line: 20, top: 10 };
-
-/** How tall the space for the indicator is, while anyone types. */
-export function typingSpaceHeight(layout: MessageLayout, typing: boolean) {
-  if (!typing) return 0;
-  return layout === "stacked"
-    ? STACKED_SPACE.top + STACKED_SPACE.line + STACKED_SPACE.bottom
-    : BUBBLE_SPACE.top + BUBBLE_SPACE.bubble + BUBBLE_SPACE.bottom;
-}
 
 const APPEAR_MS = 220;
 const LEAVE_MS = 160;
@@ -273,16 +258,4 @@ export function BelowNewest({ composerHeight, ...typing }: BelowNewestProps) {
       <View style={{ height: composerHeight + 8 }} />
     </View>
   );
-}
-
-/**
- * The height `BelowNewest` changes with: when it grows (someone starts
- * typing, or the composer grows), the list follows it into view.
- */
-export function belowNewestHeight({
-  composerHeight,
-  layout,
-  typists,
-}: BelowNewestProps) {
-  return composerHeight + typingSpaceHeight(layout, typists.length > 0);
 }

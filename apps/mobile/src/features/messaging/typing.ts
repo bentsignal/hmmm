@@ -106,16 +106,8 @@ function createTypingReporter(
       saidAt = now;
       say(true);
     },
-    /** Stops when the app goes to the background or the screen closes. */
-    watch: () => {
-      const subscription = AppState.addEventListener("change", (state) => {
-        if (state !== "active") stop();
-      });
-      return () => {
-        subscription.remove();
-        stop();
-      };
-    },
+    /** Stops, if the PDS was told it's typing (see `useTypingReporter`). */
+    stop,
   };
 }
 
@@ -129,6 +121,14 @@ export function useTypingReporter(conversationId: string, threadId?: string) {
     createTypingReporter(session, conversationId, threadId),
   );
   // eslint-disable-next-line no-restricted-syntax -- Leaving the screen or the app has to tell the PDS this device stopped typing; nothing else marks either.
-  useEffect(() => reporter.watch(), [reporter]);
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active") reporter.stop();
+    });
+    return () => {
+      subscription.remove();
+      reporter.stop();
+    };
+  }, [reporter]);
   return reporter.onChangeText;
 }
