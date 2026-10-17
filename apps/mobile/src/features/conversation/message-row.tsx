@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import Animated, {
   useAnimatedReaction,
   useAnimatedStyle,
@@ -17,6 +17,7 @@ import { rowOrder } from "./build-rows";
 import { DaySeparator, TimeHeader } from "./day-separator";
 import { useRowLift } from "./grow";
 import { MemberNotice } from "./member-notice";
+import { useMessageActions } from "./message-actions";
 import { MessageBubble } from "./message-bubble";
 import { MessageStacked } from "./message-stacked";
 import { RepliesDivider } from "./replies-divider";
@@ -173,6 +174,39 @@ function threadReplies(message: Message, profileOf: ProfileOf) {
   } satisfies ThreadReplies;
 }
 
+/**
+ * A thread's original or a reply, which opens the thread from a tap
+ * anywhere across its row, beside a short message too. The message's own
+ * parts take their touches first, so holding or double tapping one still
+ * lifts just that part. Every message row has one, so a message gaining
+ * its first reply keeps its views; it's off for the rest, and in a thread,
+ * where those taps go on to the list (dismissing the keyboard).
+ */
+function ThreadRow({
+  message,
+  threaded,
+  children,
+}: {
+  message: Message;
+  threaded: boolean;
+  children: ReactNode;
+}) {
+  const { openThread } = useMessageActions();
+  return (
+    <Pressable
+      // Not one element to VoiceOver: the thread's count and quote are its
+      // buttons, and the message's parts keep their own.
+      accessible={false}
+      disabled={
+        !threaded || openThread === undefined || message.status !== undefined
+      }
+      onPress={() => openThread?.(message)}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
 function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
   const stacked = layout === "stacked";
   if (row.type === "day") {
@@ -196,26 +230,30 @@ function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
   const { message } = row;
   const card = replyCard(message, profileOf);
   const replies = threadReplies(message, profileOf);
-  if (stacked) {
-    return (
-      <MessageStacked
-        message={message}
-        author={profileOf(message.authorId)}
-        startsGroup={row.startsGroup}
-        card={card}
-        replies={replies}
-      />
-    );
-  }
   return (
-    <MessageBubble
+    <ThreadRow
       message={message}
-      isOwn={message.authorId === self}
-      author={showAuthors ? profileOf(message.authorId) : undefined}
-      startsGroup={row.startsGroup}
-      endsGroup={row.endsGroup}
-      card={card}
-      replies={replies}
-    />
+      threaded={card !== undefined || replies !== undefined}
+    >
+      {stacked ? (
+        <MessageStacked
+          message={message}
+          author={profileOf(message.authorId)}
+          startsGroup={row.startsGroup}
+          card={card}
+          replies={replies}
+        />
+      ) : (
+        <MessageBubble
+          message={message}
+          isOwn={message.authorId === self}
+          author={showAuthors ? profileOf(message.authorId) : undefined}
+          startsGroup={row.startsGroup}
+          endsGroup={row.endsGroup}
+          card={card}
+          replies={replies}
+        />
+      )}
+    </ThreadRow>
   );
 }

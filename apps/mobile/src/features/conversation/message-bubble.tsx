@@ -10,6 +10,7 @@ import { Avatar } from "~/components/avatar";
 import { cn } from "~/lib/cn";
 import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
+import { AuthorLink } from "./author-link";
 import { BUBBLE_RADIUS, BubbleTail, TAIL_DROP } from "./bubble-shape";
 import { rowOrder } from "./build-rows";
 import { useOwnLift } from "./grow";
@@ -151,16 +152,20 @@ function Content({
 
 /** The sender's photo beside the last bubble of a run in group chats. */
 function AvatarColumn({
+  address,
   author,
   visible,
 }: {
+  address: string;
   author: { avatarUrl: string | null; displayName: string };
   visible: boolean;
 }) {
   return (
     <View style={{ width: AVATAR_COLUMN }}>
       {visible && (
-        <Avatar name={author.displayName} size="sm" uri={author.avatarUrl} />
+        <AuthorLink address={address} name={author.displayName}>
+          <Avatar name={author.displayName} size="sm" uri={author.avatarUrl} />
+        </AuthorLink>
       )}
     </View>
   );
@@ -171,10 +176,12 @@ function AvatarColumn({
  * up with the rows above (see `GrowingSpace`).
  */
 function SenderName({
+  address,
   name,
   order,
   onEnd,
 }: {
+  address: string;
   name: string;
   order: number;
   /** Where the name's text ends, inside its padding. */
@@ -183,14 +190,18 @@ function SenderName({
   const lift = useOwnLift(order);
   return (
     <Animated.View style={lift}>
-      <Text
-        numberOfLines={1}
-        className="text-caption text-muted px-3"
-        style={{ lineHeight: NAME_LINE, marginBottom: NAME_GAP - 2 }}
-        onLayout={(event) => onEnd(event.nativeEvent.layout.width - NAME_INSET)}
-      >
-        {name}
-      </Text>
+      <AuthorLink address={address} name={name}>
+        <Text
+          numberOfLines={1}
+          className="text-caption text-muted px-3"
+          style={{ lineHeight: NAME_LINE, marginBottom: NAME_GAP - 2 }}
+          onLayout={(event) =>
+            onEnd(event.nativeEvent.layout.width - NAME_INSET)
+          }
+        >
+          {name}
+        </Text>
+      </AuthorLink>
     </Animated.View>
   );
 }
@@ -228,6 +239,7 @@ function BubbleColumn({
     >
       {name !== undefined && (
         <SenderName
+          address={message.authorId}
           name={name}
           order={rowOrder(message.sentAt)}
           onEnd={setNameEnd}
@@ -308,7 +320,13 @@ export function MessageBubble({
             isOwn ? "justify-end" : "justify-start",
           )}
         >
-          {showAuthor && <AvatarColumn author={author} visible={endsGroup} />}
+          {showAuthor && (
+            <AvatarColumn
+              address={message.authorId}
+              author={author}
+              visible={endsGroup}
+            />
+          )}
           <BubbleColumn
             message={message}
             isOwn={isOwn}

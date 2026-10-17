@@ -8,6 +8,7 @@ import { cn } from "~/lib/cn";
 import { formatTime } from "~/lib/format";
 import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
+import { AuthorLink } from "./author-link";
 import { LinkCards } from "./link-preview-card";
 import { LinkedText } from "./linked-text";
 import { MenuTargetView } from "./message-actions";
@@ -79,15 +80,27 @@ function StackedRow({
     >
       <View style={{ width: AVATAR_COLUMN }}>
         {startsGroup && (
-          <Avatar name={author.displayName} size="row" uri={author.avatarUrl} />
+          <AuthorLink
+            address={message.authorId}
+            name={author.displayName}
+            repeated
+          >
+            <Avatar
+              name={author.displayName}
+              size="row"
+              uri={author.avatarUrl}
+            />
+          </AuthorLink>
         )}
       </View>
       <View className="flex-1 gap-1">
         {startsGroup && (
           <View className="flex-row items-baseline gap-2">
-            <Text className="text-subhead text-foreground font-semibold">
-              {author.displayName}
-            </Text>
+            <AuthorLink address={message.authorId} name={author.displayName}>
+              <Text className="text-subhead text-foreground font-semibold">
+                {author.displayName}
+              </Text>
+            </AuthorLink>
             {/* Always laid out, so the name never shifts; it fades in once
                 the message is sent. */}
             <Animated.Text
