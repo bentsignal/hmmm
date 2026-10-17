@@ -8,7 +8,6 @@ import { cn } from "~/lib/cn";
 import { useMessageActions } from "./message-actions";
 import { quoteText, REPLY_INDENT } from "./reply-parts";
 import { useMenuPress } from "./row-touch";
-import { PILL_LOOKS, useStackedStyle } from "./stacked-style";
 
 // A reply as the conversation shows it: the message it answers, small,
 // with a curve from under it down into the reply, and how many more
@@ -230,7 +229,10 @@ export function RepliesFooter({
   );
 }
 
-/** A thread's count, with the newest repliers' photos, opening it. */
+/**
+ * A thread's count, with the newest repliers' photos, opening it: blue
+ * text beside a bubble, a pill under a stacked row.
+ */
 function RepliersLink({
   message,
   label,
@@ -243,19 +245,16 @@ function RepliersLink({
   /** Which side a bubble's on; unset for stacked rows. */
   isOwn?: boolean;
 }) {
-  const { thread } = useStackedStyle();
-  // Bubbles keep theirs; the stacked styles only change stacked rows'.
-  const pill =
-    isOwn === undefined && thread !== "link" ? PILL_LOOKS[thread] : undefined;
+  const pill = isOwn === undefined;
   return (
     <ThreadLink
       message={message}
       label={label}
       className={cn(
         "flex-row items-center gap-1.5",
-        pill === undefined
-          ? "pt-1"
-          : cn("mt-1.5 self-start rounded-full pr-2.5 pl-1.5", pill.box),
+        pill
+          ? "bg-fill mt-1.5 self-start rounded-full py-1 pr-2.5 pl-1.5"
+          : "pt-1",
         isOwn === true && "flex-row-reverse",
       )}
     >
@@ -274,15 +273,20 @@ function RepliersLink({
           </View>
         ))}
       </View>
-      <Text className={pill?.text ?? "text-footnote text-accent font-semibold"}>
+      <Text
+        className={cn(
+          "text-footnote font-semibold",
+          pill ? "text-foreground" : "text-accent",
+        )}
+      >
         {label}
       </Text>
-      {pill !== undefined && (
+      {pill && (
         <SymbolIcon
           name={{ android: "chevron_right", ios: "chevron.right" }}
           size={10}
           weight="bold"
-          tintColorClassName={pill.arrow}
+          tintColorClassName="accent-muted"
         />
       )}
     </ThreadLink>

@@ -2,7 +2,6 @@ import type { RefObject } from "react";
 import { useRef } from "react";
 import { Text, View } from "react-native";
 import Animated from "react-native-reanimated";
-import { useUniwind } from "uniwind";
 
 import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
@@ -18,7 +17,6 @@ import { StillChips } from "./part-chips";
 import { QuoteLine } from "./reply-card";
 import { useRowTarget } from "./row-touch";
 import { StackedFooter, StackedParts } from "./stacked-parts";
-import { personColor, useStackedStyle } from "./stacked-style";
 
 const AVATAR_COLUMN = 36;
 
@@ -90,29 +88,17 @@ function AvatarSlot({
 
 /** The sender's name and the time, above the first message of a run. */
 function NameLine({ message, author }: { message: Message; author: Author }) {
-  const { boldNames, faintTime, nameColor } = useStackedStyle();
-  const { theme } = useUniwind();
   return (
     <View className="flex-row items-baseline gap-2">
       <AuthorLink address={message.authorId} name={author.displayName}>
-        <Text
-          className={cn(
-            "text-subhead text-foreground",
-            boldNames ? "font-bold" : "font-semibold",
-          )}
-          style={
-            nameColor === "person"
-              ? { color: personColor(message.authorId, theme) }
-              : undefined
-          }
-        >
+        <Text className="text-subhead text-foreground font-bold">
           {author.displayName}
         </Text>
       </AuthorLink>
       {/* Always laid out, so the name never shifts; it fades in once the
           message is sent. */}
       <Animated.Text
-        className={cn("text-caption", faintTime ? "text-subtle" : "text-muted")}
+        className="text-caption text-muted"
         style={{
           opacity: message.status === undefined ? 1 : 0,
           transitionDuration: SENT_FADE_MS,

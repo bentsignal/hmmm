@@ -3,7 +3,6 @@ import { View } from "react-native";
 import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
 import { attachmentPart } from "~/features/messaging/reactions";
-import { cn } from "~/lib/cn";
 import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
 import { LinkCardView } from "./link-preview-card";
@@ -13,7 +12,6 @@ import { linkPart, partCount } from "./message-parts";
 import { linkCardsOf, visibleBody } from "./message-text";
 import { Placed, Reactable } from "./reaction-parts";
 import { RepliesFooter, ThreadFooter } from "./reply-card";
-import { useStackedStyle } from "./stacked-style";
 
 /**
  * A message's parts, top to bottom: its text, its attachments, and its
@@ -23,7 +21,6 @@ import { useStackedStyle } from "./stacked-style";
  * whole row (see `MessageRowTarget`).
  */
 export function StackedParts({ message }: { message: Message }) {
-  const { lineHeight, softText } = useStackedStyle();
   const body = visibleBody(message);
   const cards = linkCardsOf(message);
   const cardsPlace = message.attachments.length + 1;
@@ -31,11 +28,7 @@ export function StackedParts({ message }: { message: Message }) {
     <LinkedText
       text={body}
       mentions={message.mentions}
-      className={cn(
-        "text-body",
-        softText ? "text-foreground/85" : "text-foreground",
-      )}
-      style={lineHeight === undefined ? undefined : { lineHeight }}
+      className="text-body text-foreground"
     />
   );
   return (
