@@ -16,9 +16,9 @@ import { NotSent, SendingFade, SENT_FADE_MS } from "./message-status";
 import { StillChips } from "./part-chips";
 import { QuoteBlock, QuoteLine } from "./reply-card";
 import { useRowTarget } from "./row-touch";
-import { avatarColumn, GroupFrame, rowInset } from "./stacked-frame";
+import { GroupFrame } from "./stacked-frame";
 import { StackedFooter, StackedParts } from "./stacked-parts";
-import { useStackedStyle } from "./stacked-style";
+import { avatarColumn, rowInset, useStackedStyle } from "./stacked-style";
 
 /**
  * Slack/Discord-style: everyone left-aligned with a photo and name. A

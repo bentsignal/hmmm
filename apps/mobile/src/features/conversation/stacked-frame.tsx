@@ -7,16 +7,6 @@ import { useStackedStyle } from "./stacked-style";
 // The space around stacked rows, in the development styles (see
 // `STACKED_STYLES`).
 
-/** The photo column's width. */
-export function avatarColumn(style: StackedStyle) {
-  return style.bigAvatar ? 40 : 36;
-}
-
-/** The row's padding at either side. */
-export function rowInset(style: StackedStyle) {
-  return style.card ? 12 : 16;
-}
-
 /** A sender's run on a faint card, rounded at its ends. */
 function CardFrame({
   opens,

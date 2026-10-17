@@ -129,6 +129,16 @@ export const STACKED_STYLES = [
   },
 ] satisfies readonly StackedStyle[];
 
+/** The photo column's width. */
+export function avatarColumn(style: StackedStyle) {
+  return style.bigAvatar ? 40 : 36;
+}
+
+/** The row's padding at either side. */
+export function rowInset(style: StackedStyle) {
+  return style.card ? 12 : 16;
+}
+
 // In memory: it survives hot reloads, and a full reload starts over.
 let index = 0;
 const listeners = new Set<() => void>();
