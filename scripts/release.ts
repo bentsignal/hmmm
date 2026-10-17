@@ -13,6 +13,8 @@
 //   build production --android          Android app bundle (vera.chat), submitted to Play internal testing
 //   build ... --artifact <ipa|apk|aab>  upload and tag an existing build of this commit instead of building
 //   ota internal|production "msg"       over-the-air update for every platform whose binary matches
+//   ota production "msg" --with-backend builds the update, deploys the backend, then publishes the
+//                                       update at once, so open apps wait seconds, not minutes
 //   ... --next-release-done             production builds and updates refuse to run while
 //                                       docs/next-release.md lists steps, until this confirms
 //                                       the ones due by then are done
@@ -25,7 +27,7 @@
 // ~/.config/vera/play-service-account.json.
 import { execFileSync, spawnSync } from "node:child_process";
 import { createSign } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -308,8 +310,14 @@ function plan() {
   console.log(
     backend.files.length === 0
       ? `backend: unchanged since ${backend.base}`
-      : `backend: changed since ${backend.base} (${backend.files.length} files); run \`pnpm release backend production\` before the app ships`,
+      : `backend: changed since ${backend.base} (${backend.files.length} files); ship it with \`pnpm release ota production "<notes>" --with-backend\`, or \`pnpm release backend production\` alone when the app didn't change`,
   );
+  const breaking = breakingVersionChange(backend.base);
+  if (breaking !== undefined) {
+    console.log(
+      `BREAKING: the breaking version goes from ${breaking.from} to ${breaking.to}. Open apps cover the screen with "Updating Vera…" the moment the backend deploys, so ship with --with-backend: the update has to be out seconds later.`,
+    );
+  }
   console.log(`\nmerged since ${release ?? "the start"}:`);
   console.log(merges.length === 0 ? "- nothing" : merges.join("\n"));
   console.log(
@@ -324,6 +332,25 @@ function plan() {
           ...steps,
         ].join("\n"),
   );
+}
+
+/** The breaking version in a commit's `services/backend/breaking-version.ts`. */
+function breakingVersionAt(ref: string) {
+  const source = spawnSync(
+    "git",
+    ["show", `${ref}:services/backend/breaking-version.ts`],
+    { cwd: ROOT, encoding: "utf8" },
+  );
+  return /BREAKING_VERSION = (\d+)/.exec(source.stdout)?.[1];
+}
+
+/** The breaking version's change since a commit, when it changed. */
+function breakingVersionChange(base: string) {
+  if (base === "nothing") return undefined;
+  const from = breakingVersionAt(base);
+  const to = breakingVersionAt("HEAD");
+  // Its first appearance breaks nothing: older apps don't watch it.
+  return from === undefined || from === to ? undefined : { from, to };
 }
 
 function backend(target: string | undefined) {
@@ -695,10 +722,36 @@ function ota(channel: string | undefined, message: string | undefined) {
       `no ${channel} binary has the current runtime; make a build instead`,
     );
   }
+  const env = { ...BUILD_ENV[channel], VERA_NOTIFICATION_EXTENSION: "1" };
+  const withBackend = process.argv.includes("--with-backend");
+  if (withBackend) {
+    if (channel !== "production") {
+      throw new Error("--with-backend deploys production; use it with ota production");
+    }
+    // Bundle first (the slow part, as eas update would), then deploy the
+    // backend and publish the update straight after it, so an open app on
+    // the old code waits seconds for its update instead of minutes.
+    rmSync(join(MOBILE, "dist"), { force: true, recursive: true });
+    run(
+      "npx",
+      [
+        "expo",
+        "export",
+        "--output-dir",
+        "dist",
+        "--dump-sourcemap",
+        "--dump-assetmap",
+        ...targets.flatMap((platform) => ["--platform", platform]),
+      ],
+      { cwd: MOBILE, env },
+    );
+    backend("production");
+  }
   const json = output(
     "eas",
     [
       "update",
+      ...(withBackend ? ["--skip-bundler", "--input-dir", "dist"] : []),
       "--channel",
       channel,
       "--environment",
@@ -710,15 +763,9 @@ function ota(channel: string | undefined, message: string | undefined) {
       "--non-interactive",
       "--json",
     ],
-    {
-      cwd: MOBILE,
-      // The fingerprint must match the channel's binaries, which have the
-      // extension (and, on internal, the dev variant).
-      env: {
-        ...BUILD_ENV[channel],
-        VERA_NOTIFICATION_EXTENSION: "1",
-      },
-    },
+    // The fingerprint must match the channel's binaries, which have the
+    // extension (and, on internal, the dev variant).
+    { cwd: MOBILE, env },
   );
   const updates = JSON.parse(json) as {
     group: string;

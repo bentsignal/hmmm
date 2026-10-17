@@ -54,6 +54,14 @@ Component types that `services/backend` and the app compile against. While
 `0.1.0` is unreleased, contract changes don't bump `lastChanged` (see
 `docs/versioning.md`), but keep them backward compatible.
 
+Every backend change has to keep working with the app version before it,
+which open apps keep running until their update lands. If one can't (a
+removed or renamed function, a result old apps can't read), raise
+`BREAKING_VERSION` in `services/backend/breaking-version.ts` by one in the
+same PR, and say so in the PR's release notes: open older apps then update
+themselves the moment the backend deploys (`docs/releasing.md` → Breaking
+backend changes).
+
 ## 3. Build it
 
 Follow the codebase's patterns and the lint rules: the React Compiler (no

@@ -22,6 +22,7 @@ import type * as http from "../http.js";
 import type * as joinPage from "../joinPage.js";
 import type * as lib from "../lib.js";
 import type * as pds from "../pds.js";
+import type * as release from "../release.js";
 import type * as support from "../support.js";
 
 import type {
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   joinPage: typeof joinPage;
   lib: typeof lib;
   pds: typeof pds;
+  release: typeof release;
   support: typeof support;
 }>;
 
