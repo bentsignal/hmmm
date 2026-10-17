@@ -90,6 +90,15 @@ function LinkOnly({ link }: { link: string }) {
   );
 }
 
+/**
+ * Lines of a description a card shows. A post's description is the post
+ * itself, so it gets room for a whole tweet (280 characters); a page's is
+ * a summary, and two lines are enough to say what it is.
+ */
+function descriptionLines(preview: LinkPreview) {
+  return hostOf(preview.url) === "x.com" ? 8 : 2;
+}
+
 /** Open Graph preview fetched by the server. */
 function Preview({
   preview,
@@ -128,7 +137,10 @@ function Preview({
             </Text>
           )}
           {preview.description !== undefined && (
-            <Text numberOfLines={2} className="text-footnote text-muted">
+            <Text
+              numberOfLines={descriptionLines(preview)}
+              className="text-footnote text-muted"
+            >
               {preview.description}
             </Text>
           )}

@@ -84,7 +84,11 @@ function tweetMedia(media: readonly unknown[]) {
   return { imageUrl: stringField(poster, "media_url_https"), video };
 }
 
-/** The tweet's words, with its links spelled out and its media's dropped. */
+/**
+ * The tweet's words, with its links spelled out and its media's dropped.
+ * A long post comes cut at about 280 characters (it has a `note_tweet`, which
+ * the embed API doesn't spell out), so it ends in "…".
+ */
 function tweetText(tweet: unknown) {
   let shown = stringField(tweet, "text") ?? "";
   const entities = field(tweet, "entities");
@@ -98,8 +102,14 @@ function tweetText(tweet: unknown) {
   for (const media of listField(entities, "media")) {
     shown = shown.replaceAll(stringField(media, "url") ?? "", "");
   }
-  const words = decodeEntities(shown).trim();
-  return words.length === 0 ? undefined : words;
+  // Its line breaks stay, but not its blank lines, which a card can't spare.
+  const words = decodeEntities(shown)
+    .split(/\s*\n\s*/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter((line) => line.length > 0)
+    .join("\n");
+  if (words.length === 0) return undefined;
+  return field(tweet, "note_tweet") === undefined ? words : `${words}…`;
 }
 
 /** The MP4 to play: the best one at or under about 720p. */
