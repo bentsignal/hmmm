@@ -92,7 +92,9 @@ a higher number goes live, every open older app covers the screen with
 "Updating Vera…", looks for its update every 2 seconds, and restarts into
 it as soon as it's downloaded, whatever the person was doing. If no update
 comes within 3 minutes (a binary too old for any over-the-air update), the
-cover says to get the new version from TestFlight or the Play Store.
+cover says to get the new version from TestFlight or the Play Store. Dev
+clients only log a warning, since they can't update themselves and every
+worktree shares the dev PDS; a worktree behind on it merges main.
 
 So the update has to be out seconds after the deploy:
 `pnpm release ota production "<notes>" --with-backend` builds the update,

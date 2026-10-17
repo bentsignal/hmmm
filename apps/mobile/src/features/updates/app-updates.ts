@@ -80,6 +80,14 @@ export function useRequiredUpdate() {
 /** Takes the backend's breaking version from its live query. */
 export function noteServerBreakingVersion(version: number) {
   if (version <= BREAKING_VERSION || required !== undefined) return;
+  if (__DEV__) {
+    // A dev client can't update itself, and other worktrees share the dev
+    // PDS: say so instead of covering the app.
+    console.warn(
+      `This app is on breaking version ${String(BREAKING_VERSION)}, its backend on ${String(version)}: merge main to catch up.`,
+    );
+    return;
+  }
   requiredSince = Date.now();
   setRequired("updating");
   ticker ??= setInterval(tick, TICK_MS);
