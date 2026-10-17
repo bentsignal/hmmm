@@ -29,7 +29,13 @@ export function withReaction(messages: readonly Message[], id: string) {
       ? {
           ...item,
           reactions: [
-            { accounts: [OTHER], count: 1, emoji: "❤️", mine: false },
+            {
+              accounts: [OTHER],
+              count: 1,
+              emoji: "❤️",
+              mine: false,
+              part: "message" as const,
+            },
           ],
         }
       : item,

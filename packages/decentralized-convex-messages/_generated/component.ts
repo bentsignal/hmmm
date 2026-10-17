@@ -97,6 +97,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             | { args: { urls: Array<string> }; type: "prefetchLinkPreviews" }
             | {
                 args: {
+                  attachment?: number;
                   conversationId: string;
                   emoji: string;
                   messageId: string;
@@ -676,6 +677,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   };
                   reactions: Array<{
                     accountId: string;
+                    attachment?: number;
                     emoji: string;
                     messageId: string;
                     reactedAt: number;
@@ -1106,6 +1108,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             type: "reactions";
             value: Array<{
               accountId: string;
+              attachment?: number;
               emoji: string;
               messageId: string;
               reactedAt: number;

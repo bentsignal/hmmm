@@ -1,3 +1,4 @@
+import { attachment } from "@decentralized-convex/messages";
 import { v } from "convex/values";
 
 import { internal } from "./_generated/api";
@@ -141,6 +142,8 @@ export const react = internalAction({
 
 export const say = internalAction({
   args: {
+    /** Photos and files, at https URLs, for testing messages with media. */
+    attachments: v.optional(v.array(attachment)),
     body: v.string(),
     conversationId: v.string(),
     /** Someone to @mention at the start. */
@@ -150,14 +153,14 @@ export const say = internalAction({
   },
   handler: async (
     ctx,
-    { body, conversationId, mention, threadId, username },
+    { attachments = [], body, conversationId, mention, threadId, username },
   ) => {
     requireDevTools();
     const bot = BOTS.find((candidate) => candidate.username === username);
     if (bot === undefined) return;
     await asAccount(ctx, botIdentity(bot), {
       args: {
-        attachments: [],
+        attachments,
         body: mention === undefined ? body : `@${mention.name} ${body}`,
         conversationId,
         mentions: mention === undefined ? undefined : [mention],

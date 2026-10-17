@@ -104,11 +104,13 @@ export const messagesProtocol = definePluginProtocol({
       returns: v.null(),
     }),
     /**
-     * Adds (`on: true`) or removes your emoji reaction to a message. The
+     * Adds (`on: true`) or removes your emoji reaction to a message, or with
+     * `attachment`, to one of its attachments (see `reaction`). The
      * reaction is stored on your home PDS, like the messages you send.
      */
     react: defineOperation({
       args: v.object({
+        attachment: v.optional(v.number()),
         conversationId: v.string(),
         emoji: v.string(),
         messageId: v.string(),

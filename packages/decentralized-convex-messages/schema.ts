@@ -140,6 +140,9 @@ export default defineSchema({
   // Reactions by this PDS's accounts, to messages stored on any PDS.
   reactions: defineTable({
     accountId: v.string(),
+    // The attachment reacted to, by index; absent for the message itself
+    // (see `reaction` in the protocol).
+    attachment: v.optional(v.number()),
     conversationId: v.string(),
     emoji: v.string(),
     messageId: v.string(),

@@ -4,7 +4,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { messagesProtocol } from "./protocol.ts";
 import { internal } from "./_generated/api.js";
 import { fail, memberAddresses, requireAccess } from "./model.ts";
-import { MAX_REACTION_MESSAGES } from "./protocol.ts";
+import { MAX_ATTACHMENTS, MAX_REACTION_MESSAGES } from "./protocol.ts";
 
 /** How long a new reaction waits before its push, in case it's undone. */
 const REACTION_PUSH_DELAY_MS = 3000;
@@ -25,6 +25,22 @@ function validEmoji(emoji: string) {
   );
 }
 
+/** An attachment's index, which `send` keeps under `MAX_ATTACHMENTS`. */
+function validAttachment(attachment: number | undefined) {
+  return (
+    attachment === undefined ||
+    (Number.isInteger(attachment) &&
+      attachment >= 0 &&
+      attachment < MAX_ATTACHMENTS)
+  );
+}
+
+function requireValidReaction({ attachment, emoji }: Args<"react">) {
+  if (!validEmoji(emoji) || !validAttachment(attachment)) {
+    fail("INVALID_REACTION");
+  }
+}
+
 export async function react(
   ctx: MutationCtx,
   self: string,
@@ -32,14 +48,16 @@ export async function react(
   args: Args<"react">,
 ) {
   await requireAccess(ctx, args.conversationId, self);
-  if (!validEmoji(args.emoji)) fail("INVALID_REACTION");
+  requireValidReaction(args);
   const mine = await ctx.db
     .query("reactions")
     .withIndex("by_message_account", (index) =>
       index.eq("messageId", args.messageId).eq("accountId", self),
     )
     .collect();
-  const existing = mine.find((row) => row.emoji === args.emoji);
+  const existing = mine.find(
+    (row) => row.emoji === args.emoji && row.attachment === args.attachment,
+  );
   if (!args.on) {
     if (existing !== undefined) await ctx.db.delete(existing._id);
     return null;
@@ -54,6 +72,7 @@ export async function react(
     .unique();
   await ctx.db.insert("reactions", {
     accountId: self,
+    attachment: args.attachment,
     conversationId: args.conversationId,
     emoji: args.emoji,
     messageId: args.messageId,
@@ -100,8 +119,9 @@ export async function reactions(
     found.push(
       ...rows
         .filter((row) => row.conversationId === args.conversationId)
-        .map(({ accountId, emoji, reactedAt }) => ({
+        .map(({ accountId, attachment, emoji, reactedAt }) => ({
           accountId,
+          attachment,
           emoji,
           messageId,
           reactedAt,

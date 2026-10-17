@@ -16,9 +16,24 @@ import type {
   TargetAlign,
 } from "./glass-message-menu";
 import type { Message, MessageAttachment } from "./types";
+import type { ReactionPart } from "~/features/messaging/reactions";
 import { impact, selectionTick } from "~/lib/native-extras";
 import { GlassMessageMenu } from "./glass-message-menu";
 import { wasLinkTap } from "./link-tap";
+
+/** Adds or takes back your reaction on a part of a message. */
+export type ToggleReaction = (
+  messageId: string,
+  emoji: string,
+  part: ReactionPart,
+) => void;
+
+/** Opens who reacted to a part, on the given emoji's tab if there is one. */
+export type ViewReactions = (
+  messageId: string,
+  part: ReactionPart,
+  emoji?: string,
+) => void;
 
 interface MessageActions {
   readonly open: (target: MenuTarget) => void;
@@ -27,19 +42,38 @@ interface MessageActions {
    * tap does nothing.
    */
   readonly openThread?: (message: Message) => void;
-  readonly toggleReaction: (messageId: string, emoji: string) => void;
-  /** Opens who reacted, on the given emoji's tab when there is one. */
-  readonly viewReactions: (messageId: string, emoji?: string) => void;
+  readonly toggleReaction: ToggleReaction;
+  readonly viewReactions: ViewReactions;
 }
 
 const MessageActionsContext = createContext<MessageActions | null>(null);
 
-/** The message lifted into the menu, from when it opens until it's closed. */
-const LiftedMessageContext = createContext<string | undefined>(undefined);
+/** The part lifted into the menu, from when it opens until it's closed. */
+const LiftedPartContext = createContext<
+  { readonly messageId: string; readonly part: ReactionPart } | undefined
+>(undefined);
 
-/** Whether this message is lifted into the menu right now. */
-export function useIsLifted(messageId: string) {
-  return use(LiftedMessageContext) === messageId;
+/** Whether this part of a message is lifted into the menu right now. */
+export function useIsLifted(messageId: string, part: ReactionPart) {
+  const lifted = use(LiftedPartContext);
+  return lifted?.messageId === messageId && lifted.part === part;
+}
+
+const ReactionPartContext = createContext<ReactionPart>("message");
+
+/**
+ * The part of a message around a part's pieces (see `Reactable`), which
+ * reactions picked from them go to. Pieces outside every part (link cards
+ * under the text) are the message's.
+ */
+export function ReactionPartProvider({
+  part,
+  children,
+}: {
+  part: ReactionPart;
+  children: ReactNode;
+}) {
+  return <ReactionPartContext value={part}>{children}</ReactionPartContext>;
 }
 
 export function useMessageActions() {
@@ -63,8 +97,8 @@ export function MessageActionsProvider({
   menuKeyboard,
   children,
 }: {
-  onToggleReaction: (messageId: string, emoji: string) => void;
-  onViewReactions: (messageId: string, emoji?: string) => void;
+  onToggleReaction: ToggleReaction;
+  onViewReactions: ViewReactions;
   /** A tap on a message opens its thread; absent in a thread. */
   onOpenThread?: (message: Message) => void;
   /** The menu's Reply; absent in a thread. */
@@ -90,14 +124,24 @@ export function MessageActionsProvider({
         viewReactions: onViewReactions,
       }}
     >
-      <LiftedMessageContext value={target?.message.id}>
+      <LiftedPartContext
+        value={
+          target === null
+            ? undefined
+            : { messageId: target.message.id, part: target.part }
+        }
+      >
         {children}
-      </LiftedMessageContext>
+      </LiftedPartContext>
       {target !== null && (
         <GlassMessageMenu
           target={target}
-          onReact={(emoji) => onToggleReaction(target.message.id, emoji)}
-          onViewReactions={(emoji) => onViewReactions(target.message.id, emoji)}
+          onReact={(emoji) =>
+            onToggleReaction(target.message.id, emoji, target.part)
+          }
+          onViewReactions={(emoji) =>
+            onViewReactions(target.message.id, target.part, emoji)
+          }
           onReply={
             onReply === undefined ? undefined : () => onReply(target.message)
           }
@@ -169,24 +213,32 @@ function lift(
 }
 
 /**
- * Opens a whole message's reactions, lifting `measured` (the message as it
- * sits in the list) with `preview`, a copy of it. For the tapbacks, which
- * belong to the message rather than one of its parts.
+ * Opens the reactions on a part of a message, lifting `measured` (the part
+ * as it sits in the list) with `preview`, a copy of it. For its tapbacks.
  */
 export function useOpenReactions({
   message,
   align,
   shape,
+  part,
   measured,
   preview,
 }: MessageTarget & {
+  part: ReactionPart;
   measured: RefObject<NativeView | null>;
   preview: ReactNode;
 }) {
   const { open } = useMessageActions();
   return () => {
     selectionTick();
-    lift(open, measured, { align, message, mode: "reactions", preview, shape });
+    lift(open, measured, {
+      align,
+      message,
+      mode: "reactions",
+      part,
+      preview,
+      shape,
+    });
   };
 }
 
@@ -195,8 +247,9 @@ export function useOpenReactions({
  * the message's glass overlay on a long press, lifting `preview`, a copy of
  * just this part, from where `measured` sits. So a message with several
  * parts never lifts taller than it needs to; reactions picked there go to
- * the whole message. Spread `press` on the Pressable `measured` refers to,
- * and put `style` (the squeeze while held) on the part. `openReactions`
+ * the part (see `ReactionPartProvider`). Spread `press` on the Pressable
+ * `measured` refers to, and put `style` (the squeeze while held) on the
+ * part. `openReactions`
  * lifts it with who reacted instead of the actions (a double tap). Null
  * outside a message, as in the lifted copy, where the part draws as is.
  */
@@ -218,6 +271,7 @@ export function useMenuTarget({
   preview: ReactNode;
 }) {
   const target = use(MessageTargetContext);
+  const part = use(ReactionPartContext);
   const { open } = useMessageActions();
   const scale = useSharedValue(1);
   const style = useAnimatedStyle(() => ({
@@ -234,6 +288,7 @@ export function useMenuTarget({
       link,
       message,
       mode,
+      part,
       preview,
       shape: shape ?? target?.shape ?? "plain",
     });
