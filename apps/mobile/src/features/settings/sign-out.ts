@@ -46,15 +46,3 @@ export function removeUnreachableAccount(account: StoredAccount) {
     storedAccounts().length,
   ).catch(() => null);
 }
-
-/**
- * Signs every account out of this device, leaving it as if new: the app
- * goes back to the welcome screen once the last one is gone.
- */
-export function signOutEverywhere(
-  sessions: readonly AccountSession[],
-  unreachable: readonly StoredAccount[],
-) {
-  for (const account of unreachable) removeUnreachableAccount(account);
-  for (const session of sessions) signOutAccount(session);
-}
