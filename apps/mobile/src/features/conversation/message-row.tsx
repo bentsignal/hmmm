@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import Animated, {
   useAnimatedReaction,
   useAnimatedStyle,
@@ -17,10 +17,10 @@ import { rowOrder } from "./build-rows";
 import { DaySeparator, TimeHeader } from "./day-separator";
 import { useRowLift } from "./grow";
 import { MemberNotice } from "./member-notice";
-import { useMessageActions } from "./message-actions";
 import { MessageBubble } from "./message-bubble";
 import { MessageStacked } from "./message-stacked";
 import { RepliesDivider } from "./replies-divider";
+import { MessageRowTarget } from "./row-target";
 
 export type ProfileOf = (address: string) => {
   avatarUrl: string | null;
@@ -174,35 +174,6 @@ function threadReplies(message: Message, profileOf: ProfileOf) {
   } satisfies ThreadReplies;
 }
 
-/**
- * A message's row, which opens its thread (or starts one) from a tap
- * anywhere across it, from the top of the sender's name to the bottom of
- * the message: beside a short message or a photo too. The message's own
- * parts take their touches first, so a photo still opens, and holding or
- * double tapping a part still lifts just that part. Off in a thread.
- */
-function ThreadRow({
-  message,
-  children,
-}: {
-  message: Message;
-  children: ReactNode;
-}) {
-  const { openThread } = useMessageActions();
-  return (
-    <Pressable
-      // Not one element to VoiceOver: the message's parts keep their own,
-      // and the thread's count and quote are its buttons.
-      accessible={false}
-      // A message still sending (or that failed) has no thread yet.
-      disabled={openThread === undefined || message.status !== undefined}
-      onPress={() => openThread?.(message)}
-    >
-      {children}
-    </Pressable>
-  );
-}
-
 function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
   const stacked = layout === "stacked";
   if (row.type === "day") {
@@ -227,7 +198,7 @@ function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
   const card = replyCard(message, profileOf);
   const replies = threadReplies(message, profileOf);
   return (
-    <ThreadRow message={message}>
+    <MessageRowTarget message={message}>
       {stacked ? (
         <MessageStacked
           message={message}
@@ -247,6 +218,6 @@ function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
           replies={replies}
         />
       )}
-    </ThreadRow>
+    </MessageRowTarget>
   );
 }

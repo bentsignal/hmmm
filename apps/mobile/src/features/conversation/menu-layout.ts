@@ -17,7 +17,7 @@ interface Size {
 export const GAP = 10;
 /** Space kept clear at the screen's edges. */
 export const EDGE = 12;
-/** How much the lifted element grows. */
+/** How much the lifted element grows, where it has room to. */
 export const LIFT = 0.035;
 
 export interface MenuLayout {
@@ -66,7 +66,15 @@ export function menuLayout({
     EDGE -
     (menu.height > 0 ? menu.height + GAP : 0);
   const room = Math.max(0, maxBottom - minTop);
-  const scale = Math.min(1 + LIFT, room / Math.max(1, frame.height));
+  // It grows no closer to the far edge than it sits to its own, so an
+  // element as wide as the conversation (a stacked row) stays on screen.
+  const margin =
+    align === "end" ? screen.width - frame.x - frame.width : frame.x;
+  const fits = Math.max(
+    1,
+    (screen.width - margin * 2) / Math.max(1, frame.width),
+  );
+  const scale = Math.min(1 + LIFT, fits, room / Math.max(1, frame.height));
   const height = frame.height * scale;
   const width = frame.width * scale;
   const top = Math.max(minTop, Math.min(frame.y, maxBottom - height));

@@ -257,6 +257,7 @@ function BubbleColumn({
         reactionStyle="tapbacks"
         roomAbove={besideName ? NAME_HEIGHT : 0}
         tapbacksClearOf={besideName ? nameEnd : undefined}
+        liftedFromRow
       >
         <Content
           message={message}

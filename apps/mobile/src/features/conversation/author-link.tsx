@@ -2,8 +2,12 @@ import type { ReactNode } from "react";
 import { Pressable } from "react-native";
 
 import { useOpenProfile } from "~/features/profile/use-open-profile";
+import { useMenuPress } from "./row-touch";
 
-/** A sender's photo or name beside their message, opening their profile. */
+/**
+ * A sender's photo or name beside their message, opening their profile.
+ * Holding it holds the message's row.
+ */
 export function AuthorLink({
   address,
   name,
@@ -17,8 +21,11 @@ export function AuthorLink({
   children: ReactNode;
 }) {
   const openProfile = useOpenProfile();
+  const hold = useMenuPress();
   return (
     <Pressable
+      delayLongPress={hold?.delayLongPress}
+      onLongPress={hold?.onLongPress}
       accessibilityElementsHidden={repeated}
       importantForAccessibility={repeated ? "no-hide-descendants" : "auto"}
       accessibilityRole="button"

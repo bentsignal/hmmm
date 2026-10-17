@@ -56,3 +56,10 @@ void test("the bar and actions line up with the element's side, on screen", () =
   assert.equal(start.menuLeft, 16);
   assert.equal(start.barLeft, 16);
 });
+
+void test("an element as wide as the screen lifts without growing", () => {
+  const frame = { height: 60, width: 390, x: 6, y: 300 };
+  const result = layout(frame, "start");
+  assert.equal(result.scale, 1);
+  assert.equal(result.shift, 0);
+});

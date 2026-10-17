@@ -17,10 +17,11 @@ import { GrowingSpace, useOwnLift } from "./grow";
 import {
   MessageTargetProvider,
   useIsLifted,
+  useLiftMessage,
   useMessageActions,
-  useOpenReactions,
 } from "./message-actions";
 import { ChipRow } from "./reaction-chips";
+import { useRowTarget } from "./row-touch";
 import { NAME_CLEARANCE, TAPBACK_SPACE, Tapbacks } from "./tapbacks";
 
 /**
@@ -164,6 +165,23 @@ function clearsName(nameEnd: number | undefined, left: number | undefined) {
 }
 
 /**
+ * Opens who reacted to the whole message (see `useLiftMessage`), as its
+ * tapbacks do. When `fromRow`, a hold or double tap beside its parts lifts
+ * the whole message too.
+ */
+function useWholeMessage(
+  message: Parameters<typeof useLiftMessage>[0],
+  fromRow: boolean,
+) {
+  const liftWhole = useLiftMessage(message);
+  useRowTarget(fromRow ? liftWhole : undefined);
+  return () => {
+    selectionTick();
+    liftWhole("reactions");
+  };
+}
+
+/**
  * A message whose parts open the glass overlay on a long press, and its
  * reactions on a double tap (each wraps itself in `MenuTargetView` or uses
  * `useMenuTarget`). Its reactions show as iMessage tapbacks over the top
@@ -179,6 +197,7 @@ export function InteractiveMessage({
   reactionStyle,
   roomAbove = 0,
   tapbacksClearOf,
+  liftedFromRow,
   children,
 }: {
   message: Message;
@@ -194,6 +213,8 @@ export function InteractiveMessage({
    * their own instead, between the name and the bubble, as in Messages.
    */
   tapbacksClearOf?: number;
+  /** A hold or double tap beside its parts lifts it all (bubbles). */
+  liftedFromRow?: boolean;
   children: ReactNode;
 }) {
   const { toggleReaction, viewReactions } = useMessageActions();
@@ -201,13 +222,10 @@ export function InteractiveMessage({
   const grows = useSeenWithout(reactions, message.reactions !== undefined);
   const lifted = useIsLifted(message.id);
   const body = useAnimatedRef<NativeView>();
-  const openReactions = useOpenReactions({
-    align,
-    measured: body,
-    message,
-    preview: children,
-    shape,
-  });
+  const openReactions = useWholeMessage(
+    { align, measured: body, message, preview: children, shape },
+    liftedFromRow === true,
+  );
   const has = reactions.length > 0;
   const placement = useTapbackPlacement(tapbacksClearOf);
   const room = {
