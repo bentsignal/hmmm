@@ -11,11 +11,10 @@ export function useReactionsSheet(conversationId: string) {
     router.push({
       params: {
         account: address,
-        // The message itself goes without, as before parts had reactions.
-        attachment: part === "message" ? undefined : part,
         conversationId,
         emoji,
         messageId,
+        part: String(part),
       },
       pathname: "/reactions",
     });

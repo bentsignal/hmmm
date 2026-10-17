@@ -6,17 +6,16 @@ import Animated from "react-native-reanimated";
 import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
-import { partCount } from "~/features/messaging/reactions";
 import { cn } from "~/lib/cn";
 import { formatTime } from "~/lib/format";
 import { AuthorLink } from "./author-link";
 import { useMessageActions, useSqueeze } from "./message-actions";
+import { lastPart, partCount } from "./message-parts";
 import { InteractiveMessage } from "./message-reactions";
 import { NotSent, SendingFade, SENT_FADE_MS } from "./message-status";
 import { StillChips } from "./part-chips";
 import { QuoteLine } from "./reply-card";
 import { useRowTarget } from "./row-touch";
-import { lastPart } from "./stacked-end";
 import { StackedFooter, StackedParts } from "./stacked-parts";
 
 const AVATAR_COLUMN = 36;
@@ -241,7 +240,7 @@ function StackedRow({
               reactionStyle="chips"
               // The last part's reactions go under the thread's count.
               chipsAtEnd={chipsAtEnd}
-              inner={chipsAtEnd === null || partCount(message) > 1}
+              inner={partCount(message) > 1}
             >
               <View ref={content}>
                 <SendingFade status={message.status}>

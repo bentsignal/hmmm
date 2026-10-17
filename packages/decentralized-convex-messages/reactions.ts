@@ -3,6 +3,7 @@ import type { OperationArgs } from "@decentralized-convex/plugin";
 import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { messagesProtocol } from "./protocol.ts";
 import { internal } from "./_generated/api.js";
+import { MAX_LINK_PREVIEWS } from "./links.ts";
 import { fail, memberAddresses, requireAccess } from "./model.ts";
 import { MAX_ATTACHMENTS, MAX_REACTION_MESSAGES } from "./protocol.ts";
 
@@ -25,18 +26,22 @@ function validEmoji(emoji: string) {
   );
 }
 
-/** An attachment's index, which `send` keeps under `MAX_ATTACHMENTS`. */
-function validAttachment(attachment: number | undefined) {
+/** An index under `max`: an attachment's, or a link preview's. */
+function validIndex(index: number | undefined, max: number) {
   return (
-    attachment === undefined ||
-    (Number.isInteger(attachment) &&
-      attachment >= 0 &&
-      attachment < MAX_ATTACHMENTS)
+    index === undefined ||
+    (Number.isInteger(index) && index >= 0 && index < max)
   );
 }
 
-function requireValidReaction({ attachment, emoji }: Args<"react">) {
-  if (!validEmoji(emoji) || !validAttachment(attachment)) {
+/** A reaction names one part at most (see `reaction`). */
+function requireValidReaction({ attachment, emoji, link }: Args<"react">) {
+  if (
+    !validEmoji(emoji) ||
+    !validIndex(attachment, MAX_ATTACHMENTS) ||
+    !validIndex(link, MAX_LINK_PREVIEWS) ||
+    (attachment !== undefined && link !== undefined)
+  ) {
     fail("INVALID_REACTION");
   }
 }
@@ -56,7 +61,10 @@ export async function react(
     )
     .collect();
   const existing = mine.find(
-    (row) => row.emoji === args.emoji && row.attachment === args.attachment,
+    (row) =>
+      row.emoji === args.emoji &&
+      row.attachment === args.attachment &&
+      row.link === args.link,
   );
   if (!args.on) {
     if (existing !== undefined) await ctx.db.delete(existing._id);
@@ -75,6 +83,7 @@ export async function react(
     attachment: args.attachment,
     conversationId: args.conversationId,
     emoji: args.emoji,
+    link: args.link,
     messageId: args.messageId,
     messageAuthorId:
       message?.conversationId === args.conversationId
@@ -119,10 +128,11 @@ export async function reactions(
     found.push(
       ...rows
         .filter((row) => row.conversationId === args.conversationId)
-        .map(({ accountId, attachment, emoji, reactedAt }) => ({
+        .map(({ accountId, attachment, emoji, link, reactedAt }) => ({
           accountId,
           attachment,
           emoji,
+          link,
           messageId,
           reactedAt,
         })),

@@ -100,6 +100,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   attachment?: number;
                   conversationId: string;
                   emoji: string;
+                  link?: number;
                   messageId: string;
                   on: boolean;
                 };
@@ -687,6 +688,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     accountId: string;
                     attachment?: number;
                     emoji: string;
+                    link?: number;
                     messageId: string;
                     reactedAt: number;
                   }>;
@@ -1199,6 +1201,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               accountId: string;
               attachment?: number;
               emoji: string;
+              link?: number;
               messageId: string;
               reactedAt: number;
             }>;

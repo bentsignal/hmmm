@@ -15,10 +15,12 @@ const NONE = Object.freeze<ReactionSummary[]>([]);
 
 /**
  * Which part of a message a reaction is on: one of its attachments, by
- * index, or `message`, the message itself (its text, or its first
- * attachment when it has no text; see `reaction` in the protocol).
+ * index, one of its link previews (`link-<index>`), or `message`, the
+ * message itself (its text, or its first attachment when it has no text,
+ * or its first link preview when its text is only links; see `reaction`
+ * in the protocol).
  */
-export type ReactionPart = number | "message";
+export type ReactionPart = number | "message" | `link-${number}`;
 
 /**
  * The part a message's attachment is: the first of a message without text
@@ -31,14 +33,6 @@ export function attachmentPart(
   return index === 0 && message.body === undefined
     ? ("message" as const)
     : index;
-}
-
-/** How many parts of a message take reactions: its attachments and text. */
-export function partCount(message: {
-  readonly attachments: readonly unknown[];
-  readonly body?: string;
-}) {
-  return message.attachments.length + (message.body === undefined ? 0 : 1);
 }
 
 /** The reactions on one part of a message. */
@@ -71,9 +65,31 @@ function chunks(ids: readonly string[]) {
   );
 }
 
-/** A reaction's part, as a protocol `attachment` reads. */
-function partOf(attachment: number | undefined) {
+/** A reaction's part, from the protocol's `attachment` and `link`. */
+export function reactionPart({
+  attachment,
+  link,
+}: {
+  attachment?: number;
+  link?: number;
+}) {
+  if (link !== undefined) return `link-${link}` as const;
   return attachment ?? ("message" as const);
+}
+
+/** A part as the protocol's `attachment` and `link` name it. */
+export function partArgs(part: ReactionPart) {
+  if (typeof part === "number") return { attachment: part };
+  if (part === "message") return {};
+  return { link: Number(part.slice("link-".length)) };
+}
+
+/** A part written out as text (a route's, or `overrideKey`'s), read back. */
+export function parsePart(part: string) {
+  if (part === "message") return "message" as const;
+  const link = /^link-(\d+)$/.exec(part)?.[1];
+  if (link !== undefined) return `link-${Number(link)}` as const;
+  return Number(part);
 }
 
 /** A pending toggle's key: the message, the part, and the emoji. */
@@ -83,11 +99,7 @@ function overrideKey(messageId: string, part: ReactionPart, emoji: string) {
 
 function parseOverrideKey(key: string) {
   const [messageId = "", part = "", emoji = ""] = key.split(" ");
-  return {
-    emoji,
-    messageId,
-    part: part === "message" ? ("message" as const) : Number(part),
-  };
+  return { emoji, messageId, part: parsePart(part) };
 }
 
 /** The key of one emoji on one part, unique within a message. */
@@ -120,8 +132,9 @@ function summarize(
   const earliestFirst = [...reactions].sort(
     (left, right) => left.reactedAt - right.reactedAt,
   );
-  for (const { accountId, attachment, emoji, messageId } of earliestFirst) {
-    tally(messageId, partOf(attachment), emoji).add(accountId);
+  for (const reaction of earliestFirst) {
+    const { accountId, emoji, messageId } = reaction;
+    tally(messageId, reactionPart(reaction), emoji).add(accountId);
   }
   for (const [key, on] of overrides) {
     const { emoji, messageId, part } = parseOverrideKey(key);
@@ -220,7 +233,7 @@ export function useReactions(
       setOverride(key, on);
       react.mutate(
         {
-          attachment: part === "message" ? undefined : part,
+          ...partArgs(part),
           conversationId,
           emoji,
           messageId,

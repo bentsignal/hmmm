@@ -6,7 +6,7 @@ import { useCSSVariable } from "uniwind";
 import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
-import { attachmentPart, partCount } from "~/features/messaging/reactions";
+import { attachmentPart } from "~/features/messaging/reactions";
 import { cn } from "~/lib/cn";
 import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
@@ -16,9 +16,10 @@ import { BUBBLE_RADIUS, BubbleTail, TAIL_DROP } from "./bubble-shape";
 import { bubbleTopPart, topReacted } from "./bubble-top";
 import { rowOrder } from "./build-rows";
 import { usePieceLift } from "./grow";
-import { LinkCards } from "./link-preview-card";
+import { LinkCardView } from "./link-preview-card";
 import { LinkedText } from "./linked-text";
 import { MenuTargetView } from "./message-actions";
+import { linkPart, partCount } from "./message-parts";
 import { InteractiveMessage } from "./message-reactions";
 import { NotSent, SendingFade } from "./message-status";
 import { linkCardsOf, visibleBody } from "./message-text";
@@ -131,15 +132,16 @@ function Content({
             </MenuTargetView>
           </Reactable>
         )}
-        {/* The text's when it's all links; otherwise under it. */}
-        {cards.length > 0 &&
-          (body === undefined ? (
-            <Reactable part="message" place={textPlace}>
-              <LinkCards cards={cards} />
-            </Reactable>
-          ) : (
-            <LinkCards cards={cards} />
-          ))}
+        {/* Under the text, in the order of its links. */}
+        {cards.map((card, index) => (
+          <Reactable
+            key={card.link}
+            part={linkPart(message, index)}
+            place={textPlace + 1 + index}
+          >
+            <LinkCardView card={card} />
+          </Reactable>
+        ))}
       </View>
     </SendingFade>
   );

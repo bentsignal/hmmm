@@ -261,14 +261,17 @@ export const MAX_INVITE_LINK_LIFETIME = 366 * 24 * 60 * 60 * 1000;
 
 /**
  * One account's emoji reaction to a message. A message with several parts
- * (its text, photos, files) takes reactions on each: `attachment` is the
- * index of the attachment reacted to, absent for the message itself (its
- * text, or its first attachment when it has no text).
+ * (its text, photos, files, link previews) takes reactions on each:
+ * `attachment` is the index of the attachment reacted to, `link` the index
+ * of the link preview (in `linkPreviews`), and with neither, the reaction
+ * is to the message itself: its text, or its first attachment when it has
+ * no text, or its first link preview when its text is only links.
  */
 export const reaction = v.object({
   accountId: v.string(),
   attachment: v.optional(v.number()),
   emoji: v.string(),
+  link: v.optional(v.number()),
   messageId: v.string(),
   reactedAt: v.number(),
 });

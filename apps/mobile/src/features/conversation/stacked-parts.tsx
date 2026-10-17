@@ -5,16 +5,17 @@ import type { Message } from "./types";
 import { attachmentPart } from "~/features/messaging/reactions";
 import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
-import { LinkCards } from "./link-preview-card";
+import { LinkCardView } from "./link-preview-card";
 import { LinkedText } from "./linked-text";
+import { linkPart } from "./message-parts";
 import { linkCardsOf, visibleBody } from "./message-text";
 import { Placed, Reactable } from "./reaction-parts";
 import { RepliesFooter, ThreadFooter } from "./reply-card";
 
 /**
  * A message's parts, top to bottom: its text, its attachments, and its
- * link cards (the text's own when the text is all links). Its thread's
- * count goes after them. The text holds the row (see `MessageRowTarget`).
+ * link cards (the first is the text's own when the text is all links).
+ * Its thread's count goes after them. The text holds the row (see `MessageRowTarget`).
  */
 export function StackedParts({ message }: { message: Message }) {
   const body = visibleBody(message);
@@ -43,16 +44,15 @@ export function StackedParts({ message }: { message: Message }) {
           />
         </Reactable>
       ))}
-      {cards.length > 0 &&
-        (body === undefined ? (
-          <Reactable part="message" place={cardsPlace}>
-            <LinkCards cards={cards} />
-          </Reactable>
-        ) : (
-          <Placed place={cardsPlace}>
-            <LinkCards cards={cards} />
-          </Placed>
-        ))}
+      {cards.map((card, index) => (
+        <Reactable
+          key={card.link}
+          part={linkPart(message, index)}
+          place={cardsPlace + index}
+        >
+          <LinkCardView card={card} />
+        </Reactable>
+      ))}
     </View>
   );
 }
@@ -69,7 +69,9 @@ export function StackedFooter({
 }) {
   if (card === undefined && replies === undefined) return null;
   return (
-    <Placed place={message.attachments.length + 2}>
+    <Placed
+      place={message.attachments.length + linkCardsOf(message).length + 1}
+    >
       {card !== undefined && <ThreadFooter message={message} card={card} />}
       {replies !== undefined && (
         <RepliesFooter message={message} replies={replies} />
