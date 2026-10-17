@@ -47,14 +47,11 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Badge>{String(activity)}</NativeTabs.Trigger.Badge>
       )}
     </NativeTabs.Trigger>,
-    <NativeTabs.Trigger key="you" name="you">
-      <NativeTabs.Trigger.Label>You</NativeTabs.Trigger.Label>
+    <NativeTabs.Trigger key="more" name="more">
+      <NativeTabs.Trigger.Label>More</NativeTabs.Trigger.Label>
       <NativeTabs.Trigger.Icon
-        sf={{
-          default: "person.crop.circle",
-          selected: "person.crop.circle.fill",
-        }}
-        md="account_circle"
+        sf={{ default: "square.grid.2x2", selected: "square.grid.2x2.fill" }}
+        md="grid_view"
       />
     </NativeTabs.Trigger>,
   ];

@@ -30,7 +30,7 @@ screenshots.
   `Button`, `ListItem`, `TextInput`, `Row`, `Switch`, `Picker`, and others).
   It renders SwiftUI on iOS and Jetpack Compose on Android, so most forms and
   settings screens should already come out as Compose.
-- Only `src/lib/ui-modifiers.ios.ts` and `src/features/settings/themes-section.tsx`
+- Only `src/lib/ui-modifiers.ios.ts` and `src/components/carousel.tsx`
   import `@expo/ui/swift-ui` directly. `src/lib/ui-modifiers.android.ts`
   holds Compose modifier presets.
 - Every `SymbolIcon` passes `{ ios, android }` names (SF Symbols and Material
@@ -48,7 +48,7 @@ screenshots.
 | Conversation header   | `features/conversation/conversation-header.tsx`                                    | Built around the Dynamic Island with floating glass buttons; `TopEdge` returns `null` off iOS                                                            |
 | Transparent headers   | `components/tab-stack.tsx`, `app/(app)/_layout.tsx`                                | `headerTransparent` is iOS-only; check Android headers and insets                                                                                        |
 | Search tab            | `app/(app)/(tabs)/_layout.tsx`, `features/search/native-search.ts`                 | `role="search"` and the iOS 27 `react-native-screens` patch are iOS-only; on Android it is an ordinary tab, so check that the search field still shows   |
-| Themes                | `features/settings/themes-section.tsx`                                             | Returns plain children off iOS                                                                                                                           |
+| Carousels             | `components/carousel.tsx`                                                          | Returns plain children off iOS                                                                                                                           |
 | Message notifications | `plugins/notification-service/`                                                    | The communication-notification extension is iOS-only; Android shows plain notifications                                                                  |
 
 ### Platform files
