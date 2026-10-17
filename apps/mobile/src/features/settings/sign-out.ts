@@ -30,7 +30,7 @@ async function endSession(session: AccountSession) {
       .mutate(pds.messages.unregisterPushToken({ token }))
       .catch(() => null);
   }
-  await session.authClient.signOut().catch(() => null);
+  await session.authSignOut().catch(() => null);
   closeAccountSession(session);
 }
 

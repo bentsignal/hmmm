@@ -2,7 +2,7 @@ import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { Button, FieldGroup, Row, Spacer, Text } from "@expo/ui";
 
-import { useAccount, useAccounts } from "~/features/messaging/account";
+import { useAccount } from "~/features/messaging/account";
 import { nativeColors } from "~/lib/colors";
 import { destructive, fillRow } from "~/lib/ui-modifiers";
 import { signOutAccount } from "./sign-out";
@@ -11,7 +11,6 @@ import { signOutAccount } from "./sign-out";
 export function AccountSection() {
   const router = useRouter();
   const { address, session } = useAccount();
-  const accounts = useAccounts();
 
   function confirmSignOut() {
     Alert.alert(
@@ -22,12 +21,7 @@ export function AccountSection() {
         {
           onPress: () => {
             signOutAccount(session);
-            // Signing out of the last account swaps the whole app for the
-            // welcome screen before a back could run, leaving it nothing
-            // to go back to.
-            if (accounts.some((account) => account.address !== address)) {
-              router.back();
-            }
+            router.back();
           },
           style: "destructive",
           text: "Sign Out",

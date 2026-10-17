@@ -36,9 +36,16 @@ function createAccountSession(stored: StoredAccount, home: DiscoveredPds) {
   // Connects and signs in while the first screen renders, rather than once
   // its queries start.
   transport.connectHome();
+  // The Better Auth client is a Proxy that answers every property, so it
+  // stays out of this object: in development React reads the props it
+  // re-renders with to log them, and turning the proxy's `name` into text
+  // throws mid-commit, which froze the app when an account signed out.
   return {
     address: stored.address,
-    authClient,
+    /** Ends this account's session on its home PDS. */
+    authSignOut: () => authClient.signOut(),
+    /** This account's session on its home PDS, or null once it's ended. */
+    authSession: () => authClient.getSession(),
     /** A Convex client for the home deployment, signed in as this account. */
     convex: async () => {
       const client = new ConvexHttpClient(home.manifest.deploymentUrl);
@@ -98,7 +105,7 @@ export function closeAccountSession(session: AccountSession) {
  * after signing out elsewhere. Network failures keep it.
  */
 export async function verifyAccountSession(session: AccountSession) {
-  const { data, error } = await session.authClient.getSession();
+  const { data, error } = await session.authSession();
   if (error === null && data === null) closeAccountSession(session);
   return data !== null;
 }
