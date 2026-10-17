@@ -78,10 +78,27 @@ it behind a splash-colored screen and reopens on the screen it was on:
 It never restarts while a message is sending or failed, or a change is still
 on its way to a server, since a restart would lose them. A launch always
 starts on the newest downloaded update. So within about a minute of an
-update going out, every open app has it, and nobody keeps running old code
-against a new backend for long. Backend changes still have to stay
-compatible with the app version before them: the production deploy comes
-first, so open apps run the old code against it until their update lands.
+update going out, every open app has it.
+
+### Breaking backend changes
+
+A backend change should keep working with the app before it (new fields
+optional, old requests still accepted), because open apps run the old code
+against it until their update lands. When one can't, its PR raises
+`BREAKING_VERSION` in `services/backend/breaking-version.ts` by one. The
+backend serves that number as a live query (`release.breakingVersion`), and
+the app compiles in the number it was built with. The moment a deploy with
+a higher number goes live, every open older app covers the screen with
+"Updating Vera…", looks for its update every 2 seconds, and restarts into
+it as soon as it's downloaded, whatever the person was doing. If no update
+comes within 3 minutes (a binary too old for any over-the-air update), the
+cover says to get the new version from TestFlight or the Play Store.
+
+So the update has to be out seconds after the deploy:
+`pnpm release ota production "<notes>" --with-backend` builds the update,
+deploys the backend, and publishes the update straight after, about 15–20
+seconds of "Updating Vera…" for anyone in the app. `pnpm release plan`
+says when the number went up.
 
 ## Release history in git
 
@@ -135,9 +152,13 @@ the release a PR removes the finished steps.
    approves, or asks for fixes (straight to `main` when small, feature PRs
    when not, then back to step 1).
 4. **Ship.**
-   - If the backend changed, deploy it to production first
-     (`pnpm release backend production`). Old app versions keep talking to
-     it, so backend changes must stay compatible with them.
+   - If the backend changed, ship it together with the app:
+     `pnpm release ota production "<notes>" --with-backend` deploys it
+     between building and publishing the update, so open apps wait seconds
+     for code that matches it. Old app versions keep talking to it, so
+     backend changes must stay compatible with them, or raise the breaking
+     version (above). With no app changes,
+     `pnpm release backend production` deploys it alone.
    - OTA: `pnpm release ota production "<notes>"`. TestFlight and App Store
      users get it the next time they open the app, Shawn included, so his
      check of the real app comes after it's out; a bad update is rolled

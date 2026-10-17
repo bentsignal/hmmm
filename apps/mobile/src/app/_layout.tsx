@@ -20,6 +20,8 @@ import {
   noteTouch,
   UpdateNavigation,
 } from "~/features/updates/app-updates";
+import { UpdateCover } from "~/features/updates/update-cover";
+import { WatchBreakingVersion } from "~/features/updates/watch-breaking-version";
 
 void SplashScreen.preventAutoHideAsync();
 // The splash is a plain background, so the app fades in over it.
@@ -68,8 +70,10 @@ export default function RootLayout() {
           <QueryClientProvider client={queryClient}>
             <SessionProvider fallback={null}>
               <UpdateNavigation />
+              <WatchBreakingVersion />
               <Navigator />
             </SessionProvider>
+            <UpdateCover />
           </QueryClientProvider>
         </KeyboardProvider>
       </ThemeProvider>

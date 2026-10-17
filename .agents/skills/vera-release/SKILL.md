@@ -126,12 +126,20 @@ and `ota production` refuse to run until you add `--next-release-done`.
 Only add it once every step that file puts before that command is done and
 verified. The flag is your confirmation; don't use it to get past the check.
 
-If `plan` says the backend changed, deploy it before the app. This tags
-`backend/deploy/<stamp>`, which the next `plan` compares against:
+If `plan` says the backend changed, ship it with the update in one command:
+it builds the update, deploys the backend (tagging `backend/deploy/<stamp>`,
+which the next `plan` compares against), and publishes the update right
+after, so open apps wait seconds for code that matches the new backend. If
+`plan` says BREAKING, this is required: open older apps show "Updating
+Vera…" from the moment the backend deploys until the update is out (see
+`docs/releasing.md` → Breaking backend changes).
 
 ```sh
-pnpm release backend production
+pnpm release ota production "<release notes, one paragraph>" --with-backend
 ```
+
+A backend change with no app change deploys alone:
+`pnpm release backend production`.
 
 **Over the air:**
 

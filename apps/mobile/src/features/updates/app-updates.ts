@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { AppState, Keyboard } from "react-native";
 import { File, Paths } from "expo-file-system";
 import { useNavigationContainerRef } from "expo-router";
 import * as Updates from "expo-updates";
+import { BREAKING_VERSION } from "@vera/backend/breaking-version";
 import { Uniwind } from "uniwind";
 
 import { saveDraftsNow } from "~/features/conversation/drafts";
@@ -17,6 +18,12 @@ import { canRestartForUpdate } from "./restart-policy";
 // The app then restarts into it behind a screen like the splash and reopens
 // on the same screen: at once while it's still opening, otherwise at the
 // first quiet moment (see `restart-policy.ts`).
+//
+// A backend deploy that raises the breaking version (see
+// services/backend/breaking-version.ts) can't wait for that: the moment its
+// live query reports a version above this app's, the app covers the screen
+// with "Updating Vera…", looks for the update every 2 seconds (it's
+// published seconds after the deploy), and restarts into it at once.
 
 type NavigationRef = ReturnType<typeof useNavigationContainerRef>;
 type RootState = NonNullable<Parameters<NavigationRef["resetRoot"]>[0]>;
@@ -25,6 +32,13 @@ type RootState = NonNullable<Parameters<NavigationRef["resetRoot"]>[0]>;
 const CHECK_EVERY_MS = 60_000;
 /** How often the foreground timer runs: checks, and watching for a pause. */
 const TICK_MS = 1_000;
+/** While an update is required, how often to look for it. */
+const REQUIRED_CHECK_MS = 2_000;
+/**
+ * How long a required update may take to appear. Longer, and this binary
+ * is too old for any over-the-air update and needs one from the store.
+ */
+const REQUIRED_WAIT_MS = 3 * 60_000;
 /** A screen saved longer ago than this belongs to some other restart. */
 const RESTORE_WITHIN_MS = 30_000;
 /** How long to wait for the navigator to mount before giving up on it. */
@@ -38,6 +52,39 @@ let downloaded = false;
 let restarting = false;
 let ticker: ReturnType<typeof setInterval> | undefined;
 let navigation: NavigationRef | undefined;
+
+/**
+ * Set when the backend needs a newer app: "updating" while the update is
+ * on its way, "store" when no over-the-air update can fix this binary.
+ */
+let required: "store" | "updating" | undefined;
+let requiredSince = 0;
+const requiredListeners = new Set<() => void>();
+
+function setRequired(next: typeof required) {
+  if (required === next) return;
+  required = next;
+  for (const listener of requiredListeners) listener();
+}
+
+function subscribeRequired(listener: () => void) {
+  requiredListeners.add(listener);
+  return () => requiredListeners.delete(listener);
+}
+
+/** Whether the backend needs a newer app than this one; `UpdateCover` shows it. */
+export function useRequiredUpdate() {
+  return useSyncExternalStore(subscribeRequired, () => required);
+}
+
+/** Takes the backend's breaking version from its live query. */
+export function noteServerBreakingVersion(version: number) {
+  if (version <= BREAKING_VERSION || required !== undefined) return;
+  requiredSince = Date.now();
+  setRequired("updating");
+  ticker ??= setInterval(tick, TICK_MS);
+  void (downloaded ? restartIfUnnoticed() : check());
+}
 
 /**
  * Checks for updates on launch, on every return from the background, and
@@ -75,8 +122,16 @@ function onOpen() {
 }
 
 function tick() {
-  if (downloaded) void restartIfUnnoticed();
-  else if (Date.now() - checkedAt >= CHECK_EVERY_MS) void check();
+  const now = Date.now();
+  if (downloaded) {
+    void restartIfUnnoticed();
+    return;
+  }
+  if (required === "updating" && now - requiredSince >= REQUIRED_WAIT_MS) {
+    setRequired("store");
+  }
+  const every = required === undefined ? CHECK_EVERY_MS : REQUIRED_CHECK_MS;
+  if (now - checkedAt >= every) void check();
 }
 
 async function check() {
@@ -101,16 +156,19 @@ async function download() {
 
 async function restartIfUnnoticed() {
   const now = Date.now();
-  const ready = canRestartForUpdate({
-    active: AppState.currentState === "active",
-    keyboardVisible: Keyboard.isVisible(),
-    now,
-    openedAt,
-    pendingMutations: queryClient.isMutating(),
-    touchedAt,
-    unsentMessages: hasUnsentMessages(),
-    viewingMedia: focusedScreen() === "media",
-  });
+  // A required update goes in at once: the app can't work until it does.
+  const ready =
+    required !== undefined ||
+    canRestartForUpdate({
+      active: AppState.currentState === "active",
+      keyboardVisible: Keyboard.isVisible(),
+      now,
+      openedAt,
+      pendingMutations: queryClient.isMutating(),
+      touchedAt,
+      unsentMessages: hasUnsentMessages(),
+      viewingMedia: focusedScreen() === "media",
+    });
   if (!ready || restarting) return;
   restarting = true;
   saveDraftsNow();
