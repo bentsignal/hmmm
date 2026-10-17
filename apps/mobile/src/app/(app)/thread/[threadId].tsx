@@ -194,15 +194,14 @@ function Thread({
 }
 
 export default function ThreadScreen() {
-  const { account, conversationId, threadId, title } =
-    useLocalSearchParams<{
-      /** The signed-in account this thread is opened as. */
-      account?: string;
-      conversationId: string;
-      threadId: string;
-      /** The conversation's name, shown until it loads. */
-      title?: string;
-    }>();
+  const { account, conversationId, threadId, title } = useLocalSearchParams<{
+    /** The signed-in account this thread is opened as. */
+    account?: string;
+    conversationId: string;
+    threadId: string;
+    /** The conversation's name, shown until it loads. */
+    title?: string;
+  }>();
   return (
     <AccountScope address={account}>
       <Thread

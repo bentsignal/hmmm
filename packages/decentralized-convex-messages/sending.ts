@@ -61,12 +61,7 @@ export async function send(
   const reply =
     args.threadId === undefined
       ? undefined
-      : await replyTo(
-          ctx,
-          args.conversationId,
-          args.threadId,
-          args.threadOnly,
-        );
+      : await replyTo(ctx, args.conversationId, args.threadId, args.threadOnly);
   const linkPreviews = await startLinkCards(ctx, args.messageId, body, sentAt);
   const mentions = await validMentions(ctx, access, self, body, args.mentions);
   const message = {

@@ -6,7 +6,10 @@ import { listeners } from "./listeners.ts";
 import { GROUP, LEO, MAYA, ME, setup } from "./threadTesting.ts";
 
 /** Who hears about a stored message, and as what. */
-async function heardOf(ctx: ReturnType<typeof setup>["ctx"], messageId: string) {
+async function heardOf(
+  ctx: ReturnType<typeof setup>["ctx"],
+  messageId: string,
+) {
   const [message, conversation] = await Promise.all([
     ctx.db
       .query("messages")

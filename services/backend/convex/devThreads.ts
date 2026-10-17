@@ -100,7 +100,11 @@ export async function seedChannelThread(
   ];
   await seedThread(ctx, conversationId, [
     { body: "Release notes draft is up, comments welcome", by: leo },
-    { body: "Looks good! Typo in the second paragraph", by: maya, inChat: true },
+    {
+      body: "Looks good! Typo in the second paragraph",
+      by: maya,
+      inChat: true,
+    },
     {
       body: "Should we mention the new filter?",
       by: identityFor(me.address, me.name),

@@ -139,10 +139,7 @@ function useThreads({
  * stays there; in the conversation, a reply to `replyTo` if given, which
  * shows there and joins its thread.
  */
-function replyFor(
-  root: PdsMessage | null,
-  replyTo: ReplyTarget | undefined,
-) {
+function replyFor(root: PdsMessage | null, replyTo: ReplyTarget | undefined) {
   if (root !== null) {
     return { inChat: false, quote: quoteOf(root), threadId: root.messageId };
   }
