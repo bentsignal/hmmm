@@ -347,9 +347,10 @@ function breakingVersionAt(ref: string) {
 /** The breaking version's change since a commit, when it changed. */
 function breakingVersionChange(base: string) {
   if (base === "nothing") return undefined;
-  const from = breakingVersionAt(base) ?? "none";
-  const to = breakingVersionAt("HEAD") ?? "none";
-  return from === to ? undefined : { from, to };
+  const from = breakingVersionAt(base);
+  const to = breakingVersionAt("HEAD");
+  // Its first appearance breaks nothing: older apps don't watch it.
+  return from === undefined || from === to ? undefined : { from, to };
 }
 
 function backend(target: string | undefined) {
