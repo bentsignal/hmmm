@@ -122,6 +122,7 @@ interface Navigated {
  * Only the screens' names and params. Restoring this partial state rebuilds
  * each navigator, which drops any screen the update renamed or removed.
  */
+// eslint-disable-next-line no-restricted-syntax -- It calls itself, and TypeScript can't infer a return type that refers to itself.
 function partialState(state: Navigated): Navigated {
   return {
     index: state.index,
