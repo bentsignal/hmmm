@@ -6,6 +6,7 @@ import type {
   OperationResult,
   PluginProtocol,
   PluginRequirements,
+  QueryRequest,
 } from "@decentralized-convex/plugin";
 import type {
   Auth,
@@ -19,6 +20,7 @@ import type {
 import {
   operationResponseValidator,
   operationValidator,
+  queryRequestValidator,
 } from "@decentralized-convex/plugin";
 import { ConvexError, v } from "convex/values";
 
@@ -142,24 +144,71 @@ export function defineComponentDispatchers<
         version: v.string(),
       },
       returns: queryReturns,
-      handler: async (ctx, { identity, operation }) => {
-        const result = await invokeQueryOperation(
-          handlers.queries,
-          ctx,
-          identity,
-          operation,
-        );
+      handler: async (ctx, { identity, operation }) =>
         // Convex applies a top-level nullability transform that cannot be proven for an open union.
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        return {
-          ...(isRoutedQueryResult(result) ? { routes: result.routes } : {}),
-          type: operation.type,
-          value: isRoutedQueryResult(result) ? result.data : result,
-        } as ValidatorTypeToReturnType<OperationResponse<Queries>>;
+        queryResponse(
+          operation.type,
+          await invokeQueryOperation(handlers.queries, ctx, identity, operation),
+        ) as ValidatorTypeToReturnType<OperationResponse<Queries>>,
+    }),
+    /**
+     * Several queries in one call, for the router to answer what another
+     * query's result includes. One this plugin doesn't have (or that
+     * fails) answers null rather than failing the rest.
+     */
+    dispatchQueries: query({
+      args: {
+        identity: componentDispatcherArgs.identity,
+        requests: v.array(queryRequestValidator),
       },
+      returns: v.array(v.union(v.null(), queryReturns)),
+      handler: async (ctx, { identity, requests }) =>
+        Promise.all(
+          requests.map(async (request) => {
+            if (
+              request.plugin !== protocol.name ||
+              request.lastChanged !== protocol.lastChanged ||
+              !Object.hasOwn(handlers.queries, request.operation.type)
+            ) {
+              return null;
+            }
+            // Only the router calls this, with requests this PDS's plugins
+            // built, so their arguments are already well formed.
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+            const operation = request.operation as OperationRequest<Queries>;
+            try {
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+              return queryResponse(
+                operation.type,
+                await invokeQueryOperation(
+                  handlers.queries,
+                  ctx,
+                  identity,
+                  operation,
+                ),
+              ) as ValidatorTypeToReturnType<OperationResponse<Queries>>;
+            } catch {
+              return null;
+            }
+          }),
+        ),
     }),
   } as const;
 }
+
+function queryResponse(type: string, result: unknown) {
+  if (!isRoutedQueryResult(result)) return { type, value: result };
+  return {
+    ...(result.include.length > 0 ? { include: result.include } : {}),
+    routes: result.routes,
+    type,
+    value: result.data,
+  };
+}
+
+/** At most this many queries are answered along with another. */
+const MAX_INCLUDED_QUERIES = 200;
 
 export function definePdsRouter<DataModel extends GenericDataModel>({
   components,
@@ -211,13 +260,68 @@ export function definePdsRouter<DataModel extends GenericDataModel>({
           operation: request.operation,
           version: request.version,
         });
+        const included = await answerIncluded(
+          ctx,
+          installed,
+          identity,
+          response.include ?? [],
+        );
         return {
+          ...(included.length > 0 ? { included } : {}),
           routes: response.routes ?? [],
           value: response.value,
         };
       },
     }),
   } as const;
+}
+
+/**
+ * Answers the queries a result includes, one call per plugin, so the
+ * client gets them in the same round trip. A plugin that isn't installed,
+ * predates included queries, or fails leaves its queries out; the client
+ * then asks for them as usual.
+ */
+async function answerIncluded(
+  ctx: Pick<GenericQueryCtx<GenericDataModel>, "runQuery">,
+  components: DispatcherComponents,
+  identity: DispatcherIdentity | null,
+  include: readonly QueryRequest[],
+) {
+  const byPlugin = new Map<string, QueryRequest[]>();
+  for (const request of include.slice(0, MAX_INCLUDED_QUERIES)) {
+    byPlugin.set(request.plugin, [
+      ...(byPlugin.get(request.plugin) ?? []),
+      request,
+    ]);
+  }
+  const answered = await Promise.all(
+    [...byPlugin].map(async ([plugin, requests]) => {
+      const dispatchQueries = components[plugin]?.dispatcher.dispatchQueries;
+      if (dispatchQueries === undefined) return [];
+      try {
+        const responses = await ctx.runQuery(dispatchQueries, {
+          identity,
+          requests,
+        });
+        return requests.flatMap((request, index) => {
+          const response = responses[index];
+          return response == null
+            ? []
+            : [
+                {
+                  request,
+                  routes: response.routes ?? [],
+                  value: response.value,
+                },
+              ];
+        });
+      } catch {
+        return [];
+      }
+    }),
+  );
+  return answered.flat();
 }
 
 function invokeQueryOperation<Operations extends OperationMap, Context>(

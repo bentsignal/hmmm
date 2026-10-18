@@ -15,6 +15,8 @@ export {
   definePluginProtocol,
   operationResponseValidator,
   operationValidator,
+  queryRequest,
+  queryRequestValidator,
 } from "./operations.ts";
 export type {
   AnyOperation,
@@ -29,4 +31,5 @@ export type {
   PluginProtocol,
   PluginRequirements,
   ProtocolRequirements,
+  QueryRequest,
 } from "./operations.ts";

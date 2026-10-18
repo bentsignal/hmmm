@@ -22,7 +22,8 @@ import * as spaces from "./spaces.ts";
 import * as threadLists from "./threadLists.ts";
 import * as threads from "./threads.ts";
 
-export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
+export const { dispatchMutation, dispatchQueries, dispatchQuery } =
+  defineComponentDispatchers({
   handlers: {
     mutations: {
       acceptSpaceInvite: (ctx, { args, identity }) =>

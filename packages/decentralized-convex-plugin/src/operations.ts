@@ -67,11 +67,54 @@ export type OperationReturn<
 
 export type OperationResponse<Operations extends OperationMap> = {
   readonly [Name in keyof Operations & string]: {
+    readonly include?: readonly QueryRequest[];
     readonly routes?: readonly string[];
     readonly type: Name;
     readonly value: OperationResult<Operations[Name]>;
   };
 }[keyof Operations & string];
+
+/**
+ * A query as a client asks for it: the plugin, the protocol it was built
+ * against, and the operation. A query's result can name others the client
+ * will ask for next (its `include`), and the PDS answers them with it.
+ */
+export interface QueryRequest {
+  readonly lastChanged: string;
+  readonly operation: {
+    readonly args: Record<string, unknown>;
+    readonly type: string;
+  };
+  readonly plugin: string;
+  readonly version: string;
+}
+
+export const queryRequestValidator = v.object({
+  lastChanged: v.string(),
+  operation: v.object({ args: v.any(), type: v.string() }),
+  plugin: v.string(),
+  version: v.string(),
+});
+
+/**
+ * One of a protocol's queries, built exactly as clients build it, so a
+ * result included with another query fills the same cache entry.
+ */
+export function queryRequest<
+  const Protocol extends AnyPluginProtocol,
+  const Name extends keyof Protocol["queries"] & string,
+>(
+  protocol: Protocol,
+  type: Name,
+  args: OperationArgs<Protocol["queries"][Name]>,
+): QueryRequest {
+  return {
+    lastChanged: protocol.lastChanged,
+    operation: { args, type },
+    plugin: protocol.name,
+    version: protocol.version,
+  };
+}
 
 export function defineOperation<
   const Args extends Validator<Record<string, unknown>, "required", string>,
@@ -143,6 +186,7 @@ export function operationResponseValidator<
 ): Validator<OperationResponse<Operations>, "required", string> {
   const members = Object.entries(operations).map(([type, operation]) =>
     v.object({
+      include: v.optional(v.array(queryRequestValidator)),
       routes: v.optional(v.array(v.string())),
       type: v.literal(type),
       value: operation.returns,

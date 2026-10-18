@@ -9,7 +9,8 @@ import { mutation, query } from "./_generated/server.js";
 import { isAffiliated } from "./affiliations.ts";
 import { accountsProtocol } from "./protocol.ts";
 
-export const { dispatchMutation, dispatchQuery } = defineComponentDispatchers({
+export const { dispatchMutation, dispatchQueries, dispatchQuery } =
+  defineComponentDispatchers({
   handlers: {
     mutations: {
       upsertMyProfile: async (ctx, { args, identity }) => {
