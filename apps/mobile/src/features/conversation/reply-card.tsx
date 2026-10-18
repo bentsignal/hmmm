@@ -3,6 +3,7 @@ import { Pressable, Text, View } from "react-native";
 
 import type { Message, Quote } from "./types";
 import { Avatar } from "~/components/avatar";
+import { SymbolIcon } from "~/components/symbol-icon";
 import { cn } from "~/lib/cn";
 import { useMessageActions } from "./message-actions";
 import { quoteText, REPLY_INDENT } from "./reply-parts";
@@ -191,7 +192,7 @@ export interface ThreadReplies {
 export function ThreadFooter({
   message,
   card,
-  isOwn = false,
+  isOwn,
 }: {
   message: Message;
   card: ReplyCard;
@@ -212,7 +213,7 @@ export function ThreadFooter({
 export function RepliesFooter({
   message,
   replies,
-  isOwn = false,
+  isOwn,
 }: {
   message: Message;
   replies: ThreadReplies;
@@ -228,7 +229,10 @@ export function RepliesFooter({
   );
 }
 
-/** A thread's count, with the newest repliers' photos, opening it. */
+/**
+ * A thread's count, with the newest repliers' photos, opening it: blue
+ * text beside a bubble, a pill under a stacked row.
+ */
 function RepliersLink({
   message,
   label,
@@ -238,15 +242,20 @@ function RepliersLink({
   message: Message;
   label: string;
   repliers: readonly Person[];
-  isOwn: boolean;
+  /** Which side a bubble's on; unset for stacked rows. */
+  isOwn?: boolean;
 }) {
+  const pill = isOwn === undefined;
   return (
     <ThreadLink
       message={message}
       label={label}
       className={cn(
-        "flex-row items-center gap-1.5 pt-1",
-        isOwn && "flex-row-reverse",
+        "flex-row items-center gap-1.5",
+        pill
+          ? "bg-fill mt-1.5 self-start rounded-full py-1 pr-2.5 pl-1.5"
+          : "pt-1",
+        isOwn === true && "flex-row-reverse",
       )}
     >
       <View className="flex-row">
@@ -264,7 +273,22 @@ function RepliersLink({
           </View>
         ))}
       </View>
-      <Text className="text-footnote text-accent font-semibold">{label}</Text>
+      <Text
+        className={cn(
+          "text-footnote font-semibold",
+          pill ? "text-foreground" : "text-accent",
+        )}
+      >
+        {label}
+      </Text>
+      {pill && (
+        <SymbolIcon
+          name={{ android: "chevron_right", ios: "chevron.right" }}
+          size={10}
+          weight="bold"
+          tintColorClassName="accent-muted"
+        />
+      )}
     </ThreadLink>
   );
 }
