@@ -1,5 +1,6 @@
 import type { MessageLayout } from "~/features/preferences/store";
 import { TAIL_DROP } from "./bubble-shape";
+import { useTypingStyle } from "./typing-style";
 
 // How much room a typing indicator takes (see `typing-indicator.tsx`).
 
@@ -27,10 +28,27 @@ export function belowNewestHeight({
   composerHeight,
   layout,
   typists,
+  typingStyle,
 }: {
   composerHeight: number;
   layout: MessageLayout;
   typists: readonly string[];
+  typingStyle: { reserved: boolean };
 }) {
-  return composerHeight + typingSpaceHeight(layout, typists.length > 0);
+  const typing = typists.length > 0 || typingStyle.reserved;
+  return composerHeight + typingSpaceHeight(layout, typing);
+}
+
+const NOBODY = Object.freeze<string[]>([]);
+
+/**
+ * The typing style, and who the list shows typing: nobody when the header
+ * shows them instead.
+ */
+export function useListTyping(typists: readonly string[]) {
+  const typingStyle = useTypingStyle();
+  return {
+    typingStyle,
+    typists: typingStyle.place === "list" ? typists : NOBODY,
+  };
 }

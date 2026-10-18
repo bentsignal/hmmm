@@ -14,6 +14,7 @@ import {
 import { FloatingComposer } from "~/features/conversation/floating-composer";
 import { mentionableIn } from "~/features/conversation/mentionable";
 import { MessageList } from "~/features/conversation/message-list";
+import { TypingStyleControls } from "~/features/conversation/typing-style-picker";
 import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
 import { useReplies } from "~/features/conversation/use-replies";
 import { useDevConversation } from "~/features/dev/dev-conversation";
@@ -174,6 +175,7 @@ function Conversation({
         affiliated={header.affiliated}
         onOpenInfo={openInfo}
       />
+      <TypingStyleControls typists={typists} profileOf={profileOf} />
       <FloatingComposer
         ref={composer}
         draftId={conversationId}

@@ -89,3 +89,44 @@ void test("your own message while others type leaves it be", () => {
     { left: undefined, reappeared: false, reopened: false },
   );
 });
+
+void test("staying last, a typist's message slots in above it", () => {
+  const change = typingChange(
+    seen("a", [MAYA, LEO]),
+    { authorId: MAYA, key: "b" },
+    [LEO],
+    "stays",
+  );
+  assert.ok(change);
+  assert.equal(change.left, undefined);
+  assert.equal(change.reappeared, false);
+  // The last one sending: it leaves where it was, under the message.
+  const last = typingChange(
+    seen("a", [MAYA]),
+    { authorId: MAYA, key: "b" },
+    [],
+    "stays",
+  );
+  assert.equal(last?.left?.became, false);
+  assert.equal(last.reopened, true);
+});
+
+void test("stepping aside, it goes at once as a message lands", () => {
+  const sent = typingChange(
+    seen("a", [MAYA]),
+    { authorId: MAYA, key: "b" },
+    [],
+    "stepsAside",
+  );
+  assert.ok(sent);
+  assert.equal(sent.left, undefined);
+  assert.equal(sent.reopened, true);
+  // Stopping without sending still shrinks away.
+  const stopped = typingChange(
+    seen("a", [MAYA]),
+    { authorId: ME, key: "a" },
+    [],
+    "stepsAside",
+  );
+  assert.equal(stopped?.left?.became, false);
+});

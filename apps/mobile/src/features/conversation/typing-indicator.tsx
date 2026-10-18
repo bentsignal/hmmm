@@ -13,10 +13,12 @@ import { scheduleOnRN } from "react-native-worklets";
 
 import type { ProfileOf } from "./message-row";
 import type { Newest, TypingSeen } from "./typing-change";
+import type { TypingStyle } from "./typing-style";
 import type { MessageLayout } from "~/features/preferences/store";
 import { useLiftAll, useUnderNewestLift } from "./grow";
 import { typingChange } from "./typing-change";
 import { Indicator, useOnMount } from "./typing-parts";
+import { useSettledTypists } from "./typing-settle";
 import { typingSpaceHeight } from "./typing-space";
 
 // Who's typing, under the newest message. The list keeps a space for it
@@ -165,12 +167,14 @@ function Space({
  * The space under the newest message while anyone types, with the
  * indicator in it. The first typist opens it and the list slides it into
  * view, as it does a new message; when the last one stops, it shrinks away
- * as the list slides back down. When their message comes with the stop,
- * the message takes its place, and the indicator fades under it as it
- * fades in; anyone still typing then shows again under that.
+ * as the list slides back down. What a typist's message does depends on
+ * `typingStyle` (see `typingChange`): it can become the message, stay
+ * under it, or step aside until it lands. With `reserved`, the space is
+ * always there and only the indicator comes and goes.
  */
 export function TypingSpace({
-  typists,
+  typists: typing_,
+  typingStyle,
   layout,
   profileOf,
   showFaces,
@@ -179,6 +183,7 @@ export function TypingSpace({
 }: {
   /** Who's typing, in the order they started. */
   typists: readonly string[];
+  typingStyle: TypingStyle;
   layout: MessageLayout;
   profileOf: ProfileOf;
   /** Photos beside the bubble: in groups, as beside their messages. */
@@ -188,6 +193,12 @@ export function TypingSpace({
   /** How far the list is scrolled up from the newest message. */
   fromBottom: SharedValue<number>;
 }) {
+  const { onSend, reserved } = typingStyle;
+  const typists = useSettledTypists(
+    typing_,
+    newest?.key,
+    onSend === "stepsAside",
+  );
   const [seen, setSeen] = useState<TypingSeen>({
     arrived: false,
     newestKey: newest?.key,
@@ -200,7 +211,7 @@ export function TypingSpace({
   const [spaceKey, setSpaceKey] = useState(0);
   // Bumped to show the indicator again, as it first appeared.
   const [appearKey, setAppearKey] = useState(0);
-  const change = typingChange(seen, newest, typists);
+  const change = typingChange(seen, newest, typists, onSend);
   if (change !== undefined) {
     const { left } = change;
     setSeen(change.seen);
@@ -219,7 +230,7 @@ export function TypingSpace({
     <View>
       <Space
         key={spaceKey}
-        height={typingSpaceHeight(layout, typing)}
+        height={typingSpaceHeight(layout, typing || reserved)}
         ease={!seen.arrived}
         fromBottom={fromBottom}
       >

@@ -40,29 +40,48 @@ function sentByTypist(seen: TypingSeen, newest: Newest | undefined) {
   );
 }
 
-/** What showed until the indicator ended, as `newestKey` came. */
-function leftOf(seen: TypingSeen, newestKey: string | undefined) {
-  return {
-    became: seen.newestKey !== newestKey,
-    key: [seen.newestKey, newestKey, ...seen.typists].join(" "),
-    typists: seen.typists,
-  };
+/** What a typist's message does to the indicator (see `TypingStyle`). */
+export type OnSend = "becomes" | "stays" | "stepsAside";
+
+/**
+ * Whether the indicator ended, so what showed goes as it leaves, and
+ * whether it goes into the message that came (`became`).
+ */
+function endingOf(
+  onSend: OnSend,
+  seen: TypingSeen,
+  {
+    arrived,
+    sent,
+    typing,
+  }: { arrived: boolean; sent: boolean; typing: boolean },
+) {
+  if (seen.typists.length === 0) return undefined;
+  if (onSend === "becomes") {
+    return typing && !sent ? undefined : { became: arrived };
+  }
+  if (typing) return undefined;
+  // Stepping aside, it goes at once as a message lands.
+  if (onSend === "stepsAside" && arrived) return undefined;
+  return { became: false };
 }
 
 /**
- * What a change to who's typing, or to the newest row, does:
+ * What a change to who's typing, or to the newest row, does, with what a
+ * typist's message does to it (`onSend`):
  * - `left`: who was showing, if the indicator ended, to show as it goes
  *   (`key`d to tell each apart). `became` when it became the newest
  *   message.
  * - `reopened`: the space opened or closed along with a message (or
  *   nothing else), so it changes in the same commit as that.
- * - `reappeared`: a typist's message came while others still type, so
- *   the indicator shows again under it, as it did the first time.
+ * - `reappeared`: a typist's message became the indicator while others
+ *   still type, so it shows again under it, as it did the first time.
  */
 export function typingChange(
   seen: TypingSeen,
   newest: Newest | undefined,
   typists: readonly string[],
+  onSend: OnSend = "becomes",
 ) {
   const newestKey = newest?.key;
   const arrived = seen.newestKey !== newestKey;
@@ -70,10 +89,14 @@ export function typingChange(
   const wasTyping = seen.typists.length > 0;
   const typing = typists.length > 0;
   const sent = sentByTypist(seen, newest);
-  const ended = wasTyping && (!typing || sent);
+  const ending = endingOf(onSend, seen, { arrived, sent, typing });
   return {
-    left: ended ? leftOf(seen, newestKey) : undefined,
-    reappeared: typing && sent,
+    left: ending && {
+      ...ending,
+      key: [seen.newestKey, newestKey, ...seen.typists].join(" "),
+      typists: seen.typists,
+    },
+    reappeared: onSend === "becomes" && typing && sent,
     reopened: typing ? !wasTyping : arrived && wasTyping,
     seen: { arrived, newestKey, typists },
   };

@@ -30,7 +30,7 @@ import { Row } from "./message-row";
 import { RevealTimes } from "./reveal";
 import { newestOf } from "./typing-change";
 import { BelowNewest } from "./typing-indicator";
-import { belowNewestHeight } from "./typing-space";
+import { belowNewestHeight, useListTyping } from "./typing-space";
 
 /** What the conversation screen can ask of its list. */
 export interface MessageListHandle {
@@ -116,7 +116,7 @@ function Rows({
     newest: newestOf(rows),
     profileOf,
     showFaces: showAuthors,
-    typists,
+    ...useListTyping(typists),
   };
   const blank = useBlankSpace(thread !== undefined);
   // Only messages that arrive while open animate in, not loaded pages.

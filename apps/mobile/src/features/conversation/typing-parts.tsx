@@ -200,10 +200,10 @@ function TypingBubble({
 }
 
 /**
- * Slack/Discord-style: their photos and who's typing, in a small line. A
- * new name crossfades with the old, and the dots move over with it.
+ * Their photos, who's typing, and the dots, in a row. A new name
+ * crossfades with the old, and the dots move over with it.
  */
-function TypingLine({
+export function TypingSummary({
   people,
   label,
 }: {
@@ -211,10 +211,7 @@ function TypingLine({
   label: string;
 }) {
   return (
-    <View
-      className="flex-row items-center gap-2 px-4"
-      style={{ height: STACKED_SPACE.line, marginTop: STACKED_SPACE.top }}
-    >
+    <>
       <Faces people={people} size="xs" />
       <Animated.View layout={SHIFT} className="shrink">
         <Animated.Text
@@ -230,6 +227,24 @@ function TypingLine({
       <Animated.View layout={SHIFT}>
         <Dots size={4} gap={2} />
       </Animated.View>
+    </>
+  );
+}
+
+/** Slack/Discord-style: who's typing, in a small line. */
+function TypingLine({
+  people,
+  label,
+}: {
+  people: readonly Person[];
+  label: string;
+}) {
+  return (
+    <View
+      className="flex-row items-center gap-2 px-4"
+      style={{ height: STACKED_SPACE.line, marginTop: STACKED_SPACE.top }}
+    >
+      <TypingSummary people={people} label={label} />
     </View>
   );
 }

@@ -19,6 +19,8 @@ const NEAR_LATEST = 80;
  * pinned there: a scroll up by more than this lets go.
  */
 const PIN_SLOP = 4;
+/** Longer than the platform's slide to the newest message takes. */
+const SLIDE_MS = 450;
 /** Frames to wait for the message a conversation opens on to be measured. */
 const ANCHOR_TRIES = 30;
 
@@ -30,6 +32,11 @@ interface LatestState {
   scrolling: boolean;
   /** Sliding to something new below, until it's at the bottom. */
   following: boolean;
+  /**
+   * The anchor's move up that starts its own slide is still to come (see
+   * `ANCHOR`): that one isn't followed.
+   */
+  native: boolean;
   /** How far above the bottom the last scroll event was. */
   scrolled: number;
   /** The newest row and the composer's height when content last changed. */
@@ -64,6 +71,7 @@ export function useLatest(
     scrolled: 0,
     scrolling: false,
     following: false,
+    native: false,
   });
   function bottom() {
     return Platform.OS === "ios" ? -state.current.inset : 0;
@@ -113,9 +121,11 @@ export function useLatest(
         state.current.following = false;
       } else if (state.current.following && rose) {
         // The scroll anchor moved the list up after the slide began
-        // (Android does, as the space under the newest message opens),
-        // which stops the slide: it starts again from there.
-        scrollToNewest();
+        // (Android does, as the space under the newest message opens or
+        // closes a frame after a message lands), which stops the slide:
+        // it starts again from there.
+        if (state.current.native) state.current.native = false;
+        else scrollToNewest();
       }
     },
     /**
@@ -132,7 +142,20 @@ export function useLatest(
       const grew = newest !== seen.newest || composer !== seen.composer;
       if (!grew || !state.current.pinned) return;
       state.current.following = true;
-      scrollToNewest();
+      // At the bottom on Android, the anchor slides it in itself (see
+      // `ANCHOR`), in the frame it's added.
+      const native =
+        Platform.OS === "android" && state.current.scrolled <= PIN_SLOP;
+      state.current.native = native;
+      if (!native) scrollToNewest();
+      // A slide cut short (the anchor moving the list again as more
+      // arrives) starts again once it should have finished.
+      setTimeout(() => {
+        const { following, pinned, scrolled, scrolling } = state.current;
+        if (following && pinned && !scrolling && scrolled > PIN_SLOP) {
+          scrollToNewest();
+        }
+      }, SLIDE_MS);
     },
   };
 }
@@ -142,8 +165,18 @@ export function useLatest(
  * stays where it is when rows are added or grow below it. (The list skips
  * its header, the space under the newest message for the composer, on its
  * own, so index 0 is the newest message.)
+ *
+ * On Android, a list at the bottom then slides down to what was added on
+ * its own, natively, in the same frame: following it from JavaScript waits
+ * for the content's size to reach JavaScript and the scroll to come back,
+ * which took over half a second in a busy group. iOS's does the same but
+ * slides to 0, which is above the bottom while the keyboard is up there
+ * (see `useLatest`), so iOS follows from JavaScript.
  */
-export const ANCHOR = { minIndexForVisible: 0 };
+export const ANCHOR = Platform.select({
+  android: { autoscrollToTopThreshold: PIN_SLOP, minIndexForVisible: 0 },
+  default: { minIndexForVisible: 0 },
+});
 
 export type Latest = ReturnType<typeof useLatest>;
 

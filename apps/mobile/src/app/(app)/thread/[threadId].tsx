@@ -17,6 +17,7 @@ import {
   THREAD_HEADER_HEIGHT,
   ThreadHeader,
 } from "~/features/conversation/thread-header";
+import { TypingStyleControls } from "~/features/conversation/typing-style-picker";
 import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
 import { useDevTools } from "~/features/dev/dev-tools";
 import { AccountScope, useAccount } from "~/features/messaging/account";
@@ -94,6 +95,17 @@ function shownList<Layout, Root>({
   return { composerHeight, layout, root };
 }
 
+/** Who else is typing in a thread, and the reporting of this device's. */
+function useThreadTyping(
+  conversationId: string,
+  threadId: string,
+  messages: Parameters<typeof useTypists>[1]["messages"],
+) {
+  const typists = useTypists(conversationId, { messages, threadId });
+  const report = useTypingReporter(conversationId, threadId);
+  return { report, typists };
+}
+
 /**
  * A thread: the message it answers on top, its replies under it like
  * comments, and a composer for the next reply. Its bell turns its
@@ -117,11 +129,7 @@ function Thread({
   const layout = useMessageLayout(conversation?.kind);
   const thread = useMessages(conversationId, { threadId });
   const state = useThreadState(conversationId, threadId);
-  const typists = useTypists(conversationId, {
-    messages: thread.messages,
-    threadId,
-  });
-  const reportTyping = useTypingReporter(conversationId, threadId);
+  const typing = useThreadTyping(conversationId, threadId, thread.messages);
   const [composerHeight, setComposerHeight] = useState<number>();
   const list = useRef<MessageListHandle>(null);
   useMarkThreadRead(conversationId, threadId, thread.newestSentAt);
@@ -170,7 +178,7 @@ function Thread({
             bottomInset={composerBottomInset}
             topInset={THREAD_HEADER_HEIGHT}
             composerHeight={shown.composerHeight}
-            typists={typists}
+            typists={typing.typists}
             onToggleReaction={thread.toggleReaction}
             onViewReactions={viewReactions}
           />
@@ -182,6 +190,11 @@ function Thread({
         onOpenConversation={openConversation}
         onToggleFollowing={state.toggle}
       />
+      <TypingStyleControls
+        typists={typing.typists}
+        profileOf={profileOf}
+        headerHeight={THREAD_HEADER_HEIGHT}
+      />
       {root !== undefined && (
         <FloatingComposer
           // A thread's draft is its own, apart from the conversation's.
@@ -189,7 +202,7 @@ function Thread({
           placeholder="Reply"
           mentionable={mentionableIn(conversation, address, profileOf)}
           onHeight={setComposerHeight}
-          onChangeText={reportTyping}
+          onChangeText={typing.report}
           onSend={(draft) => {
             thread.sendMessage(draft);
             list.current?.scrollToLatest();

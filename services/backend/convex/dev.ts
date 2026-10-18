@@ -87,8 +87,10 @@ export const longThreadMiddle = action({
 
 /**
  * Bots in a conversation answer the caller's latest message after a beat,
- * typing for a moment first (the second starts while the first still
- * types). In a group or channel, the first @mentions the caller.
+ * typing for a moment first: in a group, three start a beat apart, the
+ * first sends while the others still type, and those two send at once
+ * (see `REPLY_TIMES`). In a group or channel, the first @mentions the
+ * caller.
  */
 export const replyToMe = action({
   // With `threadId`, the bots answer in that thread.
@@ -105,9 +107,13 @@ export const replyToMe = action({
     );
     const seed = Date.now();
     const isDirect = conversationId.startsWith("direct:");
-    const count = Math.min(responders.length, isDirect ? 1 : 2);
-    for (let index = 0; index < count; index += 1) {
-      const bot = pick(responders, seed + index);
+    // Different bots, starting from one picked by the time.
+    const start = seed % Math.max(1, responders.length);
+    const bots = [
+      ...responders.slice(start),
+      ...responders.slice(0, start),
+    ].slice(0, isDirect ? 1 : 3);
+    for (const [index, bot] of bots.entries()) {
       // About half the time, a bot also reacts to what you sent.
       if ((seed + index) % 2 === 0) {
         await ctx.scheduler.runAfter(900 + index * 900, internal.dev.react, {
@@ -117,32 +123,73 @@ export const replyToMe = action({
           username: bot.username,
         });
       }
-      const typesAt = 400 + index * 900;
+      const { typesAt, saysAt } = REPLY_TIMES[index] ?? FIRST_REPLY;
       await ctx.scheduler.runAfter(typesAt, internal.dev.type, {
         conversationId,
         threadId,
         typing: true,
         username: bot.username,
       });
-      await ctx.scheduler.runAfter(
-        typesAt + 2500 + ((seed + index * 500) % 1500),
-        internal.dev.say,
-        {
-          body: pick(REPLIES, seed + index * 31),
-          conversationId,
-          mention:
-            isDirect || index > 0
-              ? undefined
-              : { accountId: me.accountId, name: me.name },
-          threadId,
-          username: bot.username,
-        },
-      );
+      await ctx.scheduler.runAfter(saysAt, internal.dev.say, {
+        body: pick(REPLIES, seed + index * 31),
+        conversationId,
+        mention:
+          isDirect || index > 0
+            ? undefined
+            : { accountId: me.accountId, name: me.name },
+        threadId,
+        username: bot.username,
+      });
     }
   },
 });
 
+/**
+ * When each replying bot starts typing and sends, in milliseconds: they
+ * start a beat apart, the first sends while the other two still type, and
+ * those two send at once. Each sends within `TYPING_TIMEOUT` of starting,
+ * so none needs to keep its typing up.
+ */
+const FIRST_REPLY = { saysAt: 3400, typesAt: 400 };
+const REPLY_TIMES = [
+  FIRST_REPLY,
+  { saysAt: 5600, typesAt: 1100 },
+  { saysAt: 5600, typesAt: 1800 },
+];
+
 const BOT_REACTIONS = ["❤️", "👍", "😂", "🔥", "😮"];
+
+/**
+ * `replyToMe`'s typing and replies without a caller, from the CLI, by
+ * the bots named, so a script can watch them without tapping send:
+ * `npx convex run dev:replyScene '{"conversationId":"…","usernames":["maya","jonah","priya"]}'`.
+ */
+export const replyScene = internalAction({
+  args: {
+    conversationId: v.string(),
+    threadId: v.optional(v.string()),
+    usernames: v.array(v.string()),
+  },
+  handler: async (ctx, { conversationId, threadId, usernames }) => {
+    requireDevTools();
+    const seed = Date.now();
+    for (const [index, username] of usernames.slice(0, 3).entries()) {
+      const { typesAt, saysAt } = REPLY_TIMES[index] ?? FIRST_REPLY;
+      await ctx.scheduler.runAfter(typesAt, internal.dev.type, {
+        conversationId,
+        threadId,
+        typing: true,
+        username,
+      });
+      await ctx.scheduler.runAfter(saysAt, internal.dev.say, {
+        body: pick(REPLIES, seed + index * 31),
+        conversationId,
+        threadId,
+        username,
+      });
+    }
+  },
+});
 
 /** A bot starts (or keeps up) typing, or stops. */
 export const type = internalAction({
