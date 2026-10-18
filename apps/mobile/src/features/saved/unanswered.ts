@@ -15,6 +15,11 @@ export function isUnanswered(address: string) {
   return unanswered.has(address);
 }
 
+/** Whether any account's PDS has stopped answering. */
+export function anyUnanswered() {
+  return unanswered.size > 0;
+}
+
 export function markUnanswered(address: string) {
   unanswered.add(address);
 }

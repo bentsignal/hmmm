@@ -10,6 +10,7 @@ import {
 
 import type { ComposerHandle } from "~/features/conversation/composer";
 import type { MessageListHandle } from "~/features/conversation/message-list";
+import { Pending, usePending } from "~/components/pending";
 import { useComposerBottomInset } from "~/features/conversation/composer";
 import { FloatingComposer } from "~/features/conversation/floating-composer";
 import { mentionableIn } from "~/features/conversation/mentionable";
@@ -96,6 +97,17 @@ function shownList<Layout, Root>({
   return { composerHeight, layout, root };
 }
 
+/** What an open thread keeps up: its read state, and push and dev. */
+function useWhileOpen(
+  conversationId: string,
+  threadId: string,
+  thread: ReturnType<typeof useMessages>,
+) {
+  useMarkThreadRead(conversationId, threadId, thread.newestSentAt);
+  useActiveThread(threadId);
+  useDevConversation(conversationId, thread);
+}
+
 /** The messages a thread shows: its original, then its replies. */
 function shownMessages<Message>({
   messages,
@@ -138,9 +150,7 @@ function Thread({
   // A thread's draft is its own, apart from the conversation's.
   const draftId = `${conversationId} thread:${threadId}`;
   const editing = useEditing({ composer, conversationId, draftId });
-  useMarkThreadRead(conversationId, threadId, thread.newestSentAt);
-  useActiveThread(threadId);
-  useDevConversation(conversationId, thread);
+  useWhileOpen(conversationId, threadId, thread);
 
   const heading = headingFor(title, initialTitle);
   const openConversation = useOpenConversation(
@@ -157,6 +167,8 @@ function Thread({
     root,
   });
 
+  const pending = usePending(shown === null && !missing);
+
   return (
     <View className="bg-background flex-1">
       <Stack.Title>Thread</Stack.Title>
@@ -168,7 +180,8 @@ function Thread({
         </View>
       )}
       <KeyboardGestureArea interpolator="ios" offset={60} style={{ flex: 1 }}>
-        {shown !== null && (
+        <Pending phase={pending} />
+        {shown !== null && pending === "ready" && (
           <MessageList
             ref={list}
             key={thread.viewKey}

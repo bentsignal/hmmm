@@ -25,6 +25,7 @@ import { liveResult } from "./saved-cache";
 import {
   conversationFile,
   deleteSaved,
+  forgetSaved,
   inboxFile,
   savedConversationIds,
   writeSaved,
@@ -278,18 +279,43 @@ function save(queryClient: QueryClient, { address, storagePrefix }: Account) {
   }
 }
 
+/** Development only: saving stops until the next launch (`forgetForNow`). */
+let stopped = false;
+
 /**
- * Saves an account's Home and recent conversations as the app goes to the
- * background, the last moment before it may be closed. Saving takes the
+ * Development only: deletes what the account saved and saves nothing more
+ * until the app launches again, to try a launch with nothing saved.
+ * Otherwise leaving the app to close it would save it all again.
+ */
+export function forgetForNow(storagePrefix: string) {
+  stopped = true;
+  forgetSaved(storagePrefix);
+}
+
+/**
+ * Saves an account's Home and recent conversations as the app leaves the
+ * screen, if anything changed since it last did. Saving takes the
  * JavaScript thread for tens of milliseconds, so it never runs while the
- * app is on screen; what's opened meanwhile is in memory anyway. Returns a
- * function that stops.
+ * app is in use; what's opened meanwhile is in memory anyway. It saves on
+ * "inactive" as well as "background": an app closed from the iPhone's app
+ * switcher is only ever inactive. Returns a function that stops.
  */
 function startSaving(queryClient: QueryClient, account: Account) {
-  const appState = AppState.addEventListener("change", (state) => {
-    if (state === "background") save(queryClient, account);
+  let changed = false;
+  const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+    if (event.type === "updated" && event.action.type === "success") {
+      changed = true;
+    }
   });
-  return () => appState.remove();
+  const appState = AppState.addEventListener("change", (state) => {
+    if (state === "active" || !changed || stopped) return;
+    changed = false;
+    save(queryClient, account);
+  });
+  return () => {
+    unsubscribe();
+    appState.remove();
+  };
 }
 
 /**

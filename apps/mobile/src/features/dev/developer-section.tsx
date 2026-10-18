@@ -1,26 +1,46 @@
 import { useState } from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { Button, FieldGroup, Text } from "@expo/ui";
+import { Button, FieldGroup, Row, Spacer, Text } from "@expo/ui";
 
 import type { ServerDelay } from "./server-delay";
+import { ChoiceMenu } from "~/components/choice-menu";
 import { useAccount } from "~/features/messaging/account";
+import { forgetForNow } from "~/features/saved/saving";
+import { fillRow } from "~/lib/ui-modifiers";
 import { useDevTools } from "./dev-tools";
-import { SERVER_DELAYS, setServerDelay, useServerDelay } from "./server-delay";
+import { setServerDelay, useServerDelay } from "./server-delay";
 
-const DELAY_LABELS = {
-  never: "Never",
-  off: "Right Away",
-  slow: "After 3 Seconds",
-} satisfies Record<ServerDelay, string>;
+const DELAYS = [
+  { label: "Right Away", value: "off" },
+  { label: "After 1.5 Seconds", value: "quick" },
+  { label: "After 3 Seconds", value: "slow" },
+  { label: "After 10 Seconds", value: "stalled" },
+  { label: "Never", value: "never" },
+] as const satisfies readonly { label: string; value: ServerDelay }[];
+
+/** Development only: picks how long the PDS takes to answer (`server-delay.ts`). */
+function ServerAnswersRow() {
+  const delay = useServerDelay();
+  return (
+    <Row alignment="center" modifiers={fillRow}>
+      <Text>Server Answers</Text>
+      <Spacer flexible />
+      <ChoiceMenu<ServerDelay>
+        value={delay}
+        choices={DELAYS}
+        onChange={setServerDelay}
+      />
+    </Row>
+  );
+}
 
 /** Account screen section for the dev PDS. Hidden in preview and store builds. */
 export function DeveloperSection() {
   const devTools = useDevTools();
   const router = useRouter();
-  const { address } = useAccount();
+  const { address, session } = useAccount();
   const [seeding, setSeeding] = useState(false);
-  const delay = useServerDelay();
   if (!devTools.enabled) return null;
 
   async function seed(full = false) {
@@ -75,16 +95,17 @@ export function DeveloperSection() {
         variant="text"
         onPress={() => void openLongThread()}
       />
+      <ServerAnswersRow />
       <Button
-        label={`Server Answers: ${DELAY_LABELS[delay]}`}
+        label="Forget Saved Conversations"
         variant="text"
-        onPress={() =>
-          setServerDelay(
-            SERVER_DELAYS[
-              (SERVER_DELAYS.indexOf(delay) + 1) % SERVER_DELAYS.length
-            ] ?? "off",
-          )
-        }
+        onPress={() => {
+          forgetForNow(session.storagePrefix);
+          Alert.alert(
+            "Saved Conversations Forgotten",
+            "Nothing more is saved until Vera opens again.",
+          );
+        }}
       />
       <FieldGroup.SectionFooter>
         <Text>

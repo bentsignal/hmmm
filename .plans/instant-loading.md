@@ -30,8 +30,25 @@ gives up on a server's first answer) does it show what's saved on the
 device instead. From then on the account's server counts as not
 answering, so its other screens show what's saved as they open, until a
 live result arrives. Most opens never show saved data. There's no
-indicator: an underglow under the header was tried and dropped (unclear,
-showy, it covered the top message, and it lagged on Android).
+indicator on saved data: an underglow under the header was tried and
+dropped (unclear, showy, it covered the top message, and it lagged on
+Android).
+
+**Slow loading** (`components/pending.tsx`, like TanStack Router's
+`pendingMs`/`pendingMinMs`): a screen shows nothing for its first second;
+still loading, a spinner fades in and stays at least a second, so it never
+flickers; still nothing at 6 s, "Can't Connect / Vera will keep trying."
+fades in below it (at once if the server is already known not to answer).
+On every `ScreenList`, conversations, and threads.
+
+**Saving** happens as the app leaves the screen ("inactive" or
+"background", since an app closed from the iPhone's app switcher is only
+inactive), and only if something changed. Each save takes 10 to 60 ms of
+the JavaScript thread on Android, so never while the app is in use.
+
+**Trying it** (Developer, dev builds only): Server Answers picks Right
+Away, After 1.5 / 3 / 10 Seconds, or Never; Forget Saved Conversations
+deletes what's saved and saves nothing until the next launch.
 
 - Saved per account: the inbox, and the 20 most recent conversations'
   latest 50 messages with their reactions, thread summaries, and the

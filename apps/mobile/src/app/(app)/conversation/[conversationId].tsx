@@ -6,6 +6,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import type { ComposerHandle } from "~/features/conversation/composer";
 import type { MessageListHandle } from "~/features/conversation/message-list";
 import type { MessageLayout } from "~/features/preferences/store";
+import { Pending, usePending } from "~/components/pending";
 import { useComposerBottomInset } from "~/features/conversation/composer";
 import {
   CONVERSATION_HEADER_HEIGHT,
@@ -141,6 +142,7 @@ function Conversation({
     listReady([messages, notices], layout, profilesLoaded) &&
     composerHeight !== undefined;
   useSavedConversation(conversationId, messages, !shown);
+  const pending = usePending(!shown);
   if (!isLoading && conversation === undefined) {
     return (
       <MissingConversation
@@ -153,7 +155,8 @@ function Conversation({
     <View className="bg-background flex-1">
       <Stack.Title>{heading}</Stack.Title>
       <KeyboardGestureArea interpolator="ios" offset={60} style={{ flex: 1 }}>
-        {shown && (
+        <Pending phase={pending} />
+        {shown && pending === "ready" && (
           <MessageList
             ref={list}
             key={messages.viewKey}

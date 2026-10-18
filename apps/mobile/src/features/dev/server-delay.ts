@@ -14,11 +14,23 @@ import { createConvexFederationConnection } from "@decentralized-convex/client";
 // shows on a slow connection or none (saved conversations) without
 // turning off the network.
 
-export const SERVER_DELAYS = ["off", "slow", "never"] as const;
-export type ServerDelay = (typeof SERVER_DELAYS)[number];
+/**
+ * How long the server takes to answer each new query, for each setting:
+ * just past the spinner (`components/pending.tsx`), past the point a
+ * screen shows what's saved, past "Can't Connect", or never.
+ */
+const DELAY_MS = {
+  never: Number.POSITIVE_INFINITY,
+  off: 0,
+  quick: 1500,
+  slow: 3000,
+  stalled: 10_000,
+} as const;
 
-/** How long a slow server takes to answer each new query. */
-const SLOW_MS = 3000;
+export type ServerDelay = keyof typeof DELAY_MS;
+const SERVER_DELAYS = Object.keys(DELAY_MS).filter(
+  (delay): delay is ServerDelay => delay in DELAY_MS,
+);
 const STORAGE_KEY = "vera.dev.serverDelay";
 
 let current: ServerDelay | undefined;
@@ -47,9 +59,7 @@ export function useServerDelay() {
 }
 
 function holdMs() {
-  const delay = serverDelay();
-  if (delay === "off") return 0;
-  return delay === "slow" ? SLOW_MS : Number.POSITIVE_INFINITY;
+  return DELAY_MS[serverDelay()];
 }
 
 /**

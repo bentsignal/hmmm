@@ -8,6 +8,7 @@ import Animated, { FadeIn } from "react-native-reanimated";
 import { LegendList } from "@legendapp/list/react-native";
 import { useCSSVariable } from "uniwind";
 
+import { Pending, usePending } from "./pending";
 import { ScreenListInsets } from "./screen-list-insets";
 import { useSteadyData } from "./steady-data";
 
@@ -16,8 +17,9 @@ const DRAW_DISTANCE = 1000;
 
 /**
  * A full-screen Legend List under a native header, so large titles collapse
- * as it scrolls and its background follows the theme. It shows nothing
- * until `ready`, then fades in: loading content never pops in.
+ * as it scrolls and its background follows the theme. Until `ready` it
+ * shows what `usePending` says (nothing, unless loading is slow), then
+ * fades in: loading content never pops in.
  */
 export function ScreenList<Item>({
   ready = true,
@@ -33,7 +35,8 @@ export function ScreenList<Item>({
   const background = useCSSVariable("--color-background");
   const insets = use(ScreenListInsets);
   const held = useSteadyData(props.data);
-  if (!ready) return null;
+  const pending = usePending(!ready);
+  if (pending !== "ready") return <Pending phase={pending} />;
   const inset =
     insets === null ? undefined : { bottom: insets.bottom, top: insets.top };
   return (
