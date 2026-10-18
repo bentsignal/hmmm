@@ -13,12 +13,13 @@ import { AttachmentView } from "./attachment-view";
 import { AuthorLink } from "./author-link";
 import { MovingQuote, MovingReplyCurve } from "./bubble-reply";
 import { BUBBLE_RADIUS, BubbleTail, TAIL_DROP } from "./bubble-shape";
-import { bubbleTopPart, topReacted } from "./bubble-top";
+import { aboveBubble, bubbleTopPart } from "./bubble-top";
 import { rowOrder } from "./build-rows";
-import { usePieceLift } from "./grow";
+import { Settle, usePieceLift } from "./grow";
 import { LinkCardView } from "./link-preview-card";
 import { LinkedText } from "./linked-text";
 import { MenuTargetView } from "./message-actions";
+import { DeletedBubble, EditedLabel } from "./message-changes";
 import { linkPart, partCount } from "./message-parts";
 import { InteractiveMessage } from "./message-reactions";
 import { NotSent, SendingFade } from "./message-status";
@@ -27,14 +28,12 @@ import { Reactable } from "./reaction-parts";
 import { RepliesFooter, ThreadFooter } from "./reply-card";
 import { replyIndent } from "./reply-parts";
 import { RevealedTime, SlideWithReveal } from "./reveal";
+import { BUBBLE_HEADER, bubbleHeader } from "./row-header";
 import { Place } from "./row-place";
-import { TAPBACK_SPACE } from "./tapbacks";
 
 /** Width of the avatar column beside incoming bubbles in group chats. */
 const AVATAR_COLUMN = 28;
-/** The sender's line above a run, and the gap under it. */
-const NAME_LINE = 16;
-const NAME_GAP = 6;
+const { nameGap: NAME_GAP, nameLine: NAME_LINE } = BUBBLE_HEADER;
 /** The sender's name above a run, and the gap under it, together. */
 const NAME_HEIGHT = NAME_LINE + NAME_GAP;
 /** The name's padding on each side (`px-3`). */
@@ -100,6 +99,8 @@ function Content({
   const cards = linkCardsOf(message);
   // Its parts top to bottom: the attachments, then the text.
   const textPlace = message.attachments.length;
+  // Only a thread's original stays deleted, never a quoted reply.
+  if (message.deleted === true) return <DeletedBubble />;
   return (
     <SendingFade status={message.status}>
       {/* 4pt between a message's parts, the same as between bubbles. */}
@@ -261,6 +262,7 @@ function BubbleColumn({
           quoted={card !== undefined}
         />
       </InteractiveMessage>
+      <EditedLabel message={message} isOwn={isOwn} />
       <NotSent message={message} />
       {card !== undefined && (
         <View style={replyIndent(isOwn)}>
@@ -272,12 +274,6 @@ function BubbleColumn({
       )}
     </View>
   );
-}
-
-/** What sits above the bubble: the sender's name, and the tapbacks. */
-function aboveBubble(message: Message, named: boolean) {
-  const name = named ? NAME_HEIGHT : 0;
-  return Math.max(name, topReacted(message) ? TAPBACK_SPACE : 0);
 }
 
 /**
@@ -307,7 +303,12 @@ export function MessageBubble({
 }) {
   const showAuthor = author !== undefined && !isOwn;
   return (
+    // `BUBBLE_HEADER`'s gaps.
     <View className={startsGroup ? "pt-3.5" : "pt-1"}>
+      <Settle
+        header={bubbleHeader(startsGroup, startsGroup && showAuthor)}
+        order={rowOrder(message.sentAt)}
+      />
       <SlideWithReveal enabled={isOwn}>
         <View
           className={cn(
@@ -334,7 +335,7 @@ export function MessageBubble({
       </SlideWithReveal>
       <RevealedTime
         date={message.sentAt}
-        top={aboveBubble(message, startsGroup && showAuthor)}
+        top={aboveBubble(message, startsGroup && showAuthor ? NAME_HEIGHT : 0)}
       />
     </View>
   );

@@ -52,10 +52,13 @@ export function LinkedText({
   text,
   mentions,
   className,
+  suffix,
 }: {
   text: string;
   mentions?: readonly Mention[];
   className: string;
+  /** Text after it, in its own style, such as " (edited)". */
+  suffix?: ReactNode;
 }) {
   const { address } = useAccount();
   const parts = new Array<ReactNode>();
@@ -77,5 +80,6 @@ export function LinkedText({
     at = range.end;
   }
   parts.push(...withLinks(text.slice(at), at));
+  if (suffix !== undefined) parts.push(suffix);
   return <Text className={className}>{parts}</Text>;
 }

@@ -14,8 +14,10 @@ export async function devSignIn(pending: PendingSignIn, username: string) {
     body: { username: username.trim().toLowerCase() },
     method: "POST",
   });
-  if (error !== null) return "The dev PDS refused it.";
-  return finishPendingSignIn(pending);
+  if (error === null) return finishPendingSignIn(pending);
+  return "code" in error && error.code === "INVALID_USERNAME"
+    ? `"${username}" isn't a valid username. Use letters and numbers.`
+    : "The dev PDS refused it.";
 }
 
 /**
