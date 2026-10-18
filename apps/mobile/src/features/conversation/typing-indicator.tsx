@@ -198,7 +198,8 @@ export function TypingSpace({
   // that came with it; changing the height later takes a frame more, and
   // the list would see the two changes apart.
   const [spaceKey, setSpaceKey] = useState(0);
-  const [appearKey, setAppearKey] = useState(newest?.key);
+  // Bumped to show the indicator again, as it first appeared.
+  const [appearKey, setAppearKey] = useState(0);
   const change = typingChange(seen, newest, typists);
   if (change !== undefined) {
     const { left } = change;
@@ -207,7 +208,7 @@ export function TypingSpace({
     const others = ghosts.filter((ghost) => ghost.key !== left?.key);
     if (left !== undefined) setGhosts([...others, left]);
     if (change.reopened) setSpaceKey(spaceKey + 1);
-    if (change.reappeared) setAppearKey(change.seen.newestKey);
+    if (change.reappeared) setAppearKey(appearKey + 1);
   }
   const typing = typists.length > 0;
   const lift = useUnderNewestLift();

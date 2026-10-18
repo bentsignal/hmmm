@@ -20,7 +20,6 @@ export function newestOf(rows: readonly MessageRow[]) {
   };
 }
 
-
 function sameTypists(left: readonly string[], right: readonly string[]) {
   return left.join() === right.join();
 }
