@@ -18,6 +18,7 @@ import type * as devChanges from "../devChanges.js";
 import type * as devReleaseTest from "../devReleaseTest.js";
 import type * as devSeed from "../devSeed.js";
 import type * as devSignIn from "../devSignIn.js";
+import type * as devSignInPage from "../devSignInPage.js";
 import type * as devThreads from "../devThreads.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   devReleaseTest: typeof devReleaseTest;
   devSeed: typeof devSeed;
   devSignIn: typeof devSignIn;
+  devSignInPage: typeof devSignInPage;
   devThreads: typeof devThreads;
   files: typeof files;
   http: typeof http;
