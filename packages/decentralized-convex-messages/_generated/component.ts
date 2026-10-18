@@ -80,6 +80,19 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               }
             | {
                 args: {
+                  body: string;
+                  conversationId: string;
+                  mentions?: Array<{ accountId: string; name: string }>;
+                  messageId: string;
+                };
+                type: "editMessage";
+              }
+            | {
+                args: { conversationId: string; messageId: string };
+                type: "deleteMessage";
+              }
+            | {
+                args: {
                   conversationId: string;
                   readAt: number;
                   threadId: string;
@@ -253,6 +266,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               authorName: string;
               body: string;
               conversationId: string;
+              deletedAt?: number;
+              editedAt?: number;
               linkPreview: null | {
                 description?: string;
                 imageUrl?: string;
@@ -298,12 +313,89 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 };
                 authorId: string;
                 body: string;
+                deleted?: boolean;
+                messageId?: string;
               };
               sentAt: number;
               threadId?: string;
               threadOnly?: boolean;
             };
           }
+        | {
+            routes?: Array<string>;
+            type: "editMessage";
+            value: {
+              attachments: Array<{
+                durationMs?: number;
+                height?: number;
+                kind: "image" | "video" | "file";
+                mimeType: string;
+                name: string;
+                size: number;
+                thumbnailUrl?: string;
+                url: string;
+                width?: number;
+              }>;
+              authorId: string;
+              authorName: string;
+              body: string;
+              conversationId: string;
+              deletedAt?: number;
+              editedAt?: number;
+              linkPreview: null | {
+                description?: string;
+                imageUrl?: string;
+                siteName?: string;
+                title?: string;
+                url: string;
+                video?: {
+                  durationMs?: number;
+                  height?: number;
+                  url: string;
+                  width?: number;
+                };
+              };
+              linkPreviews?: Array<{
+                link: string;
+                preview?: null | {
+                  description?: string;
+                  imageUrl?: string;
+                  siteName?: string;
+                  title?: string;
+                  url: string;
+                  video?: {
+                    durationMs?: number;
+                    height?: number;
+                    url: string;
+                    width?: number;
+                  };
+                };
+              }>;
+              mentions?: Array<{ accountId: string; name: string }>;
+              messageId: string;
+              quote?: {
+                attachment?: {
+                  durationMs?: number;
+                  height?: number;
+                  kind: "image" | "video" | "file";
+                  mimeType: string;
+                  name: string;
+                  size: number;
+                  thumbnailUrl?: string;
+                  url: string;
+                  width?: number;
+                };
+                authorId: string;
+                body: string;
+                deleted?: boolean;
+                messageId?: string;
+              };
+              sentAt: number;
+              threadId?: string;
+              threadOnly?: boolean;
+            };
+          }
+        | { routes?: Array<string>; type: "deleteMessage"; value: null }
         | { routes?: Array<string>; type: "markThreadRead"; value: null }
         | { routes?: Array<string>; type: "setThreadFollowed"; value: null }
         | { routes?: Array<string>; type: "prefetchLinkPreviews"; value: null }
@@ -471,6 +563,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 authorName: string;
                 body: string;
                 conversationId: string;
+                deletedAt?: number;
+                editedAt?: number;
                 linkPreview: null | {
                   description?: string;
                   imageUrl?: string;
@@ -516,6 +610,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   };
                   authorId: string;
                   body: string;
+                  deleted?: boolean;
+                  messageId?: string;
                 };
                 sentAt: number;
                 threadId?: string;
@@ -566,6 +662,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     authorName: string;
                     body: string;
                     conversationId: string;
+                    deletedAt?: number;
+                    editedAt?: number;
                     linkPreview: null | {
                       description?: string;
                       imageUrl?: string;
@@ -611,6 +709,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                       };
                       authorId: string;
                       body: string;
+                      deleted?: boolean;
+                      messageId?: string;
                     };
                     sentAt: number;
                     threadId?: string;
@@ -647,6 +747,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     authorName: string;
                     body: string;
                     conversationId: string;
+                    deletedAt?: number;
+                    editedAt?: number;
                     linkPreview: null | {
                       description?: string;
                       imageUrl?: string;
@@ -692,6 +794,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                       };
                       authorId: string;
                       body: string;
+                      deleted?: boolean;
+                      messageId?: string;
                     };
                     sentAt: number;
                     threadId?: string;
@@ -736,6 +840,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     authorName: string;
                     body: string;
                     conversationId: string;
+                    deletedAt?: number;
+                    editedAt?: number;
                     linkPreview: null | {
                       description?: string;
                       imageUrl?: string;
@@ -781,6 +887,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                       };
                       authorId: string;
                       body: string;
+                      deleted?: boolean;
+                      messageId?: string;
                     };
                     sentAt: number;
                     threadId?: string;
@@ -817,6 +925,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     authorName: string;
                     body: string;
                     conversationId: string;
+                    deletedAt?: number;
+                    editedAt?: number;
                     linkPreview: null | {
                       description?: string;
                       imageUrl?: string;
@@ -862,6 +972,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                       };
                       authorId: string;
                       body: string;
+                      deleted?: boolean;
+                      messageId?: string;
                     };
                     sentAt: number;
                     threadId?: string;
@@ -900,6 +1012,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     authorName: string;
                     body: string;
                     conversationId: string;
+                    deletedAt?: number;
+                    editedAt?: number;
                     linkPreview: null | {
                       description?: string;
                       imageUrl?: string;
@@ -945,6 +1059,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                       };
                       authorId: string;
                       body: string;
+                      deleted?: boolean;
+                      messageId?: string;
                     };
                     sentAt: number;
                     threadId?: string;
@@ -966,6 +1082,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     authorName: string;
                     body: string;
                     conversationId: string;
+                    deletedAt?: number;
+                    editedAt?: number;
                     linkPreview: null | {
                       description?: string;
                       imageUrl?: string;
@@ -1011,6 +1129,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                       };
                       authorId: string;
                       body: string;
+                      deleted?: boolean;
+                      messageId?: string;
                     };
                     sentAt: number;
                     threadId?: string;
@@ -1061,6 +1181,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 authorName: string;
                 body: string;
                 conversationId: string;
+                deletedAt?: number;
+                editedAt?: number;
                 linkPreview: null | {
                   description?: string;
                   imageUrl?: string;
@@ -1106,6 +1228,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   };
                   authorId: string;
                   body: string;
+                  deleted?: boolean;
+                  messageId?: string;
                 };
                 sentAt: number;
                 threadId?: string;
@@ -1144,6 +1268,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 authorName: string;
                 body: string;
                 conversationId: string;
+                deletedAt?: number;
+                editedAt?: number;
                 linkPreview: null | {
                   description?: string;
                   imageUrl?: string;
@@ -1189,6 +1315,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   };
                   authorId: string;
                   body: string;
+                  deleted?: boolean;
+                  messageId?: string;
                 };
                 sentAt: number;
                 threadId?: string;
@@ -1251,6 +1379,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 authorName: string;
                 body: string;
                 conversationId: string;
+                deletedAt?: number;
+                editedAt?: number;
                 linkPreview: null | {
                   description?: string;
                   imageUrl?: string;
@@ -1296,6 +1426,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   };
                   authorId: string;
                   body: string;
+                  deleted?: boolean;
+                  messageId?: string;
                 };
                 sentAt: number;
                 threadId?: string;
@@ -1317,6 +1449,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 authorName: string;
                 body: string;
                 conversationId: string;
+                deletedAt?: number;
+                editedAt?: number;
                 linkPreview: null | {
                   description?: string;
                   imageUrl?: string;
@@ -1362,6 +1496,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   };
                   authorId: string;
                   body: string;
+                  deleted?: boolean;
+                  messageId?: string;
                 };
                 sentAt: number;
                 threadId?: string;
@@ -1407,6 +1543,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   authorName: string;
                   body: string;
                   conversationId: string;
+                  deletedAt?: number;
+                  editedAt?: number;
                   linkPreview: null | {
                     description?: string;
                     imageUrl?: string;
@@ -1452,6 +1590,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     };
                     authorId: string;
                     body: string;
+                    deleted?: boolean;
+                    messageId?: string;
                   };
                   sentAt: number;
                   threadId?: string;
@@ -1494,6 +1634,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 authorName: string;
                 body: string;
                 conversationId: string;
+                deletedAt?: number;
+                editedAt?: number;
                 linkPreview: null | {
                   description?: string;
                   imageUrl?: string;
@@ -1539,6 +1681,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   };
                   authorId: string;
                   body: string;
+                  deleted?: boolean;
+                  messageId?: string;
                 };
                 sentAt: number;
                 threadId?: string;
@@ -1562,6 +1706,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 authorName: string;
                 body: string;
                 conversationId: string;
+                deletedAt?: number;
+                editedAt?: number;
                 linkPreview: null | {
                   description?: string;
                   imageUrl?: string;
@@ -1607,6 +1753,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   };
                   authorId: string;
                   body: string;
+                  deleted?: boolean;
+                  messageId?: string;
                 };
                 sentAt: number;
                 threadId?: string;

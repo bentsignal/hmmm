@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { View } from "react-native";
 import Animated, {
   useAnimatedReaction,
+  useAnimatedRef,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -10,13 +11,15 @@ import Animated, {
 
 import type { Becoming } from "./arrive";
 import type { MessageRow } from "./build-rows";
+import type { RowLeaving } from "./leave-rows";
 import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
 import type { MessageLayout } from "~/features/preferences/store";
 import { Arrive } from "./arrive";
-import { rowOrder } from "./build-rows";
+import { orderOfRow } from "./build-rows";
 import { DaySeparator, TimeHeader } from "./day-separator";
 import { useRowLift } from "./grow";
+import { Leave, useLeaveState } from "./leave";
 import { MemberNotice } from "./member-notice";
 import { MessageBubble } from "./message-bubble";
 import { MessageStacked } from "./message-stacked";
@@ -76,19 +79,29 @@ export function Row({
   highlighted,
   arriving,
   becoming,
+  leaving,
+  onFaded,
+  onClosed,
 }: RowProps & {
   highlighted: boolean;
   arriving: boolean;
   /** It takes the typing indicator's place (see `Arrive`). */
   becoming: Becoming | undefined;
+  /** Set while the row leaves, deleted (see `Leave`). */
+  leaving: RowLeaving | undefined;
+  onFaded: (batch: number) => void;
+  onClosed: (batch: number) => void;
 }) {
-  const order = orderOf(row);
+  const order = orderOfRow(row);
   return (
     <RowLift
       order={order}
       // Stacked rows' reactions open below the message, so the row itself
       // moves up as they do.
       withOwn={layout === "stacked"}
+      leaving={leaving}
+      onFaded={onFaded}
+      onClosed={onClosed}
     >
       <RowShell
         rowKey={row.key}
@@ -109,27 +122,43 @@ export function Row({
   );
 }
 
-/** Where a row sits in the list (see `rowOrder`). */
-function orderOf(row: MessageRow) {
-  if (row.type === "message") return rowOrder(row.message.sentAt);
-  if (row.type === "notice") return rowOrder(row.notice.at);
-  // A thread's divider sits just after its original.
-  if (row.type === "replies") return rowOrder(row.date) + 0.25;
-  return rowOrder(row.date, true);
-}
-
-/** Moves the row with the rows above a row that grows (see `useRowLift`). */
+/**
+ * Moves the row with the rows above a row that grows (see `useRowLift`),
+ * and fades and closes it when it leaves (see `Leave`).
+ */
 function RowLift({
   order,
   withOwn,
+  leaving,
+  onFaded,
+  onClosed,
   children,
 }: {
   order: number;
   withOwn: boolean;
+  leaving: RowLeaving | undefined;
+  onFaded: (batch: number) => void;
+  onClosed: (batch: number) => void;
   children: ReactNode;
 }) {
-  const lift = useRowLift(order, withOwn);
-  return <Animated.View style={lift}>{children}</Animated.View>;
+  const measured = useAnimatedRef<View>();
+  const leave = useLeaveState();
+  const lift = useRowLift(order, withOwn, leave, leaving !== undefined);
+  return (
+    <Animated.View ref={measured} style={lift}>
+      {leaving !== undefined && (
+        <Leave
+          leaving={leaving}
+          order={order}
+          measured={measured}
+          state={leave}
+          onFaded={onFaded}
+          onClosed={onClosed}
+        />
+      )}
+      {children}
+    </Animated.View>
+  );
 }
 
 /**

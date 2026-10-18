@@ -1,5 +1,6 @@
 import type { Message } from "./types";
 import { attachmentPart, reactionsOn } from "~/features/messaging/reactions";
+import { TAPBACK_SPACE } from "./tapbacks";
 
 /** A bubble's top part: its first attachment, or its text. */
 export function bubbleTopPart(message: Message) {
@@ -11,4 +12,12 @@ export function bubbleTopPart(message: Message) {
 /** Whether a bubble's top part has tapbacks, which rise above it. */
 export function topReacted(message: Message) {
   return reactionsOn(message.reactions, bubbleTopPart(message)).length > 0;
+}
+
+/**
+ * What sits above a bubble: the sender's name (`nameHeight`, when shown),
+ * and the tapbacks.
+ */
+export function aboveBubble(message: Message, nameHeight: number) {
+  return Math.max(nameHeight, topReacted(message) ? TAPBACK_SPACE : 0);
 }

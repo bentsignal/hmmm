@@ -5,6 +5,8 @@
  * `Reactable`); these are the ends.
  */
 export const Place = {
+  /** Above everything in the row: the space between it and the row above. */
+  gap: -2,
   /** Above every part of the message: its sender's name, its quote. */
   top: -1,
   /** Below every part of the message: stacked rows' last reactions. */

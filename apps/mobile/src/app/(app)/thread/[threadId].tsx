@@ -8,6 +8,7 @@ import {
   useRouter,
 } from "expo-router";
 
+import type { ComposerHandle } from "~/features/conversation/composer";
 import type { MessageListHandle } from "~/features/conversation/message-list";
 import { useComposerBottomInset } from "~/features/conversation/composer";
 import { FloatingComposer } from "~/features/conversation/floating-composer";
@@ -17,7 +18,9 @@ import {
   THREAD_HEADER_HEIGHT,
   ThreadHeader,
 } from "~/features/conversation/thread-header";
+import { useEditing } from "~/features/conversation/use-editing";
 import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
+import { useDevConversation } from "~/features/dev/dev-conversation";
 import { useDevTools } from "~/features/dev/dev-tools";
 import { AccountScope, useAccount } from "~/features/messaging/account";
 import { useConversation } from "~/features/messaging/conversations";
@@ -131,8 +134,13 @@ function Thread({
   const typing = useThreadTyping(conversationId, threadId, thread.messages);
   const [composerHeight, setComposerHeight] = useState<number>();
   const list = useRef<MessageListHandle>(null);
+  const composer = useRef<ComposerHandle>(null);
+  // A thread's draft is its own, apart from the conversation's.
+  const draftId = `${conversationId} thread:${threadId}`;
+  const editing = useEditing({ composer, conversationId, draftId });
   useMarkThreadRead(conversationId, threadId, thread.newestSentAt);
   useActiveThread(threadId);
+  useDevConversation(conversationId, thread);
 
   const heading = headingFor(title, initialTitle);
   const openConversation = useOpenConversation(
@@ -140,13 +148,12 @@ function Thread({
     threadId,
     heading,
   );
-  const { root } = thread;
-  const missing = !thread.isLoading && root === undefined;
+  const missing = !thread.isLoading && thread.root === undefined;
   const shown = shownList({
     composerHeight,
     layout,
     loading: thread.isLoading || !profilesLoaded,
-    root,
+    root: thread.root,
   });
 
   return (
@@ -179,6 +186,7 @@ function Thread({
             composerHeight={shown.composerHeight}
             typists={typing.typists}
             onToggleReaction={thread.toggleReaction}
+            editing={editing}
             onViewReactions={viewReactions}
           />
         )}
@@ -189,11 +197,12 @@ function Thread({
         onOpenConversation={openConversation}
         onToggleFollowing={state.toggle}
       />
-      {root !== undefined && (
+      {thread.root !== undefined && (
         <FloatingComposer
-          // A thread's draft is its own, apart from the conversation's.
-          draftId={`${conversationId} thread:${threadId}`}
+          ref={composer}
+          draftId={draftId}
           placeholder="Reply"
+          edit={editing}
           mentionable={mentionableIn(conversation, address, profileOf)}
           onHeight={setComposerHeight}
           onChangeText={typing.report}

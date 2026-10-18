@@ -146,9 +146,22 @@ scripts/phone.sh list           # every cached dev client, marking main's
 - JavaScript edits hot-reload on his phone. Re-run `up` after native
   changes, `app.config.ts`, or `.env.local`.
 - With an isolated backend, Vera Dev talks to this worktree's domain, which
-  has no accounts. Tell Shawn to sign in with
-  `vera-dev:///dev-sign-in?username=<name>`, and that the account is a
-  throwaway.
+  has no accounts. Give Shawn two throwaway accounts, one for his iPhone
+  (`ios@<domain>`) and one for his Android phone (`android@<domain>`), so he
+  can test on both without saving a passkey. `scripts/backend.sh status`
+  prints both links (`<site>/dev/sign-in?username=ios`, a dev-only page on
+  the backend). Always send both as clickable Markdown links, labeled with
+  the account each creates:
+
+  ```md
+  - iPhone: [ios@my-branch.dev.vera.chat](https://<deployment>.convex.site/dev/sign-in?username=ios)
+  - Android: [android@my-branch.dev.vera.chat](https://<deployment>.convex.site/dev/sign-in?username=android)
+  ```
+
+  He taps the one for the phone he's on. The page opens Vera Dev, which
+  signs in (or adds the account if he's already signed in elsewhere). The
+  page works in any browser; a bare `vera-dev://` link only works pasted
+  into Safari.
 - Leave it up while you work on his feedback. If this worktree has its own
   dev client, `down` at close-out prints main's install link: send it so
   he can put main's dev client back.
@@ -240,9 +253,10 @@ with `--with-backend`, and open apps on older versions will show "Updating
 Vera…" for a few seconds when it does.
 
 Then start the dev server (step 4b) and tell Shawn it's ready to test:
-the server address first, then the PR link, a two-line summary, what to try
-on his phone (concrete steps for this change), whether he has to install
-its own dev client, and anything he should look at closely. **Stop there.**
+the server address first, then (with an isolated backend) the iPhone and
+Android sign-in links (step 4b), then the PR link, a two-line summary, what
+to try on his phone (concrete steps for this change), whether he has to
+install its own dev client, and anything he should look at closely. **Stop there.**
 Don't merge.
 
 ## 8. Feedback and merge

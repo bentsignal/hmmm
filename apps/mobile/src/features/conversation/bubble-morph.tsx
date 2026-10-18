@@ -12,10 +12,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
-import type { Message } from "./types";
-import type { MessageLayout } from "~/features/preferences/store";
 import { BubbleTail } from "./bubble-shape";
-import { linkCardsOf, visibleBody } from "./message-text";
 import { Dots, useOnMount } from "./typing-parts";
 import { BUBBLE_SPACE } from "./typing-space";
 
@@ -39,17 +36,6 @@ const FROM = { height: BUBBLE_SPACE.bubble, width: BUBBLE_SPACE.width };
  * little to see.
  */
 const R = FROM.height / 2;
-
-/** Whether a message can grow out of the typing bubble: plain text. */
-export function morphs(message: Message, layout: MessageLayout) {
-  return (
-    layout === "bubbles" &&
-    message.attachments.length === 0 &&
-    message.quote === undefined &&
-    visibleBody(message) !== undefined &&
-    linkCardsOf(message).length === 0
-  );
-}
 
 /** Where a size or place is at `grown`, from `from` (as the typing bubble) to `to`. */
 function between(from: number, to: number, grown: number) {

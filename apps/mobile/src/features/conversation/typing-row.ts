@@ -1,4 +1,7 @@
 import type { MessageRow } from "./build-rows";
+import type { Message } from "./types";
+import type { MessageLayout } from "~/features/preferences/store";
+import { linkCardsOf, visibleBody } from "./message-text";
 
 // Who's typing is the list's newest row (see `TypingRow`).
 
@@ -13,4 +16,15 @@ export type ListRow = MessageRow | typeof TYPING_ITEM;
 /** The list's rows, newest first: who's typing, then `rows`. */
 export function withTyping(rows: readonly MessageRow[]) {
   return [TYPING_ITEM, ...rows];
+}
+
+/** Whether a message can grow out of the typing bubble: plain text. */
+export function morphs(message: Message, layout: MessageLayout) {
+  return (
+    layout === "bubbles" &&
+    message.attachments.length === 0 &&
+    message.quote === undefined &&
+    visibleBody(message) !== undefined &&
+    linkCardsOf(message).length === 0
+  );
 }

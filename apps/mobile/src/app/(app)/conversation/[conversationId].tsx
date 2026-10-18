@@ -14,6 +14,7 @@ import {
 import { FloatingComposer } from "~/features/conversation/floating-composer";
 import { mentionableIn } from "~/features/conversation/mentionable";
 import { MessageList } from "~/features/conversation/message-list";
+import { useEditing } from "~/features/conversation/use-editing";
 import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
 import { useReplies } from "~/features/conversation/use-replies";
 import { useDevConversation } from "~/features/dev/dev-conversation";
@@ -67,15 +68,26 @@ function listReady(
   );
 }
 
-/** Opens the conversation's info screen. */
-function useOpenInfo(conversationId: string, title: string) {
+/** Opens the conversation's info, titled `title` until it loads. */
+function useOpenInfo(conversationId: string) {
   const router = useRouter();
   const { address } = useAccount();
-  return () =>
+  return (title: string) => {
     router.push({
       params: { account: address, conversationId, title },
       pathname: "/conversation-info/[conversationId]",
     });
+  };
+}
+
+/** Who else is typing here, and the reporting of this device's. */
+function useConversationTyping(
+  conversationId: string,
+  messages: Parameters<typeof useTypists>[1]["messages"],
+) {
+  const typists = useTypists(conversationId, { messages });
+  const report = useTypingReporter(conversationId);
+  return { report, typists };
 }
 
 function MissingConversation({ heading }: { heading: string }) {
@@ -99,6 +111,7 @@ function Conversation({
   anchorId?: string;
   initialTitle?: string;
 }) {
+  const openInfo = useOpenInfo(conversationId);
   const composerBottomInset = useComposerBottomInset();
   const { address } = useAccount();
   const devTools = useDevTools();
@@ -108,8 +121,7 @@ function Conversation({
   const layout = useMessageLayout(conversation?.kind);
   const messages = useMessages(conversationId, { anchor: anchorId });
   const notices = useMemberNotices(conversationId, conversation, messages);
-  const typists = useTypists(conversationId, { messages: messages.messages });
-  const reportTyping = useTypingReporter(conversationId);
+  const typing = useConversationTyping(conversationId, messages.messages);
   const composer = useRef<ComposerHandle>(null);
   // Undefined until the composer is laid out: the list leaves room for it
   // under the newest message, so it waits rather than shift once it knows.
@@ -117,17 +129,17 @@ function Conversation({
   const list = useRef<MessageListHandle>(null);
   useMarkRead(conversationId, messages.newestSentAt);
   useActiveConversation(conversationId);
-  useDevConversation(messages);
+  useDevConversation(conversationId, messages);
 
   const header = headerFor(loaded, address, initialTitle);
   const heading = header.title;
-  const openInfo = useOpenInfo(conversationId, heading);
   const replies = useReplies({
     composer,
     conversationId,
     profileOf,
     title: heading,
   });
+  const editing = useEditing({ composer, conversationId });
   if (!isLoading && conversation === undefined) {
     return (
       <MissingConversation
@@ -159,10 +171,11 @@ function Conversation({
               bottomInset={composerBottomInset}
               topInset={CONVERSATION_HEADER_HEIGHT}
               composerHeight={composerHeight}
-              typists={typists}
+              typists={typing.typists}
               onToggleReaction={messages.toggleReaction}
               onOpenThread={replies.openThread}
               onReply={replies.reply}
+              editing={editing}
               onViewReactions={viewReactions}
             />
           )}
@@ -172,16 +185,17 @@ function Conversation({
         kind={loaded.kind}
         avatarUrl={header.avatarUrl}
         affiliated={header.affiliated}
-        onOpenInfo={openInfo}
+        onOpenInfo={() => openInfo(heading)}
       />
       <FloatingComposer
         ref={composer}
         draftId={conversationId}
         mentionable={mentionableIn(conversation, address, profileOf)}
         onHeight={setComposerHeight}
-        onChangeText={reportTyping}
+        onChangeText={typing.report}
         replyingTo={replies.replyingTo}
         onCancelReply={replies.cancel}
+        edit={editing}
         onSend={(draft) => {
           messages.sendMessage(draft, replies.replyTo);
           replies.cancel();

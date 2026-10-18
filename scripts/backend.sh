@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Which Convex backend this worktree's app and functions use.
 #
-#   scripts/backend.sh status     the deployment and account domain in use
+#   scripts/backend.sh status     the deployment, account domain, and sign-in links
 #   scripts/backend.sh isolate    give this worktree its own dev deployment
 #   scripts/backend.sh push       push Convex functions to it again
 #   scripts/backend.sh teardown   delete it and go back to the shared dev PDS
@@ -53,6 +53,11 @@ status() {
     . "$STATE"
     echo "isolated: dev/$SLUG ($DEPLOYMENT), accounts @$DOMAIN"
     echo "site: $SITE_URL"
+    # One throwaway account per phone, so Shawn can test on both without
+    # saving a passkey. He pastes each link into that phone's browser, and
+    # the page opens Vera Dev's dev sign-in (convex/devSignInPage.ts).
+    echo "iPhone sign-in (ios@$DOMAIN): $SITE_URL/dev/sign-in?username=ios"
+    echo "Android sign-in (android@$DOMAIN): $SITE_URL/dev/sign-in?username=android"
   else
     echo "shared: $(env_value CONVEX_DEPLOYMENT "$BACKEND/.env.local"), accounts @$SHARED_DOMAIN"
   fi

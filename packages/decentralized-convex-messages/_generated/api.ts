@@ -19,6 +19,7 @@ import type * as chatMessages from "../chatMessages.js";
 import type * as conversations from "../conversations.js";
 import type * as delivery from "../delivery.js";
 import type * as dispatcher from "../dispatcher.js";
+import type * as editing from "../editing.js";
 import type * as fakeCtx from "../fakeCtx.js";
 import type * as history from "../history.js";
 import type * as inbox from "../inbox.js";
@@ -52,6 +53,7 @@ import type * as threadLists from "../threadLists.js";
 import type * as threadOperations from "../threadOperations.js";
 import type * as threads from "../threads.js";
 import type * as typing from "../typing.js";
+import type * as validation from "../validation.js";
 
 import type {
   ApiFromModules,
@@ -72,6 +74,7 @@ const fullApi: ApiFromModules<{
   conversations: typeof conversations;
   delivery: typeof delivery;
   dispatcher: typeof dispatcher;
+  editing: typeof editing;
   fakeCtx: typeof fakeCtx;
   history: typeof history;
   inbox: typeof inbox;
@@ -105,6 +108,7 @@ const fullApi: ApiFromModules<{
   threadOperations: typeof threadOperations;
   threads: typeof threads;
   typing: typeof typing;
+  validation: typeof validation;
 }> = anyApi as any;
 
 /**

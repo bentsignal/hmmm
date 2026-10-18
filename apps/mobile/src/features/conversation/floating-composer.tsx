@@ -6,6 +6,7 @@ import { KeyboardStickyView } from "react-native-keyboard-controller";
 import type { ComposerHandle } from "./composer";
 import type { MentionCandidate } from "./mention-text";
 import type { ReplyingTo } from "./reply-bar";
+import type { EditSession } from "./use-editing";
 import type {
   AttachmentSource,
   StagedFile,
@@ -28,6 +29,17 @@ import {
   saveDraftFiles,
 } from "./drafts";
 
+/** Calls `first` with each change to the text, then `then`. */
+function alsoTo(
+  first: (text: string) => void,
+  then: ((text: string, sent: boolean) => void) | undefined,
+) {
+  return (text: string, sent: boolean) => {
+    first(text);
+    then?.(text, sent);
+  };
+}
+
 /**
  * The composer floating over the bottom of a conversation or thread,
  * holding what's picked for the next message until it's sent, in its draft
@@ -42,6 +54,7 @@ export function FloatingComposer({
   onChangeText,
   replyingTo,
   onCancelReply,
+  edit,
   placeholder,
 }: {
   ref?: Ref<ComposerHandle>;
@@ -57,6 +70,8 @@ export function FloatingComposer({
   /** Set while the next message is a reply (see `Composer`). */
   replyingTo?: ReplyingTo;
   onCancelReply?: () => void;
+  /** Editing a message of yours (see `Composer`). */
+  edit?: EditSession;
   placeholder?: string;
 }) {
   const bottomInset = useComposerBottomInset();
@@ -129,11 +144,9 @@ export function FloatingComposer({
         onHeight={onHeight}
         replyingTo={replyingTo}
         onCancelReply={onCancelReply}
+        edit={edit}
         placeholder={placeholder}
-        onChangeText={(text, sent) => {
-          links.onChangeText(text);
-          onChangeText?.(text, sent);
-        }}
+        onChangeText={alsoTo(links.onChangeText, onChangeText)}
         onPick={(source) => void pick(source)}
         onPaste={paste}
         onRemoveStaged={(id) => {

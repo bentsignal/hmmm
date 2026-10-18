@@ -7,6 +7,8 @@ import {
   withTiming,
 } from "react-native-reanimated";
 
+import type { Blank } from "./blank-space";
+
 // How the messages move as a row's space opens or closes (see `Move`), for
 // `grow.tsx` and the rows that open (see `Arrive`).
 
@@ -27,7 +29,9 @@ const LAND_TRIES = 30;
  * What moves: in an inverted list kept still from the bottom, a row that
  * grows pushes everything above its new space up (older rows, and the
  * pieces of the row itself above the space, see `usePieceLift`), and
- * nothing below it.
+ * nothing below it. In a thread with room under its replies, the room
+ * changes with it, so the thread's top stays put and what's below the
+ * space moves instead (see `blank`).
  *
  * The space and the moves must reach the screen in the same frame, or the
  * messages jump for a frame. Reanimated sends transforms straight to the
@@ -44,8 +48,15 @@ export interface Move {
   readonly place: SharedValue<number>;
   /** The whole row is new: none of its own pieces move. */
   readonly whole: SharedValue<boolean>;
-  /** How far what moved is drawn from where it's laid out. */
+  /** How far what moved above the space is drawn from where it's laid out. */
   readonly offset: SharedValue<number>;
+  /** The same below it, which only moves in a thread (see `blank`). */
+  readonly below: SharedValue<number>;
+  /**
+   * The rows closing together, as a deleted message and its time header
+   * do (see `useClose`), or `NONE`.
+   */
+  readonly batch: SharedValue<number>;
   /** Its space hasn't reached the screen yet. */
   readonly pending: SharedValue<boolean>;
 }
@@ -59,10 +70,16 @@ export interface Growth {
   readonly list: AnimatedRef<View>;
   /** The space under the newest message for who's typing. */
   readonly typing: SharedValue<number>;
+  /**
+   * A thread's blank space, which moves the rows as it changes: it's
+   * updated with the row's size at once, so the rows move once, and the
+   * thread's original stays put while its replies move.
+   */
+  readonly blank?: Blank;
 }
 
-/** No row is growing: no order is below it. */
-const NONE = -1;
+/** No row is growing: no order is below it. No rows closing together. */
+export const NONE = -1;
 
 /**
  * A style prop that doesn't change how anything looks and that Reanimated
@@ -73,6 +90,8 @@ const IN_COMMIT = { backfaceVisibility: "visible" } as const;
 
 export function newMove() {
   return {
+    batch: makeMutable(NONE),
+    below: makeMutable(0),
     offset: makeMutable(0),
     pending: makeMutable(false),
     pivot: makeMutable(NONE),
@@ -89,18 +108,30 @@ export interface Pivot {
   place: number;
   /** The whole row is new (see `Move`). */
   whole?: boolean;
+  /** Rows closing together (see `useClose`); `NONE` for none. */
+  batch?: number;
+}
+
+/** Whether `move` is the one already going for this space (see `Pivot`). */
+function sameSpace(move: Move, pivot: Pivot) {
+  "worklet";
+  const { order, place, whole = false } = pivot;
+  // Read here, not as a default: a worklet doesn't capture defaults.
+  const batch = pivot.batch ?? NONE;
+  if (batch !== NONE && move.batch.get() === batch) return true;
+  return (
+    move.pivot.get() === order &&
+    move.place.get() === place &&
+    move.whole.get() === whole
+  );
 }
 
 /** The move already going for the same space, or a free one. */
-function moveFor(growth: Growth, { order, place, whole = false }: Pivot) {
+function moveFor(growth: Growth, pivot: Pivot) {
   "worklet";
   let free: Move | undefined;
   for (const move of growth.moves) {
-    const same =
-      move.pivot.get() === order &&
-      move.place.get() === place &&
-      move.whole.get() === whole;
-    if (same) return move;
+    if (sameSpace(move, pivot)) return move;
     // At rest, or the closest to it when all are moving.
     if (
       free === undefined ||
@@ -122,8 +153,24 @@ function belowScreen(growth: Growth, measured: AnimatedRef<View>) {
 }
 
 /**
+ * Updates a thread's blank space for content that changed by `delta`,
+ * and returns how much it changed, which moves every row by that much.
+ */
+function blankChange(blank: Blank | undefined, delta: number) {
+  "worklet";
+  if (blank === undefined) return 0;
+  const content = blank.content.get() + delta;
+  const before = blank.space.get();
+  const after = Math.max(0, blank.list.get() - content);
+  blank.content.set(content);
+  blank.space.set(after);
+  return after - before;
+}
+
+/**
  * Draws what a space at `pivot` moves as before it changed by `delta`,
- * then eases it into place. Call it in the same frame callback that
+ * then eases it into place. Rows closing in the same `batch` move what's
+ * above the newest of them once, by all their heights. Call it in the same frame callback that
  * changes the space (see `inFrame`). A row below the bottom of the screen
  * moves nothing: the list's scroll anchor keeps what's on screen still
  * then.
@@ -138,20 +185,31 @@ export function startMove(
   if (delta === 0 || belowScreen(growth, measured)) return undefined;
   const move = moveFor(growth, pivot);
   if (move === undefined) return undefined;
-  // The same space again mid-move adds to it.
-  const same =
-    move.pivot.get() === pivot.order && move.place.get() === pivot.place;
-  const carried = same ? move.offset.get() : 0;
-  move.pivot.set(pivot.order);
+  const batch = pivot.batch ?? NONE;
+  const together = batch !== NONE && move.batch.get() === batch;
+  // The same space again mid-move adds to it, as rows closing together do.
+  const carries = sameSpace(move, pivot);
+  const moved = blankChange(growth.blank, delta);
+  move.pivot.set(
+    together ? Math.max(move.pivot.get(), pivot.order) : pivot.order,
+  );
   move.place.set(pivot.place);
   move.whole.set(pivot.whole ?? false);
+  move.batch.set(batch);
   move.pending.set(true);
-  move.offset.set(carried + delta);
+  move.offset.set((carries ? move.offset.get() : 0) + delta + moved);
+  move.below.set((carries ? move.below.get() : 0) + moved);
   // Easing from the frame after, once the change is on screen: the frame
   // that lays it out can run long, and an ease started with it would skip
   // ahead by as much.
   requestAnimationFrame(() => {
-    move.offset.set(withTiming(0, { duration: GROW_MS, easing: GROW_EASING }));
+    const ease = { duration: GROW_MS, easing: GROW_EASING };
+    move.below.set(withTiming(0, ease));
+    move.offset.set(
+      withTiming(0, ease, (finished) => {
+        if (finished === true) move.batch.set(NONE);
+      }),
+    );
   });
   return move;
 }
@@ -199,7 +257,11 @@ export function inFrame(change: () => void) {
   requestAnimationFrame(change);
 }
 
-/** How far the moves draw a row at `order` from where it's laid out. */
+/**
+ * How far the moves draw a row at `order` from where it's laid out: rows
+ * older than a growing one, and, `withOwn`, the growing row itself, move
+ * with what's above the space; newer ones with what's below it.
+ */
 export function rowShift(
   moves: readonly Move[],
   order: number,
@@ -210,11 +272,14 @@ export function rowShift(
   let pending = false;
   for (const move of moves) {
     const pivot = move.pivot.get();
-    const own = withOwn && !move.whole.get() && pivot === order;
-    if (pivot > order || own) {
-      shift += move.offset.get();
-      if (move.pending.get()) pending = true;
-    }
+    // A space at the top of a row (see `Settle`) leaves the row below it.
+    const own =
+      withOwn && !move.whole.get() && pivot === order && move.place.get() >= 0;
+    let by = 0;
+    if (pivot > order || own) by = move.offset.get();
+    else if (pivot < order) by = move.below.get();
+    shift += by;
+    if (by !== 0 && move.pending.get()) pending = true;
   }
   return { pending, shift };
 }
@@ -224,6 +289,16 @@ export function moved(translateY: number, pending: boolean) {
   "worklet";
   const style = { transform: [{ translateY }] };
   return pending ? { ...style, ...IN_COMMIT } : style;
+}
+
+/** How far one move of its own row draws the piece at `place`. */
+function pieceBy(move: Move, place: number, rowMoves: boolean) {
+  "worklet";
+  const above = move.place.get() > place;
+  // As in `rowShift`: a space at a row's top doesn't move the row.
+  const rowGoes = rowMoves && move.place.get() >= 0;
+  if (above) return rowGoes ? 0 : move.offset.get();
+  return move.below.get() - (rowGoes ? move.offset.get() : 0);
 }
 
 /** How far the moves draw a piece of a row from where it's laid out. */
@@ -239,12 +314,10 @@ export function pieceShift(
   let shift = 0;
   let pending = false;
   for (const move of moves) {
-    const own = move.pivot.get() === order && !move.whole.get();
-    // Above the space in a row that stays, or below it in one that moves.
-    if (own && move.place.get() > place !== rowMoves) {
-      shift += rowMoves ? -move.offset.get() : move.offset.get();
-      if (move.pending.get()) pending = true;
-    }
+    if (move.pivot.get() !== order || move.whole.get()) continue;
+    const by = pieceBy(move, place, rowMoves);
+    shift += by;
+    if (by !== 0 && move.pending.get()) pending = true;
   }
   return { pending, shift };
 }

@@ -16,12 +16,11 @@ import type { MessageRow } from "./build-rows";
 import type { ProfileOf } from "./message-row";
 import type { Newest, TypingSeen } from "./typing-change";
 import type { MessageLayout } from "~/features/preferences/store";
-import { morphs } from "./bubble-morph";
 import { useGrowth } from "./grow";
 import { GROW_EASING, GROW_MS, inFrame, land, startMove } from "./moves";
 import { typingChange } from "./typing-change";
 import { Indicator, useOnMount } from "./typing-parts";
-import { TYPING_ORDER } from "./typing-row";
+import { morphs, TYPING_ORDER } from "./typing-row";
 import { typingSpaceHeight } from "./typing-space";
 
 // Who's typing, as the newest row of the list, under the newest message,

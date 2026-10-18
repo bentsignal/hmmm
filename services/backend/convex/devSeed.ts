@@ -12,6 +12,7 @@ import {
   request,
   stringField,
 } from "./devBots";
+import { seedDirectChanges, seedGroupChanges } from "./devChanges";
 import { seedChannelThread, seedGroupThreads } from "./devThreads";
 
 // Development only: seed conversations for the signed-in account. See dev.ts.
@@ -103,6 +104,7 @@ export async function seedDirects(
       conversationId,
       history([me, authors[index] ?? me], long ? 600 : 25, long ? 30 : 4),
     );
+    if (long) await seedDirectChanges(ctx, conversationId, me, bot);
   }
 }
 
@@ -132,6 +134,7 @@ export async function seedGroup(
     history([me, ...authors.slice(0, 3)], 120, 6),
   );
   await seedGroupThreads(ctx, conversationId, me);
+  await seedGroupChanges(ctx, conversationId, me);
   // A live message so the inbox has an unread conversation, and Activity a
   // mention.
   await asAccount(ctx, maya, {
