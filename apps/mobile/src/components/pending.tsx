@@ -33,12 +33,11 @@ export function usePending(loading: boolean) {
   // eslint-disable-next-line no-restricted-syntax -- How long a screen has been loading only a timer started as it starts can measure.
   useEffect(() => {
     if (!loading) return;
-    const timers = [
-      setTimeout(showSpinner, PENDING_MS),
-      setTimeout(() => setTrouble(true), TROUBLE_MS),
-    ];
+    const spinner = setTimeout(showSpinner, PENDING_MS);
+    const troubleTimer = setTimeout(() => setTrouble(true), TROUBLE_MS);
     return () => {
-      for (const timer of timers) clearTimeout(timer);
+      clearTimeout(spinner);
+      clearTimeout(troubleTimer);
     };
   }, [loading]);
   // eslint-disable-next-line no-restricted-syntax -- The spinner's minimum time counts from when it appeared, which only a timer started then can measure.
