@@ -1,11 +1,38 @@
-import { Text, View } from "react-native";
-import Animated, { useAnimatedReaction } from "react-native-reanimated";
+import { View } from "react-native";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LayoutAnimationConfig,
+  LinearTransition,
+  useAnimatedReaction,
+  ZoomIn,
+  ZoomOut,
+} from "react-native-reanimated";
+import { useCSSVariable } from "uniwind";
 
+import type { MessageLayout } from "~/features/preferences/store";
 import { Avatar } from "~/components/avatar";
-import { typingFaces } from "~/features/messaging/typing-state";
+import { typingFaces, typingLabel } from "~/features/messaging/typing-state";
 import { cn } from "~/lib/cn";
+import { BUBBLE_RADIUS, BubbleTail } from "./bubble-shape";
+import { BUBBLE_SPACE, STACKED_SPACE } from "./typing-space";
 
-// The pieces of a typing indicator (see `typing-indicator.tsx`).
+// What a typing indicator looks like (see `typing-indicator.tsx` for how
+// it comes and goes).
+
+/** How long a change to who's typing takes: a photo or name coming or going. */
+const CHANGE_MS = 220;
+/**
+ * What moves over as someone joins or leaves, such as the bubble beside
+ * the photos. Each view's own frame moves (Reanimated lays nothing else
+ * out again), and only a few views do.
+ */
+const SHIFT = LinearTransition.duration(CHANGE_MS);
+/** A name or count that changed, crossfading with the one before. */
+const CHANGE_IN = FadeIn.duration(CHANGE_MS);
+const CHANGE_OUT = FadeOut.duration(CHANGE_MS * 0.7);
+const FACE_IN = ZoomIn.duration(CHANGE_MS);
+const FACE_OUT = ZoomOut.duration(CHANGE_MS * 0.7);
 
 /** One wave across the dots. */
 const DOTS_MS = 1300;
@@ -67,7 +94,10 @@ export interface Person {
   displayName: string;
 }
 
-/** Overlapping photos of who's typing, then how many more. */
+/**
+ * Overlapping photos of who's typing, then how many more. Someone joining
+ * grows in at the end; someone leaving shrinks away as the rest close up.
+ */
 export function Faces({
   people,
   size,
@@ -83,8 +113,11 @@ export function Faces({
   return (
     <View className="flex-row items-center">
       {faces.map((person, index) => (
-        <View
+        <Animated.View
           key={person.address}
+          entering={FACE_IN}
+          exiting={FACE_OUT}
+          layout={SHIFT}
           className="border-background rounded-full"
           style={{
             borderWidth: ring,
@@ -98,10 +131,13 @@ export function Faces({
             size={size}
             uri={person.avatarUrl}
           />
-        </View>
+        </Animated.View>
       ))}
       {more > 0 && (
-        <View
+        <Animated.View
+          entering={FACE_IN}
+          exiting={FACE_OUT}
+          layout={SHIFT}
           className="border-background bg-bubble-incoming items-center justify-center rounded-full"
           style={{
             borderWidth: ring,
@@ -112,16 +148,117 @@ export function Faces({
             paddingHorizontal: 4,
           }}
         >
-          <Text
+          <Animated.Text
+            key={more}
+            entering={CHANGE_IN}
             className={cn(
               "text-muted font-semibold",
               size === "sm" ? "text-caption" : "text-[10px]",
             )}
           >
             +{more}
-          </Text>
-        </View>
+          </Animated.Text>
+        </Animated.View>
       )}
+    </View>
+  );
+}
+
+/** iMessage-style: a bubble of dots where their next message will be. */
+function TypingBubble({
+  people,
+  showFaces,
+}: {
+  people: readonly Person[];
+  showFaces: boolean;
+}) {
+  const incoming = useCSSVariable("--color-bubble-incoming");
+  const fill = typeof incoming === "string" ? incoming : undefined;
+  return (
+    // The photos sit by the tail, as beside a group's messages.
+    <View
+      className="flex-row items-end gap-2.5 px-4"
+      style={{ paddingTop: BUBBLE_SPACE.top }}
+    >
+      {showFaces && <Faces people={people} size="sm" />}
+      <Animated.View
+        layout={SHIFT}
+        className="justify-center px-3.5"
+        style={{
+          backgroundColor: fill,
+          borderCurve: "continuous",
+          borderRadius: BUBBLE_RADIUS,
+          height: BUBBLE_SPACE.bubble,
+          marginBottom: BUBBLE_SPACE.bottom,
+        }}
+      >
+        {fill !== undefined && <BubbleTail color={fill} isOwn={false} />}
+        <Dots size={8} gap={4} />
+      </Animated.View>
+    </View>
+  );
+}
+
+/**
+ * Slack/Discord-style: their photos and who's typing, in a small line. A
+ * new name crossfades with the old, and the dots move over with it.
+ */
+function TypingLine({
+  people,
+  label,
+}: {
+  people: readonly Person[];
+  label: string;
+}) {
+  return (
+    <View
+      className="flex-row items-center gap-2 px-4"
+      style={{ height: STACKED_SPACE.line, marginTop: STACKED_SPACE.top }}
+    >
+      <Faces people={people} size="xs" />
+      <Animated.View layout={SHIFT} className="shrink">
+        <Animated.Text
+          key={label}
+          entering={CHANGE_IN}
+          exiting={CHANGE_OUT}
+          numberOfLines={1}
+          className="text-footnote text-muted"
+        >
+          {label}
+        </Animated.Text>
+      </Animated.View>
+      <Animated.View layout={SHIFT}>
+        <Dots size={4} gap={2} />
+      </Animated.View>
+    </View>
+  );
+}
+
+export function Indicator({
+  people,
+  layout,
+  showFaces,
+}: {
+  people: readonly Person[];
+  layout: MessageLayout;
+  showFaces: boolean;
+}) {
+  const label = typingLabel(people.map((person) => person.displayName));
+  return (
+    <View
+      accessible
+      accessibilityLabel={label}
+      accessibilityLiveRegion="polite"
+    >
+      {/* Its pieces animate only as people come and go, not as it
+          appears or leaves, which it does as a whole. */}
+      <LayoutAnimationConfig skipEntering skipExiting>
+        {layout === "stacked" ? (
+          <TypingLine people={people} label={label} />
+        ) : (
+          <TypingBubble people={people} showFaces={showFaces} />
+        )}
+      </LayoutAnimationConfig>
     </View>
   );
 }

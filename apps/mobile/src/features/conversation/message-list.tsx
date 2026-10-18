@@ -28,6 +28,7 @@ import { useMenuKeyboard } from "./menu-keyboard";
 import { MessageActionsProvider } from "./message-actions";
 import { Row } from "./message-row";
 import { RevealTimes } from "./reveal";
+import { newestOf } from "./typing-change";
 import { BelowNewest } from "./typing-indicator";
 import { belowNewestHeight } from "./typing-space";
 
@@ -110,8 +111,9 @@ function Rows({
   const rows = newestFirst(messages, layout, thread, notices);
   const below = {
     composerHeight,
+    fromBottom: latest.fromBottom,
     layout,
-    newestKey: rows[0]?.key,
+    newest: newestOf(rows),
     profileOf,
     showFaces: showAuthors,
     typists,
@@ -182,7 +184,7 @@ function Rows({
       scrollEventThrottle={16}
       onContentSizeChange={(_, height) => {
         blank.onContentHeight(height);
-        latest.onContentChange(below.newestKey, belowNewestHeight(below));
+        latest.onContentChange(below.newest?.key, belowNewestHeight(below));
         placement.onLaidOut();
       }}
       onScrollToIndexFailed={placement.onMissed}

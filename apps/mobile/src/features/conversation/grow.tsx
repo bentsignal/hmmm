@@ -93,6 +93,38 @@ function lift(
   growth.offset.set(withTiming(0, { duration: GROW_MS, easing: GROW_EASING }));
 }
 
+/** Above every row: the space that changed is under the newest message. */
+const UNDER_NEWEST = Number.MAX_VALUE;
+
+/**
+ * Draws every row `delta` from where it's laid out, then eases it into
+ * place: for space under the newest message that changed at once, when
+ * the list couldn't keep what's on screen still.
+ */
+export function useLiftAll() {
+  const growth = useGrowth();
+  return (delta: number) => {
+    "worklet";
+    const carried =
+      growth.pivot.get() === UNDER_NEWEST ? growth.offset.get() : 0;
+    growth.pivot.set(UNDER_NEWEST);
+    growth.offset.set(carried + delta);
+    growth.offset.set(
+      withTiming(0, { duration: GROW_MS, easing: GROW_EASING }),
+    );
+  };
+}
+
+/** What's under the newest message, moving with `useLiftAll`'s rows. */
+export function useUnderNewestLift() {
+  const { pivot, offset } = useGrowth();
+  return useAnimatedStyle(() => ({
+    transform: [
+      { translateY: pivot.get() === UNDER_NEWEST ? offset.get() : 0 },
+    ],
+  }));
+}
+
 /**
  * A row's place while space above it moves: rows older than the growing
  * one, and, when `withOwn`, the growing row itself (stacked rows, whose

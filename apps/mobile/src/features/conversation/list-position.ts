@@ -28,6 +28,10 @@ interface LatestState {
   pinned: boolean;
   /** You're dragging the list, or it's still moving from a fling. */
   scrolling: boolean;
+  /** Sliding to something new below, until it's at the bottom. */
+  following: boolean;
+  /** How far above the bottom the last scroll event was. */
+  scrolled: number;
   /** The newest row and the composer's height when content last changed. */
   seen?: { newest: string | undefined; composer: number };
 }
@@ -52,10 +56,14 @@ export function useLatest(
   pinnedAtStart: boolean,
 ) {
   const isNearLatest = useSharedValue(pinnedAtStart);
+  /** How far the list is scrolled up from the newest message. */
+  const fromBottom = useSharedValue(0);
   const state = useRef<LatestState>({
     inset: 0,
     pinned: pinnedAtStart,
+    scrolled: 0,
     scrolling: false,
+    following: false,
   });
   function bottom() {
     return Platform.OS === "ios" ? -state.current.inset : 0;
@@ -64,6 +72,7 @@ export function useLatest(
     listRef.current?.scrollToOffset({ animated: true, offset: bottom() });
   }
   return {
+    fromBottom,
     isNearLatest,
     scrollToNewest,
     /** Scrolls down to the newest message, as after sending one. */
@@ -91,10 +100,23 @@ export function useLatest(
       },
     },
     onScroll: (offset: number) => {
-      const fromBottom = offset - bottom();
-      isNearLatest.set(fromBottom < NEAR_LATEST);
-      if (fromBottom <= PIN_SLOP) state.current.pinned = true;
-      else if (state.current.scrolling) state.current.pinned = false;
+      const scrolled = offset - bottom();
+      const rose = scrolled > state.current.scrolled + 1;
+      state.current.scrolled = scrolled;
+      fromBottom.set(scrolled);
+      isNearLatest.set(scrolled < NEAR_LATEST);
+      if (scrolled <= PIN_SLOP) {
+        state.current.pinned = true;
+        state.current.following = false;
+      } else if (state.current.scrolling) {
+        state.current.pinned = false;
+        state.current.following = false;
+      } else if (state.current.following && rose) {
+        // The scroll anchor moved the list up after the slide began
+        // (Android does, as the space under the newest message opens),
+        // which stops the slide: it starts again from there.
+        scrollToNewest();
+      }
     },
     /**
      * The list's content changed. Pinned, a new message (`newest`) or a
@@ -109,11 +131,8 @@ export function useLatest(
       if (seen === undefined) return;
       const grew = newest !== seen.newest || composer !== seen.composer;
       if (!grew || !state.current.pinned) return;
+      state.current.following = true;
       scrollToNewest();
-      // Android's scroll anchor moves the list after this, holding the
-      // newest message still while the space under it opens (behind the
-      // composer, which is solid there), so it follows a frame later too.
-      if (Platform.OS === "android") requestAnimationFrame(scrollToNewest);
     },
   };
 }
