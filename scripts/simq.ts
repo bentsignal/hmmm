@@ -20,9 +20,15 @@
 // first device always gets in; then the queue's head gets in only if
 // memory pressure is normal and free memory covers its estimate plus a
 // reserve. When the head can't get in, a device nobody has used for
-// `idleMinutes` is shut down to make room. Tune it in ~/.config/vera/simq.json:
+// `idleMinutes` is shut down to make room.
 //
-//   { "reserveGb": 5, "iosGb": 3, "androidGb": 4, "max": 6, "idleMinutes": 20 }
+// Devices also come down with nobody waiting: one unused for
+// `maxIdleMinutes` (an agent that ended its turn with it up), and one that
+// stopped running without `sim.sh down` (shut down by hand, or a crashed
+// simulator), so its slot, Metro, and state don't linger. Tune it in
+// ~/.config/vera/simq.json:
+//
+//   { "reserveGb": 5, "iosGb": 3, "androidGb": 4, "max": 6, "idleMinutes": 20, "maxIdleMinutes": 30 }
 //
 // Edits apply on the next check, with no restart.
 import { execFileSync, spawn } from "node:child_process";
@@ -69,6 +75,7 @@ type Config = {
   androidGb: number;
   max?: number;
   idleMinutes: number;
+  maxIdleMinutes: number;
 };
 type Memory = {
   total: number;
@@ -76,7 +83,7 @@ type Memory = {
   pressure: "normal" | "warn" | "critical";
 };
 
-const VERSION = 1;
+const VERSION = 2;
 const DIR = join(homedir(), "Library/Caches/vera/simq");
 const SOCKET = join(DIR, "daemon.sock");
 const LOCK = join(DIR, "daemon.lock");
@@ -96,6 +103,8 @@ const SETTLE = 15 * SECOND;
 const ACTIVE = 10 * SECOND;
 const WAITER_TIMEOUT = 5 * MINUTE;
 const IDLE_EXIT = 10 * MINUTE;
+// How often the daemon checks that each device is still running.
+const LIVENESS = 30 * SECOND;
 
 const key = (worktree: string, kind: Kind) => `${worktree}#${kind}`;
 const label = (x: { worktree: string; kind: Kind }) =>
@@ -111,6 +120,7 @@ function readConfig(): Config {
     iosGb: 3,
     androidGb: 4,
     idleMinutes: 20,
+    maxIdleMinutes: 30,
   };
   try {
     return { ...defaults, ...JSON.parse(readFileSync(CONFIG, "utf8")) };
@@ -162,6 +172,39 @@ function alive(pid: number | undefined) {
   }
 }
 
+// Whether each device is still running: booted simulators, and emulators
+// adb can reach. Undefined when it can't tell.
+function runningDevices(): Set<string> | undefined {
+  try {
+    const running = new Set<string>();
+    const sims = JSON.parse(
+      execFileSync("xcrun", ["simctl", "list", "devices", "booted", "-j"], {
+        encoding: "utf8",
+        timeout: 20 * SECOND,
+      }),
+    ).devices as Record<string, { udid: string }[]>;
+    for (const list of Object.values(sims))
+      for (const sim of list) running.add(sim.udid);
+    const sdk =
+      process.env.ANDROID_HOME ?? join(homedir(), "Library/Android/sdk");
+    const adb = join(sdk, "platform-tools/adb");
+    if (existsSync(adb)) {
+      const lines = execFileSync(adb, ["devices"], {
+        encoding: "utf8",
+        timeout: 20 * SECOND,
+      }).split("\n");
+      for (const line of lines) {
+        const [serial, state] = line.trim().split(/\s+/);
+        if (serial?.startsWith("emulator-") && state === "device")
+          running.add(serial);
+      }
+    }
+    return running;
+  } catch {
+    return undefined;
+  }
+}
+
 // ---------------------------------------------------------------- daemon
 
 function daemon() {
@@ -186,6 +229,7 @@ function daemon() {
   // When a device last started or was shut down to make room; memory is
   // measured again only after it settles.
   let changedAt = 0;
+  let checkedAt = 0;
 
   const log = (message: string) =>
     console.log(`${new Date().toISOString()} ${message}`);
@@ -273,25 +317,12 @@ function daemon() {
     }
   }
 
-  // Shuts down the device nobody has used for longest, through its own
-  // worktree's sim.sh so its state stays consistent, and leaves a note that
-  // the worktree's next sim.sh command prints.
-  function reclaimIdle(now: number, config: Config) {
-    if ([...leases.values()].some((lease) => lease.reclaiming)) return true;
-    const idle = [...leases.values()]
-      .filter((lease) => lease.readyAt && !lease.reclaimFailed)
-      .map((lease) => ({
-        lease,
-        usedAt: deviceState(lease.worktree, lease.kind).usedAt,
-      }))
-      .filter(({ usedAt }) => now - usedAt > config.idleMinutes * MINUTE)
-      .sort((a, b) => a.usedAt - b.usedAt)[0];
-    if (!idle) return false;
-    const { lease } = idle;
+  // Shuts a device down through its own worktree's sim.sh, so its state
+  // stays consistent, and leaves a note that the worktree's next sim.sh
+  // command prints.
+  function reclaim(lease: Lease, why: string, note: string) {
     lease.reclaiming = true;
-    log(
-      `shutting down ${label(lease)}, unused for ${ago(now - idle.usedAt)}, to make room`,
-    );
+    log(`shutting down ${label(lease)}, ${why}`);
     const child = spawn(
       join(lease.worktree, "scripts/sim.sh"),
       lease.kind === "android" ? ["--android", "down"] : ["down"],
@@ -305,21 +336,73 @@ function daemon() {
       try {
         writeFileSync(
           join(lease.worktree, ".cache/sim", `${lease.kind}.reclaimed`),
-          `The simulator queue shut this ${lease.kind} device down after ${config.idleMinutes} unused minutes so another worktree could start one. Run \`scripts/sim.sh${lease.kind === "android" ? " --android" : ""} up\` to get it back.\n`,
+          `${note} Run \`scripts/sim.sh${lease.kind === "android" ? " --android" : ""} up\` to get it back.\n`,
         );
       } catch {
         // The worktree is gone.
       }
       changedAt = Date.now();
       if (leases.get(key(lease.worktree, lease.kind)) === lease)
-        drop(lease, "shut down while idle");
+        drop(lease, why);
     });
     child.on("error", (error) => {
       log(`couldn't shut down ${label(lease)}: ${String(error)}`);
       lease.reclaiming = false;
       lease.reclaimFailed = true;
     });
+  }
+
+  // The ready devices nobody has used for `minutes`, longest unused first.
+  function unused(now: number, minutes: number) {
+    return [...leases.values()]
+      .filter((lease) => lease.readyAt && !lease.reclaimFailed)
+      .map((lease) => ({
+        lease,
+        usedAt: deviceState(lease.worktree, lease.kind).usedAt,
+      }))
+      .filter(({ usedAt }) => now - usedAt > minutes * MINUTE)
+      .sort((a, b) => a.usedAt - b.usedAt);
+  }
+
+  // Shuts down the device nobody has used for longest to make room.
+  function reclaimIdle(now: number, config: Config) {
+    if ([...leases.values()].some((lease) => lease.reclaiming)) return true;
+    const idle = unused(now, config.idleMinutes)[0];
+    if (!idle) return false;
+    reclaim(
+      idle.lease,
+      `unused for ${ago(now - idle.usedAt)}, to make room`,
+      `The simulator queue shut this ${idle.lease.kind} device down after ${config.idleMinutes} unused minutes so another worktree could start one.`,
+    );
     return true;
+  }
+
+  // Devices left up with nobody waiting: unused for `maxIdleMinutes`, or no
+  // longer running at all.
+  function reclaimAbandoned(now: number, config: Config) {
+    for (const { lease, usedAt } of unused(now, config.maxIdleMinutes)) {
+      if (lease.reclaiming) continue;
+      reclaim(
+        lease,
+        `unused for ${ago(now - usedAt)}`,
+        `The simulator queue shut this ${lease.kind} device down after ${config.maxIdleMinutes} unused minutes. Bring a device up only while you use it, and \`down\` it before you end your turn.`,
+      );
+    }
+    if (now - checkedAt < LIVENESS) return;
+    if (![...leases.values()].some((lease) => lease.readyAt)) return;
+    checkedAt = now;
+    const running = runningDevices();
+    if (!running) return;
+    for (const lease of leases.values()) {
+      if (!lease.readyAt || lease.reclaiming || lease.reclaimFailed) continue;
+      const id = lease.kind === "ios" ? lease.device : lease.serial;
+      if (!id || running.has(id)) continue;
+      reclaim(
+        lease,
+        "it stopped running without `sim.sh down`",
+        `This ${lease.kind} device stopped running without \`scripts/sim.sh down\`, so the simulator queue deleted it and stopped Metro.`,
+      );
+    }
   }
 
   function admit(now: number) {
@@ -384,6 +467,7 @@ function daemon() {
     const now = Date.now();
     reap(now);
     admit(now);
+    reclaimAbandoned(now, readConfig());
     if (leases.size > 0 || waiters.length > 0) idleSince = now;
     else if (now - idleSince > IDLE_EXIT) shutdown("idle");
   }
@@ -543,8 +627,12 @@ function call<T>(path: string, body: object = {}): Promise<T> {
 
 async function connect(start: boolean): Promise<boolean> {
   try {
-    await call("/status");
-    return true;
+    const { version } = await call<{ version: number }>("/status");
+    if (!start || version >= VERSION) return true;
+    // An older daemon from another checkout; replace it. Slots persist in
+    // state.json, so nobody loses theirs.
+    await call("/stop");
+    for (let i = 0; i < 50 && existsSync(SOCKET); i++) await sleep(100);
   } catch {
     if (!start) return false;
   }
@@ -634,7 +722,7 @@ async function printStatus() {
   console.log(
     `memory: ${gb(memory.free)} of ${gb(memory.total)} free, ${memory.pressure} pressure; ` +
       `reserve ${config.reserveGb} GB, ios ${config.iosGb} GB, android ${config.androidGb} GB` +
-      `${config.max ? `, max ${config.max}` : ""}, idle after ${config.idleMinutes}m`,
+      `${config.max ? `, max ${config.max}` : ""}, idle after ${config.idleMinutes}m (${config.maxIdleMinutes}m with nobody waiting)`,
   );
   console.log(s.leases.length ? "devices:" : "devices: none");
   for (const lease of s.leases) {

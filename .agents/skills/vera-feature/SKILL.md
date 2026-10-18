@@ -182,9 +182,11 @@ links to the MP4.
   there. Otherwise paste the `npx convex run` output.
 - Never commit evidence. `.cache/` is gitignored.
 
-When you have the evidence, shut the devices down (`scripts/sim.sh down`,
-plus `--android` if you used it; see the `vera-simulator` skill). Never
-leave one running while you wait for CI or for Shawn.
+When you have the evidence, close the devices in T3's Device panel
+(`device_close`) and shut them down (`scripts/sim.sh down`, plus
+`--android` if you used it; see the `vera-simulator` skill). Never leave
+one running while you wait for CI or for Shawn, or past the end of your
+turn.
 
 ## 6. Validate
 
