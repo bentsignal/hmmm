@@ -4,7 +4,7 @@ import { fillWidth, plainRow } from "~/lib/ui-modifiers";
 import { LABEL_STYLE } from "./prominent-button-style";
 
 /**
- * Android `DestructiveButton`: a filled button in the theme's error
+ * Android `DestructiveButton`: a filled button in the theme's soft error
  * colors. See `destructive-button.tsx`.
  */
 export function DestructiveButton({
@@ -17,7 +17,10 @@ export function DestructiveButton({
   const colors = useMaterialColors();
   return (
     <Button
-      colors={{ containerColor: colors.error, contentColor: colors.onError }}
+      colors={{
+        containerColor: colors.errorContainer,
+        contentColor: colors.onErrorContainer,
+      }}
       modifiers={plainRow}
       onClick={onPress}
     >
