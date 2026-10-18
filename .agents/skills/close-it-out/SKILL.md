@@ -12,17 +12,22 @@ and nothing else. Do each step that applies, in order, without asking.
 ## 1. Stop what's running
 
 The dev server has been up since the work was ready to test. Bring it and
-every device down, then check nothing is left:
+every device down, then check nothing is left. First call `device_list`
+and `device_close` every device it shows open in this thread's Device
+panel. Then:
 
 ```sh
 scripts/phone.sh down; scripts/phone.sh --android down
 scripts/sim.sh down; scripts/sim.sh --android down
 scripts/sim.sh status        # ios: none, android: none, metro: stopped
+xcrun simctl list devices booted | grep "Vera $(basename "$PWD")" || echo gone
 ```
 
-If this worktree had its own dev client, `phone.sh down` prints main's
-install link: send it so Shawn can put main's dev client back. Close any
-device in T3's Device panel (`device_close`).
+If a simulator won't shut down (stuck "Shutting Down"), the Mac's simulator
+service is jammed: tell Shawn in your report, and don't settle the thread
+as if everything is stopped. If this worktree had its own dev client,
+`phone.sh down` prints main's install link: send it so Shawn can put
+main's dev client back.
 
 ## 2. Check the PR is ready
 

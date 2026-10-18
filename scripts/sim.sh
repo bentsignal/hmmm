@@ -270,7 +270,8 @@ up() {
   queue ready "$PLATFORM" --device "$DEVICE" --serial "$SERIAL" --metro-pid "$METRO_PID"
   [ "$PLATFORM" = ios ] && open -ga Simulator
   status
-  echo "watch it in T3 Code: device_open with deviceId $([ "$PLATFORM" = ios ] && echo "$DEVICE" || echo "$SERIAL")"
+  echo "watch it in T3 Code: device_open with deviceId $([ "$PLATFORM" = ios ] && echo "$DEVICE" || echo "$SERIAL"), once (device_list shows what's open)"
+  echo "when done: device_close, then scripts/sim.sh$([ "$PLATFORM" = android ] && echo " --android") down, before you end your turn"
 }
 
 default_user() { echo "wt$(hash_of "$ROOT" | cut -c1-6)"; }
@@ -338,6 +339,7 @@ stop() {
 
 down() {
   load
+  local closed="${DEVICE:+$([ "$PLATFORM" = ios ] && echo "$DEVICE" || echo "$SERIAL")}"
   if [ -n "$RECORD_PID" ]; then kill -INT "$RECORD_PID" 2>/dev/null || true; fi
   if [ "$PLATFORM" = ios ] && [ -n "$DEVICE" ]; then
     xcrun simctl shutdown "$DEVICE" 2>/dev/null || true
@@ -354,6 +356,7 @@ down() {
   rm -f "$STATE_DIR/$PLATFORM"
   queue release "$PLATFORM" || true
   echo "$PLATFORM device stopped"
+  [ -n "$closed" ] && echo "close it in T3's Device panel too if it's open there: device_close $closed"
   release_metro
 }
 
@@ -362,7 +365,7 @@ shift || true
 # The state file's mtime is when this worktree last used its device; the
 # queue shuts down devices unused for a while when others are waiting.
 case "$command" in
-  up | down | status | queue) ;;
+  up | down | queue) ;;
   *) [ -f "$STATE_DIR/$PLATFORM" ] && touch "$STATE_DIR/$PLATFORM" ;;
 esac
 case "$command" in
