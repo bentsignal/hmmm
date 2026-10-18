@@ -30,9 +30,9 @@ const GROW_EASING = Easing.out(Easing.cubic);
  * What moves: in an inverted list kept still from the bottom, a row that
  * grows pushes everything above its new space up (older rows, and the
  * pieces of the row itself above the space, see `usePieceLift`), and
- * nothing below it. In a thread with room under its replies on Android,
- * the room changes with it, so the thread's top stays put and what's
- * below the space moves instead (see `blank`).
+ * nothing below it. In a thread with room under its replies, the room
+ * changes with it, so the thread's top stays put and what's below the
+ * space moves instead (see `blank`).
  */
 interface Growth {
   /** The growing row's order (see `rowOrder`). */
@@ -44,9 +44,9 @@ interface Growth {
   /** The same below it, which only moves in a thread (see `blank`). */
   readonly below: SharedValue<number>;
   /**
-   * A thread's blank space, which Android moves the rows with as it
-   * changes: it's updated with the row's size at once, so the rows move
-   * once, and the thread's original stays put while its replies move.
+   * A thread's blank space, which moves the rows as it changes: it's
+   * updated with the row's size at once, so the rows move once, and the
+   * thread's original stays put while its replies move.
    */
   readonly blank?: Blank;
   /** The list, to tell whether a row is on screen. */

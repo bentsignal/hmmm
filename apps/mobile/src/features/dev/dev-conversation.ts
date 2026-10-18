@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useIsFocused } from "expo-router";
 
 import type { Message } from "~/features/conversation/types";
 import type { OutgoingDraft } from "~/features/messaging/outbox";
@@ -22,6 +23,8 @@ interface DevConversation {
   edit: (text: string, to: string) => void;
   /** Deletes your newest message reading `text`. */
   remove: (text: string) => void;
+  /** The newest message reading `text`, by ID (to open its thread). */
+  idOf: (text: string) => string;
 }
 
 let open: DevConversation | undefined;
@@ -55,9 +58,12 @@ export function useDevConversation(
 ) {
   const edits = useMessageEdits(conversationId);
   const devTools = useDevTools();
+  // A thread opens over its conversation, which stays mounted: the one on
+  // top is the open one.
+  const focused = useIsFocused();
   // eslint-disable-next-line no-restricted-syntax -- Hands the open conversation to dev scripts, which run outside React; debug builds only.
   useEffect(() => {
-    if (!__DEV__ || !env.devTools) return;
+    if (!__DEV__ || !env.devTools || !focused) return;
     function find(text: string) {
       const message = messages.findLast((item) => item.body === text);
       if (message === undefined) throw new Error(`No message "${text}"`);
@@ -66,6 +72,7 @@ export function useDevConversation(
     open = {
       edit: (text, to) => edits.edit(find(text).id, to, []),
       remove: (text) => edits.delete(find(text).id),
+      idOf: (text) => find(text).id,
       react: (text, emoji, attachment) => {
         const message = find(text);
         const part =

@@ -1,7 +1,7 @@
 import type { Ref, RefObject } from "react";
 import type { SharedValue } from "react-native-reanimated";
 import { useImperativeHandle, useRef, useState } from "react";
-import { FlatList, Platform, View } from "react-native";
+import { FlatList, View } from "react-native";
 import { KeyboardChatScrollView } from "react-native-keyboard-controller";
 import Animated, {
   useAnimatedRef,
@@ -281,9 +281,9 @@ export function MessageList({
         <View ref={frame} style={{ flex: 1 }}>
           <GrowthProvider
             list={frame}
-            // Android moves the rows as the blank space changes, so rows
-            // that change size update it at once (see `lift`).
-            blank={Platform.OS === "android" ? blank.sizes : undefined}
+            // The rows move with a thread's blank space as it changes, so
+            // rows that change size update it at once (see `lift`).
+            blank={blank.sizes}
           >
             <Rows
               {...props}
