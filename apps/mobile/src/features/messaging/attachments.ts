@@ -336,9 +336,23 @@ export async function uploadStaged(
 /** Picks and uploads right away, for a profile photo. */
 export function useAttachmentUploader() {
   const { session } = useAccount();
-  /** Returns uploaded attachments, or an empty list when cancelled. */
-  return async (source: "camera" | "library", { imagesOnly = false } = {}) => {
+  /**
+   * Returns uploaded attachments, or an empty list when cancelled.
+   * `onPicked` gets the local files before they upload, to show them
+   * right away.
+   */
+  return async (
+    source: "camera" | "library",
+    {
+      imagesOnly = false,
+      onPicked,
+    }: {
+      imagesOnly?: boolean;
+      onPicked?: (files: readonly StagedFile[]) => void;
+    } = {},
+  ) => {
     const files = await pickAttachments(source, { imagesOnly, limit: 1 });
+    if (files.length > 0) onPicked?.(files);
     return Promise.all(files.map((file) => uploadStaged(session, file)));
   };
 }

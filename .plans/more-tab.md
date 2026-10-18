@@ -19,6 +19,11 @@ aren't settings, such as contacts.
 - No action rows hanging under a profile (Shawn doesn't like the split
   separator): an account's Change Photo became a camera badge on its
   photo (tap the profile to change it).
+- An account's screen has no Home Server row. Sign Out is a red,
+  full-width button at the bottom, confirmed with "Sign Out of
+  <address>?" and no explanation.
+- A new photo shows right away, dimmed under a spinner while it uploads;
+  both fade away when it's done.
 - Routes: `/more`, `/more/settings`, `/more/notifications`,
   `/more/account`, `/more/about`.
 

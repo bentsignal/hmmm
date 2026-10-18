@@ -45,6 +45,7 @@ function AccountSettings() {
             displayName={profile.displayName}
             address={address}
             avatarUrl={profile.avatarUrl}
+            uploading={profile.uploading}
             onChangePhoto={() => showActionSheet(photoActions)}
           />
           <FieldGroup.Section title="Display Name">
