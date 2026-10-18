@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 
@@ -9,7 +9,7 @@ import { Avatar } from "~/components/avatar";
 import { formatTime } from "~/lib/format";
 import { AuthorLink } from "./author-link";
 import { rowOrder } from "./build-rows";
-import { Settle } from "./grow";
+import { Settle, useChangedSinceMount } from "./grow";
 import { useMessageActions, useSqueeze } from "./message-actions";
 import { lastPart, partCount } from "./message-parts";
 import { InteractiveMessage } from "./message-reactions";
@@ -42,9 +42,9 @@ function RunName({
   author: Author;
   startsGroup: boolean;
 }) {
-  const [startedGroup] = useState(startsGroup);
+  const late = useChangedSinceMount(startsGroup);
   if (!startsGroup) return null;
-  if (startedGroup) return <NameLine message={message} author={author} />;
+  if (!late) return <NameLine message={message} author={author} />;
   return (
     <Animated.View entering={SHOW}>
       <NameLine message={message} author={author} />
@@ -108,12 +108,12 @@ function AvatarSlot({
   author: Author;
   startsGroup: boolean;
 }) {
-  const [startedGroup] = useState(startsGroup);
+  const late = useChangedSinceMount(startsGroup);
   return (
     <View style={{ width: AVATAR_COLUMN }}>
       {startsGroup && (
         <Animated.View
-          entering={startedGroup ? undefined : SHOW}
+          entering={late ? SHOW : undefined}
           className="absolute top-0 left-0"
         >
           <AuthorLink

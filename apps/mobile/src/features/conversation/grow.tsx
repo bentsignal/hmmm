@@ -287,6 +287,16 @@ function Space({
 }
 
 /**
+ * Whether `value` has changed since the component mounted: something that
+ * happened while it was on screen, so it animates in, rather than
+ * something it was shown with.
+ */
+export function useChangedSinceMount<Value>(value: Value) {
+  const [first] = useState(value);
+  return value !== first;
+}
+
+/**
  * Where a row's header shrinks once it's shown (the message before it was
  * deleted, so it joins the run above now: see `headerHeight`), a space as
  * tall as what it lost takes its place in that same change, then closes

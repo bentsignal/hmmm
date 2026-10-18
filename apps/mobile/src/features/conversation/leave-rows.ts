@@ -110,6 +110,9 @@ function leavingRows(
 ) {
   const result = new Map<string, { row: MessageRow; batch: number }>();
   if (leaving.length === 0) return result;
+  const batches = new Map(
+    leaving.map(({ message, batch }) => [message.id, batch]),
+  );
   const remaining = new Set(without.map((row) => row.key));
   const shown = new Set(rows.map((row) => row.key));
   const takenOver = without.some(
@@ -119,7 +122,7 @@ function leavingRows(
     if (remaining.has(row.key)) continue;
     if (takenOver && row.type !== "message") continue;
     const id = messageIdOf(row);
-    const batch = leaving.find((item) => item.message.id === id)?.batch;
+    const batch = id === undefined ? undefined : batches.get(id);
     if (batch !== undefined) result.set(row.key, { batch, row });
   }
   return result;

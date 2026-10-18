@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Text, View } from "react-native";
 import Animated, { FadeIn, useAnimatedRef } from "react-native-reanimated";
 
@@ -6,7 +5,7 @@ import type { Message } from "./types";
 import { cn } from "~/lib/cn";
 import { BUBBLE_RADIUS } from "./bubble-shape";
 import { rowOrder } from "./build-rows";
-import { GrowingSpace } from "./grow";
+import { GrowingSpace, useChangedSinceMount } from "./grow";
 import { Place } from "./row-place";
 
 // What a message shows of being changed after it was sent: edited, or
@@ -67,10 +66,10 @@ export function EditedLabel({
   isOwn: boolean;
 }) {
   const edited = message.editedAt !== undefined;
-  const [editedAtFirst] = useState(edited);
+  const late = useChangedSinceMount(edited);
   const measured = useAnimatedRef<View>();
   if (!edited) return null;
-  if (editedAtFirst) return <EditedText isOwn={isOwn} />;
+  if (!late) return <EditedText isOwn={isOwn} />;
   return (
     <Animated.View ref={measured} style={{ marginTop: -COLUMN_GAP }}>
       <GrowingSpace
