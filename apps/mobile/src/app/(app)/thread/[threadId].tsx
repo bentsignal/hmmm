@@ -20,6 +20,7 @@ import {
 } from "~/features/conversation/thread-header";
 import { useEditing } from "~/features/conversation/use-editing";
 import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
+import { useDevConversation } from "~/features/dev/dev-conversation";
 import { useDevTools } from "~/features/dev/dev-tools";
 import { AccountScope, useAccount } from "~/features/messaging/account";
 import { useConversation } from "~/features/messaging/conversations";
@@ -126,6 +127,7 @@ function Thread({
   const editing = useEditing({ composer, conversationId, draftId });
   useMarkThreadRead(conversationId, threadId, thread.newestSentAt);
   useActiveThread(threadId);
+  useDevConversation(conversationId, thread);
 
   const heading = headingFor(title, initialTitle);
   const openConversation = useOpenConversation(

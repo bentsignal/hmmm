@@ -1,8 +1,13 @@
+import { useState } from "react";
 import { Text, View } from "react-native";
+import Animated, { FadeIn, useAnimatedRef } from "react-native-reanimated";
 
 import type { Message } from "./types";
 import { cn } from "~/lib/cn";
 import { BUBBLE_RADIUS } from "./bubble-shape";
+import { rowOrder } from "./build-rows";
+import { GrowingSpace } from "./grow";
+import { Place } from "./row-place";
 
 // What a message shows of being changed after it was sent: edited, or
 // deleted while its thread had replies (any other deleted message is gone).
@@ -32,7 +37,28 @@ export function DeletedText() {
   return <Text className="text-body text-muted italic">{DELETED_TEXT}</Text>;
 }
 
-/** "Edited" under an edited bubble, on its side. */
+/** The "Edited" line's height, fixed so its space can open before it. */
+const EDITED_LINE = 16;
+/** The bubble column's gap (`gap-0.5`), which the label's space takes in. */
+const COLUMN_GAP = 2;
+const SHOW = FadeIn.duration(220);
+
+function EditedText({ isOwn }: { isOwn: boolean }) {
+  return (
+    <Text
+      className={cn("text-caption text-muted px-1", isOwn && "text-right")}
+      style={{ lineHeight: EDITED_LINE }}
+    >
+      Edited
+    </Text>
+  );
+}
+
+/**
+ * "Edited" under an edited bubble, on its side. Edited while you watch,
+ * its line opens as reactions' space does (see `GrowingSpace`): the
+ * bubble and everything above move up into place, and the label fades in.
+ */
 export function EditedLabel({
   message,
   isOwn,
@@ -40,11 +66,25 @@ export function EditedLabel({
   message: Message;
   isOwn: boolean;
 }) {
-  if (message.editedAt === undefined) return null;
+  const edited = message.editedAt !== undefined;
+  const [editedAtFirst] = useState(edited);
+  const measured = useAnimatedRef<View>();
+  if (!edited) return null;
+  if (editedAtFirst) return <EditedText isOwn={isOwn} />;
   return (
-    <Text className={cn("text-caption text-muted px-1", isOwn && "text-right")}>
-      Edited
-    </Text>
+    <Animated.View ref={measured} style={{ marginTop: -COLUMN_GAP }}>
+      <GrowingSpace
+        height={EDITED_LINE + COLUMN_GAP}
+        order={rowOrder(message.sentAt)}
+        place={Place.bottom}
+        animate
+        measured={measured}
+      >
+        <Animated.View entering={SHOW} style={{ marginTop: COLUMN_GAP }}>
+          <EditedText isOwn={isOwn} />
+        </Animated.View>
+      </GrowingSpace>
+    </Animated.View>
   );
 }
 

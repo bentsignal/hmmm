@@ -90,7 +90,13 @@ export function QuoteBubble({
       <Text numberOfLines={1} className="text-caption text-muted font-semibold">
         {author.displayName}
       </Text>
-      <Text numberOfLines={2} className="text-footnote text-muted">
+      <Text
+        numberOfLines={2}
+        className={cn(
+          "text-footnote text-muted",
+          quote.deleted === true && "italic",
+        )}
+      >
         {quoteText(quote)}
       </Text>
     </ThreadLink>
@@ -173,7 +179,9 @@ export function QuoteLine({
         <Avatar name={author.displayName} size="xs" uri={author.avatarUrl} />
         <Text numberOfLines={1} className="text-footnote text-muted shrink">
           <Text className="font-semibold">{author.displayName}</Text>{" "}
-          {quoteText(quote)}
+          <Text className={quote.deleted === true ? "italic" : undefined}>
+            {quoteText(quote)}
+          </Text>
         </Text>
       </ThreadLink>
     </View>

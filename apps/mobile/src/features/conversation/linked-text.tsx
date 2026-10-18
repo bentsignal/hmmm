@@ -80,10 +80,6 @@ export function LinkedText({
     at = range.end;
   }
   parts.push(...withLinks(text.slice(at), at));
-  return (
-    <Text className={className}>
-      {parts}
-      {suffix}
-    </Text>
-  );
+  if (suffix !== undefined) parts.push(suffix);
+  return <Text className={className}>{parts}</Text>;
 }

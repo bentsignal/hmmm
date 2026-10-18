@@ -4,7 +4,9 @@ import type { Message } from "~/features/conversation/types";
 import type { OutgoingDraft } from "~/features/messaging/outbox";
 import type { ReactionPart } from "~/features/messaging/reactions";
 import { env } from "~/env";
+import { useMessageEdits } from "~/features/messaging/edits";
 import { attachmentPart } from "~/features/messaging/reactions";
+import { useDevTools } from "./dev-tools";
 
 /** What scripts can do in the open conversation (see `useDevConversation`). */
 interface DevConversation {
@@ -14,6 +16,12 @@ interface DevConversation {
    */
   react: (text: string, emoji: string, attachment?: number) => void;
   send: (text: string) => void;
+  /** Sends `text`, and has the bots answer it. */
+  ask: (text: string) => void;
+  /** Edits your newest message reading `text` to read `to`. */
+  edit: (text: string, to: string) => void;
+  /** Deletes your newest message reading `text`. */
+  remove: (text: string) => void;
 }
 
 let open: DevConversation | undefined;
@@ -29,26 +37,37 @@ export function devConversation() {
  * app for a moment as it reads the screen, which would hide the frames that
  * `scripts/sim.sh frames` is measuring.
  */
-export function useDevConversation({
-  messages,
-  toggleReaction,
-  sendMessage,
-}: {
-  messages: readonly Message[];
-  toggleReaction: (
-    messageId: string,
-    emoji: string,
-    part: ReactionPart,
-  ) => void;
-  sendMessage: (draft: OutgoingDraft) => void;
-}) {
+export function useDevConversation(
+  conversationId: string,
+  {
+    messages,
+    toggleReaction,
+    sendMessage,
+  }: {
+    messages: readonly Message[];
+    toggleReaction: (
+      messageId: string,
+      emoji: string,
+      part: ReactionPart,
+    ) => void;
+    sendMessage: (draft: OutgoingDraft) => void;
+  },
+) {
+  const edits = useMessageEdits(conversationId);
+  const devTools = useDevTools();
   // eslint-disable-next-line no-restricted-syntax -- Hands the open conversation to dev scripts, which run outside React; debug builds only.
   useEffect(() => {
     if (!__DEV__ || !env.devTools) return;
+    function find(text: string) {
+      const message = messages.findLast((item) => item.body === text);
+      if (message === undefined) throw new Error(`No message "${text}"`);
+      return message;
+    }
     open = {
+      edit: (text, to) => edits.edit(find(text).id, to, []),
+      remove: (text) => edits.delete(find(text).id),
       react: (text, emoji, attachment) => {
-        const message = messages.findLast((item) => item.body === text);
-        if (message === undefined) throw new Error(`No message "${text}"`);
+        const message = find(text);
         const part =
           attachment === undefined
             ? "message"
@@ -57,6 +76,10 @@ export function useDevConversation({
       },
       send: (body) =>
         sendMessage({ body, files: [], linkPreviews: [], mentions: [] }),
+      ask: (body) => {
+        sendMessage({ body, files: [], linkPreviews: [], mentions: [] });
+        devTools.replyToMe(conversationId);
+      },
     };
     return () => {
       open = undefined;

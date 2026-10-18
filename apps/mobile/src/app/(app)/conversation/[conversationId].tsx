@@ -117,7 +117,7 @@ function Conversation({
   const list = useRef<MessageListHandle>(null);
   useMarkRead(conversationId, messages.newestSentAt);
   useActiveConversation(conversationId);
-  useDevConversation(messages);
+  useDevConversation(conversationId, messages);
 
   const header = headerFor(loaded, address, initialTitle);
   const heading = header.title;

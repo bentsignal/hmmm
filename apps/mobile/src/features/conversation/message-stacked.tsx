@@ -1,24 +1,56 @@
 import type { RefObject } from "react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Text, View } from "react-native";
-import Animated from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
-import { cn } from "~/lib/cn";
 import { formatTime } from "~/lib/format";
 import { AuthorLink } from "./author-link";
+import { rowOrder } from "./build-rows";
+import { Settle } from "./grow";
 import { useMessageActions, useSqueeze } from "./message-actions";
 import { lastPart, partCount } from "./message-parts";
 import { InteractiveMessage } from "./message-reactions";
 import { NotSent, SendingFade, SENT_FADE_MS } from "./message-status";
 import { StillChips } from "./part-chips";
 import { QuoteLine } from "./reply-card";
+import {
+  STACKED_GAP,
+  STACKED_NAME_LINE,
+  STACKED_RUN_GAP,
+  stackedHeader,
+} from "./row-header";
 import { useRowTarget } from "./row-touch";
 import { StackedFooter, StackedParts } from "./stacked-parts";
 
 const AVATAR_COLUMN = 36;
+const SHOW = FadeIn.duration(220);
+
+/**
+ * The name line, when the row starts a run. One that starts a run late
+ * (the message before it was deleted) fades in where that message's left
+ * room for it (see `Leave`).
+ */
+function RunName({
+  message,
+  author,
+  startsGroup,
+}: {
+  message: Message;
+  author: Author;
+  startsGroup: boolean;
+}) {
+  const [startedGroup] = useState(startsGroup);
+  if (!startsGroup) return null;
+  if (startedGroup) return <NameLine message={message} author={author} />;
+  return (
+    <Animated.View entering={SHOW}>
+      <NameLine message={message} author={author} />
+    </Animated.View>
+  );
+}
 
 /**
  * Slack/Discord-style: everyone left-aligned with a photo and name. A
@@ -61,7 +93,12 @@ interface Author {
   displayName: string;
 }
 
-/** The sender's photo, beside the first message of a run. */
+/**
+ * The sender's photo, beside the first message of a run. It hangs from
+ * the top of the row without laying out its height (the name line and
+ * message beside it are always taller), so a row that starts a run late
+ * grows by just its header (see `stackedHeader`).
+ */
 function AvatarSlot({
   message,
   author,
@@ -71,16 +108,26 @@ function AvatarSlot({
   author: Author;
   startsGroup: boolean;
 }) {
+  const [startedGroup] = useState(startsGroup);
   return (
     <View style={{ width: AVATAR_COLUMN }}>
       {startsGroup && (
-        <AuthorLink
-          address={message.authorId}
-          name={author.displayName}
-          repeated
+        <Animated.View
+          entering={startedGroup ? undefined : SHOW}
+          className="absolute top-0 left-0"
         >
-          <Avatar name={author.displayName} size="row" uri={author.avatarUrl} />
-        </AuthorLink>
+          <AuthorLink
+            address={message.authorId}
+            name={author.displayName}
+            repeated
+          >
+            <Avatar
+              name={author.displayName}
+              size="row"
+              uri={author.avatarUrl}
+            />
+          </AuthorLink>
+        </Animated.View>
       )}
     </View>
   );
@@ -89,7 +136,10 @@ function AvatarSlot({
 /** The sender's name and the time, above the first message of a run. */
 function NameLine({ message, author }: { message: Message; author: Author }) {
   return (
-    <View className="flex-row items-baseline gap-2">
+    <View
+      className="flex-row items-baseline gap-2"
+      style={{ height: STACKED_NAME_LINE }}
+    >
       <AuthorLink address={message.authorId} name={author.displayName}>
         <Text className="text-subhead text-foreground font-bold">
           {author.displayName}
@@ -220,11 +270,16 @@ function StackedRow({
   const chipsAtEnd = lastPart(message);
   return (
     <View
-      className={cn(
-        "px-4",
-        card !== undefined || !startsGroup ? "pt-1.5" : "pt-5",
-      )}
+      className="px-4"
+      style={{
+        paddingTop:
+          card !== undefined || !startsGroup ? STACKED_GAP : STACKED_RUN_GAP,
+      }}
     >
+      <Settle
+        header={stackedHeader(startsGroup, card !== undefined)}
+        order={rowOrder(message.sentAt)}
+      />
       <View ref={row}>
         <Animated.View className="flex-row gap-3" style={squeeze}>
           <AvatarSlot
@@ -233,7 +288,11 @@ function StackedRow({
             startsGroup={startsGroup}
           />
           <View className="flex-1 gap-1">
-            {startsGroup && <NameLine message={message} author={author} />}
+            <RunName
+              message={message}
+              author={author}
+              startsGroup={startsGroup}
+            />
             <InteractiveMessage
               message={message}
               align="start"
