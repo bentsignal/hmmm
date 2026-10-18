@@ -14,6 +14,7 @@ import type * as auth from "../auth.js";
 import type * as bunny from "../bunny.js";
 import type * as dev from "../dev.js";
 import type * as devBots from "../devBots.js";
+import type * as devChanges from "../devChanges.js";
 import type * as devReleaseTest from "../devReleaseTest.js";
 import type * as devSeed from "../devSeed.js";
 import type * as devSignIn from "../devSignIn.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   bunny: typeof bunny;
   dev: typeof dev;
   devBots: typeof devBots;
+  devChanges: typeof devChanges;
   devReleaseTest: typeof devReleaseTest;
   devSeed: typeof devSeed;
   devSignIn: typeof devSignIn;

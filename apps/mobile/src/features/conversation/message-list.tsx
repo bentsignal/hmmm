@@ -1,10 +1,9 @@
 import type { Ref, RefObject } from "react";
 import type { SharedValue } from "react-native-reanimated";
 import { useImperativeHandle, useRef, useState } from "react";
-import { FlatList, Pressable, View } from "react-native";
+import { FlatList, View } from "react-native";
 import { KeyboardChatScrollView } from "react-native-keyboard-controller";
 import Animated, {
-  useAnimatedReaction,
   useAnimatedRef,
   useAnimatedStyle,
   useDerivedValue,
@@ -14,98 +13,25 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
 
+import type { BlankSpace } from "./blank-space";
 import type { MessageRow, ThreadHead } from "./build-rows";
+import type { LeavingRows } from "./leave-rows";
 import type { Latest } from "./list-position";
 import type { ToggleReaction, ViewReactions } from "./message-actions";
 import type { ProfileOf } from "./message-row";
-import type { MemberNotice, Message } from "./types";
+import type { MemberNotice, Message, MessageEdits } from "./types";
 import type { MessageLayout } from "~/features/preferences/store";
-import { GlassSurface } from "~/components/glass-surface";
-import { SymbolIcon } from "~/components/symbol-icon";
-import { cn } from "~/lib/cn";
 import { useBlankSpace } from "./blank-space";
 import { arrivedAfter, newestFirst } from "./build-rows";
 import { GrowthProvider } from "./grow";
+import { JumpToLatest } from "./jump-to-latest";
+import { useLeavingRows } from "./leave-rows";
 import { ANCHOR, useLatest, usePlacement } from "./list-position";
 import { useMenuKeyboard } from "./menu-keyboard";
 import { MessageActionsProvider } from "./message-actions";
 import { Row } from "./message-row";
 import { RevealTimes } from "./reveal";
-
-/** The jump button's size. */
-const JUMP_SIZE = 40;
-
-function JumpChevron() {
-  return (
-    <SymbolIcon
-      name={{ android: "keyboard_arrow_down", ios: "chevron.down" }}
-      size={17}
-      weight="semibold"
-      tintColorClassName="accent-foreground"
-    />
-  );
-}
-
-/**
- * Back down to the newest message, once you've scrolled away from it. On
- * iOS a Liquid Glass circle that materializes and dissolves like the
- * system's own controls (glass can't fade, see `GlassSurface`); a plain
- * raised circle on Android.
- */
-function JumpToLatest({
-  visible,
-  bottom,
-  onPress,
-}: {
-  visible: SharedValue<boolean>;
-  /** Distance from the bottom edge, above the floating composer. */
-  bottom: number;
-  onPress: () => void;
-}) {
-  const [shown, setShown] = useState(false);
-  useAnimatedReaction(
-    () => visible.value,
-    (now, before) => {
-      if (now !== before) scheduleOnRN(setShown, now);
-    },
-  );
-  const chevron = useAnimatedStyle(() => ({
-    opacity: withTiming(visible.value ? 1 : 0, { duration: 160 }),
-    transform: [
-      { scale: withTiming(visible.value ? 1 : 0.6, { duration: 200 }) },
-    ],
-  }));
-  return (
-    <View
-      pointerEvents={shown ? "box-none" : "none"}
-      className="absolute right-4"
-      style={{ bottom }}
-    >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Jump to latest"
-        accessibilityElementsHidden={!shown}
-        onPress={onPress}
-        hitSlop={6}
-      >
-        <GlassSurface
-          isInteractive
-          shown={shown}
-          className="items-center justify-center rounded-full"
-          androidClassName={cn(
-            "bg-background-elevated border-hairline border-separator shadow-sm",
-            !shown && "opacity-0",
-          )}
-          style={{ height: JUMP_SIZE, width: JUMP_SIZE }}
-        >
-          <Animated.View style={chevron}>
-            <JumpChevron />
-          </Animated.View>
-        </GlassSurface>
-      </Pressable>
-    </View>
-  );
-}
+import { headerHeight } from "./row-header";
 
 /** What the conversation screen can ask of its list. */
 export interface MessageListHandle {
@@ -115,11 +41,8 @@ export interface MessageListHandle {
 
 interface RowsProps {
   listRef: RefObject<FlatList<MessageRow> | null>;
-  messages: readonly Message[];
-  /** A group's joins and leaves, shown between its messages. */
-  notices?: readonly MemberNotice[];
-  /** Set in a thread, whose original heads the list. */
-  thread?: ThreadHead;
+  /** The rows, with deleted ones leaving (see `useLeavingRows`). */
+  leaving: LeavingRows;
   self: string;
   layout: MessageLayout;
   profileOf: ProfileOf;
@@ -138,6 +61,8 @@ interface RowsProps {
   freeze: SharedValue<boolean>;
   /** The list is laid out at its starting place. */
   onReady: () => void;
+  /** A thread's room under its replies (see `useBlankSpace`). */
+  blank: BlankSpace;
   /**
    * The fade-in has finished: until then the list renders only what's on
    * screen, so nothing mounts while it fades.
@@ -160,9 +85,7 @@ const FADE_MS = 220;
  */
 function Rows({
   listRef,
-  messages,
-  notices,
-  thread,
+  leaving,
   self,
   layout,
   profileOf,
@@ -177,10 +100,10 @@ function Rows({
   freeze,
   onReady,
   shown,
+  blank,
 }: RowsProps) {
   const safeArea = useSafeAreaInsets();
-  const rows = newestFirst(messages, layout, thread, notices);
-  const blank = useBlankSpace(thread !== undefined);
+  const { rows } = leaving;
   // Only messages that arrive while open animate in, not loaded pages.
   const [openedAt] = useState(Date.now);
   const anchorIndex =
@@ -206,6 +129,9 @@ function Rows({
           showAuthors={showAuthors}
           highlighted={item.key === anchorId}
           arriving={arrivedAfter(item, openedAt)}
+          leaving={leaving.leavingOf(item.key)}
+          onFaded={leaving.faded}
+          onClosed={leaving.gone}
         />
       )}
       renderScrollComponent={(props) => (
@@ -278,8 +204,13 @@ function Rows({
 
 type MessageListProps = Omit<
   RowsProps,
-  "freeze" | "latest" | "listRef" | "onReady" | "shown"
+  "blank" | "freeze" | "latest" | "leaving" | "listRef" | "onReady" | "shown"
 > & {
+  messages: readonly Message[];
+  /** A group's joins and leaves, shown between its messages. */
+  notices?: readonly MemberNotice[];
+  /** Set in a thread, whose original heads the list. */
+  thread?: ThreadHead;
   ref?: Ref<MessageListHandle>;
   onJumpToLatest: () => void;
   onToggleReaction: ToggleReaction;
@@ -289,6 +220,8 @@ type MessageListProps = Omit<
   onOpenThread?: (message: Message) => void;
   /** The menu's Reply; absent in a thread. */
   onReply?: (message: Message) => void;
+  /** The menu's Edit and Delete, on your own messages (`useEditing`). */
+  editing?: MessageEdits;
 };
 
 /**
@@ -303,6 +236,10 @@ export function MessageList({
   onViewReactions,
   onOpenThread,
   onReply,
+  editing,
+  messages,
+  notices,
+  thread,
   ...props
 }: MessageListProps) {
   const listRef = useRef<FlatList<MessageRow>>(null);
@@ -320,6 +257,12 @@ export function MessageList({
   const { hasNewer } = props;
   const showJump = useDerivedValue(() => hasNewer || !isNearLatest.value);
   const keyboard = useMenuKeyboard();
+  const blank = useBlankSpace(thread !== undefined);
+  const leaving = useLeavingRows(
+    messages,
+    (shown) => newestFirst(shown, props.layout, thread, notices),
+    (row) => headerHeight(row, props),
+  );
 
   useImperativeHandle(ref, () => ({ scrollToLatest }));
 
@@ -329,15 +272,23 @@ export function MessageList({
       onViewReactions={onViewReactions}
       onOpenThread={onOpenThread}
       onReply={onReply}
+      editing={editing}
       // The menu is a modal, which takes the keyboard down on iOS and
       // reports it again on Android; the list stays still through both.
       menuKeyboard={keyboard}
     >
       <RevealTimes>
         <View ref={frame} style={{ flex: 1 }}>
-          <GrowthProvider list={frame}>
+          <GrowthProvider
+            list={frame}
+            // The rows move with a thread's blank space as it changes, so
+            // rows that change size update it at once (see `lift`).
+            blank={blank.sizes}
+          >
             <Rows
               {...props}
+              leaving={leaving}
+              blank={blank}
               listRef={listRef}
               latest={latest}
               freeze={keyboard.freeze}
