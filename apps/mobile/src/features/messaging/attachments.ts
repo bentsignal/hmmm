@@ -1,5 +1,5 @@
 import type { Attachment } from "@decentralized-convex/messages";
-import { Alert, Linking } from "react-native";
+import { Alert, Linking, Platform } from "react-native";
 import * as Crypto from "expo-crypto";
 import * as DocumentPicker from "expo-document-picker";
 import { getInfoAsync } from "expo-file-system/legacy";
@@ -149,6 +149,17 @@ function picked(
   return { files, problem };
 }
 
+/**
+ * Whether a profile photo from `source` goes through the square crop
+ * editor. Not from the iOS library: there the editor swaps the instant
+ * system picker for the old one, which loads the whole library first and
+ * takes seconds to appear. Avatars fill their circle from the middle of
+ * whatever they're given.
+ */
+function cropsPhotos(source: "camera" | "library") {
+  return source === "camera" || Platform.OS === "android";
+}
+
 async function pickMedia(
   source: "camera" | "library",
   limit: number,
@@ -156,8 +167,7 @@ async function pickMedia(
 ) {
   const options = {
     allowsMultipleSelection: source === "library" && !imagesOnly,
-    // Profile photos get the square crop editor.
-    allowsEditing: imagesOnly,
+    allowsEditing: imagesOnly && cropsPhotos(source),
     aspect: [1, 1],
     mediaTypes: imagesOnly ? ["images"] : ["images", "videos"],
     orderedSelection: true,
@@ -165,8 +175,8 @@ async function pickMedia(
     // Turning an HEVC video into H.264 takes many seconds for a long
     // video, and it ran before the app could see the video was too long
     // to send. iPhones and Android 9 or later show HEIC photos and play
-    // HEVC videos. A profile photo goes through the crop editor, which
-    // saves a JPEG.
+    // HEVC videos. A profile photo's quality is under 1, so it's saved
+    // again as a JPEG.
     preferredAssetRepresentationMode:
       ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current,
     quality: imagesOnly ? 0.7 : 0.8,
@@ -336,9 +346,23 @@ export async function uploadStaged(
 /** Picks and uploads right away, for a profile photo. */
 export function useAttachmentUploader() {
   const { session } = useAccount();
-  /** Returns uploaded attachments, or an empty list when cancelled. */
-  return async (source: "camera" | "library", { imagesOnly = false } = {}) => {
+  /**
+   * Returns uploaded attachments, or an empty list when cancelled.
+   * `onPicked` gets the local files before they upload, to show them
+   * right away.
+   */
+  return async (
+    source: "camera" | "library",
+    {
+      imagesOnly = false,
+      onPicked,
+    }: {
+      imagesOnly?: boolean;
+      onPicked?: (files: readonly StagedFile[]) => void;
+    } = {},
+  ) => {
     const files = await pickAttachments(source, { imagesOnly, limit: 1 });
+    if (files.length > 0) onPicked?.(files);
     return Promise.all(files.map((file) => uploadStaged(session, file)));
   };
 }
