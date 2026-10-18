@@ -26,7 +26,7 @@ export function DevSignInLink() {
       const error = await devSignIn(pendingSignIn, username);
       // This screen is only the wait, so a failure leaves it, as success
       // does.
-      if (error !== null) router.dismissTo(adding ? "/settings" : "/welcome");
+      if (error !== null) router.dismissTo(adding ? "/more" : "/welcome");
       return error;
     });
   }, [adding, attempt, pendingSignIn, router, username]);

@@ -132,7 +132,7 @@ function RowLift({
 }) {
   const measured = useAnimatedRef<View>();
   const leave = useLeaveState();
-  const lift = useRowLift(order, withOwn, leave);
+  const lift = useRowLift(order, withOwn, leave, leaving !== undefined);
   return (
     <Animated.View ref={measured} style={lift}>
       {leaving !== undefined && (

@@ -188,6 +188,8 @@ export function useRowLift(
   order: number,
   withOwn: boolean,
   { opacity, kept }: LeaveState,
+  /** It's leaving now (see `Leave`). */
+  leaving: boolean,
 ) {
   const { pivot, offset, below, place } = useGrowth();
   return useAnimatedStyle(() => {
@@ -202,11 +204,16 @@ export function useRowLift(
     }
     const transform = [{ translateY }];
     const height = kept.get();
-    // Not animated: a leaving row's height changes once, in the same frame
-    // as `useClose` draws what moved back where it was.
-    return height === -1
-      ? { opacity: opacity.get(), transform }
-      : { height, opacity: 0, overflow: "hidden" as const, transform };
+    if (height !== -1) {
+      // eslint-disable-next-line vera/no-layout-animation -- Not animated: a leaving row's height changes once, in the same frame as `useClose` draws what moved back where it was.
+      return { height, opacity: 0, overflow: "hidden" as const, transform };
+    }
+    // Only a row that's leaving, or back from leaving (its deletion
+    // failed), sets its opacity: every row's style runs each frame while
+    // rows move.
+    const faded = opacity.get();
+    if (!leaving && faded === 1) return { transform };
+    return { opacity: leaving ? faded : 1, transform };
   });
 }
 
