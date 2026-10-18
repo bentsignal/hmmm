@@ -51,8 +51,8 @@ function GrowingChips({
   ...row
 }: ComponentProps<typeof ChipRow> & { open: boolean; room: Room }) {
   const [natural, setNatural] = useState(0);
-  // Hidden until there's room for them, so they never cover what's below.
-  const opened = useSharedValue(false);
+  // Shown as there's room for them, so they never cover what's below.
+  const opened = useSharedValue(0);
   const stay = usePieceLift(room.order, room.place, true, opened);
   return (
     <View>

@@ -17,7 +17,14 @@ import type { ProfileOf } from "./message-row";
 import type { Newest, TypingSeen } from "./typing-change";
 import type { MessageLayout } from "~/features/preferences/store";
 import { useGrowth } from "./grow";
-import { GROW_EASING, GROW_MS, inFrame, land, startMove } from "./moves";
+import {
+  GROW_EASING,
+  GROW_MS,
+  inFrame,
+  land,
+  showWithRoom,
+  startMove,
+} from "./moves";
 import { typingChange } from "./typing-change";
 import { Indicator, useOnMount } from "./typing-parts";
 import { morphs, TYPING_ORDER } from "./typing-row";
@@ -29,10 +36,8 @@ import { typingSpaceHeight } from "./typing-space";
 // stop. It goes as the last one stops, shrinking away as the messages
 // come back down, or, when they sent something, into what they sent.
 
-/** As long as the messages take to make room for it. */
-const APPEAR_MS = 280;
 /** Fading under the message it became, in stacked rows. */
-const BECOME_MS = 220;
+const BECOME_MS = 320;
 /** Frames a message that takes its place has to take it. */
 const HANDOFF_FRAMES = 8;
 
@@ -41,7 +46,10 @@ function originOf(layout: MessageLayout) {
   return layout === "stacked" ? "left center" : "left bottom";
 }
 
-/** Fades and grows in from its corner as it mounts. */
+/**
+ * Fades and grows in from its corner as it mounts, as the messages clear
+ * its place.
+ */
 function Appearing({
   layout,
   children,
@@ -52,7 +60,7 @@ function Appearing({
   const shown = useSharedValue(0);
   useOnMount(() => {
     "worklet";
-    shown.set(withTiming(1, { duration: APPEAR_MS, easing: GROW_EASING }));
+    shown.set(showWithRoom());
   });
   const style = useAnimatedStyle(() => ({
     opacity: shown.get(),

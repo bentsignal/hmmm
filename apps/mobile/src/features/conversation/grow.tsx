@@ -21,6 +21,7 @@ import {
   newMove,
   pieceShift,
   rowShift,
+  showWithRoom,
   startMove,
 } from "./moves";
 import { Place } from "./row-place";
@@ -124,15 +125,15 @@ export function usePieceLift(
   order: number,
   place: number,
   rowMoves = false,
-  /** Hidden until it's set: what the space opens for. */
-  shown?: SharedValue<boolean>,
+  /** How much it shows: what the space opens for. */
+  shown?: SharedValue<number>,
 ) {
   const { moves } = useGrowth();
   return useAnimatedStyle(() => {
     const { pending, shift } = pieceShift(moves, { order, place, rowMoves });
     const style = moved(shift, pending);
     if (shown === undefined) return style;
-    return { ...style, opacity: shown.get() ? 1 : 0 };
+    return { ...style, opacity: shown.get() };
   });
 }
 
@@ -159,8 +160,11 @@ interface SpaceProps {
   measured: AnimatedRef<View>;
   /** The height it had before it mounted, when that's not 0 or `height`. */
   from?: number;
-  /** Set as it opens, in the same frame (see `usePieceLift`). */
-  opened?: SharedValue<boolean>;
+  /**
+   * What it opens for, shown as the messages clear it (see `showWithRoom`)
+   * and hidden as it closes.
+   */
+  opened?: SharedValue<number>;
   children?: ReactNode;
 }
 
@@ -186,7 +190,7 @@ function Space({
         const delta = now - space.get();
         if (delta === 0) return;
         space.set(now);
-        opened?.set(now > 0);
+        opened?.set(now > 0 ? showWithRoom() : 0);
         if (!animate) return;
         const move = startMove(growth, { order, place }, delta, measured);
         land({ height: now, measured: ref, move });

@@ -252,3 +252,19 @@ are gone. What his recordings showed, and the fixes:
   and then (about one run in two, under 15pt), when React commits at the
   same moment. Holding the moves in the layout commit for the whole move
   made it worse.
+
+## Round 8: pace and the rise's edge (Shawn's phone test)
+
+- [x] Everything felt rushed next to the rest of the app. The moves now take
+      420ms on a gentle ease (`GROW_MS`, `GROW_EASING`: CSS `ease`) instead
+      of 260ms ease-out cubic, which was mostly done in its first 60ms. The
+      bubble morph, the text fading in, the indicator appearing, and the
+      stacked crossfade slowed with it.
+- [x] With a slower start, what a move makes room for (a reaction's chips,
+      the typing indicator) showed over the messages still moving off it. It
+      now fades in from a quarter of the way through (`showWithRoom`).
+- [x] A message rising in had a hard line where it was cut off. It now shows
+      10pt further down, through a band that fades from clear to the
+      background (`Fade` in `arrive.tsx`, `EMERGE`), inside the gap above
+      the indicator, so the cut is at the band's solid end and can't be
+      seen. The band goes as the message's last point clears it.

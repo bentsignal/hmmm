@@ -4,6 +4,7 @@ import {
   Easing,
   makeMutable,
   measure,
+  withDelay,
   withTiming,
 } from "react-native-reanimated";
 
@@ -12,9 +13,16 @@ import type { Blank } from "./blank-space";
 // How the messages move as a row's space opens or closes (see `Move`), for
 // `grow.tsx` and the rows that open (see `Arrive`).
 
-/** How long the messages take to move when a row's space opens or closes. */
-export const GROW_MS = 260;
-export const GROW_EASING = Easing.out(Easing.cubic);
+/**
+ * How long the messages take to move when a row's space opens or closes,
+ * and how: a gentle start and a long settle, about the pace of the
+ * keyboard and the app's sheets. (An ease-out cubic over 260ms was done
+ * before you saw it start.)
+ */
+export const GROW_MS = 420;
+export const GROW_EASING = Easing.bezier(0.25, 0.1, 0.25, 1);
+/** How far into the move what it makes room for starts to show. */
+const ROOM_MS = GROW_MS / 4;
 /** Frames to wait for a change to reach the screen before moving on. */
 const LAND_TRIES = 30;
 
@@ -244,6 +252,19 @@ export function land({
     done?.();
   }
   requestAnimationFrame(check);
+}
+
+/**
+ * An opacity, to 1, for something drawn where it ends up while the
+ * messages move off it to make room: it shows as they clear it, so it
+ * never shows over them.
+ */
+export function showWithRoom() {
+  "worklet";
+  return withDelay(
+    ROOM_MS,
+    withTiming(1, { duration: GROW_MS - ROOM_MS, easing: GROW_EASING }),
+  );
 }
 
 /**

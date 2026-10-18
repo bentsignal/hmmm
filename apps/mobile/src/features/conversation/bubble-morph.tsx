@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import type { SharedValue } from "react-native-reanimated";
 import { View } from "react-native";
 import Animated, {
-  Easing,
   measure,
   useAnimatedRef,
   useAnimatedStyle,
@@ -13,6 +12,7 @@ import Animated, {
 import { scheduleOnRN } from "react-native-worklets";
 
 import { BubbleTail } from "./bubble-shape";
+import { GROW_EASING, GROW_MS } from "./moves";
 import { Dots, useOnMount } from "./typing-parts";
 import { BUBBLE_SPACE } from "./typing-space";
 
@@ -20,13 +20,12 @@ import { BUBBLE_SPACE } from "./typing-space";
 // `Arrive`): the bubble stretches from the indicator's size to the
 // message's, anchored at its tail, as the dots fade and the text fades in.
 
-/** How long the bubble takes to grow to the message's size. */
-export const MORPH_MS = 320;
-const MORPH = { duration: MORPH_MS, easing: Easing.out(Easing.cubic) };
+/** The bubble grows at the messages' pace, a little longer. */
+const MORPH = { duration: GROW_MS + 60, easing: GROW_EASING };
 /** The dots are gone by a third of the way. */
 const DOTS_OUT = 3;
 /** The text fades in as the bubble nears its size. */
-const TEXT_IN = { delay: 110, duration: 220 };
+const TEXT_IN = { delay: 180, duration: 300 };
 
 /** The typing bubble it starts as. */
 const FROM = { height: BUBBLE_SPACE.bubble, width: BUBBLE_SPACE.width };
