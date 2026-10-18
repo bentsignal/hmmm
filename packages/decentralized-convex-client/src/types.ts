@@ -7,6 +7,7 @@ import type {
 } from "convex/server";
 
 import type { SerializedPdsRequest } from "./api.ts";
+import type { PdsConnectionMutationOptions } from "./optimistic.ts";
 
 export type FederationQueryReference = FunctionReference<
   "query",
@@ -113,6 +114,7 @@ export interface FederationConnection {
   mutation: <Mutation extends FederationMutationReference>(
     mutation: Mutation,
     args: FunctionArgs<Mutation>,
+    options?: PdsConnectionMutationOptions,
   ) => Promise<FunctionReturnType<Mutation>>;
   query: <Query extends FederationQueryReference>(
     query: Query,

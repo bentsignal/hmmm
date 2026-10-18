@@ -9,6 +9,7 @@ import type { MessageLayout } from "~/features/preferences/store";
 import { useComposerBottomInset } from "~/features/conversation/composer";
 import {
   CONVERSATION_HEADER_HEIGHT,
+  ConversationGlow,
   ConversationHeader,
 } from "~/features/conversation/conversation-header";
 import { FloatingComposer } from "~/features/conversation/floating-composer";
@@ -25,6 +26,7 @@ import { useMemberNotices } from "~/features/messaging/member-events";
 import { useMarkRead, useMessages } from "~/features/messaging/messages";
 import { useActiveConversation } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
+import { useSavedConversation } from "~/features/saved/show-saved";
 
 /**
  * What the header shows: the title, photo, and badge arrive together, so
@@ -91,6 +93,16 @@ function MissingConversation({ heading }: { heading: string }) {
   );
 }
 
+/** What an open conversation keeps up: its read state, and push and dev. */
+function useWhileOpen(
+  conversationId: string,
+  messages: ReturnType<typeof useMessages>,
+) {
+  useMarkRead(conversationId, messages.newestSentAt);
+  useActiveConversation(conversationId);
+  useDevConversation(conversationId, messages);
+}
+
 function Conversation({
   conversationId,
   anchorId,
@@ -115,9 +127,7 @@ function Conversation({
   // under the newest message, so it waits rather than shift once it knows.
   const [composerHeight, setComposerHeight] = useState<number>();
   const list = useRef<MessageListHandle>(null);
-  useMarkRead(conversationId, messages.newestSentAt);
-  useActiveConversation(conversationId);
-  useDevConversation(conversationId, messages);
+  useWhileOpen(conversationId, messages);
 
   const header = headerFor(loaded, address, initialTitle);
   const heading = header.title;
@@ -128,6 +138,10 @@ function Conversation({
     title: heading,
   });
   const editing = useEditing({ composer, conversationId });
+  const shown =
+    listReady([messages, notices], layout, profilesLoaded) &&
+    composerHeight !== undefined;
+  const showingSaved = useSavedConversation(conversationId, messages, !shown);
   if (!isLoading && conversation === undefined) {
     return (
       <MissingConversation
@@ -140,33 +154,33 @@ function Conversation({
     <View className="bg-background flex-1">
       <Stack.Title>{heading}</Stack.Title>
       <KeyboardGestureArea interpolator="ios" offset={60} style={{ flex: 1 }}>
-        {listReady([messages, notices], layout, profilesLoaded) &&
-          composerHeight !== undefined && (
-            <MessageList
-              ref={list}
-              key={messages.viewKey}
-              messages={messages.messages}
-              notices={notices.notices}
-              self={address}
-              layout={layout}
-              profileOf={profileOf}
-              showAuthors={conversation?.kind !== "direct"}
-              anchorId={messages.anchor}
-              hasNewer={messages.hasNewer}
-              onLoadOlder={messages.loadOlder}
-              onLoadNewer={messages.loadNewer}
-              onJumpToLatest={messages.jumpToLatest}
-              bottomInset={composerBottomInset}
-              topInset={CONVERSATION_HEADER_HEIGHT}
-              composerHeight={composerHeight}
-              onToggleReaction={messages.toggleReaction}
-              onOpenThread={replies.openThread}
-              onReply={replies.reply}
-              editing={editing}
-              onViewReactions={viewReactions}
-            />
-          )}
+        {shown && (
+          <MessageList
+            ref={list}
+            key={messages.viewKey}
+            messages={messages.messages}
+            notices={notices.notices}
+            self={address}
+            layout={layout}
+            profileOf={profileOf}
+            showAuthors={conversation?.kind !== "direct"}
+            anchorId={messages.anchor}
+            hasNewer={messages.hasNewer}
+            onLoadOlder={messages.loadOlder}
+            onLoadNewer={messages.loadNewer}
+            onJumpToLatest={messages.jumpToLatest}
+            bottomInset={composerBottomInset}
+            topInset={CONVERSATION_HEADER_HEIGHT}
+            composerHeight={composerHeight}
+            onToggleReaction={messages.toggleReaction}
+            onOpenThread={replies.openThread}
+            onReply={replies.reply}
+            editing={editing}
+            onViewReactions={viewReactions}
+          />
+        )}
       </KeyboardGestureArea>
+      <ConversationGlow active={showingSaved} />
       <ConversationHeader
         title={heading}
         kind={loaded.kind}

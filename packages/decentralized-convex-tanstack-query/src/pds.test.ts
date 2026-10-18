@@ -266,3 +266,29 @@ void test("caches the results a query includes, unless they're watched", async (
   unsubscribe();
   disconnect();
 });
+
+void test("a result already cached stays when its query times out", async () => {
+  const { transport } = memoryTransport("a.test", { answerAfter: 10_000 });
+  const queryClient = new QueryClient();
+  const disconnect = new PdsQueryClient(transport).connect(queryClient);
+  const query = pdsQuery({
+    args: { owner: "alice" },
+    options: { initialResponseTimeout: 10, revealPartialResultsAfter: 0 },
+    query: listNotes,
+  });
+  const saved = {
+    federation: { sources: [], status: "success" },
+    result: [{ body: "saved", id: "alice" }],
+    status: "success",
+  } satisfies PdsQueryData<Note[], readonly Note[]>;
+  queryClient.setQueryData(query.queryKey, saved);
+
+  const observer = new QueryObserver(queryClient, query);
+  const unsubscribe = observer.subscribe(() => undefined);
+  await wait(40);
+  assert.deepEqual(observer.getCurrentResult().data, saved);
+
+  unsubscribe();
+  disconnect();
+  await transport.close();
+});

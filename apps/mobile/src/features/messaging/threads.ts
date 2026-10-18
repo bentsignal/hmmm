@@ -7,7 +7,6 @@ import { useEffect, useRef } from "react";
 import { Alert } from "react-native";
 // eslint-disable-next-line no-restricted-imports -- Expo Router has no route loaders to preload suspense queries.
 import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
-import { MAX_REACTION_MESSAGES } from "@decentralized-convex/messages";
 import { pdsMutation, pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
@@ -15,22 +14,12 @@ import type { ThreadInfo } from "~/features/conversation/types";
 import { selectionTick } from "~/lib/native-extras";
 import { useAccount } from "./account";
 import { useHeldBatches } from "./held-batches";
+import { chunks } from "./reactions";
 import { pdsResult, pdsResultOr } from "./results";
 import { showThreadFollowed, showThreadRead } from "./thread-lists";
 
 /** No IDs, the same array each time. */
 const NONE = Object.freeze<string[]>([]);
-
-function chunks(ids: readonly string[]) {
-  return Array.from(
-    { length: Math.ceil(ids.length / MAX_REACTION_MESSAGES) },
-    (_, index) =>
-      ids.slice(
-        index * MAX_REACTION_MESSAGES,
-        (index + 1) * MAX_REACTION_MESSAGES,
-      ),
-  );
-}
 
 /**
  * Each thread's replies across every PDS that stores some: their counts
@@ -71,6 +60,24 @@ function combine(summaries: readonly ThreadSummary[]) {
   );
 }
 
+/** The summaries of one batch of a page's threads. */
+export function summariesQuery(
+  session: string,
+  conversationId: string,
+  messageIds: readonly string[],
+) {
+  return pdsQuery({
+    args: { conversationId, messageIds: [...messageIds] },
+    options: {
+      enabled: messageIds.length > 0,
+      // A PDS that can't answer (an older one) has no threads.
+      select: (result) => pdsResultOr(result, [])?.flat(),
+    },
+    query: pds.messages.threadSummaries,
+    session,
+  });
+}
+
 /**
  * How many replies the loaded messages' threads have, one query per page
  * like reactions. `threadOf` is undefined for a message without replies,
@@ -84,16 +91,7 @@ export function useThreadSummaries(
   const batches = pageThreadIds.flatMap(chunks);
   const held = useHeldBatches();
   function summaries(messageIds: readonly string[]) {
-    return pdsQuery({
-      args: { conversationId, messageIds: [...messageIds] },
-      options: {
-        enabled: messageIds.length > 0,
-        // A PDS that can't answer (an older one) has no threads.
-        select: (result) => pdsResultOr(result, [])?.flat(),
-      },
-      query: pds.messages.threadSummaries,
-      session,
-    });
+    return summariesQuery(session, conversationId, messageIds);
   }
   const { loaded, ownLoaded, threads } = useQueries({
     queries: batches.map(summaries),

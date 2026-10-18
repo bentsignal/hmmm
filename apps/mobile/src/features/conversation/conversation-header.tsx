@@ -13,6 +13,7 @@ import { Avatar } from "~/components/avatar";
 import { GlassSurface } from "~/components/glass-surface";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { AffiliatedBadge } from "~/features/profile/affiliated-badge";
+import { RefreshGlow } from "~/features/saved/refresh-glow";
 
 /** Matches the native glass bar buttons. */
 export const BUTTON = 44;
@@ -60,6 +61,20 @@ export function TopEdge({
         experimental_backgroundImage: `linear-gradient(180deg, ${color}e6 0%, ${color}b3 ${solid}%, ${color}00 100%)`,
         height,
       }}
+    />
+  );
+}
+
+/**
+ * The glow along the header's lower edge while the conversation shows
+ * messages saved on the device (see `RefreshGlow`).
+ */
+export function ConversationGlow({ active }: { active: boolean }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <RefreshGlow
+      active={active}
+      top={insets.top + CONVERSATION_HEADER_HEIGHT - CAPSULE / 2}
     />
   );
 }

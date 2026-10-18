@@ -20,7 +20,11 @@ import { mutationOptions } from "@tanstack/react-query";
 
 import type { PdsQueryKey } from "./keys.ts";
 import { pdsQueryKey } from "./keys.ts";
-import { connectedPdsClient, PDS_QUERY_META_KEY } from "./pds-query-client.ts";
+import {
+  connectedPdsClient,
+  hasResult,
+  PDS_QUERY_META_KEY,
+} from "./pds-query-client.ts";
 
 export { pdsQueryKey, pdsSessionQueryKey } from "./keys.ts";
 export type { PdsQueryKey } from "./keys.ts";
@@ -184,8 +188,16 @@ function pdsQueryOptions<Request extends AnyPdsQueryRequest>(
       DefaultCombinedPdsResult<Request>,
       PdsRequestResult<Request>
     >(),
-    queryFn: ({ client }: { client: QueryClient }) =>
-      connectedPdsClient(client, session).query(request, executionOptions),
+    queryFn: async ({ client }: { client: QueryClient }) => {
+      const data = await connectedPdsClient(client, session).query(
+        request,
+        executionOptions,
+      );
+      // A result already in the cache stays rather than become an error,
+      // as it does for a subscription (see `PdsQueryClient`).
+      const cached = client.getQueryData(queryKey);
+      return data.status === "error" && hasResult(cached) ? cached : data;
+    },
     staleTime:
       tanStackOptions.staleTime ??
       ((query: Query<unknown, Error, QueryData<Request>>) =>

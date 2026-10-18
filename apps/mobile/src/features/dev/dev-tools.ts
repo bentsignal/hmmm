@@ -47,5 +47,10 @@ export function useDevTools() {
       const convex = await session.convex();
       return convex.action(api.dev.seed, {});
     },
+    /** As many full conversations as the app saves on the device. */
+    seedFull: async () => {
+      const convex = await session.convex();
+      return convex.action(api.dev.seedFull, {});
+    },
   };
 }

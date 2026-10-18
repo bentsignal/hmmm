@@ -8,7 +8,11 @@ import {
 import { ConvexHttpClient } from "convex/browser";
 
 import type { StoredAccount } from "./account-store";
+import { env } from "~/env";
+import { delayedConnection } from "~/features/dev/server-delay";
 import { forgetAccountNotifications } from "~/features/notifications/presented";
+import { forgetSaved } from "~/features/saved/saved-files";
+import { startSaving } from "~/features/saved/saving";
 import { removeStoredAccount, storedAccounts } from "./account-store";
 import { createHomeAuthClient } from "./auth-client";
 import {
@@ -30,6 +34,7 @@ export const queryClient = new QueryClient({
 function createAccountSession(stored: StoredAccount, home: DiscoveredPds) {
   const authClient = createHomeAuthClient(home, stored.storagePrefix);
   const transport = new DecentralizedConvexClient({
+    ...(env.devTools && { connectionFactory: delayedConnection }),
     getAuthToken: createFederationAuthTokenFetcher(
       authClient,
       home,
@@ -44,6 +49,7 @@ function createAccountSession(stored: StoredAccount, home: DiscoveredPds) {
   // Connects and signs in while the first screen renders, rather than once
   // its queries start.
   transport.connectHome();
+  const stopSaving = startSaving(queryClient, stored);
   // The Better Auth client is a Proxy that answers every property, so it
   // stays out of this object: in development React reads the props it
   // re-renders with to log them, and turning the proxy's `name` into text
@@ -63,6 +69,8 @@ function createAccountSession(stored: StoredAccount, home: DiscoveredPds) {
     },
     home,
     pds: pdsClient,
+    /** Stops saving its screens on the device (see `features/saved`). */
+    stopSaving,
     storagePrefix: stored.storagePrefix,
     transport,
     username: stored.address.slice(0, stored.address.lastIndexOf("@")),
@@ -82,6 +90,7 @@ export function accountSession(stored: StoredAccount, home: DiscoveredPds) {
   const existing = sessions.get(stored.storagePrefix);
   if (existing?.home === home) return existing;
   if (existing !== undefined) {
+    existing.stopSaving();
     existing.pds.disconnect(queryClient);
     void existing.transport.close();
   }
@@ -99,6 +108,8 @@ export function liveSession(address: string) {
 export function closeAccountSession(session: AccountSession) {
   removeStoredAccount(session.address);
   forgetHomeToken(session.storagePrefix);
+  session.stopSaving();
+  forgetSaved(session.storagePrefix);
   sessions.delete(session.storagePrefix);
   session.pds.disconnect(queryClient);
   void session.transport.close();
