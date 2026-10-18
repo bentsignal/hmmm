@@ -183,13 +183,14 @@ function TypingBubble({
       {showFaces && <Faces people={people} size="sm" />}
       <Animated.View
         layout={SHIFT}
-        className="justify-center px-3.5"
+        className="items-center justify-center"
         style={{
           backgroundColor: fill,
           borderCurve: "continuous",
           borderRadius: BUBBLE_RADIUS,
           height: BUBBLE_SPACE.bubble,
           marginBottom: BUBBLE_SPACE.bottom,
+          width: BUBBLE_SPACE.width,
         }}
       >
         {fill !== undefined && <BubbleTail color={fill} isOwn={false} />}

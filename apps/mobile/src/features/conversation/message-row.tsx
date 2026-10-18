@@ -8,6 +8,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import type { Becoming } from "./arrive";
 import type { MessageRow } from "./build-rows";
 import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
@@ -74,15 +75,28 @@ export function Row({
   showAuthors,
   highlighted,
   arriving,
-}: RowProps & { highlighted: boolean; arriving: boolean }) {
+  becoming,
+}: RowProps & {
+  highlighted: boolean;
+  arriving: boolean;
+  /** It takes the typing indicator's place (see `Arrive`). */
+  becoming: Becoming | undefined;
+}) {
+  const order = orderOf(row);
   return (
     <RowLift
-      order={orderOf(row)}
+      order={order}
       // Stacked rows' reactions open below the message, so the row itself
       // moves up as they do.
       withOwn={layout === "stacked"}
     >
-      <RowShell rowKey={row.key} highlighted={highlighted} arriving={arriving}>
+      <RowShell
+        rowKey={row.key}
+        order={order}
+        highlighted={highlighted}
+        arriving={arriving || becoming !== undefined}
+        becoming={becoming}
+      >
         <RowContent
           row={row}
           self={self}
@@ -124,19 +138,29 @@ function RowLift({
  */
 function RowShell({
   rowKey,
+  order,
   highlighted,
   arriving,
+  becoming,
   children,
 }: {
   rowKey: string;
+  order: number;
   highlighted: boolean;
   arriving: boolean;
+  becoming: Becoming | undefined;
   children: ReactNode;
 }) {
   if (arriving) {
     return (
-      <Arrive rowKey={rowKey}>
-        <RowShell rowKey={rowKey} highlighted={highlighted} arriving={false}>
+      <Arrive rowKey={rowKey} order={order} becoming={becoming}>
+        <RowShell
+          rowKey={rowKey}
+          order={order}
+          highlighted={highlighted}
+          arriving={false}
+          becoming={undefined}
+        >
           {children}
         </RowShell>
       </Arrive>

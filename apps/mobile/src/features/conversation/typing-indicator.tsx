@@ -1,36 +1,41 @@
 import type { ReactNode } from "react";
 import type { SharedValue } from "react-native-reanimated";
 import { useState } from "react";
-import { Platform, View } from "react-native";
+import { View } from "react-native";
 import Animated, {
-  Easing,
   useAnimatedReaction,
+  useAnimatedRef,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
+import type { Becoming } from "./arrive";
+import type { MessageRow } from "./build-rows";
 import type { ProfileOf } from "./message-row";
 import type { Newest, TypingSeen } from "./typing-change";
-import type { TypingStyle } from "./typing-style";
 import type { MessageLayout } from "~/features/preferences/store";
-import { useLiftAll } from "./grow";
+import { morphs } from "./bubble-morph";
+import { useGrowth } from "./grow";
+import { GROW_EASING, GROW_MS, inFrame, land, startMove } from "./moves";
 import { typingChange } from "./typing-change";
 import { Indicator, useOnMount } from "./typing-parts";
+import { TYPING_ORDER } from "./typing-row";
 import { typingSpaceHeight } from "./typing-space";
 
-// Who's typing, under the newest message. The list keeps a space for it
-// while anyone types (see `typing-space.ts`): it opens as the first person
-// starts and closes as the last one stops, and people starting and
-// stopping in between change it in place.
+// Who's typing, as the newest row of the list, under the newest message,
+// like Messages: it opens as the first person starts, and stays the last
+// row as messages arrive above it, changing in place as people start and
+// stop. It goes as the last one stops, shrinking away as the messages
+// come back down, or, when they sent something, into what they sent.
 
-/** As long as the list takes to slide it into view, or back out. */
+/** As long as the messages take to make room for it. */
 const APPEAR_MS = 280;
-const LEAVE_MS = 280;
-/** Crossfading into the message it became, as that fades in. */
+/** Fading under the message it became, in stacked rows. */
 const BECOME_MS = 220;
-const ANDROID = Platform.OS === "android";
+/** Frames a message that takes its place has to take it. */
+const HANDOFF_FRAMES = 8;
 
 /** Bubbles grow from and shrink to where incoming ones are anchored. */
 function originOf(layout: MessageLayout) {
@@ -48,74 +53,65 @@ function Appearing({
   const shown = useSharedValue(0);
   useOnMount(() => {
     "worklet";
-    shown.set(
-      withTiming(1, { duration: APPEAR_MS, easing: Easing.out(Easing.cubic) }),
-    );
+    shown.set(withTiming(1, { duration: APPEAR_MS, easing: GROW_EASING }));
   });
   const style = useAnimatedStyle(() => ({
     opacity: shown.get(),
     transform: [{ scale: 0.75 + 0.25 * shown.get() }],
   }));
   return (
-    <Animated.View style={[{ transformOrigin: originOf(layout) }, style]}>
+    <Animated.View
+      className="absolute inset-x-0 bottom-0"
+      style={[{ transformOrigin: originOf(layout) }, style]}
+    >
       {children}
     </Animated.View>
   );
 }
 
 /** An indicator that ended, showing as it goes (see `typingChange`). */
-interface Ghost {
+export interface Ghost {
   key: string;
   typists: readonly string[];
-  became: boolean;
+  /** The message it became, when the last one typing sent it. */
+  became?: Becoming & { key: string };
 }
 
 /**
- * What was showing, after it ended: shrinking back into its corner and
- * fading as the space closes, or fading under the message it became.
+ * What showed, after the last one stopped without sending: it shrinks
+ * back into its corner and fades, going down with the messages as its
+ * space closes.
  */
 function Leaving({
-  became,
   layout,
   onDone,
   children,
 }: {
-  became: boolean;
   layout: MessageLayout;
   onDone: () => void;
   children: ReactNode;
 }) {
   const shown = useSharedValue(1);
+  const down = typingSpaceHeight(layout, true);
   useOnMount(() => {
     "worklet";
     shown.set(
-      withTiming(
-        0,
-        {
-          duration: became ? BECOME_MS : LEAVE_MS,
-          easing: Easing.out(Easing.cubic),
-        },
-        (finished) => {
-          if (finished === true) scheduleOnRN(onDone);
-        },
-      ),
+      withTiming(0, { duration: GROW_MS, easing: GROW_EASING }, (finished) => {
+        if (finished === true) scheduleOnRN(onDone);
+      }),
     );
   });
   const style = useAnimatedStyle(() => ({
     opacity: shown.get(),
-    transform: [{ scale: became ? 1 : 0.75 + 0.25 * shown.get() }],
+    transform: [
+      { translateY: down * (1 - shown.get()) },
+      { scale: 0.75 + 0.25 * shown.get() },
+    ],
   }));
   return (
     <Animated.View
-      pointerEvents="none"
-      className="absolute inset-x-0"
-      style={[
-        // Where it was: under the message that took its place, which is
-        // just above the space, or in the space as it closes.
-        became ? { bottom: "100%" } : { top: 0 },
-        { transformOrigin: originOf(layout) },
-        style,
-      ]}
+      className="absolute inset-x-0 bottom-0"
+      style={[{ transformOrigin: originOf(layout) }, style]}
     >
       {children}
     </Animated.View>
@@ -123,155 +119,200 @@ function Leaving({
 }
 
 /**
- * The space itself. It changes at once, in the same frame as the rest of
- * the list's change, and the list keeps what's on screen still through it
- * and then slides (see `useLatest`). Android's list can't keep it still as
- * the space closes at the bottom (it doesn't scroll past the end), so
- * there everything is drawn where it was and eases down, in the frame the
- * space closes.
+ * What showed, after the last one typing sent a message: it stays until
+ * the message opens in its place (see `Arrive`), in the same frame, then
+ * hides as the message grows out of it, or fades under it.
  */
-function Space({
-  height,
-  ease,
-  fromBottom,
+function HandingOff({
+  morph,
+  space,
+  onDone,
   children,
 }: {
-  height: number;
-  /** Closing alone, with no message to take its place. */
-  ease: boolean;
-  fromBottom: SharedValue<number>;
+  morph: boolean;
+  space: SharedValue<number>;
+  onDone: () => void;
   children: ReactNode;
 }) {
-  const space = useSharedValue(height);
-  const liftAll = useLiftAll();
+  const shown = useSharedValue(1);
   useAnimatedReaction(
-    () => height,
-    (now) => {
-      const delta = now - space.get();
-      if (delta === 0) return;
-      space.set(now);
-      if (!ANDROID || !ease || delta > 0) return;
-      // What the list's scroll above the bottom couldn't take up.
-      const dropped = -delta - Math.max(0, fromBottom.get());
-      if (dropped > 0) liftAll(-dropped);
+    () => space.get() === 0,
+    (taken, before) => {
+      if (!taken || before === true) return;
+      shown.set(
+        withTiming(0, { duration: morph ? 0 : BECOME_MS }, (finished) => {
+          if (finished === true) scheduleOnRN(onDone);
+        }),
+      );
     },
-    [height, ease],
   );
-  // eslint-disable-next-line vera/no-layout-animation -- Not animated: the height changes once, in the same frame as the lift, which does the moving.
-  const style = useAnimatedStyle(() => ({ height: space.get() }));
-  return <Animated.View style={style}>{children}</Animated.View>;
+  // In the layout commit, so it goes in the frame the message opens.
+  const style = useAnimatedStyle(() => ({
+    backfaceVisibility: "visible",
+    opacity: shown.get(),
+  }));
+  return (
+    <Animated.View className="absolute inset-x-0 bottom-0" style={style}>
+      {children}
+    </Animated.View>
+  );
 }
 
 /**
- * The space under the newest message while anyone types, with the
- * indicator in it. The first typist opens it and the list slides it into
- * view, as it does a new message; when the last one stops, it shrinks away
- * as the list slides back down. What a typist's message does depends on
- * `typingStyle` (see `typingChange`): it can become the message, stay
- * under it, or step aside until it lands. With `reserved`, the space is
- * always there and only the indicator comes and goes.
+ * Who's typing, and who just stopped (`ghosts`), as the typing row shows
+ * them, and the message that takes its place when the last one typing
+ * sends it (`becoming`).
  */
-export function TypingSpace({
+export function useTypingRow({
   typists,
-  typingStyle,
-  layout,
-  profileOf,
-  showFaces,
   newest,
-  fromBottom,
+  rows,
+  layout,
 }: {
-  /** Who's typing, in the order they started. */
   typists: readonly string[];
-  typingStyle: TypingStyle;
-  layout: MessageLayout;
-  profileOf: ProfileOf;
-  /** Photos beside the bubble: in groups, as beside their messages. */
-  showFaces: boolean;
-  /** The newest row, to tell when a message came with the stop. */
   newest: Newest | undefined;
-  /** How far the list is scrolled up from the newest message. */
-  fromBottom: SharedValue<number>;
+  rows: readonly MessageRow[];
+  layout: MessageLayout;
 }) {
-  const { onSend, reserved } = typingStyle;
   const [seen, setSeen] = useState<TypingSeen>({
-    arrived: false,
     newestKey: newest?.key,
     typists,
   });
   const [ghosts, setGhosts] = useState<readonly Ghost[]>([]);
-  // A new space mounts with its height in the same commit as the message
-  // that came with it; changing the height later takes a frame more, and
-  // the list would see the two changes apart.
-  const [spaceKey, setSpaceKey] = useState(0);
-  // Bumped to show the indicator again, as it first appeared.
-  const [appearKey, setAppearKey] = useState(0);
-  const change = typingChange(seen, newest, typists, onSend);
+  const change = typingChange(seen, newest, typists);
   if (change !== undefined) {
-    const { left } = change;
     setSeen(change.seen);
-    // The same change again so soon replaces the one still going.
-    const others = ghosts.filter((ghost) => ghost.key !== left?.key);
-    if (left !== undefined) setGhosts([...others, left]);
-    if (change.reopened) setSpaceKey(spaceKey + 1);
-    if (change.reappeared) setAppearKey(appearKey + 1);
+    const { left } = change;
+    if (left !== undefined) {
+      const message = rows[0];
+      const became =
+        left.became && message?.type === "message"
+          ? { key: message.key, morphs: morphs(message.message, layout) }
+          : undefined;
+      // The same change again so soon replaces the one still going.
+      const others = ghosts.filter((ghost) => ghost.key !== left.key);
+      setGhosts([...others, { became, key: left.key, typists: left.typists }]);
+    }
   }
+  const becoming = ghosts.find((ghost) => ghost.became !== undefined)?.became;
+  return {
+    /** What the message at `key` becomes, if it takes the indicator's place. */
+    becomingOf: (key: string) => (becoming?.key === key ? becoming : undefined),
+    ghosts,
+    removeGhost: (ghost: Ghost) =>
+      setGhosts((all) => all.filter((each) => each !== ghost)),
+  };
+}
+
+/**
+ * The list's newest row: room under the newest message for who's typing,
+ * with the indicator in it. Its space opens to fit the indicator as the
+ * first person starts, the messages above making room (see `Move`), and
+ * closes as the last one stops, unless what they sent takes it (see
+ * `Arrive`). The indicator sits at its bottom, so it stays put as its
+ * space opens and closes, and as messages open above it.
+ */
+export function TypingRow({
+  typists,
+  typing: { ghosts, removeGhost: onGhostDone },
+  layout,
+  profileOf,
+  showFaces,
+}: {
+  /** Who's typing, in the order they started. */
+  typists: readonly string[];
+  /** Who just stopped (see `useTypingRow`). */
+  typing: Pick<ReturnType<typeof useTypingRow>, "ghosts" | "removeGhost">;
+  layout: MessageLayout;
+  profileOf: ProfileOf;
+  /** Photos beside the bubble: in groups, as beside their messages. */
+  showFaces: boolean;
+}) {
+  const growth = useGrowth();
+  const row = useAnimatedRef<View>();
+  const room = useAnimatedRef<View>();
   const typing = typists.length > 0;
+  const height = typingSpaceHeight(layout, typing);
+  // A message that takes its place closes the space itself.
+  const handingOff =
+    !typing && ghosts.some((ghost) => ghost.became !== undefined);
+  const started = useSharedValue(false);
+  useAnimatedReaction(
+    () => height,
+    (now) => {
+      // Already typing as the row first shows: just there.
+      if (!started.get()) {
+        started.set(true);
+        growth.typing.set(now);
+        return;
+      }
+      function close() {
+        const delta = now - growth.typing.get();
+        if (delta === 0) return;
+        growth.typing.set(now);
+        const move = startMove(
+          growth,
+          { order: TYPING_ORDER, place: 0 },
+          delta,
+          row,
+        );
+        land({ height: now, measured: room, move });
+      }
+      if (!handingOff) {
+        inFrame(close);
+        return;
+      }
+      // If no message takes it after all, it closes on its own.
+      let frames = 0;
+      function wait() {
+        frames += 1;
+        if (frames < HANDOFF_FRAMES) requestAnimationFrame(wait);
+        else close();
+      }
+      requestAnimationFrame(wait);
+    },
+    [height, handingOff],
+  );
+  // eslint-disable-next-line vera/no-layout-animation -- Not animated: the height changes once, in the same frame as the moves, which do the moving.
+  const space = useAnimatedStyle(() => ({ height: growth.typing.get() }));
   function people(accounts: readonly string[]) {
     return accounts.map((address) => ({ address, ...profileOf(address) }));
   }
+  function indicator(accounts: readonly string[]) {
+    return (
+      <Indicator
+        people={people(accounts)}
+        layout={layout}
+        showFaces={showFaces}
+      />
+    );
+  }
   return (
-    <View>
-      <Space
-        key={spaceKey}
-        height={typingSpaceHeight(layout, typing || reserved)}
-        ease={!seen.arrived}
-        fromBottom={fromBottom}
-      >
-        {typing && (
-          <Appearing key={appearKey} layout={layout}>
-            <Indicator
-              people={people(typists)}
+    <View ref={row} collapsable={false}>
+      <Animated.View ref={room} style={space} />
+      <View pointerEvents="none" className="absolute inset-x-0 bottom-0">
+        {ghosts.map((ghost) =>
+          ghost.became === undefined ? (
+            <Leaving
+              key={ghost.key}
               layout={layout}
-              showFaces={showFaces}
-            />
-          </Appearing>
+              onDone={() => onGhostDone(ghost)}
+            >
+              {indicator(ghost.typists)}
+            </Leaving>
+          ) : (
+            <HandingOff
+              key={ghost.key}
+              morph={ghost.became.morphs}
+              space={growth.typing}
+              onDone={() => onGhostDone(ghost)}
+            >
+              {indicator(ghost.typists)}
+            </HandingOff>
+          ),
         )}
-      </Space>
-      <View pointerEvents="none" className="absolute inset-x-0 top-0">
-        {ghosts.map((ghost) => (
-          <Leaving
-            key={ghost.key}
-            became={ghost.became}
-            layout={layout}
-            onDone={() =>
-              setGhosts((all) => all.filter((each) => each !== ghost))
-            }
-          >
-            <Indicator
-              people={people(ghost.typists)}
-              layout={layout}
-              showFaces={showFaces}
-            />
-          </Leaving>
-        ))}
+        {typing && <Appearing layout={layout}>{indicator(typists)}</Appearing>}
       </View>
-    </View>
-  );
-}
-
-type BelowNewestProps = Parameters<typeof TypingSpace>[0] & {
-  composerHeight: number;
-};
-
-/**
- * Everything under the newest message: who's typing, then room for the
- * composer floating over the bottom of the list.
- */
-export function BelowNewest({ composerHeight, ...typing }: BelowNewestProps) {
-  return (
-    <View>
-      <TypingSpace {...typing} />
-      <View style={{ height: composerHeight + 8 }} />
     </View>
   );
 }

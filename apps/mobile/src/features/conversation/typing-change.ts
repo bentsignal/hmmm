@@ -28,8 +28,6 @@ function sameTypists(left: readonly string[], right: readonly string[]) {
 export interface TypingSeen {
   newestKey: string | undefined;
   typists: readonly string[];
-  /** The last change came with a new message. */
-  arrived: boolean;
 }
 
 /** Whether `newest` is new, and a message one of those typing sent. */
@@ -40,64 +38,31 @@ function sentByTypist(seen: TypingSeen, newest: Newest | undefined) {
   );
 }
 
-/** What a typist's message does to the indicator (see `TypingStyle`). */
-export type OnSend = "becomes" | "stays" | "stepsAside";
-
 /**
- * Whether the indicator ended, so what showed goes as it leaves, and
- * whether it goes into the message that came (`became`).
- */
-function endingOf(
-  onSend: OnSend,
-  seen: TypingSeen,
-  {
-    arrived,
-    sent,
-    typing,
-  }: { arrived: boolean; sent: boolean; typing: boolean },
-) {
-  if (seen.typists.length === 0) return undefined;
-  if (onSend === "becomes") {
-    return typing && !sent ? undefined : { became: arrived };
-  }
-  if (typing) return undefined;
-  // Stepping aside, it goes at once as a message lands.
-  if (onSend === "stepsAside" && arrived) return undefined;
-  return { became: false };
-}
-
-/**
- * What a change to who's typing, or to the newest row, does, with what a
- * typist's message does to it (`onSend`):
- * - `left`: who was showing, if the indicator ended, to show as it goes
- *   (`key`d to tell each apart). `became` when it became the newest
- *   message.
- * - `reopened`: the space opened or closed along with a message (or
- *   nothing else), so it changes in the same commit as that.
- * - `reappeared`: a typist's message became the indicator while others
- *   still type, so it shows again under it, as it did the first time.
+ * What a change to who's typing, or to the newest row, does to the
+ * indicator, which stays under the newest message while anyone types:
+ * - `left`: who was showing, when the last one stopped, to show as it
+ *   goes (`key`d to tell each apart). `became` when one of them sent the
+ *   newest message as they stopped, which takes its place.
+ * - `seen`: what it shows now.
  */
 export function typingChange(
   seen: TypingSeen,
   newest: Newest | undefined,
   typists: readonly string[],
-  onSend: OnSend = "becomes",
 ) {
   const newestKey = newest?.key;
   const arrived = seen.newestKey !== newestKey;
   if (!arrived && sameTypists(seen.typists, typists)) return undefined;
-  const wasTyping = seen.typists.length > 0;
-  const typing = typists.length > 0;
-  const sent = sentByTypist(seen, newest);
-  const ending = endingOf(onSend, seen, { arrived, sent, typing });
+  const ended = seen.typists.length > 0 && typists.length === 0;
   return {
-    left: ending && {
-      ...ending,
-      key: [seen.newestKey, newestKey, ...seen.typists].join(" "),
-      typists: seen.typists,
-    },
-    reappeared: onSend === "becomes" && typing && sent,
-    reopened: typing ? !wasTyping : arrived && wasTyping,
-    seen: { arrived, newestKey, typists },
+    left: ended
+      ? {
+          became: sentByTypist(seen, newest),
+          key: [seen.newestKey, newestKey, ...seen.typists].join(" "),
+          typists: seen.typists,
+        }
+      : undefined,
+    seen: { newestKey, typists },
   };
 }

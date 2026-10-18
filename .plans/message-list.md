@@ -220,3 +220,35 @@ the bot group by route so nothing else touched the device meanwhile.
     itself stalls the app for ~180ms while it reads the screen.
   - The `vera-feature` skill now asks for before and after frame reports
     for anything that moves.
+
+## Round 7: typing indicators (Shawn's phone test of "Stays last")
+
+Shawn picked "Stays last" from the five variants; the picker and the others
+are gone. What his recordings showed, and the fixes:
+
+- [x] A reaction arriving on your message moved the messages above it down
+      for a frame, then up. The space opened through a layout commit, which
+      waits while React is committing (as the list re-renders around a new
+      reaction), but the moves went straight to the views a frame or more
+      earlier. Now every space and the moves it makes are set in one frame
+      callback (`inFrame`), and while a move is `pending` its styles carry
+      a prop Reanimated sends through the same commit (`IN_COMMIT` in
+      `moves.ts`), until the space's height is in the layout (`land`).
+- [x] A message from someone typing pushed the typing indicator under the
+      composer, then the list scrolled up. Who's typing is now the list's
+      newest row (`TypingRow`), the scroll anchor's row, so nothing below the
+      newest message ever moves: a new message opens right above it
+      (`Arrive`), the messages above make room, and the message rises out of
+      its space with them, cut off at the indicator, so it never covers
+      anything. Nothing scrolls for new messages or typing any more; only a
+      taller composer does (`useLatest`).
+- [x] The last person typing sending their message: in bubbles, the typing
+      bubble grows into the message's (`BubbleMorph`): the dots fade, the
+      bubble stretches from its tail to the message's size (four corners and
+      two stretching bands, all transforms), and the text and name fade in.
+      In stacked rows, and for messages with photos, links or quotes, the
+      message opens where the indicator was as the indicator fades.
+- Known: in the simulator a move still drops a few points for one frame now
+  and then (about one run in two, under 15pt), when React commits at the
+  same moment. Holding the moves in the layout commit for the whole move
+  made it worse.

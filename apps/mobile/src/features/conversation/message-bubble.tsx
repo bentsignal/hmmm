@@ -1,23 +1,23 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
 import Animated from "react-native-reanimated";
-import { useCSSVariable } from "uniwind";
 
 import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
 import { attachmentPart } from "~/features/messaging/reactions";
 import { cn } from "~/lib/cn";
+import { useBecoming } from "./arrive";
 import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
 import { AuthorLink } from "./author-link";
+import { BubbleBody } from "./bubble-body";
+import { GrowingText } from "./bubble-morph";
 import { MovingQuote, MovingReplyCurve } from "./bubble-reply";
-import { BUBBLE_RADIUS, BubbleTail, TAIL_DROP } from "./bubble-shape";
 import { bubbleTopPart, topReacted } from "./bubble-top";
 import { rowOrder } from "./build-rows";
 import { usePieceLift } from "./grow";
 import { LinkCardView } from "./link-preview-card";
-import { LinkedText } from "./linked-text";
 import { MenuTargetView } from "./message-actions";
 import { linkPart, partCount } from "./message-parts";
 import { InteractiveMessage } from "./message-reactions";
@@ -39,50 +39,6 @@ const NAME_GAP = 6;
 const NAME_HEIGHT = NAME_LINE + NAME_GAP;
 /** The name's padding on each side (`px-3`). */
 const NAME_INSET = 12;
-
-/**
- * A message's text in its bubble: a plain rounded background, and the tail
- * drawn over its corner when it ends a run. Nothing is measured, so a
- * bubble renders once.
- */
-function Body({
-  text,
-  mentions,
-  isOwn,
-  tail,
-}: {
-  text: string;
-  mentions: Message["mentions"];
-  isOwn: boolean;
-  tail: boolean;
-}) {
-  const outgoing = useCSSVariable("--color-bubble-outgoing");
-  const incoming = useCSSVariable("--color-bubble-incoming");
-  const color = isOwn ? outgoing : incoming;
-  const fill = typeof color === "string" ? color : undefined;
-  return (
-    <View
-      className="px-3.5 py-2"
-      style={{
-        backgroundColor: fill,
-        borderCurve: "continuous",
-        borderRadius: BUBBLE_RADIUS,
-        // Room for the tail hanging below, so nothing under it overlaps.
-        marginBottom: tail ? TAIL_DROP : 0,
-      }}
-    >
-      {tail && fill !== undefined && <BubbleTail color={fill} isOwn={isOwn} />}
-      <LinkedText
-        text={text}
-        mentions={mentions}
-        className={cn(
-          "text-body leading-[22px]",
-          isOwn ? "text-on-accent" : "text-foreground",
-        )}
-      />
-    </View>
-  );
-}
 
 function Content({
   message,
@@ -123,7 +79,7 @@ function Content({
         {body !== undefined && (
           <Reactable part="message" place={textPlace}>
             <MenuTargetView>
-              <Body
+              <BubbleBody
                 text={body}
                 mentions={message.mentions}
                 isOwn={isOwn}
@@ -185,20 +141,24 @@ function SenderName({
   onEnd: (end: number) => void;
 }) {
   const lift = usePieceLift(order, Place.top);
+  // Growing out of the typing bubble, it fades in with the text.
+  const becoming = useBecoming();
   return (
     <Animated.View style={lift}>
-      <AuthorLink address={address} name={name}>
-        <Text
-          numberOfLines={1}
-          className="text-caption text-muted px-3"
-          style={{ lineHeight: NAME_LINE, marginBottom: NAME_GAP - 2 }}
-          onLayout={(event) =>
-            onEnd(event.nativeEvent.layout.width - NAME_INSET)
-          }
-        >
-          {name}
-        </Text>
-      </AuthorLink>
+      <GrowingText growing={becoming}>
+        <AuthorLink address={address} name={name}>
+          <Text
+            numberOfLines={1}
+            className="text-caption text-muted px-3"
+            style={{ lineHeight: NAME_LINE, marginBottom: NAME_GAP - 2 }}
+            onLayout={(event) =>
+              onEnd(event.nativeEvent.layout.width - NAME_INSET)
+            }
+          >
+            {name}
+          </Text>
+        </AuthorLink>
+      </GrowingText>
     </Animated.View>
   );
 }

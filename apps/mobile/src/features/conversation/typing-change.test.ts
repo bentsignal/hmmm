@@ -8,7 +8,7 @@ const LEO = "leo@vera.chat";
 const ME = "me@vera.chat";
 
 function seen(newestKey: string, typists: readonly string[]) {
-  return { arrived: false, newestKey, typists };
+  return { newestKey, typists };
 }
 
 void test("nothing changes, nothing happens", () => {
@@ -18,12 +18,13 @@ void test("nothing changes, nothing happens", () => {
   );
 });
 
-void test("the first typist opens the space", () => {
+void test("the first typist shows it, with nothing leaving", () => {
   const change = typingChange(seen("a", []), { authorId: ME, key: "a" }, [
     MAYA,
   ]);
-  assert.equal(change?.reopened, true);
+  assert.ok(change !== undefined);
   assert.equal(change.left, undefined);
+  assert.deepEqual(change.seen.typists, [MAYA]);
 });
 
 void test("someone joining or leaving changes it in place", () => {
@@ -31,17 +32,16 @@ void test("someone joining or leaving changes it in place", () => {
     MAYA,
     LEO,
   ]);
-  assert.deepEqual(
-    {
-      left: joined?.left,
-      reappeared: joined?.reappeared,
-      reopened: joined?.reopened,
-    },
-    { left: undefined, reappeared: false, reopened: false },
+  assert.equal(joined?.left, undefined);
+  const left = typingChange(
+    seen("a", [MAYA, LEO]),
+    { authorId: ME, key: "a" },
+    [LEO],
   );
+  assert.equal(left?.left, undefined);
 });
 
-void test("the last typist stopping leaves it in place as the space closes", () => {
+void test("the last typist stopping without sending leaves it to go", () => {
   const change = typingChange(
     seen("a", [MAYA]),
     { authorId: ME, key: "a" },
@@ -49,84 +49,45 @@ void test("the last typist stopping leaves it in place as the space closes", () 
   );
   assert.equal(change?.left?.became, false);
   assert.deepEqual(change.left.typists, [MAYA]);
-  // The space closes in a frame of its own, where the list eases down.
-  assert.equal(change.reopened, false);
-  assert.equal(change.seen.arrived, false);
 });
 
-void test("their message becomes it, in the same commit", () => {
+void test("the last typist's message takes its place", () => {
   const change = typingChange(
     seen("a", [MAYA]),
     { authorId: MAYA, key: "b" },
     [],
   );
   assert.equal(change?.left?.became, true);
-  assert.equal(change.reopened, true);
-  assert.equal(change.seen.arrived, true);
+  assert.equal(change.seen.newestKey, "b");
 });
 
-void test("one typist sending while another types shows it again under it", () => {
+void test("a message from one of several stays under it", () => {
   const change = typingChange(
     seen("a", [MAYA, LEO]),
     { authorId: MAYA, key: "b" },
     [LEO],
   );
-  assert.equal(change?.left?.became, true);
-  assert.equal(change.reappeared, true);
-  assert.equal(change.reopened, false);
-});
-
-void test("your own message while others type leaves it be", () => {
-  const change = typingChange(seen("a", [MAYA]), { authorId: ME, key: "b" }, [
-    MAYA,
-  ]);
-  assert.deepEqual(
-    {
-      left: change?.left,
-      reappeared: change?.reappeared,
-      reopened: change?.reopened,
-    },
-    { left: undefined, reappeared: false, reopened: false },
-  );
-});
-
-void test("staying last, a typist's message slots in above it", () => {
-  const change = typingChange(
-    seen("a", [MAYA, LEO]),
-    { authorId: MAYA, key: "b" },
-    [LEO],
-    "stays",
-  );
-  assert.ok(change);
+  assert.ok(change !== undefined);
   assert.equal(change.left, undefined);
-  assert.equal(change.reappeared, false);
-  // The last one sending: it leaves where it was, under the message.
-  const last = typingChange(
-    seen("a", [MAYA]),
-    { authorId: MAYA, key: "b" },
-    [],
-    "stays",
-  );
-  assert.equal(last?.left?.became, false);
-  assert.equal(last.reopened, true);
+  assert.deepEqual(change.seen, { newestKey: "b", typists: [LEO] });
 });
 
-void test("stepping aside, it goes at once as a message lands", () => {
-  const sent = typingChange(
+void test("someone else's message as the last one stops doesn't take it", () => {
+  const change = typingChange(
     seen("a", [MAYA]),
-    { authorId: MAYA, key: "b" },
+    { authorId: ME, key: "b" },
     [],
-    "stepsAside",
   );
-  assert.ok(sent);
-  assert.equal(sent.left, undefined);
-  assert.equal(sent.reopened, true);
-  // Stopping without sending still shrinks away.
-  const stopped = typingChange(
-    seen("a", [MAYA]),
-    { authorId: ME, key: "a" },
+  assert.equal(change?.left?.became, false);
+});
+
+void test("each ending gets its own key", () => {
+  const first = typingChange(seen("a", [MAYA]), { authorId: ME, key: "a" }, []);
+  const second = typingChange(
+    seen("b", [MAYA]),
+    { authorId: ME, key: "b" },
     [],
-    "stepsAside",
   );
-  assert.equal(stopped?.left?.became, false);
+  assert.ok(first?.left !== undefined && second?.left !== undefined);
+  assert.notEqual(first.left.key, second.left.key);
 });

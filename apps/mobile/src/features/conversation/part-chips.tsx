@@ -3,7 +3,7 @@ import type { View as NativeView } from "react-native";
 import type { AnimatedRef } from "react-native-reanimated";
 import { createContext, use, useState } from "react";
 import { View } from "react-native";
-import Animated from "react-native-reanimated";
+import Animated, { useSharedValue } from "react-native-reanimated";
 
 import type {
   ReactionPart,
@@ -43,7 +43,7 @@ function Chips({
 /**
  * Chips that arrive while you watch, in space that opens to fit them. The
  * row moves up as it opens (see `useRowLift`), and the chips stay put:
- * they're drawn where they end up, and pop in.
+ * they're drawn where they end up, and show as it opens.
  */
 function GrowingChips({
   open,
@@ -51,10 +51,12 @@ function GrowingChips({
   ...row
 }: ComponentProps<typeof ChipRow> & { open: boolean; room: Room }) {
   const [natural, setNatural] = useState(0);
-  const stay = usePieceLift(room.order, room.place, true);
+  // Hidden until there's room for them, so they never cover what's below.
+  const opened = useSharedValue(false);
+  const stay = usePieceLift(room.order, room.place, true, opened);
   return (
     <View>
-      <GrowingSpace height={open ? natural : 0} {...room} />
+      <GrowingSpace height={open ? natural : 0} opened={opened} {...room} />
       <Animated.View
         // Laid out on its own, as wide as the row, so it has its full
         // height whatever the space's.

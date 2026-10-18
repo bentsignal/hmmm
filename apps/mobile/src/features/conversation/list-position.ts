@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { Platform } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 
-import type { MessageRow } from "./build-rows";
+import type { ListRow } from "./typing-row";
 
 // Where the conversation list is scrolled: placing it when it opens, and
 // keeping up with the newest message.
@@ -32,15 +32,10 @@ interface LatestState {
   scrolling: boolean;
   /** Sliding to something new below, until it's at the bottom. */
   following: boolean;
-  /**
-   * The anchor's move up that starts its own slide is still to come (see
-   * `ANCHOR`): that one isn't followed.
-   */
-  native: boolean;
   /** How far above the bottom the last scroll event was. */
   scrolled: number;
-  /** The newest row and the composer's height when content last changed. */
-  seen?: { newest: string | undefined; composer: number };
+  /** The composer's height when content last changed. */
+  composer?: number;
 }
 
 /**
@@ -48,10 +43,13 @@ interface LatestState {
  * lets go the moment you scroll up.
  *
  * The native scroll anchor (`maintainVisibleContentPosition`, see
- * `ANCHOR`) always keeps what's on screen still when rows are added below
- * it. So a new message lands just below the screen, laid out once at its
- * full size, and when the list is pinned it then slides into view with the
- * platform's own animated scroll: no layout or JavaScript runs per frame.
+ * `ANCHOR`) keeps the newest row on screen still, and what's above it
+ * moves up as it grows. So at the bottom a new message, or someone
+ * typing, opens right there, and the messages above make room (see
+ * `Arrive`), with no scrolling at all; scrolled up, nothing on screen
+ * moves. Only a taller composer, under the newest row, scrolls: the
+ * anchor keeps the rows still as it grows, and when the list is pinned it
+ * then slides the rest into view with the platform's own animated scroll.
  * Only your own drag or fling unpins it (the keyboard lifting the list
  * never does), and reaching the bottom pins it again.
  *
@@ -59,19 +57,16 @@ interface LatestState {
  * bottom is at minus that inset rather than 0.
  */
 export function useLatest(
-  listRef: RefObject<FlatList<MessageRow> | null>,
+  listRef: RefObject<FlatList<ListRow> | null>,
   pinnedAtStart: boolean,
 ) {
   const isNearLatest = useSharedValue(pinnedAtStart);
-  /** How far the list is scrolled up from the newest message. */
-  const fromBottom = useSharedValue(0);
   const state = useRef<LatestState>({
+    following: false,
     inset: 0,
     pinned: pinnedAtStart,
     scrolled: 0,
     scrolling: false,
-    following: false,
-    native: false,
   });
   function bottom() {
     return Platform.OS === "ios" ? -state.current.inset : 0;
@@ -80,7 +75,6 @@ export function useLatest(
     listRef.current?.scrollToOffset({ animated: true, offset: bottom() });
   }
   return {
-    fromBottom,
     isNearLatest,
     scrollToNewest,
     /** Scrolls down to the newest message, as after sending one. */
@@ -111,7 +105,6 @@ export function useLatest(
       const scrolled = offset - bottom();
       const rose = scrolled > state.current.scrolled + 1;
       state.current.scrolled = scrolled;
-      fromBottom.set(scrolled);
       isNearLatest.set(scrolled < NEAR_LATEST);
       if (scrolled <= PIN_SLOP) {
         state.current.pinned = true;
@@ -120,34 +113,26 @@ export function useLatest(
         state.current.pinned = false;
         state.current.following = false;
       } else if (state.current.following && rose) {
-        // The scroll anchor moved the list up after the slide began
-        // (Android does, as the space under the newest message opens or
-        // closes a frame after a message lands), which stops the slide:
-        // it starts again from there.
-        if (state.current.native) state.current.native = false;
-        else scrollToNewest();
+        // The scroll anchor moved the list up after the slide began (as
+        // the composer grew again), which stops the slide: it starts again
+        // from there.
+        scrollToNewest();
       }
     },
     /**
-     * The list's content changed. Pinned, a new message (`newest`) or a
-     * taller composer (`composer`) slides into view below what's there.
-     * Anything else (a row growing as a reaction makes room) leaves the
-     * scroll alone: the newest message stays put and the rows above move
-     * up, and following it would restart the scroll every frame.
+     * The list's content changed. Pinned, room for a taller composer
+     * (`composer`) slides into view below what's there. Anything else (a
+     * message or a reaction opening its space) leaves the scroll alone:
+     * the newest row stays put and the rows above move up, and following
+     * it would restart the scroll every frame.
      */
-    onContentChange: (newest: string | undefined, composer: number) => {
-      const seen = state.current.seen;
-      state.current.seen = { composer, newest };
-      if (seen === undefined) return;
-      const grew = newest !== seen.newest || composer !== seen.composer;
-      if (!grew || !state.current.pinned) return;
+    onContentChange: (composer: number) => {
+      const seen = state.current.composer;
+      state.current.composer = composer;
+      if (seen === undefined || composer === seen) return;
+      if (!state.current.pinned) return;
       state.current.following = true;
-      // At the bottom on Android, the anchor slides it in itself (see
-      // `ANCHOR`), in the frame it's added.
-      const native =
-        Platform.OS === "android" && state.current.scrolled <= PIN_SLOP;
-      state.current.native = native;
-      if (!native) scrollToNewest();
+      scrollToNewest();
       // A slide cut short (the anchor moving the list again as more
       // arrives) starts again once it should have finished.
       setTimeout(() => {
@@ -161,22 +146,13 @@ export function useLatest(
 }
 
 /**
- * The scroll anchor: the first row on screen, from the newest message up,
+ * The scroll anchor: the first row on screen, from the newest row up,
  * stays where it is when rows are added or grow below it. (The list skips
- * its header, the space under the newest message for the composer, on its
- * own, so index 0 is the newest message.)
- *
- * On Android, a list at the bottom then slides down to what was added on
- * its own, natively, in the same frame: following it from JavaScript waits
- * for the content's size to reach JavaScript and the scroll to come back,
- * which took over half a second in a busy group. iOS's does the same but
- * slides to 0, which is above the bottom while the keyboard is up there
- * (see `useLatest`), so iOS follows from JavaScript.
+ * its header, the space for the composer, on its own, so index 0 is the
+ * newest row, who's typing, and a new message added right above it opens
+ * above the anchor.)
  */
-export const ANCHOR = Platform.select({
-  android: { autoscrollToTopThreshold: PIN_SLOP, minIndexForVisible: 0 },
-  default: { minIndexForVisible: 0 },
-});
+export const ANCHOR = { minIndexForVisible: 0 };
 
 export type Latest = ReturnType<typeof useLatest>;
 
@@ -189,7 +165,7 @@ interface PlacementState {
 
 /** Scrolls to the anchor's row, trying again each frame until it can. */
 function scrollToAnchor(attempt: {
-  listRef: RefObject<FlatList<MessageRow> | null>;
+  listRef: RefObject<FlatList<ListRow> | null>;
   index: number;
   state: PlacementState;
   tries: number;
@@ -226,7 +202,7 @@ export function usePlacement({
   onLoadNewer,
   onLoadOlder,
 }: {
-  listRef: RefObject<FlatList<MessageRow> | null>;
+  listRef: RefObject<FlatList<ListRow> | null>;
   anchorIndex: number;
   onReady: () => void;
   onLoadNewer: () => void;

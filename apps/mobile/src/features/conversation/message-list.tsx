@@ -18,10 +18,11 @@ import type { Latest } from "./list-position";
 import type { ToggleReaction, ViewReactions } from "./message-actions";
 import type { ProfileOf } from "./message-row";
 import type { MemberNotice, Message } from "./types";
+import type { ListRow } from "./typing-row";
 import type { MessageLayout } from "~/features/preferences/store";
 import { useBlankSpace } from "./blank-space";
 import { arrivedAfter, newestFirst } from "./build-rows";
-import { GrowthProvider, ListLift } from "./grow";
+import { GrowthProvider } from "./grow";
 import { JumpToLatest } from "./jump-to-latest";
 import { ANCHOR, useLatest, usePlacement } from "./list-position";
 import { useMenuKeyboard } from "./menu-keyboard";
@@ -29,8 +30,8 @@ import { MessageActionsProvider } from "./message-actions";
 import { Row } from "./message-row";
 import { RevealTimes } from "./reveal";
 import { newestOf } from "./typing-change";
-import { BelowNewest } from "./typing-indicator";
-import { belowNewestHeight, useListTyping } from "./typing-space";
+import { TypingRow, useTypingRow } from "./typing-indicator";
+import { withTyping } from "./typing-row";
 
 /** What the conversation screen can ask of its list. */
 export interface MessageListHandle {
@@ -39,7 +40,7 @@ export interface MessageListHandle {
 }
 
 interface RowsProps {
-  listRef: RefObject<FlatList<MessageRow> | null>;
+  listRef: RefObject<FlatList<ListRow> | null>;
   messages: readonly Message[];
   /** A group's joins and leaves, shown between its messages. */
   notices?: readonly MemberNotice[];
@@ -78,6 +79,66 @@ const WINDOW_SCREENS = 11;
 const FADE_MS = 220;
 
 /**
+ * The list's rows, newest first: who's typing, then the messages (see
+ * `useTypingRow`), and its placing on the message it opens on.
+ */
+function useListRows({
+  messages,
+  layout,
+  thread,
+  notices,
+  typists,
+  anchorId,
+  listRef,
+  onLoadNewer,
+  onLoadOlder,
+  onReady,
+}: Pick<
+  RowsProps,
+  | "anchorId"
+  | "layout"
+  | "listRef"
+  | "messages"
+  | "notices"
+  | "onLoadNewer"
+  | "onLoadOlder"
+  | "onReady"
+  | "thread"
+  | "typists"
+>) {
+  const rows = newestFirst(messages, layout, thread, notices);
+  const typing = useTypingRow({
+    layout,
+    newest: newestOf(rows),
+    rows,
+    typists,
+  });
+  const listRows = withTyping(rows);
+  // Only messages that arrive while open animate in, not loaded pages.
+  const [openedAt] = useState(Date.now);
+  const anchorIndex =
+    anchorId === undefined
+      ? -1
+      : listRows.findIndex((row) => row.key === anchorId);
+  const placement = usePlacement({
+    anchorIndex,
+    listRef,
+    onLoadNewer,
+    onLoadOlder,
+    onReady,
+  });
+  return {
+    anchorIndex,
+    listRows,
+    placement,
+    typing: {
+      ...typing,
+      arriving: (row: MessageRow) => arrivedAfter(row, openedAt),
+    },
+  };
+}
+
+/**
  * The messages, in a list that's inverted: it lays out from the newest
  * message up, so it opens at the bottom without scrolling there, and older
  * pages load past the top without moving anything on screen, since rows
@@ -87,67 +148,60 @@ const FADE_MS = 220;
  */
 function Rows({
   listRef,
-  messages,
-  notices,
   thread,
   self,
   layout,
   profileOf,
   showAuthors,
   anchorId,
-  onLoadOlder,
-  onLoadNewer,
   bottomInset,
   topInset,
   composerHeight,
   typists,
   latest,
   freeze,
-  onReady,
   shown,
+  ...pages
 }: RowsProps) {
   const safeArea = useSafeAreaInsets();
   const top = safeArea.top + topInset;
-  const rows = newestFirst(messages, layout, thread, notices);
-  const newest = newestOf(rows);
-  const below = {
-    composerHeight,
-    fromBottom: latest.fromBottom,
+  const { anchorIndex, listRows, placement, typing } = useListRows({
+    ...pages,
+    anchorId,
     layout,
-    newest,
-    profileOf,
-    showFaces: showAuthors,
-    ...useListTyping(typists, newest?.key),
-  };
-  const blank = useBlankSpace(thread !== undefined);
-  // Only messages that arrive while open animate in, not loaded pages.
-  const [openedAt] = useState(Date.now);
-  const anchorIndex =
-    anchorId === undefined ? -1 : rows.findIndex((row) => row.key === anchorId);
-  const placement = usePlacement({
-    anchorIndex,
     listRef,
-    onLoadNewer,
-    onLoadOlder,
-    onReady,
+    thread,
+    typists,
   });
+  const blank = useBlankSpace(thread !== undefined);
   return (
     <FlatList
       ref={listRef}
       inverted
-      data={rows}
+      data={listRows}
       keyExtractor={(row) => row.key}
-      renderItem={({ item }) => (
-        <Row
-          row={item}
-          self={self}
-          layout={layout}
-          profileOf={profileOf}
-          showAuthors={showAuthors}
-          highlighted={item.key === anchorId}
-          arriving={arrivedAfter(item, openedAt)}
-        />
-      )}
+      renderItem={({ item }) =>
+        item.type === "typing" ? (
+          <TypingRow
+            typists={typists}
+            typing={typing}
+            layout={layout}
+            profileOf={profileOf}
+            showFaces={showAuthors}
+          />
+        ) : (
+          <Row
+            row={item}
+            self={self}
+            layout={layout}
+            profileOf={profileOf}
+            showAuthors={showAuthors}
+            highlighted={item.key === anchorId}
+            arriving={typing.arriving(item)}
+            becoming={typing.becomingOf(item.key)}
+          />
+        )
+      }
       renderScrollComponent={(props) => (
         <KeyboardChatScrollView
           {...props}
@@ -168,10 +222,10 @@ function Rows({
       // thread, and a frame spent on it shows as a hitch in the fade. Then
       // five screens either way, filled in small batches.
       windowSize={shown ? WINDOW_SCREENS : 1}
-      // Rows added below what's on screen leave it where it is; at the
-      // bottom, a new message then slides into view (see useLatest). Off
-      // until it has faded in, so it opens at the bottom whatever arrives
-      // meanwhile.
+      // Rows added or growing below what's on screen leave it where it
+      // is; at the bottom, a new message opens in place as the rows above
+      // make room (see useLatest). Off until it has faded in, so it opens
+      // at the bottom whatever arrives meanwhile.
       maintainVisibleContentPosition={shown ? ANCHOR : undefined}
       // Inverted: the list's end is the oldest message, at the top. Older
       // ones load three screens early, so a fast scroll rarely reaches
@@ -185,7 +239,7 @@ function Rows({
       scrollEventThrottle={16}
       onContentSizeChange={(_, height) => {
         blank.onContentHeight(height);
-        latest.onContentChange(below.newest?.key, belowNewestHeight(below));
+        latest.onContentChange(composerHeight);
         placement.onLaidOut();
       }}
       onScrollToIndexFailed={placement.onMissed}
@@ -195,11 +249,11 @@ function Rows({
       // A thread starts at the top, under its original (see
       // `useBlankSpace`).
       onLayout={(event) => blank.onListHeight(event.nativeEvent.layout.height)}
-      // Room under the newest message (see `BelowNewest`) and above the
-      // oldest for the header: the messages scroll under both. Inverted,
-      // the list's header is at the bottom of the screen and its footer at
-      // the top.
-      ListHeaderComponent={<BelowNewest {...below} />}
+      // Room under who's typing for the composer floating over the
+      // bottom of the list, and above the oldest message for the header:
+      // the messages scroll under both. Inverted, the list's header is at
+      // the bottom of the screen and its footer at the top.
+      ListHeaderComponent={<View style={{ height: composerHeight + 8 }} />}
       ListFooterComponent={<View style={{ height: top + 8 }} />}
       scrollIndicatorInsets={{ bottom: top, top: composerHeight }}
       style={{ flex: 1 }}
@@ -236,7 +290,7 @@ export function MessageList({
   onReply,
   ...props
 }: MessageListProps) {
-  const listRef = useRef<FlatList<MessageRow>>(null);
+  const listRef = useRef<FlatList<ListRow>>(null);
   const frame = useAnimatedRef<View>();
   // Covered until laid out at its starting place, then faded in. A
   // page-colored cover fades away rather than the list fading in: glass
@@ -267,29 +321,27 @@ export function MessageList({
       <RevealTimes>
         <View ref={frame} style={{ flex: 1 }}>
           <GrowthProvider list={frame}>
-            <ListLift>
-              <Rows
-                {...props}
-                listRef={listRef}
-                latest={latest}
-                freeze={keyboard.freeze}
-                shown={shown}
-                onReady={() => {
-                  // Two frames later, once the first scroll (to the message it
-                  // opened on) has drawn and the rows' mounting is done, so it
-                  // can't hitch the fade's first frame.
-                  requestAnimationFrame(() =>
-                    requestAnimationFrame(() => {
-                      loaded.set(
-                        withTiming(1, { duration: FADE_MS }, (done) => {
-                          if (done === true) scheduleOnRN(setShown, true);
-                        }),
-                      );
-                    }),
-                  );
-                }}
-              />
-            </ListLift>
+            <Rows
+              {...props}
+              listRef={listRef}
+              latest={latest}
+              freeze={keyboard.freeze}
+              shown={shown}
+              onReady={() => {
+                // Two frames later, once the first scroll (to the message it
+                // opened on) has drawn and the rows' mounting is done, so it
+                // can't hitch the fade's first frame.
+                requestAnimationFrame(() =>
+                  requestAnimationFrame(() => {
+                    loaded.set(
+                      withTiming(1, { duration: FADE_MS }, (done) => {
+                        if (done === true) scheduleOnRN(setShown, true);
+                      }),
+                    );
+                  }),
+                );
+              }}
+            />
           </GrowthProvider>
         </View>
       </RevealTimes>

@@ -17,7 +17,6 @@ import {
   THREAD_HEADER_HEIGHT,
   ThreadHeader,
 } from "~/features/conversation/thread-header";
-import { TypingStyleControls } from "~/features/conversation/typing-style-picker";
 import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
 import { useDevTools } from "~/features/dev/dev-tools";
 import { AccountScope, useAccount } from "~/features/messaging/account";
@@ -189,11 +188,6 @@ function Thread({
         following={state.following}
         onOpenConversation={openConversation}
         onToggleFollowing={state.toggle}
-      />
-      <TypingStyleControls
-        typists={typing.typists}
-        profileOf={profileOf}
-        headerHeight={THREAD_HEADER_HEIGHT}
       />
       {root !== undefined && (
         <FloatingComposer
