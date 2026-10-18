@@ -69,6 +69,8 @@ function Appearing({
   return (
     <Animated.View
       className="absolute inset-x-0 bottom-0"
+      // Fading as one (see `SendingFade`).
+      needsOffscreenAlphaCompositing
       style={[{ transformOrigin: originOf(layout) }, style]}
     >
       {children}
@@ -118,6 +120,8 @@ function Leaving({
   return (
     <Animated.View
       className="absolute inset-x-0 bottom-0"
+      // Fading as one (see `SendingFade`).
+      needsOffscreenAlphaCompositing
       style={[{ transformOrigin: originOf(layout) }, style]}
     >
       {children}
@@ -159,7 +163,11 @@ function HandingOff({
     opacity: shown.get(),
   }));
   return (
-    <Animated.View className="absolute inset-x-0 bottom-0" style={style}>
+    <Animated.View
+      className="absolute inset-x-0 bottom-0"
+      needsOffscreenAlphaCompositing
+      style={style}
+    >
       {children}
     </Animated.View>
   );

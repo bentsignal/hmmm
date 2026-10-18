@@ -145,7 +145,12 @@ function RowLift({
   const leave = useLeaveState();
   const lift = useRowLift(order, withOwn, leave, leaving !== undefined);
   return (
-    <Animated.View ref={measured} style={lift}>
+    <Animated.View
+      ref={measured}
+      // Fading out as one (see `SendingFade`).
+      needsOffscreenAlphaCompositing={leaving !== undefined}
+      style={lift}
+    >
       {leaving !== undefined && (
         <Leave
           leaving={leaving}

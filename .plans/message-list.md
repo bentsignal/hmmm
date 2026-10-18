@@ -274,3 +274,19 @@ are gone. What his recordings showed, and the fixes:
       showed at once. What it became is now kept with its arrival
       (`arrived` in `arrive.tsx`), and the text fades in only once the
       bubble is its size (320ms, then 220ms).
+
+## Round 9: Android (Shawn's phone test)
+
+- [x] A bubble that grew out of the typing indicator turned square (and, on
+      Shawn's phone, lost its text) once the keyboard went down. It had no
+      background while it grew and got one after, and Android loses the
+      corners of a view whose background is added after it's drawn (the
+      same bug as c1637105 and 6cf91717). Its outer view now never has a
+      background; one that grew draws it in a rounded view of its own,
+      mounted with its color (`BubbleBackdrop`). Its text's opacity goes
+      back to React once it has faded in (`FadingText`).
+- [x] Half see-through while sending, an outgoing bubble's tail showed a
+      darker square where it overlaps the bubble: Android fades each child
+      on its own. Everything that fades a bubble (`SendingFade`, `Opening`,
+      the typing indicator, a leaving row) now sets
+      `needsOffscreenAlphaCompositing`, so it fades as one.

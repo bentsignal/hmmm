@@ -31,12 +31,15 @@ export function BubbleBody({
   const color = isOwn ? outgoing : incoming;
   const fill = typeof color === "string" ? color : undefined;
   const becoming = useBecoming();
-  const [morphing, setMorphing] = useState(becoming && !isOwn && tail);
+  const [grows] = useState(becoming && !isOwn && tail);
+  const [morphing, setMorphing] = useState(grows);
   return (
     <View
       className="px-3.5 py-2"
       style={{
-        backgroundColor: morphing ? undefined : fill,
+        // One that grew draws its background in a view of its own (see
+        // `BubbleBackdrop`), so this one's never changes.
+        backgroundColor: grows ? undefined : fill,
         borderCurve: "continuous",
         borderRadius: BUBBLE_RADIUS,
         // Room for the tail hanging below, so nothing under it overlaps.
@@ -47,6 +50,7 @@ export function BubbleBody({
         fill={fill}
         isOwn={isOwn}
         tail={tail}
+        grew={grows && !morphing}
         morphing={morphing}
         onMorphed={() => setMorphing(false)}
       />

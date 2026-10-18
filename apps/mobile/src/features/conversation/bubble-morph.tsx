@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { SharedValue } from "react-native-reanimated";
+import { useState } from "react";
 import { View } from "react-native";
 import Animated, {
   measure,
@@ -11,7 +12,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
-import { BubbleTail } from "./bubble-shape";
+import { BUBBLE_RADIUS, BubbleTail } from "./bubble-shape";
 import { GROW_EASING } from "./moves";
 import { Dots, useOnMount } from "./typing-parts";
 import { BUBBLE_SPACE } from "./typing-space";
@@ -214,18 +215,23 @@ export function BubbleMorph({
 
 /**
  * What's drawn under a bubble's text: its tail when it ends a run, and,
- * as it grows out of the typing bubble (`morphing`), its background.
+ * as it grows out of the typing bubble (`morphing`), its background, then
+ * once it has (`grew`), a plain rounded one. That's a view of its own,
+ * mounted with its color: Android loses the corners of a view whose
+ * background is added after it's drawn, squaring the bubble.
  */
 export function BubbleBackdrop({
   fill,
   isOwn,
   tail,
+  grew,
   morphing,
   onMorphed,
 }: {
   fill: string | undefined;
   isOwn: boolean;
   tail: boolean;
+  grew: boolean;
   morphing: boolean;
   onMorphed: () => void;
 }) {
@@ -233,22 +239,49 @@ export function BubbleBackdrop({
   return (
     <>
       {morphing && <BubbleMorph fill={fill} onDone={onMorphed} />}
+      {grew && (
+        <View
+          pointerEvents="none"
+          className="absolute inset-0"
+          style={{
+            backgroundColor: fill,
+            borderCurve: "continuous",
+            borderRadius: BUBBLE_RADIUS,
+          }}
+        />
+      )}
       {tail && <BubbleTail color={fill} isOwn={isOwn} />}
     </>
   );
 }
 
-/** Text that fades in once its bubble has grown (see `BubbleMorph`). */
+/**
+ * Text that fades in once its bubble has grown (see `BubbleMorph`). Once
+ * it has, its opacity goes back to React, so nothing it's drawn with
+ * later can hide it again.
+ */
 function FadingText({ children }: { children: ReactNode }) {
+  const [shownFully, setShownFully] = useState(false);
   const shown = useSharedValue(0);
   useOnMount(() => {
     "worklet";
     requestAnimationFrame(() => {
-      shown.set(withDelay(TEXT_IN.delay, withTiming(1, TEXT_IN)));
+      shown.set(
+        withDelay(
+          TEXT_IN.delay,
+          withTiming(1, TEXT_IN, (finished) => {
+            if (finished === true) scheduleOnRN(setShownFully, true);
+          }),
+        ),
+      );
     });
   });
   const style = useAnimatedStyle(() => ({ opacity: shown.get() }));
-  return <Animated.View style={style}>{children}</Animated.View>;
+  return (
+    <Animated.View style={shownFully ? undefined : style}>
+      {children}
+    </Animated.View>
+  );
 }
 
 /** A bubble's text, fading in once the bubble has grown when `growing`. */

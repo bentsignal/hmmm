@@ -180,7 +180,12 @@ function Opening({
     return rising.get() ? { ...moved, backfaceVisibility: "visible" } : moved;
   });
   return (
-    <Animated.View ref={outer} style={style}>
+    <Animated.View
+      ref={outer}
+      // Fading in as one (see `SendingFade`).
+      needsOffscreenAlphaCompositing
+      style={style}
+    >
       <Animated.View style={window}>
         <Animated.View style={risen}>
           <Animated.View
