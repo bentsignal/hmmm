@@ -268,3 +268,9 @@ are gone. What his recordings showed, and the fixes:
       background (`Fade` in `arrive.tsx`, `EMERGE`), inside the gap above
       the indicator, so the cut is at the band's solid end and can't be
       seen. The band goes as the message's last point clears it.
+- [x] The bubble growing out of the typing indicator showed its text before
+      it had grown, spilling out. The message forgot it was growing once
+      the indicator it took over was gone (a frame or two in), so its text
+      showed at once. What it became is now kept with its arrival
+      (`arrived` in `arrive.tsx`), and the text fades in only once the
+      bubble is its size (320ms, then 220ms).

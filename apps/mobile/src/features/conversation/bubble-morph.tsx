@@ -12,20 +12,24 @@ import Animated, {
 import { scheduleOnRN } from "react-native-worklets";
 
 import { BubbleTail } from "./bubble-shape";
-import { GROW_EASING, GROW_MS } from "./moves";
+import { GROW_EASING } from "./moves";
 import { Dots, useOnMount } from "./typing-parts";
 import { BUBBLE_SPACE } from "./typing-space";
 
 // A message growing out of the typing bubble it takes the place of (see
 // `Arrive`): the bubble stretches from the indicator's size to the
-// message's, anchored at its tail, as the dots fade and the text fades in.
+// message's, anchored at its tail, as the dots fade; then the text fades in.
 
-/** The bubble grows at the messages' pace, a little longer. */
-const MORPH = { duration: GROW_MS + 60, easing: GROW_EASING };
+/**
+ * How long the bubble takes to grow to the message's size: quick, as the
+ * text waits for it.
+ */
+const MORPH_MS = 320;
+const MORPH = { duration: MORPH_MS, easing: GROW_EASING };
 /** The dots are gone by a third of the way. */
 const DOTS_OUT = 3;
-/** The text fades in as the bubble nears its size. */
-const TEXT_IN = { delay: 180, duration: 300 };
+/** The text fades in once the bubble is its size, so it never spills out. */
+const TEXT_IN = { delay: MORPH_MS, duration: 220 };
 
 /** The typing bubble it starts as. */
 const FROM = { height: BUBBLE_SPACE.bubble, width: BUBBLE_SPACE.width };
@@ -234,7 +238,7 @@ export function BubbleBackdrop({
   );
 }
 
-/** Text that fades in as its bubble grows (see `BubbleMorph`). */
+/** Text that fades in once its bubble has grown (see `BubbleMorph`). */
 function FadingText({ children }: { children: ReactNode }) {
   const shown = useSharedValue(0);
   useOnMount(() => {
@@ -247,7 +251,7 @@ function FadingText({ children }: { children: ReactNode }) {
   return <Animated.View style={style}>{children}</Animated.View>;
 }
 
-/** A bubble's text, fading in as the bubble grows when `growing`. */
+/** A bubble's text, fading in once the bubble has grown when `growing`. */
 export function GrowingText({
   growing,
   children,

@@ -31,9 +31,11 @@ const OWN = -1;
 
 /**
  * Rows that already played their arrival, so a row that scrolls out of the
- * list's window and back doesn't play it again.
+ * list's window and back doesn't play it again, with what each became as
+ * it arrived: the indicator it took the place of is gone a frame or two
+ * later, long before its text has faded in (see `GrowingText`).
  */
-const arrived = new Set<string>();
+const arrived = new Map<string, Becoming | undefined>();
 
 /** A message taking the typing indicator's place (see `useTypingRow`). */
 export interface Becoming {
@@ -238,10 +240,10 @@ export function Arrive({
   children: ReactNode;
 }) {
   const [first] = useState(() => !arrived.has(rowKey));
-  arrived.add(rowKey);
+  if (!arrived.has(rowKey)) arrived.set(rowKey, becoming);
   if (!first) return children;
   return (
-    <Opening order={order} becoming={becoming}>
+    <Opening order={order} becoming={arrived.get(rowKey)}>
       {children}
     </Opening>
   );
