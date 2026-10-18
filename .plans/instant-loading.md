@@ -16,7 +16,13 @@ background.
       the people on screen.
 - [x] The login token is saved and reused while it's valid.
 
-## Pass 2: saved conversations, shown only as a fallback
+## Pass 2: saved conversations, shown only as a fallback (stacked on #148)
+
+Built in `apps/mobile/src/features/saved`. Saving follows the live cache
+(`saving.ts`); a screen still loading at its deadline fills in what's saved
+(`show-saved.ts`); a conversation then opens at the window its pages were
+saved from, so new messages join below. Dev builds can hold back the
+server's answers (Developer > Server Answers) to try it.
 
 **Fresh data first.** A screen waits for the server as it does now and fades
 in complete. Only when the server hasn't answered by a deadline (about 1 s
@@ -28,9 +34,14 @@ underglow running. Most opens never show saved data or the glow.
   latest 50 messages with their reactions, thread summaries, and the
   profiles they show. Signing out deletes it. Photos rely on expo-image's
   disk cache.
-- **Measure first:** a dev seed that fills 20 conversations × 50 messages
-  with a realistic mix (photos, long and short text, reactions, threads),
-  and the size of what's saved.
+- [x] **Measured** with the full seed (Developer > Seed 20 Full
+      Conversations, or `/dev-seed?full=1`: 4 DMs, 8 groups, 10 channels of
+      60 messages with photos of every shape, links, long and short text,
+      reactions, and threads). What's saved is about 35 KB a conversation
+      and 29 KB for the inbox: 0.7 MB for all 20. Photos dominate: 171 of
+      their 200 photos in expo-image's disk cache took 36 MB (218 KB each),
+      so about 45 MB for all of them. That cache already existed; offline
+      photos last as long as it keeps them.
 - **One swap.** Once fresh data replaces saved data on screen, it does so
   in one update, never piece by piece, and then the glow fades out.
 - **Nothing moves under the user:**

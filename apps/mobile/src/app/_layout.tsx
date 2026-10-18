@@ -10,6 +10,7 @@ import { useCSSVariable } from "uniwind";
 
 import { installDevAutomation } from "~/features/dev/automation";
 import { applyStoredPreferences } from "~/features/preferences/store";
+import { installSaving } from "~/features/saved/saving";
 import { queryClient } from "~/features/session/account-session";
 import {
   SessionProvider,
@@ -29,6 +30,7 @@ SplashScreen.setOptions({ duration: 250, fade: true });
 applyStoredPreferences();
 installDevAutomation();
 installAppUpdates();
+installSaving();
 
 function useNavigationTheme() {
   const scheme = useColorScheme();

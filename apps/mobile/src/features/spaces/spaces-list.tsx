@@ -31,6 +31,7 @@ export function SpacesList() {
   return (
     <ScreenList
       ready={!isLoading}
+      steady
       data={sortSpaces(spaces, sort)}
       keyExtractor={(space) => space.key}
       ListEmptyComponent={<EmptySpaces />}

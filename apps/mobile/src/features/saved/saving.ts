@@ -16,6 +16,10 @@ import {
 import { chunks, reactionsQuery } from "~/features/messaging/reactions";
 import { pdsResult, pdsResultOr } from "~/features/messaging/results";
 import { summariesQuery } from "~/features/messaging/threads";
+import {
+  onAccountSession,
+  queryClient,
+} from "~/features/session/account-session";
 import { fieldOf } from "./fields";
 import { liveResult } from "./saved-cache";
 import {
@@ -280,7 +284,7 @@ function save(queryClient: QueryClient, { address, storagePrefix }: Account) {
  * their live results change, a few seconds after each change and as the
  * app goes to the background. Returns a function that stops.
  */
-export function startSaving(queryClient: QueryClient, account: Account) {
+function startSaving(queryClient: QueryClient, account: Account) {
   let timer: ReturnType<typeof setTimeout> | undefined;
   function saveNow() {
     if (timer !== undefined) clearTimeout(timer);
@@ -305,4 +309,9 @@ export function startSaving(queryClient: QueryClient, account: Account) {
     appState.remove();
     if (timer !== undefined) clearTimeout(timer);
   };
+}
+
+/** Saves every account session's screens while it lasts. */
+export function installSaving() {
+  onAccountSession((account) => startSaving(queryClient, account));
 }

@@ -9,6 +9,7 @@ import { LegendList } from "@legendapp/list/react-native";
 import { useCSSVariable } from "uniwind";
 
 import { ScreenListInsets } from "./screen-list-insets";
+import { useSteadyData } from "./steady-data";
 
 /** How far past the screen, in points, rows are drawn ahead of time. */
 const DRAW_DISTANCE = 1000;
@@ -21,10 +22,17 @@ const DRAW_DISTANCE = 1000;
 export function ScreenList<Item>({
   ready = true,
   ref,
+  steady = false,
   ...props
-}: LegendListProps<Item> & { ready?: boolean; ref?: Ref<LegendListRef> }) {
+}: LegendListProps<Item> & {
+  ready?: boolean;
+  ref?: Ref<LegendListRef>;
+  /** Rows don't move under the finger as data changes (`useSteadyData`). */
+  steady?: boolean;
+}) {
   const background = useCSSVariable("--color-background");
   const insets = use(ScreenListInsets);
+  const held = useSteadyData(props.data);
   if (!ready) return null;
   const inset =
     insets === null ? undefined : { bottom: insets.bottom, top: insets.top };
@@ -50,6 +58,7 @@ export function ScreenList<Item>({
         drawDistance={DRAW_DISTANCE}
         recycleItems={false}
         {...props}
+        {...(steady && { ...held.listProps, data: held.data })}
         style={[
           {
             backgroundColor:

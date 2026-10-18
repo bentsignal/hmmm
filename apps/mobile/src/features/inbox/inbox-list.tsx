@@ -75,6 +75,7 @@ export function InboxList({
   return (
     <ScreenList
       ready={!isLoading}
+      steady
       data={items}
       estimatedItemSize={INBOX_ROW_HEIGHT}
       keyExtractor={(item) => item.key}

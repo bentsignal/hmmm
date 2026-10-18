@@ -65,16 +65,21 @@ export function TopEdge({
   );
 }
 
+/** How far below the header the glow reaches. */
+const GLOW_BELOW = 60;
+
 /**
- * The glow along the header's lower edge while the conversation shows
- * messages saved on the device (see `RefreshGlow`).
+ * The glow behind the header while the conversation shows messages saved
+ * on the device (see `RefreshGlow`): down from the top of the screen,
+ * since the header is glass over the messages, with no edge.
  */
 export function ConversationGlow({ active }: { active: boolean }) {
   const insets = useSafeAreaInsets();
   return (
     <RefreshGlow
       active={active}
-      top={insets.top + CONVERSATION_HEADER_HEIGHT - CAPSULE / 2}
+      edge={false}
+      height={insets.top + CONVERSATION_HEADER_HEIGHT + GLOW_BELOW}
     />
   );
 }

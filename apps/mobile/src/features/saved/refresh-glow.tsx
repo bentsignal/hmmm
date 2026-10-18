@@ -7,7 +7,7 @@ import { neighborHues } from "./glow-colors";
 import { useDeadline } from "./use-saved-fallback";
 
 /** How far below its line the glow reaches. */
-const HEIGHT = 140;
+const HEIGHT = 120;
 /** How long one pass of the shimmer takes, for each layer. */
 const DRIFT_MS = [7000, 11000] as const;
 const FADE_MS = 450;
@@ -25,9 +25,11 @@ const GIVE_UP_MS = 10_000;
  */
 function Lights({
   colors,
+  height,
   width,
 }: {
   colors: readonly string[];
+  height: number;
   width: number;
 }) {
   const span = width / colors.length;
@@ -36,7 +38,7 @@ function Lights({
     (_, index) => index - 1,
   );
   return (
-    <View style={{ height: HEIGHT, overflow: "hidden", width }}>
+    <View style={{ height, overflow: "hidden", width }}>
       {places.map((place) => {
         const color = colors[(place + colors.length) % colors.length];
         return (
@@ -44,10 +46,10 @@ function Lights({
             key={place}
             style={{
               experimental_backgroundImage: `radial-gradient(closest-side, ${color} 0%, transparent 100%)`,
-              height: HEIGHT * 2,
+              height: height * 2,
               left: span * place - span * 0.35,
               position: "absolute",
-              top: -HEIGHT,
+              top: -height,
               width: span * 1.7,
             }}
           />
@@ -65,12 +67,14 @@ function Drift({
   colors,
   direction,
   durationMs,
+  height,
   still,
   width,
 }: {
   colors: readonly string[];
   direction: 1 | -1;
   durationMs: number;
+  height: number;
   still: boolean;
   width: number;
 }) {
@@ -78,7 +82,7 @@ function Drift({
     <Animated.View
       style={{
         flexDirection: "row",
-        height: HEIGHT,
+        height,
         left: direction === 1 ? -width : 0,
         position: "absolute",
         top: 0,
@@ -94,8 +98,8 @@ function Drift({
         }),
       }}
     >
-      <Lights colors={colors} width={width} />
-      <Lights colors={colors} width={width} />
+      <Lights colors={colors} height={height} width={width} />
+      <Lights colors={colors} height={height} width={width} />
     </Animated.View>
   );
 }
@@ -109,9 +113,18 @@ function Drift({
  */
 export function RefreshGlow({
   active,
+  edge = true,
+  height = HEIGHT,
   top = 0,
 }: {
   active: boolean;
+  /**
+   * Whether the header has an edge to light, rather than glass over the
+   * content, where the glow comes from the top of the screen instead.
+   */
+  edge?: boolean;
+  /** How far down the light reaches. */
+  height?: number;
   /** Where the header's edge is, from the top of the screen. */
   top?: number;
 }) {
@@ -124,14 +137,14 @@ export function RefreshGlow({
   if (typeof accent !== "string") return null;
   const [left, right] = neighborHues(accent);
   // Each color with an alpha, as #rrggbbaa.
-  const alpha = dark ? "73" : "4d";
-  const edge = dark ? "cc" : "99";
+  const alpha = dark ? "4d" : "33";
+  const lit = dark ? "cc" : "99";
   const shown = active && !gaveUp;
   return (
     <Animated.View
       pointerEvents="none"
       style={{
-        height: HEIGHT,
+        height,
         left: 0,
         opacity: shown ? 1 : 0,
         overflow: "hidden",
@@ -147,6 +160,7 @@ export function RefreshGlow({
         colors={[`${accent}${alpha}`, `${left}${alpha}`, `${right}${alpha}`]}
         direction={-1}
         durationMs={DRIFT_MS[0]}
+        height={height}
         still={still}
         width={width}
       />
@@ -154,20 +168,23 @@ export function RefreshGlow({
         colors={[`${right}${alpha}`, `${accent}${alpha}`]}
         direction={1}
         durationMs={DRIFT_MS[1]}
+        height={height}
         still={still}
         width={width}
       />
       {/* The edge itself, lit along its length. */}
-      <View
-        style={{
-          experimental_backgroundImage: `linear-gradient(90deg, ${left}00 0%, ${accent}${edge} 30%, ${right}${edge} 70%, ${left}00 100%)`,
-          height: 1.5,
-          left: 0,
-          position: "absolute",
-          right: 0,
-          top: 0,
-        }}
-      />
+      {edge && (
+        <View
+          style={{
+            experimental_backgroundImage: `linear-gradient(90deg, ${left}00 0%, ${accent}${lit} 30%, ${right}${lit} 70%, ${left}00 100%)`,
+            height: 1.5,
+            left: 0,
+            position: "absolute",
+            right: 0,
+            top: 0,
+          }}
+        />
+      )}
     </Animated.View>
   );
 }

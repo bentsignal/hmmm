@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { useSyncExternalStore } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { notifyManager, useQueryClient } from "@tanstack/react-query";
 
 import type { Saved } from "./saved-files";
 import { fieldOf } from "./fields";
@@ -68,7 +68,12 @@ export function showSaved(queryClient: QueryClient, saved: Saved) {
 export function useShowingSaved(filled: readonly string[]) {
   const cache = useQueryClient().getQueryCache();
   return useSyncExternalStore(
-    (onChange) => cache.subscribe(onChange),
+    (onChange) =>
+      // The cache tells its listeners about a query as it's created, which
+      // can be while another component renders, so the change waits.
+      cache.subscribe(({ query }) => {
+        if (filled.includes(query.queryHash)) notifyManager.schedule(onChange);
+      }),
     () =>
       filled.some((hash) => {
         const query = cache.get(hash);
