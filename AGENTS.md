@@ -42,8 +42,12 @@ Shawn starts each feature or fix in its own T3 Code worktree and thread
 - Verify in this worktree's own simulator (`scripts/sim.sh`), never another
   worktree's or a shared one. Load the `vera-simulator` skill before any
   simulator or emulator use: devices start only through `scripts/sim.sh`,
-  which queues them so many worktrees can share the Mac. Shut it down (`scripts/sim.sh down`) as soon as
-  you have your evidence, before reporting; never leave simulators running.
+  which queues them so many worktrees can share the Mac. Open a device in
+  T3's Device panel (`device_open`) at most once, and close it
+  (`device_close`) before `scripts/sim.sh down`. Shut the device down as
+  soon as you have your evidence, and always before you end your turn;
+  never leave simulators running. A Stop hook sends you back if one is
+  still up, and the queue deletes devices left idle for 30 minutes.
 - UI changes need screenshots (before and after where something changed);
   motion and gestures need a video. Upload with `scripts/evidence.sh` and put
   them in the PR description. Never commit PR assets.

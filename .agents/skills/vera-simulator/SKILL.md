@@ -32,10 +32,24 @@ Mac has free memory. The queue only works if every agent goes through it.
    validation or pushing your branch.
 5. **Hold a device only while you're using it.** Bring it up when you're
    ready to verify, not while you're still writing code, and `down` as soon
-   as you have your evidence, before you wait for CI or for Shawn.
-6. **If the queue shut your device down**, your next `sim.sh` command says
-   so. Run `up` again. When others are waiting, it shuts down devices that
-   haven't had a `sim.sh` command for 20 minutes.
+   as you have your evidence, before you wait for CI or for Shawn. **Never
+   end a turn with a device up**: a finished turn waits on Shawn, maybe for
+   hours. A Stop hook (`.claude/hooks/devices-down.sh`) sends you back once
+   if you try.
+6. **Open each device in T3's Device panel at most once, and close it.**
+   Every `device_open` starts a screen-mirroring loop in T3 that only
+   `device_close` stops; T3 doesn't stop the old one when you open the same
+   device again. Leaked loops once piled up to 14, pinned the Mac's CPU,
+   used its memory, and jammed simulators so they couldn't shut down. Call
+   `device_list` first: if your device is already in `open`, reuse the
+   agent-device flags you have instead of opening it again. `device_close`
+   it before `sim.sh down`, and never `device_open` another worktree's
+   device.
+7. **If the queue shut your device down**, your next `sim.sh` command says
+   so. Run `up` again. The queue shuts down devices that haven't had a
+   `sim.sh` command for 20 minutes when others are waiting, after 30
+   minutes even if nobody is (any `sim.sh` command counts, `status`
+   included), and right away if one stopped running without `sim.sh down`.
 
 ## Commands
 
@@ -75,7 +89,8 @@ takes the emulator serial `up` prints (`emulator-55xx`), with
   account. On the shared dev PDS keep to your worktree's `wt…` user so you
   don't disturb anyone else's data.
 - Let Shawn watch: call the T3 `device_open` tool with the simulator UDID
-  that `up` prints. It returns the exact `agent-device` command and flags.
+  that `up` prints, once (rule 6). It returns the exact `agent-device`
+  command and flags; keep them for the rest of your session.
   Run `agent-device open chat.vera.app.dev "${F[@]}"` once before other
   agent-device commands (they fail with "Run open first" otherwise). It also
   brings Vera back to the front if `device_open` left the home screen up.
@@ -96,11 +111,15 @@ takes the emulator serial `up` prints (`emulator-55xx`), with
 
 ## Shutting down
 
-When you have your evidence, run `scripts/sim.sh down`, and
-`scripts/sim.sh --android down` if you used Android. They delete the
-simulator or emulator, give the slot back to the queue, and stop Metro with
-the last device. Also close it in T3's Device panel (`device_close`). `up`
-brings one back in about a minute with the cached build, so there's no
+When you have your evidence, and in any case before you end your turn:
+
+1. `device_close` every device `device_list` shows open in this thread.
+2. `scripts/sim.sh down`, and `scripts/sim.sh --android down` if you used
+   Android. They delete the simulator or emulator, give the slot back to
+   the queue, and stop Metro with the last device (unless
+   `scripts/phone.sh` still serves Shawn's phone from it).
+
+`up` brings one back in about a minute with the cached build, so there's no
 reason to keep one around.
 
 ## Troubleshooting
@@ -112,6 +131,10 @@ reason to keep one around.
   clash is resolved automatically. Kill only the PID in `.cache/sim/metro`,
   never by pattern (other worktrees run Metro too).
 - **The app shows the dev launcher instead of Vera:** `scripts/sim.sh relaunch`.
+- **The Mac is slow, `up` waits on memory, or a simulator is stuck
+  "Shutting Down":** check for T3's device preview running away
+  (`ps -Ao pid,%cpu,rss,command | grep -i device-preview`). Don't kill it
+  yourself; tell Shawn. Quitting and reopening T3 Code clears it.
 - **The dev client build fails:** run the `xcodebuild` from
   `apps/mobile/README.md` by hand to see the error. It is usually a missing
   `pod install` after dependency changes; `up` runs prebuild with `--clean`.
