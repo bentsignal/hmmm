@@ -8,6 +8,7 @@ import { httpAction } from "./_generated/server";
 import { androidAssetLinks, appleAppSiteAssociation } from "./appAssociation";
 import { authComponent, createAuth } from "./auth";
 import app from "./convex.config";
+import { devSignInPage } from "./devSignInPage";
 import { joinPage } from "./joinPage";
 import { requireEnvironment } from "./lib";
 
@@ -37,6 +38,9 @@ http.route({
 // Space invite links, for when the app doesn't open them itself.
 http.route({ handler: joinPage, method: "GET", pathPrefix: "/join/" });
 http.route({ handler: joinPage, method: "GET", pathPrefix: "/dev/join/" });
+
+// The dev sign-in link as an https URL any phone browser opens (dev PDSs).
+http.route({ handler: devSignInPage, method: "GET", path: "/dev/sign-in" });
 
 // vera.chat points at this deployment for passkeys; people visiting it
 // belong on the website.

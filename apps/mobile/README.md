@@ -71,9 +71,10 @@ The phone holds one Vera Dev at a time:
   be on the same Wi-Fi as the Mac, and edits hot-reload. It's a plain IP, not
   a tailnet address: iOS's App Transport Security blocks plain HTTP to
   tailnet (100.x) addresses but allows local network ones. A worktree with an isolated backend serves
-  that backend's domain, which starts with no accounts: sign in there with
-  `vera-dev:///dev-sign-in?username=ios` on the iPhone and
-  `username=android` on Android (`scripts/backend.sh status` prints both).
+  that backend's domain, which starts with no accounts: sign in there by
+  opening `<site>/dev/sign-in?username=ios` on the iPhone and
+  `username=android` on Android in any browser (`scripts/backend.sh status`
+  prints both).
   Release testing uses it too, serving `main`.
 - **Main's dev client is the one the phone keeps.** It runs every worktree
   that hasn't changed native code. `up` says whether a worktree uses it or

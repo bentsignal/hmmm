@@ -54,9 +54,10 @@ status() {
     echo "isolated: dev/$SLUG ($DEPLOYMENT), accounts @$DOMAIN"
     echo "site: $SITE_URL"
     # One throwaway account per phone, so Shawn can test on both without
-    # saving a passkey. He pastes each link into that phone's browser.
-    echo "iPhone sign-in (ios@$DOMAIN): vera-dev:///dev-sign-in?username=ios"
-    echo "Android sign-in (android@$DOMAIN): vera-dev:///dev-sign-in?username=android"
+    # saving a passkey. He pastes each link into that phone's browser, and
+    # the page opens Vera Dev's dev sign-in (convex/devSignInPage.ts).
+    echo "iPhone sign-in (ios@$DOMAIN): $SITE_URL/dev/sign-in?username=ios"
+    echo "Android sign-in (android@$DOMAIN): $SITE_URL/dev/sign-in?username=android"
   else
     echo "shared: $(env_value CONVEX_DEPLOYMENT "$BACKEND/.env.local"), accounts @$SHARED_DOMAIN"
   fi
