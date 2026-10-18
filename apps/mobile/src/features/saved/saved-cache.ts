@@ -1,6 +1,4 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { useSyncExternalStore } from "react";
-import { notifyManager, useQueryClient } from "@tanstack/react-query";
 
 import type { Saved } from "./saved-files";
 import { fieldOf } from "./fields";
@@ -12,7 +10,7 @@ import { fieldOf } from "./fields";
 const showingSaved = new Map<string, number>();
 
 /** Whether cached PDS query data has a result to show. */
-function hasResult(data: unknown) {
+export function hasResult(data: unknown) {
   const status = fieldOf(data, "status");
   return status === "partial" || status === "success";
 }
@@ -38,12 +36,12 @@ function isSaved(query: CachedQuery) {
 
 /**
  * Shows a screen's saved results in the queries that have none yet, until
- * their live ones replace them. Returns the queries it filled in.
+ * their live ones replace them.
  */
 export function showSaved(queryClient: QueryClient, saved: Saved) {
   const cache = queryClient.getQueryCache();
-  return saved.entries.flatMap(({ key, result }) => {
-    if (hasResult(queryClient.getQueryData(key))) return [];
+  for (const { key, result } of saved.entries) {
+    if (hasResult(queryClient.getQueryData(key))) continue;
     queryClient.setQueryData(
       key,
       {
@@ -54,30 +52,8 @@ export function showSaved(queryClient: QueryClient, saved: Saved) {
       { updatedAt: saved.savedAt },
     );
     const query = cache.find({ exact: true, queryKey: key });
-    if (query === undefined) return [];
-    showingSaved.set(query.queryHash, query.state.dataUpdatedAt);
-    return [query.queryHash];
-  });
-}
-
-/**
- * Whether a screen still shows any of the saved results it filled in
- * (`filled`, from `showSaved`): a query it shows hasn't had its live
- * result yet.
- */
-export function useShowingSaved(filled: readonly string[]) {
-  const cache = useQueryClient().getQueryCache();
-  return useSyncExternalStore(
-    (onChange) =>
-      // The cache tells its listeners about a query as it's created, which
-      // can be while another component renders, so the change waits.
-      cache.subscribe(({ query }) => {
-        if (filled.includes(query.queryHash)) notifyManager.schedule(onChange);
-      }),
-    () =>
-      filled.some((hash) => {
-        const query = cache.get(hash);
-        return query?.isActive() === true && isSaved(query);
-      }),
-  );
+    if (query !== undefined) {
+      showingSaved.set(query.queryHash, query.state.dataUpdatedAt);
+    }
+  }
 }

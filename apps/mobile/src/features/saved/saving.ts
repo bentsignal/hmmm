@@ -29,11 +29,10 @@ import {
   savedConversationIds,
   writeSaved,
 } from "./saved-files";
+import { watchAnswers } from "./unanswered";
 
 /** How many of an account's most recent conversations it keeps. */
 export const SAVED_CONVERSATIONS = 20;
-/** How long after a change the account saves, at most once in that time. */
-const SAVE_DELAY_MS = 5000;
 
 interface Account {
   readonly address: string;
@@ -280,38 +279,30 @@ function save(queryClient: QueryClient, { address, storagePrefix }: Account) {
 }
 
 /**
- * Keeps an account's Home and recent conversations saved on the device as
- * their live results change, a few seconds after each change and as the
- * app goes to the background. Returns a function that stops.
+ * Saves an account's Home and recent conversations as the app goes to the
+ * background, the last moment before it may be closed. Saving takes the
+ * JavaScript thread for tens of milliseconds, so it never runs while the
+ * app is on screen; what's opened meanwhile is in memory anyway. Returns a
+ * function that stops.
  */
 function startSaving(queryClient: QueryClient, account: Account) {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  function saveNow() {
-    if (timer !== undefined) clearTimeout(timer);
-    timer = undefined;
-    save(queryClient, account);
-  }
-  const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
-    if (
-      timer !== undefined ||
-      event.type !== "updated" ||
-      event.action.type !== "success"
-    ) {
-      return;
-    }
-    timer = setTimeout(saveNow, SAVE_DELAY_MS);
-  });
   const appState = AppState.addEventListener("change", (state) => {
-    if (state === "background" && timer !== undefined) saveNow();
+    if (state === "background") save(queryClient, account);
   });
-  return () => {
-    unsubscribe();
-    appState.remove();
-    if (timer !== undefined) clearTimeout(timer);
-  };
+  return () => appState.remove();
 }
 
-/** Saves every account session's screens while it lasts. */
+/**
+ * Saves every account session's screens while it lasts, and notes when its
+ * PDS answers (`unanswered.ts`).
+ */
 export function installSaving() {
-  onAccountSession((account) => startSaving(queryClient, account));
+  onAccountSession((account) => {
+    const stopSaving = startSaving(queryClient, account);
+    const stopWatching = watchAnswers(queryClient, account.address);
+    return () => {
+      stopSaving();
+      stopWatching();
+    };
+  });
 }

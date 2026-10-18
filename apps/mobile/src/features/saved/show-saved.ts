@@ -1,39 +1,36 @@
 import { useQueryClient } from "@tanstack/react-query";
 
 import { useAccount, useVisibleAccounts } from "~/features/messaging/account";
-import { showSaved, useShowingSaved } from "./saved-cache";
+import { inboxQuery } from "~/features/messaging/inbox";
+import { hasResult, showSaved } from "./saved-cache";
 import { conversationFile, inboxFile, readSaved } from "./saved-files";
-import {
-  CONVERSATION_DEADLINE_MS,
-  HOME_DEADLINE_MS,
-  useDeadline,
-  useSavedFallback,
-} from "./use-saved-fallback";
+import { useSavedFallback } from "./use-saved-fallback";
 
 /**
  * Shows each visible account's saved Home (its Inbox and Spaces) if the
- * Inbox is still loading at the deadline, passing `onShow` the queries it
- * filled in.
+ * Inbox is still loading at the deadline.
  */
-export function useSavedHome(
-  loading: boolean,
-  onShow: (filled: readonly string[]) => void,
-) {
+export function useSavedHome(loading: boolean) {
   const queryClient = useQueryClient();
   const accounts = useVisibleAccounts();
-  useDeadline(HOME_DEADLINE_MS, loading, () => {
-    onShow(
-      accounts.flatMap(({ storagePrefix }) => {
+  useSavedFallback(
+    accounts.map(({ address }) => address),
+    loading,
+    () =>
+      accounts.flatMap(({ address, storagePrefix }) => {
+        if (hasResult(queryClient.getQueryData(inboxQuery(address).queryKey))) {
+          return [];
+        }
         const saved = readSaved(inboxFile(storagePrefix));
-        return saved === undefined ? [] : showSaved(queryClient, saved);
+        if (saved !== undefined) showSaved(queryClient, saved);
+        return [address];
       }),
-    );
-  });
+  );
 }
 
 /**
- * A conversation's saved messages, shown if it's still loading at the
- * deadline, and whether it still shows any of them.
+ * Shows a conversation's saved messages if it's still loading at the
+ * deadline.
  *
  * A conversation opening at its latest messages opens instead at the
  * window they were saved from (`openAt`), if its own pages haven't
@@ -51,13 +48,13 @@ export function useSavedConversation(
   loading: boolean,
 ) {
   const queryClient = useQueryClient();
-  const { session } = useAccount();
-  const filled = useSavedFallback(CONVERSATION_DEADLINE_MS, loading, () => {
+  const { address, session } = useAccount();
+  useSavedFallback([address], loading, () => {
     const saved = readSaved(
       conversationFile(session.storagePrefix, conversationId),
     );
-    if (saved === undefined) return [];
-    const filledIn = showSaved(queryClient, saved);
+    if (saved === undefined) return [address];
+    showSaved(queryClient, saved);
     const pagesLoaded = window.pages.every(
       (page) => !page.initial || page.messageIds !== undefined,
     );
@@ -68,7 +65,6 @@ export function useSavedConversation(
     ) {
       window.openAt(saved.openedAt);
     }
-    return filledIn;
+    return [address];
   });
-  return useShowingSaved(filled);
 }

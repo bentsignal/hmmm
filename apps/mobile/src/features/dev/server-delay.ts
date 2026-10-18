@@ -11,8 +11,8 @@ import * as SecureStore from "expo-secure-store";
 import { createConvexFederationConnection } from "@decentralized-convex/client";
 
 // Development only: holds back what the PDS answers, to try what the app
-// shows on a slow connection or none (saved conversations and their glow)
-// without turning off the network.
+// shows on a slow connection or none (saved conversations) without
+// turning off the network.
 
 export const SERVER_DELAYS = ["off", "slow", "never"] as const;
 export type ServerDelay = (typeof SERVER_DELAYS)[number];

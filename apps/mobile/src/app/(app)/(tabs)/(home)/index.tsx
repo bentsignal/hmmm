@@ -14,8 +14,6 @@ import { HomeTabs } from "~/features/home/home-tabs";
 import { HOME_PAGES } from "~/features/home/pages";
 import { InboxList } from "~/features/inbox/inbox-list";
 import { useInboxOnScreen } from "~/features/notifications/push";
-import { RefreshGlow } from "~/features/saved/refresh-glow";
-import { useShowingSaved } from "~/features/saved/saved-cache";
 import { SpacesList } from "~/features/spaces/spaces-list";
 import { lightImpact } from "~/lib/native-extras";
 
@@ -32,9 +30,6 @@ export default function HomeScreen() {
   const pagerRef = useRef<Animated.ScrollView>(null);
   const position = useSharedValue(0);
   const [page, setPage] = useState(0);
-  // What Home filled in from the device, while its Inbox was slow to load.
-  const [saved, setSaved] = useState<readonly string[]>([]);
-  const showingSaved = useShowingSaved(saved);
   const current = HOME_PAGES[page]?.key ?? "inbox";
   const isInbox = current === "inbox";
   useInboxOnScreen(isInbox);
@@ -94,13 +89,12 @@ export default function HomeScreen() {
         onPageChange={changePage}
       >
         <PagerPage>
-          <InboxList onShowSaved={setSaved} />
+          <InboxList />
         </PagerPage>
         <PagerPage>
           <SpacesList />
         </PagerPage>
       </HomePager>
-      <RefreshGlow active={showingSaved} />
     </>
   );
 }

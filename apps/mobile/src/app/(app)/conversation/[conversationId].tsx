@@ -9,7 +9,6 @@ import type { MessageLayout } from "~/features/preferences/store";
 import { useComposerBottomInset } from "~/features/conversation/composer";
 import {
   CONVERSATION_HEADER_HEIGHT,
-  ConversationGlow,
   ConversationHeader,
 } from "~/features/conversation/conversation-header";
 import { FloatingComposer } from "~/features/conversation/floating-composer";
@@ -141,7 +140,7 @@ function Conversation({
   const shown =
     listReady([messages, notices], layout, profilesLoaded) &&
     composerHeight !== undefined;
-  const showingSaved = useSavedConversation(conversationId, messages, !shown);
+  useSavedConversation(conversationId, messages, !shown);
   if (!isLoading && conversation === undefined) {
     return (
       <MissingConversation
@@ -180,7 +179,6 @@ function Conversation({
           />
         )}
       </KeyboardGestureArea>
-      <ConversationGlow active={showingSaved} />
       <ConversationHeader
         title={heading}
         kind={loaded.kind}

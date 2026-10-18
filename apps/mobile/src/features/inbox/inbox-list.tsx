@@ -26,14 +26,9 @@ function Empty({ title, detail }: { title: string; detail: string }) {
  * Home's Inbox page: every conversation, pinned first, and the threads
  * you follow among them, as filtered.
  */
-export function InboxList({
-  onShowSaved,
-}: {
-  /** Called with what it filled in from the device (`useSavedHome`). */
-  onShowSaved: (filled: readonly string[]) => void;
-}) {
+export function InboxList() {
   const { conversations, isLoading } = useInbox();
-  useSavedHome(isLoading, onShowSaved);
+  useSavedHome(isLoading);
   const showAccount = useVisibleAccounts().length > 1;
   const show = usePreference("inboxShow");
   const kinds = usePreference("inboxIncludes");

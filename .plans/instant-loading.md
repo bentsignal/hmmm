@@ -24,11 +24,14 @@ Built in `apps/mobile/src/features/saved`. Saving follows the live cache
 saved from, so new messages join below. Dev builds can hold back the
 server's answers (Developer > Server Answers) to try it.
 
-**Fresh data first.** A screen waits for the server as it does now and fades
-in complete. Only when the server hasn't answered by a deadline (about 1 s
-for the inbox on launch, about 0.8 s for a conversation; tuned on Shawn's
-phone) does it fade in what's saved on the device instead, with the
-underglow running. Most opens never show saved data or the glow.
+**Fresh data first.** A screen shows nothing until the server answers, as
+before. Only when it hasn't answered in 2 s (when the PDS client itself
+gives up on a server's first answer) does it show what's saved on the
+device instead. From then on the account's server counts as not
+answering, so its other screens show what's saved as they open, until a
+live result arrives. Most opens never show saved data. There's no
+indicator: an underglow under the header was tried and dropped (unclear,
+showy, it covered the top message, and it lagged on Android).
 
 - Saved per account: the inbox, and the 20 most recent conversations'
   latest 50 messages with their reactions, thread summaries, and the
@@ -43,7 +46,7 @@ underglow running. Most opens never show saved data or the glow.
       so about 45 MB for all of them. That cache already existed; offline
       photos last as long as it keeps them.
 - **One swap.** Once fresh data replaces saved data on screen, it does so
-  in one update, never piece by piece, and then the glow fades out.
+  in one update, never piece by piece.
 - **Nothing moves under the user:**
   - Conversation at the bottom: new messages slide in as live ones do.
   - Conversation scrolled up: what they're reading stays put; new messages
@@ -51,12 +54,6 @@ underglow running. Most opens never show saved data or the glow.
   - Inbox untouched: updates at once, no animation.
   - Inbox while touched or scrolling: the update waits until the list
     rests, then applies at once. This applies to live updates too.
-- **Underglow:** a soft, slowly shimmering gradient under the header, in the
-  theme color with a couple of neighbors, falling off downward so it lights
-  the top row a little. Reanimated on the UI thread and the CSS gradients
-  the app already uses, so no native build. On Home (Inbox and Spaces) and
-  in conversations and threads. Offline, it fades out after about 10 s and
-  returns when the connection does.
 
 ## Pass 3: keep recent chats current (stacked on pass 2)
 
