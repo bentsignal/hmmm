@@ -21,7 +21,7 @@ import type { MemberNotice, Message } from "./types";
 import type { MessageLayout } from "~/features/preferences/store";
 import { useBlankSpace } from "./blank-space";
 import { arrivedAfter, newestFirst } from "./build-rows";
-import { GrowthProvider } from "./grow";
+import { GrowthProvider, ListLift } from "./grow";
 import { JumpToLatest } from "./jump-to-latest";
 import { ANCHOR, useLatest, usePlacement } from "./list-position";
 import { useMenuKeyboard } from "./menu-keyboard";
@@ -109,14 +109,15 @@ function Rows({
   const safeArea = useSafeAreaInsets();
   const top = safeArea.top + topInset;
   const rows = newestFirst(messages, layout, thread, notices);
+  const newest = newestOf(rows);
   const below = {
     composerHeight,
     fromBottom: latest.fromBottom,
     layout,
-    newest: newestOf(rows),
+    newest,
     profileOf,
     showFaces: showAuthors,
-    ...useListTyping(typists),
+    ...useListTyping(typists, newest?.key),
   };
   const blank = useBlankSpace(thread !== undefined);
   // Only messages that arrive while open animate in, not loaded pages.
@@ -266,27 +267,29 @@ export function MessageList({
       <RevealTimes>
         <View ref={frame} style={{ flex: 1 }}>
           <GrowthProvider list={frame}>
-            <Rows
-              {...props}
-              listRef={listRef}
-              latest={latest}
-              freeze={keyboard.freeze}
-              shown={shown}
-              onReady={() => {
-                // Two frames later, once the first scroll (to the message it
-                // opened on) has drawn and the rows' mounting is done, so it
-                // can't hitch the fade's first frame.
-                requestAnimationFrame(() =>
-                  requestAnimationFrame(() => {
-                    loaded.set(
-                      withTiming(1, { duration: FADE_MS }, (done) => {
-                        if (done === true) scheduleOnRN(setShown, true);
-                      }),
-                    );
-                  }),
-                );
-              }}
-            />
+            <ListLift>
+              <Rows
+                {...props}
+                listRef={listRef}
+                latest={latest}
+                freeze={keyboard.freeze}
+                shown={shown}
+                onReady={() => {
+                  // Two frames later, once the first scroll (to the message it
+                  // opened on) has drawn and the rows' mounting is done, so it
+                  // can't hitch the fade's first frame.
+                  requestAnimationFrame(() =>
+                    requestAnimationFrame(() => {
+                      loaded.set(
+                        withTiming(1, { duration: FADE_MS }, (done) => {
+                          if (done === true) scheduleOnRN(setShown, true);
+                        }),
+                      );
+                    }),
+                  );
+                }}
+              />
+            </ListLift>
           </GrowthProvider>
         </View>
       </RevealTimes>

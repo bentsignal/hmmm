@@ -1,5 +1,6 @@
 import type { MessageLayout } from "~/features/preferences/store";
 import { TAIL_DROP } from "./bubble-shape";
+import { useSettledTypists } from "./typing-settle";
 import { useTypingStyle } from "./typing-style";
 
 // How much room a typing indicator takes (see `typing-indicator.tsx`).
@@ -43,12 +44,22 @@ const NOBODY = Object.freeze<string[]>([]);
 
 /**
  * The typing style, and who the list shows typing: nobody when the header
- * shows them instead.
+ * shows them instead, and held back after a message lands when the style
+ * steps aside (see `useSettledTypists`). The list's height under the
+ * newest message counts only these, so it follows them into view.
  */
-export function useListTyping(typists: readonly string[]) {
+export function useListTyping(
+  typists: readonly string[],
+  newestKey: string | undefined,
+) {
   const typingStyle = useTypingStyle();
+  const settled = useSettledTypists(
+    typists,
+    newestKey,
+    typingStyle.onSend === "stepsAside",
+  );
   return {
     typingStyle,
-    typists: typingStyle.place === "list" ? typists : NOBODY,
+    typists: typingStyle.place === "list" ? settled : NOBODY,
   };
 }

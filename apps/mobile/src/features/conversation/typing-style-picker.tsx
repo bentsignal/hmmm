@@ -82,7 +82,7 @@ function Picker({ top }: { top: number }) {
       style={{ top }}
     >
       <GestureDetector gesture={swipe}>
-        <View className="bg-background-elevated border-separator flex-row items-center rounded-full border px-1 py-1 shadow-md">
+        <View className="bg-background-elevated border-separator flex-row items-center rounded-full border px-1 py-1">
           <Arrow by={-1} />
           <View className="w-[240px] items-center">
             <Text className="text-footnote text-foreground font-semibold">
@@ -131,7 +131,7 @@ function HeaderChip({
           accessible
           accessibilityLabel={label}
           accessibilityLiveRegion="polite"
-          className="bg-background-elevated border-separator flex-row items-center gap-2 rounded-full border px-3 shadow-sm"
+          className="bg-background-elevated border-separator flex-row items-center gap-2 rounded-full border px-3"
           style={{ height: CHIP }}
         >
           <LayoutAnimationConfig skipEntering>

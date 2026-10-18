@@ -15,10 +15,9 @@ import type { ProfileOf } from "./message-row";
 import type { Newest, TypingSeen } from "./typing-change";
 import type { TypingStyle } from "./typing-style";
 import type { MessageLayout } from "~/features/preferences/store";
-import { useLiftAll, useUnderNewestLift } from "./grow";
+import { useLiftAll } from "./grow";
 import { typingChange } from "./typing-change";
 import { Indicator, useOnMount } from "./typing-parts";
-import { useSettledTypists } from "./typing-settle";
 import { typingSpaceHeight } from "./typing-space";
 
 // Who's typing, under the newest message. The list keeps a space for it
@@ -173,7 +172,7 @@ function Space({
  * always there and only the indicator comes and goes.
  */
 export function TypingSpace({
-  typists: typing_,
+  typists,
   typingStyle,
   layout,
   profileOf,
@@ -194,11 +193,6 @@ export function TypingSpace({
   fromBottom: SharedValue<number>;
 }) {
   const { onSend, reserved } = typingStyle;
-  const typists = useSettledTypists(
-    typing_,
-    newest?.key,
-    onSend === "stepsAside",
-  );
   const [seen, setSeen] = useState<TypingSeen>({
     arrived: false,
     newestKey: newest?.key,
@@ -222,7 +216,6 @@ export function TypingSpace({
     if (change.reappeared) setAppearKey(appearKey + 1);
   }
   const typing = typists.length > 0;
-  const lift = useUnderNewestLift();
   function people(accounts: readonly string[]) {
     return accounts.map((address) => ({ address, ...profileOf(address) }));
   }
@@ -244,11 +237,7 @@ export function TypingSpace({
           </Appearing>
         )}
       </Space>
-      <Animated.View
-        pointerEvents="none"
-        className="absolute inset-x-0 top-0"
-        style={lift}
-      >
+      <View pointerEvents="none" className="absolute inset-x-0 top-0">
         {ghosts.map((ghost) => (
           <Leaving
             key={ghost.key}
@@ -265,7 +254,7 @@ export function TypingSpace({
             />
           </Leaving>
         ))}
-      </Animated.View>
+      </View>
     </View>
   );
 }

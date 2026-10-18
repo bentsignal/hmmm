@@ -34,6 +34,8 @@ interface Growth {
   readonly place: SharedValue<number>;
   /** How far what moved is drawn from where it's laid out. */
   readonly offset: SharedValue<number>;
+  /** How far the whole list is drawn from where it's laid out. */
+  readonly listOffset: SharedValue<number>;
   /** The list, to tell whether a row is on screen. */
   readonly list: AnimatedRef<View>;
 }
@@ -62,8 +64,9 @@ export function GrowthProvider({
   const pivot = useSharedValue(NONE);
   const place = useSharedValue(0);
   const offset = useSharedValue(0);
+  const listOffset = useSharedValue(0);
   return (
-    <GrowthContext value={{ list, offset, pivot, place }}>
+    <GrowthContext value={{ list, listOffset, offset, pivot, place }}>
       {children}
     </GrowthContext>
   );
@@ -93,36 +96,30 @@ function lift(
   growth.offset.set(withTiming(0, { duration: GROW_MS, easing: GROW_EASING }));
 }
 
-/** Above every row: the space that changed is under the newest message. */
-const UNDER_NEWEST = Number.MAX_VALUE;
-
 /**
- * Draws every row `delta` from where it's laid out, then eases it into
- * place: for space under the newest message that changed at once, when
- * the list couldn't keep what's on screen still.
+ * Draws the whole list `delta` from where it's laid out, then eases it
+ * into place: for space under the newest message that changed at once,
+ * when the list couldn't keep what's on screen still. Everything moved
+ * together, so one transform on the list moves it rather than one per
+ * row, and rows don't read `listOffset`, so their styles don't run while
+ * it eases.
  */
 export function useLiftAll() {
-  const growth = useGrowth();
+  const { listOffset } = useGrowth();
   return (delta: number) => {
     "worklet";
-    const carried =
-      growth.pivot.get() === UNDER_NEWEST ? growth.offset.get() : 0;
-    growth.pivot.set(UNDER_NEWEST);
-    growth.offset.set(carried + delta);
-    growth.offset.set(
-      withTiming(0, { duration: GROW_MS, easing: GROW_EASING }),
-    );
+    listOffset.set(listOffset.get() + delta);
+    listOffset.set(withTiming(0, { duration: GROW_MS, easing: GROW_EASING }));
   };
 }
 
-/** What's under the newest message, moving with `useLiftAll`'s rows. */
-export function useUnderNewestLift() {
-  const { pivot, offset } = useGrowth();
-  return useAnimatedStyle(() => ({
-    transform: [
-      { translateY: pivot.get() === UNDER_NEWEST ? offset.get() : 0 },
-    ],
+/** The list, drawn where `useLiftAll` lifts it. */
+export function ListLift({ children }: { children: ReactNode }) {
+  const { listOffset } = useGrowth();
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateY: listOffset.get() }],
   }));
+  return <Animated.View style={[{ flex: 1 }, style]}>{children}</Animated.View>;
 }
 
 /**
