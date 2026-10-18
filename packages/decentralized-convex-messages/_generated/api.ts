@@ -52,6 +52,7 @@ import type * as spaces from "../spaces.js";
 import type * as threadLists from "../threadLists.js";
 import type * as threadOperations from "../threadOperations.js";
 import type * as threads from "../threads.js";
+import type * as typing from "../typing.js";
 import type * as validation from "../validation.js";
 
 import type {
@@ -106,6 +107,7 @@ const fullApi: ApiFromModules<{
   threadLists: typeof threadLists;
   threadOperations: typeof threadOperations;
   threads: typeof threads;
+  typing: typeof typing;
   validation: typeof validation;
 }> = anyApi as any;
 

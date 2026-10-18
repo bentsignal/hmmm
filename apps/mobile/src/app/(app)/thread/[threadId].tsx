@@ -29,6 +29,7 @@ import {
   useMarkThreadRead,
   useThreadState,
 } from "~/features/messaging/threads";
+import { useTypingReporter, useTypists } from "~/features/messaging/typing";
 import { useActiveThread } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
 
@@ -96,6 +97,17 @@ function shownList<Layout, Root>({
   return { composerHeight, layout, root };
 }
 
+/** Who else is typing in a thread, and the reporting of this device's. */
+function useThreadTyping(
+  conversationId: string,
+  threadId: string,
+  messages: Parameters<typeof useTypists>[1]["messages"],
+) {
+  const typists = useTypists(conversationId, { messages, threadId });
+  const report = useTypingReporter(conversationId, threadId);
+  return { report, typists };
+}
+
 /**
  * A thread: the message it answers on top, its replies under it like
  * comments, and a composer for the next reply. Its bell turns its
@@ -119,6 +131,7 @@ function Thread({
   const layout = useMessageLayout(conversation?.kind);
   const thread = useMessages(conversationId, { threadId });
   const state = useThreadState(conversationId, threadId);
+  const typing = useThreadTyping(conversationId, threadId, thread.messages);
   const [composerHeight, setComposerHeight] = useState<number>();
   const list = useRef<MessageListHandle>(null);
   const composer = useRef<ComposerHandle>(null);
@@ -135,13 +148,12 @@ function Thread({
     threadId,
     heading,
   );
-  const { root } = thread;
-  const missing = !thread.isLoading && root === undefined;
+  const missing = !thread.isLoading && thread.root === undefined;
   const shown = shownList({
     composerHeight,
     layout,
     loading: thread.isLoading || !profilesLoaded,
-    root,
+    root: thread.root,
   });
 
   return (
@@ -172,6 +184,7 @@ function Thread({
             bottomInset={composerBottomInset}
             topInset={THREAD_HEADER_HEIGHT}
             composerHeight={shown.composerHeight}
+            typists={typing.typists}
             onToggleReaction={thread.toggleReaction}
             editing={editing}
             onViewReactions={viewReactions}
@@ -184,7 +197,7 @@ function Thread({
         onOpenConversation={openConversation}
         onToggleFollowing={state.toggle}
       />
-      {root !== undefined && (
+      {thread.root !== undefined && (
         <FloatingComposer
           ref={composer}
           draftId={draftId}
@@ -192,6 +205,7 @@ function Thread({
           edit={editing}
           mentionable={mentionableIn(conversation, address, profileOf)}
           onHeight={setComposerHeight}
+          onChangeText={typing.report}
           onSend={(draft) => {
             thread.sendMessage(draft);
             list.current?.scrollToLatest();

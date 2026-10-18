@@ -3,73 +3,41 @@ import type { View } from "react-native";
 import type { AnimatedRef, SharedValue } from "react-native-reanimated";
 import { createContext, use, useState } from "react";
 import Animated, {
-  Easing,
   measure,
   useAnimatedReaction,
   useAnimatedRef,
   useAnimatedStyle,
   useSharedValue,
-  withTiming,
 } from "react-native-reanimated";
 
 import type { Blank } from "./blank-space";
 import type { LeaveState } from "./leave";
+import type { Growth } from "./moves";
+import {
+  inFrame,
+  land,
+  moved,
+  MOVES,
+  newMove,
+  pieceShift,
+  rowShift,
+  showWithRoom,
+  startMove,
+} from "./moves";
 import { Place } from "./row-place";
 
-/** How long the messages take to move when a row's space opens or closes. */
-const GROW_MS = 260;
-const GROW_EASING = Easing.out(Easing.cubic);
-
-/**
- * A row that gains or loses space (its first reaction arrives, or its last
- * goes) changes the list's layout once, at full size. Animating the space's
- * height instead re-lays out every row in the list each frame, which ran at
- * 30fps. In that same frame, everything the change moved is drawn back
- * where it was (a transform, which takes no layout) and eases into place.
- *
- * What moves: in an inverted list kept still from the bottom, a row that
- * grows pushes everything above its new space up (older rows, and the
- * pieces of the row itself above the space, see `usePieceLift`), and
- * nothing below it. In a thread with room under its replies, the room
- * changes with it, so the thread's top stays put and what's below the
- * space moves instead (see `blank`).
- */
-interface Growth {
-  /** The growing row's order (see `rowOrder`). */
-  readonly pivot: SharedValue<number>;
-  /** Where in that row the space is (see `Place`). */
-  readonly place: SharedValue<number>;
-  /** How far what moved above the space is drawn from where it's laid out. */
-  readonly offset: SharedValue<number>;
-  /** The same below it, which only moves in a thread (see `blank`). */
-  readonly below: SharedValue<number>;
-  /**
-   * A thread's blank space, which moves the rows as it changes: it's
-   * updated with the row's size at once, so the rows move once, and the
-   * thread's original stays put while its replies move.
-   */
-  readonly blank?: Blank;
-  /** The list, to tell whether a row is on screen. */
-  readonly list: AnimatedRef<View>;
-  /**
-   * The rows closing together, as a deleted message and its time header
-   * do (see `useClose`), or `NONE`.
-   */
-  readonly batch: SharedValue<number>;
-}
+// Rows that grow and shrink while the messages around them stay still
+// (see `Move` in `moves.ts`).
 
 const GrowthContext = createContext<Growth | null>(null);
 
-function useGrowth() {
+export function useGrowth() {
   const growth = use(GrowthContext);
   if (growth === null) {
     throw new Error("Rows that grow must render inside GrowthProvider");
   }
   return growth;
 }
-
-/** No row is growing: no order is below it. */
-const NONE = -1;
 
 /** The list whose rows grow; `list` is the view it fills. */
 export function GrowthProvider({
@@ -81,80 +49,12 @@ export function GrowthProvider({
   blank?: Blank;
   children: ReactNode;
 }) {
-  const pivot = useSharedValue(NONE);
-  const place = useSharedValue(0);
-  const offset = useSharedValue(0);
-  const below = useSharedValue(0);
-  const batch = useSharedValue(NONE);
+  const [moves] = useState(() => Array.from({ length: MOVES }, newMove));
+  const typing = useSharedValue(0);
   return (
-    <GrowthContext value={{ batch, below, blank, list, offset, pivot, place }}>
+    <GrowthContext value={{ blank, list, moves, typing }}>
       {children}
     </GrowthContext>
-  );
-}
-
-/**
- * Whether a row's move adds to the one under way: rows closing together
- * (a deleted message and its time header) move what's above the newest
- * of them by both their heights.
- */
-function movesTogether(growth: Growth, batch: number) {
-  "worklet";
-  return batch !== -1 && growth.batch.get() === batch;
-}
-
-/**
- * Updates a thread's blank space for content that changed by `delta`,
- * and returns how much it changed, which moves every row by that much.
- */
-function blankChange(blank: Blank | undefined, delta: number) {
-  "worklet";
-  if (blank === undefined) return 0;
-  const content = blank.content.get() + delta;
-  const before = blank.space.get();
-  const after = Math.max(0, blank.list.get() - content);
-  blank.content.set(content);
-  blank.space.set(after);
-  return after - before;
-}
-
-/**
- * Draws `measured`'s row as before its space changed by `delta`, then eases
- * it into place. A row below the bottom of the screen is left alone: the
- * list's scroll anchor keeps what's on screen still then, and moves
- * nothing.
- */
-function lift(
-  growth: Growth,
-  { order, place, measured }: Omit<SpaceProps, "animate" | "height">,
-  delta: number,
-  /** Rows closing together (see `useClose`); -1 for none. */
-  batch: number,
-) {
-  "worklet";
-  // A view mounted in this same change can't be measured yet; it's where
-  // the change is, on screen.
-  const row = measure(measured);
-  const list = measure(growth.list);
-  const below =
-    row !== null &&
-    list !== null &&
-    row.pageY + row.height > list.pageY + list.height + 1;
-  if (below) return;
-  const together = movesTogether(growth, batch);
-  // The same row again mid-move (its space measured again) adds to it too.
-  const carries = together || growth.pivot.get() === order;
-  const moved = blankChange(growth.blank, delta);
-  growth.batch.set(batch);
-  growth.pivot.set(together ? Math.max(growth.pivot.get(), order) : order);
-  growth.place.set(place);
-  growth.offset.set((carries ? growth.offset.get() : 0) + delta + moved);
-  growth.below.set((carries ? growth.below.get() : 0) + moved);
-  growth.below.set(withTiming(0, { duration: GROW_MS, easing: GROW_EASING }));
-  growth.offset.set(
-    withTiming(0, { duration: GROW_MS, easing: GROW_EASING }, (finished) => {
-      if (finished === true) growth.batch.set(-1);
-    }),
   );
 }
 
@@ -174,7 +74,13 @@ export function useClose() {
   ) => {
     "worklet";
     const height = measure(measured)?.height ?? room;
-    lift(growth, { measured, order, place: Place.top }, room - height, batch);
+    const move = startMove(
+      growth,
+      { batch, order, place: Place.top },
+      room - height,
+      measured,
+    );
+    land({ height: room, measured, move });
   };
 }
 
@@ -191,29 +97,21 @@ export function useRowLift(
   /** It's leaving now (see `Leave`). */
   leaving: boolean,
 ) {
-  const { pivot, offset, below, place } = useGrowth();
+  const { moves } = useGrowth();
   return useAnimatedStyle(() => {
-    const growing = pivot.get();
-    // A space at the top of a row (see `Settle`) leaves the row below it.
-    const own = withOwn && growing === order && place.get() >= 0;
-    let translateY = 0;
-    if (growing > order || own) {
-      translateY = offset.get();
-    } else if (growing < order) {
-      translateY = below.get();
-    }
-    const transform = [{ translateY }];
+    const { pending, shift } = rowShift(moves, order, withOwn);
+    const style = moved(shift, pending);
     const height = kept.get();
     if (height !== -1) {
       // eslint-disable-next-line vera/no-layout-animation -- Not animated: a leaving row's height changes once, in the same frame as `useClose` draws what moved back where it was.
-      return { height, opacity: 0, overflow: "hidden" as const, transform };
+      return { ...style, height, opacity: 0, overflow: "hidden" as const };
     }
     // Only a row that's leaving, or back from leaving (its deletion
     // failed), sets its opacity: every row's style runs each frame while
     // rows move.
     const faded = opacity.get();
-    if (!leaving && faded === 1) return { transform };
-    return { opacity: leaving ? faded : 1, transform };
+    if (!leaving && faded === 1) return style;
+    return { ...style, opacity: leaving ? faded : 1 };
   });
 }
 
@@ -223,25 +121,25 @@ export function useRowLift(
  * above. In one that moves with them (stacked rows, `rowMoves`), a piece
  * below the space stays put.
  */
-export function usePieceLift(order: number, place: number, rowMoves = false) {
-  const growth = useGrowth();
+export function usePieceLift(
+  order: number,
+  place: number,
+  rowMoves = false,
+  /** How much it shows: what the space opens for. */
+  shown?: SharedValue<number>,
+) {
+  const { moves } = useGrowth();
   return useAnimatedStyle(() => {
-    const growing = growth.pivot.get() === order;
-    const above = growth.place.get() > place;
-    // As in `useRowLift`: a space at a row's top doesn't move the row.
-    const moves = rowMoves && growth.place.get() >= 0;
-    let translateY = 0;
-    if (growing && above && !moves) translateY = growth.offset.get();
-    if (growing && !above) {
-      translateY = growth.below.get() - (moves ? growth.offset.get() : 0);
-    }
-    return { transform: [{ translateY }] };
+    const { pending, shift } = pieceShift(moves, { order, place, rowMoves });
+    const style = moved(shift, pending);
+    if (shown === undefined) return style;
+    return { ...style, opacity: shown.get() };
   });
 }
 
 /**
  * Space in a row that opens to `height` (or closes to 0) at once, while the
- * messages it moves ease into place (see `Growth`). With `animate` off it
+ * messages it moves ease into place (see `Move`). With `animate` off it
  * just changes, as for reactions already there when the row appears.
  * Nothing until it first opens, so rows that never need it cost nothing.
  */
@@ -262,6 +160,11 @@ interface SpaceProps {
   measured: AnimatedRef<View>;
   /** The height it had before it mounted, when that's not 0 or `height`. */
   from?: number;
+  /**
+   * What it opens for, shown as the messages clear it (see `showWithRoom`)
+   * and hidden as it closes.
+   */
+  opened?: SharedValue<number>;
   children?: ReactNode;
 }
 
@@ -272,25 +175,36 @@ function Space({
   animate,
   measured,
   from,
+  opened,
   children,
 }: SpaceProps) {
   const growth = useGrowth();
+  const ref = useAnimatedRef<View>();
   // Opening as it mounts, when what it makes room for arrived while you
   // watched.
   const space = useSharedValue(from ?? (animate ? 0 : height));
   useAnimatedReaction(
     () => height,
     (now) => {
-      const delta = now - space.get();
-      if (delta === 0) return;
-      space.set(now);
-      if (animate) lift(growth, { measured, order, place }, delta, -1);
+      inFrame(() => {
+        const delta = now - space.get();
+        if (delta === 0) return;
+        space.set(now);
+        opened?.set(now > 0 ? showWithRoom() : 0);
+        if (!animate) return;
+        const move = startMove(growth, { order, place }, delta, measured);
+        land({ height: now, measured: ref, move });
+      });
     },
     [height, animate, order, place],
   );
   // eslint-disable-next-line vera/no-layout-animation -- Not animated: the height changes once, in the same frame as the lift, which does the moving.
   const style = useAnimatedStyle(() => ({ height: space.get() }));
-  return <Animated.View style={style}>{children}</Animated.View>;
+  return (
+    <Animated.View ref={ref} style={style}>
+      {children}
+    </Animated.View>
+  );
 }
 
 /**

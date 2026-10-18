@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import type { Becoming } from "./arrive";
 import type { MessageRow } from "./build-rows";
 import type { RowLeaving } from "./leave-rows";
 import type { ReplyCard, ThreadReplies } from "./reply-card";
@@ -77,20 +78,24 @@ export function Row({
   showAuthors,
   highlighted,
   arriving,
+  becoming,
   leaving,
   onFaded,
   onClosed,
 }: RowProps & {
   highlighted: boolean;
   arriving: boolean;
+  /** It takes the typing indicator's place (see `Arrive`). */
+  becoming: Becoming | undefined;
   /** Set while the row leaves, deleted (see `Leave`). */
   leaving: RowLeaving | undefined;
   onFaded: (batch: number) => void;
   onClosed: (batch: number) => void;
 }) {
+  const order = orderOfRow(row);
   return (
     <RowLift
-      order={orderOfRow(row)}
+      order={order}
       // Stacked rows' reactions open below the message, so the row itself
       // moves up as they do.
       withOwn={layout === "stacked"}
@@ -98,7 +103,13 @@ export function Row({
       onFaded={onFaded}
       onClosed={onClosed}
     >
-      <RowShell rowKey={row.key} highlighted={highlighted} arriving={arriving}>
+      <RowShell
+        rowKey={row.key}
+        order={order}
+        highlighted={highlighted}
+        arriving={arriving || becoming !== undefined}
+        becoming={becoming}
+      >
         <RowContent
           row={row}
           self={self}
@@ -134,7 +145,12 @@ function RowLift({
   const leave = useLeaveState();
   const lift = useRowLift(order, withOwn, leave, leaving !== undefined);
   return (
-    <Animated.View ref={measured} style={lift}>
+    <Animated.View
+      ref={measured}
+      // Fading out as one (see `SendingFade`).
+      needsOffscreenAlphaCompositing={leaving !== undefined}
+      style={lift}
+    >
       {leaving !== undefined && (
         <Leave
           leaving={leaving}
@@ -156,19 +172,29 @@ function RowLift({
  */
 function RowShell({
   rowKey,
+  order,
   highlighted,
   arriving,
+  becoming,
   children,
 }: {
   rowKey: string;
+  order: number;
   highlighted: boolean;
   arriving: boolean;
+  becoming: Becoming | undefined;
   children: ReactNode;
 }) {
   if (arriving) {
     return (
-      <Arrive rowKey={rowKey}>
-        <RowShell rowKey={rowKey} highlighted={highlighted} arriving={false}>
+      <Arrive rowKey={rowKey} order={order} becoming={becoming}>
+        <RowShell
+          rowKey={rowKey}
+          order={order}
+          highlighted={highlighted}
+          arriving={false}
+          becoming={undefined}
+        >
           {children}
         </RowShell>
       </Arrive>

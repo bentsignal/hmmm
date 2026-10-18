@@ -2,7 +2,9 @@ import type { Href } from "expo-router";
 import { DevSettings } from "react-native";
 import { router } from "expo-router";
 
+import type { Preferences } from "~/features/preferences/store";
 import { env } from "~/env";
+import { setPreference } from "~/features/preferences/store";
 import { storedAccounts } from "~/features/session/account-store";
 import { devConversation } from "./dev-conversation";
 import { devSignInPath } from "./dev-sign-in-path";
@@ -28,6 +30,13 @@ export function installDevAutomation() {
       },
       reload() {
         DevSettings.reload();
+      },
+      /** Sets a preference, such as `groupLayout`, without the settings. */
+      preference<Key extends keyof Preferences>(
+        key: Key,
+        value: Preferences[Key],
+      ) {
+        setPreference(key, value);
       },
       /** The open conversation, to react and send without tapping. */
       conversation: devConversation,

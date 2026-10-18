@@ -146,7 +146,7 @@ function useSides() {
 function useDraft(
   draftKey: string,
   input: RefObject<TextInput | null>,
-  onChangeText: ((text: string) => void) | undefined,
+  onChangeText: ((text: string, sent: boolean) => void) | undefined,
   mentionable: readonly MentionCandidate[] | undefined,
 ) {
   const [draft, setDraft] = useState(() => readDraft(draftKey).text);
@@ -159,13 +159,13 @@ function useDraft(
   /** When the field was last emptied by sending, until something is typed. */
   const sentAt = useRef<number | null>(null);
 
-  function show(text: string) {
+  function show(text: string, sent = false) {
     setDraft(text);
     saveDraftText(draftKey, text);
-    onChangeText?.(text);
+    onChangeText?.(text, sent);
   }
 
-  function change(text: string) {
+  function change(text: string, sent = false) {
     // Sending while iOS still offers an autocorrection for the last word
     // (tapping send rather than space) lets the keyboard apply it after the
     // field has cleared, putting that word back. Typing adds a letter at a
@@ -180,7 +180,7 @@ function useDraft(
       return;
     }
     if (text !== "") sentAt.current = null;
-    show(mention.edited(text));
+    show(mention.edited(text), sent);
   }
 
   return {
@@ -194,7 +194,7 @@ function useDraft(
     /** Empties the field, returning who the sent text mentions. */
     sent: (text: string) => {
       const mentions = mention.take(text);
-      change("");
+      change("", true);
       sentAt.current = Date.now();
       return mentions;
     },
@@ -288,8 +288,8 @@ export function Composer({
   /** Photos pasted into the field. */
   onPaste: (images: readonly PastedImage[]) => void;
   onRemoveStaged: (id: string) => void;
-  /** Every change to the text, including emptying it on send. */
-  onChangeText?: (text: string) => void;
+  /** Every change to the text, including emptying it on send (`sent`). */
+  onChangeText?: (text: string, sent: boolean) => void;
   /** The bar's height, without the people listed above it. */
   onHeight?: (height: number) => void;
   /** From `useComposerBottomInset`. */
