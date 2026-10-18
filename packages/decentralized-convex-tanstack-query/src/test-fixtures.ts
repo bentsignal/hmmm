@@ -11,6 +11,8 @@ import { DECENTRALIZED_CONVEX_VERSION } from "@decentralized-convex/core";
 import { decentralizedConvexPackage as corePackage } from "@decentralized-convex/core/metadata";
 
 // In-memory PDSs for tests. a.test routes queries to itself and b.test.
+// Asked for the owner "with-included", a.test also answers the owner
+// "included"'s list (see `include` on the PDS).
 
 export interface Note {
   body: string;
@@ -62,6 +64,17 @@ export function memoryTransport(
   return { connections, transport };
 }
 
+function includedWith(url: string, owner: string | undefined) {
+  if (url !== "https://a.test" || owner !== "with-included") return [];
+  return [
+    {
+      request: listNotes({ owner: "included" }),
+      routes: [],
+      value: [{ body: "included", id: "included" }],
+    },
+  ];
+}
+
 export class MemoryConnection implements FederationConnection {
   readonly #answerAfter;
   readonly #publishers = new Set<(body: string) => void>();
@@ -97,6 +110,7 @@ export class MemoryConnection implements FederationConnection {
   ): Promise<FunctionReturnType<Query>> {
     const owner = operationArgs(args).owner;
     const result = {
+      included: includedWith(this.#url, owner),
       routes: this.#url === "https://a.test" ? ["a.test", "b.test"] : [],
       value: [{ body: this.#url, id: owner }],
     };
@@ -111,9 +125,11 @@ export class MemoryConnection implements FederationConnection {
     onResult: (result: FunctionReturnType<Query>) => void,
   ) {
     const routes = this.#url === "https://a.test" ? ["a.test", "b.test"] : [];
+    const url = this.#url;
     function publish(body: string) {
       const owner = operationArgs(args).owner;
       const result = {
+        included: includedWith(url, owner),
         routes,
         value: [{ body, id: owner }],
       };

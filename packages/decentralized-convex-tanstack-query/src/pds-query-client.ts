@@ -3,6 +3,7 @@ import type {
   AnyPdsQueryRequest,
   DecentralizedConvexClient,
   DefaultCombinedPdsResult,
+  IncludedPdsQuery,
   PdsMutationOptions,
   PdsQueryData,
   PdsQueryExecutionOptions,
@@ -11,6 +12,8 @@ import type {
 } from "@decentralized-convex/client";
 import type { Query, QueryClient, QueryMeta } from "@tanstack/react-query";
 import { pdsQueryDataFromSnapshot } from "@decentralized-convex/client";
+
+import { pdsQueryKey } from "./keys.ts";
 
 export const PDS_QUERY_META_KEY = "decentralizedConvexPdsQuery";
 /** Each QueryClient's connected PDS clients, by session (undefined: none). */
@@ -131,6 +134,7 @@ export class PdsQueryClient {
   > {
     try {
       const snapshot = await this.#client.pdsQuery(request, options);
+      this.#cacheIncluded(snapshot.included);
       return pdsQueryDataFromSnapshot(snapshot);
     } catch (error) {
       return {
@@ -155,9 +159,9 @@ export class PdsQueryClient {
       PdsRequestResult<Request>
     >;
     try {
-      data = pdsQueryDataFromSnapshot(
-        await this.#client.pdsQuery(request, options),
-      );
+      const snapshot = await this.#client.pdsQuery(request, options);
+      this.#cacheIncluded(snapshot.included);
+      data = pdsQueryDataFromSnapshot(snapshot);
     } catch (error) {
       data = {
         error: toError(error),
@@ -190,8 +194,13 @@ export class PdsQueryClient {
     this.#activeQueries.set(query.queryHash, active);
     const observer = this.#client.watchPdsQuery(config.request, config.options);
     const requireCompleteResults = config.options.requireCompleteResults;
-    function publish() {
+    let cached: readonly IncludedPdsQuery[] | undefined;
+    const publish = () => {
       const snapshot = observer.getSnapshot();
+      if (snapshot.included !== cached) {
+        cached = snapshot.included;
+        this.#cacheIncluded(snapshot.included);
+      }
       if (requireCompleteResults && snapshot.status !== "success") return;
       // A result already in the cache (from an earlier subscription, such
       // as a screen opened again, or from a fetch or prefetch) stays until
@@ -206,13 +215,36 @@ export class PdsQueryClient {
         query.queryKey,
         pdsQueryDataFromSnapshot(snapshot),
       );
-    }
+    };
     const unsubscribe = observer.subscribe(publish);
     active.close = () => {
       unsubscribe();
       observer.close();
     };
     publish();
+  }
+
+  /**
+   * Caches the results that came with another query, before that query's
+   * own result shows, so a screen showing both has them at once. A query
+   * this client is watching is left alone: its live result is as new.
+   */
+  #cacheIncluded(included: readonly IncludedPdsQuery[] = []) {
+    for (const queryClient of this.#connections.keys()) {
+      for (const { request, snapshot } of included) {
+        const queryKey = pdsQueryKey(request, this.#session);
+        const existing = queryClient
+          .getQueryCache()
+          .find({ exact: true, queryKey });
+        if (
+          existing !== undefined &&
+          this.#activeQueries.has(existing.queryHash)
+        ) {
+          continue;
+        }
+        queryClient.setQueryData(queryKey, pdsQueryDataFromSnapshot(snapshot));
+      }
+    }
   }
 
   #stopQuery(queryHash: string) {

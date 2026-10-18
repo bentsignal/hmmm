@@ -231,16 +231,15 @@ export async function list(
     self,
   );
   const { around: anchor, conversationId } = args;
-  let page: MessagePage;
-  if (anchor === undefined) {
-    page = await pageOf(ctx, { conversationId }, args);
-  } else {
+  async function load(): Promise<MessagePage> {
+    if (anchor === undefined) return pageOf(ctx, { conversationId }, args);
     const centered = await around(ctx, conversationId, anchor);
     if (centered === null) fail("MESSAGE_NOT_FOUND");
-    page = centered;
+    return centered;
   }
-  return {
-    page: { ...page, messages: page.messages.map(toMessage) },
-    routes: await memberAddresses(ctx, found),
-  };
+  const [page, routes] = await Promise.all([
+    load(),
+    memberAddresses(ctx, found),
+  ]);
+  return { page: { ...page, messages: page.messages.map(toMessage) }, routes };
 }

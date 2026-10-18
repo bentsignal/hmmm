@@ -18,26 +18,12 @@ import type {
 } from "@tanstack/react-query";
 import { mutationOptions } from "@tanstack/react-query";
 
+import type { PdsQueryKey } from "./keys.ts";
+import { pdsQueryKey } from "./keys.ts";
 import { connectedPdsClient, PDS_QUERY_META_KEY } from "./pds-query-client.ts";
 
-export type PdsQueryKey<Request extends AnyPdsQueryRequest> =
-  | readonly ["decentralized-convex", "pds", "query", Request]
-  | readonly [
-      "decentralized-convex",
-      "pds",
-      "session",
-      string,
-      "query",
-      Request,
-    ];
-
-/**
- * The key prefix of every query in one account session, for invalidating or
- * removing them together, such as on sign-out.
- */
-export function pdsSessionQueryKey(session: string) {
-  return ["decentralized-convex", "pds", "session", session] as const;
-}
+export { pdsQueryKey, pdsSessionQueryKey } from "./keys.ts";
+export type { PdsQueryKey } from "./keys.ts";
 
 type QueryData<Request extends AnyPdsQueryRequest> = PdsQueryData<
   DefaultCombinedPdsResult<Request>,
@@ -169,10 +155,7 @@ function pdsQueryOptions<Request extends AnyPdsQueryRequest>(
       ? {}
       : { revealPartialResultsAfter }),
   };
-  const queryKey: PdsQueryKey<typeof request> =
-    session === undefined
-      ? ["decentralized-convex", "pds", "query", request]
-      : [...pdsSessionQueryKey(session), "query", request];
+  const queryKey = pdsQueryKey(request, session);
   const sharedOptions = {
     meta: {
       [PDS_QUERY_META_KEY]: {

@@ -6,6 +6,8 @@ import type {
   FunctionReturnType,
 } from "convex/server";
 
+import type { SerializedPdsRequest } from "./api.ts";
+
 export type FederationQueryReference = FunctionReference<
   "query",
   "public",
@@ -57,8 +59,19 @@ export type FederationSourceSnapshot<Result> =
 
 export interface FederatedQuerySnapshot<Combined, Result> {
   data: Combined;
+  /**
+   * Other queries' results that came with this one from the home PDS,
+   * complete there, for the client to cache (see `include` on the PDS).
+   */
+  included?: readonly IncludedPdsQuery[];
   sources: readonly FederationSourceSnapshot<Result>[];
   status: FederatedQueryStatus;
+}
+
+/** Another query's complete result, answered along with the one asked. */
+export interface IncludedPdsQuery {
+  readonly request: SerializedPdsRequest;
+  readonly snapshot: FederatedQuerySnapshot<unknown, unknown>;
 }
 
 export interface SuccessfulFederationSource<Result> {

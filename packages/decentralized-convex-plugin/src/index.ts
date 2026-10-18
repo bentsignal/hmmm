@@ -17,6 +17,7 @@ export {
   operationValidator,
   queryRequest,
   queryRequestValidator,
+  queryResponseValidator,
 } from "./operations.ts";
 export type {
   AnyOperation,

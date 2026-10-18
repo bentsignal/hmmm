@@ -71,6 +71,62 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         },
         Name
       >;
+      dispatchQueries: FunctionReference<
+        "query",
+        "internal",
+        {
+          identity: null | {
+            accountId?: string;
+            email?: string;
+            issuer: string;
+            name?: string;
+            subject: string;
+            tokenIdentifier: string;
+          };
+          requests: Array<{
+            lastChanged: string;
+            operation: { args: any; type: string };
+            plugin: string;
+            version: string;
+          }>;
+        },
+        Array<
+          | null
+          | {
+              include?: Array<{
+                lastChanged: string;
+                operation: { args: any; type: string };
+                plugin: string;
+                version: string;
+              }>;
+              routes?: Array<string>;
+              type: "getMyProfile";
+              value: null | {
+                accountId: string;
+                affiliated?: boolean;
+                avatarUrl: null | string;
+                displayName: string;
+              };
+            }
+          | {
+              include?: Array<{
+                lastChanged: string;
+                operation: { args: any; type: string };
+                plugin: string;
+                version: string;
+              }>;
+              routes?: Array<string>;
+              type: "getProfile";
+              value: null | {
+                accountId: string;
+                affiliated?: boolean;
+                avatarUrl: null | string;
+                displayName: string;
+              };
+            }
+        >,
+        Name
+      >;
       dispatchQuery: FunctionReference<
         "query",
         "internal",
@@ -90,6 +146,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           version: string;
         },
         | {
+            include?: Array<{
+              lastChanged: string;
+              operation: { args: any; type: string };
+              plugin: string;
+              version: string;
+            }>;
             routes?: Array<string>;
             type: "getMyProfile";
             value: null | {
@@ -100,6 +162,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             };
           }
         | {
+            include?: Array<{
+              lastChanged: string;
+              operation: { args: any; type: string };
+              plugin: string;
+              version: string;
+            }>;
             routes?: Array<string>;
             type: "getProfile";
             value: null | {

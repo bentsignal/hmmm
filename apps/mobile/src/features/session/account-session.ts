@@ -11,7 +11,11 @@ import type { StoredAccount } from "./account-store";
 import { forgetAccountNotifications } from "~/features/notifications/presented";
 import { removeStoredAccount, storedAccounts } from "./account-store";
 import { createHomeAuthClient } from "./auth-client";
-import { createFederationAuthTokenFetcher, homeToken } from "./federation-auth";
+import {
+  createFederationAuthTokenFetcher,
+  forgetHomeToken,
+  homeToken,
+} from "./federation-auth";
 
 /**
  * The app's one TanStack cache. Every signed-in account's PDS queries live
@@ -26,7 +30,11 @@ export const queryClient = new QueryClient({
 function createAccountSession(stored: StoredAccount, home: DiscoveredPds) {
   const authClient = createHomeAuthClient(home, stored.storagePrefix);
   const transport = new DecentralizedConvexClient({
-    getAuthToken: createFederationAuthTokenFetcher(authClient, home),
+    getAuthToken: createFederationAuthTokenFetcher(
+      authClient,
+      home,
+      stored.storagePrefix,
+    ),
     pds: { home },
   });
   const pdsClient = new PdsQueryClient(transport, {
@@ -90,6 +98,7 @@ export function liveSession(address: string) {
 /** Forgets an account on this device and drops its cached data. */
 export function closeAccountSession(session: AccountSession) {
   removeStoredAccount(session.address);
+  forgetHomeToken(session.storagePrefix);
   sessions.delete(session.storagePrefix);
   session.pds.disconnect(queryClient);
   void session.transport.close();

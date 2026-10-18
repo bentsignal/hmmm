@@ -184,9 +184,25 @@ export function operationResponseValidator<
 >(
   operations: Operations,
 ): Validator<OperationResponse<Operations>, "required", string> {
+  return responseValidator(operations, false);
+}
+
+/** Like `operationResponseValidator`, with the queries a result includes. */
+export function queryResponseValidator<const Operations extends OperationMap>(
+  operations: Operations,
+): Validator<OperationResponse<Operations>, "required", string> {
+  return responseValidator(operations, true);
+}
+
+function responseValidator<const Operations extends OperationMap>(
+  operations: Operations,
+  includes: boolean,
+): Validator<OperationResponse<Operations>, "required", string> {
   const members = Object.entries(operations).map(([type, operation]) =>
     v.object({
-      include: v.optional(v.array(queryRequestValidator)),
+      ...(includes
+        ? { include: v.optional(v.array(queryRequestValidator)) }
+        : {}),
       routes: v.optional(v.array(v.string())),
       type: v.literal(type),
       value: operation.returns,

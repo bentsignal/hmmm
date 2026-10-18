@@ -214,3 +214,55 @@ function useCompletePdsQueryTypeTest() {
 }
 
 void useCompletePdsQueryTypeTest;
+
+void test("caches the results a query includes, unless they're watched", async () => {
+  const { connections, transport } = memoryTransport("a.test");
+  const queryClient = new QueryClient();
+  const disconnect = new PdsQueryClient(transport).connect(queryClient);
+  const included = pdsQuery({
+    args: { owner: "included" },
+    options: { revealPartialResultsAfter: 0 },
+    query: listNotes,
+  });
+
+  await queryClient.fetchQuery(
+    pdsQuery({
+      args: { owner: "with-included" },
+      options: { revealPartialResultsAfter: 0 },
+      query: listNotes,
+    }),
+  );
+  const fetched = queryClient.getQueryData<
+    PdsQueryData<Note[], readonly Note[]>
+  >(included.queryKey);
+  assert.equal(fetched?.status, "success");
+  assert.deepEqual(fetched.result, [{ body: "included", id: "included" }]);
+
+  // Watched, it shows its own live result, not what came with another.
+  const observer = new QueryObserver(queryClient, included);
+  const unsubscribe = observer.subscribe(() => undefined);
+  await nextTask();
+  connections.get("https://a.test")?.emit("live");
+  await nextTask();
+  const watcher = new QueryObserver(
+    queryClient,
+    pdsQuery({
+      args: { owner: "with-included" },
+      options: { revealPartialResultsAfter: 0 },
+      query: listNotes,
+    }),
+  );
+  const unwatch = watcher.subscribe(() => undefined);
+  await nextTask();
+  const live = queryClient.getQueryData<PdsQueryData<Note[], readonly Note[]>>(
+    included.queryKey,
+  );
+  assert.deepEqual(live?.status === "success" && live.result[0], {
+    body: "live",
+    id: "included",
+  });
+
+  unwatch();
+  unsubscribe();
+  disconnect();
+});

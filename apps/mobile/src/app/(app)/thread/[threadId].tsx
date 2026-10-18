@@ -111,10 +111,14 @@ function Thread({
   const { address } = useAccount();
   const devTools = useDevTools();
   const viewReactions = useReactionsSheet(conversationId);
-  const { conversation, profileOf, profilesLoaded, title } =
-    useConversation(conversationId);
-  const layout = useMessageLayout(conversation?.kind);
   const thread = useMessages(conversationId, { threadId });
+  const { conversation, profileOf, profilesLoaded, title } = useConversation(
+    conversationId,
+    thread.root === undefined
+      ? thread.messages
+      : [thread.root, ...thread.messages],
+  );
+  const layout = useMessageLayout(conversation?.kind);
   const state = useThreadState(conversationId, threadId);
   const [composerHeight, setComposerHeight] = useState<number>();
   const list = useRef<MessageListHandle>(null);

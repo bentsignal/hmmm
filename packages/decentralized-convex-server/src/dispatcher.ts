@@ -6,7 +6,6 @@ import type {
   OperationResult,
   PluginProtocol,
   PluginRequirements,
-  QueryRequest,
 } from "@decentralized-convex/plugin";
 import type {
   Auth,
@@ -21,12 +20,18 @@ import {
   operationResponseValidator,
   operationValidator,
   queryRequestValidator,
+  queryResponseValidator,
 } from "@decentralized-convex/plugin";
 import { ConvexError, v } from "convex/values";
 
 import type { DispatcherComponents } from "./dispatcher-types.ts";
 import type { RoutedQueryResult } from "./routed-query.ts";
-import { isRoutedQueryResult } from "./routed-query.ts";
+import {
+  answerIncluded,
+  dispatchRequests,
+  invokeQueryOperation,
+  queryResponse,
+} from "./query-dispatch.ts";
 
 export interface DispatcherIdentity {
   readonly [key: string]: string | undefined;
@@ -111,7 +116,7 @@ export function defineComponentDispatchers<
 }) {
   const queryOperation = operationValidator(protocol.queries);
   const mutationOperation = operationValidator(protocol.mutations);
-  const queryReturns = operationResponseValidator(protocol.queries);
+  const queryReturns = queryResponseValidator(protocol.queries);
   const mutationReturns = operationResponseValidator(protocol.mutations);
 
   return {
@@ -149,7 +154,12 @@ export function defineComponentDispatchers<
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         queryResponse(
           operation.type,
-          await invokeQueryOperation(handlers.queries, ctx, identity, operation),
+          await invokeQueryOperation(
+            handlers.queries,
+            ctx,
+            identity,
+            operation,
+          ),
         ) as ValidatorTypeToReturnType<OperationResponse<Queries>>,
     }),
     /**
@@ -164,51 +174,18 @@ export function defineComponentDispatchers<
       },
       returns: v.array(v.union(v.null(), queryReturns)),
       handler: async (ctx, { identity, requests }) =>
-        Promise.all(
-          requests.map(async (request) => {
-            if (
-              request.plugin !== protocol.name ||
-              request.lastChanged !== protocol.lastChanged ||
-              !Object.hasOwn(handlers.queries, request.operation.type)
-            ) {
-              return null;
-            }
-            // Only the router calls this, with requests this PDS's plugins
-            // built, so their arguments are already well formed.
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-            const operation = request.operation as OperationRequest<Queries>;
-            try {
-              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-              return queryResponse(
-                operation.type,
-                await invokeQueryOperation(
-                  handlers.queries,
-                  ctx,
-                  identity,
-                  operation,
-                ),
-              ) as ValidatorTypeToReturnType<OperationResponse<Queries>>;
-            } catch {
-              return null;
-            }
-          }),
-        ),
+        // Convex applies a top-level nullability transform that cannot be proven for an open union.
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        (await dispatchRequests(
+          handlers.queries,
+          protocol,
+          ctx,
+          identity,
+          requests,
+        )) as (OperationResponse<Queries> | null)[],
     }),
   } as const;
 }
-
-function queryResponse(type: string, result: unknown) {
-  if (!isRoutedQueryResult(result)) return { type, value: result };
-  return {
-    ...(result.include.length > 0 ? { include: result.include } : {}),
-    routes: result.routes,
-    type,
-    value: result.data,
-  };
-}
-
-/** At most this many queries are answered along with another. */
-const MAX_INCLUDED_QUERIES = 200;
 
 export function definePdsRouter<DataModel extends GenericDataModel>({
   components,
@@ -274,77 +251,6 @@ export function definePdsRouter<DataModel extends GenericDataModel>({
       },
     }),
   } as const;
-}
-
-/**
- * Answers the queries a result includes, one call per plugin, so the
- * client gets them in the same round trip. A plugin that isn't installed,
- * predates included queries, or fails leaves its queries out; the client
- * then asks for them as usual.
- */
-async function answerIncluded(
-  ctx: Pick<GenericQueryCtx<GenericDataModel>, "runQuery">,
-  components: DispatcherComponents,
-  identity: DispatcherIdentity | null,
-  include: readonly QueryRequest[],
-) {
-  const byPlugin = new Map<string, QueryRequest[]>();
-  for (const request of include.slice(0, MAX_INCLUDED_QUERIES)) {
-    byPlugin.set(request.plugin, [
-      ...(byPlugin.get(request.plugin) ?? []),
-      request,
-    ]);
-  }
-  const answered = await Promise.all(
-    [...byPlugin].map(async ([plugin, requests]) => {
-      const dispatchQueries = components[plugin]?.dispatcher.dispatchQueries;
-      if (dispatchQueries === undefined) return [];
-      try {
-        const responses = await ctx.runQuery(dispatchQueries, {
-          identity,
-          requests,
-        });
-        return requests.flatMap((request, index) => {
-          const response = responses[index];
-          return response == null
-            ? []
-            : [
-                {
-                  request,
-                  routes: response.routes ?? [],
-                  value: response.value,
-                },
-              ];
-        });
-      } catch {
-        return [];
-      }
-    }),
-  );
-  return answered.flat();
-}
-
-function invokeQueryOperation<Operations extends OperationMap, Context>(
-  handlers: QueryOperationHandlers<Operations, Context>,
-  ctx: Context,
-  identity: DispatcherIdentity | null,
-  operation: OperationRequest<Operations>,
-): MaybePromise<
-  | OperationResult<Operations[keyof Operations]>
-  | RoutedQueryResult<OperationResult<Operations[keyof Operations]>>
-> {
-  const handler = handlers[operation.type];
-  if (typeof handler !== "function") {
-    throw new ConvexError({
-      code: "UNKNOWN_PLUGIN_OPERATION",
-      operation: operation.type,
-    });
-  }
-
-  return Reflect.apply(handler, undefined, [
-    ctx,
-    { args: operation.args, identity },
-  ]);
 }
 
 function invokeOperation<Operations extends OperationMap, Context>(

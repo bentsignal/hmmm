@@ -3,6 +3,7 @@ import type {
   Message as PdsMessage,
 } from "@decentralized-convex/messages";
 import type { PdsOptimisticLocalStore } from "@decentralized-convex/tanstack-query";
+import { useState } from "react";
 // eslint-disable-next-line no-restricted-imports -- Expo Router has no route loaders to preload suspense queries.
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { listNames } from "@decentralized-convex/messages";
@@ -87,7 +88,46 @@ function settledTitle(
     : conversationTitle(conversation, self, displayName);
 }
 
-export function useConversation(conversationId: string) {
+/** What `useConversation` reads of the messages a screen shows. */
+interface ShownMessage {
+  readonly authorId: string;
+  readonly quote?: { readonly authorId: string };
+  readonly thread?: { readonly repliers: readonly string[] };
+}
+
+/**
+ * Who a list of messages shows: their authors, the authors of what replies
+ * quote, and who replied in their threads.
+ */
+function peopleShown(messages: readonly ShownMessage[]) {
+  return messages.flatMap(({ authorId, quote, thread }) => [
+    authorId,
+    ...(quote === undefined ? [] : [quote.authorId]),
+    ...(thread?.repliers ?? []),
+  ]);
+}
+
+/**
+ * Whether a screen's names and photos are in. Once they are, it stays
+ * that way: someone new writing doesn't take the screen back to loading
+ * while their name loads.
+ */
+function useProfilesSettled(loaded: boolean, profilesIn: boolean) {
+  const ready = loaded && profilesIn;
+  const [settled, setSettled] = useState(false);
+  if (ready && !settled) setSettled(true);
+  return settled || ready;
+}
+
+/**
+ * A conversation, and the profiles of its members and of the people its
+ * `messages` show (see `peopleShown`).
+ */
+export function useConversation(
+  conversationId: string,
+  messages: readonly ShownMessage[] = [],
+) {
+  const shown = peopleShown(messages);
   const { address } = useAccount();
   const { data } = useQuery(
     pdsQuery({
@@ -98,11 +138,19 @@ export function useConversation(conversationId: string) {
     }),
   );
   const known = data === undefined ? directConversation(conversationId) : data;
-  const profiles = useProfileState(known?.members ?? []);
-  const { profileOf } = profiles;
+  const members = known?.members ?? [];
+  const { isLoaded, profileOf } = useProfileState([...members, ...shown]);
   function displayName(account: string) {
     return profileOf(account).displayName;
   }
+  const profilesLoaded = useProfilesSettled(
+    data != null,
+    // A channel's members are everyone in its space, so it waits only for
+    // the people its messages show; the rest load for @mentions.
+    (known?.kind === "channel" ? shown : [...members, ...shown]).every(
+      isLoaded,
+    ),
+  );
   return {
     conversation: data ?? undefined,
     displayName,
@@ -110,12 +158,15 @@ export function useConversation(conversationId: string) {
     /** Its kind, known before it loads for a direct conversation. */
     kind: known?.kind,
     /** Its members, known before it loads for a direct conversation. */
-    members: known?.members ?? [],
-    /** Every member's profile is known, so names and photos won't change. */
-    profilesLoaded: data != null && !profiles.isLoading,
+    members,
+    /**
+     * The names and photos it shows are known, so they won't change: its
+     * members' (a channel's are too many), and those `messages` show.
+     */
+    profilesLoaded,
     profileOf,
     /** Empty until every name it's made of is known, so it never changes. */
-    title: settledTitle(known, !profiles.isLoading, address, displayName),
+    title: settledTitle(known, members.every(isLoaded), address, displayName),
   };
 }
 

@@ -11,7 +11,12 @@ export { federatedQueryOptions } from "./options.ts";
 export type { FederatedTanStackQueryOptions } from "./options.ts";
 export { IncompletePdsQueryError, PdsQueryClient } from "./pds-query-client.ts";
 export type { PdsQueryClientOptions } from "./pds-query-client.ts";
-export { pdsMutation, pdsQuery, pdsSessionQueryKey } from "./pds.ts";
+export {
+  pdsMutation,
+  pdsQuery,
+  pdsQueryKey,
+  pdsSessionQueryKey,
+} from "./pds.ts";
 export type {
   CompletePdsQueryBuilderOptions,
   CompletePdsQueryConfig,
