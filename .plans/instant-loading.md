@@ -81,19 +81,27 @@ deletes what's saved and saves nothing until the next launch.
   - Inbox while touched or scrolling: the update waits until the list
     rests, then applies at once. This applies to live updates too.
 
-## Pass 3: keep recent chats current (stacked on pass 2)
+## Pass 3: keep recent chats current (#151, stacked on pass 2)
 
-- Chats you've been in that have live activity stay live for a few minutes
-  after you leave, so reopening one shows the new messages (and who's
-  typing, once typing indicators land) immediately.
-- When the live inbox shows a saved conversation changed, fetch just its
-  first page (one request) and save it. Quiet chats cost nothing.
-- A "last changed" marker on each conversation, so reactions and edits
-  count as changes.
-- Fetching starts when a finger lands on a row.
+- [x] Who's typing comes with a chat's first load: the PDS includes it with
+      the conversation and with a thread's page, and the chat waits for it
+      before fading in, so the indicator never pops in after. A saved chat
+      shows nobody typing until the PDS says.
+- [x] Chats you leave stay live for three minutes (five at most), so
+      reopening one shows its new messages, reactions, and who's typing at
+      once (`features/messaging/stay-live.ts`).
+- [x] A `changedAt` marker on each conversation, set by messages, replies,
+      edits, deletions, and reactions.
+- [x] When the live Inbox shows a saved conversation changed while it isn't
+      open or staying live, its latest messages are fetched again (two at a
+      time) and the next save writes them (`features/saved/refresh-saved.ts`,
+      with each saved conversation's version in `versions.json`). Quiet
+      conversations cost nothing.
+- [x] Inbox rows start loading as a finger lands.
 
 ## Later
 
-- Typing indicators merge first (another worktree); this stack merges main
-  in after and shows who's typing instantly too.
+- Typing indicators merged to main and into this stack (done).
+- Not covered: a connection that drops while a screen is already open
+  shows no pill; that would need the client's connection state.
 - Shawn merges the whole stack at once, after testing.
