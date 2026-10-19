@@ -94,6 +94,7 @@ export async function commentOnIssue(
 
 const PULL_REQUEST_FIELDS = `number url state merged baseRefName
   mergeCommit { oid }
+  labels(first: 20) { nodes { name } }
   files(first: 100) { nodes { path } }`;
 
 /** Each issue's state, by number, in one request. Missing issues are left out. */
@@ -140,6 +141,9 @@ export async function issueStates(
       .map((pr) => ({
         mergeCommit: stringOrNull(read(read(pr, "mergeCommit"), "oid")),
         merged: read(pr, "merged") === true,
+        native: nodes(read(pr, "labels")).some((label) =>
+          isNativeLabel(read(label, "name")),
+        ),
         open: read(pr, "state") === "OPEN",
         paths: nodes(read(pr, "files"))
           .map((file) => read(file, "path"))
@@ -211,8 +215,12 @@ export async function pullRequestFix(config: GitHubConfig, number: number) {
     github(config, path),
     github(config, `${path}/files?per_page=100`),
   ]);
+  const labels = read(pr, "labels");
   return {
     mergeCommit: stringOrNull(read(pr, "merge_commit_sha")),
+    native: (Array.isArray(labels) ? labels : []).some((label: unknown) =>
+      isNativeLabel(read(label, "name")),
+    ),
     paths: (Array.isArray(files) ? files : [])
       .map((file) => read(file, "filename"))
       .filter((name) => typeof name === "string"),
@@ -228,6 +236,11 @@ export function read(value: unknown, name: string): unknown {
 function nodes(connection: unknown): unknown[] {
   const list = read(connection, "nodes");
   return Array.isArray(list) ? list : [];
+}
+
+/** CI's label for a PR that changes native code (only a store build ships it). */
+function isNativeLabel(name: unknown) {
+  return typeof name === "string" && name.includes("Native Change");
 }
 
 /** The start of an issue or pull request's description. */

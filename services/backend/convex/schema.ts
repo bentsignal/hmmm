@@ -143,6 +143,7 @@ export default defineSchema({
       v.object({
         app: v.boolean(),
         backend: v.boolean(),
+        native: v.optional(v.boolean()),
         sha: v.string(),
       }),
     ),

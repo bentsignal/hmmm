@@ -124,6 +124,8 @@ export interface IssueState {
     readonly mergeCommit: string | null;
     readonly merged: boolean;
     readonly open: boolean;
+    /** CI labeled it "📱 Native Change": only a store build ships it. */
+    readonly native: boolean;
     readonly paths: readonly string[];
     readonly ref: PullRequestRef;
   }[];
@@ -131,8 +133,26 @@ export interface IssueState {
   readonly stateReason: string | null;
 }
 
+/** A fix's commit and what it needs before people have it. */
+export interface Fix {
+  readonly app: boolean;
+  readonly backend: boolean;
+  readonly native: boolean;
+  readonly sha: string;
+}
+
+/** The phone a reporter uses, from the OS their app reports. */
+export type Platform = "android" | "ios" | null;
+
+export function platformOf(os: string | undefined): Platform {
+  if (os === undefined) return null;
+  if (/^ios/i.test(os)) return "ios";
+  if (/^android/i.test(os)) return "android";
+  return null;
+}
+
 export interface ReportProgress {
-  readonly fix?: { app: boolean; backend: boolean; sha: string };
+  readonly fix?: Fix;
   readonly pullRequest?: PullRequestRef;
   readonly stage: ReportStage;
 }
@@ -144,7 +164,11 @@ export function progressOf(issue: IssueState): ReportProgress {
   );
   if (merged?.mergeCommit) {
     return {
-      fix: { ...releaseNeeds(merged.paths), sha: merged.mergeCommit },
+      fix: {
+        ...releaseNeeds(merged.paths),
+        native: merged.native,
+        sha: merged.mergeCommit,
+      },
       pullRequest: merged.ref,
       stage: "fixed",
     };
@@ -158,7 +182,12 @@ export function progressOf(issue: IssueState): ReportProgress {
     }
     if (issue.closingCommit !== null) {
       return {
-        fix: { app: true, backend: true, sha: issue.closingCommit },
+        fix: {
+          app: true,
+          backend: true,
+          native: false,
+          sha: issue.closingCommit,
+        },
         stage: "fixed",
       };
     }
@@ -212,6 +241,7 @@ export type Delivery = "update" | "build" | "server" | "unknown";
 
 export interface UpdateContext {
   readonly delivery?: Delivery;
+  readonly platform?: Platform;
   readonly developer: boolean;
   readonly issueUrl?: string;
   readonly pullRequest?: PullRequestRef;
@@ -254,7 +284,7 @@ const UPDATES: Record<ReportStage, (context: UpdateContext) => string[]> = {
     ),
   ],
   live: (context) => [
-    LIVE_MESSAGES[context.delivery ?? "unknown"](context.summary),
+    liveMessage(context),
     ...developerLink(
       context,
       context.release && `Shipped in ${context.release}`,
@@ -272,11 +302,23 @@ function developerLink(context: UpdateContext, line: string | undefined) {
   return context.developer && line ? [line] : [];
 }
 
-const LIVE_MESSAGES: Record<Delivery, (what: string) => string> = {
-  update: (what) =>
-    `The fix for the bug you reported (${what}) is out. Close and reopen Vera to get it.`,
-  build: (what) =>
-    `The fix for the bug you reported (${what}) is out. Update Vera to the newest version to get it.`,
-  server: (what) => `The fix for the bug you reported (${what}) is live now.`,
-  unknown: (what) => `The bug you reported (${what}) is fixed now.`,
+/** Where someone gets a store build, by their phone. */
+const STORES: Record<NonNullable<Platform> | "unknown", string> = {
+  android: "Google Play",
+  ios: "TestFlight or the App Store",
+  unknown: "your app store",
 };
+
+function liveMessage({ delivery, platform, summary }: UpdateContext) {
+  const what = `the bug you reported (${summary})`;
+  switch (delivery ?? "unknown") {
+    case "update":
+    case "server":
+      // An update over the air: reading this in Vera, they have it.
+      return `The fix for ${what} is live now.`;
+    case "build":
+      return `The fix for ${what} is out in the newest version of Vera. Update it from ${STORES[platform ?? "unknown"]} to get it.`;
+    case "unknown":
+      return `${what.charAt(0).toUpperCase()}${what.slice(1)} is fixed now.`;
+  }
+}

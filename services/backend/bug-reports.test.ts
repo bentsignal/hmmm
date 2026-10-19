@@ -7,6 +7,7 @@ import {
   isNewStage,
   issueFor,
   newestTag,
+  platformOf,
   progressOf,
   releaseNeeds,
   updateMessage,
@@ -68,6 +69,7 @@ void test("an issue's stage follows assignment, pull requests, and merges", () =
   const open = {
     mergeCommit: null,
     merged: false,
+    native: false,
     open: true,
     paths: [],
     ref: pr,
@@ -86,7 +88,7 @@ void test("an issue's stage follows assignment, pull requests, and merges", () =
   assert.deepEqual(
     progressOf({ ...openIssue, pullRequests: [merged], state: "CLOSED" }),
     {
-      fix: { app: true, backend: false, sha: "abc" },
+      fix: { app: true, backend: false, native: false, sha: "abc" },
       pullRequest: pr,
       stage: "fixed",
     },
@@ -105,7 +107,10 @@ void test("closed issues: not planned, by a commit, or just closed", () => {
   );
   assert.deepEqual(
     progressOf({ ...closed, closingCommit: "def", stateReason: "COMPLETED" }),
-    { fix: { app: true, backend: true, sha: "def" }, stage: "fixed" },
+    {
+      fix: { app: true, backend: true, native: false, sha: "def" },
+      stage: "fixed",
+    },
   );
   assert.equal(
     progressOf({ ...closed, stateReason: "COMPLETED" }).stage,
@@ -174,10 +179,40 @@ void test("updates are plain for most people and add links for developers", () =
   );
   assert.match(
     updateMessage("live", { ...context, delivery: "update" }) ?? "",
-    /Close and reopen Vera/,
+    /is live now\.$/,
   );
   assert.match(
-    updateMessage("live", { ...context, delivery: "build" }) ?? "",
-    /newest version/,
+    updateMessage("live", { ...context, delivery: "build", platform: "ios" }) ??
+      "",
+    /Update it from TestFlight or the App Store/,
+  );
+  assert.match(
+    updateMessage("live", {
+      ...context,
+      delivery: "build",
+      platform: "android",
+    }) ?? "",
+    /Update it from Google Play/,
+  );
+});
+
+void test("a reporter's phone comes from the OS their app reports", () => {
+  assert.equal(platformOf("iOS 26.1"), "ios");
+  assert.equal(platformOf("Android 16"), "android");
+  assert.equal(platformOf(undefined), null);
+});
+
+void test("a native fix is marked from its PR's label", () => {
+  const nativePr = {
+    mergeCommit: "abc",
+    merged: true,
+    native: true,
+    open: false,
+    paths: ["apps/mobile/app.config.ts"],
+    ref: pr,
+  };
+  assert.equal(
+    progressOf({ ...openIssue, pullRequests: [nativePr] }).fix?.native,
+    true,
   );
 });

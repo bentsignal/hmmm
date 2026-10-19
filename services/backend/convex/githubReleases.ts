@@ -1,4 +1,4 @@
-import type { Delivery, ReportStage } from "../bug-reports";
+import type { Delivery, Fix, Platform, ReportStage } from "../bug-reports";
 import type { GitHubConfig } from "./github";
 import { newestTag } from "../bug-reports";
 import { github, read } from "./github";
@@ -8,12 +8,13 @@ import { github, read } from "./github";
 
 /** The newest production releases, by kind (see docs/releasing.md). */
 export async function latestReleases(config: GitHubConfig) {
-  const [update, build, backend] = await Promise.all([
+  const [update, build, androidBuild, backend] = await Promise.all([
     newestRelease(config, "mobile/ota/production/"),
     newestRelease(config, "mobile/build/"),
+    newestRelease(config, "mobile/android/build/"),
     newestRelease(config, "backend/deploy/"),
   ]);
-  return { backend, build, update };
+  return { androidBuild, backend, build, update };
 }
 
 async function newestRelease(config: GitHubConfig, prefix: string) {
@@ -55,7 +56,8 @@ export function lazyReleases(config: GitHubConfig) {
 export async function delivered(
   config: GitHubConfig,
   releases: Releases,
-  fix: { app: boolean; backend: boolean; sha: string },
+  fix: Fix,
+  platform: Platform,
 ): Promise<{ delivery?: Delivery; release?: string; stage: ReportStage }> {
   async function includes(tag: string | null) {
     return tag !== null && (await tagIncludes(config, tag, fix.sha));
@@ -63,26 +65,25 @@ export async function delivered(
   if (fix.backend && !(await includes(releases.backend))) {
     return { stage: "fixed" };
   }
-  if (!fix.app) {
-    return {
-      delivery: "server",
-      release: releases.backend ?? undefined,
-      stage: "live",
-    };
+  if (!fix.app) return live("server", releases.backend);
+  // Native fixes can't go over the air, even though later updates contain
+  // their commit.
+  if (!fix.native && (await includes(releases.update))) {
+    return live("update", releases.update);
   }
-  if (await includes(releases.update)) {
-    return {
-      delivery: "update",
-      release: releases.update ?? undefined,
-      stage: "live",
-    };
-  }
-  if (await includes(releases.build)) {
-    return {
-      delivery: "build",
-      release: releases.build ?? undefined,
-      stage: "live",
-    };
+  for (const build of storeBuilds(releases, platform)) {
+    if (await includes(build)) return live("build", build);
   }
   return { stage: "fixed" };
+}
+
+function live(delivery: Delivery, release: string | null) {
+  return { delivery, release: release ?? undefined, stage: "live" as const };
+}
+
+/** The store builds that reach this reporter's phone (both when unknown). */
+function storeBuilds(releases: Releases, platform: Platform) {
+  if (platform === "android") return [releases.androidBuild];
+  if (platform === "ios") return [releases.build];
+  return [releases.build, releases.androidBuild];
 }

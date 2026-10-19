@@ -86,16 +86,18 @@ async function shipped(
   releases: () => Promise<Releases>,
   number: number,
 ) {
-  const { mergeCommit, paths } = await pullRequestFix(config, number);
+  const { mergeCommit, native, paths } = await pullRequestFix(config, number);
   if (mergeCommit === null) return "not merged";
-  const result = await delivered(config, await releases(), {
-    ...releaseNeeds(paths),
-    sha: mergeCommit,
-  });
+  const result = await delivered(
+    config,
+    await releases(),
+    { ...releaseNeeds(paths), native, sha: mergeCommit },
+    null,
+  );
   if (result.stage !== "live") return "merged, not released yet";
   return result.delivery === "build"
-    ? "out in the newest app version"
-    : "out (closing and reopening the app gets it)";
+    ? "out in the newest store version (they update from their app store)"
+    : "live (shipped over the air; they already have it)";
 }
 
 async function followKnownBug(
@@ -126,7 +128,7 @@ async function followKnownBug(
   const found = progressOf(state);
   const progress =
     found.stage === "fixed" && found.fix !== undefined
-      ? await delivered(config, await lazyReleases(config)(), found.fix)
+      ? await delivered(config, await lazyReleases(config)(), found.fix, null)
       : found;
   await turn.ctx.runMutation(internal.supportReports.insert, {
     accountId: turn.accountId,

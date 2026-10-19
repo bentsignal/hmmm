@@ -1,14 +1,15 @@
 import type { Infer } from "convex/values";
 import { v } from "convex/values";
 
-import type { IssueState } from "../bug-reports";
+import type { IssueState, Platform } from "../bug-reports";
 import type { Doc } from "./_generated/dataModel";
-import type { MutationCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { GitHubConfig } from "./github";
 import type { Releases } from "./githubReleases";
 import {
   isFinalStage,
   isNewStage,
+  platformOf,
   progressOf,
   updateMessage,
 } from "../bug-reports";
@@ -104,14 +105,31 @@ function publicReport(report: Doc<"bugReports">) {
   };
 }
 
+/** Reports still being followed, each with the reporter's phone. */
 export const tracked = internalQuery({
   args: {},
-  handler: (ctx) =>
-    ctx.db
+  handler: async (ctx) => {
+    const reports = await ctx.db
       .query("bugReports")
       .withIndex("by_tracking", (q) => q.eq("tracking", true))
-      .take(100),
+      .take(100);
+    return Promise.all(
+      reports.map(async (report) => ({
+        ...report,
+        platform: await platformFor(ctx, report.accountId),
+      })),
+    );
+  },
 });
+
+/** The reporter's phone, from the OS their app last reported. */
+async function platformFor(ctx: QueryCtx, accountId: string) {
+  const client = await ctx.db
+    .query("clientInfo")
+    .withIndex("by_account", (q) => q.eq("accountId", accountId))
+    .unique();
+  return platformOf(client?.os);
+}
 
 const progressValidator = v.object({
   delivery: v.optional(
@@ -123,7 +141,12 @@ const progressValidator = v.object({
     ),
   ),
   fix: v.optional(
-    v.object({ app: v.boolean(), backend: v.boolean(), sha: v.string() }),
+    v.object({
+      app: v.boolean(),
+      backend: v.boolean(),
+      native: v.optional(v.boolean()),
+      sha: v.string(),
+    }),
   ),
   pullRequest: v.optional(v.object({ number: v.number(), url: v.string() })),
   release: v.optional(v.string()),
@@ -170,6 +193,7 @@ async function tellReporter(
   const message = updateMessage(report.stage, {
     ...progress,
     developer: reporter?.developer === true,
+    platform: await platformFor(ctx, report.accountId),
     issueUrl: report.issueUrl,
     pullRequest: report.pullRequest,
     sha: report.fix?.sha,
@@ -203,7 +227,12 @@ export const track = internalAction({
     for (const report of numbered) {
       const state = states.get(report.issueNumber);
       if (state === undefined) continue;
-      const update = await progressFrom(config, releases, state);
+      const update = await progressFrom(
+        config,
+        releases,
+        state,
+        report.platform,
+      );
       const changed =
         update.stage !== report.stage ||
         update.stage !== report.notifiedStage ||
@@ -224,13 +253,14 @@ async function progressFrom(
   config: GitHubConfig,
   releases: () => Promise<Releases>,
   state: IssueState,
+  platform: Platform,
 ): Promise<Progress> {
   const found = progressOf(state);
   const base = { ...found, stateReason: state.stateReason };
   if (found.stage === "fixed" && found.fix !== undefined) {
     return {
       ...base,
-      ...(await delivered(config, await releases(), found.fix)),
+      ...(await delivered(config, await releases(), found.fix, platform)),
     };
   }
   return found.stage === "live" ? { ...base, delivery: "unknown" } : base;
