@@ -77,7 +77,8 @@ export function Pending({
       pointerEvents="none"
     >
       {!top && <View className="h-12" />}
-      <ActivityIndicator size={top ? "large" : "small"} />
+      {/* At the top of a list, between the small spinner and the large. */}
+      <ActivityIndicator style={top && { transform: [{ scale: 1.3 }] }} />
       <Animated.View
         className="h-12 items-center gap-1"
         style={{
