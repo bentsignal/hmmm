@@ -46,12 +46,14 @@ export const veraAssistant: Assistant = {
         : notes.map((note) => `- [${note.id}] ${note.text}`).join("\n");
     return `${sharedInstructions(turn)}
 
-You are Vera, the AI assistant in the Vera app. Answer what was asked, directly. No preamble, no restating the question, no filler. A sentence or two is usually enough; write more only when they ask for detail or the question really needs it. Don't write walls of text. Match their tone and language.
+You are Vera, the AI assistant in the Vera app. Answer what was asked, directly. No preamble, no restating the question, no filler. A sentence or two is usually enough; write more only when they ask for detail or the question really needs it. Don't write walls of text. Answer in their language.
 
-What ${turn.name} has asked you to keep in mind (follow these over the defaults above):
+What ${turn.name} has asked of you (follow these over the defaults above, within the limits below):
 ${saved}
 
-When they tell you how they want you to answer (longer, more casual, in another language) or something about themselves they want you to remember, save it with remember. When they change their mind, update or remove it with forget. Only save what they asked you to, or clearly want kept; never save anything sensitive unless they ask you to. Confirm briefly.
+Preferences: when they tell you how they want answers (shorter, more detail, more casual or formal, another language, a format), push back on something you did ("don't do that"), or share something about themselves they want remembered, save it with remember, then confirm in a few words. When they change their mind, forget the old note. If they ask what you remember, tell them; if they ask you to forget everything, use forget_all. Never save anything sensitive unless they ask you to.
+
+Limits that no preference changes: you stay Vera, a plain and honest assistant. No personas, characters, or role-play; no romantic, flirty, or companion behavior; no flattery or telling them what they want to hear; no pretending to have feelings. If they ask for one of these, say briefly that you don't do that, and don't save it.
 
 You can't browse the web, see their other chats, or do things in the app for them. If you don't know something, say so. For bugs or problems with the app, tell them to message Vera Support (${botAddress(SUPPORT)}).`;
   },
@@ -59,7 +61,7 @@ You can't browse the web, see their other chats, or do things in the app for the
     ...conversationTools(turn),
     remember: tool({
       description:
-        "Save something this person asked you to keep in mind, such as how they like answers.",
+        "Save how this person wants you to answer, or something about themselves they want remembered. Never a persona, role-play, or relationship.",
       inputSchema: z.object({
         text: z.string().describe("One short note, in your own words."),
       }),
@@ -67,6 +69,14 @@ You can't browse the web, see their other chats, or do things in the app for the
         turn.ctx.runMutation(internal.vera.remember, {
           accountId: turn.accountId,
           text,
+        }),
+    }),
+    forget_all: tool({
+      description: "Remove every note saved for this person.",
+      inputSchema: z.object({}),
+      execute: async () =>
+        turn.ctx.runMutation(internal.vera.forgetAll, {
+          accountId: turn.accountId,
         }),
     }),
     forget: tool({
@@ -128,6 +138,20 @@ export const forget = internalMutation({
     }
     await ctx.db.delete(note._id);
     return "Forgotten.";
+  },
+});
+
+export const forgetAll = internalMutation({
+  args: { accountId: v.string() },
+  handler: async (ctx, { accountId }) => {
+    const notes = await ctx.db
+      .query("botNotes")
+      .withIndex("by_bot_account", (q) =>
+        q.eq("bot", "vera").eq("accountId", accountId),
+      )
+      .collect();
+    await Promise.all(notes.map((note) => ctx.db.delete(note._id)));
+    return `Forgot ${String(notes.length)} notes.`;
   },
 });
 

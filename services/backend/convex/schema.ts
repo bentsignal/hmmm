@@ -59,14 +59,11 @@ export default defineSchema({
     reportedAt: v.number(),
     update: v.string(),
   }).index("by_account", ["accountId"]),
-  /**
-   * What an image someone sent an assistant shows, written once by a
-   * vision model (agent.ts), since the main model can't see images.
-   */
-  imageDescriptions: defineTable({
-    text: v.string(),
-    url: v.string(),
-  }).index("by_url", ["url"]),
+  /** Each person's device time zone, from the app, for assistants' sense of time. */
+  timeZones: defineTable({
+    accountId: v.string(),
+    timeZone: v.string(),
+  }).index("by_account", ["accountId"]),
   /** What support knows about someone who reports bugs. */
   supportReporters: defineTable({
     accountId: v.string(),

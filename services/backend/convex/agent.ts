@@ -9,12 +9,7 @@ import type { Turn } from "./agentTools";
 import type { BotAccount } from "./bots";
 import { internal } from "./_generated/api";
 import { internalAction, internalMutation } from "./_generated/server";
-import {
-  describeImages,
-  imageUrls,
-  inAnswerOrder,
-  toModelMessages,
-} from "./agentHistory";
+import { inAnswerOrder, toModelMessages } from "./agentHistory";
 import { keepTyping, MODEL } from "./agentTools";
 import { botAccount, botAddress, sendAsBot } from "./bots";
 import { supportAssistant } from "./supportAgent";
@@ -266,8 +261,7 @@ async function reply(
   });
   const typing = keepTyping(ctx, bot, conversationId);
   try {
-    const descriptions = await describeImages(ctx, imageUrls(history, self));
-    const messages = toModelMessages(history, self, descriptions);
+    const messages = toModelMessages(history, self);
     const sender = messageSender(ctx, bot, conversationId, typing);
     const turn: Turn = {
       ...sender,
@@ -279,6 +273,7 @@ async function reply(
       lastHeardAt: newest.sentAt,
       name: newest.authorName,
       oldestSentAt: page.hasOlder ? (history[0]?.sentAt ?? null) : null,
+      timeZone: await ctx.runQuery(internal.timeZones.of, { accountId }),
     };
     const assistant = ASSISTANTS[bot.username];
     const result = await generateText({

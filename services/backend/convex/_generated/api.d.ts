@@ -41,6 +41,7 @@ import type * as supportLookup from "../supportLookup.js";
 import type * as supportReporters from "../supportReporters.js";
 import type * as supportReports from "../supportReports.js";
 import type * as supportRules from "../supportRules.js";
+import type * as timeZones from "../timeZones.js";
 import type * as vera from "../vera.js";
 
 import type {
@@ -83,6 +84,7 @@ declare const fullApi: ApiFromModules<{
   supportReporters: typeof supportReporters;
   supportReports: typeof supportReports;
   supportRules: typeof supportRules;
+  timeZones: typeof timeZones;
   vera: typeof vera;
 }>;
 
