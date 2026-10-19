@@ -18,6 +18,8 @@ const MAX_RESULTS = 8;
 const MAX_CHARS_KEPT = 24_000;
 /** How much of that the model reads right away; the rest stays cached. */
 const MAX_CHARS_SHOWN = 6_000;
+/** How much a follow-up reads from all of a search's results at once. */
+const MAX_CHARS_FOLLOW_UP = 8_000;
 /**
  * One search per reply (a second only when the first found almost nothing)
  * and a daily cap per person, so a search-hungry model can't run up a bill.
@@ -137,7 +139,7 @@ export function webTools(turn: Turn) {
     }),
     more_from_search: tool({
       description:
-        "Read the full saved excerpts from an earlier search in this conversation (free, no new search), for follow-up questions.",
+        "Read more of an earlier search's saved results in this conversation (no new search), for follow-up questions. Ask for one result by number when you know which one you need.",
       inputSchema: z.object({
         searchId: z.string(),
         n: z
@@ -152,9 +154,17 @@ export function webTools(turn: Turn) {
             searchId,
           });
         if (saved === null) return "That search isn't saved anymore.";
-        return n === undefined
-          ? saved.results
-          : (saved.results[n - 1] ?? "No result with that number.");
+        if (n !== undefined) {
+          return saved.results[n - 1] ?? "No result with that number.";
+        }
+        // All of them at once, trimmed: a follow-up shouldn't cost more
+        // than a new search.
+        const each = Math.floor(MAX_CHARS_FOLLOW_UP / saved.results.length);
+        return saved.results.map((result, index) => ({
+          excerpt: result.excerpts.join(" … ").slice(0, each),
+          n: index + 1,
+          title: result.title,
+        }));
       },
     }),
   };
