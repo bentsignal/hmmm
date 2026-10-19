@@ -14,7 +14,7 @@ the heading and intro so the file stays in place for the next release).
 Adding steps: any PR whose release needs something beyond `pnpm release`
 adds a section here in that PR (see AGENTS.md → Releases).
 
-## From PR #PRNUMBER: AI Support and the Vera assistant
+## From PR #157: AI Support and the Vera assistant
 
 Vera Support now answers with a model, files bug reports as GitHub issues,
 and follows them; a new `vera@vera.chat` assistant answers questions. Both
