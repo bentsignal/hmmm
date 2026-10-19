@@ -483,6 +483,11 @@ export const notificationSettings = v.object({
   replies: v.optional(v.boolean()),
   /** New replies in threads the caller is in. */
   threadReplies: v.optional(v.boolean()),
+  /**
+   * Messages that say the caller's display name, heard as @mentions are;
+   * off until turned on (absent from older PDSs).
+   */
+  yourName: v.optional(v.boolean()),
 });
 
 export type NotificationSettings = Infer<typeof notificationSettings>;
@@ -499,4 +504,5 @@ export const notificationSettingsChange = v.object({
   reactions: v.optional(v.boolean()),
   replies: v.optional(v.boolean()),
   threadReplies: v.optional(v.boolean()),
+  yourName: v.optional(v.boolean()),
 });
