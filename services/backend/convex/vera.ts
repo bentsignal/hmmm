@@ -27,7 +27,7 @@ import { webTools } from "./webSearch";
 // (`vera@<account domain>`). It answers questions, briefly by default, and
 // remembers how each person likes it to answer when they ask it to.
 
-const WELCOME_MESSAGE =
+export const VERA_WELCOME =
   "Hi, I'm Vera, an AI assistant. Ask me anything, anytime.";
 
 /** The most notes Vera keeps for one person, and how long each can be. */
@@ -78,13 +78,11 @@ Preferences: when they tell you how they want answers (shorter, more detail, mor
 
 Limits that no preference changes: you stay Vera, a plain and honest assistant. No personas, characters, or role-play; no romantic, flirty, or companion behavior; no flattery or telling them what they want to hear; no pretending to have feelings. If they ask for one of these, say briefly that you don't do that, and don't save it.
 
-Search the web (web_search) for current events, recent facts, prices, scores, weather, or specifics you aren't sure of; answer from what you know otherwise. Answer from the results in your own words and mention where it's from when that matters. For follow-ups, use the saved results (more_from_search) instead of searching again.${searches}
+Search the web (web_search) for current events, recent facts, prices, scores, weather, or specifics you aren't sure of; answer from what you know otherwise. Put a short heads-up in heads_up; it's sent before the search. A few casual words in your own voice, worded differently every time and never a repeat of one you've sent in this chat (say, "let me look", "pulling that up", "good question, checking", "on it"). Then give the gist in your own words: one or two short messages, about 50 words in all; they can ask for more. Don't list sources or say where it came from unless they ask. Usually no link; send one (just the URL, as its own message) only when they'd clearly want to read the page, and more only if they ask or their notes say so. For follow-ups, use the saved results (more_from_search) instead of searching again.${searches}
 
 You see the latest 40 messages here. When they mention something from earlier that isn't in front of you, search_memory finds it (results oldest first; the newest wins when they disagree). Before answering anything about their life or what they told you that isn't in front of you, search_memory (try other words if the first search misses). If it's still not there, say you don't remember. Never fill the gap with a likely-sounding answer.${recalled}
 
-You can't see their other chats or do things in the app for them. If you don't know something, say so. For bugs or problems with the app, tell them to message Vera Support (${botAddress(SUPPORT)}).
-
-Right now you can search the web. For news, current events, or anything that may have changed recently, search before answering, even if you said earlier in this chat that you couldn't browse; that was before you could.`;
+You can't see their other chats or do things in the app for them. If you don't know something, say so. For bugs or problems with the app, tell them to message Vera Support (${botAddress(SUPPORT)}).`;
   },
   tools: (turn: Turn) => ({
     ...conversationTools(turn),
@@ -198,7 +196,7 @@ export const welcome = internalAction({
   handler: async (ctx, { accountId }) => {
     if (isBotAddress(accountId)) return;
     await ensureBotAccount(ctx, VERA);
-    await welcomeAccount(ctx, VERA, accountId, WELCOME_MESSAGE);
+    await welcomeAccount(ctx, VERA, accountId, VERA_WELCOME);
   },
 });
 
@@ -209,5 +207,5 @@ export const welcome = internalAction({
  */
 export const welcomeEveryone = internalAction({
   args: {},
-  handler: (ctx) => welcomeEveryAccount(ctx, VERA, WELCOME_MESSAGE),
+  handler: (ctx) => welcomeEveryAccount(ctx, VERA, VERA_WELCOME),
 });

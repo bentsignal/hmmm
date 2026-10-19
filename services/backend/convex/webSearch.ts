@@ -107,14 +107,21 @@ export function webTools(turn: Turn) {
         queries: z
           .array(z.string())
           .describe("Two or three short keyword searches, 3-6 words each."),
+        heads_up: z
+          .string()
+          .describe(
+            "A few casual words sent to them before the search, in your own voice, worded differently each time.",
+          ),
       }),
-      execute: async ({ question, queries }) => {
+      execute: async ({ heads_up, question, queries }) => {
         const apiKey = optionalEnvironment("PARALLEL_API_KEY");
         if (apiKey === null) return "Web search isn't available right now.";
         if (searches >= 2 || (searches === 1 && lastFound >= THIN_RESULTS)) {
           return "No more searches in this reply. Answer from what you found, or say what you couldn't find.";
         }
         searches += 1;
+        // Something to read while the search and answer take a few seconds.
+        if (searches === 1) await turn.send(heads_up);
         const results = await parallelSearch(apiKey, question, queries);
         lastFound = results.length;
         const searchId: string = await turn.ctx.runMutation(

@@ -11,7 +11,7 @@ import type { Tally } from "./usage";
 import { internal } from "./_generated/api";
 import { internalAction, internalMutation } from "./_generated/server";
 import { inAnswerOrder, toModelMessages } from "./agentHistory";
-import { keepTyping, MODEL } from "./agentTools";
+import { currentTools, keepTyping, MODEL } from "./agentTools";
 import { botAccount, botAddress, sendAsBot } from "./bots";
 import { recallOlder } from "./memory";
 import { takeReply } from "./rateLimits";
@@ -179,8 +179,9 @@ function messageSender(
       const body = text.trim().slice(0, 4000);
       if (body.length === 0) return queue;
       queue = queue.then(async () => {
+        // Spaced like someone typing the next one, so they don't land at once.
         if (sent > 0) {
-          await typing.pause(Math.min(1800, 500 + body.length * 12));
+          await typing.pause(Math.min(4000, 1200 + body.length * 20));
         }
         await ctx.runMutation(internal.bots.post, {
           body,
@@ -289,15 +290,21 @@ async function reply(
       timeZone: await ctx.runQuery(internal.timeZones.of, { accountId }),
     };
     const assistant = ASSISTANTS[bot.username];
+    const tools = assistant.tools(turn);
     const options = {
+      allowSystemInMessages: true,
       instructions: await assistant.instructions(turn),
-      messages,
+      // Last before it answers, where it outweighs what the chat says.
+      messages: [
+        ...messages,
+        { content: currentTools(tools), role: "system" as const },
+      ],
       model: convexGateway(MODEL, { zdr: true }),
       providerOptions: REASONING,
       stopWhen: [isStepCount(MAX_STEPS), saidItsPiece],
       timeout: { stepMs: STEP_TIMEOUT },
       toolCallConcurrency: 1,
-      tools: assistant.tools(turn),
+      tools,
     };
     const result = await generateText(options).catch((error: unknown) => {
       // A model call that stalled: try once more if nothing went out yet.
@@ -305,8 +312,12 @@ async function reply(
       console.warn(`${bot.username} retrying a failed reply`, error);
       return generateText(options);
     });
-    // A model that answered in plain text instead of calling send_message.
-    if (sender.sent() === 0 && result.text.trim().length > 0) {
+    // A model that ended in plain text instead of calling send_message,
+    // such as an answer after a search's heads-up.
+    const lastSent = result.steps
+      .at(-1)
+      ?.toolCalls.some((call) => call.toolName === "send_message");
+    if (lastSent !== true && result.text.trim().length > 0) {
       await turn.send(result.text);
     }
     await ctx.runMutation(internal.usage.record, {

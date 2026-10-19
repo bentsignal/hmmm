@@ -22,6 +22,20 @@ run on the Convex AI Gateway (no key; the BSX team's paid plan covers it).
 This release must deploy the backend (`--with-backend`, or
 `pnpm release backend production` with the update).
 
+### 0. Remove the temporary "Wipe Chat with Vera" button
+
+**When:** before the production build or update that ships the assistants.
+
+Shawn asked for it only to test Vera from a clean slate; it doesn't ship.
+Delete `services/backend/convex/devAssistants.ts`, the `wipeAssistantChat`
+helper in `apps/mobile/src/features/dev/dev-tools.ts`, and the button and
+`wipeVera` in `apps/mobile/src/features/dev/developer-section.tsx`, in a PR
+of its own. (It already refuses to run without `DEV_TOOLS`, which
+production never sets.)
+
+**Verify:** `rg -n "wipeAssistantChat|devAssistants|wipeMine" apps services`
+finds nothing.
+
 ### 1. Give production a GitHub token for bug reports
 
 **When:** before the production backend deploy. Without it, support still
