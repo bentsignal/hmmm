@@ -114,8 +114,9 @@ How it works (`convex/bots.ts`, `convex/agent.ts`):
   that arrive during a reply get the next one.
 - Models run through the Convex AI Gateway (`@convex-dev/ai-sdk-provider`
   and the AI SDK), billed on the Convex bill, with zero-data-retention
-  routing: Grok 4.7 for replies, and Grok 4.6 to describe images once each,
-  since Grok 4.7 doesn't take images through the gateway.
+  routing: Grok 4.7, which sees the newest few images in the conversation.
+- The app sends the device's time zone after a message to an assistant
+  (`timeZones:report`), so they know the person's date and time.
 - Each person gets at most 150 replies a day from each assistant.
 - They only hear from people on this PDS: a message from another PDS is
   stored there and never reaches this one.
