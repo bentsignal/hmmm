@@ -14,24 +14,27 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
 
 import type { BlankSpace } from "./blank-space";
-import type { MessageRow, ThreadHead } from "./build-rows";
+import type { ThreadHead } from "./build-rows";
 import type { LeavingRows } from "./leave-rows";
 import type { Latest } from "./list-position";
 import type { ToggleReaction, ViewReactions } from "./message-actions";
 import type { ProfileOf } from "./message-row";
 import type { MemberNotice, Message, MessageEdits } from "./types";
+import type { ListRow } from "./typing-row";
 import type { MessageLayout } from "~/features/preferences/store";
 import { useBlankSpace } from "./blank-space";
-import { arrivedAfter, newestFirst } from "./build-rows";
+import { newestFirst } from "./build-rows";
 import { GrowthProvider } from "./grow";
 import { JumpToLatest } from "./jump-to-latest";
 import { useLeavingRows } from "./leave-rows";
-import { ANCHOR, useLatest, usePlacement } from "./list-position";
+import { ANCHOR, useLatest } from "./list-position";
+import { useListRows } from "./list-rows";
 import { useMenuKeyboard } from "./menu-keyboard";
 import { MessageActionsProvider } from "./message-actions";
 import { Row } from "./message-row";
 import { RevealTimes } from "./reveal";
 import { headerHeight } from "./row-header";
+import { TypingRow } from "./typing-indicator";
 
 /** What the conversation screen can ask of its list. */
 export interface MessageListHandle {
@@ -39,8 +42,8 @@ export interface MessageListHandle {
   scrollToLatest: () => void;
 }
 
-interface RowsProps {
-  listRef: RefObject<FlatList<MessageRow> | null>;
+export interface RowsProps {
+  listRef: RefObject<FlatList<ListRow> | null>;
   /** The rows, with deleted ones leaving (see `useLeavingRows`). */
   leaving: LeavingRows;
   self: string;
@@ -56,6 +59,8 @@ interface RowsProps {
   topInset: number;
   /** Height of the composer floating over the bottom of the list. */
   composerHeight: number;
+  /** Who else is typing here, in the order they started. */
+  typists: readonly string[];
   latest: Latest;
   /** Freezes keyboard handling (see useMenuKeyboard). */
   freeze: SharedValue<boolean>;
@@ -91,49 +96,57 @@ function Rows({
   profileOf,
   showAuthors,
   anchorId,
-  onLoadOlder,
-  onLoadNewer,
   bottomInset,
   topInset,
   composerHeight,
+  typists,
   latest,
   freeze,
-  onReady,
   shown,
   blank,
+  ...pages
 }: RowsProps) {
-  const safeArea = useSafeAreaInsets();
-  const { rows } = leaving;
-  // Only messages that arrive while open animate in, not loaded pages.
-  const [openedAt] = useState(Date.now);
-  const anchorIndex =
-    anchorId === undefined ? -1 : rows.findIndex((row) => row.key === anchorId);
-  const placement = usePlacement({
-    anchorIndex,
+  // Under the header, from the top of the screen.
+  const top = useSafeAreaInsets().top + topInset;
+  const { anchorIndex, listRows, placement, typing } = useListRows({
+    ...pages,
+    anchorId,
+    layout,
     listRef,
-    onLoadNewer,
-    onReady,
+    rows: leaving.rows,
+    typists,
   });
   return (
     <FlatList
       ref={listRef}
       inverted
-      data={rows}
+      data={listRows}
       keyExtractor={(row) => row.key}
-      renderItem={({ item }) => (
-        <Row
-          row={item}
-          self={self}
-          layout={layout}
-          profileOf={profileOf}
-          showAuthors={showAuthors}
-          highlighted={item.key === anchorId}
-          arriving={arrivedAfter(item, openedAt)}
-          leaving={leaving.leavingOf(item.key)}
-          onFaded={leaving.faded}
-          onClosed={leaving.gone}
-        />
-      )}
+      renderItem={({ item }) =>
+        item.type === "typing" ? (
+          <TypingRow
+            typists={typists}
+            typing={typing}
+            layout={layout}
+            profileOf={profileOf}
+            showFaces={showAuthors}
+          />
+        ) : (
+          <Row
+            row={item}
+            self={self}
+            layout={layout}
+            profileOf={profileOf}
+            showAuthors={showAuthors}
+            highlighted={item.key === anchorId}
+            arriving={typing.arriving(item)}
+            becoming={typing.becomingOf(item.key)}
+            leaving={leaving.leavingOf(item.key)}
+            onFaded={leaving.faded}
+            onClosed={leaving.gone}
+          />
+        )
+      }
       renderScrollComponent={(props) => (
         <KeyboardChatScrollView
           {...props}
@@ -154,28 +167,23 @@ function Rows({
       // thread, and a frame spent on it shows as a hitch in the fade. Then
       // five screens either way, filled in small batches.
       windowSize={shown ? WINDOW_SCREENS : 1}
-      // Rows added below what's on screen leave it where it is; at the
-      // bottom, a new message then slides into view (see useLatest). Off
-      // until it has faded in, so it opens at the bottom whatever arrives
-      // meanwhile.
+      // Rows added or growing below what's on screen leave it be: a new
+      // message opens in place (see useLatest). Off until it has faded in,
+      // so it opens at the bottom whatever arrives meanwhile.
       maintainVisibleContentPosition={shown ? ANCHOR : undefined}
       // Inverted: the list's end is the oldest message, at the top. Older
       // ones load three screens early, so a fast scroll rarely reaches
       // the top before they're there.
-      onEndReached={() => {
-        if (placement.isPlaced()) onLoadOlder();
-      }}
+      onEndReached={placement.loadOlder}
       onEndReachedThreshold={3}
-      onStartReached={() => {
-        if (placement.isPlaced()) onLoadNewer();
-      }}
+      onStartReached={placement.loadNewer}
       onStartReachedThreshold={3}
       onScroll={(event) => latest.onScroll(event.nativeEvent.contentOffset.y)}
       {...latest.scrollHandlers}
       scrollEventThrottle={16}
       onContentSizeChange={(_, height) => {
         blank.onContentHeight(height);
-        latest.onContentChange(rows[0]?.key, composerHeight);
+        latest.onContentChange(composerHeight);
         placement.onLaidOut();
       }}
       onScrollToIndexFailed={placement.onMissed}
@@ -185,18 +193,12 @@ function Rows({
       // A thread starts at the top, under its original (see
       // `useBlankSpace`).
       onLayout={(event) => blank.onListHeight(event.nativeEvent.layout.height)}
-      // Room under the newest message for the composer floating over it,
-      // which grows as you type, and above the oldest for the header: the
-      // messages scroll under both. Inverted, the list's header is at the
-      // bottom of the screen and its footer at the top.
+      // Room under who's typing for the composer floating over it, and
+      // above the oldest for the header: the messages scroll under both.
+      // Inverted, the list's header is at the bottom, its footer at the top.
       ListHeaderComponent={<View style={{ height: composerHeight + 8 }} />}
-      ListFooterComponent={
-        <View style={{ height: safeArea.top + topInset + 8 }} />
-      }
-      scrollIndicatorInsets={{
-        bottom: safeArea.top + topInset,
-        top: composerHeight,
-      }}
+      ListFooterComponent={<View style={{ height: top + 8 }} />}
+      scrollIndicatorInsets={{ bottom: top, top: composerHeight }}
       style={{ flex: 1 }}
     />
   );
@@ -242,7 +244,7 @@ export function MessageList({
   thread,
   ...props
 }: MessageListProps) {
-  const listRef = useRef<FlatList<MessageRow>>(null);
+  const listRef = useRef<FlatList<ListRow>>(null);
   const frame = useAnimatedRef<View>();
   // Covered until laid out at its starting place, then faded in. A
   // page-colored cover fades away rather than the list fading in: glass

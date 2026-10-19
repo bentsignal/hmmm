@@ -41,6 +41,9 @@ export function SendingFade({
 }) {
   return (
     <Animated.View
+      // As one: Android otherwise fades each piece on its own, and the
+      // bubble's tail shows darker where it overlaps the bubble.
+      needsOffscreenAlphaCompositing
       style={{
         opacity: status === "sending" ? SENDING_OPACITY : 1,
         transitionDuration: SENT_FADE_MS,

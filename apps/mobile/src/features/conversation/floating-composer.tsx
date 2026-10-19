@@ -29,6 +29,17 @@ import {
   saveDraftFiles,
 } from "./drafts";
 
+/** Calls `first` with each change to the text, then `then`. */
+function alsoTo(
+  first: (text: string) => void,
+  then: ((text: string, sent: boolean) => void) | undefined,
+) {
+  return (text: string, sent: boolean) => {
+    first(text);
+    then?.(text, sent);
+  };
+}
+
 /**
  * The composer floating over the bottom of a conversation or thread,
  * holding what's picked for the next message until it's sent, in its draft
@@ -40,6 +51,7 @@ export function FloatingComposer({
   mentionable,
   onHeight,
   onSend,
+  onChangeText,
   replyingTo,
   onCancelReply,
   edit,
@@ -53,6 +65,8 @@ export function FloatingComposer({
   /** The bar's height, without the people to mention listed over it. */
   onHeight: (height: number) => void;
   onSend: (draft: OutgoingDraft) => void;
+  /** Every change to the text (see `Composer`), to report typing. */
+  onChangeText?: (text: string, sent: boolean) => void;
   /** Set while the next message is a reply (see `Composer`). */
   replyingTo?: ReplyingTo;
   onCancelReply?: () => void;
@@ -132,7 +146,7 @@ export function FloatingComposer({
         onCancelReply={onCancelReply}
         edit={edit}
         placeholder={placeholder}
-        onChangeText={links.onChangeText}
+        onChangeText={alsoTo(links.onChangeText, onChangeText)}
         onPick={(source) => void pick(source)}
         onPaste={paste}
         onRemoveStaged={(id) => {

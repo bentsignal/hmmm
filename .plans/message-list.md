@@ -220,3 +220,73 @@ the bot group by route so nothing else touched the device meanwhile.
     itself stalls the app for ~180ms while it reads the screen.
   - The `vera-feature` skill now asks for before and after frame reports
     for anything that moves.
+
+## Round 7: typing indicators (Shawn's phone test of "Stays last")
+
+Shawn picked "Stays last" from the five variants; the picker and the others
+are gone. What his recordings showed, and the fixes:
+
+- [x] A reaction arriving on your message moved the messages above it down
+      for a frame, then up. The space opened through a layout commit, which
+      waits while React is committing (as the list re-renders around a new
+      reaction), but the moves went straight to the views a frame or more
+      earlier. Now every space and the moves it makes are set in one frame
+      callback (`inFrame`), and while a move is `pending` its styles carry
+      a prop Reanimated sends through the same commit (`IN_COMMIT` in
+      `moves.ts`), until the space's height is in the layout (`land`).
+- [x] A message from someone typing pushed the typing indicator under the
+      composer, then the list scrolled up. Who's typing is now the list's
+      newest row (`TypingRow`), the scroll anchor's row, so nothing below the
+      newest message ever moves: a new message opens right above it
+      (`Arrive`), the messages above make room, and the message rises out of
+      its space with them, cut off at the indicator, so it never covers
+      anything. Nothing scrolls for new messages or typing any more; only a
+      taller composer does (`useLatest`).
+- [x] The last person typing sending their message: in bubbles, the typing
+      bubble grows into the message's (`BubbleMorph`): the dots fade, the
+      bubble stretches from its tail to the message's size (four corners and
+      two stretching bands, all transforms), and the text and name fade in.
+      In stacked rows, and for messages with photos, links or quotes, the
+      message opens where the indicator was as the indicator fades.
+- Known: in the simulator a move still drops a few points for one frame now
+  and then (about one run in two, under 15pt), when React commits at the
+  same moment. Holding the moves in the layout commit for the whole move
+  made it worse.
+
+## Round 8: pace and the rise's edge (Shawn's phone test)
+
+- [x] Everything felt rushed next to the rest of the app. The moves now take
+      420ms on a gentle ease (`GROW_MS`, `GROW_EASING`: CSS `ease`) instead
+      of 260ms ease-out cubic, which was mostly done in its first 60ms. The
+      bubble morph, the text fading in, the indicator appearing, and the
+      stacked crossfade slowed with it.
+- [x] With a slower start, what a move makes room for (a reaction's chips,
+      the typing indicator) showed over the messages still moving off it. It
+      now fades in from a quarter of the way through (`showWithRoom`).
+- [x] A message rising in had a hard line where it was cut off. It now shows
+      10pt further down, through a band that fades from clear to the
+      background (`Fade` in `arrive.tsx`, `EMERGE`), inside the gap above
+      the indicator, so the cut is at the band's solid end and can't be
+      seen. The band goes as the message's last point clears it.
+- [x] The bubble growing out of the typing indicator showed its text before
+      it had grown, spilling out. The message forgot it was growing once
+      the indicator it took over was gone (a frame or two in), so its text
+      showed at once. What it became is now kept with its arrival
+      (`arrived` in `arrive.tsx`), and the text fades in only once the
+      bubble is its size (320ms, then 220ms).
+
+## Round 9: Android (Shawn's phone test)
+
+- [x] A bubble that grew out of the typing indicator turned square (and, on
+      Shawn's phone, lost its text) once the keyboard went down. It had no
+      background while it grew and got one after, and Android loses the
+      corners of a view whose background is added after it's drawn (the
+      same bug as c1637105 and 6cf91717). Its outer view now never has a
+      background; one that grew draws it in a rounded view of its own,
+      mounted with its color (`BubbleBackdrop`). Its text's opacity goes
+      back to React once it has faded in (`FadingText`).
+- [x] Half see-through while sending, an outgoing bubble's tail showed a
+      darker square where it overlaps the bubble: Android fades each child
+      on its own. Everything that fades a bubble (`SendingFade`, `Opening`,
+      the typing indicator, a leaving row) now sets
+      `needsOffscreenAlphaCompositing`, so it fades as one.

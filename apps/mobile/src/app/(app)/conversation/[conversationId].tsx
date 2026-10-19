@@ -23,6 +23,7 @@ import { AccountScope, useAccount } from "~/features/messaging/account";
 import { useConversation } from "~/features/messaging/conversations";
 import { useMemberNotices } from "~/features/messaging/member-events";
 import { useMarkRead, useMessages } from "~/features/messaging/messages";
+import { useTypingReporter, useTypists } from "~/features/messaging/typing";
 import { useActiveConversation } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
 
@@ -79,6 +80,16 @@ function useOpenInfo(conversationId: string) {
   };
 }
 
+/** Who else is typing here, and the reporting of this device's. */
+function useConversationTyping(
+  conversationId: string,
+  messages: Parameters<typeof useTypists>[1]["messages"],
+) {
+  const typists = useTypists(conversationId, { messages });
+  const report = useTypingReporter(conversationId);
+  return { report, typists };
+}
+
 function MissingConversation({ heading }: { heading: string }) {
   return (
     <View className="bg-background flex-1 items-center justify-center">
@@ -110,6 +121,7 @@ function Conversation({
   const { conversation, isLoading, profileOf, profilesLoaded } = loaded;
   const layout = useMessageLayout(conversation?.kind);
   const notices = useMemberNotices(conversationId, conversation, messages);
+  const typing = useConversationTyping(conversationId, messages.messages);
   const composer = useRef<ComposerHandle>(null);
   // Undefined until the composer is laid out: the list leaves room for it
   // under the newest message, so it waits rather than shift once it knows.
@@ -159,6 +171,7 @@ function Conversation({
               bottomInset={composerBottomInset}
               topInset={CONVERSATION_HEADER_HEIGHT}
               composerHeight={composerHeight}
+              typists={typing.typists}
               onToggleReaction={messages.toggleReaction}
               onOpenThread={replies.openThread}
               onReply={replies.reply}
@@ -179,6 +192,7 @@ function Conversation({
         draftId={conversationId}
         mentionable={mentionableIn(conversation, address, profileOf)}
         onHeight={setComposerHeight}
+        onChangeText={typing.report}
         replyingTo={replies.replyingTo}
         onCancelReply={replies.cancel}
         edit={editing}
