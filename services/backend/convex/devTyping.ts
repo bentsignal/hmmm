@@ -60,7 +60,7 @@ export async function typeOut(
 
 /**
  * A bot types a long message slowly enough to read each size the typing
- * indicator shows (a quick reply, a message, a paragraph, an essay), then
+ * indicator shows (typing, a paragraph, an essay), then
  * sends it: `npx convex run devTyping:typingSizes '{"conversationId":"...","username":"maya"}'`.
  */
 export const typingSizes = internalAction({
@@ -72,8 +72,8 @@ export const typingSizes = internalAction({
   handler: async (ctx, { conversationId, threadId, username }) => {
     requireDevTools();
     const body = LONG_REPLIES.at(-1) ?? "";
-    // Each size for three seconds, which also keeps the typing up.
-    const saysAt = TYPING_SIZES.length * 3000;
+    // Each size for four seconds, which also keeps the typing up.
+    const saysAt = TYPING_SIZES.length * 4000;
     await typeOut(ctx, {
       body,
       conversationId,

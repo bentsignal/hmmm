@@ -98,15 +98,15 @@ void test("others see roughly how long it is, as soon as that changes", async (t
   const fake = group();
   await setTyping(fake.ctx, MAYA, {
     conversationId: GROUP,
-    size: "reply",
+    size: "short",
     typing: true,
   });
-  assert.equal((await typistsFor(fake, LEO))[0]?.size, "reply");
+  assert.equal((await typistsFor(fake, LEO))[0]?.size, "short");
   // Soon after, the same size changes nothing, but a new one shows.
   t.mock.timers.tick(500);
   await setTyping(fake.ctx, MAYA, {
     conversationId: GROUP,
-    size: "reply",
+    size: "short",
     typing: true,
   });
   assert.equal(fake.rows("typing")[0]?.typedAt, 10_000);
@@ -127,16 +127,15 @@ void test("others see roughly how long it is, as soon as that changes", async (t
 
 void test("sizes count lines of about forty characters", () => {
   const line = "x".repeat(40);
-  assert.equal(typingSizeOf("ok"), "reply");
-  assert.equal(typingSizeOf(line), "reply");
-  assert.equal(typingSizeOf(`${line}x`), "message");
-  assert.equal(typingSizeOf(line.repeat(4)), "message");
-  assert.equal(typingSizeOf("a\nb"), "message");
+  assert.equal(typingSizeOf("ok"), "short");
+  assert.equal(typingSizeOf(line.repeat(4)), "short");
+  assert.equal(typingSizeOf("a\nb\nc\nd"), "short");
+  assert.equal(typingSizeOf("a\nb\nc\nd\ne"), "paragraph");
   assert.equal(typingSizeOf(`${line.repeat(4)}x`), "paragraph");
   assert.equal(typingSizeOf(line.repeat(10)), "paragraph");
   assert.equal(typingSizeOf(`${line.repeat(10)}x`), "essay");
   // Blank lines at the ends don't count.
-  assert.equal(typingSizeOf("\n\nok\n\n"), "reply");
+  assert.equal(typingSizeOf(`\n\n${line.repeat(4)}\n\n`), "short");
 });
 
 // `send` calls this in the same write that stores the message.

@@ -127,23 +127,22 @@ function firstName(name: string) {
   return name.trim().split(/\s+/)[0] ?? name;
 }
 
-/** What one person is writing, by how long it is. */
+/** What one person is doing, by how long their message is. */
 const WRITING = {
   essay: "is writing an essay",
-  message: "is writing a message",
   paragraph: "is writing a paragraph",
-  reply: "is writing a quick reply",
+  short: "is typing",
 } satisfies Record<TypingSize, string>;
 
 /**
- * What a typing indicator says: a name and, when it's known, how long
- * their message is (`size`); two or three first names; or past three, how
- * many people (their photos say who).
+ * What a typing indicator says: a name and, when it's long, how long
+ * their message is (`size`); or with more people, only who: two or three
+ * first names, or past three, how many (their photos say who).
  */
 export function typingLabel(names: readonly string[], size?: TypingSize) {
   const [first = "", second = "", third = ""] = names;
   if (names.length <= 1) {
-    return `${first} ${size === undefined ? "is typing" : WRITING[size]}`;
+    return `${first} ${WRITING[size ?? "short"]}`;
   }
   if (names.length === 2) {
     return `${firstName(first)} and ${firstName(second)} are typing`;

@@ -109,19 +109,26 @@ void test("the label names up to three people, then counts them", () => {
   assert.equal(typingLabel(["a", "b", "c", "d", "e"]), "5 people are typing");
 });
 
-void test("one person's label says how long their message is", () => {
+void test("one person's label says when their message is long", () => {
+  assert.equal(typingLabel(["Maya Chen"], "short"), "Maya Chen is typing");
   assert.equal(
-    typingLabel(["Maya Chen"], "reply"),
-    "Maya Chen is writing a quick reply",
+    typingLabel(["Maya Chen"], "paragraph"),
+    "Maya Chen is writing a paragraph",
   );
   assert.equal(
     typingLabel(["Maya Chen"], "essay"),
     "Maya Chen is writing an essay",
   );
-  // With more people, it only says who.
+});
+
+void test("with more people typing, it only says who, however long", () => {
   assert.equal(
-    typingLabel(["Maya Chen", "Leo Martins"], "paragraph"),
+    typingLabel(["Maya Chen", "Leo Martins"], "essay"),
     "Maya and Leo are typing",
+  );
+  assert.equal(
+    typingLabel(["a", "b", "c", "d", "e"], "paragraph"),
+    "5 people are typing",
   );
 });
 
@@ -136,11 +143,11 @@ void test("sizes stay known after someone stops, until they say otherwise", () =
     }).sizes;
   }
   assert.equal(
-    sizesAt([{ ...typist(MAYA, 0), size: "message" }]).get(MAYA),
-    "message",
+    sizesAt([{ ...typist(MAYA, 0), size: "essay" }]).get(MAYA),
+    "essay",
   );
   // Gone, as when they sent it: the indicator going still says the same.
-  assert.equal(sizesAt([]).get(MAYA), "message");
+  assert.equal(sizesAt([]).get(MAYA), "essay");
   // Back from an app that doesn't say.
   assert.equal(sizesAt([typist(MAYA, 10)]).get(MAYA), undefined);
 });

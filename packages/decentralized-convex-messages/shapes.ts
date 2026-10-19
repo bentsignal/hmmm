@@ -408,13 +408,12 @@ export const TYPING_REFRESH = 3_000;
 
 /**
  * Roughly how long the message someone is typing is, as lines on a
- * phone: a line or less (`reply`), up to four (`message`), up to ten
- * (`paragraph`), or more (`essay`). Only the size is shared, never the
- * count, so readers learn little more than that a long one is coming.
+ * phone: up to four (`short`, most messages), up to ten (`paragraph`), or
+ * more (`essay`). Only the size is shared, never the count, so readers
+ * learn little more than that a long one is coming.
  */
 export const typingSize = v.union(
-  v.literal("reply"),
-  v.literal("message"),
+  v.literal("short"),
   v.literal("paragraph"),
   v.literal("essay"),
 );
@@ -434,8 +433,7 @@ export function typingSizeOf(text: string): TypingSize {
         total + Math.max(1, Math.ceil(line.length / LINE_CHARACTERS)),
       0,
     );
-  if (lines <= 1) return "reply";
-  if (lines <= 4) return "message";
+  if (lines <= 4) return "short";
   if (lines <= 10) return "paragraph";
   return "essay";
 }
