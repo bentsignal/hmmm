@@ -4,6 +4,7 @@ import type {
 } from "@legendapp/list/react-native";
 import type { Ref } from "react";
 import { use } from "react";
+import { ScrollView, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { LegendList } from "@legendapp/list/react-native";
 import { useCSSVariable } from "uniwind";
@@ -12,22 +13,58 @@ import { Pending, usePending } from "./pending";
 import { ScreenListInsets } from "./screen-list-insets";
 import { useSteadyData } from "./steady-data";
 
+/** Room above the rows for the `OfflinePill`, while it shows. */
+const OFFLINE_ROOM = 44;
+
 /** How far past the screen, in points, rows are drawn ahead of time. */
 const DRAW_DISTANCE = 1000;
 
 /**
+ * Room above the rows for the `OfflinePill` while it shows. A header, not
+ * padding, which Legend List doesn't measure again.
+ */
+function OfflineRoom({ offline }: { offline: boolean }) {
+  return <View style={{ height: offline ? OFFLINE_ROOM : 0 }} />;
+}
+
+/**
+ * `Pending` where a `ScreenList`'s rows would start: below the header, as
+ * the list would be, large title and all.
+ */
+function PendingRows({ phase }: { phase: ReturnType<typeof usePending> }) {
+  const insets = use(ScreenListInsets);
+  return (
+    <ScrollView
+      className="bg-background"
+      scrollEnabled={false}
+      contentInsetAdjustmentBehavior={insets === null ? "automatic" : "never"}
+    >
+      <View style={{ paddingTop: insets?.top }}>
+        <Pending phase={phase} top />
+      </View>
+    </ScrollView>
+  );
+}
+
+/**
  * A full-screen Legend List under a native header, so large titles collapse
  * as it scrolls and its background follows the theme. Until `ready` it
- * shows what `usePending` says (nothing, unless loading is slow), then
- * fades in: loading content never pops in.
+ * shows what `usePending` says (nothing, unless loading is slow) where
+ * its rows would start, then fades in: loading content never pops in.
  */
 export function ScreenList<Item>({
   ready = true,
+  offline = false,
   ref,
   steady = false,
   ...props
 }: LegendListProps<Item> & {
   ready?: boolean;
+  /**
+   * The screen's `OfflinePill` is up: the rows make room for it, and the
+   * spinner doesn't say it too.
+   */
+  offline?: boolean;
   ref?: Ref<LegendListRef>;
   /** Rows don't move under the finger as data changes (`useSteadyData`). */
   steady?: boolean;
@@ -35,10 +72,10 @@ export function ScreenList<Item>({
   const background = useCSSVariable("--color-background");
   const insets = use(ScreenListInsets);
   const held = useSteadyData(props.data);
-  const pending = usePending(!ready);
-  if (pending !== "ready") return <Pending phase={pending} />;
+  const pending = usePending(!ready, offline);
   const inset =
     insets === null ? undefined : { bottom: insets.bottom, top: insets.top };
+  if (pending !== "ready") return <PendingRows phase={pending} />;
   return (
     <Animated.View entering={FadeIn.duration(260)} style={{ flex: 1 }}>
       <LegendList
@@ -60,6 +97,7 @@ export function ScreenList<Item>({
         // phone doesn't outrun them and show them appearing at the edges.
         drawDistance={DRAW_DISTANCE}
         recycleItems={false}
+        ListHeaderComponent={<OfflineRoom offline={offline} />}
         {...props}
         {...(steady && { ...held.listProps, data: held.data })}
         style={[

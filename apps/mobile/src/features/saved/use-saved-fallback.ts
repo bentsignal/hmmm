@@ -45,3 +45,12 @@ export function useSavedFallback(
     for (const address of show()) markUnanswered(address);
   });
 }
+
+/**
+ * For a screen with nothing saved: counts the account's PDS as not
+ * answering if the screen is still loading at the deadline, so its
+ * screens say so.
+ */
+export function useAnswerDeadline(address: string, loading: boolean) {
+  useSavedFallback([address], loading, () => [address]);
+}

@@ -6,7 +6,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import type { ComposerHandle } from "~/features/conversation/composer";
 import type { MessageListHandle } from "~/features/conversation/message-list";
 import type { MessageLayout } from "~/features/preferences/store";
-import { Pending, usePending } from "~/components/pending";
+import { Pending } from "~/components/pending";
 import { useComposerBottomInset } from "~/features/conversation/composer";
 import {
   CONVERSATION_HEADER_HEIGHT,
@@ -26,6 +26,7 @@ import { useMemberNotices } from "~/features/messaging/member-events";
 import { useMarkRead, useMessages } from "~/features/messaging/messages";
 import { useActiveConversation } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
+import { useAccountPending } from "~/features/saved/offline-pill";
 import { useSavedConversation } from "~/features/saved/show-saved";
 
 /**
@@ -142,7 +143,7 @@ function Conversation({
     listReady([messages, notices], layout, profilesLoaded) &&
     composerHeight !== undefined;
   useSavedConversation(conversationId, messages, !shown);
-  const pending = usePending(!shown);
+  const pending = useAccountPending(!shown);
   if (!isLoading && conversation === undefined) {
     return (
       <MissingConversation

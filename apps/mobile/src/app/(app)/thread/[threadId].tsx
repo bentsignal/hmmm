@@ -10,7 +10,7 @@ import {
 
 import type { ComposerHandle } from "~/features/conversation/composer";
 import type { MessageListHandle } from "~/features/conversation/message-list";
-import { Pending, usePending } from "~/components/pending";
+import { Pending } from "~/components/pending";
 import { useComposerBottomInset } from "~/features/conversation/composer";
 import { FloatingComposer } from "~/features/conversation/floating-composer";
 import { mentionableIn } from "~/features/conversation/mentionable";
@@ -32,6 +32,7 @@ import {
 } from "~/features/messaging/threads";
 import { useActiveThread } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
+import { useAccountPending } from "~/features/saved/offline-pill";
 
 /** The conversation's name from the opening screen, until it loads. */
 function headingFor(title: string, initialTitle: string | undefined) {
@@ -167,7 +168,7 @@ function Thread({
     root,
   });
 
-  const pending = usePending(shown === null && !missing);
+  const pending = useAccountPending(shown === null && !missing);
 
   return (
     <View className="bg-background flex-1">

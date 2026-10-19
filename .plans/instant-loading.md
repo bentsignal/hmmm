@@ -29,17 +29,26 @@ before. Only when it hasn't answered in 2 s (when the PDS client itself
 gives up on a server's first answer) does it show what's saved on the
 device instead. From then on the account's server counts as not
 answering, so its other screens show what's saved as they open, until a
-live result arrives. Most opens never show saved data. There's no
-indicator on saved data: an underglow under the header was tried and
-dropped (unclear, showy, it covered the top message, and it lagged on
-Android).
+live result arrives. Most opens never show saved data. An underglow under
+the header was tried and dropped (unclear, showy, it covered the top
+message, and it lagged on Android).
+
+**Saying it can't connect** (`features/saved/offline-pill.tsx`): while the
+account's server counts as not answering, a glass "Can't connect ·
+Retrying…" pill shows at the top of Home (the list makes room for it) and
+under the name in a conversation or thread, held at least a second so it
+never flickers. A thread still loading at the deadline counts too. A query
+that timed out counts as still loading, not as empty, so Activity shows
+the spinner instead of "All Caught Up".
 
 **Slow loading** (`components/pending.tsx`, like TanStack Router's
 `pendingMs`/`pendingMinMs`): a screen shows nothing for its first second;
 still loading, a spinner fades in and stays at least a second, so it never
-flickers; still nothing at 6 s, "Can't Connect / Vera will keep trying."
-fades in below it (at once if the server is already known not to answer).
-On every `ScreenList`, conversations, and threads.
+flickers. Lists show it at the top, where their rows start; conversations
+in the middle. Still nothing at 6 s, "Can't Connect / Retrying…" fades in
+below it (at once if the server is already known not to answer), unless
+the screen's pill already says so. On every `ScreenList`, conversations,
+and threads.
 
 **Saving** happens as the app leaves the screen ("inactive" or
 "background", since an app closed from the iPhone's app switcher is only

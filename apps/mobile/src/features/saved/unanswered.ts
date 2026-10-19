@@ -1,4 +1,5 @@
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
+import { useSyncExternalStore } from "react";
 import { partialMatchKey } from "@tanstack/react-query";
 import { pdsSessionQueryKey } from "@decentralized-convex/tanstack-query";
 
@@ -11,6 +12,38 @@ import { fieldOf } from "./fields";
  */
 const unanswered = new Set<string>();
 
+/**
+ * How long screens say an account can't connect once they start to, even
+ * if its PDS answers sooner, so it never flickers in and straight back out.
+ */
+const OFFLINE_MIN_MS = 1000;
+
+/** When screens started saying each account can't connect. */
+const shownSince = new Map<string, number>();
+const listeners = new Set<() => void>();
+
+function notify() {
+  for (const listener of listeners) listener();
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/**
+ * Whether screens should say any of these accounts can't connect: from
+ * when its PDS stops answering until it answers, and at least
+ * `OFFLINE_MIN_MS`.
+ */
+export function useShowsOffline(addresses: readonly string[]) {
+  return useSyncExternalStore(subscribe, () =>
+    addresses.some((address) => shownSince.has(address)),
+  );
+}
+
 export function isUnanswered(address: string) {
   return unanswered.has(address);
 }
@@ -22,6 +55,23 @@ export function anyUnanswered() {
 
 export function markUnanswered(address: string) {
   unanswered.add(address);
+  if (shownSince.has(address)) return;
+  shownSince.set(address, Date.now());
+  notify();
+}
+
+function markAnswered(address: string) {
+  unanswered.delete(address);
+  const since = shownSince.get(address);
+  if (since === undefined) return;
+  setTimeout(
+    () => {
+      if (unanswered.has(address)) return;
+      shownSince.delete(address);
+      notify();
+    },
+    Math.max(0, since + OFFLINE_MIN_MS - Date.now()),
+  );
 }
 
 /**
@@ -41,7 +91,7 @@ function noteAnswer(
     Array.isArray(sources) &&
     sources.length > 0
   ) {
-    unanswered.delete(address);
+    markAnswered(address);
   }
 }
 

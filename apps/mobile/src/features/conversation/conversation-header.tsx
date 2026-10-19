@@ -13,6 +13,7 @@ import { Avatar } from "~/components/avatar";
 import { GlassSurface } from "~/components/glass-surface";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { AffiliatedBadge } from "~/features/profile/affiliated-badge";
+import { OfflinePill, useAccountOffline } from "~/features/saved/offline-pill";
 
 /** Matches the native glass bar buttons. */
 export const BUTTON = 44;
@@ -32,6 +33,17 @@ const CHANNEL_GLYPH = { android: "tag", ios: "number" } as const;
 
 /** How far below the status bar the soft edge reaches. */
 const EDGE = 14;
+
+/**
+ * Says the account's PDS isn't answering, just under a header `height`
+ * tall (below Android's solid bar).
+ */
+export function HeaderOfflinePill({ height }: { height: number }) {
+  const insets = useSafeAreaInsets();
+  const shown = useAccountOffline();
+  const gap = Platform.OS === "android" ? 12 : 0;
+  return <OfflinePill shown={shown} top={insets.top + height + gap} />;
+}
 
 /**
  * A soft edge behind the status bar only, like the system's scroll edge
@@ -226,6 +238,7 @@ export function ConversationHeader({
   return (
     <>
       <TopEdge />
+      <HeaderOfflinePill height={CONVERSATION_HEADER_HEIGHT} />
       <LayoutAnimationConfig skipEntering>
         <View
           // Drags between the buttons still scroll the messages beneath.

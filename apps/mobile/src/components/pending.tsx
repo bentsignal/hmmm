@@ -3,6 +3,7 @@ import { ActivityIndicator, Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 
 import { anyUnanswered } from "~/features/saved/unanswered";
+import { cn } from "~/lib/cn";
 
 /** How long a screen shows nothing while it loads, before a spinner. */
 const PENDING_MS = 1000;
@@ -19,9 +20,10 @@ const TROUBLE_MS = 6000;
  * shows meanwhile (`Pending`): nothing at first, since most screens load
  * within `PENDING_MS`; then a spinner, kept for at least `PENDING_MIN_MS`;
  * then word that it can't connect. That comes with the spinner if a screen
- * has already given up on its server (`unanswered.ts`).
+ * has already given up on its server (`unanswered.ts`), and never while
+ * the screen's own `OfflinePill` says it (`offline`).
  */
-export function usePending(loading: boolean) {
+export function usePending(loading: boolean, offline = false) {
   const [spinnerAt, setSpinnerAt] = useState<number>();
   const [holding, setHolding] = useState(false);
   const [trouble, setTrouble] = useState(false);
@@ -48,24 +50,34 @@ export function usePending(loading: boolean) {
   }, [spinnerAt]);
   if (!loading && !holding) return "ready";
   if (spinnerAt === undefined) return "blank";
-  return trouble ? "trouble" : "spinner";
+  return trouble && !offline ? "trouble" : "spinner";
 }
 
 /**
- * What a loading screen shows meanwhile (`usePending`). The words below
- * the spinner have their place from the start, so the spinner doesn't
- * move when they fade in.
+ * What a loading screen shows meanwhile (`usePending`): centered, or at
+ * the `top` of a list, where its rows would start. The words below the
+ * spinner have their place from the start, so the spinner doesn't move
+ * when they fade in.
  */
-export function Pending({ phase }: { phase: ReturnType<typeof usePending> }) {
+export function Pending({
+  phase,
+  top = false,
+}: {
+  phase: ReturnType<typeof usePending>;
+  top?: boolean;
+}) {
   if (phase === "ready" || phase === "blank") return null;
   return (
     <Animated.View
       entering={FadeIn.duration(200)}
-      className="absolute inset-0 items-center justify-center gap-4 px-8"
+      className={cn(
+        "items-center gap-4 px-8",
+        top ? "pt-12" : "absolute inset-0 justify-center",
+      )}
       pointerEvents="none"
     >
-      <View className="h-12" />
-      <ActivityIndicator />
+      {!top && <View className="h-12" />}
+      <ActivityIndicator size={top ? "large" : "small"} />
       <Animated.View
         className="h-12 items-center gap-1"
         style={{
@@ -77,9 +89,7 @@ export function Pending({ phase }: { phase: ReturnType<typeof usePending> }) {
         <Text className="text-headline text-foreground font-semibold">
           Can't Connect
         </Text>
-        <Text className="text-subhead text-muted text-center">
-          Vera will keep trying.
-        </Text>
+        <Text className="text-subhead text-muted text-center">Retrying…</Text>
       </Animated.View>
     </Animated.View>
   );
