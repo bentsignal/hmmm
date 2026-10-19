@@ -139,6 +139,19 @@ function useSides() {
 }
 
 /**
+ * What the composer reports of the field's changes. While editing, every
+ * change reports an empty field: an edit isn't a new message on its way,
+ * so it never shows as typing, and it stops any typing the draft started.
+ */
+function reportedChanges(
+  onChangeText: ((text: string, sent: boolean) => void) | undefined,
+  editing: boolean,
+) {
+  if (!editing || onChangeText === undefined) return onChangeText;
+  return (_text: string, sent: boolean) => onChangeText("", sent);
+}
+
+/**
  * The text being typed and who it @mentions, emptied by `sent`, and kept as
  * a draft on this device (see `drafts.ts`). A new `draftKey` (an edit's,
  * or back from one) shows that draft instead.
@@ -288,7 +301,10 @@ export function Composer({
   /** Photos pasted into the field. */
   onPaste: (images: readonly PastedImage[]) => void;
   onRemoveStaged: (id: string) => void;
-  /** Every change to the text, including emptying it on send (`sent`). */
+  /**
+   * Every change to the text, including emptying it on send (`sent`).
+   * See `reportedChanges` for edits.
+   */
   onChangeText?: (text: string, sent: boolean) => void;
   /** The bar's height, without the people listed above it. */
   onHeight?: (height: number) => void;
@@ -315,7 +331,7 @@ export function Composer({
   const { draft, change, mention, pick, sent, saved } = useDraft(
     editing === undefined || edit === undefined ? draftKey : edit.editDraftKey,
     input,
-    onChangeText,
+    reportedChanges(onChangeText, editing !== undefined),
     mentionable,
   );
   const canSend = canSendNow(draft, staged, editing);
