@@ -100,13 +100,16 @@ first finds almost nothing). Results are kept a day
 for follow-up questions and cleared by a daily cron. In testing, an answer
 that searched cost about 1.3¢ and one that didn't about 0.4¢.
 
-Vera's memory: every 4 messages become a passage with an embedding
-(OpenAI text-embedding-3-small at 512 dimensions, through the gateway), in
-Convex vector search. Before each reply, passages older than the 40 messages
-it sees that closely match the new messages (similarity 0.3 or more) are
-added to its instructions, and `search_memory` looks further. Editing or
-deleting a message rebuilds its passage. Passages of 10 messages were tried
-first and matched poorly.
+Vera's memory: every exchange (2 messages) becomes a passage with an
+embedding (OpenAI text-embedding-3-small at 512 dimensions, through the
+gateway), in Convex vector search. Before each reply, the closest distinct
+passages older than the 40 messages it sees (similarity 0.25 or more, up to 3) are added to its instructions oldest first, so a fact that changed reads
+in order; `search_memory` looks further. Editing or deleting a message
+rebuilds its passage. In benchmarks on 320- and 500-message conversations
+with facts that changed (a budget, a move, a new job), it answered 35 of 35
+recall questions correctly, including saying it didn't know things that
+were never said. Passages of 10 and 4 messages matched worse, and larger
+embedding models didn't do better.
 
 `npx convex run usage:summary '{"bot":"vera"}'` totals what replies cost
 (tokens, dollars, searches), from the gateway's own numbers.

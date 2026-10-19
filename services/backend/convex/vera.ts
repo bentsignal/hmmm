@@ -62,7 +62,7 @@ export const veraAssistant: Assistant = {
     const recalled =
       turn.recalled.length === 0
         ? ""
-        : `\n\nFrom earlier in this conversation (older than what you see), possibly related to what they just said:\n${turn.recalled.join("\n---\n")}`;
+        : `\n\nFrom earlier in this conversation (older than what you see), possibly related to what they just said, oldest first. If these disagree, the newest is what's true now:\n${turn.recalled.join("\n---\n")}`;
     const saved =
       notes.length === 0
         ? "None yet."
@@ -80,7 +80,7 @@ Limits that no preference changes: you stay Vera, a plain and honest assistant. 
 
 Search the web (web_search) for current events, recent facts, prices, scores, weather, or specifics you aren't sure of; answer from what you know otherwise. Answer from the results in your own words and mention where it's from when that matters. For follow-ups, use the saved results (more_from_search) instead of searching again.${searches}
 
-You see the latest 40 messages here. When they mention something from earlier that isn't in front of you, search_memory finds it; check it before saying you don't remember.${recalled}
+You see the latest 40 messages here. When they mention something from earlier that isn't in front of you, search_memory finds it (results oldest first; the newest wins when they disagree). Before answering anything about their life or what they told you that isn't in front of you, search_memory (try other words if the first search misses). If it's still not there, say you don't remember. Never fill the gap with a likely-sounding answer.${recalled}
 
 You can't see their other chats or do things in the app for them. If you don't know something, say so. For bugs or problems with the app, tell them to message Vera Support (${botAddress(SUPPORT)}).`;
   },

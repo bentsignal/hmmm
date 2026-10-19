@@ -14,24 +14,27 @@ import { internalAction, internalQuery } from "./_generated/server";
 import { botAddress } from "./bots";
 
 // Vera's memory of the whole conversation, beyond the 40 messages it sees:
-// every 4 messages become a passage, embedded once and found again by
+// every exchange (2 messages) becomes a passage, embedded once and found again by
 // meaning (Convex vector search), both before each reply (`recallFor`) and
 // with the `search_memory` tool. Only that one conversation's passages are
 // ever searched. Editing or deleting a message rebuilds its passage, so
 // nothing deleted stays remembered.
 
 /**
- * Messages per passage: about two exchanges. Tested against 10, which
- * blurred several topics into one embedding and matched poorly.
+ * Messages per passage: one exchange. In a benchmark on a 320-message
+ * conversation, 2 matched better than 4, and 4 better than 10 (which
+ * blurred several topics into one embedding).
  */
-export const PASSAGE_SIZE = 4;
+export const PASSAGE_SIZE = 2;
 /**
- * The least similarity a passage needs to be recalled on its own. In tests,
- * related passages scored 0.37 to 0.6 and unrelated ones under 0.29.
+ * The least similarity a passage needs to be recalled on its own. In the
+ * benchmark, the right passages scored 0.25 to 0.65 and unrelated ones
+ * mostly under 0.25.
  */
-const RECALL_SCORE = 0.3;
-/** Passages recalled before a reply. */
-const RECALLED = 2;
+const RECALL_SCORE = 0.25;
+/** Passages recalled before a reply, from this many closest candidates. */
+const RECALLED = 3;
+const CANDIDATES = 16;
 /** Passages a lookup returns. */
 const RESULTS = 4;
 
@@ -60,9 +63,13 @@ export function memoryTools(turn: Turn) {
       }),
       execute: async ({ query }) => {
         turn.counted("memory");
-        const found = await recall(turn.ctx, turn.conversationId, query);
+        const found = distinct(
+          await recall(turn.ctx, turn.conversationId, query, CANDIDATES),
+        ).slice(0, RESULTS);
         if (found.length === 0) return "Nothing found.";
-        return found.map((passage) => passage.text);
+        return found
+          .sort((a, b) => a.lastSentAt - b.lastSentAt)
+          .map((passage) => passage.text);
       },
     }),
   };
@@ -113,6 +120,20 @@ export const passages = internalQuery({
 });
 
 /**
+ * Drops passages that say the same thing as a better match (the same
+ * words on another day), so repeats can't crowd out everything else.
+ */
+function distinct<Passage extends { text: string }>(passages: Passage[]) {
+  const seen = new Set<string>();
+  return passages.filter((passage) => {
+    const words = passage.text.replace(/^\[[^\]]*\] /gm, "").toLowerCase();
+    if (seen.has(words)) return false;
+    seen.add(words);
+    return true;
+  });
+}
+
+/**
  * Before a reply: what from older parts of the conversation (before
  * `visibleFrom`, the oldest message the model sees) closely matches the
  * person's new messages.
@@ -123,14 +144,20 @@ export async function recallFor(
   newMessages: string,
   visibleFrom: number,
 ) {
-  const found = await recall(ctx, conversationId, newMessages, RECALLED + 4);
-  return found
-    .filter(
-      (passage) =>
-        passage.score >= RECALL_SCORE && passage.lastSentAt < visibleFrom,
-    )
-    .slice(0, RECALLED)
-    .map((passage) => passage.text);
+  const found = distinct(
+    await recall(ctx, conversationId, newMessages, CANDIDATES),
+  );
+  return (
+    found
+      .filter(
+        (passage) =>
+          passage.score >= RECALL_SCORE && passage.lastSentAt < visibleFrom,
+      )
+      .slice(0, RECALLED)
+      // Oldest first, so a fact that changed reads in the order it changed.
+      .sort((a, b) => a.lastSentAt - b.lastSentAt)
+      .map((passage) => passage.text)
+  );
 }
 
 /**

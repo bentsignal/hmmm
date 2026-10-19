@@ -37,6 +37,8 @@ const ASSISTANTS: Record<BotAccount["username"], Assistant> = {
 
 /** Recent messages the model sees; older ones it can read with a tool. */
 const HISTORY = 40;
+/** How long one model call may take before it's tried again (it's usually 2-5 s). */
+const STEP_TIMEOUT = 40_000;
 /** Model calls in one reply (each may call several tools). */
 const MAX_STEPS = 8;
 /** A reply that has run this long is assumed to have died. */
@@ -298,14 +300,21 @@ async function reply(
       timeZone: await ctx.runQuery(internal.timeZones.of, { accountId }),
     };
     const assistant = ASSISTANTS[bot.username];
-    const result = await generateText({
+    const options = {
       instructions: await assistant.instructions(turn),
       messages,
       model: convexGateway(MODEL, { zdr: true }),
       providerOptions: REASONING,
       stopWhen: [isStepCount(MAX_STEPS), saidItsPiece],
+      timeout: { stepMs: STEP_TIMEOUT },
       toolCallConcurrency: 1,
       tools: assistant.tools(turn),
+    };
+    const result = await generateText(options).catch((error: unknown) => {
+      // A model call that stalled: try once more if nothing went out yet.
+      if (sender.sent() > 0) throw error;
+      console.warn(`${bot.username} retrying a failed reply`, error);
+      return generateText(options);
     });
     // A model that answered in plain text instead of calling send_message.
     if (sender.sent() === 0 && result.text.trim().length > 0) {

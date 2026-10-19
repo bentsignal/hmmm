@@ -15,7 +15,7 @@ import { botAccount, botAddress } from "./bots";
 import { dimensions, DIMENSIONS, embeddingModel, PASSAGE_SIZE } from "./memory";
 import { botName } from "./schema";
 
-// Building Vera's memory (memory.ts): passages of 4 messages, made as a
+// Building Vera's memory (memory.ts): passages of 2 messages, made as a
 // conversation grows and rebuilt when a message in one is edited or deleted.
 
 /** How far back a first pass reads, in pages of 50 messages. */
