@@ -18,6 +18,16 @@ package READMEs, `apps/mobile/README.md`, `.plans/`). If the request is
 ambiguous in a way that changes what you build, ask before building.
 Otherwise pick the sensible default and say so in the PR.
 
+**Fixing a GitHub issue.** Read it first (`gh issue view <n>`). Issues
+labeled "user report" were filed by Vera Support for a real person, who
+gets messages as the fix moves along, all driven by the PR's link to the
+issue. So the PR description must say `Fixes #<n>`, one line per issue
+(`Closes` and `Resolves` work too; a bare `#<n>` doesn't link). GitHub only
+links PRs that target `main`, so a stacked fix doesn't link until it's
+retargeted. Assigning yourself the issue (`gh issue edit <n> --add-assignee
+@me`) tells the reporter someone picked it up. Its screenshots are
+described in words, never attached; reproduce from the steps.
+
 For a change to an existing screen, bring the simulator up (step 4) and take
 the "before" screenshots now, before you edit anything. Then `down` it while
 you build; `up` again when you're ready to verify.
@@ -162,6 +172,7 @@ scripts/phone.sh list           # every cached dev client, marking main's
   signs in (or adds the account if he's already signed in elsewhere). The
   page works in any browser; a bare `vera-dev://` link only works pasted
   into Safari.
+
 - Leave it up while you work on his feedback. If this worktree has its own
   dev client, `down` at close-out prints main's install link: send it so
   he can put main's dev client back.
@@ -231,7 +242,8 @@ gh pr create --base main --title "<title>" --body-file <body.md>
 
 Follow `.github/pull_request_template.md`: summary, evidence, how it was
 tested, the backend used, whether native code changed, whether it's a
-breaking backend change, and extra release steps.
+breaking backend change, and extra release steps. A fix for an issue says
+`Fixes #<n>` (step 1).
 
 **Extra release steps.** If the next release has to do anything for this
 change beyond `pnpm release` (deploy something outside Convex such as

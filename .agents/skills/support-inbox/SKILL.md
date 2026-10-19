@@ -7,9 +7,14 @@ description: Read and answer the Vera Support account's messages, triage bug rep
 
 `support@<account domain>` is a verified account on each PDS. It welcomes
 every new account with a DM inviting bug reports, so people report problems
-by replying there. Nothing answers automatically: you read and reply through
-the operator commands in `services/backend/convex/support.ts`, as the
-support account, when Shawn asks.
+by replying there. A model answers them (Grok 4.7 through the Convex AI
+Gateway, `services/backend/convex/supportAgent.ts`): it asks for what's
+missing, warns that reports are public, files each one as an anonymized
+GitHub issue labeled "user report", and messages the reporter as the issue
+is picked up, worked on, fixed, and released (`supportReports.ts`). You
+can still read and reply through the operator commands in
+`services/backend/convex/support.ts`, as the support account, when Shawn
+asks; the model sees your messages as its own.
 
 Run every command from `services/backend`, in any worktree or the main
 checkout. Production needs `--prod`; use the dev deployment only when Shawn
@@ -48,13 +53,70 @@ attachment URLs (open screenshots to see them). The support account sees only
 messages stored on this PDS, so it misses what people on other PDSs write.
 Every Vera account is on `vera.chat` today.
 
+## Bug reports support filed
+
+```sh
+npx convex run supportReports:list '{"open":true}' --prod   # drop the arg for every report
+npx convex run supportReports:track --prod                   # check GitHub now instead of waiting for the cron
+```
+
+`list` gives each report's GitHub issue, stage, and who reported it and in
+which conversation. The issue itself never names the reporter: look them up
+here when Shawn needs to. Issues never include screenshots, only support's
+description of them; read the conversation (`support:read`) for the images.
+
+Before filing, support searches GitHub for an existing issue or merged fix.
+When one matches, it follows that issue for the reporter instead of filing
+a duplicate, or tells them the fix is already out.
+
+### Conversations from before support answered (temporary)
+
+```sh
+npx convex run supportBacklog:pending --prod   # who wrote in and never heard back
+npx convex run supportBacklog:answerAll "$(cat ~/.vera/support-backlog.json)" --prod
+```
+
+Support's model can't see the code, so first check everything each person
+sent against `origin/main`, its merged PRs, and GitHub issues: fixed (and
+released how), already tracked, or still open. File issues for what's
+still open (anonymized, labeled "user report" plus `bug` or `enhancement`).
+Then write the input: per conversation, a `note` saying where each thing
+stands, and `follow`, the issues support should follow for that person:
+
+```json
+{"conversations":[{"conversationId":"direct:…","note":"- Pasting images: fixed in the newest store version…","follow":[{"issueNumber":170,"summary":"searching your messages"}]}]}
+```
+
+`answerAll` follows the issues, then has support answer every pending
+conversation and every listed one, 30 seconds apart: an apology, then a
+summary grouped by fixed, followed, and not changing. It stays quiet with
+people who only sent a joke. It checks the whole input before messaging
+anyone. It messages real people: show Shawn the notes and run it only when
+he says so. The input names people, so keep it outside the repo.
+
+A PR that fixes one says `Fixes #<issue>` in its description. That links
+the PR to the issue, which is how support knows a fix is being worked on,
+merged, and then shipped (its merge commit in the newest
+`mobile/ota/production/*` or `mobile/build/*` tag, plus `backend/deploy/*`
+for backend changes). Reporters get those updates without anyone sending
+them. Assigning the issue tells them someone picked it up. Closing it as a
+duplicate of another issue moves them onto that one. Closing it with a
+comment has support explain the comment to them in plain words, so say
+why when you close one.
+
+Without `GITHUB_TOKEN` and `GITHUB_REPOSITORY` on a deployment (dev and
+isolated deployments don't have them), reports are kept on the PDS only and
+logged instead of filed.
+
 ## Triage for Shawn
 
 Summarize the reports, not the raw JSON: for each conversation, who wrote
 (the address), what they reported in one line, whether it's a bug, a
-request, or a question, and the conversation ID. Group duplicates. Shawn
-decides what gets fixed. Each fix is a normal change (the `vera-feature`
-skill). Put the reports a PR fixes in its description:
+request, or a question, its GitHub issue if support filed one, and the
+conversation ID. Group duplicates. Shawn decides what gets fixed. Each fix
+is a normal change (the `vera-feature` skill). A fix for a filed report
+says `Fixes #<issue>` in its PR description. For a report support didn't
+file (from before it filed issues), list the conversation instead:
 
 ```markdown
 ## Support reports
@@ -74,6 +136,9 @@ npx convex run support:markRead '{"conversationId":"<id>"}' --prod
 
 These go to real people, from Vera Support, as push notifications.
 
+- Support's model already answers every message and sends the updates
+  below for reports it filed. Write as support only when Shawn asks, such as
+  for a report it didn't file.
 - Send only what Shawn asked for in this thread. If he asked you to work on
   reports and keep people posted, that covers the two updates below for
   those reports. Anything else, show him the text first.
