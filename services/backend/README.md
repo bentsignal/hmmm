@@ -83,10 +83,14 @@ Two verified accounts answer direct messages with a model:
   duplicate), then files an anonymized GitHub issue labeled "user report"
   with the app version and device the app reported. Screenshots never go in
   an issue: support describes what they show in words, without personal
-  details. A cron (`crons.ts`) follows each issue and tells
-  the reporter, in plain words, when it's picked up (assigned), being worked
-  on (a linked PR), fixed (merged), and out (in the newest production
-  release tags). People who say they're developers also get the links.
+  details. A cron (`crons.ts`, every 10 minutes) follows each issue and
+  tells the reporter, in plain words, when it's picked up (assigned), being
+  worked on (an open PR that says `Fixes #N`), fixed (merged), and out:
+  "live now" when an over-the-air update or backend deploy shipped it, or
+  "update it from TestFlight or the App Store" (Google Play on Android, from
+  the OS their app reported) when it took a store build. A PR labeled
+  "📱 Native Change" only counts as out once that phone's store build has
+  it. People who say they're developers also get the links.
   See the `support-inbox` agent skill for the operator commands.
 - `vera@<account domain>` is a general assistant: short, direct answers in
   plain text. It remembers how each person wants it to answer when they ask
