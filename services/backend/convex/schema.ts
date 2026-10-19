@@ -30,6 +30,12 @@ export default defineSchema({
     backlog: v.optional(v.boolean()),
     bot: botName,
     conversationId: v.string(),
+    /**
+     * Something the team wants the next reply to cover, such as what's
+     * become of someone's old reports (supportBacklog.ts) or why an issue
+     * was closed (supportClosures.ts).
+     */
+    note: v.optional(v.string()),
     /** A message arrived while a reply was running: answer it next. */
     rerun: v.optional(v.boolean()),
     runningSince: v.optional(v.number()),
@@ -96,9 +102,10 @@ export default defineSchema({
       }),
     ),
   }).index("by_conversation", ["conversationId"]),
-  /** Each person's hourly allowance of assistant replies (rateLimits.ts). */
+  /** Each person's hourly allowance of each assistant's replies (rateLimits.ts). */
   rateLimits: defineTable({
     accountId: v.string(),
+    bot: botName,
     /** At the hourly limit since their last reply (one strike per stretch). */
     limited: v.optional(v.boolean()),
     lockNoticeSent: v.optional(v.boolean()),
@@ -107,7 +114,7 @@ export default defineSchema({
     strikesSince: v.optional(v.number()),
     tokens: v.number(),
     updatedAt: v.number(),
-  }).index("by_account", ["accountId"]),
+  }).index("by_account", ["accountId", "bot"]),
   /** What each assistant reply cost, for keeping an eye on the bill (usage.ts). */
   assistantUsage: defineTable({
     accountId: v.string(),

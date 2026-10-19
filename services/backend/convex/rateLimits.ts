@@ -1,16 +1,20 @@
 import { v } from "convex/values";
 
+import type { AssistantName } from "../assistant-limits";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { current, decide, STRIKES_PER_DAY } from "../assistant-limits";
 import { internalMutation, internalQuery } from "./_generated/server";
+import { botName } from "./schema";
 
-// How fast one person can use Vera's assistants (Support and Vera together):
+// How fast one person can use each of Vera's assistants, counted
+// separately per assistant (`LIMITS` in assistant-limits.ts):
 //
-// - 300 replies an hour, on a rolling basis: a token bucket per person that
-//   holds up to 300 replies and refills one every 12 seconds.
+// - Vera: 300 replies an hour; Support: 100. Rolling: a token bucket per
+//   person and assistant that holds an hour's replies and refills
+//   continuously (one every 12 seconds for Vera, 36 for Support).
 // - Each separate time they run the hour's allowance dry is a strike. Five
-//   strikes within a day (a fixed window from the first) pause the
-//   assistants for them until that day is up, so someone can't sit at the
+//   strikes within a day (a fixed window from the first) pause that
+//   assistant for them until the day is up, so someone can't sit at the
 //   limit sending a message every refill.
 //
 // Over a limit, the assistant says so once, without the model. (Convex's
@@ -18,10 +22,15 @@ import { internalMutation, internalQuery } from "./_generated/server";
 // its own, which breaks importing convex.config.ts outside Convex, as
 // http.ts and pds.ts do.)
 
-function bucketOf(ctx: Pick<QueryCtx, "db">, accountId: string) {
+interface Key {
+  accountId: string;
+  bot: AssistantName;
+}
+
+function bucketOf(ctx: Pick<QueryCtx, "db">, { accountId, bot }: Key) {
   return ctx.db
     .query("rateLimits")
-    .withIndex("by_account", (q) => q.eq("accountId", accountId))
+    .withIndex("by_account", (q) => q.eq("accountId", accountId).eq("bot", bot))
     .unique();
 }
 
@@ -29,10 +38,10 @@ function bucketOf(ctx: Pick<QueryCtx, "db">, accountId: string) {
  * Takes one reply from the person's allowance: `{ ok: true }`, or a refusal
  * with the notice to send (null when they've already been told).
  */
-export async function takeReply(ctx: MutationCtx, accountId: string) {
+export async function takeReply(ctx: MutationCtx, key: Key) {
   const now = Date.now();
-  const stored = await bucketOf(ctx, accountId);
-  const bucket = current(stored, accountId, now);
+  const stored = await bucketOf(ctx, key);
+  const bucket = current(stored, key, now);
   const result = decide(bucket, now);
   if (stored === null) await ctx.db.insert("rateLimits", result.bucket);
   else await ctx.db.replace(stored._id, result.bucket);
@@ -43,16 +52,12 @@ export async function takeReply(ctx: MutationCtx, accountId: string) {
 
 /**
  * Operator command:
- * `npx convex run rateLimits:status '{"accountId":"someone@vera.chat"}'`.
+ * `npx convex run rateLimits:status '{"accountId":"someone@vera.chat","bot":"vera"}'`.
  */
 export const status = internalQuery({
-  args: { accountId: v.string() },
-  handler: async (ctx, { accountId }) => {
-    const bucket = current(
-      await bucketOf(ctx, accountId),
-      accountId,
-      Date.now(),
-    );
+  args: { accountId: v.string(), bot: botName },
+  handler: async (ctx, key) => {
+    const bucket = current(await bucketOf(ctx, key), key, Date.now());
     return {
       paused: (bucket.strikes ?? 0) >= STRIKES_PER_DAY,
       repliesLeft: Math.floor(bucket.tokens),
@@ -64,12 +69,16 @@ export const status = internalQuery({
 /**
  * Operator command:
  * `npx convex run rateLimits:reset '{"accountId":"someone@vera.chat"}'`.
- * Gives someone their full hour back and clears today's strikes.
+ * Gives someone their full hour back and clears today's strikes, with
+ * every assistant.
  */
 export const reset = internalMutation({
   args: { accountId: v.string() },
   handler: async (ctx, { accountId }) => {
-    const bucket = await bucketOf(ctx, accountId);
-    if (bucket !== null) await ctx.db.delete(bucket._id);
+    const buckets = await ctx.db
+      .query("rateLimits")
+      .withIndex("by_account", (q) => q.eq("accountId", accountId))
+      .collect();
+    await Promise.all(buckets.map((bucket) => ctx.db.delete(bucket._id)));
   },
 });

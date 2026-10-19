@@ -1,4 +1,5 @@
 import type { IssueState } from "../bug-reports";
+import { closingCommentOf, duplicateOf } from "../issue-closures";
 import { optionalEnvironment } from "./lib";
 
 // GitHub for Vera Support's bug reports: creating issues and reading how
@@ -92,6 +93,9 @@ export async function commentOnIssue(
   );
 }
 
+const DUPLICATE_FIELDS = `canonical { ... on Issue { number } }
+  duplicate { ... on Issue { number } }`;
+
 const PULL_REQUEST_FIELDS = `number url state merged baseRefName
   mergeCommit { oid }
   labels(first: 20) { nodes { name } }
@@ -107,8 +111,16 @@ export async function issueStates(
   const issues = numbers
     .map(
       (number) => `i${String(number)}: issue(number: ${String(number)}) {
-        number state stateReason
+        number state stateReason closedAt
         assignees(first: 1) { totalCount }
+        comments(last: 10) { nodes { authorAssociation body createdAt } }
+        duplicates: timelineItems(last: 20, itemTypes: [MARKED_AS_DUPLICATE_EVENT, UNMARKED_AS_DUPLICATE_EVENT]) {
+          nodes {
+            __typename
+            ... on MarkedAsDuplicateEvent { ${DUPLICATE_FIELDS} }
+            ... on UnmarkedAsDuplicateEvent { ${DUPLICATE_FIELDS} }
+          }
+        }
         closedByPullRequestsReferences(first: 10, includeClosedPrs: true) {
           nodes { ${PULL_REQUEST_FIELDS} }
         }
@@ -161,7 +173,23 @@ export async function issueStates(
         .findLast((oid) => oid !== null) ?? null;
     states.set(number, {
       assigned: Number(read(read(issue, "assignees"), "totalCount")) > 0,
+      closingComment: closingCommentOf(
+        nodes(read(issue, "comments")).map((comment) => ({
+          association: String(read(comment, "authorAssociation")),
+          body: String(read(comment, "body")),
+          createdAt: String(read(comment, "createdAt")),
+        })),
+        stringOrNull(read(issue, "closedAt")),
+      ),
       closingCommit,
+      duplicateOf: duplicateOf(
+        nodes(read(issue, "duplicates")).map((event) => ({
+          canonical: numberOrNull(read(read(event, "canonical"), "number")),
+          duplicate: numberOrNull(read(read(event, "duplicate"), "number")),
+          marked: read(event, "__typename") === "MarkedAsDuplicateEvent",
+        })),
+        number,
+      ),
       pullRequests,
       state: read(issue, "state") === "CLOSED" ? "CLOSED" : "OPEN",
       stateReason: stringOrNull(read(issue, "stateReason")),
@@ -250,4 +278,8 @@ function excerpt(body: unknown) {
 
 function stringOrNull(value: unknown) {
   return typeof value === "string" ? value : null;
+}
+
+function numberOrNull(value: unknown) {
+  return typeof value === "number" ? value : null;
 }

@@ -69,25 +69,40 @@ Before filing, support searches GitHub for an existing issue or merged fix.
 When one matches, it follows that issue for the reporter instead of filing
 a duplicate, or tells them the fix is already out.
 
-### Conversations from before support answered
+### Conversations from before support answered (temporary)
 
 ```sh
-npx convex run supportBacklog:pending --prod     # who wrote in and never heard back
-npx convex run supportBacklog:answerAll --prod   # support answers each, 30 seconds apart
-npx convex run supportBacklog:answerAll '{"conversationIds":["<id>"]}' --prod
+npx convex run supportBacklog:pending --prod   # who wrote in and never heard back
+npx convex run supportBacklog:answerAll "$(cat ~/.vera/support-backlog.json)" --prod
 ```
 
-`answerAll` messages real people: show Shawn `pending` and run it only when
-he says so. Support apologizes for the wait, checks whether each problem is
-already fixed or reported, and follows up on the rest.
+Support's model can't see the code, so first check everything each person
+sent against `origin/main`, its merged PRs, and GitHub issues: fixed (and
+released how), already tracked, or still open. File issues for what's
+still open (anonymized, labeled "user report" plus `bug` or `enhancement`).
+Then write the input: per conversation, a `note` saying where each thing
+stands, and `follow`, the issues support should follow for that person:
+
+```json
+{"conversations":[{"conversationId":"direct:…","note":"- Pasting images: fixed in the newest store version…","follow":[{"issueNumber":170,"summary":"searching your messages"}]}]}
+```
+
+`answerAll` follows the issues, then has support answer every pending
+conversation and every listed one, 30 seconds apart: an apology, then a
+summary grouped by fixed, followed, and not changing. It stays quiet with
+people who only sent a joke. It checks the whole input before messaging
+anyone. It messages real people: show Shawn the notes and run it only when
+he says so. The input names people, so keep it outside the repo.
 
 A PR that fixes one says `Fixes #<issue>` in its description. That links
 the PR to the issue, which is how support knows a fix is being worked on,
 merged, and then shipped (its merge commit in the newest
 `mobile/ota/production/*` or `mobile/build/*` tag, plus `backend/deploy/*`
 for backend changes). Reporters get those updates without anyone sending
-them. Assigning the issue tells them someone picked it up; closing it as
-not planned or a duplicate tells them it won't change.
+them. Assigning the issue tells them someone picked it up. Closing it as a
+duplicate of another issue moves them onto that one. Closing it with a
+comment has support explain the comment to them in plain words, so say
+why when you close one.
 
 Without `GITHUB_TOKEN` and `GITHUB_REPOSITORY` on a deployment (dev and
 isolated deployments don't have them), reports are kept on the PDS only and

@@ -1,13 +1,28 @@
+import type { Infer } from "convex/values";
 import { v } from "convex/values";
 
+import type { IssueState } from "../bug-reports";
 import { internal } from "./_generated/api";
-import { internalMutation, internalQuery } from "./_generated/server";
-import { isBotAddress, queryAsBot, SUPPORT } from "./bots";
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from "./_generated/server";
+import { scheduleReply } from "./assistantHook";
+import { botAddress, isBotAddress, queryAsBot, SUPPORT } from "./bots";
+import { githubConfig, issueStates } from "./github";
+import { followIssue } from "./supportLookup";
 
-// A one-time pass over support's inbox from before its model answered
-// anyone: people who wrote in and never heard back. Support's model reads
-// each conversation, checks what's already reported or fixed, and answers
-// (supportAgent.ts, `BACKLOG`). These go to real people: ask Shawn first.
+// TEMPORARY: a one-time pass over support's inbox from before its model
+// answered anyone, for people who wrote in and never heard back. Remove it
+// once the pass has run (docs/next-release.md).
+//
+// Support's model can't see the code, so the team works out first what
+// became of everything each person sent (fixed, already tracked, or newly
+// filed as a GitHub issue) and hands that over: a note per conversation,
+// and the issues to follow for them. Support then answers each person with
+// a summary, or stays quiet when they only sent a joke (supportAgent.ts,
+// `BACKLOG`). These go to real people: ask Shawn first.
 
 interface Waiting {
   accountId: string;
@@ -58,38 +73,140 @@ export const pending = internalQuery({
   },
 });
 
+const teamInput = v.object({
+  conversationId: v.string(),
+  /** What became of each thing they sent, for support to tell them. */
+  note: v.optional(v.string()),
+  /** Issues to follow for them (new or existing), with an everyday summary. */
+  follow: v.optional(
+    v.array(v.object({ issueNumber: v.number(), summary: v.string() })),
+  ),
+});
+
+type TeamInput = Infer<typeof teamInput>;
+
+interface Person {
+  accountId: string;
+  conversationId: string;
+}
+
 /**
- * Operator command: `npx convex run supportBacklog:answerAll`. Has support
- * answer every pending conversation, one every 30 seconds. Messages real
- * people: run `pending` first and ask Shawn.
+ * Everyone to answer: each pending conversation, plus each listed one even
+ * if it stopped being pending (they wrote again after the deploy), since
+ * its note still matters. Throws on a listed conversation that isn't a DM
+ * with support.
  */
-export const answerAll = internalMutation({
-  args: { conversationIds: v.optional(v.array(v.string())) },
-  handler: async (ctx, { conversationIds }): Promise<{ answering: number }> => {
-    const all: Waiting[] = await ctx.runQuery(
+function peopleToAnswer(waiting: Waiting[], conversations: TeamInput[]) {
+  const support = botAddress(SUPPORT);
+  const people: Person[] = waiting.map(({ accountId, conversationId }) => ({
+    accountId,
+    conversationId,
+  }));
+  for (const { conversationId } of conversations) {
+    if (people.some((person) => person.conversationId === conversationId)) {
+      continue;
+    }
+    const members = conversationId.slice("direct:".length).split(":");
+    const accountId = members.find((member) => member !== support);
+    if (
+      !conversationId.startsWith("direct:") ||
+      members.length !== 2 ||
+      !members.includes(support) ||
+      accountId === undefined
+    ) {
+      throw new Error(`Not a conversation with support: ${conversationId}`);
+    }
+    people.push({ accountId, conversationId });
+  }
+  return people;
+}
+
+/**
+ * The issues to follow, with their state on GitHub. Throws on an issue
+ * that doesn't exist, before anyone hears anything.
+ */
+async function issuesToFollow(people: Person[], conversations: TeamInput[]) {
+  const follows = conversations.flatMap((input) => {
+    const person = people.find(
+      (candidate) => candidate.conversationId === input.conversationId,
+    );
+    return person === undefined
+      ? []
+      : (input.follow ?? []).map((item) => ({ ...item, person }));
+  });
+  const config = githubConfig();
+  if (config === null) {
+    if (follows.length > 0) {
+      throw new Error("GitHub isn't set up on this deployment");
+    }
+    return { config, follows, states: new Map<number, IssueState>() };
+  }
+  const states = await issueStates(
+    config,
+    follows.map((item) => item.issueNumber),
+  );
+  const missing = follows.filter((item) => !states.has(item.issueNumber));
+  if (missing.length > 0) {
+    throw new Error(
+      `No such issues: ${missing.map((item) => `#${String(item.issueNumber)}`).join(", ")}`,
+    );
+  }
+  return { config, follows, states };
+}
+
+/**
+ * Operator command:
+ * `npx convex run supportBacklog:answerAll "$(cat input.json)"` with
+ * `{"conversations":[{"conversationId":…,"note":…,"follow":[…]}]}`.
+ * Follows each listed issue for its person, then has support answer every
+ * pending or listed conversation, one every 30 seconds, each with its
+ * note. Messages real people: run `pending` first and ask Shawn.
+ */
+export const answerAll = internalAction({
+  args: { conversations: v.optional(v.array(teamInput)) },
+  handler: async (
+    ctx,
+    { conversations = [] },
+  ): Promise<{ answering: number; following: number }> => {
+    const waiting: Waiting[] = await ctx.runQuery(
       internal.supportBacklog.pending,
       {},
     );
-    const waiting = all.filter(
-      (conversation) =>
-        conversationIds === undefined ||
-        conversationIds.includes(conversation.conversationId),
+    const people = peopleToAnswer(waiting, conversations);
+    const { config, follows, states } = await issuesToFollow(
+      people,
+      conversations,
     );
-    const now = Date.now();
-    for (const [index, conversation] of waiting.entries()) {
-      const wakeAt = now + index * SPACING;
-      await ctx.db.insert("botConversations", {
-        accountId: conversation.accountId,
-        backlog: true,
-        bot: SUPPORT.username,
-        conversationId: conversation.conversationId,
-        wakeAt,
-      });
-      await ctx.scheduler.runAt(wakeAt, internal.agent.run, {
-        conversationId: conversation.conversationId,
-        wakeAt,
+    for (const { issueNumber, person, summary } of follows) {
+      const state = states.get(issueNumber);
+      if (config === null || state === undefined) continue;
+      await followIssue(ctx, config, state, {
+        ...person,
+        issueNumber,
+        summary,
       });
     }
-    return { answering: waiting.length };
+    const now = Date.now();
+    for (const [index, person] of people.entries()) {
+      await ctx.runMutation(internal.supportBacklog.answer, {
+        ...person,
+        note: conversations.find(
+          (input) => input.conversationId === person.conversationId,
+        )?.note,
+        wakeAt: now + index * SPACING,
+      });
+    }
+    return { answering: people.length, following: follows.length };
   },
+});
+
+export const answer = internalMutation({
+  args: {
+    accountId: v.string(),
+    conversationId: v.string(),
+    note: v.optional(v.string()),
+    wakeAt: v.number(),
+  },
+  handler: (ctx, args) =>
+    scheduleReply(ctx, { ...args, backlog: true, bot: SUPPORT.username }),
 });

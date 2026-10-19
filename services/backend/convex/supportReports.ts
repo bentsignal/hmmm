@@ -23,6 +23,7 @@ import { sendAsBot, SUPPORT } from "./bots";
 import { githubConfig, issueStates } from "./github";
 import { delivered, lazyReleases } from "./githubReleases";
 import { reportStage } from "./schema";
+import { explainClosure } from "./supportClosures";
 
 // The bug reports Vera Support files (supportAgent.ts) and how they're
 // going. A cron (crons.ts) reads each open report's GitHub issue and tells
@@ -152,6 +153,8 @@ const progressValidator = v.object({
   release: v.optional(v.string()),
   stage: reportStage,
   stateReason: v.optional(v.union(v.null(), v.string())),
+  /** Why the team closed it, in their words (supportClosures.ts). */
+  closingComment: v.optional(v.string()),
 });
 
 type Progress = Infer<typeof progressValidator>;
@@ -176,7 +179,15 @@ export const advance = internalMutation({
       tracking: !isFinalStage(progress.stage),
     };
     await ctx.db.replace(reportId, updated);
-    if (notify) await tellReporter(ctx, updated, progress);
+    if (!notify) return;
+    if (progress.stage === "closed" && progress.closingComment !== undefined) {
+      await explainClosure(ctx, updated, {
+        comment: progress.closingComment,
+        stateReason: progress.stateReason,
+      });
+    } else {
+      await tellReporter(ctx, updated, progress);
+    }
   },
 });
 
@@ -227,17 +238,21 @@ export const track = internalAction({
     for (const report of numbered) {
       const state = states.get(report.issueNumber);
       if (state === undefined) continue;
+      if (state.state === "CLOSED" && state.duplicateOf !== null) {
+        await ctx.runMutation(internal.supportClosures.followOriginal, {
+          issueNumber: state.duplicateOf,
+          issueUrl: `https://github.com/${config.owner}/${config.name}/issues/${String(state.duplicateOf)}`,
+          reportId: report._id,
+        });
+        continue;
+      }
       const update = await progressFrom(
         config,
         releases,
         state,
         report.platform,
       );
-      const changed =
-        update.stage !== report.stage ||
-        update.stage !== report.notifiedStage ||
-        update.pullRequest?.url !== report.pullRequest?.url;
-      if (changed) {
+      if (hasNews(report, update)) {
         await ctx.runMutation(internal.supportReports.advance, {
           progress: update,
           reportId: report._id,
@@ -247,6 +262,15 @@ export const track = internalAction({
     return { checked: numbered.length };
   },
 });
+
+/** Whether a report's issue moved since the last check. */
+function hasNews(report: Doc<"bugReports">, update: Progress) {
+  return (
+    update.stage !== report.stage ||
+    update.stage !== report.notifiedStage ||
+    update.pullRequest?.url !== report.pullRequest?.url
+  );
+}
 
 /** A report's progress from its issue, and for a fix, whether it's out. */
 async function progressFrom(
@@ -262,6 +286,9 @@ async function progressFrom(
       ...base,
       ...(await delivered(config, await releases(), found.fix, platform)),
     };
+  }
+  if (found.stage === "closed" && state.closingComment !== null) {
+    return { ...base, closingComment: state.closingComment };
   }
   return found.stage === "live" ? { ...base, delivery: "unknown" } : base;
 }

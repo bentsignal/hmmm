@@ -1,11 +1,14 @@
 import { tool } from "ai";
 import { z } from "zod/v4";
 
+import type { IssueState } from "../bug-reports";
+import type { ActionCtx } from "./_generated/server";
 import type { Turn } from "./agentTools";
 import type { GitHubConfig } from "./github";
 import type { Releases } from "./githubReleases";
 import type { Reporter } from "./supportReporters";
 import { anonymize, progressOf, releaseNeeds } from "../bug-reports";
+import { SUPPORT_COMMENT } from "../issue-closures";
 import { internal } from "./_generated/api";
 import {
   commentOnIssue,
@@ -117,31 +120,61 @@ async function followKnownBug(
       internal.supportReporters.reporter,
       { accountId: turn.accountId },
     );
-    const blocked = await whyNotFile(turn, reporter);
+    const blocked = whyNotFile(turn, reporter);
     if (blocked !== null) return blocked;
     await commentOnIssue(
       config,
       issueNumber,
-      `Someone else reported this through Vera Support:\n\n${anonymize(details, turn.accountId)}`,
+      `${SUPPORT_COMMENT.another}\n\n${anonymize(details, turn.accountId)}`,
     );
   }
+  const stage = await followIssue(turn.ctx, config, state, {
+    accountId: turn.accountId,
+    conversationId: turn.conversationId,
+    issueNumber,
+    summary,
+  });
+  return {
+    following: true,
+    stage,
+    note: "They'll hear from you here as it moves along. Tell them where it stands now.",
+  };
+}
+
+/**
+ * Follows an issue for someone: from where it stands now, they hear in
+ * their support conversation as it moves along. Also for the support
+ * backlog, which follows issues the team filed (supportBacklog.ts).
+ */
+export async function followIssue(
+  ctx: ActionCtx,
+  config: GitHubConfig,
+  state: IssueState,
+  {
+    accountId,
+    conversationId,
+    issueNumber,
+    summary,
+  }: {
+    accountId: string;
+    conversationId: string;
+    issueNumber: number;
+    summary: string;
+  },
+) {
   const found = progressOf(state);
   const progress =
     found.stage === "fixed" && found.fix !== undefined
       ? await delivered(config, await lazyReleases(config)(), found.fix, null)
       : found;
-  await turn.ctx.runMutation(internal.supportReports.insert, {
-    accountId: turn.accountId,
-    conversationId: turn.conversationId,
+  await ctx.runMutation(internal.supportReports.insert, {
+    accountId,
+    conversationId,
     issueNumber,
     issueUrl: `https://github.com/${config.owner}/${config.name}/issues/${String(issueNumber)}`,
     stage: progress.stage,
     summary: summary.trim().slice(0, 120),
     title: `#${String(issueNumber)}`,
   });
-  return {
-    following: true,
-    stage: progress.stage,
-    note: "They'll hear from you here as it moves along. Tell them where it stands now.",
-  };
+  return progress.stage;
 }

@@ -26,6 +26,8 @@ export interface Turn {
   readonly bot: BotAccount;
   readonly conversationId: string;
   readonly ctx: ActionCtx;
+  /** What the team asked this reply to cover, if anything (agent.ts `teamNote`). */
+  readonly note: string | null;
   /** The person's display name, from their latest message. */
   readonly name: string;
   /** When the person's newest message was sent. */

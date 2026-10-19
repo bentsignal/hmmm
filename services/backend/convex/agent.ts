@@ -1,4 +1,3 @@
-import type { Message } from "@decentralized-convex/messages";
 import type { StepResult, ToolSet } from "ai";
 import { convexGateway } from "@convex-dev/ai-sdk-provider";
 import { generateText, isStepCount } from "ai";
@@ -10,7 +9,7 @@ import type { BotAccount } from "./bots";
 import type { Tally } from "./usage";
 import { internal } from "./_generated/api";
 import { internalAction, internalMutation } from "./_generated/server";
-import { inAnswerOrder, toModelMessages } from "./agentHistory";
+import { teamNote, toAnswer, toModelMessages } from "./agentHistory";
 import { currentTools, keepTyping, MODEL } from "./agentTools";
 import { waitWhileTyping } from "./assistantHook";
 import { botAccount, botAddress, sendAsBot } from "./bots";
@@ -36,8 +35,6 @@ const ASSISTANTS: Record<BotAccount["username"], Assistant> = {
   vera: veraAssistant,
 };
 
-/** Recent messages the model sees; older ones it can read with a tool. */
-const HISTORY = 40;
 /** How long one model call may take before it's tried again (it's usually 2-5 s). */
 const STEP_TIMEOUT = 40_000;
 /** Model calls in one reply (each may call several tools). */
@@ -100,14 +97,20 @@ export const claim = internalMutation({
       return null;
     }
     if (await waitWhileTyping(ctx, row, now)) return null;
-    const limit = await takeReply(ctx, row.accountId);
+    const limit = await takeReply(ctx, {
+      accountId: row.accountId,
+      bot: row.bot,
+    });
     if (!limit.ok) {
       if (limit.notice !== null) {
         await sendAsBot(ctx, botAccount(row.bot), conversationId, limit.notice);
       }
       return null;
     }
+    // The team's note is this reply's alone: taken here, so one added
+    // while it runs waits for the next.
     await ctx.db.patch(row._id, {
+      note: undefined,
       rerun: false,
       runningSince: now,
       waitingSince: undefined,
@@ -117,6 +120,7 @@ export const claim = internalMutation({
       answeredThrough: row.answeredThrough ?? null,
       backlog: row.backlog === true,
       bot: row.bot,
+      note: row.note ?? null,
     };
   },
 });
@@ -204,29 +208,6 @@ function messageSender(
 }
 
 /**
- * The recent conversation to answer, or null when the person hasn't
- * written since the last reply saw their messages.
- */
-function toAnswer(
-  messages: readonly Message[],
-  self: string,
-  answeredThrough: number | null,
-) {
-  const recent = messages
-    .filter((message) => message.deletedAt === undefined)
-    .slice(-HISTORY);
-  const history =
-    answeredThrough === null
-      ? recent
-      : inAnswerOrder(recent, self, answeredThrough);
-  const newest = history.findLast((message) => message.authorId !== self);
-  if (newest === undefined || newest.sentAt <= (answeredThrough ?? 0)) {
-    return null;
-  }
-  return history;
-}
-
-/**
  * Ends the reply after a step that only sent messages (or shared support's
  * privacy notice): the model has said its piece and waits for them. It goes
  * on only after other tools, such as a search, whose results it needs.
@@ -273,14 +254,21 @@ async function reply(
     accountId,
     answeredThrough,
     backlog,
-  }: { accountId: string; answeredThrough: number | null; backlog: boolean },
+    note,
+  }: {
+    accountId: string;
+    answeredThrough: number | null;
+    backlog: boolean;
+    note: string | null;
+  },
 ) {
   const page = await ctx.runQuery(internal.bots.page, {
     bot: bot.username,
     conversationId,
   });
   const self = botAddress(bot);
-  const history = toAnswer(page.messages, self, answeredThrough);
+  // A note from the team is reason enough to write, even with nothing new.
+  const history = toAnswer(page.messages, self, answeredThrough, note !== null);
   const newest = history?.findLast((message) => message.authorId !== self);
   if (history === null || newest === undefined) return;
   await ctx.runMutation(internal.bots.markRead, {
@@ -304,6 +292,7 @@ async function reply(
       bot,
       conversationId,
       ctx,
+      note,
       lastHeardAt: newest.sentAt,
       name: newest.authorName,
       oldestSentAt: page.hasOlder ? (history[0]?.sentAt ?? null) : null,
@@ -323,6 +312,9 @@ async function reply(
       // Last before it answers, where it outweighs what the chat says.
       messages: [
         ...messages,
+        ...(note === null
+          ? []
+          : [{ content: teamNote(note), role: "system" as const }]),
         { content: currentTools(tools), role: "system" as const },
       ],
       model: convexGateway(MODEL, { zdr: true }),

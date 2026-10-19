@@ -12,6 +12,11 @@ import {
   releaseNeeds,
   updateMessage,
 } from "./bug-reports.ts";
+import {
+  closingCommentOf,
+  duplicateOf,
+  SUPPORT_COMMENT,
+} from "./issue-closures.ts";
 
 const reporter = "maya@vera.chat";
 
@@ -56,7 +61,9 @@ void test("an issue keeps app details but never the reporter", () => {
 
 const openIssue: IssueState = {
   assigned: false,
+  closingComment: null,
   closingCommit: null,
+  duplicateOf: null,
   pullRequests: [],
   state: "OPEN",
   stateReason: null,
@@ -214,5 +221,64 @@ void test("a native fix is marked from its PR's label", () => {
   assert.equal(
     progressOf({ ...openIssue, pullRequests: [nativePr] }).fix?.native,
     true,
+  );
+});
+
+void test("the closing comment is the team's, around when it closed", () => {
+  const closedAt = "2026-10-20T12:00:00Z";
+  function comment(
+    association: string,
+    createdAt: string,
+    body = "Works as intended: reactions stay in Activity.",
+  ) {
+    return { association, body, createdAt };
+  }
+  assert.equal(
+    closingCommentOf([comment("OWNER", "2026-10-20T11:59:00Z")], closedAt),
+    "Works as intended: reactions stay in Activity.",
+  );
+  // Not someone outside the team, not support itself, not long before.
+  assert.equal(
+    closingCommentOf([comment("NONE", "2026-10-20T11:59:00Z")], closedAt),
+    null,
+  );
+  assert.equal(
+    closingCommentOf(
+      [
+        comment(
+          "OWNER",
+          "2026-10-20T11:59:00Z",
+          `${SUPPORT_COMMENT.another}\n\nsame here`,
+        ),
+      ],
+      closedAt,
+    ),
+    null,
+  );
+  assert.equal(
+    closingCommentOf([comment("OWNER", "2026-10-19T09:00:00Z")], closedAt),
+    null,
+  );
+  assert.equal(closingCommentOf([], null), null);
+});
+
+void test("a duplicate's original comes from the latest marking that stands", () => {
+  function marked(canonical: number, duplicate: number) {
+    return { canonical, duplicate, marked: true };
+  }
+  assert.equal(duplicateOf([marked(12, 30)], 30), 12);
+  // Where this issue is the original, it isn't a duplicate of anything.
+  assert.equal(duplicateOf([marked(30, 41)], 30), null);
+  // Unmarked, then marked as a duplicate of another.
+  assert.equal(
+    duplicateOf(
+      [marked(12, 30), { ...marked(12, 30), marked: false }, marked(15, 30)],
+      30,
+    ),
+    15,
+  );
+  assert.equal(
+    duplicateOf([marked(12, 30), { ...marked(12, 30), marked: false }], 30),
+    null,
   );
 });

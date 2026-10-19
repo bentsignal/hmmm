@@ -6,6 +6,7 @@ import type { Turn } from "./agentTools";
 import type { Reporter } from "./supportReporters";
 import type { PublicReport } from "./supportReports";
 import { anonymize, issueFor } from "../bug-reports";
+import { SUPPORT_COMMENT } from "../issue-closures";
 import { internal } from "./_generated/api";
 import { conversationTools, sharedInstructions } from "./agentTools";
 import { commentOnIssue, createIssue, githubConfig } from "./github";
@@ -18,7 +19,11 @@ import { noticeCurrent, PRIVACY_NOTICE, whyNotFile } from "./supportRules";
 // the model.
 
 /** For conversations from before support answered anyone. */
-const BACKLOG = `This person wrote to you a while ago, before you could answer, and nobody replied. Start with a short apology for the slow reply. Then go through everything they reported (read_earlier_messages if it goes back further): for each problem, check search_known_bugs and tell them where it stands. If it's fixed and out, say so and how to get it, and ask them to tell you if they still see it. If it's known but not fixed, follow_known_bug. If it's new, ask whether they still see it before going through the usual steps; it may have been fixed along the way. Keep it to a few short messages.`;
+const BACKLOG = `This person wrote to you a while ago, before you could answer, and nobody replied. First decide whether they sent anything real: a problem, a request, or a question. If it was only a joke, a test, a greeting, or nothing anyone could act on, call stay_quiet and send nothing.
+
+Otherwise, start with a short apology for the slow reply, then sum up what they sent and where each thing stands now, so they can see it was all read. If the team left a note, the team checked each thing against the app: go by the note, and don't search for what it already covers. Without one, check search_known_bugs for each problem, and ask whether they still see the ones you can't find.
+
+Group it so it reads quickly: what's fixed and out (and how to get it), what you're following for them now (in their reports below; they'll hear from you here as each one moves along), and anything that isn't changing. If the team filed reports for them, say once, briefly, that those are public but don't include their name or anything personal. Short lists are fine this once, still within 3 messages.`;
 
 const STAGE_WORDS = {
   closed: "closed (not being changed, or the same as another report)",
@@ -81,6 +86,7 @@ Checking what the team already knows:
 Filing:
 - Use file_bug_report once you have enough and nothing known matches. Write the title and details for a developer: specific, factual, concise. Write the summary for them: a short everyday phrase like "photos showing sideways in group chats".
 - Feature requests and ideas are welcome too; file them with kind "idea".
+- Everything you file is public, so use judgment: don't file jokes, tests, insults, or spam, and don't file the same thing twice. If they're clearly just messing around, don't file anything.
 - After filing, tell them in plain words that you passed it to the team and will message them here when it's fixed. Don't promise when.
 - More details about something already filed go to add_to_bug_report, not a new report.
 
@@ -174,7 +180,7 @@ async function fileBugReport(turn: Turn, input: BugReportInput) {
     internal.supportReporters.reporter,
     { accountId: turn.accountId },
   );
-  const blocked = await whyNotFile(turn, reporter);
+  const blocked = whyNotFile(turn, reporter);
   if (blocked !== null) return blocked;
   const issue = issueFor(input, turn.accountId, reporter.client);
   const title = input.kind === "idea" ? `Idea: ${issue.title}` : issue.title;
@@ -233,7 +239,7 @@ async function addToBugReport(
     return "Noted, but this report can't take more details right now.";
   }
   const body = [
-    "More from the reporter:",
+    SUPPORT_COMMENT.more,
     "",
     anonymize(details, turn.accountId),
   ].join("\n");

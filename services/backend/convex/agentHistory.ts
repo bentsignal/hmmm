@@ -6,6 +6,8 @@ import { LIMIT_NOTICE_START } from "../assistant-limits";
 // How an assistant's conversation reaches the model (agent.ts): in the
 // order it got the messages, with the newest images attached.
 
+/** Recent messages the model sees; older ones it can read with a tool. */
+const HISTORY = 40;
 /** The newest images the model sees; older ones it only knows were sent. */
 const VISIBLE_IMAGES = 4;
 
@@ -117,4 +119,33 @@ function isLimitNotice(body: string) {
 function sentLabel(sentAt: number) {
   if (Date.now() - sentAt < 6 * 60 * 60 * 1000) return "";
   return `[sent ${new Date(sentAt).toUTCString().slice(0, 16)}] `;
+}
+
+/**
+ * The recent conversation to answer, or null when the person hasn't
+ * written since the last reply saw their messages (unless
+ * `evenIfAnswered`, for a reply the team asked for).
+ */
+export function toAnswer(
+  messages: readonly Message[],
+  self: string,
+  answeredThrough: number | null,
+  evenIfAnswered: boolean,
+) {
+  const recent = messages
+    .filter((message) => message.deletedAt === undefined)
+    .slice(-HISTORY);
+  const history =
+    answeredThrough === null
+      ? recent
+      : inAnswerOrder(recent, self, answeredThrough);
+  const newest = history.findLast((message) => message.authorId !== self);
+  if (newest === undefined) return null;
+  if (!evenIfAnswered && newest.sentAt <= (answeredThrough ?? 0)) return null;
+  return history;
+}
+
+/** What the team asked this reply to cover (supportBacklog.ts, supportClosures.ts). */
+export function teamNote(note: string) {
+  return `A note from the Vera team for this reply. They can't see it, so put what matters in your own words:\n\n${note}`;
 }

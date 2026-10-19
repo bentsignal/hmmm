@@ -131,6 +131,10 @@ export interface IssueState {
   }[];
   readonly state: "OPEN" | "CLOSED";
   readonly stateReason: string | null;
+  /** The team's comment on closing it, if they left one (`closingCommentOf`). */
+  readonly closingComment: string | null;
+  /** The issue this one was marked a duplicate of (`duplicateOf`). */
+  readonly duplicateOf: number | null;
 }
 
 /** A fix's commit and what it needs before people have it. */

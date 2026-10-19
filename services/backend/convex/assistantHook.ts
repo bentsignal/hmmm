@@ -2,6 +2,7 @@ import type { PdsRouterMutation } from "@decentralized-convex/server";
 
 import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
+import type { BotAccount } from "./bots";
 import { internal } from "./_generated/api";
 import {
   ASSISTANTS,
@@ -55,22 +56,58 @@ async function startReply(
       members.includes(botAddress(candidate)),
   );
   if (bot === undefined) return;
-  const wakeAt = Date.now() + REPLY_DELAY;
+  await scheduleReply(ctx, {
+    accountId: author,
+    bot: bot.username,
+    conversationId,
+    wakeAt: Date.now() + REPLY_DELAY,
+  });
+}
+
+/**
+ * Has the assistant reply in a conversation at `wakeAt`, optionally with a
+ * note from the team (agent.ts `teamNote`) or as a backlog reply
+ * (supportBacklog.ts). A later call moves the reply later.
+ */
+export async function scheduleReply(
+  ctx: MutationCtx,
+  {
+    accountId,
+    backlog,
+    bot,
+    conversationId,
+    note,
+    wakeAt,
+  }: {
+    accountId: string;
+    backlog?: true;
+    bot: BotAccount["username"];
+    conversationId: string;
+    note?: string;
+    wakeAt: number;
+  },
+) {
   const existing = await ctx.db
     .query("botConversations")
     .withIndex("by_conversation", (q) => q.eq("conversationId", conversationId))
     .unique();
+  const update = {
+    ...(backlog && { backlog }),
+    ...(note !== undefined && { note }),
+    waitingSince: undefined,
+    wakeAt,
+  };
   if (existing === null) {
     await ctx.db.insert("botConversations", {
-      accountId: author,
-      bot: bot.username,
+      ...update,
+      accountId,
+      bot,
       conversationId,
-      wakeAt,
     });
   } else {
-    await ctx.db.patch(existing._id, { waitingSince: undefined, wakeAt });
+    await ctx.db.patch(existing._id, update);
   }
-  await ctx.scheduler.runAfter(REPLY_DELAY, internal.agent.run, {
+  await ctx.scheduler.runAt(wakeAt, internal.agent.run, {
     conversationId,
     wakeAt,
   });
