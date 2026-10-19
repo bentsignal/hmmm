@@ -224,24 +224,24 @@ function toAnswer(
 }
 
 /**
+ * Ends the reply after a step that only sent messages (or shared support's
+ * privacy notice): the model has said its piece and waits for them. It goes
+ * on only after other tools, such as a search, whose results it needs.
+ * Without this, models keep talking after their answer, even to themselves.
+ */
+function saidItsPiece({ steps }: { steps: StepResult<ToolSet>[] }) {
+  const calls = steps.at(-1)?.toolCalls ?? [];
+  return (
+    calls.some((call) => call.toolName === "share_privacy_notice") ||
+    (calls.length > 0 &&
+      calls.every((call) => call.toolName === "send_message"))
+  );
+}
+
+/**
  * Answers the person's messages that no reply has seen yet, and returns
  * when the newest of them was sent (undefined when there were none).
  */
-/**
- * Stops once the assistant has asked the person something (or shared
- * support's privacy notice), so it waits for their answer instead of going
- * on as if it had one.
- */
-function askedSomething({ steps }: { steps: StepResult<ToolSet>[] }) {
-  return (steps.at(-1)?.toolCalls ?? []).some((call) => {
-    // The privacy notice waits for their answer too (supportAgent.ts).
-    if (call.toolName === "share_privacy_notice") return true;
-    if (call.toolName !== "send_message") return false;
-    const text: unknown = Reflect.get(Object(call.input), "text");
-    return typeof text === "string" && text.trim().endsWith("?");
-  });
-}
-
 async function reply(
   ctx: ActionCtx,
   bot: BotAccount,
@@ -285,7 +285,7 @@ async function reply(
       instructions: await assistant.instructions(turn),
       messages,
       model: convexGateway(MODEL, { zdr: true }),
-      stopWhen: [isStepCount(MAX_STEPS), askedSomething],
+      stopWhen: [isStepCount(MAX_STEPS), saidItsPiece],
       toolCallConcurrency: 1,
       tools: assistant.tools(turn),
     });

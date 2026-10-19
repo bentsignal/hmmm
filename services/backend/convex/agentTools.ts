@@ -71,10 +71,12 @@ export function conversationTools(turn: Turn) {
       }),
       execute: async ({ text }) => {
         if (turn.sent() >= MAX_MESSAGES_PER_TURN) {
-          return "Not sent: that's enough messages for now. Stop and wait for them to answer.";
+          return "Not sent.";
         }
         await turn.send(text);
-        return "Sent. If you asked them something, stop and wait for their answer.";
+        // Nothing else: Grok reads instructions in a tool result as someone
+        // trying to steer it, and answers them to the person.
+        return "Sent.";
       },
     }),
     read_earlier_messages: tool({
