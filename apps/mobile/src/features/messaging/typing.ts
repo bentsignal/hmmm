@@ -1,8 +1,13 @@
+import type { TypingSize } from "@decentralized-convex/messages";
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
 // eslint-disable-next-line no-restricted-imports -- Expo Router has no route loaders to preload suspense queries, and typing is live, never something to wait for.
 import { useQuery } from "@tanstack/react-query";
-import { TYPING_REFRESH, TYPING_TIMEOUT } from "@decentralized-convex/messages";
+import {
+  TYPING_REFRESH,
+  TYPING_TIMEOUT,
+  typingSizeOf,
+} from "@decentralized-convex/messages";
 import { pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
@@ -27,8 +32,9 @@ const NOBODY = Object.freeze<string[]>([]);
  * Who else is typing in a conversation, or with `threadId`, in that
  * thread, in the order they started. `messages` are the ones on screen:
  * someone whose message is there, sent after they last typed, isn't
- * typing it anymore. `isLoading` until it's known: a conversation shows
- * with who's typing, never before.
+ * typing it anymore. `sizes` says how long each one's message is, when
+ * their app says. `isLoading` until it's known: a conversation shows with
+ * who's typing, never before.
  */
 export function useTypists(
   conversationId: string,
@@ -74,13 +80,15 @@ export function useTypists(
   }, [nextChange]);
   return {
     isLoading: data === undefined,
+    sizes: shown.sizes,
     typists: shown.accountIds.length === 0 ? NOBODY : shown.accountIds,
   };
 }
 
 /**
- * Tells the PDS while this device types: right away, then again every
- * `TYPING_REFRESH` while the text keeps changing. Emptying the field,
+ * Tells the PDS while this device types, and roughly how long the text is:
+ * right away, then again every `TYPING_REFRESH` while the text keeps
+ * changing, or at once when its size does. Emptying the field,
  * leaving, or putting the app away stops it at once. Sending stops it on
  * the PDS in the same write as the message, so nothing is sent for it
  * here; a stop sent first would hide the indicator before the message
@@ -93,10 +101,14 @@ function createTypingReporter(
 ) {
   /** When the PDS was last told this device is typing. */
   let saidAt: number | undefined;
-  function say(typing: boolean) {
+  /** The size it was told then. */
+  let saidSize: TypingSize | undefined;
+  function say(typing: boolean, size?: TypingSize) {
     // Best effort: a missed one times out on its own.
     void session.pds
-      .mutate(pds.messages.setTyping({ conversationId, threadId, typing }))
+      .mutate(
+        pds.messages.setTyping({ conversationId, size, threadId, typing }),
+      )
       .catch(() => null);
   }
   function stop() {
@@ -117,9 +129,12 @@ function createTypingReporter(
         return;
       }
       const now = Date.now();
-      if (saidAt !== undefined && now - saidAt < TYPING_REFRESH) return;
+      const size = typingSizeOf(text);
+      const recent = saidAt !== undefined && now - saidAt < TYPING_REFRESH;
+      if (recent && size === saidSize) return;
       saidAt = now;
-      say(true);
+      saidSize = size;
+      say(true, size);
     },
     /** Stops, if the PDS was told it's typing (see `useTypingReporter`). */
     stop,

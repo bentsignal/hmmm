@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { fakeCtx } from "./fakeCtx.ts";
-import { TYPING_TIMEOUT } from "./protocol.ts";
+import { TYPING_TIMEOUT, typingSizeOf } from "./protocol.ts";
 import { setTyping, stopTyping, typing } from "./typing.ts";
 
 const MAYA = "maya@vera.chat";
@@ -91,6 +91,52 @@ void test("keeping it up keeps when it started", async (t) => {
   assert.ok(again);
   assert.equal(again.startedAt, 19_000);
   assert.equal(fake.rows("typing").length, 1);
+});
+
+void test("others see roughly how long it is, as soon as that changes", async (t) => {
+  t.mock.timers.enable({ apis: ["Date"], now: 10_000 });
+  const fake = group();
+  await setTyping(fake.ctx, MAYA, {
+    conversationId: GROUP,
+    size: "reply",
+    typing: true,
+  });
+  assert.equal((await typistsFor(fake, LEO))[0]?.size, "reply");
+  // Soon after, the same size changes nothing, but a new one shows.
+  t.mock.timers.tick(500);
+  await setTyping(fake.ctx, MAYA, {
+    conversationId: GROUP,
+    size: "reply",
+    typing: true,
+  });
+  assert.equal(fake.rows("typing")[0]?.typedAt, 10_000);
+  await setTyping(fake.ctx, MAYA, {
+    conversationId: GROUP,
+    size: "paragraph",
+    typing: true,
+  });
+  const [typist] = await typistsFor(fake, LEO);
+  assert.ok(typist);
+  assert.equal(typist.size, "paragraph");
+  assert.equal(typist.startedAt, 10_000);
+  // An app that doesn't say leaves it out.
+  t.mock.timers.tick(1_000);
+  await setTyping(fake.ctx, MAYA, { conversationId: GROUP, typing: true });
+  assert.equal((await typistsFor(fake, LEO))[0]?.size, undefined);
+});
+
+void test("sizes count lines of about forty characters", () => {
+  const line = "x".repeat(40);
+  assert.equal(typingSizeOf("ok"), "reply");
+  assert.equal(typingSizeOf(line), "reply");
+  assert.equal(typingSizeOf(`${line}x`), "message");
+  assert.equal(typingSizeOf(line.repeat(4)), "message");
+  assert.equal(typingSizeOf("a\nb"), "message");
+  assert.equal(typingSizeOf(`${line.repeat(4)}x`), "paragraph");
+  assert.equal(typingSizeOf(line.repeat(10)), "paragraph");
+  assert.equal(typingSizeOf(`${line.repeat(10)}x`), "essay");
+  // Blank lines at the ends don't count.
+  assert.equal(typingSizeOf("\n\nok\n\n"), "reply");
 });
 
 // `send` calls this in the same write that stores the message.

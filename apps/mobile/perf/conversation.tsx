@@ -8,8 +8,9 @@ const profile = { avatarUrl: null, displayName: "Maya" };
 function profileOf() {
   return profile;
 }
-/** Nobody typing, the same array each time. */
+/** Nobody typing, the same array and sizes each time. */
 const NOBODY = Object.freeze<string[]>([]);
+const NO_SIZES = new Map<string, never>();
 
 export function Conversation({ messages }: { messages: readonly Message[] }) {
   return (
@@ -27,6 +28,7 @@ export function Conversation({ messages }: { messages: readonly Message[] }) {
       topInset={0}
       composerHeight={56}
       typists={NOBODY}
+      typingSizes={NO_SIZES}
       onToggleReaction={() => undefined}
       onViewReactions={() => undefined}
     />

@@ -130,6 +130,9 @@ message and the stop together. Each typist comes with `expiresIn`, how
 long they have left as the PDS answered, which apps count down from when
 the answer arrived, so no device's clock has to agree with a PDS's; and
 with `typedAt`, on the same clock as the `sentAt` of that PDS's messages.
+Apps can also say roughly how long the message is (`size`: `reply`,
+`message`, `paragraph`, or `essay`, from `typingSizeOf`), at once when it
+changes; only the size is shared, never the text or its length.
 
 Activity: `messages.activity` lists what happened while the caller was
 away, newest first: messages others sent (one item per conversation, with

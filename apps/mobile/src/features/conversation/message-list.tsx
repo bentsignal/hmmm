@@ -1,3 +1,4 @@
+import type { TypingSize } from "@decentralized-convex/messages";
 import type { Ref, RefObject } from "react";
 import type { SharedValue } from "react-native-reanimated";
 import { useImperativeHandle, useRef, useState } from "react";
@@ -61,6 +62,8 @@ export interface RowsProps {
   composerHeight: number;
   /** Who else is typing here, in the order they started. */
   typists: readonly string[];
+  /** How long each one's message is, when their app says. */
+  typingSizes: ReadonlyMap<string, TypingSize>;
   latest: Latest;
   /** Freezes keyboard handling (see useMenuKeyboard). */
   freeze: SharedValue<boolean>;
@@ -100,6 +103,7 @@ function Rows({
   topInset,
   composerHeight,
   typists,
+  typingSizes,
   latest,
   freeze,
   shown,
@@ -126,6 +130,7 @@ function Rows({
         item.type === "typing" ? (
           <TypingRow
             typists={typists}
+            sizes={typingSizes}
             typing={typing}
             layout={layout}
             profileOf={profileOf}

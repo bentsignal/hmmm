@@ -407,15 +407,51 @@ export const TYPING_TIMEOUT = 6_000;
 export const TYPING_REFRESH = 3_000;
 
 /**
+ * Roughly how long the message someone is typing is, as lines on a
+ * phone: a line or less (`reply`), up to four (`message`), up to ten
+ * (`paragraph`), or more (`essay`). Only the size is shared, never the
+ * count, so readers learn little more than that a long one is coming.
+ */
+export const typingSize = v.union(
+  v.literal("reply"),
+  v.literal("message"),
+  v.literal("paragraph"),
+  v.literal("essay"),
+);
+
+export type TypingSize = Infer<typeof typingSize>;
+
+/** About how many characters fill a line of a phone's composer. */
+const LINE_CHARACTERS = 40;
+
+/** The size of a message being typed (see `typingSize`). */
+export function typingSizeOf(text: string): TypingSize {
+  const lines = text
+    .trim()
+    .split("\n")
+    .reduce(
+      (total, line) =>
+        total + Math.max(1, Math.ceil(line.length / LINE_CHARACTERS)),
+      0,
+    );
+  if (lines <= 1) return "reply";
+  if (lines <= 4) return "message";
+  if (lines <= 10) return "paragraph";
+  return "essay";
+}
+
+/**
  * Someone typing in a conversation (or a thread of it). `expiresIn` is
  * how long they still show as typing, from when the PDS answered: apps
  * count it down from when the answer arrived, so their clock never has to
  * agree with the PDS's. `typedAt` is the PDS's time, to compare with the
- * `sentAt` of messages stored on the same PDS.
+ * `sentAt` of messages stored on the same PDS. `size` is absent when
+ * their app predates it.
  */
 export const typist = v.object({
   accountId: v.string(),
   expiresIn: v.number(),
+  size: v.optional(typingSize),
   /** When this bout of typing began, so apps keep typists in order. */
   startedAt: v.number(),
   typedAt: v.number(),

@@ -1,4 +1,4 @@
-import type { Typist } from "@decentralized-convex/messages";
+import type { TypingSize, Typist } from "@decentralized-convex/messages";
 
 // Who shows as typing. The PDS says how long each typist has left
 // (`expiresIn`), and it's counted down from when that answer arrived, so
@@ -23,6 +23,24 @@ function forgetOld(now: number) {
   for (const [key, deadline] of deadlines) {
     if (deadline < now - FORGET_AFTER_MS) deadlines.delete(key);
   }
+}
+
+/**
+ * How long each typist's message is (`size`), by `scope` and account: kept
+ * after they stop, so the indicator says the same as it goes.
+ */
+const sizes = new Map<string, Map<string, TypingSize>>();
+
+/** Remembers `typists`' sizes in `scope`, and returns all it knows there. */
+function sizesIn(scope: string, typists: Iterable<Typist>) {
+  const known = sizes.get(scope) ?? new Map<string, TypingSize>();
+  sizes.set(scope, known);
+  for (const { accountId, size } of typists) {
+    // An app that doesn't say has nothing to show.
+    if (size === undefined) known.delete(accountId);
+    else known.set(accountId, size);
+  }
+  return new Map(known);
 }
 
 /**
@@ -84,6 +102,8 @@ export function shownTypists({
     );
   return {
     accountIds: shown.map(({ typist }) => typist.accountId),
+    /** How long each one's message is, including those who just stopped. */
+    sizes: sizesIn(scope, latest.values()),
     /** When the next typist times out; undefined with nobody typing. */
     nextChange:
       shown.length === 0
@@ -107,13 +127,24 @@ function firstName(name: string) {
   return name.trim().split(/\s+/)[0] ?? name;
 }
 
+/** What one person is writing, by how long it is. */
+const WRITING = {
+  essay: "is writing an essay",
+  message: "is writing a message",
+  paragraph: "is writing a paragraph",
+  reply: "is writing a quick reply",
+} satisfies Record<TypingSize, string>;
+
 /**
- * What a typing indicator says: a name, two or three first names, or past
- * three, how many people (their photos say who).
+ * What a typing indicator says: a name and, when it's known, how long
+ * their message is (`size`); two or three first names; or past three, how
+ * many people (their photos say who).
  */
-export function typingLabel(names: readonly string[]) {
+export function typingLabel(names: readonly string[], size?: TypingSize) {
   const [first = "", second = "", third = ""] = names;
-  if (names.length <= 1) return `${first} is typing`;
+  if (names.length <= 1) {
+    return `${first} ${size === undefined ? "is typing" : WRITING[size]}`;
+  }
   if (names.length === 2) {
     return `${firstName(first)} and ${firstName(second)} are typing`;
   }

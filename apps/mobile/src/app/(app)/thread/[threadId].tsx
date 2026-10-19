@@ -145,12 +145,12 @@ function useThreadTyping(
   threadId: string,
   messages: Parameters<typeof useTypists>[1]["messages"],
 ) {
-  const { isLoading, typists } = useTypists(conversationId, {
+  const { isLoading, sizes, typists } = useTypists(conversationId, {
     messages,
     threadId,
   });
   const report = useTypingReporter(conversationId, threadId);
-  return { isLoading, report, typists };
+  return { isLoading, report, sizes, typists };
 }
 
 /**
@@ -227,6 +227,7 @@ function Thread({
             topInset={THREAD_HEADER_HEIGHT}
             composerHeight={shown.composerHeight}
             typists={typing.typists}
+            typingSizes={typing.sizes}
             onToggleReaction={thread.toggleReaction}
             editing={editing}
             onViewReactions={viewReactions}

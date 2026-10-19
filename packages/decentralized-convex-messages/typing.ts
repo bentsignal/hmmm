@@ -39,7 +39,7 @@ export async function setTyping(
   self: string,
   args: Args<"setTyping">,
 ) {
-  const { conversationId, threadId, typing } = args;
+  const { conversationId, size, threadId, typing } = args;
   await requireAccess(ctx, conversationId, self);
   const now = Date.now();
   const existing = await typingRow(ctx, self, conversationId);
@@ -51,17 +51,26 @@ export async function setTyping(
     existing !== null &&
     existing.threadId === threadId &&
     existing.typedAt > now - TYPING_TIMEOUT;
-  if (current && existing.typedAt > now - MIN_REFRESH_MS) return null;
+  // A new size shows at once, however soon after the last.
+  if (
+    current &&
+    existing.size === size &&
+    existing.typedAt > now - MIN_REFRESH_MS
+  ) {
+    return null;
+  }
   if (existing === null) {
     await ctx.db.insert("typing", {
       accountId: self,
       conversationId,
+      size,
       startedAt: now,
       threadId,
       typedAt: now,
     });
   } else {
     await ctx.db.patch(existing._id, {
+      size,
       startedAt: current ? existing.startedAt : now,
       threadId,
       typedAt: now,
@@ -121,9 +130,10 @@ export async function typing(
   const typists = rows
     .filter((row) => row.accountId !== self && row.threadId === args.threadId)
     .slice(0, MAX_TYPISTS)
-    .map(({ accountId, startedAt, typedAt }) => ({
+    .map(({ accountId, size, startedAt, typedAt }) => ({
       accountId,
       expiresIn: typedAt + TYPING_TIMEOUT - now,
+      ...(size === undefined ? {} : { size }),
       startedAt,
       typedAt,
     }));

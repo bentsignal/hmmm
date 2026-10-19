@@ -28,9 +28,11 @@ void test("a typist shows until their time runs out, by this clock", () => {
       typists,
     });
   }
-  assert.deepEqual(at(1000), { accountIds: [MAYA], nextChange: 5000 });
+  assert.deepEqual(at(1000).accountIds, [MAYA]);
+  assert.equal(at(1000).nextChange, 5000);
   assert.deepEqual(at(4999).accountIds, [MAYA]);
-  assert.deepEqual(at(5000), { accountIds: [], nextChange: undefined });
+  assert.deepEqual(at(5000).accountIds, []);
+  assert.equal(at(5000).nextChange, undefined);
 });
 
 void test("a typist's time counts from when it first arrived", () => {
@@ -105,6 +107,42 @@ void test("the label names up to three people, then counts them", () => {
     "Maya, Leo, and Priya are typing",
   );
   assert.equal(typingLabel(["a", "b", "c", "d", "e"]), "5 people are typing");
+});
+
+void test("one person's label says how long their message is", () => {
+  assert.equal(
+    typingLabel(["Maya Chen"], "reply"),
+    "Maya Chen is writing a quick reply",
+  );
+  assert.equal(
+    typingLabel(["Maya Chen"], "essay"),
+    "Maya Chen is writing an essay",
+  );
+  // With more people, it only says who.
+  assert.equal(
+    typingLabel(["Maya Chen", "Leo Martins"], "paragraph"),
+    "Maya and Leo are typing",
+  );
+});
+
+void test("sizes stay known after someone stops, until they say otherwise", () => {
+  function sizesAt(typists: Parameters<typeof shownTypists>[0]["typists"]) {
+    return shownTypists({
+      arrivedAt: 0,
+      lastSentAt: NOBODY_SENT,
+      now: 0,
+      scope: "sizes",
+      typists,
+    }).sizes;
+  }
+  assert.equal(
+    sizesAt([{ ...typist(MAYA, 0), size: "message" }]).get(MAYA),
+    "message",
+  );
+  // Gone, as when they sent it: the indicator going still says the same.
+  assert.equal(sizesAt([]).get(MAYA), "message");
+  // Back from an app that doesn't say.
+  assert.equal(sizesAt([typist(MAYA, 10)]).get(MAYA), undefined);
 });
 
 void test("photos show for up to four people, then three and a count", () => {

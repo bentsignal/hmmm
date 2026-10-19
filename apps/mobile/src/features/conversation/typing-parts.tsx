@@ -1,3 +1,4 @@
+import type { TypingSize } from "@decentralized-convex/messages";
 import { View } from "react-native";
 import Animated, {
   FadeIn,
@@ -252,14 +253,20 @@ function TypingLine({
 
 export function Indicator({
   people,
+  size,
   layout,
   showFaces,
 }: {
   people: readonly Person[];
+  /** How long the message is, with one person typing, when known. */
+  size: TypingSize | undefined;
   layout: MessageLayout;
   showFaces: boolean;
 }) {
-  const label = typingLabel(people.map((person) => person.displayName));
+  const label = typingLabel(
+    people.map((person) => person.displayName),
+    size,
+  );
   return (
     <View
       accessible

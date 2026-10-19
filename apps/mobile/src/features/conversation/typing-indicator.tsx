@@ -1,3 +1,4 @@
+import type { TypingSize } from "@decentralized-convex/messages";
 import type { ReactNode } from "react";
 import type { SharedValue } from "react-native-reanimated";
 import { useState } from "react";
@@ -219,6 +220,17 @@ export function useTypingRow({
   };
 }
 
+/** How long the message is, when one person is typing and it's known. */
+function sizeOf(
+  accounts: readonly string[],
+  sizes: ReadonlyMap<string, TypingSize>,
+) {
+  const [only] = accounts;
+  return only !== undefined && accounts.length === 1
+    ? sizes.get(only)
+    : undefined;
+}
+
 /**
  * The list's newest row: room under the newest message for who's typing,
  * with the indicator in it. Its space opens to fit the indicator as the
@@ -229,6 +241,7 @@ export function useTypingRow({
  */
 export function TypingRow({
   typists,
+  sizes,
   typing: { ghosts, removeGhost: onGhostDone },
   layout,
   profileOf,
@@ -236,6 +249,8 @@ export function TypingRow({
 }: {
   /** Who's typing, in the order they started. */
   typists: readonly string[];
+  /** How long each one's message is, when their app says. */
+  sizes: ReadonlyMap<string, TypingSize>;
   /** Who just stopped (see `useTypingRow`). */
   typing: Pick<ReturnType<typeof useTypingRow>, "ghosts" | "removeGhost">;
   layout: MessageLayout;
@@ -290,13 +305,11 @@ export function TypingRow({
   );
   // eslint-disable-next-line vera/no-layout-animation -- Not animated: the height changes once, in the same frame as the moves, which do the moving.
   const space = useAnimatedStyle(() => ({ height: growth.typing.get() }));
-  function people(accounts: readonly string[]) {
-    return accounts.map((address) => ({ address, ...profileOf(address) }));
-  }
   function indicator(accounts: readonly string[]) {
     return (
       <Indicator
-        people={people(accounts)}
+        people={accounts.map((address) => ({ address, ...profileOf(address) }))}
+        size={sizeOf(accounts, sizes)}
         layout={layout}
         showFaces={showFaces}
       />

@@ -122,6 +122,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             | {
                 args: {
                   conversationId: string;
+                  size?: "reply" | "message" | "paragraph" | "essay";
                   threadId?: string;
                   typing: boolean;
                 };
@@ -1346,6 +1347,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               value: Array<{
                 accountId: string;
                 expiresIn: number;
+                size?: "reply" | "message" | "paragraph" | "essay";
                 startedAt: number;
                 typedAt: number;
               }>;
@@ -2872,6 +2874,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             value: Array<{
               accountId: string;
               expiresIn: number;
+              size?: "reply" | "message" | "paragraph" | "essay";
               startedAt: number;
               typedAt: number;
             }>;

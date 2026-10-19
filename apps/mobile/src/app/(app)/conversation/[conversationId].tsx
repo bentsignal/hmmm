@@ -89,9 +89,11 @@ function useConversationTyping(
   conversationId: string,
   messages: Parameters<typeof useTypists>[1]["messages"],
 ) {
-  const { isLoading, typists } = useTypists(conversationId, { messages });
+  const { isLoading, sizes, typists } = useTypists(conversationId, {
+    messages,
+  });
   const report = useTypingReporter(conversationId);
-  return { isLoading, report, typists };
+  return { isLoading, report, sizes, typists };
 }
 
 function MissingConversation({ heading }: { heading: string }) {
@@ -215,6 +217,7 @@ function Conversation({
             topInset={CONVERSATION_HEADER_HEIGHT}
             composerHeight={composerHeight}
             typists={typing.typists}
+            typingSizes={typing.sizes}
             onToggleReaction={messages.toggleReaction}
             onOpenThread={replies.openThread}
             onReply={replies.reply}

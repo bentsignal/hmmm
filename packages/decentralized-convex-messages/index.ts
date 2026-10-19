@@ -59,6 +59,8 @@ export {
   threadSummary,
   TYPING_REFRESH,
   TYPING_TIMEOUT,
+  typingSize,
+  typingSizeOf,
   typist,
 } from "./protocol.ts";
 export type {
@@ -85,5 +87,6 @@ export type {
   ThreadListing,
   ThreadState,
   ThreadSummary,
+  TypingSize,
   Typist,
 } from "./protocol.ts";

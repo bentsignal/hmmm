@@ -21,6 +21,7 @@ import type * as devSeed from "../devSeed.js";
 import type * as devSignIn from "../devSignIn.js";
 import type * as devSignInPage from "../devSignInPage.js";
 import type * as devThreads from "../devThreads.js";
+import type * as devTyping from "../devTyping.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
 import type * as joinPage from "../joinPage.js";
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   devSignIn: typeof devSignIn;
   devSignInPage: typeof devSignInPage;
   devThreads: typeof devThreads;
+  devTyping: typeof devTyping;
   files: typeof files;
   http: typeof http;
   joinPage: typeof joinPage;

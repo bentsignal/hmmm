@@ -16,6 +16,7 @@ import {
   message,
   notificationSettingsChange,
   spaceInviteLink,
+  typingSize,
 } from "./shapes.ts";
 
 export * from "./activityShapes.ts";
@@ -153,11 +154,14 @@ export const messagesProtocol = definePluginProtocol({
      * again every `TYPING_REFRESH` while the text keeps changing, and you
      * stop showing as typing `TYPING_TIMEOUT` after the last time. Sending
      * a message there stops it too, in the same write, so readers never
-     * see the message and the typing at once.
+     * see the message and the typing at once. `size` says roughly how
+     * long the message is (see `typingSizeOf`); apps say so at once when
+     * it changes.
      */
     setTyping: defineOperation({
       args: v.object({
         conversationId: v.string(),
+        size: v.optional(typingSize),
         threadId: v.optional(v.string()),
         typing: v.boolean(),
       }),

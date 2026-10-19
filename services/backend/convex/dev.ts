@@ -1,4 +1,4 @@
-import { attachment } from "@decentralized-convex/messages";
+import { attachment, typingSize } from "@decentralized-convex/messages";
 import { v } from "convex/values";
 
 import { internal } from "./_generated/api";
@@ -28,6 +28,7 @@ import {
   seedSpace,
   seedSpaceInvite,
 } from "./devSeed";
+import { BOT_REPLIES, typeOut } from "./devTyping";
 
 // Development only. Bots are ordinary accounts on the dev deployment that
 // post through the Messages plugin as themselves, so screens show other
@@ -141,14 +142,17 @@ export const replyToMe = action({
         });
       }
       const { typesAt, saysAt } = REPLY_TIMES[index] ?? FIRST_REPLY;
-      await ctx.scheduler.runAfter(typesAt, internal.dev.type, {
+      const body = pick(BOT_REPLIES, seed + index * 31);
+      await typeOut(ctx, {
+        body,
         conversationId,
+        saysAt,
         threadId,
-        typing: true,
+        typesAt,
         username: bot.username,
       });
       await ctx.scheduler.runAfter(saysAt, internal.dev.say, {
-        body: pick(REPLIES, seed + index * 31),
+        body,
         conversationId,
         mention:
           isDirect || index > 0
@@ -192,14 +196,17 @@ export const replyScene = internalAction({
     const seed = Date.now();
     for (const [index, username] of usernames.slice(0, 3).entries()) {
       const { typesAt, saysAt } = REPLY_TIMES[index] ?? FIRST_REPLY;
-      await ctx.scheduler.runAfter(typesAt, internal.dev.type, {
+      const body = pick(REPLIES, seed + index * 31);
+      await typeOut(ctx, {
+        body,
         conversationId,
+        saysAt,
         threadId,
-        typing: true,
+        typesAt,
         username,
       });
       await ctx.scheduler.runAfter(saysAt, internal.dev.say, {
-        body: pick(REPLIES, seed + index * 31),
+        body,
         conversationId,
         threadId,
         username,
@@ -212,16 +219,20 @@ export const replyScene = internalAction({
 export const type = internalAction({
   args: {
     conversationId: v.string(),
+    size: v.optional(typingSize),
     threadId: v.optional(v.string()),
     typing: v.boolean(),
     username: v.string(),
   },
-  handler: async (ctx, { conversationId, threadId, typing, username }) => {
+  handler: async (
+    ctx,
+    { conversationId, size, threadId, typing, username },
+  ) => {
     requireDevTools();
     const bot = BOTS.find((candidate) => candidate.username === username);
     if (bot === undefined) return;
     await asAccount(ctx, botIdentity(bot), {
-      args: { conversationId, threadId, typing },
+      args: { conversationId, size, threadId, typing },
       type: "setTyping",
     });
   },

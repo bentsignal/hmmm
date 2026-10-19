@@ -11,6 +11,7 @@ import {
   mention,
   quote,
   spaceRole,
+  typingSize,
 } from "./protocol.ts";
 
 export default defineSchema({
@@ -169,6 +170,8 @@ export default defineSchema({
   typing: defineTable({
     accountId: v.string(),
     conversationId: v.string(),
+    // Roughly how long the message is, when their app says.
+    size: v.optional(typingSize),
     startedAt: v.number(),
     // Typing a reply in this thread rather than in the conversation.
     threadId: v.optional(v.string()),
