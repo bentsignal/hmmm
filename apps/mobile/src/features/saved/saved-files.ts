@@ -112,6 +112,56 @@ export function writeSaved(file: File, saved: Saved) {
   }
 }
 
+function versionsFile(storagePrefix: string) {
+  return new File(folder(storagePrefix), "versions.json");
+}
+
+function versionsFrom(stored: unknown) {
+  const versions = new Map<string, number>();
+  const byId = fieldOf(stored, "versions");
+  if (fieldOf(stored, "stamp") !== STAMP || typeof byId !== "object") {
+    return versions;
+  }
+  for (const [conversationId, version] of Object.entries(byId ?? {})) {
+    if (typeof version === "number") versions.set(conversationId, version);
+  }
+  return versions;
+}
+
+/**
+ * What each saved conversation is as of: its `changedAt` (see
+ * `refresh-saved`) when what was saved of it was live.
+ */
+export function readVersions(storagePrefix: string) {
+  try {
+    const file = versionsFile(storagePrefix);
+    return versionsFrom(file.exists ? JSON.parse(file.textSync()) : null);
+  } catch {
+    // Unreadable, as if nothing was saved: each conversation saves again.
+    return new Map<string, number>();
+  }
+}
+
+/** Writes what each saved conversation is as of, unless unchanged. */
+export function writeVersions(
+  storagePrefix: string,
+  versions: ReadonlyMap<string, number>,
+) {
+  const file = versionsFile(storagePrefix);
+  const content = JSON.stringify({
+    stamp: STAMP,
+    versions: Object.fromEntries(versions),
+  });
+  if (written.get(file.uri) === content) return;
+  try {
+    file.parentDirectory.create({ idempotent: true, intermediates: true });
+    file.write(content);
+    written.set(file.uri, content);
+  } catch {
+    // Written again with the next save.
+  }
+}
+
 /** The conversations an account has saved, by ID. */
 export function savedConversationIds(storagePrefix: string) {
   try {

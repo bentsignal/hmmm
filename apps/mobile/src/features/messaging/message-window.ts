@@ -167,6 +167,27 @@ export function prefetchLatestMessages(
   }
 }
 
+/**
+ * Fetches a conversation's latest messages again, as a window opened at
+ * them now would show them (with what they show, which comes along), even
+ * if they're cached: a copy saved on the device is behind.
+ */
+export function refetchLatestMessages(
+  queryClient: QueryClient,
+  session: string,
+  conversationId: string,
+) {
+  const windowKey = windowKeyOf(session, { conversationId });
+  return Promise.all(
+    latestWindow(windowKey).pages.map((cursor) =>
+      queryClient.fetchQuery({
+        ...listPageQuery(session, conversationId, cursor),
+        staleTime: 0,
+      }),
+    ),
+  );
+}
+
 function windowKeyOf(session: string, source: WindowSource) {
   return [session, source.conversationId, source.threadId ?? ""].join(" ");
 }

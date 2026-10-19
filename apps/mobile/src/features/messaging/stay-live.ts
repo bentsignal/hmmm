@@ -32,6 +32,21 @@ function isAbout(query: Query, session: string, conversationId: string) {
 }
 
 /**
+ * Whether anything about the conversation is live: its screen is open, or
+ * it's staying live after closing.
+ */
+export function isLive(
+  queryClient: QueryClient,
+  session: string,
+  conversationId: string,
+) {
+  return queryClient
+    .getQueryCache()
+    .findAll({ predicate: (query) => query.isActive() })
+    .some((query) => isAbout(query, session, conversationId));
+}
+
+/**
  * Keeps `queries` live for `STAY_LIVE_MS`, as if their screen were still
  * open: the PDS keeps sending what changes, so it's there when the
  * conversation opens again.
