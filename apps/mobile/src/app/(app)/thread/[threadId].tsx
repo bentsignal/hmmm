@@ -26,6 +26,7 @@ import { useDevTools } from "~/features/dev/dev-tools";
 import { AccountScope, useAccount } from "~/features/messaging/account";
 import { useConversation } from "~/features/messaging/conversations";
 import { useMessages } from "~/features/messaging/messages";
+import { useStayLive } from "~/features/messaging/stay-live";
 import {
   useMarkThreadRead,
   useThreadState,
@@ -80,20 +81,24 @@ function useOpenConversation(
 }
 
 /**
- * What the list needs before it shows: the thread loaded with everyone's
- * names, and the composer laid out (the list leaves room for it).
+ * What the list needs before it shows: the thread and who's typing there
+ * (`parts`) loaded with everyone's names, and the composer laid out (the
+ * list leaves room for it).
  */
 function shownList<Layout, Root>({
-  loading,
+  parts,
+  profilesLoaded,
   root,
   layout,
   composerHeight,
 }: {
-  loading: boolean;
+  parts: readonly { isLoading: boolean }[];
+  profilesLoaded: boolean;
   root: Root | undefined;
   layout: Layout | undefined;
   composerHeight: number | undefined;
 }) {
+  const loading = parts.some(({ isLoading }) => isLoading) || !profilesLoaded;
   if (loading || root === undefined || layout === undefined) return null;
   if (composerHeight === undefined) return null;
   return { composerHeight, layout, root };
@@ -108,7 +113,10 @@ function useDraft(conversationId: string, threadId: string) {
   return { composer, draftId, editing };
 }
 
-/** What an open thread keeps up: its read state, and push and dev. */
+/**
+ * What an open thread keeps up: its read state, push and dev, and staying
+ * live a while after it closes.
+ */
 function useWhileOpen(
   conversationId: string,
   threadId: string,
@@ -116,6 +124,7 @@ function useWhileOpen(
 ) {
   useMarkThreadRead(conversationId, threadId, thread.newestSentAt);
   useActiveThread(threadId);
+  useStayLive(conversationId, threadId);
   useDevConversation(conversationId, thread);
 }
 
@@ -136,9 +145,12 @@ function useThreadTyping(
   threadId: string,
   messages: Parameters<typeof useTypists>[1]["messages"],
 ) {
-  const typists = useTypists(conversationId, { messages, threadId });
+  const { isLoading, typists } = useTypists(conversationId, {
+    messages,
+    threadId,
+  });
   const report = useTypingReporter(conversationId, threadId);
-  return { report, typists };
+  return { isLoading, report, typists };
 }
 
 /**
@@ -173,16 +185,13 @@ function Thread({
   useWhileOpen(conversationId, threadId, thread);
 
   const heading = headingFor(title, initialTitle);
-  const openConversation = useOpenConversation(
-    conversationId,
-    threadId,
-    heading,
-  );
+  const toConversation = useOpenConversation(conversationId, threadId, heading);
   const missing = !thread.isLoading && thread.root === undefined;
   const shown = shownList({
     composerHeight,
     layout,
-    loading: thread.isLoading || !profilesLoaded,
+    parts: [thread, typing],
+    profilesLoaded,
     root: thread.root,
   });
 
@@ -227,7 +236,7 @@ function Thread({
       <ThreadHeader
         title={heading}
         following={state.following}
-        onOpenConversation={openConversation}
+        onOpenConversation={toConversation}
         onToggleFollowing={state.toggle}
       />
       {thread.root !== undefined && (

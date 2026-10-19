@@ -213,6 +213,18 @@ export async function requireAccess(
   return access;
 }
 
+/**
+ * Notes that what the conversation shows changed (`changedAt`), so apps
+ * know a copy of it they saved is out of date.
+ */
+export async function markChanged(
+  ctx: MutationCtx,
+  access: ConversationAccess,
+  at = Date.now(),
+) {
+  await ctx.db.patch(access.conversation._id, { changedAt: at });
+}
+
 /** Channel read state is stored lazily, so create the row on first write. */
 export async function upsertMember(
   ctx: MutationCtx,
@@ -312,6 +324,7 @@ export async function toConversation(
   ]);
   return {
     alerts,
+    changedAt: conversation.changedAt,
     conversationId: conversation.conversationId,
     kind: conversation.kind,
     lastMessage: lastMessage === null ? null : toMessage(lastMessage),

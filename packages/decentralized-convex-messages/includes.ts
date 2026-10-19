@@ -82,17 +82,19 @@ export async function pageIncludes(
 }
 
 /**
- * What a page of a thread shows: its original's reactions and replies
- * (asked for apart from the page's), and the page's own.
+ * What a page of a thread shows: who's typing there, its original's
+ * reactions and replies (asked for apart from the page's), and the page's
+ * own.
  */
 export async function threadPageIncludes(
   ctx: QueryCtx,
-  conversationId: string,
+  { conversationId, threadId }: { conversationId: string; threadId: string },
   root: Message | null,
   messages: readonly Message[],
 ): Promise<QueryRequest[]> {
   const rootOnly = root === null ? [] : [root];
   return [
+    typing(conversationId, threadId),
     ...(root === null
       ? []
       : [
@@ -144,16 +146,30 @@ export function inboxIncludes(
 }
 
 /**
- * A direct conversation's or a group's members, whose names it shows, and
- * a group's joins and leaves (`events`), with the names of those people.
+ * Who's typing in a conversation, or with `threadId`, in that thread: it
+ * shows with the messages, so it comes with them rather than after.
+ */
+function typing(conversationId: string, threadId?: string) {
+  return queryRequest(messagesProtocol, "typing", {
+    conversationId,
+    ...(threadId === undefined ? {} : { threadId }),
+  });
+}
+
+/**
+ * Who's typing in a conversation; a direct conversation's or a group's
+ * members, whose names it shows; and a group's joins and leaves
+ * (`events`), with the names of those people.
  */
 export function conversationIncludes(
   conversation: Conversation | null,
   events: readonly MemberEvent[],
 ): QueryRequest[] {
-  if (conversation === null || conversation.kind === "channel") return [];
+  if (conversation === null) return [];
   const { conversationId, kind, members } = conversation;
+  if (kind === "channel") return [typing(conversationId)];
   return [
+    typing(conversationId),
     ...(kind === "group"
       ? [queryRequest(messagesProtocol, "memberEvents", { conversationId })]
       : []),

@@ -11,6 +11,15 @@ import { useAccount } from "./account";
 import { pdsResultOr } from "./results";
 import { lastSentByAuthor, shownTypists } from "./typing-state";
 
+/** The key `useTypists` asks for who's typing in a conversation by. */
+export function typingQueryKey(session: string, conversationId: string) {
+  return pdsQuery({
+    args: { conversationId, threadId: undefined },
+    query: pds.messages.typing,
+    session,
+  }).queryKey;
+}
+
 /** Nobody, the same array each time so the list doesn't redraw. */
 const NOBODY = Object.freeze<string[]>([]);
 
@@ -18,7 +27,8 @@ const NOBODY = Object.freeze<string[]>([]);
  * Who else is typing in a conversation, or with `threadId`, in that
  * thread, in the order they started. `messages` are the ones on screen:
  * someone whose message is there, sent after they last typed, isn't
- * typing it anymore.
+ * typing it anymore. `isLoading` until it's known: a conversation shows
+ * with who's typing, never before.
  */
 export function useTypists(
   conversationId: string,
@@ -31,11 +41,13 @@ export function useTypists(
   },
 ) {
   const { address } = useAccount();
+  // Its PDS sends it with the conversation and with a thread's page, so
+  // it's there when the messages are.
   const { data, dataUpdatedAt } = useQuery(
     pdsQuery({
       args: { conversationId, threadId },
       options: {
-        // A PDS that can't answer (or predates typing) shows nobody typing.
+        // A PDS that predates typing shows nobody typing.
         select: (result) => pdsResultOr(result, [])?.flat(),
       },
       query: pds.messages.typing,
@@ -60,7 +72,10 @@ export function useTypists(
     );
     return () => clearTimeout(timer);
   }, [nextChange]);
-  return shown.accountIds.length === 0 ? NOBODY : shown.accountIds;
+  return {
+    isLoading: data === undefined,
+    typists: shown.accountIds.length === 0 ? NOBODY : shown.accountIds,
+  };
 }
 
 /**

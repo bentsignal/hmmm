@@ -209,7 +209,7 @@ export const { dispatchMutation, dispatchQueries, dispatchQuery } =
           return queryResult(found.page, {
             include: await threadPageIncludes(
               ctx,
-              args.conversationId,
+              args,
               found.page.root,
               found.page.messages,
             ),

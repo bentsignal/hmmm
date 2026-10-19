@@ -4,7 +4,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { messagesProtocol } from "./protocol.ts";
 import { internal } from "./_generated/api.js";
 import { MAX_LINK_PREVIEWS } from "./links.ts";
-import { fail, memberAddresses, requireAccess } from "./model.ts";
+import { fail, markChanged, memberAddresses, requireAccess } from "./model.ts";
 import { MAX_ATTACHMENTS, MAX_REACTION_MESSAGES } from "./protocol.ts";
 
 /** How long a new reaction waits before its push, in case it's undone. */
@@ -66,7 +66,7 @@ export async function react(
   selfName: string,
   args: Args<"react">,
 ) {
-  await requireAccess(ctx, args.conversationId, self);
+  const access = await requireAccess(ctx, args.conversationId, self);
   requireValidReaction(args);
   const mine = await ctx.db
     .query("reactions")
@@ -81,7 +81,9 @@ export async function react(
       row.link === args.link,
   );
   if (!args.on) {
-    if (existing !== undefined) await ctx.db.delete(existing._id);
+    if (existing === undefined) return null;
+    await ctx.db.delete(existing._id);
+    await markChanged(ctx, access);
     return null;
   }
   if (existing !== undefined) return null;
@@ -100,6 +102,7 @@ export async function react(
         : undefined,
     reactedAt: Date.now(),
   });
+  await markChanged(ctx, access);
   if (message !== null && message.authorId !== self) {
     await ctx.scheduler.runAfter(
       REACTION_PUSH_DELAY_MS,
