@@ -14,7 +14,7 @@ import { secondaryTextStyle } from "~/lib/colors";
 import { fillRow } from "~/lib/ui-modifiers";
 import { usePrivacySettings } from "./contacts";
 
-export const MESSAGES_FROM_CHOICES = [
+const MESSAGES_FROM_CHOICES = [
   { label: "Everyone", value: "everyone" },
   { label: "Contacts", value: "contacts" },
   { label: "Mutual Contacts", value: "mutual" },
