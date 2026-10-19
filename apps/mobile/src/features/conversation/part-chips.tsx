@@ -132,6 +132,11 @@ export function StillChips({
   );
 }
 
+/** The reactions a lifted copy shows, or null outside one. */
+export function useStillReactions() {
+  return use(StillChipsContext)?.reactions ?? null;
+}
+
 /** Nothing: the lifted copy's chips only show what's there. */
 function still() {
   return undefined;

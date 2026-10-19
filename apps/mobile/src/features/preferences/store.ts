@@ -16,6 +16,18 @@ const STORAGE_KEY = "vera.preferences";
 
 export type Appearance = "dark" | "light" | "system";
 export type MessageLayout = "bubbles" | "stacked";
+/**
+ * How bubbles show two or more photos and videos in one message: one under
+ * another (`column`), or together in a pile or grid that opens the focused
+ * view (see `BubbleMediaStack`). Picked under Developer while Shawn tries
+ * them.
+ */
+export type BubbleMedia = "column" | "deck" | "depth" | "fan" | "grid" | "peek";
+/**
+ * Where a stacked row's photo carousel shows each photo's reactions (see
+ * `StackedMediaCarousel`). Picked under Developer while Shawn tries them.
+ */
+export type CarouselReactions = "badges" | "cards" | "current";
 /** Which conversations the Inbox lists, by read state. */
 export type InboxShow = "all" | "unread";
 /** The order Home's Spaces page lists spaces in. */
@@ -23,6 +35,8 @@ export type SpacesSort = "name" | "newest" | "oldest";
 
 export interface Preferences {
   readonly appearance: Appearance;
+  readonly bubbleMedia: BubbleMedia;
+  readonly carouselReactions: CarouselReactions;
   /** Message layout for each kind of conversation. */
   readonly directLayout: MessageLayout;
   readonly groupLayout: MessageLayout;
@@ -38,6 +52,8 @@ export interface Preferences {
 
 const DEFAULTS = {
   appearance: "system",
+  bubbleMedia: "column",
+  carouselReactions: "cards",
   directLayout: "bubbles",
   groupLayout: "stacked",
   channelLayout: "stacked",
@@ -49,6 +65,19 @@ const DEFAULTS = {
 } satisfies Preferences;
 
 const LAYOUTS = ["bubbles", "stacked"] as const;
+export const BUBBLE_MEDIA = [
+  "column",
+  "fan",
+  "peek",
+  "depth",
+  "deck",
+  "grid",
+] as const satisfies readonly BubbleMedia[];
+export const CAROUSEL_REACTIONS = [
+  "cards",
+  "current",
+  "badges",
+] as const satisfies readonly CarouselReactions[];
 
 /** The preference holding the message layout for a kind of conversation. */
 export const LAYOUT_PREFERENCE = {
@@ -76,6 +105,16 @@ function fromStored(stored: unknown) {
       Reflect.get(stored, "appearance"),
       ["system", "light", "dark"],
       DEFAULTS.appearance,
+    ),
+    bubbleMedia: pick(
+      Reflect.get(stored, "bubbleMedia"),
+      BUBBLE_MEDIA,
+      DEFAULTS.bubbleMedia,
+    ),
+    carouselReactions: pick(
+      Reflect.get(stored, "carouselReactions"),
+      CAROUSEL_REACTIONS,
+      DEFAULTS.carouselReactions,
     ),
     directLayout: pick(
       Reflect.get(stored, "directLayout"),

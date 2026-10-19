@@ -76,18 +76,21 @@ function useWholeMessage(
  */
 function TapbackSpace({
   parts,
+  also,
   roomAbove = 0,
   clearOf,
   left,
 }: {
   parts: Parts;
+  /** Parts drawn together with the top one (see `Reactable`'s `also`). */
+  also?: readonly ReactionPart[];
   roomAbove?: number;
   /** Where the name above ends. */
   clearOf?: number;
   /** Where the tapbacks' left edge sits, once laid out. */
   left?: number;
 }) {
-  const { animate, reactions } = usePartReactions(parts, parts.top);
+  const { animate, reactions } = usePartReactions(parts, parts.top, also);
   const room = clearsName(clearOf, left) ? roomAbove : 0;
   const height = reactions.length > 0 ? Math.max(0, TAPBACK_SPACE - room) : 0;
   return (
@@ -129,6 +132,8 @@ interface Layout {
   reactionStyle: "chips" | "tapbacks";
   /** The part on top, whose tapbacks rise above the message. */
   top?: ReactionPart;
+  /** Parts drawn together with the top one, a stack of photos. */
+  topAlso?: readonly ReactionPart[];
   /** The part whose chips go under everything, footers and all. */
   chipsAtEnd?: ReactionPart | null;
   /**
@@ -210,6 +215,7 @@ export function InteractiveMessage({
         {reactionStyle === "tapbacks" && (
           <TapbackSpace
             parts={parts}
+            also={layout.topAlso}
             roomAbove={roomAbove}
             clearOf={tapbacksClearOf}
             left={topLeft}

@@ -86,8 +86,11 @@ function frameOf(target: MenuTarget) {
   };
 }
 
-/** The conversation behind the lifted message: blurred and dimmed. */
-function Backdrop({
+/**
+ * The conversation behind the lifted message (or the focused photos, see
+ * `MediaGallery`): blurred and dimmed.
+ */
+export function Backdrop({
   progress,
   onPress,
 }: {

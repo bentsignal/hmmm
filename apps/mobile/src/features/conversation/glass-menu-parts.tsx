@@ -64,7 +64,7 @@ const HIGHLIGHT = EMOJI - 6;
  * reacted with what is in the panel under the message (double tap) and
  * the sheet.
  */
-function EmojiButton({
+export function EmojiButton({
   emoji,
   mine,
   onPress,

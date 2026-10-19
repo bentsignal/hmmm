@@ -14,6 +14,7 @@ import type {
 import { reactionsOn } from "~/features/messaging/reactions";
 import { selectionTick } from "~/lib/native-extras";
 import { GrowingSpace, usePieceLift } from "./grow";
+import { mergedReactions } from "./merged-reactions";
 import {
   ReactionPartProvider,
   useIsLifted,
@@ -46,6 +47,11 @@ export interface Parts {
 
 const PartsContext = createContext<Parts | null>(null);
 
+/** The message whose parts are below; null in the lifted copy. */
+export function useParts() {
+  return use(PartsContext);
+}
+
 /** The message whose parts (see `Reactable`) are below. */
 export function PartsProvider({
   parts,
@@ -63,7 +69,7 @@ export function PartsProvider({
  * that already has reactions when it appears (opening a conversation,
  * scrolling to it) shows them in place.
  */
-function useSeenWithout(reactions: readonly unknown[], loaded: boolean) {
+export function useSeenWithout(reactions: readonly unknown[], loaded: boolean) {
   const [seenWithout, setSeenWithout] = useState(
     loaded && reactions.length === 0,
   );
@@ -71,9 +77,19 @@ function useSeenWithout(reactions: readonly unknown[], loaded: boolean) {
   return seenWithout;
 }
 
-/** A part's reactions, and whether it was on screen without any. */
-export function usePartReactions(parts: Parts, part: ReactionPart) {
-  const reactions = reactionsOn(parts.reactions, part);
+/**
+ * A part's reactions, and whether it was on screen without any. With
+ * `also`, the reactions on those parts too, as one (a stack of photos).
+ */
+export function usePartReactions(
+  parts: Parts,
+  part: ReactionPart,
+  also?: readonly ReactionPart[],
+) {
+  const reactions =
+    also === undefined
+      ? reactionsOn(parts.reactions, part)
+      : mergedReactions(parts.reactions, [part, ...also]);
   const animate = useSeenWithout(reactions, parts.loaded);
   return { animate, reactions };
 }
@@ -94,16 +110,31 @@ const PART_TAPBACK_SPACE = TAPBACK_SPACE - PART_GAP;
 export function Reactable({
   part,
   place,
+  also,
+  onTapbacks,
   children,
 }: {
   part: ReactionPart;
   place: number;
+  /**
+   * Parts drawn together with it (a stack of photos), whose tapbacks show
+   * on it as one.
+   */
+  also?: readonly ReactionPart[];
+  /** What tapping its tapbacks does, instead of showing who reacted. */
+  onTapbacks?: () => void;
   children: ReactNode;
 }) {
   const parts = use(PartsContext);
   if (parts === null) return <StillPart part={part}>{children}</StillPart>;
   return parts.reactionStyle === "tapbacks" ? (
-    <TapbackPart parts={parts} part={part} place={place}>
+    <TapbackPart
+      parts={parts}
+      part={part}
+      place={place}
+      also={also}
+      onTapbacks={onTapbacks}
+    >
       {children}
     </TapbackPart>
   ) : (
@@ -117,14 +148,18 @@ function TapbackPart({
   parts,
   part,
   place,
+  also,
+  onTapbacks,
   children,
 }: {
   parts: Parts;
   part: ReactionPart;
   place: number;
+  also?: readonly ReactionPart[];
+  onTapbacks?: () => void;
   children: ReactNode;
 }) {
-  const { animate, reactions } = usePartReactions(parts, part);
+  const { animate, reactions } = usePartReactions(parts, part, also);
   const ref = useRef<NativeView>(null);
   const lifted = useIsLifted(parts.message.id, part);
   const liftPart = useLiftMessage({
@@ -161,7 +196,8 @@ function TapbackPart({
               onPlaced={top ? parts.onTopPlaced : undefined}
               onPress={() => {
                 selectionTick();
-                liftPart("reactions");
+                if (onTapbacks === undefined) liftPart("reactions");
+                else onTapbacks();
               }}
             />
           )}

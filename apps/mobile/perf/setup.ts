@@ -39,6 +39,11 @@ jest.mock("expo-image", () => {
 // Native modules nothing here calls: just importable.
 jest.mock("expo-web-browser", () => ({ openBrowserAsync: jest.fn() }));
 jest.mock("expo-video-thumbnails", () => ({ getThumbnailAsync: jest.fn() }));
+// Preferences (how bubbles draw several photos) read their saved values.
+jest.mock("expo-secure-store", () => ({
+  getItem: () => null,
+  setItem: jest.fn(),
+}));
 jest.mock("expo-router", () => ({ useRouter: () => ({ push: jest.fn() }) }));
 jest.mock("expo-file-system/legacy", () => ({
   cacheDirectory: "file:///cache/",

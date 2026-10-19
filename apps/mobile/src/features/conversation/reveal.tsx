@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { PanGesture } from "react-native-gesture-handler";
 import type { SharedValue } from "react-native-reanimated";
 import { createContext, use } from "react";
 import { Text } from "react-native";
@@ -15,6 +16,16 @@ import { formatTime } from "~/lib/format";
 export const REVEAL_WIDTH = 72;
 
 const RevealContext = createContext<SharedValue<number> | null>(null);
+const RevealGestureContext = createContext<PanGesture | null>(null);
+
+/**
+ * The drag that shows times, for something that drags sideways itself (a
+ * carousel of photos) to hold off while it does. Null outside the
+ * conversation, as in the lifted copy.
+ */
+export function useRevealGesture() {
+  return use(RevealGestureContext);
+}
 
 function useReveal() {
   const reveal = use(RevealContext);
@@ -44,7 +55,9 @@ export function RevealTimes({ children }: { children: ReactNode }) {
     });
   return (
     <RevealContext value={reveal}>
-      <GestureDetector gesture={pan}>{children}</GestureDetector>
+      <RevealGestureContext value={pan}>
+        <GestureDetector gesture={pan}>{children}</GestureDetector>
+      </RevealGestureContext>
     </RevealContext>
   );
 }
