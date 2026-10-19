@@ -60,28 +60,6 @@ export function DeveloperSection() {
     );
   }
 
-  // TEMPORARY: a clean slate for testing Vera. Remove before it ships.
-  function wipeVera() {
-    Alert.alert(
-      "Wipe Chat with Vera?",
-      "Deletes every message in your chat with Vera and everything it remembers about you.",
-      [
-        { style: "cancel", text: "Cancel" },
-        {
-          onPress: () => {
-            devTools
-              .wipeAssistantChat("vera")
-              .catch(() =>
-                Alert.alert("Couldn't Wipe", "Check the dev deployment logs."),
-              );
-          },
-          style: "destructive",
-          text: "Wipe",
-        },
-      ],
-    );
-  }
-
   async function openLongThread() {
     const target = await devTools.longThreadMiddle().catch(() => null);
     if (target?.messageId == null) {
@@ -117,7 +95,6 @@ export function DeveloperSection() {
         variant="text"
         onPress={() => void openLongThread()}
       />
-      <Button label="Wipe Chat with Vera" variant="text" onPress={wipeVera} />
       <ServerAnswersRow />
       <Button
         label="Forget Saved Conversations"

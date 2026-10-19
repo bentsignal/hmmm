@@ -47,15 +47,6 @@ export function useDevTools() {
       const convex = await session.convex();
       return convex.action(api.dev.seed, {});
     },
-    /**
-     * TEMPORARY: deletes your whole chat with an assistant and what it kept
-     * about you, for testing from a clean slate. Remove before the
-     * assistants ship.
-     */
-    wipeAssistantChat: async (bot: "support" | "vera") => {
-      const convex = await session.convex();
-      return convex.action(api.devAssistants.wipeMine, { bot });
-    },
     /** As many full conversations as the app saves on the device. */
     seedFull: async () => {
       const convex = await session.convex();
