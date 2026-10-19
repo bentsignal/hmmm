@@ -21,8 +21,6 @@ const MAX_MESSAGES_PER_TURN = 3;
 
 export interface Turn {
   readonly accountId: string;
-  /** They wrote before anyone answered and have waited since. */
-  readonly backlog: boolean;
   readonly bot: BotAccount;
   readonly conversationId: string;
   readonly ctx: ActionCtx;
@@ -38,10 +36,19 @@ export interface Turn {
   readonly timeZone: string | null;
   /** The oldest message the model was given, for `read_earlier_messages`. */
   readonly oldestSentAt: number | null;
-  /** Sends a message to the person, pacing several like someone typing. */
-  readonly send: (body: string) => Promise<void>;
-  /** How many messages this turn has sent. */
+  /**
+   * Sends a message to the person, pacing several like someone typing.
+   * `canned` messages (support's privacy notice) aren't the model's own
+   * and don't count toward `MAX_MESSAGES_PER_TURN`.
+   */
+  readonly send: (
+    body: string,
+    options?: { canned?: boolean },
+  ) => Promise<void>;
+  /** How many messages this turn has sent, canned ones included. */
   readonly sent: () => number;
+  /** How many of those the model wrote itself. */
+  readonly written: () => number;
   /** Counts a paid lookup for the reply's usage record (usage.ts). */
   readonly counted: (what: "memory" | "search") => void;
 }
@@ -85,7 +92,7 @@ export function conversationTools(turn: Turn) {
         text: z.string().describe("The message, plain text, no markdown."),
       }),
       execute: async ({ text }) => {
-        if (turn.sent() >= MAX_MESSAGES_PER_TURN) {
+        if (turn.written() >= MAX_MESSAGES_PER_TURN) {
           return "Not sent.";
         }
         await turn.send(text);
@@ -198,5 +205,43 @@ export function keepTyping(
       await loop;
       await setTyping(false);
     },
+  };
+}
+
+/**
+ * Sends the model's messages in the order it sent them, with a beat
+ * between them as if typing the next one.
+ */
+export function messageSender(
+  ctx: ActionCtx,
+  bot: BotAccount,
+  conversationId: string,
+  typing: ReturnType<typeof keepTyping>,
+) {
+  let sent = 0;
+  let written = 0;
+  let queue = Promise.resolve();
+  return {
+    send: (text: string, { canned = false }: { canned?: boolean } = {}) => {
+      const body = text.trim().slice(0, 4000);
+      if (body.length === 0) return queue;
+      queue = queue.then(async () => {
+        // Spaced like someone typing the next one, so they don't land at once.
+        if (sent > 0) {
+          await typing.pause(Math.min(4000, 1200 + body.length * 20));
+        }
+        await ctx.runMutation(internal.bots.post, {
+          body,
+          bot: bot.username,
+          conversationId,
+        });
+        typing.sent();
+        sent += 1;
+        if (!canned) written += 1;
+      });
+      return queue;
+    },
+    sent: () => sent,
+    written: () => written,
   };
 }

@@ -145,7 +145,7 @@ export function toAnswer(
   return history;
 }
 
-/** What the team asked this reply to cover (supportBacklog.ts, supportClosures.ts). */
+/** What the team asked this reply to cover (supportClosures.ts). */
 export function teamNote(note: string) {
   return `A note from the Vera team for this reply. They can't see it, so put what matters in your own words:\n\n${note}`;
 }

@@ -67,14 +67,16 @@ void test("five strikes in a day pause the assistant until the day is up", () =>
   assert.equal(decide(tomorrow, DAY).ok, true);
 });
 
-void test("support has its own, smaller hour", () => {
+void test("support has its own hour, separate from Vera's", () => {
   const bucket = current(null, support, 0);
-  assert.equal(bucket.tokens, 100);
+  assert.equal(bucket.tokens, LIMITS.support.perHour);
   const dry = decide({ ...bucket, tokens: 0 }, 0);
   assert.match(
     dry.notice ?? "",
-    /limit of 100 messages an hour with Vera Support\. Try again in a minute\./,
+    /limit of 300 messages an hour with Vera Support\. Try again in a minute\./,
   );
-  // An hour's worth refills at 100 an hour, not 300.
-  assert.equal(current({ ...bucket, tokens: 0 }, support, HOUR / 2).tokens, 50);
+  assert.match(
+    decide({ ...empty, strikes: STRIKES_PER_DAY - 1 }, 0).notice ?? "",
+    /Vera is paused/,
+  );
 });

@@ -11,19 +11,12 @@ import { internal } from "./_generated/api";
 import { conversationTools, sharedInstructions } from "./agentTools";
 import { commentOnIssue, createIssue, githubConfig } from "./github";
 import { lookupTools } from "./supportLookup";
-import { noticeCurrent, PRIVACY_NOTICE, whyNotFile } from "./supportRules";
+import { noticeShared, PRIVACY_NOTICE, whyNotFile } from "./supportRules";
 
 // Vera Support's model: it helps someone describe a bug well, files it as a
 // public, anonymized GitHub issue, and answers questions about their
 // reports. Updates as a fix moves along come from supportReports.ts, not
 // the model.
-
-/** For conversations from before support answered anyone. */
-const BACKLOG = `This person wrote to you a while ago, before you could answer, and nobody replied. First decide whether they sent anything real: a problem, a request, or a question. If it was only a joke, a test, a greeting, or nothing anyone could act on, call stay_quiet and send nothing.
-
-Otherwise, start with a short apology for the slow reply, then sum up what they sent and where each thing stands now, so they can see it was all read. If the team left a note, the team checked each thing against the app: go by the note, and don't search for what it already covers. Without one, check search_known_bugs for each problem, and ask whether they still see the ones you can't find.
-
-Group it so it reads quickly: what's fixed and out (and how to get it), what you're following for them now (in their reports below; they'll hear from you here as each one moves along), and anything that isn't changing. If the team filed reports for them, say once, briefly, that those are public but don't include their name or anything personal. Short lists are fine this once, still within 3 messages.`;
 
 const STAGE_WORDS = {
   closed: "closed (not being changed, or the same as another report)",
@@ -73,7 +66,8 @@ Getting a good report:
 - Never ask for their messages, contacts, passwords, or other personal information. You only need to know what the app did.
 
 Privacy, before anything is filed:
-- Reports are public. Call share_privacy_notice when you ask for a screenshot, or, once you have enough, before filing; it sends the notice for you, so don't repeat it in your own words. Ask whether they're OK with you sending the report to the team and wait for their answer: you can only file after they've replied to the notice.
+- Reports are public. The first time, call share_privacy_notice when you ask for a screenshot, or, once you have enough, before filing; it sends the notice for you, so don't repeat it in your own words. Ask whether they're OK with you sending the report to the team and wait for their answer: you can only file after they've replied to the notice.
+- Once they've seen the notice and gone ahead, that's their consent for later reports too. Don't share it or ask permission again; just file when you have enough.
 - Screenshots never go in a report. Describe what each one shows about the app instead, precisely enough that a developer could picture it: which screen, what's on it, what looks wrong.
 - In everything you file, never include their name or username, anyone else's name, message contents, faces, addresses, phone numbers, or links, including what you read in a screenshot. Describe instead ("a message from a friend", "a link to a video").
 
@@ -96,7 +90,7 @@ Talking about it:
 - If they are a developer, you can be technical and share the links listed with their reports below. Only those links: never make up a link, issue number, or ID.
 - If they ask how to do something in the app and you're not sure, say so. Don't invent features.
 
-${turn.backlog ? `${BACKLOG}\n\n` : ""}Privacy notice: ${noticeCurrent(reporter) ? "shared recently; no need to share it again" : "not shared lately; share it before filing"}.
+Privacy notice: ${noticeShared(reporter) ? "already shared; don't share it or ask permission again" : "never shared; share it before filing"}.
 
 Their app: ${app}
 
@@ -111,7 +105,7 @@ ${reportList}`;
         "Send the notice that reports are public and screenshots are described, not posted. Required before file_bug_report.",
       inputSchema: z.object({}),
       execute: async () => {
-        await turn.send(PRIVACY_NOTICE);
+        await turn.send(PRIVACY_NOTICE, { canned: true });
         await turn.ctx.runMutation(internal.supportReporters.updateReporter, {
           accountId: turn.accountId,
           noticeShared: true,

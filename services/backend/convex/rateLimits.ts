@@ -9,9 +9,9 @@ import { botName } from "./schema";
 // How fast one person can use each of Vera's assistants, counted
 // separately per assistant (`LIMITS` in assistant-limits.ts):
 //
-// - Vera: 300 replies an hour; Support: 100. Rolling: a token bucket per
-//   person and assistant that holds an hour's replies and refills
-//   continuously (one every 12 seconds for Vera, 36 for Support).
+// - 300 replies an hour from each, counted separately. Rolling: a token
+//   bucket per person and assistant that holds an hour's replies and
+//   refills one every 12 seconds.
 // - Each separate time they run the hour's allowance dry is a strike. Five
 //   strikes within a day (a fixed window from the first) pause that
 //   assistant for them until the day is up, so someone can't sit at the

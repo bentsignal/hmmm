@@ -143,8 +143,7 @@ async function followKnownBug(
 
 /**
  * Follows an issue for someone: from where it stands now, they hear in
- * their support conversation as it moves along. Also for the support
- * backlog, which follows issues the team filed (supportBacklog.ts).
+ * their support conversation as it moves along.
  */
 export async function followIssue(
   ctx: ActionCtx,

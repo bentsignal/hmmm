@@ -15,18 +15,25 @@ export interface Tally {
   searches: number;
 }
 
-/** A reply's usage, from its `generateText` result. */
+/** A reply's usage, from its `generateText` results (a retry makes two). */
 export function usageOf(
-  result: {
+  results: readonly {
     steps: readonly { providerMetadata: ProviderMetadata | undefined }[];
     totalUsage: {
       inputTokens: number | undefined;
       outputTokens: number | undefined;
     };
-  },
+  }[],
   tally: Tally,
 ) {
-  const gatewayCost = result.steps.reduce((total, step) => {
+  const steps = results.flatMap((result) => result.steps);
+  function total(tokens: "inputTokens" | "outputTokens") {
+    return results.reduce(
+      (sum, result) => sum + (result.totalUsage[tokens] ?? 0),
+      0,
+    );
+  }
+  const gatewayCost = steps.reduce((total, step) => {
     const cost: unknown = Reflect.get(
       Object(step.providerMetadata?.convexGateway),
       "cost",
@@ -35,11 +42,11 @@ export function usageOf(
   }, 0);
   return {
     cost: gatewayCost + tally.searches * SEARCH_COST,
-    inputTokens: result.totalUsage.inputTokens ?? 0,
+    inputTokens: total("inputTokens"),
     memoryLookups: tally.memoryLookups,
-    outputTokens: result.totalUsage.outputTokens ?? 0,
+    outputTokens: total("outputTokens"),
     searches: tally.searches,
-    steps: result.steps.length,
+    steps: steps.length,
   };
 }
 

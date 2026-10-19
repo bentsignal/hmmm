@@ -1,4 +1,4 @@
-import type { StepResult, ToolSet } from "ai";
+import type { ModelMessage, StepResult, ToolSet } from "ai";
 import { convexGateway } from "@convex-dev/ai-sdk-provider";
 import { generateText, isStepCount } from "ai";
 import { v } from "convex/values";
@@ -7,10 +7,11 @@ import type { ActionCtx } from "./_generated/server";
 import type { Turn } from "./agentTools";
 import type { BotAccount } from "./bots";
 import type { Tally } from "./usage";
+import { NO_TOOL_CALL, replyOutcome } from "../reply-outcome";
 import { internal } from "./_generated/api";
 import { internalAction, internalMutation } from "./_generated/server";
 import { teamNote, toAnswer, toModelMessages } from "./agentHistory";
-import { currentTools, keepTyping, MODEL } from "./agentTools";
+import { currentTools, keepTyping, messageSender, MODEL } from "./agentTools";
 import { waitWhileTyping } from "./assistantHook";
 import { botAccount, botAddress, sendAsBot } from "./bots";
 import { recallOlder } from "./memory";
@@ -118,7 +119,6 @@ export const claim = internalMutation({
     return {
       accountId: row.accountId,
       answeredThrough: row.answeredThrough ?? null,
-      backlog: row.backlog === true,
       bot: row.bot,
       note: row.note ?? null,
     };
@@ -152,7 +152,6 @@ export const finish = internalMutation({
     if (row.rerun !== true) {
       await ctx.db.patch(row._id, {
         ...answered,
-        backlog: undefined,
         runningSince: undefined,
       });
       return;
@@ -160,7 +159,6 @@ export const finish = internalMutation({
     const wakeAt = Date.now();
     await ctx.db.patch(row._id, {
       ...answered,
-      backlog: undefined,
       rerun: false,
       runningSince: undefined,
       wakeAt,
@@ -171,41 +169,6 @@ export const finish = internalMutation({
     });
   },
 });
-
-/**
- * Sends the model's messages in the order it sent them, with a beat
- * between them as if typing the next one.
- */
-function messageSender(
-  ctx: ActionCtx,
-  bot: BotAccount,
-  conversationId: string,
-  typing: ReturnType<typeof keepTyping>,
-) {
-  let sent = 0;
-  let queue = Promise.resolve();
-  return {
-    send: (text: string) => {
-      const body = text.trim().slice(0, 4000);
-      if (body.length === 0) return queue;
-      queue = queue.then(async () => {
-        // Spaced like someone typing the next one, so they don't land at once.
-        if (sent > 0) {
-          await typing.pause(Math.min(4000, 1200 + body.length * 20));
-        }
-        await ctx.runMutation(internal.bots.post, {
-          body,
-          bot: bot.username,
-          conversationId,
-        });
-        typing.sent();
-        sent += 1;
-      });
-      return queue;
-    },
-    sent: () => sent,
-  };
-}
 
 /**
  * Ends the reply after a step that only sent messages (or shared support's
@@ -226,20 +189,45 @@ function saidItsPiece({ steps }: { steps: StepResult<ToolSet>[] }) {
   );
 }
 
+type ReplyOptions = Parameters<typeof generateText<ToolSet>>[0] & {
+  messages: ModelMessage[];
+};
+
 /**
- * Sends what a model wrote as plain text at the end instead of calling
- * send_message, unless it chose to stay quiet.
+ * Runs the model for a reply. It speaks only through tools, and text it
+ * writes outside them is never sent, so a reply with neither a message nor
+ * stay_quiet gets its turn back once, told why (reply-outcome.ts).
  */
-async function sendLeftoverText(
-  result: { steps: StepResult<ToolSet>[]; text: string },
-  turn: Turn,
+async function generateReply(
+  options: ReplyOptions,
+  sender: { sent: () => number },
+  bot: BotAccount,
 ) {
-  const lastCalls = result.steps.at(-1)?.toolCalls ?? [];
-  const answered = lastCalls.some(
-    (call) =>
-      call.toolName === "send_message" || call.toolName === "stay_quiet",
-  );
-  if (!answered && result.text.trim().length > 0) await turn.send(result.text);
+  function generate(more: ModelMessage[] = []) {
+    const attempt = { ...options, messages: [...options.messages, ...more] };
+    return generateText(attempt).catch((error: unknown) => {
+      // A model call that stalled: try once more if nothing went out yet.
+      if (sender.sent() > 0) throw error;
+      console.warn(`${bot.username} retrying a failed reply`, error);
+      return generateText(attempt);
+    });
+  }
+  const first = await generate();
+  if (replyOutcome(first.steps, sender.sent()) !== "noToolCall") {
+    return [first];
+  }
+  console.warn(`${bot.username} answered without a tool call`, first.text);
+  const retry = await generate([
+    ...first.response.messages,
+    { content: NO_TOOL_CALL, role: "system" },
+  ]);
+  if (replyOutcome(retry.steps, sender.sent()) === "noToolCall") {
+    console.error(
+      `${bot.username} again answered without a tool call`,
+      retry.text,
+    );
+  }
+  return [first, retry];
 }
 
 /**
@@ -253,12 +241,10 @@ async function reply(
   {
     accountId,
     answeredThrough,
-    backlog,
     note,
   }: {
     accountId: string;
     answeredThrough: number | null;
-    backlog: boolean;
     note: string | null;
   },
 ) {
@@ -288,7 +274,6 @@ async function reply(
         else tally.memoryLookups += 1;
       },
       accountId,
-      backlog,
       bot,
       conversationId,
       ctx,
@@ -320,19 +305,16 @@ async function reply(
       model: convexGateway(MODEL, { zdr: true }),
       providerOptions: REASONING,
       stopWhen: [isStepCount(MAX_STEPS), saidItsPiece],
+      // Every step calls a tool: it speaks only through send_message (or
+      // stays quiet), and Grok otherwise often answers in plain text.
+      toolChoice: "required" as const,
       timeout: { stepMs: STEP_TIMEOUT },
       toolCallConcurrency: 1,
       tools,
     };
-    const result = await generateText(options).catch((error: unknown) => {
-      // A model call that stalled: try once more if nothing went out yet.
-      if (sender.sent() > 0) throw error;
-      console.warn(`${bot.username} retrying a failed reply`, error);
-      return generateText(options);
-    });
-    await sendLeftoverText(result, turn);
+    const results = await generateReply(options, sender, bot);
     await ctx.runMutation(internal.usage.record, {
-      ...usageOf(result, tally),
+      ...usageOf(results, tally),
       accountId,
       bot: bot.username,
       ms: Date.now() - started,
