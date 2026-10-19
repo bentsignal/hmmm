@@ -87,10 +87,13 @@ export function EditedLabel({
   );
 }
 
+/** What follows an edited message's text. */
+export const EDITED = " (edited)";
+
 /**
  * "(edited)" after an edited message's text in a stacked row, inside the
  * text so it follows its last line.
  */
 export function EditedSuffix() {
-  return <Text className="text-caption text-muted"> (edited)</Text>;
+  return <Text className="text-caption text-muted">{EDITED}</Text>;
 }

@@ -31,7 +31,7 @@ export function StackedParts({ message }: { message: Message }) {
       text={body}
       mentions={message.mentions}
       className="text-body text-foreground"
-      suffix={edited ? <EditedSuffix /> : undefined}
+      edited={edited}
     />
   );
   if (message.deleted === true) return <DeletedText />;
