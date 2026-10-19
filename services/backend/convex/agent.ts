@@ -12,6 +12,7 @@ import { internal } from "./_generated/api";
 import { internalAction, internalMutation } from "./_generated/server";
 import { inAnswerOrder, toModelMessages } from "./agentHistory";
 import { currentTools, keepTyping, MODEL } from "./agentTools";
+import { waitWhileTyping } from "./assistantHook";
 import { botAccount, botAddress, sendAsBot } from "./bots";
 import { recallOlder } from "./memory";
 import { takeReply } from "./rateLimits";
@@ -98,6 +99,7 @@ export const claim = internalMutation({
       await ctx.db.patch(row._id, { rerun: true });
       return null;
     }
+    if (await waitWhileTyping(ctx, row, now)) return null;
     const limit = await takeReply(ctx, row.accountId);
     if (!limit.ok) {
       if (limit.notice !== null) {
@@ -105,7 +107,11 @@ export const claim = internalMutation({
       }
       return null;
     }
-    await ctx.db.patch(row._id, { rerun: false, runningSince: now });
+    await ctx.db.patch(row._id, {
+      rerun: false,
+      runningSince: now,
+      waitingSince: undefined,
+    });
     return {
       accountId: row.accountId,
       answeredThrough: row.answeredThrough ?? null,
@@ -229,10 +235,30 @@ function toAnswer(
 function saidItsPiece({ steps }: { steps: StepResult<ToolSet>[] }) {
   const calls = steps.at(-1)?.toolCalls ?? [];
   return (
-    calls.some((call) => call.toolName === "share_privacy_notice") ||
+    calls.some(
+      (call) =>
+        call.toolName === "share_privacy_notice" ||
+        call.toolName === "stay_quiet",
+    ) ||
     (calls.length > 0 &&
       calls.every((call) => call.toolName === "send_message"))
   );
+}
+
+/**
+ * Sends what a model wrote as plain text at the end instead of calling
+ * send_message, unless it chose to stay quiet.
+ */
+async function sendLeftoverText(
+  result: { steps: StepResult<ToolSet>[]; text: string },
+  turn: Turn,
+) {
+  const lastCalls = result.steps.at(-1)?.toolCalls ?? [];
+  const answered = lastCalls.some(
+    (call) =>
+      call.toolName === "send_message" || call.toolName === "stay_quiet",
+  );
+  if (!answered && result.text.trim().length > 0) await turn.send(result.text);
 }
 
 /**
@@ -312,14 +338,7 @@ async function reply(
       console.warn(`${bot.username} retrying a failed reply`, error);
       return generateText(options);
     });
-    // A model that ended in plain text instead of calling send_message,
-    // such as an answer after a search's heads-up.
-    const lastSent = result.steps
-      .at(-1)
-      ?.toolCalls.some((call) => call.toolName === "send_message");
-    if (lastSent !== true && result.text.trim().length > 0) {
-      await turn.send(result.text);
-    }
+    await sendLeftoverText(result, turn);
     await ctx.runMutation(internal.usage.record, {
       ...usageOf(result, tally),
       accountId,

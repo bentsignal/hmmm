@@ -93,12 +93,14 @@ Two verified accounts answer direct messages with a model:
   it to (`botNotes`), searches the web through Parallel (`webSearch.ts`), and
   remembers the whole conversation (`memory.ts`).
 
-Assistants text like people: usually one short message, two at most after
-a search's heads-up (Vera sends a few casual words before searching, from
-`web_search`'s `heads_up`), at most 3 per reply, spaced 1.2 to 4 seconds
-apart by length. The last thing the model reads before answering lists its
-current tools, so what it said about itself earlier in a chat (before a tool
-existed) can't override them.
+Assistants text like people: usually one short message, two when it helps,
+at most 3 per reply, spaced 1.2 to 4 seconds apart by length. They don't
+have to reply every time: when a conversation seems over, or the person
+clearly has more to say, the model can send nothing (`stay_quiet`). A reply
+waits while the person is typing (rechecking every few seconds, for up to
+30), so a follow-up gets answered with the first message. The last thing
+the model reads before answering lists its current tools, so what it said
+about itself earlier in a chat (before a tool existed) can't override them.
 
 Vera's web search uses Parallel's Search API in fast mode ($1 per 1,000
 searches), which returns short excerpts chosen for the question, capped so

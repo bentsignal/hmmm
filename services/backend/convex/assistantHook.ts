@@ -1,8 +1,16 @@
 import type { PdsRouterMutation } from "@decentralized-convex/server";
 
+import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { ASSISTANTS, botAddress, field, VERA } from "./bots";
+import {
+  ASSISTANTS,
+  botAccount,
+  botAddress,
+  field,
+  queryAsBot,
+  VERA,
+} from "./bots";
 
 // What starts an assistant's work: the PDS router's `afterMutation`
 // (pds.ts) sees every write someone on this PDS makes, and reacts to the
@@ -60,7 +68,7 @@ async function startReply(
       wakeAt,
     });
   } else {
-    await ctx.db.patch(existing._id, { wakeAt });
+    await ctx.db.patch(existing._id, { waitingSince: undefined, wakeAt });
   }
   await ctx.scheduler.runAfter(REPLY_DELAY, internal.agent.run, {
     conversationId,
@@ -81,4 +89,44 @@ async function forgetChangedMessage(
   const messageId = field(field(operation, "args"), "messageId");
   if (typeof messageId !== "string") return;
   await ctx.scheduler.runAfter(0, internal.memoryBuild.rebuild, { messageId });
+}
+
+/** How often a reply checks whether they've stopped typing, and for how long. */
+const TYPING_RECHECK = 2500;
+const MAX_TYPING_WAIT = 30_000;
+
+/**
+ * Holds a reply while the person is typing, like someone letting the other
+ * finish: pushes its wake-up a few seconds later and returns true. Gives up
+ * waiting after 30 seconds, in case typing never clears.
+ */
+export async function waitWhileTyping(
+  ctx: MutationCtx,
+  row: Doc<"botConversations">,
+  now: number,
+) {
+  if (
+    row.waitingSince !== undefined &&
+    now - row.waitingSince >= MAX_TYPING_WAIT
+  ) {
+    return false;
+  }
+  const response = await queryAsBot(ctx, botAccount(row.bot), {
+    args: { conversationId: row.conversationId },
+    type: "typing",
+  });
+  const typing =
+    response.type === "typing" &&
+    response.value.some((typist) => typist.accountId === row.accountId);
+  if (!typing) return false;
+  const wakeAt = now + TYPING_RECHECK;
+  await ctx.db.patch(row._id, {
+    wakeAt,
+    waitingSince: row.waitingSince ?? now,
+  });
+  await ctx.scheduler.runAt(wakeAt, internal.agent.run, {
+    conversationId: row.conversationId,
+    wakeAt,
+  });
+  return true;
 }

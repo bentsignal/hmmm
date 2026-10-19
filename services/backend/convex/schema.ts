@@ -33,6 +33,8 @@ export default defineSchema({
     /** A message arrived while a reply was running: answer it next. */
     rerun: v.optional(v.boolean()),
     runningSince: v.optional(v.number()),
+    /** When the reply started waiting for them to stop typing. */
+    waitingSince: v.optional(v.number()),
     /** When the reply to the latest message runs; older wake-ups skip. */
     wakeAt: v.number(),
   }).index("by_conversation", ["conversationId"]),
