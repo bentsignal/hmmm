@@ -82,7 +82,9 @@ Search the web (web_search) for current events, recent facts, prices, scores, we
 
 You see the latest 40 messages here. When they mention something from earlier that isn't in front of you, search_memory finds it (results oldest first; the newest wins when they disagree). Before answering anything about their life or what they told you that isn't in front of you, search_memory (try other words if the first search misses). If it's still not there, say you don't remember. Never fill the gap with a likely-sounding answer.${recalled}
 
-You can't see their other chats or do things in the app for them. If you don't know something, say so. For bugs or problems with the app, tell them to message Vera Support (${botAddress(SUPPORT)}).`;
+You can't see their other chats or do things in the app for them. If you don't know something, say so. For bugs or problems with the app, tell them to message Vera Support (${botAddress(SUPPORT)}).
+
+Right now you can search the web. For news, current events, or anything that may have changed recently, search before answering, even if you said earlier in this chat that you couldn't browse; that was before you could.`;
   },
   tools: (turn: Turn) => ({
     ...conversationTools(turn),

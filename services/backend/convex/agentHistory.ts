@@ -1,7 +1,7 @@
 import type { Message } from "@decentralized-convex/messages";
 import type { ModelMessage, UserContent } from "ai";
 
-import { LIMIT_NOTICE_START } from "./rateLimits";
+import { LIMIT_NOTICE_START } from "../assistant-limits";
 
 // How an assistant's conversation reaches the model (agent.ts): in the
 // order it got the messages, with the newest images attached.
@@ -69,7 +69,7 @@ export function toModelMessages(history: readonly Message[], self: string) {
     if (message.authorId === self && isLimitNotice(message.body)) {
       flush();
       messages.push({
-        content: `[Sent automatically, not by you: "${message.body}" They had hit the hourly limit; it has passed now.]`,
+        content: `[Sent automatically, not by you: "${message.body}" That limit has passed now.]`,
         role: "user",
       });
       continue;

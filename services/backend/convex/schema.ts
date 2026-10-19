@@ -30,8 +30,6 @@ export default defineSchema({
     backlog: v.optional(v.boolean()),
     bot: botName,
     conversationId: v.string(),
-    /** They're over the hourly limit and have been told (rateLimits.ts). */
-    limitNoticeSent: v.optional(v.boolean()),
     /** A message arrived while a reply was running: answer it next. */
     rerun: v.optional(v.boolean()),
     runningSince: v.optional(v.number()),
@@ -99,6 +97,12 @@ export default defineSchema({
   /** Each person's hourly allowance of assistant replies (rateLimits.ts). */
   rateLimits: defineTable({
     accountId: v.string(),
+    /** At the hourly limit since their last reply (one strike per stretch). */
+    limited: v.optional(v.boolean()),
+    lockNoticeSent: v.optional(v.boolean()),
+    /** Times today they ran the hour dry, and when today's count began. */
+    strikes: v.optional(v.number()),
+    strikesSince: v.optional(v.number()),
     tokens: v.number(),
     updatedAt: v.number(),
   }).index("by_account", ["accountId"]),

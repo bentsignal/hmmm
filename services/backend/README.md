@@ -139,13 +139,16 @@ How it works (`convex/bots.ts`, `convex/agent.ts`):
   routing: Grok 4.7, which sees the newest few images in the conversation.
 - The app sends the device's time zone after a message to an assistant
   (`timeZones:report`), so they know the person's date and time.
-- Each person gets at most 100 replies an hour across both assistants, on a
-  rolling basis (`rateLimits.ts`, a token bucket that refills one every 36
-  seconds). Over the limit, the assistant says when to try again, once,
-  without calling the model. `rateLimits:status` and `rateLimits:reset` check
-  or clear someone's allowance. (Convex's rate limiter Component doesn't fit:
-  it installs a Component of its own, which breaks importing
-  `convex.config.ts` outside Convex, as `http.ts` and `pds.ts` do.)
+- Each person gets at most 300 replies an hour across both assistants, on a
+  rolling basis (a token bucket that refills one every 12 seconds). Each
+  separate time they run it dry is a strike; 5 strikes within a day pause
+  the assistants for them until that day is up. Over a limit, the assistant
+  says so once, without calling the model. The rules are plain functions in
+  `assistant-limits.ts` (tested); `convex/rateLimits.ts` stores them, with
+  `rateLimits:status` and `rateLimits:reset` for operators. (Convex's rate
+  limiter Component doesn't fit: it installs a Component of its own, which
+  breaks importing `convex.config.ts` outside Convex, as `http.ts` and
+  `pds.ts` do.)
 - They only hear from people on this PDS: a message from another PDS is
   stored there and never reaches this one.
 - The app reports its version and device to `supportReporters:reportClient`

@@ -14,7 +14,7 @@ import { inAnswerOrder, toModelMessages } from "./agentHistory";
 import { keepTyping, MODEL } from "./agentTools";
 import { botAccount, botAddress, sendAsBot } from "./bots";
 import { recallOlder } from "./memory";
-import { limitNotice, takeReply } from "./rateLimits";
+import { takeReply } from "./rateLimits";
 import { supportAssistant } from "./supportAgent";
 import { usageOf } from "./usage";
 import { veraAssistant } from "./vera";
@@ -100,23 +100,12 @@ export const claim = internalMutation({
     }
     const limit = await takeReply(ctx, row.accountId);
     if (!limit.ok) {
-      // Once per stretch of being limited, not for every message.
-      if (row.limitNoticeSent !== true) {
-        await sendAsBot(
-          ctx,
-          botAccount(row.bot),
-          conversationId,
-          limitNotice(limit.retryAfter),
-        );
+      if (limit.notice !== null) {
+        await sendAsBot(ctx, botAccount(row.bot), conversationId, limit.notice);
       }
-      await ctx.db.patch(row._id, { limitNoticeSent: true });
       return null;
     }
-    await ctx.db.patch(row._id, {
-      limitNoticeSent: undefined,
-      rerun: false,
-      runningSince: now,
-    });
+    await ctx.db.patch(row._id, { rerun: false, runningSince: now });
     return {
       accountId: row.accountId,
       answeredThrough: row.answeredThrough ?? null,

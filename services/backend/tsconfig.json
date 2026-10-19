@@ -1,6 +1,8 @@
 {
   "extends": "./convex/tsconfig.json",
   "include": [
+    "./assistant-limits.ts",
+    "./assistant-limits.test.ts",
     "./bug-reports.ts",
     "./bug-reports.test.ts",
     "./pds.ts",

@@ -1,18 +1,22 @@
 import { v } from "convex/values";
 
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { current, decide, STRIKES_PER_DAY } from "../assistant-limits";
 import { internalMutation, internalQuery } from "./_generated/server";
 
-// How fast one person can use Vera's assistants: 100 replies an hour across
-// Support and Vera, on a rolling basis. A token bucket per person holds up
-// to 100 replies and refills one every 36 seconds. (Convex's rate limiter
-// Component can't be installed here: it installs a Component of its own,
-// which breaks importing convex.config.ts outside Convex, as http.ts and
-// pds.ts do.)
-
-export const REPLIES_PER_HOUR = 100;
-const HOUR = 60 * 60 * 1000;
-const REFILL = HOUR / REPLIES_PER_HOUR;
+// How fast one person can use Vera's assistants (Support and Vera together):
+//
+// - 300 replies an hour, on a rolling basis: a token bucket per person that
+//   holds up to 300 replies and refills one every 12 seconds.
+// - Each separate time they run the hour's allowance dry is a strike. Five
+//   strikes within a day (a fixed window from the first) pause the
+//   assistants for them until that day is up, so someone can't sit at the
+//   limit sending a message every refill.
+//
+// Over a limit, the assistant says so once, without the model. (Convex's
+// rate limiter Component can't be installed here: it installs a Component of
+// its own, which breaks importing convex.config.ts outside Convex, as
+// http.ts and pds.ts do.)
 
 function bucketOf(ctx: Pick<QueryCtx, "db">, accountId: string) {
   return ctx.db
@@ -21,40 +25,20 @@ function bucketOf(ctx: Pick<QueryCtx, "db">, accountId: string) {
     .unique();
 }
 
-/** Replies left now, from what was left at `updatedAt`. */
-export function refilled(tokens: number, updatedAt: number, now: number) {
-  return Math.min(REPLIES_PER_HOUR, tokens + (now - updatedAt) / REFILL);
-}
-
 /**
- * Takes one reply from the person's bucket: `{ ok: true }`, or how many
- * milliseconds until they have one again.
+ * Takes one reply from the person's allowance: `{ ok: true }`, or a refusal
+ * with the notice to send (null when they've already been told).
  */
 export async function takeReply(ctx: MutationCtx, accountId: string) {
   const now = Date.now();
-  const bucket = await bucketOf(ctx, accountId);
-  const tokens =
-    bucket === null
-      ? REPLIES_PER_HOUR
-      : refilled(bucket.tokens, bucket.updatedAt, now);
-  if (tokens < 1) {
-    return { ok: false as const, retryAfter: Math.ceil((1 - tokens) * REFILL) };
-  }
-  const next = { accountId, tokens: tokens - 1, updatedAt: now };
-  if (bucket === null) await ctx.db.insert("rateLimits", next);
-  else await ctx.db.replace(bucket._id, next);
-  return { ok: true as const };
-}
-
-/** How the limit notice starts, so the model can tell it didn't write it. */
-export const LIMIT_NOTICE_START = "You've hit the limit of";
-
-/** What an assistant says, without the model, when someone hits the limit. */
-export function limitNotice(retryAfter: number) {
-  const minutes = Math.ceil(retryAfter / 60_000);
-  const when =
-    minutes <= 1 ? "in a minute" : `in about ${String(minutes)} minutes`;
-  return `${LIMIT_NOTICE_START} ${String(REPLIES_PER_HOUR)} messages an hour with Vera's assistants. Try again ${when}.`;
+  const stored = await bucketOf(ctx, accountId);
+  const bucket = current(stored, accountId, now);
+  const result = decide(bucket, now);
+  if (stored === null) await ctx.db.insert("rateLimits", result.bucket);
+  else await ctx.db.replace(stored._id, result.bucket);
+  return result.ok
+    ? { ok: true as const }
+    : { notice: result.notice, ok: false as const };
 }
 
 /**
@@ -64,19 +48,23 @@ export function limitNotice(retryAfter: number) {
 export const status = internalQuery({
   args: { accountId: v.string() },
   handler: async (ctx, { accountId }) => {
-    const bucket = await bucketOf(ctx, accountId);
-    const left =
-      bucket === null
-        ? REPLIES_PER_HOUR
-        : refilled(bucket.tokens, bucket.updatedAt, Date.now());
-    return { repliesLeft: Math.floor(left) };
+    const bucket = current(
+      await bucketOf(ctx, accountId),
+      accountId,
+      Date.now(),
+    );
+    return {
+      paused: (bucket.strikes ?? 0) >= STRIKES_PER_DAY,
+      repliesLeft: Math.floor(bucket.tokens),
+      strikesToday: bucket.strikes ?? 0,
+    };
   },
 });
 
 /**
  * Operator command:
  * `npx convex run rateLimits:reset '{"accountId":"someone@vera.chat"}'`.
- * Gives someone their full hour back.
+ * Gives someone their full hour back and clears today's strikes.
  */
 export const reset = internalMutation({
   args: { accountId: v.string() },
