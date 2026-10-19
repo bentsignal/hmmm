@@ -57,8 +57,6 @@ async function startReply(
       accountId: author,
       bot: bot.username,
       conversationId,
-      dayStart: Date.now(),
-      runsToday: 0,
       wakeAt,
     });
   } else {

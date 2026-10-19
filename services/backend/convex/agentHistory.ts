@@ -1,6 +1,8 @@
 import type { Message } from "@decentralized-convex/messages";
 import type { ModelMessage, UserContent } from "ai";
 
+import { LIMIT_NOTICE_START } from "./rateLimits";
+
 // How an assistant's conversation reaches the model (agent.ts): in the
 // order it got the messages, with the newest images attached.
 
@@ -64,6 +66,14 @@ export function toModelMessages(history: readonly Message[], self: string) {
     .filter((attachment) => attachment.kind === "image").length;
   let imageCount = 0;
   for (const message of history) {
+    if (message.authorId === self && isLimitNotice(message.body)) {
+      flush();
+      messages.push({
+        content: `[Sent automatically, not by you: "${message.body}" They had hit the hourly limit; it has passed now.]`,
+        role: "user",
+      });
+      continue;
+    }
     if (message.authorId === self) {
       pendingCalls.push({ body: message.body, id: `m-${message.messageId}` });
       continue;
@@ -97,6 +107,10 @@ export function toModelMessages(history: readonly Message[], self: string) {
   }
   flush();
   return messages;
+}
+
+function isLimitNotice(body: string) {
+  return body.startsWith(LIMIT_NOTICE_START);
 }
 
 /** When an older message was sent, so the model can weigh dates. */

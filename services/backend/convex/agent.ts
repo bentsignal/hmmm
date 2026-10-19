@@ -14,6 +14,7 @@ import { inAnswerOrder, toModelMessages } from "./agentHistory";
 import { keepTyping, MODEL } from "./agentTools";
 import { botAccount, botAddress, sendAsBot } from "./bots";
 import { recallOlder } from "./memory";
+import { limitNotice, takeReply } from "./rateLimits";
 import { supportAssistant } from "./supportAgent";
 import { usageOf } from "./usage";
 import { veraAssistant } from "./vera";
@@ -38,17 +39,12 @@ const ASSISTANTS: Record<BotAccount["username"], Assistant> = {
 const HISTORY = 40;
 /** Model calls in one reply (each may call several tools). */
 const MAX_STEPS = 8;
-/** Replies one person gets from one assistant a day. */
-const DAILY_LIMIT = 150;
-const DAY = 24 * 60 * 60 * 1000;
 /** A reply that has run this long is assumed to have died. */
 const STALE_RUN = 10 * 60 * 1000;
 
 /** How hard Grok thinks before each step: lower is faster and cheaper. */
 const REASONING = { convexGateway: { reasoningEffort: "low" } };
 
-const LIMIT_NOTICE =
-  "I've hit my limit for our chat today. Try me again tomorrow.";
 const FAILURE_NOTICE =
   "Sorry, something went wrong on my end. Try again in a moment.";
 
@@ -83,7 +79,7 @@ export const run = internalAction({
 /**
  * Starts the reply this wake-up is for, or returns null: a newer message
  * moved it later, one is already running (it answers next), or the person
- * has used up today's replies.
+ * is over the hourly limit (rateLimits.ts).
  */
 export const claim = internalMutation({
   args: { conversationId: v.string(), wakeAt: v.number() },
@@ -100,23 +96,24 @@ export const claim = internalMutation({
       await ctx.db.patch(row._id, { rerun: true });
       return null;
     }
-    const newDay = now - row.dayStart >= DAY;
-    const runsToday = newDay ? 0 : row.runsToday;
-    const day = newDay
-      ? { dayStart: now, limitNoticeSent: false, runsToday }
-      : {};
-    if (runsToday >= DAILY_LIMIT) {
+    const limit = await takeReply(ctx, row.accountId);
+    if (!limit.ok) {
+      // Once per stretch of being limited, not for every message.
       if (row.limitNoticeSent !== true) {
-        await sendAsBot(ctx, botAccount(row.bot), conversationId, LIMIT_NOTICE);
+        await sendAsBot(
+          ctx,
+          botAccount(row.bot),
+          conversationId,
+          limitNotice(limit.retryAfter),
+        );
       }
-      await ctx.db.patch(row._id, { ...day, limitNoticeSent: true });
+      await ctx.db.patch(row._id, { limitNoticeSent: true });
       return null;
     }
     await ctx.db.patch(row._id, {
-      ...day,
+      limitNoticeSent: undefined,
       rerun: false,
       runningSince: now,
-      runsToday: runsToday + 1,
     });
     return {
       accountId: row.accountId,

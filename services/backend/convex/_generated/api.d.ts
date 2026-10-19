@@ -36,6 +36,7 @@ import type * as lib from "../lib.js";
 import type * as memory from "../memory.js";
 import type * as memoryBuild from "../memoryBuild.js";
 import type * as pds from "../pds.js";
+import type * as rateLimits from "../rateLimits.js";
 import type * as release from "../release.js";
 import type * as support from "../support.js";
 import type * as supportAgent from "../supportAgent.js";
@@ -84,6 +85,7 @@ declare const fullApi: ApiFromModules<{
   memory: typeof memory;
   memoryBuild: typeof memoryBuild;
   pds: typeof pds;
+  rateLimits: typeof rateLimits;
   release: typeof release;
   support: typeof support;
   supportAgent: typeof supportAgent;

@@ -96,7 +96,7 @@ Two verified accounts answer direct messages with a model:
 Vera's web search uses Parallel's Search API in fast mode ($1 per 1,000
 searches), which returns short excerpts chosen for the question, capped so
 little text reaches the model. One search per reply (a second only when the
-first finds almost nothing) and 40 per person a day. Results are kept a day
+first finds almost nothing). Results are kept a day
 for follow-up questions and cleared by a daily cron. In testing, an answer
 that searched cost about 1.3¢ and one that didn't about 0.4¢.
 
@@ -136,7 +136,13 @@ How it works (`convex/bots.ts`, `convex/agent.ts`):
   routing: Grok 4.7, which sees the newest few images in the conversation.
 - The app sends the device's time zone after a message to an assistant
   (`timeZones:report`), so they know the person's date and time.
-- Each person gets at most 150 replies a day from each assistant.
+- Each person gets at most 100 replies an hour across both assistants, on a
+  rolling basis (`rateLimits.ts`, a token bucket that refills one every 36
+  seconds). Over the limit, the assistant says when to try again, once,
+  without calling the model. `rateLimits:status` and `rateLimits:reset` check
+  or clear someone's allowance. (Convex's rate limiter Component doesn't fit:
+  it installs a Component of its own, which breaks importing
+  `convex.config.ts` outside Convex, as `http.ts` and `pds.ts` do.)
 - They only hear from people on this PDS: a message from another PDS is
   stored there and never reaches this one.
 - The app reports its version and device to `supportReporters:reportClient`

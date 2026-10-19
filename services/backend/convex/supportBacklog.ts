@@ -83,8 +83,6 @@ export const answerAll = internalMutation({
         backlog: true,
         bot: SUPPORT.username,
         conversationId: conversation.conversationId,
-        dayStart: now,
-        runsToday: 0,
         wakeAt,
       });
       await ctx.scheduler.runAt(wakeAt, internal.agent.run, {

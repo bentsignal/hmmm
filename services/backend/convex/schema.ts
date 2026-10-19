@@ -19,8 +19,8 @@ export const botName = v.union(v.literal("support"), v.literal("vera"));
 
 export default defineSchema({
   /**
-   * One per person's DM with an assistant: when its next reply runs, whether
-   * one is running, and how many it has sent today.
+   * One per person's DM with an assistant: when its next reply runs and
+   * whether one is running.
    */
   botConversations: defineTable({
     accountId: v.string(),
@@ -30,13 +30,11 @@ export default defineSchema({
     backlog: v.optional(v.boolean()),
     bot: botName,
     conversationId: v.string(),
-    /** Replies started since `dayStart`, for the daily limit. */
-    dayStart: v.number(),
+    /** They're over the hourly limit and have been told (rateLimits.ts). */
     limitNoticeSent: v.optional(v.boolean()),
     /** A message arrived while a reply was running: answer it next. */
     rerun: v.optional(v.boolean()),
     runningSince: v.optional(v.number()),
-    runsToday: v.number(),
     /** When the reply to the latest message runs; older wake-ups skip. */
     wakeAt: v.number(),
   }).index("by_conversation", ["conversationId"]),
@@ -97,9 +95,13 @@ export default defineSchema({
         url: v.string(),
       }),
     ),
-  })
-    .index("by_conversation", ["conversationId"])
-    .index("by_account", ["accountId"]),
+  }).index("by_conversation", ["conversationId"]),
+  /** Each person's hourly allowance of assistant replies (rateLimits.ts). */
+  rateLimits: defineTable({
+    accountId: v.string(),
+    tokens: v.number(),
+    updatedAt: v.number(),
+  }).index("by_account", ["accountId"]),
   /** What each assistant reply cost, for keeping an eye on the bill (usage.ts). */
   assistantUsage: defineTable({
     accountId: v.string(),

@@ -6,58 +6,27 @@ settings:
 
 catalogs:
   default:
-    '@eslint/js':
-      specifier: ^9.38.0
-      version: 9.39.4
-    '@tailwindcss/postcss':
-      specifier: ^4.1.16
-      version: 4.2.2
-    '@tanstack/react-query':
-      specifier: ^5.101.4
-      version: 5.101.4
     '@types/node':
       specifier: ^24
       version: 24.12.2
-    '@typescript/native-preview':
-      specifier: 7.0.0-dev.20260512.1
-      version: 7.0.0-dev.20260512.1
     ai:
       specifier: ^7.0.143
       version: 7.0.143
-    class-variance-authority:
-      specifier: ^0.7.1
-      version: 0.7.1
     convex:
       specifier: 1.46.0
       version: 1.46.0
     eslint:
       specifier: ^9.38.0
       version: 9.39.4
-    jose:
-      specifier: ^6.2.7
-      version: 6.2.7
-    lucide-react:
-      specifier: ^0.562.0
-      version: 0.562.0
     prettier:
       specifier: ^3.6.2
       version: 3.8.2
-    tailwind-merge:
-      specifier: ^3.3.1
-      version: 3.5.0
-    tailwindcss:
-      specifier: ^4.1.16
-      version: 4.3.3
     typescript:
       specifier: ^5.9.3
       version: 5.9.3
     zod:
       specifier: ^3.25.76
       version: 3.25.76
-  react19:
-    '@types/react':
-      specifier: ~19.2.0
-      version: 19.2.14
 
 overrides:
   react: 19.2.3
@@ -8621,11 +8590,6 @@ packages:
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
 
-  yaml@2.8.3:
-    resolution: {integrity: sha512-AvbaCLOO2Otw/lW5bmh9d/WEdcDFdQp2Z2ZUH3pX9U2ihyUY0nvLv7J6TrWowklRGPYbB/IuIMfYgxaCPg5Bpg==}
-    engines: {node: '>= 14.6'}
-    hasBin: true
-
   yaml@2.9.1:
     resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
     engines: {node: '>= 14.6'}
@@ -11424,9 +11388,7 @@ snapshots:
       metro-runtime: 0.84.6
     transitivePeerDependencies:
       - '@babel/core'
-      - bufferutil
       - supports-color
-      - utf-8-validate
 
   '@react-native/normalize-colors@0.86.3': {}
 
@@ -14434,7 +14396,7 @@ snapshots:
 
   is-core-module@2.16.1:
     dependencies:
-      hasown: 2.0.2
+      hasown: 2.0.4
 
   is-data-view@1.0.2:
     dependencies:
@@ -15440,7 +15402,7 @@ snapshots:
       metro-cache: 0.84.5
       metro-core: 0.84.5
       metro-runtime: 0.84.5
-      yaml: 2.8.3
+      yaml: 2.9.1
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -15455,7 +15417,7 @@ snapshots:
       metro-cache: 0.84.6
       metro-core: 0.84.6
       metro-runtime: 0.84.6
-      yaml: 2.8.3
+      yaml: 2.9.1
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -17691,10 +17653,7 @@ snapshots:
 
   yallist@3.1.1: {}
 
-  yaml@2.8.3: {}
-
-  yaml@2.9.1:
-    optional: true
+  yaml@2.9.1: {}
 
   yargs-parser@21.1.1: {}
 

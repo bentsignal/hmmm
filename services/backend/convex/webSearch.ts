@@ -21,10 +21,10 @@ const MAX_CHARS_SHOWN = 6_000;
 /** How much a follow-up reads from all of a search's results at once. */
 const MAX_CHARS_FOLLOW_UP = 8_000;
 /**
- * One search per reply (a second only when the first found almost nothing)
- * and a daily cap per person, so a search-hungry model can't run up a bill.
+ * One search per reply (a second only when the first found almost nothing),
+ * so a search-hungry model can't run up a bill. The hourly reply limit
+ * (rateLimits.ts) bounds the rest.
  */
-const SEARCHES_PER_DAY = 40;
 const THIN_RESULTS = 2;
 /** How long a search's results are kept for follow-ups. */
 const KEEP_FOR = 24 * 60 * 60 * 1000;
@@ -114,13 +114,6 @@ export function webTools(turn: Turn) {
         if (searches >= 2 || (searches === 1 && lastFound >= THIN_RESULTS)) {
           return "No more searches in this reply. Answer from what you found, or say what you couldn't find.";
         }
-        const today: number = await turn.ctx.runQuery(
-          internal.webSearch.searchesToday,
-          { accountId: turn.accountId },
-        );
-        if (today >= SEARCHES_PER_DAY) {
-          return "Searches are used up for today. Answer from what you know and say it may be out of date.";
-        }
         searches += 1;
         const results = await parallelSearch(apiKey, question, queries);
         lastFound = results.length;
@@ -189,19 +182,6 @@ export const recent = internalQuery({
       question: row.question,
       sources: row.results.slice(0, 4).map((result) => result.title),
     }));
-  },
-});
-
-export const searchesToday = internalQuery({
-  args: { accountId: v.string() },
-  handler: async (ctx, { accountId }) => {
-    const rows = await ctx.db
-      .query("webSearches")
-      .withIndex("by_account", (q) =>
-        q.eq("accountId", accountId).gt("_creationTime", Date.now() - KEEP_FOR),
-      )
-      .take(SEARCHES_PER_DAY);
-    return rows.length;
   },
 });
 
