@@ -12,9 +12,10 @@ export function mergedReactions(
   reactions: readonly ReactionSummary[] | undefined,
   parts: readonly ReactionPart[],
 ) {
+  const wanted = new Set(parts);
   const byEmoji = new Map<string, ReactionSummary[]>();
   for (const reaction of reactions ?? []) {
-    if (parts.includes(reaction.part)) {
+    if (wanted.has(reaction.part)) {
       byEmoji.set(reaction.emoji, [
         ...(byEmoji.get(reaction.emoji) ?? []),
         reaction,

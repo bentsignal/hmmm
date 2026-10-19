@@ -21,6 +21,7 @@ import { GlassSurface } from "~/components/glass-surface";
 import { QUICK_REACTIONS, reactionsOn } from "~/features/messaging/reactions";
 import { selectionTick } from "~/lib/native-extras";
 import { PlayBadge, usePoster } from "./attachment-view";
+import { CARD_GAP } from "./gallery-layout";
 import { EmojiButton } from "./glass-menu-parts";
 import { Backdrop } from "./glass-message-menu";
 import { useMessageActions } from "./message-actions";
@@ -30,22 +31,11 @@ import { ChipRow } from "./reaction-chips";
 
 const OPEN_SPRING = { damping: 20, mass: 0.9, stiffness: 220 };
 const CLOSE_MS = 220;
-/** Space between the cards, and how much of each neighbor shows. */
-export const CARD_GAP = 14;
-export const PEEK = 26;
 /** Neighbors sit back a little, dimmer, until swiped to the middle. */
 const NEIGHBOR_SCALE = 0.9;
 const NEIGHBOR_OPACITY = 0.55;
 /** The reactions' line under the cards, kept even with none. */
 export const CHIP_LANE = 34;
-
-export function cardHeight(item: MediaItem, width: number, maxHeight: number) {
-  const { height, width: pixels } = item.attachment;
-  if (height === undefined || pixels === undefined || pixels === 0) {
-    return Math.min(width, maxHeight);
-  }
-  return Math.min(maxHeight, (width * height) / pixels);
-}
 
 export function GalleryCard({
   item,

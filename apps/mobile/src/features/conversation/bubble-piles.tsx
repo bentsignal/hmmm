@@ -1,13 +1,8 @@
 import { View } from "react-native";
 
 import type { MediaItem } from "./media-groups";
-import {
-  behind,
-  CARD_WIDTH,
-  cardHeight,
-  CountBadge,
-  PileCard,
-} from "./bubble-cards";
+import { CountBadge, PileCard } from "./bubble-cards";
+import { behind, CARD_WIDTH, cardHeight } from "./bubble-layout";
 
 // Bubbles' piles of photos that sit still (see `BubbleMediaStack`).
 

@@ -14,8 +14,10 @@ import {
   cardOffsets,
   cardWidth,
   CHIP_LINE,
-  ChipLane,
   chipsHeight,
+} from "./carousel-layout";
+import {
+  ChipLane,
   CurrentChips,
   ReactionBadge,
   Strip,

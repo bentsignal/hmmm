@@ -13,7 +13,8 @@ import { scheduleOnRN } from "react-native-worklets";
 import type { MediaItem } from "./media-groups";
 import type { Message } from "./types";
 import { selectionTick } from "~/lib/native-extras";
-import { CARD_WIDTH, cardHeight, PileCard, StackPress } from "./bubble-cards";
+import { PileCard, StackPress } from "./bubble-cards";
+import { CARD_WIDTH, cardHeight } from "./bubble-layout";
 import { useRevealGesture } from "./reveal";
 
 const SWIPE_AWAY = 70;

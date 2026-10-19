@@ -5,14 +5,12 @@ import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { Message } from "./types";
+import { CARD_GAP, cardHeight, PEEK } from "./gallery-layout";
 import {
-  CARD_GAP,
-  cardHeight,
   GalleryBackdrop,
   GalleryCard,
   GalleryChips,
   GalleryReactionBar,
-  PEEK,
   useGalleryOpening,
   useGalleryPager,
   useOpenFullScreen,
@@ -127,7 +125,7 @@ function MediaGallery({
             {`${slot + 1} of ${items.length}`}
           </Text>
         </Animated.View>
-        <Animated.ScrollView
+        <Animated.FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
           decelerationRate="fast"
@@ -143,10 +141,10 @@ function MediaGallery({
           style={{ flexGrow: 0, height: laneHeight }}
           onScroll={onScroll}
           scrollEventThrottle={16}
-        >
-          {items.map((item, index) => (
+          data={items}
+          keyExtractor={(item) => String(item.index)}
+          renderItem={({ item, index }) => (
             <GalleryCard
-              key={item.index}
               item={item}
               slot={index}
               width={cardWidth}
@@ -155,8 +153,8 @@ function MediaGallery({
               progress={progress}
               onPress={() => close(() => openFullScreen(item))}
             />
-          ))}
-        </Animated.ScrollView>
+          )}
+        />
         <GalleryChips
           message={message}
           item={current}

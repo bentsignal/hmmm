@@ -1,6 +1,5 @@
 import type { AttachmentSlot, MediaItem } from "./media-groups";
 import type { Message } from "./types";
-import type { ReactionPart } from "~/features/messaging/reactions";
 import type { BubbleMedia } from "~/features/preferences/store";
 import { attachmentPart } from "~/features/messaging/reactions";
 import { usePreference } from "~/features/preferences/store";
@@ -11,7 +10,7 @@ import { Deck } from "./bubble-deck";
 import { Grid } from "./bubble-grid";
 import { Depth, Fan, Peek } from "./bubble-piles";
 import { useOpenGallery } from "./media-gallery";
-import { attachmentSlots, mediaItems } from "./media-groups";
+import { attachmentSlots } from "./media-groups";
 import { Reactable } from "./reaction-parts";
 
 /**
@@ -51,19 +50,6 @@ export function BubbleMediaStack({
       {pile}
     </StackPress>
   );
-}
-
-/**
- * The parts drawn together with a bubble's top one, when that's the first
- * of a stack of photos, whose tapbacks rise above it as one.
- */
-export function useStackedTopParts(message: Message, top: ReactionPart) {
-  const style = usePreference("bubbleMedia");
-  const [first, ...rest] = mediaItems(message);
-  if (style === "column" || rest.length === 0 || first?.part !== top) {
-    return undefined;
-  }
-  return rest.map((item) => item.part);
 }
 
 /** One of a bubble's attachments, as it is, with its own reactions. */
@@ -106,34 +92,38 @@ export function BubbleAttachments({
     style === "column"
       ? message.attachments.map((_, index): AttachmentSlot => ({ index }))
       : attachmentSlots(message);
-  return slots.map((slot) => {
-    const attachment = message.attachments[slot.index];
-    if (attachment === undefined) return null;
-    if (slot.items === undefined || style === "column") {
-      return (
-        <OneAttachment
-          key={attachmentKey(attachment)}
-          message={message}
-          index={slot.index}
-        />
-      );
-    }
-    const [first, ...rest] = slot.items;
-    return (
-      <Reactable
-        key={attachmentKey(attachment)}
-        part={first?.part ?? slot.index}
-        place={slot.index}
-        also={rest.map((item) => item.part)}
-        onTapbacks={() => openGallery?.(message.id, slot.index)}
-      >
-        <BubbleMediaStack
-          message={message}
-          items={slot.items}
-          isOwn={isOwn}
-          style={style}
-        />
-      </Reactable>
-    );
-  });
+  return (
+    <>
+      {slots.map((slot) => {
+        const attachment = message.attachments[slot.index];
+        if (attachment === undefined) return null;
+        if (slot.items === undefined || style === "column") {
+          return (
+            <OneAttachment
+              key={attachmentKey(attachment)}
+              message={message}
+              index={slot.index}
+            />
+          );
+        }
+        const [first, ...rest] = slot.items;
+        return (
+          <Reactable
+            key={attachmentKey(attachment)}
+            part={first?.part ?? slot.index}
+            place={slot.index}
+            also={rest.map((item) => item.part)}
+            onTapbacks={() => openGallery?.(message.id, slot.index)}
+          >
+            <BubbleMediaStack
+              message={message}
+              items={slot.items}
+              isOwn={isOwn}
+              style={style}
+            />
+          </Reactable>
+        );
+      })}
+    </>
+  );
 }

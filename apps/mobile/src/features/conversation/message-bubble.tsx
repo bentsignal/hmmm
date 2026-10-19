@@ -5,17 +5,19 @@ import Animated from "react-native-reanimated";
 import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
+import { usePreference } from "~/features/preferences/store";
 import { cn } from "~/lib/cn";
 import { useBecoming } from "./arrive";
 import { AuthorLink } from "./author-link";
 import { BubbleBody } from "./bubble-body";
-import { BubbleAttachments, useStackedTopParts } from "./bubble-media";
+import { BubbleAttachments } from "./bubble-media";
 import { GrowingText } from "./bubble-morph";
 import { MovingQuote, MovingReplyCurve } from "./bubble-reply";
 import { aboveBubble, bubbleTopPart } from "./bubble-top";
 import { rowOrder } from "./build-rows";
 import { Settle, usePieceLift } from "./grow";
 import { LinkCardView } from "./link-preview-card";
+import { stackedTopParts } from "./media-groups";
 import { MenuTargetView } from "./message-actions";
 import { DeletedBubble, EditedLabel } from "./message-changes";
 import { linkPart, partCount } from "./message-parts";
@@ -178,7 +180,12 @@ function BubbleColumn({
   // Tapbacks rise beside the name, which keeps its place. Over a quote,
   // they open their own space.
   const besideName = name !== undefined && card === undefined;
-  const topAlso = useStackedTopParts(message, bubbleTopPart(message));
+  // A stack of photos on top shows all their tapbacks on it as one.
+  const topAlso = stackedTopParts(
+    message,
+    bubbleTopPart(message),
+    usePreference("bubbleMedia"),
+  );
   return (
     <View
       className={cn("max-w-[75%] gap-0.5", isOwn ? "items-end" : "items-start")}

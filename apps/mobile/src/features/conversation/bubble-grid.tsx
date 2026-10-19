@@ -3,7 +3,8 @@ import { Pressable, Text, View } from "react-native";
 import type { MediaItem } from "./media-groups";
 import type { Message } from "./types";
 import { PlayBadge } from "./attachment-view";
-import { CARD_WIDTH, Poster } from "./bubble-cards";
+import { Poster } from "./bubble-cards";
+import { CARD_WIDTH } from "./bubble-layout";
 import { useOpenGallery } from "./media-gallery";
 
 /** The tiles' gap, and how many it shows before "+N". */

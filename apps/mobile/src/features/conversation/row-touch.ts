@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import type { GestureResponderEvent, View } from "react-native";
 import { createContext, use, useId, useImperativeHandle } from "react";
-import { Dimensions } from "react-native";
+import { useWindowDimensions } from "react-native";
 
 import type { MenuTarget } from "./glass-message-menu";
 
@@ -112,7 +112,7 @@ export function usePartTarget(target: PartTarget | undefined) {
  * How far `part` sits from the height `y` on screen; 0 across it. One
  * scrolled off the side (a photo in a carousel) is nowhere near.
  */
-function distanceTo(part: PartTarget, y: number) {
+function distanceTo(part: PartTarget, y: number, screenWidth: number) {
   return new Promise<number>((resolve) => {
     const view = part.measured.current;
     if (view === null) {
@@ -120,7 +120,7 @@ function distanceTo(part: PartTarget, y: number) {
       return;
     }
     view.measureInWindow((x, top, width, height) => {
-      const offScreen = x + width <= 0 || x >= Dimensions.get("window").width;
+      const offScreen = x + width <= 0 || x >= screenWidth;
       resolve(offScreen ? Infinity : Math.max(top - y, y - top - height, 0));
     });
   });
@@ -128,15 +128,20 @@ function distanceTo(part: PartTarget, y: number) {
 
 /**
  * Hands `found` the part of the row `id` at the height `y`, the nearest
- * one when `nearest`, or undefined when there's none there.
+ * one when `nearest`, or undefined when there's none there. Parts outside
+ * `screenWidth` (scrolled off the side) don't count.
  */
 function findPart(
   id: string,
-  { y, nearest }: { y: number; nearest: boolean },
+  {
+    y,
+    nearest,
+    screenWidth,
+  }: { y: number; nearest: boolean; screenWidth: number },
   found: (part: Liftable | undefined) => void,
 ) {
   const parts = [...(partTargets.get(id)?.values() ?? [])];
-  void Promise.all(parts.map((part) => distanceTo(part, y))).then(
+  void Promise.all(parts.map((part) => distanceTo(part, y, screenWidth))).then(
     (distances) => {
       const closest = Math.min(...distances);
       const index = distances.indexOf(closest);
@@ -159,13 +164,14 @@ export function useRowTarget(
   parts?: "across" | "nearest",
 ) {
   const id = use(RowIdContext);
+  const { width: screenWidth } = useWindowDimensions();
   function at(y: number, then: (target: Liftable) => void) {
     if (whole === undefined || id === null) return;
     if (parts === undefined) {
       then(whole);
       return;
     }
-    findPart(id, { nearest: parts === "nearest", y }, (part) =>
+    findPart(id, { nearest: parts === "nearest", screenWidth, y }, (part) =>
       then(part ?? whole),
     );
   }

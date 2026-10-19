@@ -1,5 +1,6 @@
 import type { Message, MessageAttachment } from "./types";
 import type { ReactionPart } from "~/features/messaging/reactions";
+import type { BubbleMedia } from "~/features/preferences/store";
 import { attachmentPart } from "~/features/messaging/reactions";
 
 /** A photo or video of a message, with where it is among its attachments. */
@@ -48,4 +49,21 @@ export function attachmentSlots(message: Message) {
 export function isGroupedMedia(message: Message, part: ReactionPart) {
   const media = mediaItems(message);
   return media.length >= 2 && media.some((item) => item.part === part);
+}
+
+/**
+ * The parts drawn together with a bubble's top one, when that's the first
+ * of a stack of photos (`style` isn't `column`), whose tapbacks rise above
+ * it as one.
+ */
+export function stackedTopParts(
+  message: Message,
+  top: ReactionPart,
+  style: BubbleMedia,
+) {
+  const [first, ...rest] = mediaItems(message);
+  if (style === "column" || rest.length === 0 || first?.part !== top) {
+    return undefined;
+  }
+  return rest.map((item) => item.part);
 }
