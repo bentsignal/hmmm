@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { useAccount, useVisibleAccounts } from "~/features/messaging/account";
 import { inboxQuery } from "~/features/messaging/inbox";
+import { typingQueryKey } from "~/features/messaging/typing";
 import { hasResult, showSaved } from "./saved-cache";
 import { conversationFile, inboxFile, readSaved } from "./saved-files";
 import { useSavedFallback } from "./use-saved-fallback";
@@ -55,6 +56,11 @@ export function useSavedConversation(
     );
     if (saved === undefined) return [address];
     showSaved(queryClient, saved);
+    // Who's typing isn't saved: nobody, until the PDS says.
+    showSaved(queryClient, {
+      entries: [{ key: typingQueryKey(address, conversationId), result: [] }],
+      savedAt: saved.savedAt,
+    });
     const pagesLoaded = window.pages.every(
       (page) => !page.initial || page.messageIds !== undefined,
     );

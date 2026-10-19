@@ -178,11 +178,12 @@ export function ConversationRow({
         params: { account, conversationId: id, title },
       }}
       asChild
-      onPress={() => prefetch(account, id)}
     >
       <Pressable
         className="active:bg-fill flex-row"
         style={{ height: INBOX_ROW_HEIGHT }}
+        // As a finger lands, before it's known to be a tap.
+        onPressIn={() => prefetch(account, id)}
         onLongPress={onLongPress}
       >
         <ConversationRowContent

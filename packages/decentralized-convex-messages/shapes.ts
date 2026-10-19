@@ -170,6 +170,11 @@ export const conversation = v.object({
    * space's, and their defaults (absent from older PDSs: `muted` says).
    */
   alerts: v.optional(alertLevel),
+  /**
+   * When anything it shows last changed: a message, a reply, an edit, a
+   * deletion, or a reaction (absent from older PDSs, and until one has).
+   */
+  changedAt: v.optional(v.number()),
   conversationId: v.string(),
   kind: conversationKind,
   lastMessage: v.union(v.null(), message),

@@ -82,6 +82,7 @@ void test("a group includes its members' profiles and its joins and leaves", () 
       ]),
     ),
     [
+      `typing {"conversationId":"group:vera.chat:1"}`,
       `memberEvents {"conversationId":"group:vera.chat:1"}`,
       `getProfile {"accountId":"${ME}"}`,
       `getProfile {"accountId":"${MAYA}"}`,
@@ -89,10 +90,11 @@ void test("a group includes its members' profiles and its joins and leaves", () 
       `getProfile {"accountId":"${PRIYA}"}`,
     ],
   );
-  // A channel's members are its whole space: its messages include who shows.
+  // A channel's members are its whole space: its messages include who
+  // shows. Who's typing comes with every conversation.
   assert.deepEqual(
-    conversationIncludes(conversation({ kind: "channel" }), []),
-    [],
+    asked(conversationIncludes(conversation({ kind: "channel" }), [])),
+    [`typing {"conversationId":"group:vera.chat:1"}`],
   );
 });
 

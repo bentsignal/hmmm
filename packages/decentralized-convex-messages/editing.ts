@@ -5,7 +5,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { LinkCard, messagesProtocol, Quote } from "./protocol.ts";
 import { previewedUrls } from "./links.ts";
 import { recordMentions, validMentions } from "./mentions.ts";
-import { fail, requireAccess, toMessage } from "./model.ts";
+import { fail, markChanged, requireAccess, toMessage } from "./model.ts";
 import { MAX_REPLIERS } from "./protocol.ts";
 import {
   messageById,
@@ -178,6 +178,7 @@ export async function editMessage(
     linkPreviews,
     mentions,
   });
+  await markChanged(ctx, access, now);
   await forgetMentions(ctx, message);
   await recordMentions(ctx, edited);
   await rewriteQuotes(ctx, message, (quote) => ({
@@ -278,7 +279,7 @@ export async function deleteMessage(
   self: string,
   args: Args<"deleteMessage">,
 ) {
-  await requireAccess(ctx, args.conversationId, self);
+  const access = await requireAccess(ctx, args.conversationId, self);
   const found = await messageById(ctx, args.messageId);
   // Already deleted: a retry.
   if (found === null) return null;
@@ -312,5 +313,6 @@ export async function deleteMessage(
   } else {
     await ctx.db.delete(message._id);
   }
+  await markChanged(ctx, access);
   return null;
 }

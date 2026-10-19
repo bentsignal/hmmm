@@ -494,6 +494,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               type: "inbox";
               value: Array<{
                 alerts?: "all" | "mentions" | "none";
+                changedAt?: number;
                 conversationId: string;
                 kind: "direct" | "group" | "channel";
                 lastMessage: null | {
@@ -1130,6 +1131,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               type: "conversation";
               value: null | {
                 alerts?: "all" | "mentions" | "none";
+                changedAt?: number;
                 conversationId: string;
                 kind: "direct" | "group" | "channel";
                 lastMessage: null | {
@@ -1330,6 +1332,22 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 link?: number;
                 messageId: string;
                 reactedAt: number;
+              }>;
+            }
+          | {
+              include?: Array<{
+                lastChanged: string;
+                operation: { args: any; type: string };
+                plugin: string;
+                version: string;
+              }>;
+              routes?: Array<string>;
+              type: "typing";
+              value: Array<{
+                accountId: string;
+                expiresIn: number;
+                startedAt: number;
+                typedAt: number;
               }>;
             }
           | {
@@ -2002,6 +2020,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             type: "inbox";
             value: Array<{
               alerts?: "all" | "mentions" | "none";
+              changedAt?: number;
               conversationId: string;
               kind: "direct" | "group" | "channel";
               lastMessage: null | {
@@ -2638,6 +2657,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             type: "conversation";
             value: null | {
               alerts?: "all" | "mentions" | "none";
+              changedAt?: number;
               conversationId: string;
               kind: "direct" | "group" | "channel";
               lastMessage: null | {
@@ -2857,6 +2877,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             }>;
           }
         | {
+            include?: Array<{
+              lastChanged: string;
+              operation: { args: any; type: string };
+              plugin: string;
+              version: string;
+            }>;
             routes?: Array<string>;
             type: "thread";
             value: {

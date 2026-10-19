@@ -17,6 +17,9 @@ export default defineSchema({
   conversations: defineTable({
     conversationId: v.string(),
     createdBy: v.string(),
+    // When anything a conversation shows last changed: a message, a reply,
+    // an edit, a deletion, or a reaction. Absent until one has.
+    changedAt: v.optional(v.number()),
     kind: conversationKind,
     name: v.optional(v.string()),
     position: v.optional(v.number()),

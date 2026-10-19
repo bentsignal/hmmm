@@ -71,60 +71,66 @@ function ActionButtons({
 function NativeRow({
   actions,
   onPress,
+  onPressIn,
   children,
 }: {
   actions: readonly RowAction[];
   onPress: () => void;
+  /** As a finger lands on the row, before it's known to be a tap. */
+  onPressIn?: () => void;
   children: ReactNode;
 }) {
   const colors = useToneColors();
   return (
-    <Host style={{ height: INBOX_ROW_HEIGHT }}>
-      <List
-        modifiers={[
-          listStyle("plain"),
-          scrollDisabled(true),
-          scrollContentBackground("hidden"),
-        ]}
-      >
-        <ContextMenu
-          // The system's own row background and separator, so a press
-          // lifts the row into its highlight and the separator blends in.
+    // The SwiftUI button reports only the tap, so the touch is caught here.
+    <View onTouchStart={onPressIn}>
+      <Host style={{ height: INBOX_ROW_HEIGHT }}>
+        <List
           modifiers={[
-            listRowInsets({ bottom: 0, leading: 0, top: 0, trailing: 0 }),
-            listRowSeparator("visible", "bottom"),
+            listStyle("plain"),
+            scrollDisabled(true),
+            scrollContentBackground("hidden"),
           ]}
         >
-          <ContextMenu.Items>
-            <ActionButtons actions={actions} colors={colors} />
-          </ContextMenu.Items>
-          <ContextMenu.Trigger>
-            <Button
-              modifiers={[
-                buttonStyle("plain"),
-                frame({ height: INBOX_ROW_HEIGHT, maxWidth: Infinity }),
-                alignmentGuide("listRowSeparatorLeading", TEXT_INSET),
-              ]}
-              onPress={onPress}
-            >
-              <RNHostView>
-                {/* A fixed height, not flex: SwiftUI reports the host's
+          <ContextMenu
+            // The system's own row background and separator, so a press
+            // lifts the row into its highlight and the separator blends in.
+            modifiers={[
+              listRowInsets({ bottom: 0, leading: 0, top: 0, trailing: 0 }),
+              listRowSeparator("visible", "bottom"),
+            ]}
+          >
+            <ContextMenu.Items>
+              <ActionButtons actions={actions} colors={colors} />
+            </ContextMenu.Items>
+            <ContextMenu.Trigger>
+              <Button
+                modifiers={[
+                  buttonStyle("plain"),
+                  frame({ height: INBOX_ROW_HEIGHT, maxWidth: Infinity }),
+                  alignmentGuide("listRowSeparatorLeading", TEXT_INSET),
+                ]}
+                onPress={onPress}
+              >
+                <RNHostView>
+                  {/* A fixed height, not flex: SwiftUI reports the host's
                     size a few frames after a new row mounts, and until
                     then a flexed row is laid out zero tall, with the
                     photo and unread dot centered on its top edge. */}
-                <View
-                  pointerEvents="none"
-                  className="flex-row"
-                  style={{ height: INBOX_ROW_HEIGHT }}
-                >
-                  {children}
-                </View>
-              </RNHostView>
-            </Button>
-          </ContextMenu.Trigger>
-        </ContextMenu>
-      </List>
-    </Host>
+                  <View
+                    pointerEvents="none"
+                    className="flex-row"
+                    style={{ height: INBOX_ROW_HEIGHT }}
+                  >
+                    {children}
+                  </View>
+                </RNHostView>
+              </Button>
+            </ContextMenu.Trigger>
+          </ContextMenu>
+        </List>
+      </Host>
+    </View>
   );
 }
 
@@ -145,7 +151,6 @@ export function InboxRow({
   const { account, id, title } = conversation;
 
   function open() {
-    prefetch(account, id);
     router.push({
       pathname: "/conversation/[conversationId]",
       params: { account, conversationId: id, title },
@@ -153,7 +158,11 @@ export function InboxRow({
   }
 
   return (
-    <NativeRow actions={inboxMenuActions(runAs, conversation)} onPress={open}>
+    <NativeRow
+      actions={inboxMenuActions(runAs, conversation)}
+      onPress={open}
+      onPressIn={() => prefetch(account, id)}
+    >
       <ConversationRowContent
         conversation={conversation}
         showAccount={showAccount}

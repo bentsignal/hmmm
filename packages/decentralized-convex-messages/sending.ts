@@ -6,7 +6,13 @@ import { internal } from "./_generated/api.js";
 import { cardsForMessage, GIVE_UP_AFTER_MS } from "./linkCache.ts";
 import { previewedUrls } from "./links.ts";
 import { recordMentions, validMentions } from "./mentions.ts";
-import { fail, requireAccess, toMessage, upsertMember } from "./model.ts";
+import {
+  fail,
+  markChanged,
+  requireAccess,
+  toMessage,
+  upsertMember,
+} from "./model.ts";
 import { startFetches } from "./previews.ts";
 import { addReply, replyTo } from "./threads.ts";
 import { stopTyping } from "./typing.ts";
@@ -83,6 +89,7 @@ export async function send(
   if (reply !== undefined) {
     await addReply(ctx, { ...reply, authorId: self, sentAt });
   }
+  await markChanged(ctx, access, sentAt);
   // A reply kept in its thread doesn't move the conversation up the inbox,
   // nor is it what was last read there.
   if (reply?.threadOnly !== true) {

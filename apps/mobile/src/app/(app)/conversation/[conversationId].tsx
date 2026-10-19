@@ -24,6 +24,7 @@ import { AccountScope, useAccount } from "~/features/messaging/account";
 import { useConversation } from "~/features/messaging/conversations";
 import { useMemberNotices } from "~/features/messaging/member-events";
 import { useMarkRead, useMessages } from "~/features/messaging/messages";
+import { useStayLive } from "~/features/messaging/stay-live";
 import { useTypingReporter, useTypists } from "~/features/messaging/typing";
 import { useActiveConversation } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
@@ -88,9 +89,9 @@ function useConversationTyping(
   conversationId: string,
   messages: Parameters<typeof useTypists>[1]["messages"],
 ) {
-  const typists = useTypists(conversationId, { messages });
+  const { isLoading, typists } = useTypists(conversationId, { messages });
   const report = useTypingReporter(conversationId);
-  return { report, typists };
+  return { isLoading, report, typists };
 }
 
 function MissingConversation({ heading }: { heading: string }) {
@@ -105,13 +106,17 @@ function MissingConversation({ heading }: { heading: string }) {
   );
 }
 
-/** What an open conversation keeps up: its read state, and push and dev. */
+/**
+ * What an open conversation keeps up: its read state, push and dev, and
+ * staying live a while after it closes.
+ */
 function useWhileOpen(
   conversationId: string,
   messages: ReturnType<typeof useMessages>,
 ) {
   useMarkRead(conversationId, messages.newestSentAt);
   useActiveConversation(conversationId);
+  useStayLive(conversationId);
   useDevConversation(conversationId, messages);
 }
 
@@ -175,7 +180,7 @@ function Conversation({
     title: heading,
   });
   const shown =
-    listReady([messages, notices], layout, profilesLoaded) &&
+    listReady([messages, notices, typing], layout, profilesLoaded) &&
     composerHeight !== undefined;
   const pending = useOpening(conversationId, messages, shown);
   if (!isLoading && conversation === undefined) {

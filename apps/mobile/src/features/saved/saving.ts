@@ -21,7 +21,9 @@ import {
   queryClient,
 } from "~/features/session/account-session";
 import { fieldOf } from "./fields";
-import { liveResult } from "./saved-cache";
+import { recentConversations } from "./recent";
+import { cachedVersion, refreshSaved } from "./refresh-saved";
+import { liveResult, liveSelected } from "./saved-cache";
 import {
   conversationFile,
   deleteSaved,
@@ -29,11 +31,9 @@ import {
   inboxFile,
   savedConversationIds,
   writeSaved,
+  writeVersions,
 } from "./saved-files";
 import { watchAnswers } from "./unanswered";
-
-/** How many of an account's most recent conversations it keeps. */
-export const SAVED_CONVERSATIONS = 20;
 
 interface Account {
   readonly address: string;
@@ -67,20 +67,6 @@ function entryOf(queryClient: QueryClient, key: QueryKey) {
   return live === undefined
     ? undefined
     : ({ key, result: live.result } satisfies SavedEntry);
-}
-
-/** A query's live result as its screen reads it (its `select`). */
-function liveSelected<Data, Selected>(
-  queryClient: QueryClient,
-  options: { queryKey: QueryKey; select?: (data: Data) => Selected },
-) {
-  const query = queryClient
-    .getQueryCache()
-    .find<Data>({ exact: true, queryKey: options.queryKey });
-  if (liveResult(query) === undefined || query?.state.data === undefined) {
-    return undefined;
-  }
-  return options.select?.(query.state.data);
 }
 
 /** Whose profile a query asks for, if it asks for one. */
@@ -117,10 +103,6 @@ function complete<Entry>(entries: readonly (Entry | undefined)[]) {
   return found.length === entries.length ? found : undefined;
 }
 
-function lastActivity(conversation: Conversation) {
-  return conversation.lastMessage?.sentAt ?? conversation.updatedAt;
-}
-
 /**
  * The Inbox and Spaces as Home shows them, and the account's most recent
  * conversations, or undefined until the Inbox and its rows' names are live.
@@ -145,10 +127,7 @@ function inboxSaved(
     pdsQueryKey(pds.messages.inboxThreads({}), address),
   ].flatMap((key) => entryOf(queryClient, key) ?? []);
   return {
-    recent: [...conversations]
-      .sort((left, right) => lastActivity(right) - lastActivity(left))
-      .slice(0, SAVED_CONVERSATIONS)
-      .map(({ conversationId }) => conversationId),
+    recent: recentConversations(conversations),
     saved: {
       entries: [main, ...extras, ...rows],
       savedAt: Date.now(),
@@ -260,7 +239,9 @@ function save(queryClient: QueryClient, { address, storagePrefix }: Account) {
   const inbox = inboxSaved(queryClient, address, profiles);
   if (inbox === undefined) return;
   writeSaved(inboxFile(storagePrefix), inbox.saved);
-  for (const conversationId of inbox.recent) {
+  const versions = new Map<string, number>();
+  for (const conversation of inbox.recent) {
+    const { conversationId } = conversation;
     const saved = conversationSaved(
       queryClient,
       address,
@@ -270,8 +251,13 @@ function save(queryClient: QueryClient, { address, storagePrefix }: Account) {
     if (saved !== undefined) {
       writeSaved(conversationFile(storagePrefix, conversationId), saved);
     }
+    const version = cachedVersion(queryClient, address, conversation);
+    if (version !== undefined) versions.set(conversationId, version);
   }
-  const recent = new Set(inbox.recent);
+  writeVersions(storagePrefix, versions);
+  const recent = new Set(
+    inbox.recent.map(({ conversationId }) => conversationId),
+  );
   for (const conversationId of savedConversationIds(storagePrefix)) {
     if (!recent.has(conversationId)) {
       deleteSaved(conversationFile(storagePrefix, conversationId));
@@ -319,16 +305,19 @@ function startSaving(queryClient: QueryClient, account: Account) {
 }
 
 /**
- * Saves every account session's screens while it lasts, and notes when its
- * PDS answers (`unanswered.ts`).
+ * Saves every account session's screens while it lasts, keeps what's
+ * saved caught up (`refresh-saved`), and notes when its PDS answers
+ * (`unanswered.ts`).
  */
 export function installSaving() {
   onAccountSession((account) => {
     const stopSaving = startSaving(queryClient, account);
     const stopWatching = watchAnswers(queryClient, account.address);
+    const stopRefreshing = refreshSaved(queryClient, account);
     return () => {
       stopSaving();
       stopWatching();
+      stopRefreshing();
     };
   });
 }

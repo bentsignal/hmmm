@@ -1,4 +1,4 @@
-import type { QueryClient } from "@tanstack/react-query";
+import type { QueryClient, QueryKey } from "@tanstack/react-query";
 
 import type { Saved } from "./saved-files";
 import { fieldOf } from "./fields";
@@ -28,6 +28,20 @@ export function liveResult(query: CachedQuery | undefined) {
   return fieldOf(data, "status") === "success"
     ? { result: fieldOf(data, "result") }
     : undefined;
+}
+
+/** A query's live result as its screen reads it (its `select`). */
+export function liveSelected<Data, Selected>(
+  queryClient: QueryClient,
+  options: { queryKey: QueryKey; select?: (data: Data) => Selected },
+) {
+  const query = queryClient
+    .getQueryCache()
+    .find<Data>({ exact: true, queryKey: options.queryKey });
+  if (liveResult(query) === undefined || query?.state.data === undefined) {
+    return undefined;
+  }
+  return options.select?.(query.state.data);
 }
 
 function isSaved(query: CachedQuery) {
