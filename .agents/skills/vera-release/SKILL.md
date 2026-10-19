@@ -1,6 +1,6 @@
 ---
 name: vera-release
-description: Run a Vera mobile release end to end, covering changes since the last release, the interactions between them worth testing, testing main in the Vera Dev dev client on Shawn's phone, then the over-the-air update or TestFlight store build, and an App Store submission when asked. Use when Shawn asks to release, ship, cut a build, push an update, put something on TestFlight, or submit to the App Store, or asks what changed since the last release.
+description: Run a Vera mobile release end to end, covering changes since the last release, the interactions between them worth testing, a first pass of those tests in the iOS simulator and Android emulator, testing main in the Vera Dev dev client on Shawn's phone, then the over-the-air update or TestFlight store build, and an App Store submission when asked. Use when Shawn asks to release, ship, cut a build, push an update, put something on TestFlight, or submit to the App Store, or asks what changed since the last release.
 ---
 
 # Releasing Vera
@@ -32,7 +32,7 @@ git fetch origin && git checkout --detach origin/main && pnpm install --frozen-l
 `pnpm release build` and `ota` refuse to run unless `HEAD` is `origin/main`
 and the tree is clean.
 
-## 1. Plan and tell Shawn
+## 1. Plan, run the test list yourself, and tell Shawn
 
 ```sh
 pnpm release plan
@@ -46,7 +46,7 @@ Backend" (or `plan` saying BREAKING) means this release ships with
 `--with-backend`, and open apps on older versions show "Updating Vera…" for
 a few seconds; tell Shawn so he can time it.
 
-Send Shawn:
+Write up for Shawn:
 
 - **Kind:** over the air (`kind: ota`) or a store build (`kind: store-build`),
   and why.
@@ -76,6 +76,30 @@ Send Shawn:
     evidence alone): those get their own steps.
 
   If nothing overlaps, say so; the list can be short or empty.
+
+### Run the list yourself first
+
+Before sending Shawn anything, run every step of that list yourself, in
+this checkout's iOS simulator and its Android emulator (the
+`vera-simulator` skill), against the dev PDS with `main`'s backend
+(`pnpm release backend dev`). Sign in as the checkout's `wt…` user and
+`scripts/sim.sh seed` for bots to talk to; a second account
+(`scripts/sim.sh signin <name>`) or the dev bots play the other side of a
+two-person step, and Developer tools (Server Answers, the seeds) set up
+slow or offline states. Take a screenshot of each result, or a video for
+motion, and upload them with `scripts/evidence.sh`.
+
+Fix what fails before Shawn sees it (the same way as fixes in step 3) and
+run that step again. Then `sim.sh down` both devices.
+
+Send Shawn the write-up with the list in two parts:
+
+- **Checked:** each step you ran, on which platforms, what you saw, any
+  fix, and its evidence.
+- **For you:** only what the simulators can't settle, each with why: how
+  motion and gestures feel on a real phone, real push notifications, the
+  camera and photo library, a real network dropping, two physical phones
+  at once, and anything you ran but couldn't judge.
 
 Then go straight to step 2 unless he says otherwise.
 
@@ -107,9 +131,9 @@ Vera Dev slot; he gets main's dev client back from `scripts/phone.sh main`.
 
 ## 3. Wait for Shawn
 
-He tests and either approves ("ship it", "release it", "looks good, send
-it") or asks for fixes. He works through the list at his own pace; don't
-send it again item by item.
+He tests the "For you" part of the list and either approves ("ship it",
+"release it", "looks good, send it") or asks for fixes. He works through
+the list at his own pace; don't send it again item by item.
 
 Fixes found during the release test happen in the release thread, not new
 T3 threads. Small batches go straight to `main` from the release checkout:
@@ -119,8 +143,9 @@ fixes are many or large; subagents in their own worktrees can take
 independent pieces in parallel. A fix that changes native code needs new
 dev clients (`phone.sh up` builds them). A backend fix goes to the dev PDS
 (`pnpm release backend dev`) before he retests. Once the fixes are in,
-update the release notes and the list (step 1). Don't ship without an
-explicit approval of this release. `scripts/phone.sh down` once he's done.
+update the release notes and the list (step 1), running new or changed
+steps in the simulators first. Don't ship without an explicit approval of
+this release. `scripts/phone.sh down` once he's done.
 
 ## 4. Ship
 
