@@ -80,6 +80,11 @@ export function LinkedText({
     at = range.end;
   }
   parts.push(...withLinks(text.slice(at), at));
-  if (suffix !== undefined) parts.push(suffix);
-  return <Text className={className}>{parts}</Text>;
+  // After the parts, not among them: they're keyed, and it has none.
+  return (
+    <Text className={className}>
+      {parts}
+      {suffix}
+    </Text>
+  );
 }
