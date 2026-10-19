@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Pressable, Text } from "react-native";
+import { Platform, Pressable, Text } from "react-native";
 import { textParts } from "@decentralized-convex/messages";
 
 import type { Mention } from "./types";
@@ -36,14 +36,31 @@ function Link({ text, url }: { text: string; url: string }) {
 }
 
 /**
+ * How a mention chip fits its line. Sitting in a line of text, a view
+ * rests on the baseline, and one taller than the font's ascent opens the
+ * line up, so the chip stays about that tall and drops until its name's
+ * baseline meets the line's. Each platform clips the name to the chip, so
+ * on iOS the name's own line is that short too, and on Android, which
+ * draws text taller, the chip is a little taller instead.
+ */
+const CHIP_FIT = Platform.select({
+  android: {
+    chip: { height: 20, transform: [{ translateY: 3.75 }] },
+    name: { includeFontPadding: false },
+  },
+  default: {
+    chip: { transform: [{ translateY: 2.5 }] },
+    name: { lineHeight: 16, transform: [{ translateY: 1.5 }] },
+  },
+});
+
+/**
  * An @mention on a rounded chip, sitting in the line like a word: tapping
  * it opens the person's profile, not the message's thread, and holding it
  * still opens the menu. One that mentions you is tinted more strongly.
  * A view, not nested text, since only a view rounds its corners; so its
  * text sets its own size rather than inheriting the line's, and screen
- * readers reach it through the message's text (see `LinkedText`). It's
- * no taller than the line's ascent, so it doesn't open the line up, and
- * moved down to center on the text beside it.
+ * readers reach it through the message's text (see `LinkedText`).
  */
 function MentionChip({
   text,
@@ -68,18 +85,19 @@ function MentionChip({
       onPressIn={press?.onPressIn}
       onPressOut={press?.onPressOut}
       className={cn(
-        "translate-y-[2.5px] rounded-md px-1 active:opacity-60",
+        "justify-center rounded-md px-1 active:opacity-60",
         onAccent
           ? "bg-on-accent/25"
           : accountId === address
             ? "bg-accent/30"
             : "bg-accent/15",
       )}
-      style={{ borderCurve: "continuous" }}
+      style={[{ borderCurve: "continuous" }, CHIP_FIT.chip]}
     >
       <Text
+        style={CHIP_FIT.name}
         className={cn(
-          "text-body translate-y-[1.5px] leading-4 font-semibold",
+          "text-body font-semibold",
           onAccent ? "text-on-accent" : "text-accent",
         )}
       >
