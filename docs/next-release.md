@@ -36,29 +36,23 @@ production never sets.)
 **Verify:** `rg -n "wipeAssistantChat|devAssistants|wipeMine" apps services`
 finds nothing.
 
-### 1. Give production a GitHub token for bug reports
+### 1. Check the GitHub token for bug reports
 
-**When:** before the production backend deploy. Without it, support still
-answers and keeps reports on the PDS, but files nothing and sends no
-progress updates.
+**When:** before the production backend deploy.
 
-Ask Shawn to create a fine-grained personal access token at
-https://github.com/settings/personal-access-tokens/new: resource owner
-`bentsignal`, only the `bentsignal/vera` repository, permissions Issues
-(read and write), Pull requests (read), and Contents (read), no expiry or
-the longest he's comfortable with. Take it with the T3 `request_secret`
-tool, never in chat. Then, from `services/backend`:
+Already done on 2026-10-19: a fine-grained token `vera-support-bot`
+(bentsignal/vera only: Issues read and write, Pull requests and Contents
+read-only) is set as `GITHUB_TOKEN`, with `GITHUB_REPOSITORY=bentsignal/vera`,
+on production, the shared dev deployment, and PR #157's isolated one, and
+the "user report" label exists. Just confirm:
 
 ```sh
-npx convex env set GITHUB_TOKEN '<token>' --prod
-npx convex env set GITHUB_REPOSITORY bentsignal/vera --prod
-gh label create "user report" --repo bentsignal/vera --color 0E8A16 \
-  --description "Filed by Vera Support from a user's report" --force
+npx convex env list --prod | cut -d= -f1 | grep GITHUB_
+gh label list --repo bentsignal/vera | grep "user report"
 ```
 
-**Verify:** `npx convex env get GITHUB_REPOSITORY --prod` prints
-`bentsignal/vera`, and `gh label list --repo bentsignal/vera` shows
-"user report".
+**Verify:** both `GITHUB_REPOSITORY` and `GITHUB_TOKEN` are listed, and the
+label is there.
 
 `PARALLEL_API_KEY` (Vera's web search) is already set on production, the
 shared dev deployment, and this PR's isolated one. Check it's there:
