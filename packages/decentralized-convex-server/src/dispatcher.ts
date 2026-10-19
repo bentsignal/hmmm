@@ -187,11 +187,30 @@ export function defineComponentDispatchers<
   } as const;
 }
 
+/** A write the router just completed, for the host's `afterMutation`. */
+export interface PdsRouterMutation {
+  readonly identity: DispatcherIdentity | null;
+  readonly operation: unknown;
+  readonly plugin: string;
+  readonly value: unknown;
+}
+
 export function definePdsRouter<DataModel extends GenericDataModel>({
+  afterMutation,
   components,
   mutation,
   query,
 }: {
+  /**
+   * Runs in the same transaction after each successful plugin write, so
+   * the host can react to it (schedule work, record something) without
+   * changing a plugin's protocol. Writes the host makes to a Component
+   * directly don't pass through here.
+   */
+  readonly afterMutation?: (
+    ctx: GenericMutationCtx<DataModel>,
+    mutation: PdsRouterMutation,
+  ) => Promise<void>;
   readonly components: unknown;
   readonly mutation: MutationBuilder<DataModel, "public">;
   readonly query: QueryBuilder<DataModel, "public">;
@@ -215,6 +234,12 @@ export function definePdsRouter<DataModel extends GenericDataModel>({
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           operation: request.operation,
           version: request.version,
+        });
+        await afterMutation?.(ctx, {
+          identity,
+          operation: request.operation,
+          plugin: request.plugin,
+          value: response.value,
         });
         return response.value;
       },

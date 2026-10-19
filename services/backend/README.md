@@ -72,15 +72,51 @@ npx convex run affiliations:remove '{"address":"support@vera.chat"}'
 npx convex run affiliations:list
 ```
 
-## Support account
+## Assistants: Support and Vera
 
-`support@<account domain>` is a verified account that DMs every new account
-a welcome asking for bug reports (a Better Auth `user.create` hook schedules
-`support:welcome`). It creates itself the first time it's needed, so every
-deployment has one without setup. It has no passkey: operators and their
-agents read and answer its inbox with the commands in `convex/support.ts`
-(`support:inbox`, `support:read`, `support:send`, `support:markRead`). Nothing
-replies automatically. See the `support-inbox` agent skill.
+Two verified accounts answer direct messages with a model:
+
+- `support@<account domain>` helps people report bugs. It asks for what's
+  missing (what happened, where, how to repeat it, a screenshot), tells them
+  reports are public and to cross out anything private, then files an
+  anonymized GitHub issue labeled "user report" with the app version and
+  device the app reported. A cron (`crons.ts`) follows each issue and tells
+  the reporter, in plain words, when it's picked up (assigned), being worked
+  on (a linked PR), fixed (merged), and out (in the newest production
+  release tags). People who say they're developers also get the links.
+  See the `support-inbox` agent skill for the operator commands.
+- `vera@<account domain>` is a general assistant: short, direct answers in
+  plain text, and it remembers how each person wants it to answer when they
+  ask it to (`botNotes`).
+
+Both welcome every new account (a Better Auth `user.create` hook schedules
+`support:welcome` and `vera:welcome`) and create themselves the first time
+they're needed. `npx convex run vera:welcomeEveryone` says hello to
+accounts made before Vera existed.
+
+How it works (`convex/bots.ts`, `convex/agent.ts`):
+
+- The PDS router's `afterMutation` sees each message someone on this PDS
+  sends. A direct message to an assistant schedules its reply 1.5 seconds
+  later; another message pushes it back, so a burst gets one answer.
+- One reply runs per conversation at a time. It reads the latest 40
+  messages and calls the model with the assistant's instructions and tools.
+  The model answers only through `send_message`, which can write to that
+  one conversation and nowhere else; no tool takes an account or
+  conversation, so nothing can reach another person's messages. Messages
+  that arrive during a reply get the next one.
+- Models run through the Convex AI Gateway (`@convex-dev/ai-sdk-provider`
+  and the AI SDK), billed on the Convex bill, with zero-data-retention
+  routing: Grok 4.7 for replies, and Grok 4.6 to describe images once each,
+  since Grok 4.7 doesn't take images through the gateway.
+- Each person gets at most 150 replies a day from each assistant.
+- They only hear from people on this PDS: a message from another PDS is
+  stored there and never reaches this one.
+- The app reports its version and device to `supportReporters:reportClient`
+  after a message to support, and nowhere else.
+
+The AI Gateway needs the Convex team on a paid plan. It works on cloud
+dev and production deployments without any key.
 
 ## Deployments
 
@@ -112,6 +148,8 @@ Environment variables on each deployment:
 | `BUNNY_S3_SECRET`             | secret                               | Storage zone password                         |
 | `BUNNY_CDN_URL`               | `https://media.vera.chat`            | Public base URL for media                     |
 | `BUNNY_PATH_PREFIX`           | `prod`                               | Folder for this deployment's uploads          |
+| `GITHUB_TOKEN`                | secret                               | Files and follows support's bug reports       |
+| `GITHUB_REPOSITORY`           | `bentsignal/vera`                    | Where support files bug reports               |
 
 Attachment size limits (videos 500 MB, photos 50 MB, other files 100 MB) and
 the 2-minute video cap live in `upload-limits.ts`. The app imports the same

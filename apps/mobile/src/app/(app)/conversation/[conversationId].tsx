@@ -7,6 +7,7 @@ import type { ComposerHandle } from "~/features/conversation/composer";
 import type { MessageListHandle } from "~/features/conversation/message-list";
 import type { MessageLayout } from "~/features/preferences/store";
 import { Pending } from "~/components/pending";
+import { useAfterSend } from "~/features/conversation/after-send";
 import { useComposerBottomInset } from "~/features/conversation/composer";
 import {
   CONVERSATION_HEADER_HEIGHT,
@@ -19,7 +20,6 @@ import { useEditing } from "~/features/conversation/use-editing";
 import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
 import { useReplies } from "~/features/conversation/use-replies";
 import { useDevConversation } from "~/features/dev/dev-conversation";
-import { useDevTools } from "~/features/dev/dev-tools";
 import { AccountScope, useAccount } from "~/features/messaging/account";
 import { useConversation } from "~/features/messaging/conversations";
 import { useMemberNotices } from "~/features/messaging/member-events";
@@ -158,7 +158,7 @@ function Conversation({
   const openInfo = useOpenInfo(conversationId);
   const composerBottomInset = useComposerBottomInset();
   const { address } = useAccount();
-  const devTools = useDevTools();
+  const afterSend = useAfterSend(conversationId);
   const viewReactions = useReactionsSheet(conversationId);
   const messages = useMessages(conversationId, { anchor: anchorId });
   const loaded = useConversation(conversationId, messages.messages);
@@ -243,7 +243,7 @@ function Conversation({
           messages.sendMessage(draft, replies.replyTo);
           replies.cancel();
           list.current?.scrollToLatest();
-          devTools.replyToMe(conversationId);
+          afterSend();
         }}
       />
     </View>
