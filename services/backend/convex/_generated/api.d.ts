@@ -40,7 +40,6 @@ import type * as rateLimits from "../rateLimits.js";
 import type * as release from "../release.js";
 import type * as support from "../support.js";
 import type * as supportAgent from "../supportAgent.js";
-import type * as supportBacklog from "../supportBacklog.js";
 import type * as supportClosures from "../supportClosures.js";
 import type * as supportLookup from "../supportLookup.js";
 import type * as supportReporters from "../supportReporters.js";
@@ -90,7 +89,6 @@ declare const fullApi: ApiFromModules<{
   release: typeof release;
   support: typeof support;
   supportAgent: typeof supportAgent;
-  supportBacklog: typeof supportBacklog;
   supportClosures: typeof supportClosures;
   supportLookup: typeof supportLookup;
   supportReporters: typeof supportReporters;

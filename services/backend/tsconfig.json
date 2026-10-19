@@ -5,7 +5,10 @@
     "./assistant-limits.test.ts",
     "./bug-reports.ts",
     "./bug-reports.test.ts",
+    "./issue-closures.ts",
     "./pds.ts",
+    "./reply-outcome.ts",
+    "./reply-outcome.test.ts",
     "./upload-limits.ts",
     "./upload-limits.test.ts",
     "./convex/**/*"

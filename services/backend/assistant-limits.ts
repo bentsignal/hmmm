@@ -4,14 +4,14 @@
 export type AssistantName = "support" | "vera";
 
 /**
- * Each assistant's allowance, per person and counted separately. Support
- * gets fewer: nobody reports bugs that fast.
+ * Each assistant's allowance, per person and counted separately, so
+ * reporting bugs never eats into time with Vera or the other way around.
  */
 export const LIMITS: Record<
   AssistantName,
   { readonly name: string; readonly perHour: number }
 > = {
-  support: { name: "Vera Support", perHour: 100 },
+  support: { name: "Vera Support", perHour: 300 },
   vera: { name: "Vera", perHour: 300 },
 };
 

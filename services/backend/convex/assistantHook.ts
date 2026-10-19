@@ -66,21 +66,19 @@ async function startReply(
 
 /**
  * Has the assistant reply in a conversation at `wakeAt`, optionally with a
- * note from the team (agent.ts `teamNote`) or as a backlog reply
- * (supportBacklog.ts). A later call moves the reply later.
+ * note from the team (agent.ts `teamNote`). A later call moves the reply
+ * later.
  */
 export async function scheduleReply(
   ctx: MutationCtx,
   {
     accountId,
-    backlog,
     bot,
     conversationId,
     note,
     wakeAt,
   }: {
     accountId: string;
-    backlog?: true;
     bot: BotAccount["username"];
     conversationId: string;
     note?: string;
@@ -92,7 +90,6 @@ export async function scheduleReply(
     .withIndex("by_conversation", (q) => q.eq("conversationId", conversationId))
     .unique();
   const update = {
-    ...(backlog && { backlog }),
     ...(note !== undefined && { note }),
     waitingSince: undefined,
     wakeAt,

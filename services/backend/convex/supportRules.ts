@@ -10,19 +10,18 @@ import type { Reporter } from "./supportReporters";
 export const PRIVACY_NOTICE =
   "Heads up: bug reports are posted publicly online so the team can work on them. Screenshots aren't posted; I describe what they show in words and leave out personal details, but I can't promise to catch everything, so please cross out anything private (names, messages, faces) before you send one.";
 
-/** How long the privacy notice counts before support shares it again. */
-const NOTICE_LIFETIME = 7 * 24 * 60 * 60 * 1000;
-
-export function noticeCurrent(reporter: Reporter) {
-  return (
-    reporter.noticeSharedAt !== null &&
-    Date.now() - reporter.noticeSharedAt < NOTICE_LIFETIME
-  );
+/**
+ * Whether they've had the privacy notice. Once they've seen it and gone
+ * ahead, that consent carries over to later reports (#179): support
+ * doesn't ask again.
+ */
+export function noticeShared(reporter: Reporter) {
+  return reporter.noticeSharedAt !== null;
 }
 
 /** Why a report can't be filed right now, or null when it can. */
 export function whyNotFile(turn: Turn, reporter: Reporter) {
-  if (!noticeCurrent(reporter)) {
+  if (!noticeShared(reporter)) {
     return "Not filed: call share_privacy_notice first, and let them answer before filing.";
   }
   // They get to see the notice, and decide what to share, before anything

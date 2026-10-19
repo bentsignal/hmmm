@@ -127,14 +127,6 @@ embedding models didn't do better.
 `npx convex run usage:summary '{"bot":"vera"}'` totals what replies cost
 (tokens, dollars, searches), from the gateway's own numbers.
 
-`supportBacklog:pending` and `supportBacklog:answerAll` (temporary, removed
-after one run) are a one-time pass over conversations from before support
-answered anyone. Support's model can't see the code, so the team checks
-each person's messages against the app first and hands over a note per
-conversation (what's fixed, what's tracked) and the issues to follow for
-them. Support apologizes for the wait and sums it up, or stays quiet when
-someone only sent a joke.
-
 When an issue is closed without a fix, support follows the original issue
 if it was marked as a duplicate. If the team left a comment when closing
 it, support's model explains that comment to the reporter in plain words
@@ -156,15 +148,19 @@ How it works (`convex/bots.ts`, `convex/agent.ts`):
   messages and calls the model with the assistant's instructions and tools.
   The model answers only through `send_message`, which can write to that
   one conversation and nowhere else; no tool takes an account or
-  conversation, so nothing can reach another person's messages. Messages
-  that arrive during a reply get the next one.
+  conversation, so nothing can reach another person's messages. Text it
+  writes outside a tool is never sent: a reply that ends with neither a
+  message nor `stay_quiet` is an error, and the model gets one more try,
+  told why (`reply-outcome.ts`). At most 3 messages per reply, not
+  counting canned ones like support's privacy notice. Messages that
+  arrive during a reply get the next one.
 - Models run through the Convex AI Gateway (`@convex-dev/ai-sdk-provider`
   and the AI SDK), billed on the Convex bill, with zero-data-retention
   routing: Grok 4.7, which sees the newest few images in the conversation.
 - The app sends the device's time zone after a message to an assistant
   (`timeZones:report`), so they know the person's date and time.
-- Each person gets at most 300 replies an hour from Vera and 100 from
-  Support, counted separately, on a rolling basis (a token bucket per
+- Each person gets at most 300 replies an hour from Vera and another 300
+  from Support, counted separately, on a rolling basis (a token bucket per
   assistant that refills continuously). Each separate time they run one
   dry is a strike; 5 strikes within a day pause that assistant for them
   until the day is up. Over a limit, the assistant

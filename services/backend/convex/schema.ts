@@ -26,14 +26,11 @@ export default defineSchema({
     accountId: v.string(),
     /** The newest message of theirs a finished reply has seen. */
     answeredThrough: v.optional(v.number()),
-    /** They wrote before the assistant answered anyone (supportBacklog.ts). */
-    backlog: v.optional(v.boolean()),
     bot: botName,
     conversationId: v.string(),
     /**
-     * Something the team wants the next reply to cover, such as what's
-     * become of someone's old reports (supportBacklog.ts) or why an issue
-     * was closed (supportClosures.ts).
+     * Something the team wants the next reply to cover, such as why an
+     * issue was closed (supportClosures.ts).
      */
     note: v.optional(v.string()),
     /** A message arrived while a reply was running: answer it next. */
