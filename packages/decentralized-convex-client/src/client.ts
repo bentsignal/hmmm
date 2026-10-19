@@ -21,17 +21,24 @@ import type {
 } from "./types.ts";
 import { assertPdsSupportsRequest } from "./compatibility.ts";
 import { createConvexFederationConnection } from "./connection.ts";
+import { toError } from "./errors.ts";
+import { includedOnHome } from "./included.ts";
 import { FederatedQueryObserver } from "./observer.ts";
 import { FederatedPdsQueryObserver } from "./pds-observer.ts";
 import { PdsClient } from "./pds.ts";
 import {
   initialResponseTimeout,
   partialResultsDelay,
+  wait,
   withInitialResponseTimeout,
 } from "./query-execution.ts";
 import { RoutedPdsQueryObserver } from "./routed-pds-observer.ts";
 import { createFederatedSnapshot } from "./snapshot.ts";
-import { groupFederationTargets, normalizeFederationUrl } from "./targets.ts";
+import {
+  groupFederationTargets,
+  normalizeFederationUrl,
+  pdsTarget,
+} from "./targets.ts";
 
 export class DecentralizedConvexClient {
   readonly #connectionFactory;
@@ -79,6 +86,7 @@ export class DecentralizedConvexClient {
       getConnection: (url) => this.#getConnection(url),
       home: pdsTarget(home.domain, home),
       initialResponseTimeout: initialResponseTimeout(options),
+      knownPds: this.#pdsByDomain,
       request,
       revealPartialResultsAfter: partialResultsDelay(options),
       resolveRoutes: (routes) => this.#resolveRoutes(routes, request),
@@ -170,6 +178,11 @@ export class DecentralizedConvexClient {
       homeTarget,
       ...(await this.#resolveRoutes(homeResult.routes, request)),
     ]);
+    const included = includedOnHome(
+      homeResult.included,
+      homeTarget,
+      this.#pdsByDomain,
+    );
     const settled = await Promise.all(
       targets.map(async (target) => {
         if (target.url === homeGroup.url) {
@@ -201,7 +214,7 @@ export class DecentralizedConvexClient {
       const remaining = revealPartialResultsAfter - (Date.now() - startedAt);
       if (remaining > 0) await wait(remaining);
     }
-    return snapshot;
+    return { ...snapshot, included };
   }
 
   mutation<Mutation extends FederationMutationReference>(
@@ -310,16 +323,4 @@ export class DecentralizedConvexClient {
     }
     return this.#home;
   }
-}
-
-function pdsTarget(id: string, pds: DiscoveredPds): FederationTarget {
-  return { id, url: pds.manifest.deploymentUrl };
-}
-
-function toError(error: unknown) {
-  return error instanceof Error ? error : new Error("Federation query failed");
-}
-
-function wait(delay: number) {
-  return new Promise<void>((resolve) => setTimeout(resolve, delay));
 }

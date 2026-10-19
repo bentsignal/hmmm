@@ -7,3 +7,7 @@ export class PdsInitialResponseTimeoutError extends Error {
     this.targetUrl = targetUrl;
   }
 }
+
+export function toError(error: unknown) {
+  return error instanceof Error ? error : new Error("Federation query failed");
+}

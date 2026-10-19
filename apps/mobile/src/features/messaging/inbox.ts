@@ -105,8 +105,9 @@ function rowProfiles(account: string, conversation: Conversation) {
  * first: direct messages, groups, and the space channels shown in the
  * inbox. Each summary says which account it belongs to.
  *
- * It loads once: the first time, it waits for every name, so rows never
- * switch from usernames to names. After that it never goes back to
+ * It loads once: the first time, it waits for every name its rows show, so
+ * rows never switch from usernames to names. (Every member's profile loads
+ * too, for the conversations opened from it, but nothing waits on those.) After that it never goes back to
  * loading. A conversation that arrives later (someone starts one with
  * you) joins once its row's names have loaded, and a row already showing
  * stays put, so an update never empties or flashes the list.
@@ -154,7 +155,8 @@ export function useInbox({ account }: { account?: string } = {}) {
   // The rows shown so far, by key; null until the first load finishes.
   const [shown, setShown] = useState<ReadonlySet<string> | null>(null);
   const loading =
-    inboxes.every((inbox) => inbox.data === undefined) || profiles.isLoading;
+    inboxes.every((inbox) => inbox.data === undefined) ||
+    !rows.every(({ ready }) => ready);
   const known =
     shown ?? (loading ? null : new Set(rows.map(({ summary }) => summary.key)));
   const arrived = rows

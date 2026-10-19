@@ -128,24 +128,28 @@ export async function reactions(
   if (args.messageIds.length > MAX_REACTION_MESSAGES) {
     fail("TOO_MANY_MESSAGES");
   }
-  const found = [];
-  for (const messageId of new Set(args.messageIds)) {
-    const rows = await ctx.db
-      .query("reactions")
-      .withIndex("by_message", (index) => index.eq("messageId", messageId))
-      .collect();
-    found.push(
-      ...rows
-        .filter((row) => row.conversationId === args.conversationId)
-        .map(({ accountId, attachment, emoji, link, reactedAt }) => ({
-          accountId,
-          attachment,
-          emoji,
-          link,
-          messageId,
-          reactedAt,
-        })),
-    );
-  }
-  return { reactions: found, routes: await memberAddresses(ctx, conversation) };
+  // Each message's reactions are read concurrently; one at a time, a page
+  // of them took a few hundred milliseconds.
+  const [found, routes] = await Promise.all([
+    Promise.all(
+      [...new Set(args.messageIds)].map(async (messageId) => {
+        const rows = await ctx.db
+          .query("reactions")
+          .withIndex("by_message", (index) => index.eq("messageId", messageId))
+          .collect();
+        return rows
+          .filter((row) => row.conversationId === args.conversationId)
+          .map(({ accountId, attachment, emoji, link, reactedAt }) => ({
+            accountId,
+            attachment,
+            emoji,
+            link,
+            messageId,
+            reactedAt,
+          }));
+      }),
+    ),
+    memberAddresses(ctx, conversation),
+  ]);
+  return { reactions: found.flat(), routes };
 }

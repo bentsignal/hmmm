@@ -44,3 +44,7 @@ export function withInitialResponseTimeout<Result>(
     void promise.then(resolve, reject).finally(() => clearTimeout(timer));
   });
 }
+
+export function wait(delay: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, delay));
+}

@@ -99,6 +99,7 @@ void test("binds protocols to canonical typed PDS calls", async () => {
     await client.queryWithRouting(requests.notes.list({ owner: "shawn" })),
     {
       data: [{ body: "hello", id: "note-1" }],
+      included: [],
       routes: ["a.test", "b.test"],
     },
   );

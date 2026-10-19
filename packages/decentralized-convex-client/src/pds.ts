@@ -27,7 +27,16 @@ export type {
   PdsRequestResult,
 } from "./api.ts";
 
+/** A query answered along with another (see `include` on the PDS). */
+export interface SerializedIncludedResult {
+  readonly request: SerializedPdsRequest;
+  readonly routes: readonly string[];
+  readonly value: unknown;
+}
+
 interface SerializedPdsQueryResult {
+  /** Absent from PDSs that predate included queries. */
+  readonly included?: readonly SerializedIncludedResult[];
   readonly routes: readonly string[];
   readonly value: unknown;
 }
@@ -59,6 +68,7 @@ export const pdsFunctions = Object.freeze({
 
 export interface PdsQueryResult<Result> {
   readonly data: Result;
+  readonly included: readonly SerializedIncludedResult[];
   readonly routes: readonly string[];
 }
 
@@ -134,7 +144,7 @@ export class PdsClient {
     // The request's phantom result is defined by the same protocol that created its payload.
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const data = result.value as PdsRequestResult<Request>;
-    return { data, routes: result.routes };
+    return { data, included: result.included ?? [], routes: result.routes };
   }
 
   watchQuery<Request extends AnyPdsQueryRequest>(
@@ -163,7 +173,11 @@ export class PdsClient {
         // The request's phantom result is defined by the same protocol that created its payload.
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const data = result.value as PdsRequestResult<Request>;
-        onResult({ data, routes: result.routes });
+        onResult({
+          data,
+          included: result.included ?? [],
+          routes: result.routes,
+        });
       },
       onError,
     );

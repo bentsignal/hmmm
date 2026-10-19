@@ -1,4 +1,11 @@
+import type { DiscoveredPds } from "@decentralized-convex/address";
+
 import type { FederationTarget, FederationTargetGroup } from "./types.ts";
+
+/** A PDS as the target of a route (an account or domain on it). */
+export function pdsTarget(id: string, pds: DiscoveredPds): FederationTarget {
+  return { id, url: pds.manifest.deploymentUrl };
+}
 
 export function normalizeFederationUrl(value: string) {
   const url = new URL(value);

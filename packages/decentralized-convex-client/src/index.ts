@@ -66,6 +66,7 @@ export type {
   FederationSourceStatus,
   FederationTarget,
   FederationTargetGroup,
+  IncludedPdsQuery,
   SuccessfulFederationSource,
 } from "./types.ts";
 export type {

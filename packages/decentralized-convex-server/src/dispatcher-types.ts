@@ -1,3 +1,4 @@
+import type { QueryRequest } from "@decentralized-convex/plugin";
 import type { FunctionReference } from "convex/server";
 import type { Value } from "convex/values";
 
@@ -14,6 +15,7 @@ interface ComponentDispatcherRequest {
 }
 
 interface DispatcherResponse {
+  readonly include?: readonly QueryRequest[];
   readonly routes?: readonly string[];
   readonly type: string;
   readonly value: Value;
@@ -24,6 +26,16 @@ type ComponentQuery = FunctionReference<
   "internal" | "public",
   ComponentDispatcherRequest,
   DispatcherResponse
+>;
+
+type ComponentQueries = FunctionReference<
+  "query",
+  "internal" | "public",
+  {
+    readonly identity: DispatcherIdentity | null;
+    readonly requests: readonly QueryRequest[];
+  },
+  readonly (DispatcherResponse | null)[]
 >;
 
 type ComponentMutation = FunctionReference<
@@ -37,6 +49,8 @@ interface DispatcherComponent {
   readonly dispatcher: {
     readonly dispatchMutation: ComponentMutation;
     readonly dispatchQuery: ComponentQuery;
+    /** Absent from plugins that predate included queries. */
+    readonly dispatchQueries?: ComponentQueries;
   };
 }
 

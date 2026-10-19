@@ -23,6 +23,7 @@ import type * as editing from "../editing.js";
 import type * as fakeCtx from "../fakeCtx.js";
 import type * as history from "../history.js";
 import type * as inbox from "../inbox.js";
+import type * as includes from "../includes.js";
 import type * as index from "../index.js";
 import type * as invites from "../invites.js";
 import type * as linkCache from "../linkCache.js";
@@ -78,6 +79,7 @@ const fullApi: ApiFromModules<{
   fakeCtx: typeof fakeCtx;
   history: typeof history;
   inbox: typeof inbox;
+  includes: typeof includes;
   index: typeof index;
   invites: typeof invites;
   linkCache: typeof linkCache;

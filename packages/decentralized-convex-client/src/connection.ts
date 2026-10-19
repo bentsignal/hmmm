@@ -14,7 +14,10 @@ class ConvexFederationConnection implements FederationConnection {
   readonly #client;
 
   constructor(url: string, getAuthToken?: FederationAuthTokenFetcher) {
-    this.#client = new ConvexClient(url);
+    // A token the fetcher had saved (asked for without `forceRefreshToken`)
+    // is used until shortly before it expires, rather than swapped for a
+    // fresh one at once, which would make the PDS run every query again.
+    this.#client = new ConvexClient(url, { initialAuthTokenReuse: true });
     if (getAuthToken !== undefined) {
       this.#client.setAuth(({ forceRefreshToken }) =>
         getAuthToken({ forceRefreshToken, url }),

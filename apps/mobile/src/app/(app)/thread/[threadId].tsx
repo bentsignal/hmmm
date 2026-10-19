@@ -97,6 +97,28 @@ function shownList<Layout, Root>({
   return { composerHeight, layout, root };
 }
 
+/** What an open thread keeps up: its read state, and push and dev. */
+function useWhileOpen(
+  conversationId: string,
+  threadId: string,
+  thread: ReturnType<typeof useMessages>,
+) {
+  useMarkThreadRead(conversationId, threadId, thread.newestSentAt);
+  useActiveThread(threadId);
+  useDevConversation(conversationId, thread);
+}
+
+/** The messages a thread shows: its original, then its replies. */
+function shownMessages<Message>({
+  messages,
+  root,
+}: {
+  messages: readonly Message[];
+  root?: Message;
+}) {
+  return root === undefined ? messages : [root, ...messages];
+}
+
 /** Who else is typing in a thread, and the reporting of this device's. */
 function useThreadTyping(
   conversationId: string,
@@ -126,10 +148,12 @@ function Thread({
   const { address } = useAccount();
   const devTools = useDevTools();
   const viewReactions = useReactionsSheet(conversationId);
-  const { conversation, profileOf, profilesLoaded, title } =
-    useConversation(conversationId);
-  const layout = useMessageLayout(conversation?.kind);
   const thread = useMessages(conversationId, { threadId });
+  const { conversation, profileOf, profilesLoaded, title } = useConversation(
+    conversationId,
+    shownMessages(thread),
+  );
+  const layout = useMessageLayout(conversation?.kind);
   const state = useThreadState(conversationId, threadId);
   const typing = useThreadTyping(conversationId, threadId, thread.messages);
   const [composerHeight, setComposerHeight] = useState<number>();
@@ -138,9 +162,7 @@ function Thread({
   // A thread's draft is its own, apart from the conversation's.
   const draftId = `${conversationId} thread:${threadId}`;
   const editing = useEditing({ composer, conversationId, draftId });
-  useMarkThreadRead(conversationId, threadId, thread.newestSentAt);
-  useActiveThread(threadId);
-  useDevConversation(conversationId, thread);
+  useWhileOpen(conversationId, threadId, thread);
 
   const heading = headingFor(title, initialTitle);
   const openConversation = useOpenConversation(

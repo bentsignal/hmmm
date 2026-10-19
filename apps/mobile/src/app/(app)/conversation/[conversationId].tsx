@@ -116,10 +116,10 @@ function Conversation({
   const { address } = useAccount();
   const devTools = useDevTools();
   const viewReactions = useReactionsSheet(conversationId);
-  const loaded = useConversation(conversationId);
+  const messages = useMessages(conversationId, { anchor: anchorId });
+  const loaded = useConversation(conversationId, messages.messages);
   const { conversation, isLoading, profileOf, profilesLoaded } = loaded;
   const layout = useMessageLayout(conversation?.kind);
-  const messages = useMessages(conversationId, { anchor: anchorId });
   const notices = useMemberNotices(conversationId, conversation, messages);
   const typing = useConversationTyping(conversationId, messages.messages);
   const composer = useRef<ComposerHandle>(null);

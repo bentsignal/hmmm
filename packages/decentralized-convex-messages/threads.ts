@@ -219,18 +219,28 @@ export async function threadSummaries(
   if (args.messageIds.length > MAX_REACTION_MESSAGES) {
     fail("TOO_MANY_MESSAGES");
   }
-  const summaries: ThreadSummary[] = [];
-  for (const messageId of new Set(args.messageIds)) {
-    const row = await threadRow(ctx, messageId);
-    if (row?.conversationId !== args.conversationId) continue;
-    summaries.push({
-      lastReplyAt: row.lastReplyAt,
-      replyCount: row.replyCount,
-      repliers: row.repliers,
-      threadId: row.threadId,
-    });
-  }
-  return { routes: await memberAddresses(ctx, conversation), summaries };
+  // Read concurrently, like reactions.
+  const [rows, routes] = await Promise.all([
+    Promise.all(
+      [...new Set(args.messageIds)].map((messageId) =>
+        threadRow(ctx, messageId),
+      ),
+    ),
+    memberAddresses(ctx, conversation),
+  ]);
+  const summaries: ThreadSummary[] = rows.flatMap((row) =>
+    row?.conversationId === args.conversationId
+      ? [
+          {
+            lastReplyAt: row.lastReplyAt,
+            replyCount: row.replyCount,
+            repliers: row.repliers,
+            threadId: row.threadId,
+          },
+        ]
+      : [],
+  );
+  return { routes, summaries };
 }
 
 export async function threadState(

@@ -1,3 +1,5 @@
+import type { DiscoveredPds } from "@decentralized-convex/address";
+
 import type {
   AnyPdsQueryRequest,
   DefaultCombinedPdsResult,
@@ -8,8 +10,10 @@ import type {
   FederatedQuerySnapshot,
   FederationSourceSnapshot,
   FederationTarget,
+  IncludedPdsQuery,
 } from "./types.ts";
 import { PdsInitialResponseTimeoutError } from "./errors.ts";
+import { includedOnHome } from "./included.ts";
 import { PdsClient } from "./pds.ts";
 import { createFederatedSnapshot } from "./snapshot.ts";
 import { groupFederationTargets } from "./targets.ts";
@@ -25,8 +29,11 @@ export class RoutedPdsQueryObserver<
     string,
     ReturnType<typeof setTimeout>
   >();
+  #included: readonly IncludedPdsQuery[] = [];
   readonly #listeners = new Set<() => void>();
   readonly #request;
+  readonly #homeTarget;
+  readonly #knownPds;
   readonly #revealPartialResultsAfter;
   readonly #resolveRoutes;
   readonly #sources = new Map<
@@ -47,6 +54,8 @@ export class RoutedPdsQueryObserver<
     home: FederationTarget;
     initialResponseTimeout: number;
     request: Request;
+    /** PDSs by domain, to tell which included results are complete. */
+    knownPds?: ReadonlyMap<string, DiscoveredPds>;
     revealPartialResultsAfter: number;
     resolveRoutes: (
       routes: readonly string[],
@@ -59,6 +68,8 @@ export class RoutedPdsQueryObserver<
     };
     this.#initialResponseTimeout = options.initialResponseTimeout;
     this.#request = options.request;
+    this.#homeTarget = options.home;
+    this.#knownPds = options.knownPds ?? new Map<string, DiscoveredPds>();
     this.#revealPartialResultsAfter = options.revealPartialResultsAfter;
     this.#resolveRoutes = options.resolveRoutes;
     this.#sources.set(this.#home.url, {
@@ -99,7 +110,15 @@ export class RoutedPdsQueryObserver<
     });
     const unsubscribe = client.watchQueryWithRouting(
       this.#request,
-      ({ data, routes }) => {
+      ({ data, included, routes }) => {
+        // Before the result itself, so a cache shows both at once.
+        if (included.length > 0 || this.#included.length > 0) {
+          this.#included = includedOnHome(
+            included,
+            this.#homeTarget,
+            this.#knownPds,
+          );
+        }
         this.#update(this.#home.url, { data, status: "live" });
         void this.#reconcileRoutes(routes).catch(() => {
           // The point query exposes route-discovery failures through its normal error result.
@@ -191,9 +210,15 @@ export class RoutedPdsQueryObserver<
   }
 
   #publish() {
-    let snapshot = createFederatedSnapshot<PdsRequestResult<Request>, Combined>(
-      [...this.#sources.values()],
-    );
+    let snapshot: FederatedQuerySnapshot<
+      Combined,
+      PdsRequestResult<Request>
+    > = {
+      ...createFederatedSnapshot<PdsRequestResult<Request>, Combined>([
+        ...this.#sources.values(),
+      ]),
+      included: this.#included,
+    };
 
     if (!this.#routesResolved && snapshot.status !== "error") {
       snapshot = { ...snapshot, status: "pending" };

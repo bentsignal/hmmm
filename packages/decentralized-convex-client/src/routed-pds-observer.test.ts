@@ -49,6 +49,54 @@ void test("times out an initial live source and recovers when it later responds"
   await client.close();
 });
 
+void test("passes on included results the home PDS answers completely", async () => {
+  const connections = new Map<string, ControlledConnection>();
+  const client = new DecentralizedConvexClient({
+    connectionFactory: (url) => {
+      const connection = new ControlledConnection();
+      connections.set(url, connection);
+      return connection;
+    },
+    pds: {
+      discover: (domain) => Promise.resolve(discoveredPds(domain)),
+      home: discoveredPds("a.test"),
+    },
+  });
+  const observer = client.watchPdsQuery(listNotesRequest);
+  const local = {
+    ...listNotesRequest,
+    operation: { args: { id: "1" }, type: "get" },
+  };
+  const remote = {
+    ...listNotesRequest,
+    operation: { args: { id: "2" }, type: "get" },
+  };
+
+  connections.get("https://a.test")?.emit(
+    [{ body: "a" }],
+    [],
+    [
+      { request: local, routes: ["someone@a.test"], value: { body: "one" } },
+      { request: remote, routes: ["someone@b.test"], value: null },
+    ],
+  );
+  await wait(0);
+
+  const snapshot = observer.getSnapshot();
+  assert.equal(snapshot.status, "success");
+  assert.deepEqual(
+    snapshot.included?.map(({ request, snapshot: included }) => [
+      request,
+      included.status,
+      included.data,
+    ]),
+    [[local, "success", [{ body: "one" }]]],
+  );
+
+  observer.close();
+  await client.close();
+});
+
 const listNotesRequest = {
   lastChanged: corePackage.lastChanged,
   operation: { args: {}, type: "list" },
@@ -60,6 +108,7 @@ class ControlledConnection implements FederationConnection {
   #publish?: (
     value: readonly { body: string }[],
     routes: readonly string[],
+    included: readonly unknown[],
   ) => void;
 
   close() {
@@ -83,8 +132,8 @@ class ControlledConnection implements FederationConnection {
     _args: FunctionArgs<Query>,
     onResult: (result: FunctionReturnType<Query>) => void,
   ) {
-    this.#publish = (value, routes) => {
-      const result = { routes, value };
+    this.#publish = (value, routes, included) => {
+      const result = { included, routes, value };
       // The controlled connection only receives the PDS root query in this test.
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       onResult(result as FunctionReturnType<Query>);
@@ -94,8 +143,12 @@ class ControlledConnection implements FederationConnection {
     };
   }
 
-  emit(value: readonly { body: string }[], routes: readonly string[] = []) {
-    this.#publish?.(value, routes);
+  emit(
+    value: readonly { body: string }[],
+    routes: readonly string[] = [],
+    included: readonly unknown[] = [],
+  ) {
+    this.#publish?.(value, routes, included);
   }
 }
 

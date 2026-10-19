@@ -82,6 +82,17 @@ useQuery(pdsQuery({ query, args, options }))
   -> per-source results merged into the application's TanStack cache
 ```
 
+A query's result can also name the queries the app asks for next to show it
+(`queryResult(data, { include, routes })` in `@decentralized-convex/server`):
+a page of messages includes its reactions, thread summaries, and the profiles
+it shows; the Inbox includes the profiles its rows show. The root router
+answers them in the same Convex query, one Component call per plugin
+(`dispatchQueries`), and the client caches each under the key the app would
+use, so the screen needs one round trip instead of a chain of them. Only
+results the home PDS answers completely are cached this way; one whose routes
+lead to other PDSs is left for its own query, and an app or PDS that predates
+included queries just asks for each one as before.
+
 A write follows the same path through `pds:dispatchMutation`, targeting only the
 author's home PDS. The root router resolves identity once and passes the small
 identity value across one Component boundary.
