@@ -6,6 +6,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import type { ComposerHandle } from "~/features/conversation/composer";
 import type { MessageListHandle } from "~/features/conversation/message-list";
 import type { MessageLayout } from "~/features/preferences/store";
+import { Pending } from "~/components/pending";
 import { useComposerBottomInset } from "~/features/conversation/composer";
 import {
   CONVERSATION_HEADER_HEIGHT,
@@ -26,6 +27,8 @@ import { useMarkRead, useMessages } from "~/features/messaging/messages";
 import { useTypingReporter, useTypists } from "~/features/messaging/typing";
 import { useActiveConversation } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
+import { useAccountPending } from "~/features/saved/offline-pill";
+import { useSavedConversation } from "~/features/saved/show-saved";
 
 /**
  * What the header shows: the title, photo, and badge arrive together, so
@@ -102,6 +105,42 @@ function MissingConversation({ heading }: { heading: string }) {
   );
 }
 
+/** What an open conversation keeps up: its read state, and push and dev. */
+function useWhileOpen(
+  conversationId: string,
+  messages: ReturnType<typeof useMessages>,
+) {
+  useMarkRead(conversationId, messages.newestSentAt);
+  useActiveConversation(conversationId);
+  useDevConversation(conversationId, messages);
+}
+
+/** The composer, and replying and editing through it. */
+function useComposing(
+  options: Omit<Parameters<typeof useReplies>[0], "composer">,
+) {
+  const composer = useRef<ComposerHandle>(null);
+  const replies = useReplies({ ...options, composer });
+  const editing = useEditing({
+    composer,
+    conversationId: options.conversationId,
+  });
+  return { composer, editing, replies };
+}
+
+/**
+ * What shows while the conversation opens (`usePending`), and what's saved
+ * of it if it's slow to (`useSavedConversation`).
+ */
+function useOpening(
+  conversationId: string,
+  messages: ReturnType<typeof useMessages>,
+  shown: boolean,
+) {
+  useSavedConversation(conversationId, messages, !shown);
+  return useAccountPending(!shown);
+}
+
 function Conversation({
   conversationId,
   anchorId,
@@ -122,24 +161,23 @@ function Conversation({
   const layout = useMessageLayout(conversation?.kind);
   const notices = useMemberNotices(conversationId, conversation, messages);
   const typing = useConversationTyping(conversationId, messages.messages);
-  const composer = useRef<ComposerHandle>(null);
   // Undefined until the composer is laid out: the list leaves room for it
   // under the newest message, so it waits rather than shift once it knows.
   const [composerHeight, setComposerHeight] = useState<number>();
   const list = useRef<MessageListHandle>(null);
-  useMarkRead(conversationId, messages.newestSentAt);
-  useActiveConversation(conversationId);
-  useDevConversation(conversationId, messages);
+  useWhileOpen(conversationId, messages);
 
   const header = headerFor(loaded, address, initialTitle);
   const heading = header.title;
-  const replies = useReplies({
-    composer,
+  const { composer, editing, replies } = useComposing({
     conversationId,
     profileOf,
     title: heading,
   });
-  const editing = useEditing({ composer, conversationId });
+  const shown =
+    listReady([messages, notices], layout, profilesLoaded) &&
+    composerHeight !== undefined;
+  const pending = useOpening(conversationId, messages, shown);
   if (!isLoading && conversation === undefined) {
     return (
       <MissingConversation
@@ -152,33 +190,33 @@ function Conversation({
     <View className="bg-background flex-1">
       <Stack.Title>{heading}</Stack.Title>
       <KeyboardGestureArea interpolator="ios" offset={60} style={{ flex: 1 }}>
-        {listReady([messages, notices], layout, profilesLoaded) &&
-          composerHeight !== undefined && (
-            <MessageList
-              ref={list}
-              key={messages.viewKey}
-              messages={messages.messages}
-              notices={notices.notices}
-              self={address}
-              layout={layout}
-              profileOf={profileOf}
-              showAuthors={conversation?.kind !== "direct"}
-              anchorId={messages.anchor}
-              hasNewer={messages.hasNewer}
-              onLoadOlder={messages.loadOlder}
-              onLoadNewer={messages.loadNewer}
-              onJumpToLatest={messages.jumpToLatest}
-              bottomInset={composerBottomInset}
-              topInset={CONVERSATION_HEADER_HEIGHT}
-              composerHeight={composerHeight}
-              typists={typing.typists}
-              onToggleReaction={messages.toggleReaction}
-              onOpenThread={replies.openThread}
-              onReply={replies.reply}
-              editing={editing}
-              onViewReactions={viewReactions}
-            />
-          )}
+        <Pending phase={pending} />
+        {shown && pending === "ready" && (
+          <MessageList
+            ref={list}
+            key={messages.viewKey}
+            messages={messages.messages}
+            notices={notices.notices}
+            self={address}
+            layout={layout}
+            profileOf={profileOf}
+            showAuthors={conversation?.kind !== "direct"}
+            anchorId={messages.anchor}
+            hasNewer={messages.hasNewer}
+            onLoadOlder={messages.loadOlder}
+            onLoadNewer={messages.loadNewer}
+            onJumpToLatest={messages.jumpToLatest}
+            bottomInset={composerBottomInset}
+            topInset={CONVERSATION_HEADER_HEIGHT}
+            composerHeight={composerHeight}
+            typists={typing.typists}
+            onToggleReaction={messages.toggleReaction}
+            onOpenThread={replies.openThread}
+            onReply={replies.reply}
+            editing={editing}
+            onViewReactions={viewReactions}
+          />
+        )}
       </KeyboardGestureArea>
       <ConversationHeader
         title={heading}

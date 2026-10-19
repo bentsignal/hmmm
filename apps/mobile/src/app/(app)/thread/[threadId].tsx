@@ -10,6 +10,7 @@ import {
 
 import type { ComposerHandle } from "~/features/conversation/composer";
 import type { MessageListHandle } from "~/features/conversation/message-list";
+import { Pending } from "~/components/pending";
 import { useComposerBottomInset } from "~/features/conversation/composer";
 import { FloatingComposer } from "~/features/conversation/floating-composer";
 import { mentionableIn } from "~/features/conversation/mentionable";
@@ -32,6 +33,7 @@ import {
 import { useTypingReporter, useTypists } from "~/features/messaging/typing";
 import { useActiveThread } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
+import { useAccountPending } from "~/features/saved/offline-pill";
 
 /** The conversation's name from the opening screen, until it loads. */
 function headingFor(title: string, initialTitle: string | undefined) {
@@ -97,6 +99,15 @@ function shownList<Layout, Root>({
   return { composerHeight, layout, root };
 }
 
+/** The composer, its draft, and editing through it. */
+function useDraft(conversationId: string, threadId: string) {
+  const composer = useRef<ComposerHandle>(null);
+  // A thread's draft is its own, apart from the conversation's.
+  const draftId = `${conversationId} thread:${threadId}`;
+  const editing = useEditing({ composer, conversationId, draftId });
+  return { composer, draftId, editing };
+}
+
 /** What an open thread keeps up: its read state, and push and dev. */
 function useWhileOpen(
   conversationId: string,
@@ -158,10 +169,7 @@ function Thread({
   const typing = useThreadTyping(conversationId, threadId, thread.messages);
   const [composerHeight, setComposerHeight] = useState<number>();
   const list = useRef<MessageListHandle>(null);
-  const composer = useRef<ComposerHandle>(null);
-  // A thread's draft is its own, apart from the conversation's.
-  const draftId = `${conversationId} thread:${threadId}`;
-  const editing = useEditing({ composer, conversationId, draftId });
+  const { composer, draftId, editing } = useDraft(conversationId, threadId);
   useWhileOpen(conversationId, threadId, thread);
 
   const heading = headingFor(title, initialTitle);
@@ -178,6 +186,8 @@ function Thread({
     root: thread.root,
   });
 
+  const pending = useAccountPending(shown === null && !missing);
+
   return (
     <View className="bg-background flex-1">
       <Stack.Title>Thread</Stack.Title>
@@ -189,7 +199,8 @@ function Thread({
         </View>
       )}
       <KeyboardGestureArea interpolator="ios" offset={60} style={{ flex: 1 }}>
-        {shown !== null && (
+        <Pending phase={pending} />
+        {shown !== null && pending === "ready" && (
           <MessageList
             ref={list}
             key={thread.viewKey}

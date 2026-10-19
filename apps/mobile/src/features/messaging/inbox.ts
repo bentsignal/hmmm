@@ -85,7 +85,7 @@ function summarize(
  * in a direct conversation, an unnamed group's members (its title), and
  * the last message's author.
  */
-function rowProfiles(account: string, conversation: Conversation) {
+export function rowProfiles(account: string, conversation: Conversation) {
   const { kind, lastMessage, members, name } = conversation;
   const others = members.filter((member) => member !== account);
   const titled =
@@ -98,6 +98,16 @@ function rowProfiles(account: string, conversation: Conversation) {
   return author === undefined || author === account
     ? titled
     : [...titled, author];
+}
+
+/** An account's Inbox: its conversations, with the channels it shows. */
+export function inboxQuery(session: string) {
+  return pdsQuery({
+    args: { channels: true },
+    options: { select: pdsResult },
+    query: pds.messages.inbox,
+    session,
+  });
 }
 
 /**
@@ -116,16 +126,7 @@ export function useInbox({ account }: { account?: string } = {}) {
   const visible = useVisibleAccounts();
   const accounts =
     account === undefined ? visible.map((item) => item.address) : [account];
-  const inboxes = useQueries({
-    queries: accounts.map((session) =>
-      pdsQuery({
-        args: { channels: true },
-        options: { select: pdsResult },
-        query: pds.messages.inbox,
-        session,
-      }),
-    ),
-  });
+  const inboxes = useQueries({ queries: accounts.map(inboxQuery) });
   const conversations = inboxes.flatMap((inbox, index) =>
     (inbox.data ?? []).map((conversation) => {
       const owner = accounts[index] ?? "";

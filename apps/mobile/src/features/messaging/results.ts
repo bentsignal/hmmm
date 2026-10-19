@@ -1,4 +1,5 @@
 import type { PdsQueryData } from "@decentralized-convex/tanstack-query";
+import { PdsInitialResponseTimeoutError } from "@decentralized-convex/client";
 
 /** The merged result once any PDS has answered, otherwise undefined. */
 export function pdsResult<Result, Source>(
@@ -11,13 +12,35 @@ export function pdsResult<Result, Source>(
 }
 
 /**
+ * Whether a query failed only because its PDSs haven't answered yet. They
+ * may still: it isn't an answer that there's nothing.
+ */
+function unanswered<Result, Source>(
+  data: Extract<PdsQueryData<Result, Source>, { status: "error" }>,
+) {
+  if (data.error instanceof PdsInitialResponseTimeoutError) return true;
+  const { sources } = data.federation;
+  return (
+    sources.length > 0 &&
+    sources.every(
+      (source) =>
+        source.status === "error" &&
+        source.error instanceof PdsInitialResponseTimeoutError,
+    )
+  );
+}
+
+/**
  * Like `pdsResult`, but `fallback` once the PDS has failed, for optional
  * extras (such as from a PDS that predates them) that shouldn't hold up a
- * screen.
+ * screen. A PDS that hasn't answered hasn't failed: still undefined, so an
+ * unreachable server doesn't look empty.
  */
 export function pdsResultOr<Result, Source, Fallback>(
   data: PdsQueryData<Result, Source> | undefined,
   fallback: Fallback,
 ) {
-  return data?.status === "error" ? fallback : pdsResult(data);
+  return data?.status === "error" && !unanswered(data)
+    ? fallback
+    : pdsResult(data);
 }

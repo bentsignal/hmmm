@@ -52,6 +52,11 @@ function latestWindow(windowKey: string, reopen = false) {
       ? previous
       : Date.now();
   openedAtByConversation.set(windowKey, openedAt);
+  return windowAt(openedAt);
+}
+
+/** The window over the latest messages as of `openedAt`. */
+function windowAt(openedAt: number) {
   const opened = { before: openedAt + 1 };
   const pages = [opened, { after: openedAt }];
   return { anchor: undefined, initial: pages, opened, pages } satisfies View;
@@ -167,6 +172,25 @@ function windowKeyOf(session: string, source: WindowSource) {
 }
 
 /**
+ * When the conversation's latest window opened this app session, if it
+ * has: its pages are the latest messages a screen has shown.
+ */
+export function latestOpenedAt(session: string, conversationId: string) {
+  return openedAtByConversation.get(windowKeyOf(session, { conversationId }));
+}
+
+/** The pages of the conversation's latest window opened at `openedAt`. */
+export function latestPageQueries(
+  session: string,
+  conversationId: string,
+  openedAt: number,
+) {
+  return windowAt(openedAt).pages.map((cursor) =>
+    listPageQuery(session, conversationId, cursor),
+  );
+}
+
+/**
  * A scrollable window over a conversation (or a thread's replies), oldest
  * first, that can open at the latest message or around a specific one and
  * grow in either direction.
@@ -268,6 +292,15 @@ export function useMessageWindow(
     hasOlder,
     /** Drops the loaded pages and reopens at the latest message. */
     jumpToLatest: () => setView(latestWindow(windowKey, true)),
+    /**
+     * Opens instead at the latest messages as they were at `openedAt`, as
+     * saved then (see `features/saved`). Messages since then join below
+     * them as they load, so nothing already showing moves.
+     */
+    openAt: (openedAt: number) => {
+      openedAtByConversation.set(windowKey, openedAt);
+      setView(windowAt(openedAt));
+    },
     loadNewer,
     loadOlder,
     messages,

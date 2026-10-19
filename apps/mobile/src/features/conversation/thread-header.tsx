@@ -7,7 +7,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
 import { GlassSurface } from "~/components/glass-surface";
-import { BUTTON, GlassCircleButton, TopEdge } from "./conversation-header";
+import {
+  BUTTON,
+  GlassCircleButton,
+  HeaderOfflinePill,
+  TopEdge,
+} from "./conversation-header";
 
 /**
  * Height of the thread's header below the status bar. Replies rest below
@@ -38,6 +43,7 @@ export function ThreadHeader({
   return (
     <>
       <TopEdge height={THREAD_HEADER_HEIGHT} />
+      <HeaderOfflinePill height={THREAD_HEADER_HEIGHT} />
       <LayoutAnimationConfig skipEntering>
         <View
           // Drags between the buttons still scroll the replies beneath.

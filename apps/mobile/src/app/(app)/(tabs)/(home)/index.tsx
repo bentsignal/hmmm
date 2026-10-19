@@ -14,6 +14,7 @@ import { HomeTabs } from "~/features/home/home-tabs";
 import { HOME_PAGES } from "~/features/home/pages";
 import { InboxList } from "~/features/inbox/inbox-list";
 import { useInboxOnScreen } from "~/features/notifications/push";
+import { OfflinePill, useHomeOffline } from "~/features/saved/offline-pill";
 import { SpacesList } from "~/features/spaces/spaces-list";
 import { lightImpact } from "~/lib/native-extras";
 
@@ -32,6 +33,7 @@ export default function HomeScreen() {
   const [page, setPage] = useState(0);
   const current = HOME_PAGES[page]?.key ?? "inbox";
   const isInbox = current === "inbox";
+  const offline = useHomeOffline();
   useInboxOnScreen(isInbox);
 
   function changePage(index: number) {
@@ -95,6 +97,7 @@ export default function HomeScreen() {
           <SpacesList />
         </PagerPage>
       </HomePager>
+      <OfflinePill shown={offline} top={8} />
     </>
   );
 }

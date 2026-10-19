@@ -3,6 +3,7 @@ import type {
   AnyPdsQueryRequest,
   DecentralizedConvexClient,
   DefaultCombinedPdsResult,
+  FederatedQueryStatus,
   IncludedPdsQuery,
   PdsMutationOptions,
   PdsQueryData,
@@ -203,10 +204,11 @@ export class PdsQueryClient {
       }
       if (requireCompleteResults && snapshot.status !== "success") return;
       // A result already in the cache (from an earlier subscription, such
-      // as a screen opened again, or from a fetch or prefetch) stays until
-      // this subscription answers, instead of going back to loading.
+      // as a screen opened again, from a fetch or prefetch, or one the app
+      // saved on the device) stays until this subscription answers,
+      // instead of going back to loading or, offline, to an error.
       if (
-        snapshot.status === "pending" &&
+        !answers(snapshot.status) &&
         hasResult(queryClient.getQueryData(query.queryKey))
       ) {
         return;
@@ -296,8 +298,13 @@ function isPdsQueryRequest(value: unknown): value is AnyPdsQueryRequest {
   );
 }
 
+/** Whether a query's state is an answer, rather than none yet. */
+function answers(status: FederatedQueryStatus) {
+  return status === "partial" || status === "success";
+}
+
 /** Whether cached PDS query data holds a result to keep showing. */
-function hasResult(data: unknown) {
+export function hasResult(data: unknown) {
   return (
     isRecord(data) && (data.status === "partial" || data.status === "success")
   );

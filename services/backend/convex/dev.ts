@@ -18,6 +18,7 @@ import {
   requireCaller,
   requireDevTools,
 } from "./devBots";
+import { seedFull as seedFullConversations } from "./devFullSeed";
 import { seedReleaseTest } from "./devReleaseTest";
 import {
   longThreadAnchor,
@@ -49,6 +50,22 @@ export const seed = action({
     await seedGroup(ctx, me, authors);
     await seedSpaceInvite(ctx, me, bots);
     return { spaceId: await seedSpace(ctx, me, bots, authors) };
+  },
+});
+
+/**
+ * As many full conversations as the app keeps on the device, for
+ * measuring what that costs and trying the app offline (devFullSeed.ts).
+ */
+export const seedFull = action({
+  args: {},
+  handler: async (ctx) => {
+    const caller = await requireCaller(ctx);
+    await seedProfiles(ctx);
+    return seedFullConversations(ctx, {
+      address: caller.accountId,
+      name: caller.name,
+    });
   },
 });
 

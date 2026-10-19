@@ -24,7 +24,10 @@ export {
   PDS_DNS_LABEL,
 } from "@decentralized-convex/address";
 export type { DiscoveredPds, PdsManifest } from "@decentralized-convex/address";
-export { createConvexPdsConnection } from "./connection.ts";
+export {
+  createConvexFederationConnection,
+  createConvexPdsConnection,
+} from "./connection.ts";
 export {
   definePdsApi,
   pdsApiRequirements,

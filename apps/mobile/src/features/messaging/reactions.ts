@@ -55,7 +55,8 @@ export interface ReactionSummary {
   readonly accounts: readonly string[];
 }
 
-function chunks(ids: readonly string[]) {
+/** A page's message IDs in the batches its reactions are asked for in. */
+export function chunks(ids: readonly string[]) {
   return Array.from(
     { length: Math.ceil(ids.length / MAX_REACTION_MESSAGES) },
     (_, index) =>
@@ -162,6 +163,25 @@ function summarize(
   );
 }
 
+/** The reactions to one batch of a page's messages. */
+export function reactionsQuery(
+  session: string,
+  conversationId: string,
+  messageIds: readonly string[],
+) {
+  return pdsQuery({
+    args: { conversationId, messageIds: [...messageIds] },
+    options: {
+      enabled: messageIds.length > 0,
+      // A PDS that can't answer leaves the messages without reactions
+      // rather than holding them back.
+      select: (result) => pdsResultOr(result, [])?.flat(),
+    },
+    query: pds.messages.reactions,
+    session,
+  });
+}
+
 /**
  * Reactions to the loaded messages (one query per page, so paging never
  * refetches what is on screen) and a toggle that shows immediately.
@@ -176,27 +196,17 @@ export function useReactions(
   );
   const batches = pageMessageIds.flatMap(chunks);
   const held = useHeldBatches();
-  function reactionsQuery(messageIds: readonly string[]) {
-    return pdsQuery({
-      args: { conversationId, messageIds: [...messageIds] },
-      options: {
-        enabled: messageIds.length > 0,
-        // A PDS that can't answer leaves the messages without reactions
-        // rather than holding them back.
-        select: (result) => pdsResultOr(result, [])?.flat(),
-      },
-      query: pds.messages.reactions,
-      session,
-    });
+  function batchQuery(messageIds: readonly string[]) {
+    return reactionsQuery(session, conversationId, messageIds);
   }
   const { loaded, ownLoaded, reactions } = useQueries({
-    queries: batches.map(reactionsQuery),
+    queries: batches.map(batchQuery),
     // TanStack shares this structurally with the last result, so a message
     // whose reactions didn't change keeps the same array and its row
     // doesn't redraw.
     combine: (results) => {
       const answers = batches.map((messageIds, index) =>
-        held.answer(messageIds, results[index]?.data, reactionsQuery),
+        held.answer(messageIds, results[index]?.data, batchQuery),
       );
       return {
         loaded: batches.flatMap((messageIds, index) =>

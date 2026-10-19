@@ -1,22 +1,51 @@
 import { useState } from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { Button, FieldGroup, Text } from "@expo/ui";
+import { Button, FieldGroup, Row, Spacer, Text } from "@expo/ui";
 
+import type { ServerDelay } from "./server-delay";
+import { ChoiceMenu } from "~/components/choice-menu";
 import { useAccount } from "~/features/messaging/account";
+import { forgetForNow } from "~/features/saved/saving";
+import { fillRow } from "~/lib/ui-modifiers";
 import { useDevTools } from "./dev-tools";
+import { setServerDelay, useServerDelay } from "./server-delay";
+
+const DELAYS = [
+  { label: "Right Away", value: "off" },
+  { label: "After 1.5 Seconds", value: "quick" },
+  { label: "After 3 Seconds", value: "slow" },
+  { label: "After 10 Seconds", value: "stalled" },
+  { label: "Never", value: "never" },
+] as const satisfies readonly { label: string; value: ServerDelay }[];
+
+/** Development only: picks how long the PDS takes to answer (`server-delay.ts`). */
+function ServerAnswersRow() {
+  const delay = useServerDelay();
+  return (
+    <Row alignment="center" modifiers={fillRow}>
+      <Text>Server Answers</Text>
+      <Spacer flexible />
+      <ChoiceMenu<ServerDelay>
+        value={delay}
+        choices={DELAYS}
+        onChange={setServerDelay}
+      />
+    </Row>
+  );
+}
 
 /** Account screen section for the dev PDS. Hidden in preview and store builds. */
 export function DeveloperSection() {
   const devTools = useDevTools();
   const router = useRouter();
-  const { address } = useAccount();
+  const { address, session } = useAccount();
   const [seeding, setSeeding] = useState(false);
   if (!devTools.enabled) return null;
 
-  async function seed() {
+  async function seed(full = false) {
     setSeeding(true);
-    const failed = await devTools.seed().then(
+    const failed = await (full ? devTools.seedFull() : devTools.seed()).then(
       () => false,
       () => true,
     );
@@ -25,7 +54,9 @@ export function DeveloperSection() {
       failed ? "Seeding Failed" : "Seeded",
       failed
         ? "Check the dev deployment logs."
-        : "Bots added DMs, a group, and the Bot Lounge space.",
+        : full
+          ? "Bots filled DMs, 8 groups, and the Storage Lab space."
+          : "Bots added DMs, a group, and the Bot Lounge space.",
     );
   }
 
@@ -54,9 +85,27 @@ export function DeveloperSection() {
         onPress={() => void seed()}
       />
       <Button
+        label={seeding ? "Seeding…" : "Seed 20 Full Conversations"}
+        variant="text"
+        disabled={seeding}
+        onPress={() => void seed(true)}
+      />
+      <Button
         label="Open a Long Thread in the Middle"
         variant="text"
         onPress={() => void openLongThread()}
+      />
+      <ServerAnswersRow />
+      <Button
+        label="Forget Saved Conversations"
+        variant="text"
+        onPress={() => {
+          forgetForNow(session.storagePrefix);
+          Alert.alert(
+            "Saved Conversations Forgotten",
+            "Nothing more is saved until Vera opens again.",
+          );
+        }}
       />
       <FieldGroup.SectionFooter>
         <Text>
