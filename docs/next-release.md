@@ -46,6 +46,10 @@ gh label create "user report" --repo bentsignal/vera --color 0E8A16 \
 `bentsignal/vera`, and `gh label list --repo bentsignal/vera` shows
 "user report".
 
+`PARALLEL_API_KEY` (Vera's web search) is already set on production, the
+shared dev deployment, and this PR's isolated one. Check it's there:
+`npx convex env list --prod | cut -d= -f1 | grep PARALLEL_API_KEY`.
+
 ### 2. Create the Vera account and try both assistants
 
 **When:** after the production backend deploy.
@@ -60,7 +64,8 @@ Ask Shawn whether Vera should say hello to every existing account now
 New accounts get the hello either way.
 
 **Verify:** Shawn messages `vera@vera.chat` in the TestFlight app and gets
-a short answer. He sends Vera Support a test bug report (support asks for
+a short answer, and a question about today's news gets a current one
+(`npx convex run usage:summary '{"bot":"vera"}' --prod` shows a search). He sends Vera Support a test bug report (support asks for
 details and shows the public-report notice first); a GitHub issue labeled
 "user report" appears without his address in it. Close that issue as not
 planned, run `npx convex run supportReports:track --prod`, and check that

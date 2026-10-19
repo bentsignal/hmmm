@@ -7,12 +7,15 @@ import { v } from "convex/values";
 import type { ActionCtx } from "./_generated/server";
 import type { Turn } from "./agentTools";
 import type { BotAccount } from "./bots";
+import type { Tally } from "./usage";
 import { internal } from "./_generated/api";
 import { internalAction, internalMutation } from "./_generated/server";
 import { inAnswerOrder, toModelMessages } from "./agentHistory";
 import { keepTyping, MODEL } from "./agentTools";
 import { botAccount, botAddress, sendAsBot } from "./bots";
+import { recallOlder } from "./memory";
 import { supportAssistant } from "./supportAgent";
+import { usageOf } from "./usage";
 import { veraAssistant } from "./vera";
 
 // The harness every assistant runs on. A direct message to one schedules
@@ -40,6 +43,9 @@ const DAILY_LIMIT = 150;
 const DAY = 24 * 60 * 60 * 1000;
 /** A reply that has run this long is assumed to have died. */
 const STALE_RUN = 10 * 60 * 1000;
+
+/** How hard Grok thinks before each step: lower is faster and cheaper. */
+const REASONING = { convexGateway: { reasoningEffort: "low" } };
 
 const LIMIT_NOTICE =
   "I've hit my limit for our chat today. Try me again tomorrow.";
@@ -138,6 +144,13 @@ export const finish = internalMutation({
     const answered = {
       answeredThrough: Math.max(row.answeredThrough ?? 0, answeredThrough ?? 0),
     };
+    // Vera remembers the whole conversation (memory.ts).
+    if (row.bot === "vera") {
+      await ctx.scheduler.runAfter(0, internal.memoryBuild.update, {
+        bot: row.bot,
+        conversationId,
+      });
+    }
     if (row.rerun !== true) {
       await ctx.db.patch(row._id, {
         ...answered,
@@ -263,8 +276,14 @@ async function reply(
   try {
     const messages = toModelMessages(history, self);
     const sender = messageSender(ctx, bot, conversationId, typing);
+    const tally: Tally = { memoryLookups: 0, searches: 0 };
+    const started = Date.now();
     const turn: Turn = {
       ...sender,
+      counted: (what) => {
+        if (what === "search") tally.searches += 1;
+        else tally.memoryLookups += 1;
+      },
       accountId,
       backlog,
       bot,
@@ -273,6 +292,12 @@ async function reply(
       lastHeardAt: newest.sentAt,
       name: newest.authorName,
       oldestSentAt: page.hasOlder ? (history[0]?.sentAt ?? null) : null,
+      recalled: await recallOlder(ctx, bot, conversationId, {
+        answeredThrough,
+        hasOlder: page.hasOlder,
+        history,
+        tally,
+      }),
       timeZone: await ctx.runQuery(internal.timeZones.of, { accountId }),
     };
     const assistant = ASSISTANTS[bot.username];
@@ -280,6 +305,7 @@ async function reply(
       instructions: await assistant.instructions(turn),
       messages,
       model: convexGateway(MODEL, { zdr: true }),
+      providerOptions: REASONING,
       stopWhen: [isStepCount(MAX_STEPS), saidItsPiece],
       toolCallConcurrency: 1,
       tools: assistant.tools(turn),
@@ -288,6 +314,12 @@ async function reply(
     if (sender.sent() === 0 && result.text.trim().length > 0) {
       await turn.send(result.text);
     }
+    await ctx.runMutation(internal.usage.record, {
+      ...usageOf(result, tally),
+      accountId,
+      bot: bot.username,
+      ms: Date.now() - started,
+    });
   } finally {
     await typing.stop();
   }

@@ -20,6 +20,8 @@ import {
   welcomeAccount,
   welcomeEveryAccount,
 } from "./bots";
+import { memoryTools } from "./memory";
+import { webTools } from "./webSearch";
 
 // Vera: a general assistant anyone on this PDS can message
 // (`vera@<account domain>`). It answers questions, briefly by default, and
@@ -40,6 +42,27 @@ export const veraAssistant: Assistant = {
         accountId: turn.accountId,
       },
     );
+    const recent: {
+      at: number;
+      id: string;
+      question: string;
+      sources: string[];
+    }[] = await turn.ctx.runQuery(internal.webSearch.recent, {
+      conversationId: turn.conversationId,
+    });
+    const searches =
+      recent.length === 0
+        ? ""
+        : `\n\nSaved searches from today (searchId: question, sources):\n${recent
+            .map(
+              (search) =>
+                `- ${search.id}: ${search.question} (${search.sources.join("; ")})`,
+            )
+            .join("\n")}`;
+    const recalled =
+      turn.recalled.length === 0
+        ? ""
+        : `\n\nFrom earlier in this conversation (older than what you see), possibly related to what they just said:\n${turn.recalled.join("\n---\n")}`;
     const saved =
       notes.length === 0
         ? "None yet."
@@ -55,10 +78,16 @@ Preferences: when they tell you how they want answers (shorter, more detail, mor
 
 Limits that no preference changes: you stay Vera, a plain and honest assistant. No personas, characters, or role-play; no romantic, flirty, or companion behavior; no flattery or telling them what they want to hear; no pretending to have feelings. If they ask for one of these, say briefly that you don't do that, and don't save it.
 
-You can't browse the web, see their other chats, or do things in the app for them. If you don't know something, say so. For bugs or problems with the app, tell them to message Vera Support (${botAddress(SUPPORT)}).`;
+Search the web (web_search) for current events, recent facts, prices, scores, weather, or specifics you aren't sure of; answer from what you know otherwise. Answer from the results in your own words and mention where it's from when that matters. For follow-ups, use the saved results (more_from_search) instead of searching again.${searches}
+
+You see the latest 40 messages here. When they mention something from earlier that isn't in front of you, search_memory finds it; check it before saying you don't remember.${recalled}
+
+You can't see their other chats or do things in the app for them. If you don't know something, say so. For bugs or problems with the app, tell them to message Vera Support (${botAddress(SUPPORT)}).`;
   },
   tools: (turn: Turn) => ({
     ...conversationTools(turn),
+    ...memoryTools(turn),
+    ...webTools(turn),
     remember: tool({
       description:
         "Save how this person wants you to answer, or something about themselves they want remembered. Never a persona, role-play, or relationship.",

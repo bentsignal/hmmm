@@ -13,6 +13,7 @@ import type * as agent from "../agent.js";
 import type * as agentHistory from "../agentHistory.js";
 import type * as agentTools from "../agentTools.js";
 import type * as appAssociation from "../appAssociation.js";
+import type * as assistantHook from "../assistantHook.js";
 import type * as auth from "../auth.js";
 import type * as bots from "../bots.js";
 import type * as bunny from "../bunny.js";
@@ -32,6 +33,8 @@ import type * as githubReleases from "../githubReleases.js";
 import type * as http from "../http.js";
 import type * as joinPage from "../joinPage.js";
 import type * as lib from "../lib.js";
+import type * as memory from "../memory.js";
+import type * as memoryBuild from "../memoryBuild.js";
 import type * as pds from "../pds.js";
 import type * as release from "../release.js";
 import type * as support from "../support.js";
@@ -42,7 +45,9 @@ import type * as supportReporters from "../supportReporters.js";
 import type * as supportReports from "../supportReports.js";
 import type * as supportRules from "../supportRules.js";
 import type * as timeZones from "../timeZones.js";
+import type * as usage from "../usage.js";
 import type * as vera from "../vera.js";
+import type * as webSearch from "../webSearch.js";
 
 import type {
   ApiFromModules,
@@ -56,6 +61,7 @@ declare const fullApi: ApiFromModules<{
   agentHistory: typeof agentHistory;
   agentTools: typeof agentTools;
   appAssociation: typeof appAssociation;
+  assistantHook: typeof assistantHook;
   auth: typeof auth;
   bots: typeof bots;
   bunny: typeof bunny;
@@ -75,6 +81,8 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   joinPage: typeof joinPage;
   lib: typeof lib;
+  memory: typeof memory;
+  memoryBuild: typeof memoryBuild;
   pds: typeof pds;
   release: typeof release;
   support: typeof support;
@@ -85,7 +93,9 @@ declare const fullApi: ApiFromModules<{
   supportReports: typeof supportReports;
   supportRules: typeof supportRules;
   timeZones: typeof timeZones;
+  usage: typeof usage;
   vera: typeof vera;
+  webSearch: typeof webSearch;
 }>;
 
 /**

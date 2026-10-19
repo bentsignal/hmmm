@@ -12,4 +12,12 @@ crons.interval(
   {},
 );
 
+// Vera's saved web search results are only for follow-ups that day.
+crons.daily(
+  "clear old web searches",
+  { hourUTC: 9, minuteUTC: 0 },
+  internal.webSearch.clearOld,
+  {},
+);
+
 export default crons;

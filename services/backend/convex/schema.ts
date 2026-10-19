@@ -59,6 +59,60 @@ export default defineSchema({
     reportedAt: v.number(),
     update: v.string(),
   }).index("by_account", ["accountId"]),
+  /**
+   * Vera's memory of each conversation: every 10 messages, with an
+   * embedding to find it by meaning (memory.ts).
+   */
+  memoryPassages: defineTable({
+    bot: botName,
+    conversationId: v.string(),
+    embedding: v.array(v.float64()),
+    firstSentAt: v.number(),
+    lastSentAt: v.number(),
+    text: v.string(),
+  })
+    .index("by_conversation_last", ["conversationId", "lastSentAt"])
+    .vectorIndex("by_embedding", {
+      dimensions: 512,
+      filterFields: ["conversationId"],
+      vectorField: "embedding",
+    }),
+  /** Which passage each message is in, to rebuild it after an edit or delete. */
+  memoryLinks: defineTable({
+    messageId: v.string(),
+    passageId: v.id("memoryPassages"),
+  })
+    .index("by_message", ["messageId"])
+    .index("by_passage", ["passageId"]),
+  /** Vera's web searches, kept a day for follow-ups (webSearch.ts). */
+  webSearches: defineTable({
+    accountId: v.string(),
+    conversationId: v.string(),
+    question: v.string(),
+    results: v.array(
+      v.object({
+        excerpts: v.array(v.string()),
+        publishDate: v.union(v.null(), v.string()),
+        title: v.string(),
+        url: v.string(),
+      }),
+    ),
+  })
+    .index("by_conversation", ["conversationId"])
+    .index("by_account", ["accountId"]),
+  /** What each assistant reply cost, for keeping an eye on the bill (usage.ts). */
+  assistantUsage: defineTable({
+    accountId: v.string(),
+    bot: botName,
+    /** Dollars, as the AI Gateway reports them, plus Parallel's search fee. */
+    cost: v.number(),
+    inputTokens: v.number(),
+    memoryLookups: v.number(),
+    ms: v.number(),
+    outputTokens: v.number(),
+    searches: v.number(),
+    steps: v.number(),
+  }).index("by_bot", ["bot"]),
   /** Each person's device time zone, from the app, for assistants' sense of time. */
   timeZones: defineTable({
     accountId: v.string(),

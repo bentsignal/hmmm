@@ -1,4 +1,3 @@
-import type { PdsRouterMutation } from "@decentralized-convex/server";
 import type { FunctionArgs } from "convex/server";
 import { DECENTRALIZED_CONVEX_VERSION } from "@decentralized-convex/core";
 import { v } from "convex/values";
@@ -280,56 +279,6 @@ export const page = internalQuery({
   handler: (ctx, { before, bot, conversationId }) =>
     pageAsBot(ctx, botAccount(bot), conversationId, before),
 });
-
-/** How long a reply waits for more messages, so a burst gets one answer. */
-const REPLY_DELAY = 1500;
-
-/**
- * The router's `afterMutation` (pds.ts): when someone on this PDS sends a
- * direct message to an assistant, its reply runs after a short pause. A
- * newer message moves the reply later, so it answers them together.
- */
-export async function afterPdsMutation(
-  ctx: MutationCtx,
-  { identity, operation, plugin }: PdsRouterMutation,
-) {
-  if (plugin !== "messages" || identity === null) return;
-  if (field(operation, "type") !== "send") return;
-  const conversationId = field(field(operation, "args"), "conversationId");
-  if (typeof conversationId !== "string") return;
-  if (!conversationId.startsWith("direct:")) return;
-  const author = identity.accountId;
-  if (author === undefined) return;
-  const members = conversationId.slice("direct:".length).split(":");
-  if (!members.includes(author)) return;
-  const bot = ASSISTANTS.find(
-    (candidate) =>
-      botAddress(candidate) !== author &&
-      members.includes(botAddress(candidate)),
-  );
-  if (bot === undefined) return;
-  const wakeAt = Date.now() + REPLY_DELAY;
-  const existing = await ctx.db
-    .query("botConversations")
-    .withIndex("by_conversation", (q) => q.eq("conversationId", conversationId))
-    .unique();
-  if (existing === null) {
-    await ctx.db.insert("botConversations", {
-      accountId: author,
-      bot: bot.username,
-      conversationId,
-      dayStart: Date.now(),
-      runsToday: 0,
-      wakeAt,
-    });
-  } else {
-    await ctx.db.patch(existing._id, { wakeAt });
-  }
-  await ctx.scheduler.runAfter(REPLY_DELAY, internal.agent.run, {
-    conversationId,
-    wakeAt,
-  });
-}
 
 export function field(value: unknown, name: string): unknown {
   return typeof value === "object" && value !== null

@@ -89,8 +89,27 @@ Two verified accounts answer direct messages with a model:
   release tags). People who say they're developers also get the links.
   See the `support-inbox` agent skill for the operator commands.
 - `vera@<account domain>` is a general assistant: short, direct answers in
-  plain text, and it remembers how each person wants it to answer when they
-  ask it to (`botNotes`).
+  plain text. It remembers how each person wants it to answer when they ask
+  it to (`botNotes`), searches the web through Parallel (`webSearch.ts`), and
+  remembers the whole conversation (`memory.ts`).
+
+Vera's web search uses Parallel's Search API in fast mode ($1 per 1,000
+searches), which returns short excerpts chosen for the question, capped so
+little text reaches the model. One search per reply (a second only when the
+first finds almost nothing) and 40 per person a day. Results are kept a day
+for follow-up questions and cleared by a daily cron. In testing, an answer
+that searched cost about 1.3¢ and one that didn't about 0.4¢.
+
+Vera's memory: every 4 messages become a passage with an embedding
+(OpenAI text-embedding-3-small at 512 dimensions, through the gateway), in
+Convex vector search. Before each reply, passages older than the 40 messages
+it sees that closely match the new messages (similarity 0.3 or more) are
+added to its instructions, and `search_memory` looks further. Editing or
+deleting a message rebuilds its passage. Passages of 10 messages were tried
+first and matched poorly.
+
+`npx convex run usage:summary '{"bot":"vera"}'` totals what replies cost
+(tokens, dollars, searches), from the gateway's own numbers.
 
 `supportBacklog:pending` and `supportBacklog:answerAll` are a one-time
 pass over conversations from before support answered anyone: it apologizes
@@ -158,6 +177,7 @@ Environment variables on each deployment:
 | `BUNNY_PATH_PREFIX`           | `prod`                               | Folder for this deployment's uploads          |
 | `GITHUB_TOKEN`                | secret                               | Files and follows support's bug reports       |
 | `GITHUB_REPOSITORY`           | `bentsignal/vera`                    | Where support files bug reports               |
+| `PARALLEL_API_KEY`            | secret                               | Vera's web search (Parallel)                  |
 
 Attachment size limits (videos 500 MB, photos 50 MB, other files 100 MB) and
 the 2-minute video cap live in `upload-limits.ts`. The app imports the same
