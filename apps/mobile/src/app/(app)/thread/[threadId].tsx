@@ -30,6 +30,7 @@ import {
   useMarkThreadRead,
   useThreadState,
 } from "~/features/messaging/threads";
+import { useTypingReporter, useTypists } from "~/features/messaging/typing";
 import { useActiveThread } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
 import { useAccountPending } from "~/features/saved/offline-pill";
@@ -98,6 +99,15 @@ function shownList<Layout, Root>({
   return { composerHeight, layout, root };
 }
 
+/** The composer, its draft, and editing through it. */
+function useDraft(conversationId: string, threadId: string) {
+  const composer = useRef<ComposerHandle>(null);
+  // A thread's draft is its own, apart from the conversation's.
+  const draftId = `${conversationId} thread:${threadId}`;
+  const editing = useEditing({ composer, conversationId, draftId });
+  return { composer, draftId, editing };
+}
+
 /** What an open thread keeps up: its read state, and push and dev. */
 function useWhileOpen(
   conversationId: string,
@@ -118,6 +128,17 @@ function shownMessages<Message>({
   root?: Message;
 }) {
   return root === undefined ? messages : [root, ...messages];
+}
+
+/** Who else is typing in a thread, and the reporting of this device's. */
+function useThreadTyping(
+  conversationId: string,
+  threadId: string,
+  messages: Parameters<typeof useTypists>[1]["messages"],
+) {
+  const typists = useTypists(conversationId, { messages, threadId });
+  const report = useTypingReporter(conversationId, threadId);
+  return { report, typists };
 }
 
 /**
@@ -145,12 +166,10 @@ function Thread({
   );
   const layout = useMessageLayout(conversation?.kind);
   const state = useThreadState(conversationId, threadId);
+  const typing = useThreadTyping(conversationId, threadId, thread.messages);
   const [composerHeight, setComposerHeight] = useState<number>();
   const list = useRef<MessageListHandle>(null);
-  const composer = useRef<ComposerHandle>(null);
-  // A thread's draft is its own, apart from the conversation's.
-  const draftId = `${conversationId} thread:${threadId}`;
-  const editing = useEditing({ composer, conversationId, draftId });
+  const { composer, draftId, editing } = useDraft(conversationId, threadId);
   useWhileOpen(conversationId, threadId, thread);
 
   const heading = headingFor(title, initialTitle);
@@ -159,13 +178,12 @@ function Thread({
     threadId,
     heading,
   );
-  const { root } = thread;
-  const missing = !thread.isLoading && root === undefined;
+  const missing = !thread.isLoading && thread.root === undefined;
   const shown = shownList({
     composerHeight,
     layout,
     loading: thread.isLoading || !profilesLoaded,
-    root,
+    root: thread.root,
   });
 
   const pending = useAccountPending(shown === null && !missing);
@@ -199,6 +217,7 @@ function Thread({
             bottomInset={composerBottomInset}
             topInset={THREAD_HEADER_HEIGHT}
             composerHeight={shown.composerHeight}
+            typists={typing.typists}
             onToggleReaction={thread.toggleReaction}
             editing={editing}
             onViewReactions={viewReactions}
@@ -211,7 +230,7 @@ function Thread({
         onOpenConversation={openConversation}
         onToggleFollowing={state.toggle}
       />
-      {root !== undefined && (
+      {thread.root !== undefined && (
         <FloatingComposer
           ref={composer}
           draftId={draftId}
@@ -219,6 +238,7 @@ function Thread({
           edit={editing}
           mentionable={mentionableIn(conversation, address, profileOf)}
           onHeight={setComposerHeight}
+          onChangeText={typing.report}
           onSend={(draft) => {
             thread.sendMessage(draft);
             list.current?.scrollToLatest();

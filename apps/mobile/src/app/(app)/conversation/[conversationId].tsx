@@ -24,6 +24,7 @@ import { AccountScope, useAccount } from "~/features/messaging/account";
 import { useConversation } from "~/features/messaging/conversations";
 import { useMemberNotices } from "~/features/messaging/member-events";
 import { useMarkRead, useMessages } from "~/features/messaging/messages";
+import { useTypingReporter, useTypists } from "~/features/messaging/typing";
 import { useActiveConversation } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
 import { useAccountPending } from "~/features/saved/offline-pill";
@@ -82,6 +83,16 @@ function useOpenInfo(conversationId: string) {
   };
 }
 
+/** Who else is typing here, and the reporting of this device's. */
+function useConversationTyping(
+  conversationId: string,
+  messages: Parameters<typeof useTypists>[1]["messages"],
+) {
+  const typists = useTypists(conversationId, { messages });
+  const report = useTypingReporter(conversationId);
+  return { report, typists };
+}
+
 function MissingConversation({ heading }: { heading: string }) {
   return (
     <View className="bg-background flex-1 items-center justify-center">
@@ -104,6 +115,32 @@ function useWhileOpen(
   useDevConversation(conversationId, messages);
 }
 
+/** The composer, and replying and editing through it. */
+function useComposing(
+  options: Omit<Parameters<typeof useReplies>[0], "composer">,
+) {
+  const composer = useRef<ComposerHandle>(null);
+  const replies = useReplies({ ...options, composer });
+  const editing = useEditing({
+    composer,
+    conversationId: options.conversationId,
+  });
+  return { composer, editing, replies };
+}
+
+/**
+ * What shows while the conversation opens (`usePending`), and what's saved
+ * of it if it's slow to (`useSavedConversation`).
+ */
+function useOpening(
+  conversationId: string,
+  messages: ReturnType<typeof useMessages>,
+  shown: boolean,
+) {
+  useSavedConversation(conversationId, messages, !shown);
+  return useAccountPending(!shown);
+}
+
 function Conversation({
   conversationId,
   anchorId,
@@ -123,7 +160,7 @@ function Conversation({
   const { conversation, isLoading, profileOf, profilesLoaded } = loaded;
   const layout = useMessageLayout(conversation?.kind);
   const notices = useMemberNotices(conversationId, conversation, messages);
-  const composer = useRef<ComposerHandle>(null);
+  const typing = useConversationTyping(conversationId, messages.messages);
   // Undefined until the composer is laid out: the list leaves room for it
   // under the newest message, so it waits rather than shift once it knows.
   const [composerHeight, setComposerHeight] = useState<number>();
@@ -132,18 +169,15 @@ function Conversation({
 
   const header = headerFor(loaded, address, initialTitle);
   const heading = header.title;
-  const replies = useReplies({
-    composer,
+  const { composer, editing, replies } = useComposing({
     conversationId,
     profileOf,
     title: heading,
   });
-  const editing = useEditing({ composer, conversationId });
   const shown =
     listReady([messages, notices], layout, profilesLoaded) &&
     composerHeight !== undefined;
-  useSavedConversation(conversationId, messages, !shown);
-  const pending = useAccountPending(!shown);
+  const pending = useOpening(conversationId, messages, shown);
   if (!isLoading && conversation === undefined) {
     return (
       <MissingConversation
@@ -175,6 +209,7 @@ function Conversation({
             bottomInset={composerBottomInset}
             topInset={CONVERSATION_HEADER_HEIGHT}
             composerHeight={composerHeight}
+            typists={typing.typists}
             onToggleReaction={messages.toggleReaction}
             onOpenThread={replies.openThread}
             onReply={replies.reply}
@@ -195,6 +230,7 @@ function Conversation({
         draftId={conversationId}
         mentionable={mentionableIn(conversation, address, profileOf)}
         onHeight={setComposerHeight}
+        onChangeText={typing.report}
         replyingTo={replies.replyingTo}
         onCancelReply={replies.cancel}
         edit={editing}
