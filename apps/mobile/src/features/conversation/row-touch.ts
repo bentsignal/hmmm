@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
 import type { GestureResponderEvent, View } from "react-native";
 import { createContext, use, useId, useImperativeHandle } from "react";
+import { Dimensions } from "react-native";
 
 import type { MenuTarget } from "./glass-message-menu";
 
@@ -107,7 +108,10 @@ export function usePartTarget(target: PartTarget | undefined) {
   );
 }
 
-/** How far `part` sits from the height `y` on screen; 0 across it. */
+/**
+ * How far `part` sits from the height `y` on screen; 0 across it. One
+ * scrolled off the side (a photo in a carousel) is nowhere near.
+ */
 function distanceTo(part: PartTarget, y: number) {
   return new Promise<number>((resolve) => {
     const view = part.measured.current;
@@ -115,9 +119,10 @@ function distanceTo(part: PartTarget, y: number) {
       resolve(Infinity);
       return;
     }
-    view.measureInWindow((_x, top, _width, height) =>
-      resolve(Math.max(top - y, y - top - height, 0)),
-    );
+    view.measureInWindow((x, top, width, height) => {
+      const offScreen = x + width <= 0 || x >= Dimensions.get("window").width;
+      resolve(offScreen ? Infinity : Math.max(top - y, y - top - height, 0));
+    });
   });
 }
 

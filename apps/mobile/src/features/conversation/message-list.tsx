@@ -29,6 +29,7 @@ import { JumpToLatest } from "./jump-to-latest";
 import { useLeavingRows } from "./leave-rows";
 import { ANCHOR, useLatest } from "./list-position";
 import { useListRows } from "./list-rows";
+import { MediaGalleryProvider } from "./media-gallery";
 import { useMenuKeyboard } from "./menu-keyboard";
 import { MessageActionsProvider } from "./message-actions";
 import { Row } from "./message-row";
@@ -279,53 +280,57 @@ export function MessageList({
       // reports it again on Android; the list stays still through both.
       menuKeyboard={keyboard}
     >
-      <RevealTimes>
-        <View ref={frame} style={{ flex: 1 }}>
-          <GrowthProvider
-            list={frame}
-            // The rows move with a thread's blank space as it changes, so
-            // rows that change size update it at once (see `lift`).
-            blank={blank.sizes}
-          >
-            <Rows
-              {...props}
-              leaving={leaving}
-              blank={blank}
-              listRef={listRef}
-              latest={latest}
-              freeze={keyboard.freeze}
-              shown={shown}
-              onReady={() => {
-                // Two frames later, once the first scroll (to the message it
-                // opened on) has drawn and the rows' mounting is done, so it
-                // can't hitch the fade's first frame.
-                requestAnimationFrame(() =>
-                  requestAnimationFrame(() => {
-                    loaded.set(
-                      withTiming(1, { duration: FADE_MS }, (done) => {
-                        if (done === true) scheduleOnRN(setShown, true);
-                      }),
-                    );
-                  }),
-                );
-              }}
-            />
-          </GrowthProvider>
-        </View>
-      </RevealTimes>
-      <Animated.View
-        pointerEvents="none"
-        className="bg-background absolute inset-0"
-        style={cover}
-      />
-      <JumpToLatest
-        visible={showJump}
-        bottom={props.composerHeight + 12}
-        onPress={() => {
-          if (hasNewer) onJumpToLatest();
-          else scrollToNewest();
-        }}
-      />
+      <MediaGalleryProvider
+        messages={thread === undefined ? messages : [thread.root, ...messages]}
+      >
+        <RevealTimes>
+          <View ref={frame} style={{ flex: 1 }}>
+            <GrowthProvider
+              list={frame}
+              // The rows move with a thread's blank space as it changes, so
+              // rows that change size update it at once (see `lift`).
+              blank={blank.sizes}
+            >
+              <Rows
+                {...props}
+                leaving={leaving}
+                blank={blank}
+                listRef={listRef}
+                latest={latest}
+                freeze={keyboard.freeze}
+                shown={shown}
+                onReady={() => {
+                  // Two frames later, once the first scroll (to the message it
+                  // opened on) has drawn and the rows' mounting is done, so it
+                  // can't hitch the fade's first frame.
+                  requestAnimationFrame(() =>
+                    requestAnimationFrame(() => {
+                      loaded.set(
+                        withTiming(1, { duration: FADE_MS }, (done) => {
+                          if (done === true) scheduleOnRN(setShown, true);
+                        }),
+                      );
+                    }),
+                  );
+                }}
+              />
+            </GrowthProvider>
+          </View>
+        </RevealTimes>
+        <Animated.View
+          pointerEvents="none"
+          className="bg-background absolute inset-0"
+          style={cover}
+        />
+        <JumpToLatest
+          visible={showJump}
+          bottom={props.composerHeight + 12}
+          onPress={() => {
+            if (hasNewer) onJumpToLatest();
+            else scrollToNewest();
+          }}
+        />
+      </MediaGalleryProvider>
     </MessageActionsProvider>
   );
 }

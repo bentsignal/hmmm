@@ -1,5 +1,6 @@
 import type { Message } from "./types";
 import { attachmentPart } from "~/features/messaging/reactions";
+import { isGroupedMedia } from "./media-groups";
 import { linkCardsOf, visibleBody } from "./message-text";
 
 /**
@@ -24,11 +25,14 @@ export function partCount(message: Message) {
 
 /**
  * The part whose chips go under the whole message in a stacked row, under
- * its thread's count: its last one.
+ * its thread's count: its last one. None when that's a photo in the
+ * carousel, whose chips stay with it (see `StackedMediaCarousel`).
  */
 export function lastPart(message: Message) {
   const cards = linkCardsOf(message).length;
   const attachments = message.attachments.length;
   if (cards > 0) return linkPart(message, cards - 1);
-  return attachments > 0 ? attachmentPart(message, attachments - 1) : "message";
+  if (attachments === 0) return "message";
+  const part = attachmentPart(message, attachments - 1);
+  return isGroupedMedia(message, part) ? null : part;
 }

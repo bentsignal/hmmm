@@ -113,7 +113,7 @@ function useDrawnPoster(url: string, enabled: boolean) {
 }
 
 /** What a photo or video shows in the conversation. */
-function usePoster(attachment: MessageAttachment) {
+export function usePoster(attachment: MessageAttachment) {
   const isVideo = attachment.kind === "video";
   const saved = isVideo
     ? (attachment.localThumbnailUrl ?? attachment.thumbnailUrl)
@@ -158,19 +158,27 @@ export function DurationBadge({ durationMs }: { durationMs: number }) {
   );
 }
 
+/** A photo or video's size in the conversation, when it's not its own. */
+interface MediaSize {
+  readonly width: number;
+  readonly height: number;
+}
+
 function Media({
   attachment,
   sending,
+  size,
 }: {
   attachment: MessageAttachment;
   sending: boolean;
+  size?: MediaSize;
 }) {
   const router = useRouter();
   const ref = useRef<NativeView>(null);
   const target = useMenuTarget({
     attachment,
     measured: ref,
-    preview: <Media attachment={attachment} sending={sending} />,
+    preview: <Media attachment={attachment} sending={sending} size={size} />,
     shape: "plain",
   });
   const { upload } = attachment;
@@ -203,8 +211,8 @@ function Media({
         style={[
           {
             borderCurve: "continuous",
-            height: mediaHeight(attachment),
-            width: MEDIA_WIDTH,
+            height: size?.height ?? mediaHeight(attachment),
+            width: size?.width ?? MEDIA_WIDTH,
           },
           target?.style,
         ]}
@@ -309,14 +317,17 @@ function FileCard({
 export function AttachmentView({
   attachment,
   sending = false,
+  size,
 }: {
   attachment: MessageAttachment;
   /** Its message is still on the way; it pulses until then. */
   sending?: boolean;
+  /** A photo or video's size, when a carousel sets it. */
+  size?: MediaSize;
 }) {
   return attachment.kind === "file" ? (
     <FileCard attachment={attachment} sending={sending} />
   ) : (
-    <Media attachment={attachment} sending={sending} />
+    <Media attachment={attachment} sending={sending} size={size} />
   );
 }

@@ -4,8 +4,13 @@ import { useRouter } from "expo-router";
 import { Button, FieldGroup, Row, Spacer, Text } from "@expo/ui";
 
 import type { ServerDelay } from "./server-delay";
+import type {
+  BubbleMedia,
+  CarouselReactions,
+} from "~/features/preferences/store";
 import { ChoiceMenu } from "~/components/choice-menu";
 import { useAccount } from "~/features/messaging/account";
+import { setPreference, usePreference } from "~/features/preferences/store";
 import { forgetForNow } from "~/features/saved/saving";
 import { fillRow } from "~/lib/ui-modifiers";
 import { useDevTools } from "./dev-tools";
@@ -18,6 +23,49 @@ const DELAYS = [
   { label: "After 10 Seconds", value: "stalled" },
   { label: "Never", value: "never" },
 ] as const satisfies readonly { label: string; value: ServerDelay }[];
+
+const BUBBLE_MEDIA_CHOICES = [
+  { label: "One Under Another", value: "column" },
+  { label: "Fan", value: "fan" },
+  { label: "Side Peek", value: "peek" },
+  { label: "Depth", value: "depth" },
+  { label: "Swipe Deck", value: "deck" },
+  { label: "Grid", value: "grid" },
+] as const satisfies readonly { label: string; value: BubbleMedia }[];
+
+const CAROUSEL_REACTION_CHOICES = [
+  { label: "Under Each Photo", value: "cards" },
+  { label: "Photo in View", value: "current" },
+  { label: "Badges", value: "badges" },
+] as const satisfies readonly { label: string; value: CarouselReactions }[];
+
+/** Development only: the variants of several photos in a message to try. */
+function MediaVariantRows() {
+  const bubbleMedia = usePreference("bubbleMedia");
+  const carouselReactions = usePreference("carouselReactions");
+  return (
+    <>
+      <Row alignment="center" modifiers={fillRow}>
+        <Text>Photos in Bubbles</Text>
+        <Spacer flexible />
+        <ChoiceMenu<BubbleMedia>
+          value={bubbleMedia}
+          choices={BUBBLE_MEDIA_CHOICES}
+          onChange={(value) => setPreference("bubbleMedia", value)}
+        />
+      </Row>
+      <Row alignment="center" modifiers={fillRow}>
+        <Text>Carousel Reactions</Text>
+        <Spacer flexible />
+        <ChoiceMenu<CarouselReactions>
+          value={carouselReactions}
+          choices={CAROUSEL_REACTION_CHOICES}
+          onChange={(value) => setPreference("carouselReactions", value)}
+        />
+      </Row>
+    </>
+  );
+}
 
 /** Development only: picks how long the PDS takes to answer (`server-delay.ts`). */
 function ServerAnswersRow() {
@@ -96,6 +144,7 @@ export function DeveloperSection() {
         onPress={() => void openLongThread()}
       />
       <ServerAnswersRow />
+      <MediaVariantRows />
       <Button
         label="Forget Saved Conversations"
         variant="text"

@@ -7,16 +7,19 @@ import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
 import { LinkCardView } from "./link-preview-card";
 import { LinkedText } from "./linked-text";
+import { attachmentSlots } from "./media-groups";
 import { MenuTargetView } from "./message-actions";
 import { DeletedText, EditedSuffix } from "./message-changes";
 import { linkPart, partCount } from "./message-parts";
 import { linkCardsOf, visibleBody } from "./message-text";
 import { Placed, Reactable } from "./reaction-parts";
 import { RepliesFooter, ThreadFooter } from "./reply-card";
+import { StackedMediaCarousel } from "./stacked-media";
 
 /**
- * A message's parts, top to bottom: its text, its attachments, and its
- * link cards (the first is the text's own when the text is all links).
+ * A message's parts, top to bottom: its text, its attachments (two or more
+ * photos and videos in a carousel), and its link cards (the first is the
+ * text's own when the text is all links).
  * Its thread's count goes after them. In a message of several parts, the
  * text lifts on its own when held, as the others do; alone, it holds the
  * whole row (see `MessageRowTarget`).
@@ -46,18 +49,32 @@ export function StackedParts({ message }: { message: Message }) {
           )}
         </Reactable>
       )}
-      {message.attachments.map((attachment, index) => (
-        <Reactable
-          key={attachmentKey(attachment)}
-          part={attachmentPart(message, index)}
-          place={index + 1}
-        >
-          <AttachmentView
-            attachment={attachment}
-            sending={message.status === "sending"}
-          />
-        </Reactable>
-      ))}
+      {attachmentSlots(message).map((slot) => {
+        const attachment = message.attachments[slot.index];
+        if (attachment === undefined) return null;
+        if (slot.items !== undefined) {
+          return (
+            <StackedMediaCarousel
+              key={attachmentKey(attachment)}
+              message={message}
+              items={slot.items}
+              place={slot.index + 1}
+            />
+          );
+        }
+        return (
+          <Reactable
+            key={attachmentKey(attachment)}
+            part={attachmentPart(message, slot.index)}
+            place={slot.index + 1}
+          >
+            <AttachmentView
+              attachment={attachment}
+              sending={message.status === "sending"}
+            />
+          </Reactable>
+        );
+      })}
       {cards.map((card, index) => (
         <Reactable
           key={card.link}

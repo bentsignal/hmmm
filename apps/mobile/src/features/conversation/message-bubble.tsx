@@ -5,13 +5,11 @@ import Animated from "react-native-reanimated";
 import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
-import { attachmentPart } from "~/features/messaging/reactions";
 import { cn } from "~/lib/cn";
 import { useBecoming } from "./arrive";
-import { attachmentKey } from "./attachment-key";
-import { AttachmentView } from "./attachment-view";
 import { AuthorLink } from "./author-link";
 import { BubbleBody } from "./bubble-body";
+import { BubbleAttachments, useStackedTopParts } from "./bubble-media";
 import { GrowingText } from "./bubble-morph";
 import { MovingQuote, MovingReplyCurve } from "./bubble-reply";
 import { aboveBubble, bubbleTopPart } from "./bubble-top";
@@ -65,18 +63,7 @@ function Content({
         style={quoted ? replyIndent(isOwn) : undefined}
       >
         {quoted && <MovingReplyCurve message={message} isOwn={isOwn} />}
-        {message.attachments.map((attachment, index) => (
-          <Reactable
-            key={attachmentKey(attachment)}
-            part={attachmentPart(message, index)}
-            place={index}
-          >
-            <AttachmentView
-              attachment={attachment}
-              sending={message.status === "sending"}
-            />
-          </Reactable>
-        ))}
+        <BubbleAttachments message={message} isOwn={isOwn} />
         {body !== undefined && (
           <Reactable part="message" place={textPlace}>
             <MenuTargetView>
@@ -191,6 +178,7 @@ function BubbleColumn({
   // Tapbacks rise beside the name, which keeps its place. Over a quote,
   // they open their own space.
   const besideName = name !== undefined && card === undefined;
+  const topAlso = useStackedTopParts(message, bubbleTopPart(message));
   return (
     <View
       className={cn("max-w-[75%] gap-0.5", isOwn ? "items-end" : "items-start")}
@@ -210,6 +198,7 @@ function BubbleColumn({
         shape="plain"
         reactionStyle="tapbacks"
         top={bubbleTopPart(message)}
+        topAlso={topAlso}
         inner={partCount(message) > 1}
         roomAbove={besideName ? NAME_HEIGHT : 0}
         tapbacksClearOf={besideName ? nameEnd : undefined}
