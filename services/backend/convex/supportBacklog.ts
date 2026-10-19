@@ -28,7 +28,10 @@ const SPACING = 30_000;
 export const pending = internalQuery({
   args: {},
   handler: async (ctx): Promise<Waiting[]> => {
-    const response = await queryAsBot(ctx, SUPPORT, { args: {}, type: "inbox" });
+    const response = await queryAsBot(ctx, SUPPORT, {
+      args: {},
+      type: "inbox",
+    });
     if (response.type !== "inbox") throw new Error("Unexpected response");
     const waiting: Waiting[] = [];
     for (const conversation of response.value) {
@@ -63,7 +66,10 @@ export const pending = internalQuery({
 export const answerAll = internalMutation({
   args: { conversationIds: v.optional(v.array(v.string())) },
   handler: async (ctx, { conversationIds }): Promise<{ answering: number }> => {
-    const all: Waiting[] = await ctx.runQuery(internal.supportBacklog.pending, {});
+    const all: Waiting[] = await ctx.runQuery(
+      internal.supportBacklog.pending,
+      {},
+    );
     const waiting = all.filter(
       (conversation) =>
         conversationIds === undefined ||

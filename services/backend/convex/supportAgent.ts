@@ -17,9 +17,6 @@ import { noticeCurrent, PRIVACY_NOTICE, whyNotFile } from "./supportRules";
 // reports. Updates as a fix moves along come from supportReports.ts, not
 // the model.
 
-
-
-
 /** For conversations from before support answered anyone. */
 const BACKLOG = `This person wrote to you a while ago, before you could answer, and nobody replied. Start with a short apology for the slow reply. Then go through everything they reported (read_earlier_messages if it goes back further): for each problem, check search_known_bugs and tell them where it stands. If it's fixed and out, say so and how to get it, and ask them to tell you if they still see it. If it's known but not fixed, follow_known_bug. If it's new, ask whether they still see it before going through the usual steps; it may have been fixed along the way. Keep it to a few short messages.`;
 
@@ -151,8 +148,7 @@ ${reportList}`;
       execute: (input) => fileBugReport(turn, input),
     }),
     add_to_bug_report: tool({
-      description:
-        "Add details to one of their reports that's already filed.",
+      description: "Add details to one of their reports that's already filed.",
       inputSchema: z.object({
         reportId: z.string(),
         details: z.string(),
@@ -201,7 +197,6 @@ async function fileBugReport(turn: Turn, input: BugReportInput) {
   };
 }
 
-
 /** The new GitHub issue, or null when GitHub isn't set up or refused. */
 async function openIssue(kind: "bug" | "idea", title: string, body: string) {
   const config = githubConfig();
@@ -226,10 +221,7 @@ async function openIssue(kind: "bug" | "idea", title: string, body: string) {
 /** Adds details to one of the person's own reports, as an issue comment. */
 async function addToBugReport(
   turn: Turn,
-  {
-    details,
-    reportId,
-  }: { details: string; reportId: string },
+  { details, reportId }: { details: string; reportId: string },
 ) {
   const report: PublicReport | null = await turn.ctx.runQuery(
     internal.supportReports.reportOf,
