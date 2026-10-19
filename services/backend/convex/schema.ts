@@ -26,6 +26,8 @@ export default defineSchema({
     accountId: v.string(),
     /** The newest message of theirs a finished reply has seen. */
     answeredThrough: v.optional(v.number()),
+    /** They wrote before the assistant answered anyone (supportBacklog.ts). */
+    backlog: v.optional(v.boolean()),
     bot: botName,
     conversationId: v.string(),
     /** Replies started since `dayStart`, for the daily limit. */

@@ -34,17 +34,15 @@ export function inAnswerOrder(
   ];
 }
 
-/** Each image the person sent, by the reference the model sees ("image 2"). */
-export function imagesIn(history: readonly Message[], self: string) {
-  const images = new Map<string, string>();
-  for (const message of history) {
-    if (message.authorId === self) continue;
-    for (const attachment of message.attachments) {
-      if (attachment.kind !== "image") continue;
-      images.set(`image ${String(images.size + 1)}`, attachment.url);
-    }
-  }
-  return images;
+/** Each image the person sent, oldest first. */
+export function imageUrls(history: readonly Message[], self: string) {
+  return history.flatMap((message) =>
+    message.authorId === self
+      ? []
+      : message.attachments
+          .filter((attachment) => attachment.kind === "image")
+          .map((attachment) => attachment.url),
+  );
 }
 
 /**
@@ -90,7 +88,7 @@ export function toModelMessages(
       continue;
     }
     flush();
-    const lines = [message.body];
+    const lines = [`${sentLabel(message.sentAt)}${message.body}`];
     if (message.quote !== undefined) {
       lines.push(`(replying to: "${message.quote.body.slice(0, 200)}")`);
     }
@@ -114,7 +112,13 @@ export function toModelMessages(
   return messages;
 }
 
-const DESCRIBE_PROMPT = `Describe this image for an assistant who can't see it, in a few sentences. Include any text in it word for word when it matters. If it's a screenshot of an app, say which screen it is and anything that looks wrong or broken. Then, on its own line, say whether it shows personal information that isn't crossed out or blurred (people's names, message text, faces, phone numbers, addresses), as "Personal information visible: yes" or "Personal information visible: no".`;
+/** When an older message was sent, so the model can weigh dates. */
+function sentLabel(sentAt: number) {
+  if (Date.now() - sentAt < 6 * 60 * 60 * 1000) return "";
+  return `[sent ${new Date(sentAt).toUTCString().slice(0, 16)}] `;
+}
+
+const DESCRIBE_PROMPT = `Describe this image for an assistant who can't see it. Include any text in it word for word when it matters. If it's a screenshot of an app, describe it closely enough that a developer could picture it without the image: which screen it is, what's on it and where, and anything that looks wrong or broken (overlapping or cut-off elements, wrong rotation, errors, blank areas). Then, on its own line, say whether it shows personal information that isn't crossed out or blurred (people's names, message text, faces, phone numbers, addresses), as "Personal information visible: yes" or "Personal information visible: no".`;
 
 /**
  * What the newest images show, described once each by the vision model and

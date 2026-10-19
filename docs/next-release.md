@@ -65,3 +65,21 @@ details and shows the public-report notice first); a GitHub issue labeled
 "user report" appears without his address in it. Close that issue as not
 planned, run `npx convex run supportReports:track --prod`, and check that
 support tells him it won't be changed.
+
+### 3. Answer the support messages that waited
+
+**When:** after step 2, and only when Shawn says to go ahead: it messages
+real people.
+
+Support's inbox has reports from before it answered anyone. List them for
+Shawn, then have support answer them (it apologizes for the wait, checks
+GitHub for what's already fixed or reported, and follows up on the rest):
+
+```sh
+npx convex run supportBacklog:pending --prod
+npx convex run supportBacklog:answerAll --prod
+```
+
+**Verify:** a few minutes later, `npx convex run supportBacklog:pending
+--prod` lists nothing, and `npx convex run support:read
+'{"conversationId":"<one of them>"}' --prod` shows support's reply.

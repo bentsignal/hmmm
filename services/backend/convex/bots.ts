@@ -30,6 +30,11 @@ export function botAccount(username: BotAccount["username"]) {
   return username === "support" ? SUPPORT : VERA;
 }
 
+/** Whether an address is one of Vera's own accounts. */
+export function isBotAddress(accountId: string) {
+  return ASSISTANTS.some((bot) => botAddress(bot) === accountId);
+}
+
 export function botAddress(bot: BotAccount) {
   return `${bot.username}@${requireEnvironment("FEDERATION_DOMAIN").toLowerCase()}`;
 }
@@ -192,6 +197,8 @@ export async function welcomeAccount(
   accountId: string,
   body: string,
 ) {
+  // Bots are accounts too, made through the same sign-up hook.
+  if (isBotAddress(accountId)) return;
   const conversationId = await ctx.runMutation(internal.bots.openConversation, {
     accountId,
     bot: bot.username,
@@ -213,7 +220,6 @@ export async function welcomeEveryAccount(
   body: string,
 ) {
   await ensureBotAccount(ctx, bot);
-  const bots = new Set(ASSISTANTS.map(botAddress));
   let cursor: string | null = null;
   let checked = 0;
   for (;;) {
@@ -226,7 +232,7 @@ export async function welcomeEveryAccount(
       const email = field(user, "email");
       if (typeof email !== "string") continue;
       const accountId = actorFromEmail(email);
-      if (bots.has(accountId)) continue;
+      if (isBotAddress(accountId)) continue;
       await welcomeAccount(ctx, bot, accountId, body);
       checked += 1;
     }

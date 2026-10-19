@@ -14,6 +14,7 @@ import { conversationTools, sharedInstructions } from "./agentTools";
 import {
   botAddress,
   ensureBotAccount,
+  isBotAddress,
   SUPPORT,
   VERA,
   welcomeAccount,
@@ -140,7 +141,7 @@ export const setup = internalAction({
 export const welcome = internalAction({
   args: { accountId: v.string() },
   handler: async (ctx, { accountId }) => {
-    if (accountId === botAddress(VERA)) return;
+    if (isBotAddress(accountId)) return;
     await ensureBotAccount(ctx, VERA);
     await welcomeAccount(ctx, VERA, accountId, WELCOME_MESSAGE);
   },

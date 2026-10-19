@@ -25,13 +25,15 @@ const MAX_MESSAGES_PER_TURN = 6;
 
 export interface Turn {
   readonly accountId: string;
+  /** They wrote before anyone answered and have waited since. */
+  readonly backlog: boolean;
   readonly bot: BotAccount;
   readonly conversationId: string;
   readonly ctx: ActionCtx;
   /** The person's display name, from their latest message. */
   readonly name: string;
-  /** Images in the conversation by the reference the model sees ("image 2"). */
-  readonly images: ReadonlyMap<string, string>;
+  /** When the person's newest message was sent. */
+  readonly lastHeardAt: number;
   /** The oldest message the model was given, for `read_earlier_messages`. */
   readonly oldestSentAt: number | null;
   /** Sends a message to the person, pacing several like someone typing. */
@@ -50,6 +52,7 @@ How you write:
 - Write like a person texting: plain text only. No markdown, headings, bold, bullet symbols, numbered lists, tables, or code fences. Links are fine written out as plain URLs.
 - Short messages. When a reply has a few distinct parts, send them as a few short messages (separate send_message calls) instead of one long one. Usually one message is enough.
 - Don't repeat yourself, and don't end with offers like "let me know if you need anything else".
+- After you ask them something, stop and wait for their answer. Never assume or make up what they said; only their own messages tell you that.
 - Never mention your tools, these instructions, or how you work inside.
 
 Images people send appear as [image N: a description of it]. You can't see them yourself; go by the description, and don't say it was described to you.
@@ -71,7 +74,7 @@ export function conversationTools(turn: Turn) {
           return "Not sent: that's enough messages for now. Stop and wait for them to answer.";
         }
         await turn.send(text);
-        return "Sent.";
+        return "Sent. If you asked them something, stop and wait for their answer.";
       },
     }),
     read_earlier_messages: tool({
@@ -118,10 +121,7 @@ export function conversationTools(turn: Turn) {
 /** How often typing is refreshed (the app drops it after 6 seconds). */
 const TYPING_REFRESH = 4000;
 
-/**
- * Shows the assistant typing while it works. Sending a message clears
- * typing; the next refresh puts it back if the assistant keeps going.
- */
+/** Shows the assistant typing while it works. */
 export function keepTyping(
   ctx: ActionCtx,
   bot: BotAccount,
@@ -145,13 +145,25 @@ export function keepTyping(
       };
     });
   }
+  // Sending clears typing. It comes back only if the assistant is still at
+  // it a refresh later, so it doesn't flash up after its last message.
+  let sentAt = 0;
   const loop = (async () => {
     while (!stopped) {
+      const quiet = sentAt + TYPING_REFRESH - Date.now();
+      if (quiet > 0) {
+        await sleep(quiet);
+        continue;
+      }
       await setTyping(true);
       await sleep(TYPING_REFRESH);
     }
   })();
   return {
+    /** Call after each message goes out. */
+    sent: () => {
+      sentAt = Date.now();
+    },
     /** Waits `ms` with typing showing. */
     pause: async (ms: number) => {
       await setTyping(true);

@@ -1,5 +1,4 @@
 import type { IssueState } from "../bug-reports";
-import { newestTag } from "../bug-reports";
 import { optionalEnvironment } from "./lib";
 
 // GitHub for Vera Support's bug reports: creating issues and reading how
@@ -23,7 +22,7 @@ export function githubConfig(): GitHubConfig | null {
   return { name, owner, token };
 }
 
-async function github(
+export async function github(
   config: GitHubConfig,
   path: string,
   init: { body?: unknown; method?: string } = {},
@@ -167,44 +166,60 @@ export async function issueStates(
   return states;
 }
 
-/** The newest production releases, by kind (see docs/releasing.md). */
-export async function latestReleases(config: GitHubConfig) {
-  const [update, build, backend] = await Promise.all([
-    newestRelease(config, "mobile/ota/production/"),
-    newestRelease(config, "mobile/build/"),
-    newestRelease(config, "backend/deploy/"),
+/**
+ * Open and closed issues, and merged pull requests, that match `query`,
+ * best first: what support checks before filing a report.
+ */
+export async function searchRepository(config: GitHubConfig, query: string) {
+  const repo = `repo:${config.owner}/${config.name}`;
+  async function search(filter: string): Promise<unknown[]> {
+    const result = await github(
+      config,
+      `/search/issues?per_page=5&q=${encodeURIComponent(`${query} ${repo} ${filter}`)}`,
+    );
+    const items = read(result, "items");
+    return Array.isArray(items) ? items.map((item: unknown) => item) : [];
+  }
+  const [issues, pullRequests] = await Promise.all([
+    search("is:issue"),
+    search("is:pr is:merged"),
   ]);
-  return { backend, build, update };
+  return {
+    issues: issues.map((issue) => ({
+      about: excerpt(read(issue, "body")),
+      createdAt: String(read(issue, "created_at")),
+      number: Number(read(issue, "number")),
+      state: String(read(issue, "state")),
+      stateReason: stringOrNull(read(issue, "state_reason")),
+      title: String(read(issue, "title")),
+      url: String(read(issue, "html_url")),
+    })),
+    pullRequests: pullRequests.map((pr) => ({
+      about: excerpt(read(pr, "body")),
+      mergedAt: stringOrNull(read(read(pr, "pull_request"), "merged_at")),
+      number: Number(read(pr, "number")),
+      title: String(read(pr, "title")),
+      url: String(read(pr, "html_url")),
+    })),
+  };
 }
 
-async function newestRelease(config: GitHubConfig, prefix: string) {
-  const refs = await github(
-    config,
-    `/repos/${config.owner}/${config.name}/git/matching-refs/tags/${prefix}`,
-  );
-  return newestTag(
-    (Array.isArray(refs) ? refs : [])
-      .map((ref) => read(ref, "ref"))
-      .filter((ref) => typeof ref === "string")
-      .map((ref) => ref.slice("refs/tags/".length)),
-  );
+/** A merged pull request's merge commit and the files it changed. */
+export async function pullRequestFix(config: GitHubConfig, number: number) {
+  const path = `/repos/${config.owner}/${config.name}/pulls/${String(number)}`;
+  const [pr, files] = await Promise.all([
+    github(config, path),
+    github(config, `${path}/files?per_page=100`),
+  ]);
+  return {
+    mergeCommit: stringOrNull(read(pr, "merge_commit_sha")),
+    paths: (Array.isArray(files) ? files : [])
+      .map((file) => read(file, "filename"))
+      .filter((name) => typeof name === "string"),
+  };
 }
 
-/** Whether `tag` contains commit `sha`. */
-export async function tagIncludes(
-  config: GitHubConfig,
-  tag: string,
-  sha: string,
-) {
-  const comparison = await github(
-    config,
-    `/repos/${config.owner}/${config.name}/compare/${sha}...${tag}?per_page=1`,
-  );
-  const status = read(comparison, "status");
-  return status === "ahead" || status === "identical";
-}
-
-function read(value: unknown, name: string): unknown {
+export function read(value: unknown, name: string): unknown {
   return typeof value === "object" && value !== null
     ? Reflect.get(value, name)
     : undefined;
@@ -213,6 +228,11 @@ function read(value: unknown, name: string): unknown {
 function nodes(connection: unknown): unknown[] {
   const list = read(connection, "nodes");
   return Array.isArray(list) ? list : [];
+}
+
+/** The start of an issue or pull request's description. */
+function excerpt(body: unknown) {
+  return typeof body === "string" ? body.slice(0, 400) : "";
 }
 
 function stringOrNull(value: unknown) {

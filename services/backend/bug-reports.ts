@@ -38,7 +38,7 @@ const URL_WITH_PATH = /https?:\/\/\S+/g;
  * Removes what could identify someone from text going into a public issue:
  * addresses and emails, @handles, phone numbers, links, and the reporter's
  * username. The model is told to leave these out too; this catches what it
- * misses. Screenshot links are added afterwards, so they survive.
+ * misses.
  */
 export function anonymize(text: string, reporter: string) {
   const username = reporter.slice(0, reporter.lastIndexOf("@"));
@@ -66,7 +66,6 @@ export interface IssueContent {
   readonly actual?: string;
   readonly details: string;
   readonly expected?: string;
-  readonly screenshots: readonly string[];
   readonly steps?: string;
   readonly title: string;
 }
@@ -88,13 +87,6 @@ export function issueFor(
     ...section("Expected", content.expected),
     ...section("Actual", content.actual),
   ];
-  if (content.screenshots.length > 0) {
-    lines.push("## Screenshots", "");
-    content.screenshots.forEach((url, index) => {
-      lines.push(`![Screenshot ${String(index + 1)}](${url})`);
-    });
-    lines.push("");
-  }
   lines.push("## App", "");
   if (client === null) {
     lines.push("Unknown (the reporter's app is too old to send it).");
@@ -109,7 +101,7 @@ export function issueFor(
     "",
     "---",
     "",
-    "Reported in the app through Vera Support. The reporter was told this is public; their identity is kept private.",
+    "Reported in the app through Vera Support, which describes any screenshots in words instead of posting them. The reporter was told this is public; their identity is kept private.",
   );
   return {
     body: lines.join("\n"),

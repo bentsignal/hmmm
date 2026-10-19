@@ -78,9 +78,12 @@ Two verified accounts answer direct messages with a model:
 
 - `support@<account domain>` helps people report bugs. It asks for what's
   missing (what happened, where, how to repeat it, a screenshot), tells them
-  reports are public and to cross out anything private, then files an
-  anonymized GitHub issue labeled "user report" with the app version and
-  device the app reported. A cron (`crons.ts`) follows each issue and tells
+  reports are public and waits for their answer, checks GitHub for an
+  existing issue or fix (following that issue instead of filing a
+  duplicate), then files an anonymized GitHub issue labeled "user report"
+  with the app version and device the app reported. Screenshots never go in
+  an issue: support describes what they show in words, without personal
+  details. A cron (`crons.ts`) follows each issue and tells
   the reporter, in plain words, when it's picked up (assigned), being worked
   on (a linked PR), fixed (merged), and out (in the newest production
   release tags). People who say they're developers also get the links.
@@ -88,6 +91,10 @@ Two verified accounts answer direct messages with a model:
 - `vera@<account domain>` is a general assistant: short, direct answers in
   plain text, and it remembers how each person wants it to answer when they
   ask it to (`botNotes`).
+
+`supportBacklog:pending` and `supportBacklog:answerAll` are a one-time
+pass over conversations from before support answered anyone: it apologizes
+for the wait, checks what's already fixed, and follows up on the rest.
 
 Both welcome every new account (a Better Auth `user.create` hook schedules
 `support:welcome` and `vera:welcome`) and create themselves the first time

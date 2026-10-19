@@ -30,11 +30,10 @@ void test("anonymize leaves ordinary text alone", () => {
   );
 });
 
-void test("an issue keeps screenshots and app details but never the reporter", () => {
+void test("an issue keeps app details but never the reporter", () => {
   const { body, title } = issueFor(
     {
       details: "maya@vera.chat says photos rotate",
-      screenshots: ["https://media.vera.chat/prod/abc.png"],
       steps: "Send a portrait photo in a group",
       title: "Photos sideways for maya",
     },
@@ -49,9 +48,6 @@ void test("an issue keeps screenshots and app details but never the reporter", (
   );
   assert.equal(title, "Photos sideways for [reporter]");
   assert.ok(!body.includes("maya"));
-  assert.ok(
-    body.includes("![Screenshot 1](https://media.vera.chat/prod/abc.png)"),
-  );
   assert.ok(body.includes("- Version: 0.1.0 (9)"));
   assert.ok(body.includes("## Steps to reproduce"));
   assert.ok(!body.includes("## Expected"));

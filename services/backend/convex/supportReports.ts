@@ -1,10 +1,11 @@
 import type { Infer } from "convex/values";
 import { v } from "convex/values";
 
-import type { Delivery, IssueState, ReportStage } from "../bug-reports";
+import type { IssueState } from "../bug-reports";
 import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import type { GitHubConfig } from "./github";
+import type { Releases } from "./githubReleases";
 import {
   isFinalStage,
   isNewStage,
@@ -18,12 +19,8 @@ import {
   internalQuery,
 } from "./_generated/server";
 import { sendAsBot, SUPPORT } from "./bots";
-import {
-  githubConfig,
-  issueStates,
-  latestReleases,
-  tagIncludes,
-} from "./github";
+import { githubConfig, issueStates } from "./github";
+import { delivered, lazyReleases } from "./githubReleases";
 import { reportStage } from "./schema";
 
 // The bug reports Vera Support files (supportAgent.ts) and how they're
@@ -34,22 +31,39 @@ import { reportStage } from "./schema";
 // docs/releasing.md): an update or store build for app changes, a backend
 // deploy for backend changes.
 
+/**
+ * A report to follow: a new issue support filed, or (with `stage`) an
+ * existing one someone else reported first, which they hear about from
+ * where it is now.
+ */
 export const insert = internalMutation({
   args: {
     accountId: v.string(),
     conversationId: v.string(),
     issueNumber: v.optional(v.number()),
     issueUrl: v.optional(v.string()),
+    stage: v.optional(reportStage),
     summary: v.string(),
     title: v.string(),
   },
-  handler: (ctx, args) =>
-    ctx.db.insert("bugReports", {
+  handler: async (ctx, { stage = "reported", ...args }) => {
+    const theirs = await ctx.db
+      .query("bugReports")
+      .withIndex("by_account", (q) => q.eq("accountId", args.accountId))
+      .collect();
+    const same = theirs.find(
+      (report) =>
+        args.issueNumber !== undefined &&
+        report.issueNumber === args.issueNumber,
+    );
+    if (same !== undefined) return same._id;
+    return ctx.db.insert("bugReports", {
       ...args,
-      notifiedStage: "reported",
-      stage: "reported",
-      tracking: args.issueNumber !== undefined,
-    }),
+      notifiedStage: stage,
+      stage,
+      tracking: args.issueNumber !== undefined && !isFinalStage(stage),
+    });
+  },
 });
 
 /** A reporter's own reports, newest first. */
@@ -205,14 +219,6 @@ export const track = internalAction({
   },
 });
 
-type Releases = Awaited<ReturnType<typeof latestReleases>>;
-
-/** The newest releases, read from GitHub the first time a fix needs them. */
-function lazyReleases(config: GitHubConfig) {
-  let releases: Promise<Releases> | null = null;
-  return () => (releases ??= latestReleases(config));
-}
-
 /** A report's progress from its issue, and for a fix, whether it's out. */
 async function progressFrom(
   config: GitHubConfig,
@@ -228,42 +234,6 @@ async function progressFrom(
     };
   }
   return found.stage === "live" ? { ...base, delivery: "unknown" } : base;
-}
-
-/** Whether a fix is in the releases it needs, and how it reached people. */
-async function delivered(
-  config: GitHubConfig,
-  releases: Releases,
-  fix: { app: boolean; backend: boolean; sha: string },
-): Promise<{ delivery?: Delivery; release?: string; stage: ReportStage }> {
-  async function includes(tag: string | null) {
-    return tag !== null && (await tagIncludes(config, tag, fix.sha));
-  }
-  if (fix.backend && !(await includes(releases.backend))) {
-    return { stage: "fixed" };
-  }
-  if (!fix.app) {
-    return {
-      delivery: "server",
-      release: releases.backend ?? undefined,
-      stage: "live",
-    };
-  }
-  if (await includes(releases.update)) {
-    return {
-      delivery: "update",
-      release: releases.update ?? undefined,
-      stage: "live",
-    };
-  }
-  if (await includes(releases.build)) {
-    return {
-      delivery: "build",
-      release: releases.build ?? undefined,
-      stage: "live",
-    };
-  }
-  return { stage: "fixed" };
 }
 
 /**

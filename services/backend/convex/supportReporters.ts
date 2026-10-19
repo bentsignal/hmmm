@@ -59,7 +59,7 @@ export const reporter = internalQuery({
     return {
       client: client && clientDetails(client),
       developer: row?.developer ?? null,
-      noticeShared: row?.noticeSharedAt !== undefined,
+      noticeSharedAt: row?.noticeSharedAt ?? null,
     };
   },
 });
@@ -97,7 +97,8 @@ export interface Reporter {
     update: string;
   } | null;
   readonly developer: boolean | null;
-  readonly noticeShared: boolean;
+  /** When support last told them reports are public. */
+  readonly noticeSharedAt: number | null;
 }
 
 function clientDetails(client: Doc<"clientInfo">) {

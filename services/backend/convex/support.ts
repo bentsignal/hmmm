@@ -11,6 +11,7 @@ import {
 import {
   botAddress,
   ensureBotAccount,
+  isBotAddress,
   mutateAsBot,
   pageAsBot,
   queryAsBot,
@@ -51,7 +52,7 @@ export const setup = internalAction({
 export const welcome = internalAction({
   args: { accountId: v.string() },
   handler: async (ctx, { accountId }) => {
-    if (accountId === supportAddress()) return;
+    if (isBotAddress(accountId)) return;
     await ensureSupportAccount(ctx);
     await welcomeAccount(ctx, accountId);
   },

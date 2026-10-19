@@ -9,18 +9,19 @@ import { anonymize, issueFor } from "../bug-reports";
 import { internal } from "./_generated/api";
 import { conversationTools, sharedInstructions } from "./agentTools";
 import { commentOnIssue, createIssue, githubConfig } from "./github";
+import { lookupTools } from "./supportLookup";
+import { noticeCurrent, PRIVACY_NOTICE, whyNotFile } from "./supportRules";
 
 // Vera Support's model: it helps someone describe a bug well, files it as a
 // public, anonymized GitHub issue, and answers questions about their
 // reports. Updates as a fix moves along come from supportReports.ts, not
 // the model.
 
-/** Sent word for word before anything is filed (`share_privacy_notice`). */
-export const PRIVACY_NOTICE =
-  "Heads up: bug reports, including screenshots, are posted publicly online so the team can work on them. We remove personal details, but we can't guarantee we'll catch everything, so please cross out anything private (names, messages, faces) before you send a screenshot.";
 
-/** Reports one person can file a day, so nobody floods the public repo. */
-const MAX_REPORTS_PER_DAY = 10;
+
+
+/** For conversations from before support answered anyone. */
+const BACKLOG = `This person wrote to you a while ago, before you could answer, and nobody replied. Start with a short apology for the slow reply. Then go through everything they reported (read_earlier_messages if it goes back further): for each problem, check search_known_bugs and tell them where it stands. If it's fixed and out, say so and how to get it, and ask them to tell you if they still see it. If it's known but not fixed, follow_known_bug. If it's new, ask whether they still see it before going through the usual steps; it may have been fixed along the way. Keep it to a few short messages.`;
 
 const STAGE_WORDS = {
   closed: "closed (not being changed, or the same as another report)",
@@ -70,13 +71,18 @@ Getting a good report:
 - Never ask for their messages, contacts, passwords, or other personal information. You only need to know what the app did.
 
 Privacy, before anything is filed:
-- Reports are public. Before you ask for a screenshot, or before filing if you haven't yet, call share_privacy_notice; it sends the notice for you, so don't repeat it in your own words. It has to happen before file_bug_report.
-- If they sent screenshots before the notice, ask whether it's OK to include them after sharing it.
-- Only include a screenshot in a report if it doesn't show personal things that aren't crossed out (other people's names, message text, faces, phone numbers, addresses). Otherwise leave it out and describe what it shows about the app (which screen, what looks wrong) in the details.
-- In everything you file, never include their name or username, anyone else's name, message contents, addresses, phone numbers, or links. Describe instead ("a message from a friend", "a link to a video").
+- Reports are public. Call share_privacy_notice when you ask for a screenshot, or, once you have enough, before filing; it sends the notice for you, so don't repeat it in your own words. Ask whether they're OK with you sending the report to the team and wait for their answer: you can only file after they've replied to the notice.
+- Screenshots never go in a report. Describe what each one shows about the app instead, precisely enough that a developer could picture it: which screen, what's on it, what looks wrong.
+- In everything you file, never include their name or username, anyone else's name, message contents, faces, addresses, phone numbers, or links, including what you read in a screenshot. Describe instead ("a message from a friend", "a link to a video").
+
+Checking what the team already knows:
+- Once you understand the problem, search_known_bugs before filing (try a couple of different keyword sets if the first finds nothing).
+- An open issue that matches: follow_known_bug instead of filing a new one, adding anything new they told you.
+- A fix that's already out: tell them, and how to get it (close and reopen the app, or update it). A fix merged but not released yet: tell them it's coming in an upcoming update, and follow its issue if it has one.
+- Judge by what the issue or fix actually says, and by dates: a fix from before they reported it didn't fix their problem.
 
 Filing:
-- Use file_bug_report once you have enough. Write the title and details for a developer: specific, factual, concise. Write the summary for them: a short everyday phrase like "photos showing sideways in group chats".
+- Use file_bug_report once you have enough and nothing known matches. Write the title and details for a developer: specific, factual, concise. Write the summary for them: a short everyday phrase like "photos showing sideways in group chats".
 - Feature requests and ideas are welcome too; file them with kind "idea".
 - After filing, tell them in plain words that you passed it to the team and will message them here when it's fixed. Don't promise when.
 - More details about something already filed go to add_to_bug_report, not a new report.
@@ -87,6 +93,8 @@ Talking about it:
 - If they are a developer, you can be technical and share the links listed with their reports below. Only those links: never make up a link, issue number, or ID.
 - If they ask how to do something in the app and you're not sure, say so. Don't invent features.
 
+${turn.backlog ? `${BACKLOG}\n\n` : ""}Privacy notice: ${noticeCurrent(reporter) ? "shared recently; no need to share it again" : "not shared lately; share it before filing"}.
+
 Their app: ${app}
 
 Their reports (newest first):
@@ -94,9 +102,10 @@ ${reportList}`;
   },
   tools: (turn: Turn) => ({
     ...conversationTools(turn),
+    ...lookupTools(turn),
     share_privacy_notice: tool({
       description:
-        "Send the notice that reports and screenshots are public and should have private things crossed out. Required before file_bug_report.",
+        "Send the notice that reports are public and screenshots are described, not posted. Required before file_bug_report.",
       inputSchema: z.object({}),
       execute: async () => {
         await turn.send(PRIVACY_NOTICE);
@@ -133,28 +142,20 @@ ${reportList}`;
         details: z
           .string()
           .describe(
-            "What happened, for developers, including what any left-out screenshots show about the app.",
+            "What happened, for developers, including what any screenshots show about the app, in words.",
           ),
         steps: z.string().optional().describe("How to make it happen."),
         expected: z.string().optional(),
         actual: z.string().optional(),
-        screenshots: z
-          .array(z.string())
-          .describe(
-            "References like 'image 2' of screenshots that are OK to include publicly. Empty for none.",
-          ),
       }),
       execute: (input) => fileBugReport(turn, input),
     }),
     add_to_bug_report: tool({
       description:
-        "Add details or screenshots to one of their reports that's already filed.",
+        "Add details to one of their reports that's already filed.",
       inputSchema: z.object({
         reportId: z.string(),
         details: z.string(),
-        screenshots: z
-          .array(z.string())
-          .describe("References like 'image 3', OK to include publicly."),
       }),
       execute: (input) => addToBugReport(turn, input),
     }),
@@ -166,7 +167,6 @@ interface BugReportInput {
   readonly details: string;
   readonly expected?: string;
   readonly kind: "bug" | "idea";
-  readonly screenshots: string[];
   readonly steps?: string;
   readonly summary: string;
   readonly title: string;
@@ -178,25 +178,9 @@ async function fileBugReport(turn: Turn, input: BugReportInput) {
     internal.supportReporters.reporter,
     { accountId: turn.accountId },
   );
-  if (!reporter.noticeShared) {
-    return "Not filed: call share_privacy_notice first, and let them answer before filing.";
-  }
-  const recent: PublicReport[] = await turn.ctx.runQuery(
-    internal.supportReports.reportsOf,
-    { accountId: turn.accountId },
-  );
-  const today = recent.filter(
-    (report) => Date.now() - report.createdAt < 24 * 60 * 60 * 1000,
-  );
-  if (today.length >= MAX_REPORTS_PER_DAY) {
-    return "Not filed: they've filed the most reports allowed in a day. Thank them and ask them to send the rest tomorrow.";
-  }
-  const screenshots = resolveImages(turn, input.screenshots);
-  const issue = issueFor(
-    { ...input, screenshots },
-    turn.accountId,
-    reporter.client,
-  );
+  const blocked = await whyNotFile(turn, reporter);
+  if (blocked !== null) return blocked;
+  const issue = issueFor(input, turn.accountId, reporter.client);
   const title = input.kind === "idea" ? `Idea: ${issue.title}` : issue.title;
   const created = await openIssue(input.kind, title, issue.body);
   const reportId = await turn.ctx.runMutation(internal.supportReports.insert, {
@@ -216,6 +200,7 @@ async function fileBugReport(turn: Turn, input: BugReportInput) {
         : (created?.url ?? "None; it's kept privately."),
   };
 }
+
 
 /** The new GitHub issue, or null when GitHub isn't set up or refused. */
 async function openIssue(kind: "bug" | "idea", title: string, body: string) {
@@ -244,8 +229,7 @@ async function addToBugReport(
   {
     details,
     reportId,
-    screenshots,
-  }: { details: string; reportId: string; screenshots: string[] },
+  }: { details: string; reportId: string },
 ) {
   const report: PublicReport | null = await turn.ctx.runQuery(
     internal.supportReports.reportOf,
@@ -256,12 +240,10 @@ async function addToBugReport(
   if (config === null || report.issueNumber === null) {
     return "Noted, but this report can't take more details right now.";
   }
-  const urls = resolveImages(turn, screenshots);
   const body = [
     "More from the reporter:",
     "",
     anonymize(details, turn.accountId),
-    ...urls.map((url, index) => `\n![Screenshot ${String(index + 1)}](${url})`),
   ].join("\n");
   await commentOnIssue(config, report.issueNumber, body);
   return "Added.";
@@ -273,11 +255,4 @@ function linksOf(report: PublicReport) {
   return report.pullRequestUrl === null
     ? `Issue: ${report.issueUrl}`
     : `Issue: ${report.issueUrl}, fix: ${report.pullRequestUrl}`;
-}
-
-/** The URLs of images in this conversation by reference; others are dropped. */
-function resolveImages(turn: Turn, refs: readonly string[]) {
-  return refs
-    .map((ref) => turn.images.get(ref.trim().toLowerCase()))
-    .filter((url) => url !== undefined);
 }

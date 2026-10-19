@@ -62,8 +62,24 @@ npx convex run supportReports:track --prod                   # check GitHub now 
 
 `list` gives each report's GitHub issue, stage, and who reported it and in
 which conversation. The issue itself never names the reporter: look them up
-here when Shawn needs to. Screenshots in the issue are the ones the reporter
-agreed to share; read the conversation (`support:read`) for the rest.
+here when Shawn needs to. Issues never include screenshots, only support's
+description of them; read the conversation (`support:read`) for the images.
+
+Before filing, support searches GitHub for an existing issue or merged fix.
+When one matches, it follows that issue for the reporter instead of filing
+a duplicate, or tells them the fix is already out.
+
+### Conversations from before support answered
+
+```sh
+npx convex run supportBacklog:pending --prod     # who wrote in and never heard back
+npx convex run supportBacklog:answerAll --prod   # support answers each, 30 seconds apart
+npx convex run supportBacklog:answerAll '{"conversationIds":["<id>"]}' --prod
+```
+
+`answerAll` messages real people: show Shawn `pending` and run it only when
+he says so. Support apologizes for the wait, checks whether each problem is
+already fixed or reported, and follows up on the rest.
 
 A PR that fixes one says `Fixes #<issue>` in its description. That links
 the PR to the issue, which is how support knows a fix is being worked on,

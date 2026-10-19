@@ -1,4 +1,5 @@
-import type { ToolSet } from "ai";
+import type { Message } from "@decentralized-convex/messages";
+import type { StepResult, ToolSet } from "ai";
 import { convexGateway } from "@convex-dev/ai-sdk-provider";
 import { generateText, isStepCount } from "ai";
 import { v } from "convex/values";
@@ -10,7 +11,7 @@ import { internal } from "./_generated/api";
 import { internalAction, internalMutation } from "./_generated/server";
 import {
   describeImages,
-  imagesIn,
+  imageUrls,
   inAnswerOrder,
   toModelMessages,
 } from "./agentHistory";
@@ -118,7 +119,8 @@ export const claim = internalMutation({
     });
     return {
       accountId: row.accountId,
-      answeredThrough: row.answeredThrough ?? 0,
+      answeredThrough: row.answeredThrough ?? null,
+      backlog: row.backlog === true,
       bot: row.bot,
     };
   },
@@ -142,12 +144,17 @@ export const finish = internalMutation({
       answeredThrough: Math.max(row.answeredThrough ?? 0, answeredThrough ?? 0),
     };
     if (row.rerun !== true) {
-      await ctx.db.patch(row._id, { ...answered, runningSince: undefined });
+      await ctx.db.patch(row._id, {
+        ...answered,
+        backlog: undefined,
+        runningSince: undefined,
+      });
       return;
     }
     const wakeAt = Date.now();
     await ctx.db.patch(row._id, {
       ...answered,
+      backlog: undefined,
       rerun: false,
       runningSince: undefined,
       wakeAt,
@@ -160,9 +167,81 @@ export const finish = internalMutation({
 });
 
 /**
+ * Sends the model's messages in the order it sent them, with a beat
+ * between them as if typing the next one.
+ */
+function messageSender(
+  ctx: ActionCtx,
+  bot: BotAccount,
+  conversationId: string,
+  typing: ReturnType<typeof keepTyping>,
+) {
+  let sent = 0;
+  let queue = Promise.resolve();
+  return {
+    send: (text: string) => {
+      const body = text.trim().slice(0, 4000);
+      if (body.length === 0) return queue;
+      queue = queue.then(async () => {
+        if (sent > 0) {
+          await typing.pause(Math.min(1800, 500 + body.length * 12));
+        }
+        await ctx.runMutation(internal.bots.post, {
+          body,
+          bot: bot.username,
+          conversationId,
+        });
+        typing.sent();
+        sent += 1;
+      });
+      return queue;
+    },
+    sent: () => sent,
+  };
+}
+
+/**
+ * The recent conversation to answer, or null when the person hasn't
+ * written since the last reply saw their messages.
+ */
+function toAnswer(
+  messages: readonly Message[],
+  self: string,
+  answeredThrough: number | null,
+) {
+  const recent = messages
+    .filter((message) => message.deletedAt === undefined)
+    .slice(-HISTORY);
+  const history =
+    answeredThrough === null
+      ? recent
+      : inAnswerOrder(recent, self, answeredThrough);
+  const newest = history.findLast((message) => message.authorId !== self);
+  if (newest === undefined || newest.sentAt <= (answeredThrough ?? 0)) {
+    return null;
+  }
+  return history;
+}
+
+/**
  * Answers the person's messages that no reply has seen yet, and returns
  * when the newest of them was sent (undefined when there were none).
  */
+/**
+ * Stops once the assistant has asked the person something (or shared
+ * support's privacy notice), so it waits for their answer instead of going
+ * on as if it had one.
+ */
+function askedSomething({ steps }: { steps: StepResult<ToolSet>[] }) {
+  return (steps.at(-1)?.toolCalls ?? []).some((call) => {
+    // The privacy notice waits for their answer too (supportAgent.ts).
+    if (call.toolName === "share_privacy_notice") return true;
+    if (call.toolName !== "send_message") return false;
+    const text: unknown = Reflect.get(Object(call.input), "text");
+    return typeof text === "string" && text.trim().endsWith("?");
+  });
+}
+
 async function reply(
   ctx: ActionCtx,
   bot: BotAccount,
@@ -170,74 +249,48 @@ async function reply(
   {
     accountId,
     answeredThrough,
-  }: { accountId: string; answeredThrough: number },
+    backlog,
+  }: { accountId: string; answeredThrough: number | null; backlog: boolean },
 ) {
   const page = await ctx.runQuery(internal.bots.page, {
     bot: bot.username,
     conversationId,
   });
   const self = botAddress(bot);
-  const history = inAnswerOrder(
-    page.messages
-      .filter((message) => message.deletedAt === undefined)
-      .slice(-HISTORY),
-    self,
-    answeredThrough,
-  );
-  const newest = history.findLast((message) => message.authorId !== self);
-  if (newest === undefined || newest.sentAt <= answeredThrough) return;
+  const history = toAnswer(page.messages, self, answeredThrough);
+  const newest = history?.findLast((message) => message.authorId !== self);
+  if (history === null || newest === undefined) return;
   await ctx.runMutation(internal.bots.markRead, {
     bot: bot.username,
     conversationId,
   });
   const typing = keepTyping(ctx, bot, conversationId);
   try {
-    const images = imagesIn(history, self);
-    const descriptions = await describeImages(ctx, [...images.values()]);
+    const descriptions = await describeImages(ctx, imageUrls(history, self));
     const messages = toModelMessages(history, self, descriptions);
-    let sent = 0;
-    // Messages go out in the order the model sent them.
-    let queue = Promise.resolve();
+    const sender = messageSender(ctx, bot, conversationId, typing);
     const turn: Turn = {
+      ...sender,
       accountId,
+      backlog,
       bot,
       conversationId,
       ctx,
-      images,
-      name:
-        history.findLast((message) => message.authorId === accountId)
-          ?.authorName ?? accountId,
+      lastHeardAt: newest.sentAt,
+      name: newest.authorName,
       oldestSentAt: page.hasOlder ? (history[0]?.sentAt ?? null) : null,
-      send: (text) => {
-        const body = text.trim().slice(0, 4000);
-        if (body.length === 0) return queue;
-        queue = queue.then(async () => {
-          // A beat between messages, as if typing the next one.
-          if (sent > 0) {
-            await typing.pause(Math.min(1800, 500 + body.length * 12));
-          }
-          await ctx.runMutation(internal.bots.post, {
-            body,
-            bot: bot.username,
-            conversationId,
-          });
-          sent += 1;
-        });
-        return queue;
-      },
-      sent: () => sent,
     };
     const assistant = ASSISTANTS[bot.username];
     const result = await generateText({
       instructions: await assistant.instructions(turn),
       messages,
       model: convexGateway(MODEL, { zdr: true }),
-      stopWhen: isStepCount(MAX_STEPS),
+      stopWhen: [isStepCount(MAX_STEPS), askedSomething],
       toolCallConcurrency: 1,
       tools: assistant.tools(turn),
     });
     // A model that answered in plain text instead of calling send_message.
-    if (sent === 0 && result.text.trim().length > 0) {
+    if (sender.sent() === 0 && result.text.trim().length > 0) {
       await turn.send(result.text);
     }
   } finally {

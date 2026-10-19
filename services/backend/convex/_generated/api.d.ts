@@ -28,6 +28,7 @@ import type * as devSignInPage from "../devSignInPage.js";
 import type * as devThreads from "../devThreads.js";
 import type * as files from "../files.js";
 import type * as github from "../github.js";
+import type * as githubReleases from "../githubReleases.js";
 import type * as http from "../http.js";
 import type * as joinPage from "../joinPage.js";
 import type * as lib from "../lib.js";
@@ -35,8 +36,11 @@ import type * as pds from "../pds.js";
 import type * as release from "../release.js";
 import type * as support from "../support.js";
 import type * as supportAgent from "../supportAgent.js";
+import type * as supportBacklog from "../supportBacklog.js";
+import type * as supportLookup from "../supportLookup.js";
 import type * as supportReporters from "../supportReporters.js";
 import type * as supportReports from "../supportReports.js";
+import type * as supportRules from "../supportRules.js";
 import type * as vera from "../vera.js";
 
 import type {
@@ -66,6 +70,7 @@ declare const fullApi: ApiFromModules<{
   devThreads: typeof devThreads;
   files: typeof files;
   github: typeof github;
+  githubReleases: typeof githubReleases;
   http: typeof http;
   joinPage: typeof joinPage;
   lib: typeof lib;
@@ -73,8 +78,11 @@ declare const fullApi: ApiFromModules<{
   release: typeof release;
   support: typeof support;
   supportAgent: typeof supportAgent;
+  supportBacklog: typeof supportBacklog;
+  supportLookup: typeof supportLookup;
   supportReporters: typeof supportReporters;
   supportReports: typeof supportReports;
+  supportRules: typeof supportRules;
   vera: typeof vera;
 }>;
 
