@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { Text, View } from "react-native";
 import { KeyboardGestureArea } from "react-native-keyboard-controller";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -9,6 +9,7 @@ import type { MessageLayout } from "~/features/preferences/store";
 import { Pending } from "~/components/pending";
 import { useAfterSend } from "~/features/conversation/after-send";
 import { useComposerBottomInset } from "~/features/conversation/composer";
+import { useComposerHeight } from "~/features/conversation/composer-height";
 import {
   CONVERSATION_HEADER_HEIGHT,
   ConversationHeader,
@@ -166,9 +167,9 @@ function Conversation({
   const layout = useMessageLayout(conversation?.kind);
   const notices = useMemberNotices(conversationId, conversation, messages);
   const typing = useConversationTyping(conversationId, messages.messages);
-  // Undefined until the composer is laid out: the list leaves room for it
-  // under the newest message, so it waits rather than shift once it knows.
-  const [composerHeight, setComposerHeight] = useState<number>();
+  // Not laid out yet: the list leaves room for it under the newest
+  // message, so it waits rather than shift once it knows.
+  const { composerHeight, onHeight } = useComposerHeight();
   const list = useRef<MessageListHandle>(null);
   useWhileOpen(conversationId, messages);
 
@@ -181,7 +182,7 @@ function Conversation({
   });
   const shown =
     listReady([messages, notices, typing], layout, profilesLoaded) &&
-    composerHeight !== undefined;
+    composerHeight.laidOut !== undefined;
   const pending = useOpening(conversationId, messages, shown);
   if (!isLoading && conversation === undefined) {
     return (
@@ -234,7 +235,7 @@ function Conversation({
         ref={composer}
         draftId={conversationId}
         mentionable={mentionableIn(conversation, address, profileOf)}
-        onHeight={setComposerHeight}
+        onHeight={onHeight}
         onChangeText={typing.report}
         replyingTo={replies.replyingTo}
         onCancelReply={replies.cancel}

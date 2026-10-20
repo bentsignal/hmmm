@@ -15,6 +15,7 @@ import { scheduleOnRN } from "react-native-worklets";
 
 import type { BlankSpace } from "./blank-space";
 import type { ThreadHead } from "./build-rows";
+import type { ComposerHeight } from "./composer-height";
 import type { LeavingRows } from "./leave-rows";
 import type { Latest } from "./list-position";
 import type { ToggleReaction, ViewReactions } from "./message-actions";
@@ -82,7 +83,7 @@ export interface RowsProps {
   bottomInset: number;
   topInset: number;
   /** Height of the composer floating over the bottom of the list. */
-  composerHeight: number;
+  composerHeight: ComposerHeight;
   /** Who else is typing here, in the order they started. */
   typists: readonly string[];
   latest: Latest;
@@ -359,7 +360,7 @@ export function MessageList({
       />
       <JumpToLatest
         visible={showJump}
-        bottom={props.composerHeight + 12}
+        above={props.composerHeight.live}
         onPress={() => {
           if (hasNewer) onJumpToLatest();
           else scrollToLatest();
