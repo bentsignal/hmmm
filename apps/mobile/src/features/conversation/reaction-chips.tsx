@@ -64,19 +64,32 @@ function Chip({
   );
 }
 
+/** A chip's size and what's in it, with nothing drawn (see `ChipRow`). */
+function GhostChip({ reaction }: { reaction: ReactionSummary }) {
+  return (
+    <View className="h-[26px] flex-row items-center gap-1 rounded-full px-2">
+      <Emoji emoji={reaction.emoji} size={13} />
+      <Text className="text-footnote font-semibold">{reaction.count}</Text>
+    </View>
+  );
+}
+
 /**
  * Slack's row, made quieter: small glass chips under the message, yours
  * tinted. Tap one to add or take back that reaction, hold it to see who
- * reacted with it; long press the message for more.
+ * reacted with it; long press the message for more. A `ghost` row is laid
+ * out the same with no glass, to measure it before the chips show.
  */
 export function ChipRow({
   reactions,
   align,
+  ghost = false,
   onToggle,
   onHold,
 }: {
   reactions: readonly ReactionSummary[];
   align: "end" | "start";
+  ghost?: boolean;
   onToggle: (emoji: string) => void;
   onHold: (emoji: string) => void;
 }) {
@@ -87,14 +100,18 @@ export function ChipRow({
         align === "end" ? "justify-end" : "justify-start",
       )}
     >
-      {reactions.map((reaction) => (
-        <Chip
-          key={reaction.emoji}
-          reaction={reaction}
-          onPress={() => onToggle(reaction.emoji)}
-          onLongPress={() => onHold(reaction.emoji)}
-        />
-      ))}
+      {reactions.map((reaction) =>
+        ghost ? (
+          <GhostChip key={reaction.emoji} reaction={reaction} />
+        ) : (
+          <Chip
+            key={reaction.emoji}
+            reaction={reaction}
+            onPress={() => onToggle(reaction.emoji)}
+            onLongPress={() => onHold(reaction.emoji)}
+          />
+        ),
+      )}
     </View>
   );
 }
