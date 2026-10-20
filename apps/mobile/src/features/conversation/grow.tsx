@@ -121,19 +121,11 @@ export function useRowLift(
  * above. In one that moves with them (stacked rows, `rowMoves`), a piece
  * below the space stays put.
  */
-export function usePieceLift(
-  order: number,
-  place: number,
-  rowMoves = false,
-  /** How much it shows: what the space opens for. */
-  shown?: SharedValue<number>,
-) {
+export function usePieceLift(order: number, place: number, rowMoves = false) {
   const { moves } = useGrowth();
   return useAnimatedStyle(() => {
     const { pending, shift } = pieceShift(moves, { order, place, rowMoves });
-    const style = moved(shift, pending);
-    if (shown === undefined) return style;
-    return { ...style, opacity: shown.get() };
+    return moved(shift, pending);
   });
 }
 
