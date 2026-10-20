@@ -81,7 +81,9 @@ main, as above). When Shawn asks for a release, follow the
 `vera-release` skill ([docs/releasing.md](docs/releasing.md) explains the
 model): list what changed since the last release, and what to test where
 those changes overlap (each one was already tested on its own before it
-merged), get main onto his phone, and ship only after he approves.
+merged), run those tests yourself first in the iOS simulator and Android
+emulator, get main onto his phone for what only he can check, and ship
+only after he approves.
 Over-the-air updates are the default; a store build happens only when
 native code changed or Apple requires one.
 
