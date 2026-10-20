@@ -11,6 +11,8 @@ import { useDevTools } from "./dev-tools";
 
 /** What scripts can do in the open conversation (see `useDevConversation`). */
 interface DevConversation {
+  /** The conversation's ID, to open one of its threads. */
+  id: string;
   /**
    * Adds or takes back your `emoji` on the newest message reading `text`,
    * or on its attachment at `attachment`.
@@ -72,6 +74,7 @@ export function useDevConversation(
       return message;
     }
     open = {
+      id: conversationId,
       edit: (text, to) => edits.edit(find(text).id, to, []),
       remove: (text) => edits.delete(find(text).id),
       idOf: (text) => find(text).id,

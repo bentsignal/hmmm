@@ -17,6 +17,7 @@ import type { ProfileOf } from "./message-row";
 import type { Newest, TypingSeen } from "./typing-change";
 import type { MessageLayout } from "~/features/preferences/store";
 import { useGrowth } from "./grow";
+import { useHeldHeight } from "./held-height";
 import {
   anyPending,
   GROW_EASING,
@@ -278,7 +279,10 @@ export function TypingRow({
   const row = useAnimatedRef<View>();
   const room = useAnimatedRef<View>();
   const typing = typists.length > 0;
-  const height = typingSpaceHeight(layout, typing);
+  // Drawn down by the composer in a thread with room under its replies
+  // (see `useTypingDrop`), it needs no room of its own under the newest
+  // reply: someone starting or stopping then moves nothing there.
+  const height = typingSpaceHeight(layout, typing && !growth.typingDropped);
   // A message that takes its place closes the space itself.
   const handingOff =
     !typing && ghosts.some((ghost) => ghost.became !== undefined);
@@ -319,8 +323,7 @@ export function TypingRow({
     },
     [height, handingOff],
   );
-  // eslint-disable-next-line vera/no-layout-animation -- Not animated: the height changes once, in the same frame as the moves, which do the moving.
-  const space = useAnimatedStyle(() => ({ height: growth.typing.get() }));
+  const space = useHeldHeight(growth.typing);
   function people(accounts: readonly string[]) {
     return accounts.map((address) => ({ address, ...profileOf(address) }));
   }
