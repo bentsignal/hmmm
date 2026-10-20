@@ -181,7 +181,8 @@ function Rows({
           offset={bottomInset}
           freeze={freeze}
           blankSpace={blank.blankSpace}
-          // Room for the composer floating over the bottom (see useLatest).
+          // Room for the composer floating over the bottom on iOS; on
+          // Android it's the list's header (see useLatest).
           extraContentPadding={latest.composer}
           onContentInsetChange={(insets) => latest.onInsetChange(insets.top)}
         />
@@ -212,6 +213,7 @@ function Rows({
       scrollEventThrottle={16}
       onContentSizeChange={(_, height) => {
         blank.onContentHeight(height);
+        latest.onContentChange();
         placement.onLaidOut();
       }}
       onScrollToIndexFailed={placement.onMissed}
@@ -221,10 +223,13 @@ function Rows({
       // A thread starts at the top, under its original (see
       // `useBlankSpace`).
       onLayout={(event) => blank.onListHeight(event.nativeEvent.layout.height)}
-      // A gap under who's typing, above the composer's inset, and room
-      // above the oldest for the header: the messages scroll under both.
+      // A gap under who's typing, above the composer (its inset on iOS,
+      // part of this row on Android), and room above the oldest for the
+      // header: the messages scroll under both.
       // Inverted, the list's header is at the bottom, its footer at the top.
-      ListHeaderComponent={<View style={{ height: COMPOSER_GAP }} />}
+      ListHeaderComponent={
+        <View style={{ height: COMPOSER_GAP + latest.composerRow }} />
+      }
       ListFooterComponent={<View style={{ height: top + 8 }} />}
       scrollIndicatorInsets={{ bottom: top }}
       style={{ flex: 1 }}
