@@ -14,6 +14,7 @@ import type { Blank } from "./blank-space";
 import type { LeaveState } from "./leave";
 import type { Growth } from "./moves";
 import type { TypingDrop } from "./typing-drop";
+import { useHeldHeight } from "./held-height";
 import {
   inFrame,
   land,
@@ -204,8 +205,7 @@ function Space({
     },
     [height, animate, order, place],
   );
-  // eslint-disable-next-line vera/no-layout-animation -- Not animated: the height changes once, in the same frame as the lift, which does the moving.
-  const style = useAnimatedStyle(() => ({ height: space.get() }));
+  const style = useHeldHeight(space);
   return (
     <Animated.View ref={ref} style={style}>
       {children}
