@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { Text, View } from "react-native";
 import { KeyboardGestureArea } from "react-native-keyboard-controller";
 import {
@@ -9,9 +9,11 @@ import {
 } from "expo-router";
 
 import type { ComposerHandle } from "~/features/conversation/composer";
+import type { ComposerHeight } from "~/features/conversation/composer-height";
 import type { MessageListHandle } from "~/features/conversation/message-list";
 import { Pending } from "~/components/pending";
 import { useComposerBottomInset } from "~/features/conversation/composer";
+import { useComposerHeight } from "~/features/conversation/composer-height";
 import { FloatingComposer } from "~/features/conversation/floating-composer";
 import { mentionableIn } from "~/features/conversation/mentionable";
 import { MessageList } from "~/features/conversation/message-list";
@@ -96,11 +98,11 @@ function shownList<Layout, Root>({
   profilesLoaded: boolean;
   root: Root | undefined;
   layout: Layout | undefined;
-  composerHeight: number | undefined;
+  composerHeight: ComposerHeight;
 }) {
   const loading = parts.some(({ isLoading }) => isLoading) || !profilesLoaded;
   if (loading || root === undefined || layout === undefined) return null;
-  if (composerHeight === undefined) return null;
+  if (composerHeight.laidOut === undefined) return null;
   return { composerHeight, layout, root };
 }
 
@@ -179,7 +181,7 @@ function Thread({
   const layout = useMessageLayout(conversation?.kind);
   const state = useThreadState(conversationId, threadId);
   const typing = useThreadTyping(conversationId, threadId, thread.messages);
-  const [composerHeight, setComposerHeight] = useState<number>();
+  const { composerHeight, onHeight } = useComposerHeight();
   const list = useRef<MessageListHandle>(null);
   const { composer, draftId, editing } = useDraft(conversationId, threadId);
   useWhileOpen(conversationId, threadId, thread);
@@ -246,7 +248,7 @@ function Thread({
           placeholder="Reply"
           edit={editing}
           mentionable={mentionableIn(conversation, address, profileOf)}
-          onHeight={setComposerHeight}
+          onHeight={onHeight}
           onChangeText={typing.report}
           onSend={(draft) => {
             thread.sendMessage(draft);

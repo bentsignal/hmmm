@@ -7,13 +7,15 @@ import { Platform } from "react-native";
 import { useKeyboardHandler } from "react-native-keyboard-controller";
 import {
   scrollTo,
+  useAnimatedReaction,
   useAnimatedRef,
-  useDerivedValue,
   useScrollOffset,
   useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
 import { scheduleOnUI } from "react-native-worklets";
 
+import type { ComposerHeight } from "./composer-height";
 import type { ListRow } from "./typing-row";
 
 // Where the conversation list is scrolled: placing it when it opens, and
@@ -37,6 +39,8 @@ const GLIDE_MS = 70;
 const GLIDE_DONE = 2;
 /** The longest a glide takes before it jumps the rest of the way. */
 const GLIDE_MAX_MS = 1000;
+/** How long the list's room for the composer takes to follow its height. */
+const COMPOSER_EASE_MS = 120;
 /** Frames to wait for the message a conversation opens on to be measured. */
 const ANCHOR_TRIES = 30;
 
@@ -87,7 +91,7 @@ export function useLatest({
   /** It opens on the newest message, not one further up. */
   startsAtLatest: boolean;
   /** The composer's height, which floats over the list's bottom. */
-  composerHeight: number;
+  composerHeight: ComposerHeight;
   /** What the keyboard covers that's already room (its `offset`). */
   keyboardOffset: number;
   /** A thread's room under its replies (see `useBlankSpace`). */
@@ -97,7 +101,8 @@ export function useLatest({
 }) {
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const offset = useScrollOffset(scrollRef);
-  const composer = useDerivedValue(() => (IOS ? composerHeight : 0));
+  const { live, laidOut = 0 } = composerHeight;
+  const composer = useSharedValue(IOS ? live.get() : 0);
   const keyboard = useKeyboardInset(keyboardOffset, freeze);
   // The inset and scroll position as last reported, for the jump button.
   const inset = useRef(0);
@@ -147,13 +152,29 @@ export function useLatest({
     requestAnimationFrame(step);
   }
 
+  // On iOS, eases to each height the composer reports: its layout reaches
+  // the UI thread a step at a time as it animates (attachments opening or
+  // closing), and jumping to each moved the list in steps. At the newest
+  // message, the list glides along to stay there: `KeyboardChatScrollView`
+  // moves the scroll by each change from where the list was a frame
+  // before, so on its own it falls behind a room that changes every frame.
+  useAnimatedReaction(
+    () => (IOS ? live.get() : 0),
+    (now, before) => {
+      if (before === null || now === before) return;
+      const atLatest = offset.get() - bottom() < NEAR_LATEST;
+      composer.set(withTiming(now, { duration: COMPOSER_EASE_MS }));
+      if (atLatest) glide();
+    },
+  );
+
   return {
     /** For the list's scroll view, which the glide moves. */
     scrollRef,
     /** The composer's room on iOS, the list's `extraContentPadding`. */
     composer,
     /** The composer's room on Android, a row under the newest message. */
-    composerRow: IOS ? 0 : composerHeight,
+    composerRow: IOS ? 0 : laidOut,
     isNearLatest,
     /** Glides down to the newest message, as after sending one. */
     scrollToLatest: () => scheduleOnUI(glide),
@@ -191,9 +212,9 @@ export function useLatest({
     onContentChange: () => {
       if (IOS) return;
       const seen = seenComposer.current;
-      seenComposer.current = composerHeight;
-      if (seen === undefined || seen === composerHeight) return;
-      if (offset.get() - (composerHeight - seen) > NEAR_LATEST) return;
+      seenComposer.current = laidOut;
+      if (seen === undefined || seen === laidOut) return;
+      if (offset.get() - (laidOut - seen) > NEAR_LATEST) return;
       scheduleOnUI(glide);
     },
     onScroll: (y: number) => {
