@@ -268,7 +268,6 @@ up() {
   save
   launch
   queue ready "$PLATFORM" --device "$DEVICE" --serial "$SERIAL" --metro-pid "$METRO_PID"
-  [ "$PLATFORM" = ios ] && open -ga Simulator
   status
   echo "watch it in T3 Code: device_open with deviceId $([ "$PLATFORM" = ios ] && echo "$DEVICE" || echo "$SERIAL"), once (device_list shows what's open)"
   echo "when done: device_close, then scripts/sim.sh$([ "$PLATFORM" = android ] && echo " --android") down, before you end your turn"
