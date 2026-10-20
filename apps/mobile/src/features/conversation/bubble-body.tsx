@@ -57,6 +57,7 @@ export function BubbleBody({
         <LinkedText
           text={text}
           mentions={mentions}
+          onAccent={isOwn}
           className={cn(
             "text-body leading-[22px]",
             isOwn ? "text-on-accent" : "text-foreground",
