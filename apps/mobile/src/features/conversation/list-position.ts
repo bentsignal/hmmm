@@ -9,6 +9,7 @@ import {
   scrollTo,
   useAnimatedReaction,
   useAnimatedRef,
+  useDerivedValue,
   useScrollOffset,
   useSharedValue,
   withTiming,
@@ -169,6 +170,8 @@ export function useLatest({
     scrollRef,
     /** The composer's room on iOS, the list's `extraContentPadding`. */
     composer,
+    /** The room for the keyboard and composer (see `Blank`'s `floor`). */
+    floor: useDerivedValue(() => keyboard.get() + composer.get()),
     /** The composer's room on Android, a row under the newest message. */
     composerRow: IOS ? 0 : laidOut,
     isNearLatest,

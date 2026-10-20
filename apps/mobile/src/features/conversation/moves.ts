@@ -166,17 +166,23 @@ function belowScreen(growth: Growth, measured: AnimatedRef<View>) {
 
 /**
  * Updates a thread's blank space for content that changed by `delta`,
- * and returns how much it changed, which moves every row by that much.
+ * and returns how much the list's inset changed with it, which moves
+ * every row by that much. The inset is the larger of the blank space and
+ * the room for the keyboard and composer (`floor`): once a thread's blank
+ * space is less than that, a new reply moves the rows above it up as in a
+ * conversation, and counting the whole change in blank space drew them
+ * short of where they went, so they snapped the rest of the way.
  */
 function blankChange(blank: Blank | undefined, delta: number) {
   "worklet";
   if (blank === undefined) return 0;
+  const floor = blank.floor.get();
   const content = blank.content.get() + delta;
-  const before = blank.space.get();
-  const after = Math.max(0, blank.list.get() - content);
+  const before = Math.max(blank.space.get(), floor);
+  const space = Math.max(0, blank.list.get() - content);
   blank.content.set(content);
-  blank.space.set(after);
-  return after - before;
+  blank.space.set(space);
+  return Math.max(space, floor) - before;
 }
 
 /**

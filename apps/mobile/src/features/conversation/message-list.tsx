@@ -288,7 +288,7 @@ export function MessageList({
   const cover = useAnimatedStyle(() => ({ opacity: 1 - loaded.value }));
   const [shown, setShown] = useState(false);
   const keyboard = useMenuKeyboard();
-  const blank = useBlankSpace(thread !== undefined);
+  const blank = useBlankSpace(thread !== undefined, shown);
   const latest = useLatest({
     blankSpace: blank.blankSpace,
     composerHeight: props.composerHeight,
@@ -331,7 +331,7 @@ export function MessageList({
             list={frame}
             // The rows move with a thread's blank space as it changes, so
             // rows that change size update it at once (see `lift`).
-            blank={blank.sizes}
+            blank={blank.sizes && { ...blank.sizes, floor: latest.floor }}
             typingDrop={typingDrop}
           >
             <Rows
