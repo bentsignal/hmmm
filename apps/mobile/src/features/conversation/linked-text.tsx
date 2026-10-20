@@ -58,7 +58,7 @@ function MentionLink({
       onLongPress={press?.onLongPress}
       onPressIn={press?.onPressIn}
       onPressOut={press?.onPressOut}
-      className={onAccent ? "font-semibold" : "font-semibold text-accent"}
+      className={onAccent ? "font-semibold" : "text-accent font-semibold"}
     >
       {text}
     </Text>
