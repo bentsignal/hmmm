@@ -78,6 +78,10 @@ export interface Growth {
   readonly list: AnimatedRef<View>;
   /** The space under the newest message for who's typing. */
   readonly typing: SharedValue<number>;
+  /** How far below that space the indicator is drawn (see `useTypingDrop`). */
+  readonly typingDrop: SharedValue<number>;
+  /** Whether that's down by the composer, for React. */
+  readonly typingDropped: boolean;
   /**
    * A thread's blank space, which moves the rows as it changes: it's
    * updated with the row's size at once, so the rows move once, and the
@@ -303,6 +307,15 @@ export function rowShift(
     if (by !== 0 && move.pending.get()) pending = true;
   }
   return { pending, shift };
+}
+
+/** Whether any space hasn't reached the screen yet (see `Move`). */
+export function anyPending(moves: readonly Move[]) {
+  "worklet";
+  for (const move of moves) {
+    if (move.pending.get()) return true;
+  }
+  return false;
 }
 
 /** A transform to `translateY`, in the layout commit while it's `pending`. */

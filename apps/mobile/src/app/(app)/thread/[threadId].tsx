@@ -127,7 +127,7 @@ function useWhileOpen(
   useMarkThreadRead(conversationId, threadId, thread.newestSentAt);
   useActiveThread(threadId);
   useStayLive(conversationId, threadId);
-  useDevConversation(conversationId, thread);
+  useDevConversation(conversationId, thread, threadId);
 }
 
 /** The messages a thread shows: its original, then its replies. */

@@ -35,6 +35,7 @@ import { MessageActionsProvider } from "./message-actions";
 import { Row } from "./message-row";
 import { RevealTimes } from "./reveal";
 import { headerHeight } from "./row-header";
+import { useTypingDrop } from "./typing-drop";
 import { TypingRow } from "./typing-indicator";
 
 /**
@@ -295,6 +296,11 @@ export function MessageList({
     keyboardOffset: props.bottomInset,
     startsAtLatest: props.anchorId === undefined,
   });
+  const typingDrop = useTypingDrop({
+    blankSpace: blank.blankSpace,
+    composer: latest.composer,
+    keyboardOffset: props.bottomInset,
+  });
   const { isNearLatest, scrollToLatest } = latest;
   // Read out first: the worklet must not capture `props` (messages hold
   // Dates, which worklets can't copy).
@@ -326,6 +332,7 @@ export function MessageList({
             // The rows move with a thread's blank space as it changes, so
             // rows that change size update it at once (see `lift`).
             blank={blank.sizes}
+            typingDrop={typingDrop}
           >
             <Rows
               {...props}
