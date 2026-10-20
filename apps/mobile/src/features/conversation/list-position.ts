@@ -51,12 +51,21 @@ const IOS = Platform.OS === "ios";
  * newest row on screen still as rows above it are added or grow, so at the
  * bottom a new message, or someone typing, opens right there and the
  * messages above make room (see `Arrive`); scrolled up, nothing on screen
- * moves. The keyboard and the composer under the newest row are insets
- * (`KeyboardChatScrollView`'s, with the composer as its
+ * moves. The keyboard and, on iOS, the composer under the newest row are
+ * insets (`KeyboardChatScrollView`'s, with the composer as its
  * `extraContentPadding`) that the list moves with on the UI thread as
  * they change. The composer used to be a row under the newest message
- * instead, and the anchor moved the list when it changed size, as when a
+ * there, and the anchor moved the list when it changed size, as when a
  * reply was sent: it ended up that much under the composer.
+ *
+ * On Android the composer stays a row (`composerRow`). The library draws
+ * an Android inset by shifting the list's content and scrolling by as
+ * much, and the scroll events it sends don't match where the list ends
+ * up: at the bottom it reported the list a composer's height up, which
+ * showed the jump button, and the newest message ended up under a
+ * composer that grew. The anchor holds the rows still as the row grows,
+ * so at the bottom the list then glides down to show what it covers
+ * (`onContentChange`).
  *
  * Going to the newest message (after sending, or the jump button) glides
  * there on the UI thread, each frame from wherever the list actually is.
@@ -88,11 +97,13 @@ export function useLatest({
 }) {
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const offset = useScrollOffset(scrollRef);
-  const composer = useDerivedValue(() => composerHeight);
+  const composer = useDerivedValue(() => (IOS ? composerHeight : 0));
   const keyboard = useKeyboardInset(keyboardOffset, freeze);
   // The inset as last reported, for the jump button.
   const inset = useRef(0);
   const gliding = useSharedValue(false);
+  // The composer's height when the content last changed (Android).
+  const seenComposer = useRef<number | undefined>(undefined);
   const isNearLatest = useSharedValue(startsAtLatest);
 
   /**
@@ -133,8 +144,10 @@ export function useLatest({
   return {
     /** For the list's scroll view, which the glide moves. */
     scrollRef,
-    /** The composer's room, the list's `extraContentPadding`. */
+    /** The composer's room on iOS, the list's `extraContentPadding`. */
     composer,
+    /** The composer's room on Android, a row under the newest message. */
+    composerRow: IOS ? 0 : composerHeight,
     isNearLatest,
     /** Glides down to the newest message, as after sending one. */
     scrollToLatest: () => scheduleOnUI(glide),
@@ -156,6 +169,22 @@ export function useLatest({
       onScrollBeginDrag: () => {
         gliding.set(false);
       },
+    },
+    /**
+     * The list's content changed. On Android, a composer that changed
+     * height (a reply bar, another line, an attachment) changed the row
+     * under the newest message, and the anchor kept the rows where they
+     * were: at the bottom, the list glides down to show what it covers.
+     * The anchor's move up has already happened, so how far up the list
+     * was is `offset` less the change.
+     */
+    onContentChange: () => {
+      if (IOS) return;
+      const seen = seenComposer.current;
+      seenComposer.current = composerHeight;
+      if (seen === undefined || seen === composerHeight) return;
+      if (offset.get() - (composerHeight - seen) > NEAR_LATEST) return;
+      scheduleOnUI(glide);
     },
     onScroll: (y: number) => {
       isNearLatest.set(y - (IOS ? -inset.current : 0) < NEAR_LATEST);
