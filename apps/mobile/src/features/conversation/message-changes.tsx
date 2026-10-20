@@ -22,7 +22,7 @@ export function DeletedBubble() {
   return (
     <View
       className="border-separator border px-3.5 py-2"
-      style={{ borderCurve: "continuous", borderRadius: BUBBLE_RADIUS }}
+      style={{ borderRadius: BUBBLE_RADIUS }}
     >
       <Text className="text-body text-muted leading-[22px] italic">
         {DELETED_TEXT}
@@ -87,13 +87,10 @@ export function EditedLabel({
   );
 }
 
-/** What follows an edited message's text. */
-export const EDITED = " (edited)";
-
 /**
  * "(edited)" after an edited message's text in a stacked row, inside the
  * text so it follows its last line.
  */
 export function EditedSuffix() {
-  return <Text className="text-caption text-muted">{EDITED}</Text>;
+  return <Text className="text-caption text-muted"> (edited)</Text>;
 }

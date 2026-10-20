@@ -1,15 +1,12 @@
 import type { ReactNode } from "react";
-import { Platform, Pressable, Text, View } from "react-native";
+import { Text } from "react-native";
 import { textParts } from "@decentralized-convex/messages";
 
 import type { Mention } from "./types";
-import { useAccount } from "~/features/messaging/account";
 import { useOpenProfile } from "~/features/profile/use-open-profile";
-import { cn } from "~/lib/cn";
 import { openLink } from "~/lib/open-link";
 import { linkTapped } from "./link-tap";
 import { mentionRanges } from "./mention-text";
-import { EDITED, EditedSuffix } from "./message-changes";
 import { useMenuPress } from "./row-touch";
 
 /**
@@ -36,36 +33,11 @@ function Link({ text, url }: { text: string; url: string }) {
 }
 
 /**
- * How a mention chip fits its line. Sitting in a line of text, a view
- * rests on the baseline, and one taller than the font's ascent opens the
- * line up, so the chip stays about that tall and drops until its name's
- * baseline meets the line's. Each platform clips the name to the chip, so
- * on iOS the name's own line is that short too, and on Android, which
- * draws text taller, the chip is a little taller instead. Its background
- * reaches past it (`fill`), padding the name without opening the line.
+ * An @mention: bold, in the accent color (or the bubble's own on your
+ * accent bubble). Tapping it opens the person's profile, not the message's
+ * thread, and holding it still opens the menu.
  */
-const CHIP_FIT = Platform.select({
-  android: {
-    chip: { height: 20, transform: [{ translateY: 3.75 }] },
-    name: { includeFontPadding: false },
-    fill: { top: -2, bottom: -2 },
-  },
-  default: {
-    chip: { transform: [{ translateY: 2.5 }] },
-    name: { lineHeight: 16, transform: [{ translateY: 1.5 }] },
-    fill: { top: -2.5, bottom: -3 },
-  },
-});
-
-/**
- * An @mention on a rounded chip, sitting in the line like a word: tapping
- * it opens the person's profile, not the message's thread, and holding it
- * still opens the menu. One that mentions you is tinted more strongly.
- * A view, not nested text, since only a view rounds its corners; so its
- * text sets its own size rather than inheriting the line's, and screen
- * readers reach it through the message's text (see `LinkedText`).
- */
-function MentionChip({
+function MentionLink({
   text,
   accountId,
   onAccent,
@@ -74,12 +46,11 @@ function MentionChip({
   accountId: string;
   onAccent: boolean;
 }) {
-  const { address } = useAccount();
   const openProfile = useOpenProfile();
   const press = useMenuPress();
   return (
-    <Pressable
-      delayLongPress={press?.delayLongPress}
+    <Text
+      accessibilityRole="link"
       onPress={() => {
         linkTapped();
         openProfile(accountId);
@@ -87,39 +58,12 @@ function MentionChip({
       onLongPress={press?.onLongPress}
       onPressIn={press?.onPressIn}
       onPressOut={press?.onPressOut}
-      hitSlop={{ top: 3, bottom: 3 }}
-      className="justify-center px-1.5 active:opacity-60"
-      style={CHIP_FIT.chip}
+      className={onAccent ? "font-semibold" : "font-semibold text-accent"}
     >
-      <View
-        className={cn(
-          "absolute inset-x-0 rounded-md",
-          onAccent
-            ? "bg-on-accent/25"
-            : accountId === address
-              ? "bg-accent/30"
-              : "bg-accent/15",
-        )}
-        style={[{ borderCurve: "continuous" }, CHIP_FIT.fill]}
-      />
-      <Text
-        style={CHIP_FIT.name}
-        className={cn(
-          "text-body font-semibold",
-          onAccent ? "text-on-accent" : "text-accent",
-        )}
-      >
-        {text}
-      </Text>
-    </Pressable>
+      {text}
+    </Text>
   );
 }
-
-/**
- * Text clips what's drawn past its edges, so text with a chip gets room
- * below its last line for the chip's background, taking no more space.
- */
-const ROOM_BELOW = { paddingBottom: 4, marginBottom: -4 };
 
 /** Text with its links, starting `offset` into the message (for keys). */
 function withLinks(text: string, offset: number) {
@@ -134,33 +78,30 @@ function withLinks(text: string, offset: number) {
 
 /**
  * A message's text with its links underlined and tappable (a tap opens the
- * link, in its app if one is installed) and its @mentions on chips that
- * open the person's profile. Screen readers can't reach a view inside
- * text, so the text reads in full and each mention is an action.
+ * link, in its app if one is installed) and its @mentions tappable, opening
+ * the person's profile.
  */
 export function LinkedText({
   text,
   mentions,
   className,
   onAccent = false,
-  edited = false,
+  suffix,
 }: {
   text: string;
   mentions?: readonly Mention[];
   className: string;
   /** On an accent-colored background (your own bubble). */
   onAccent?: boolean;
-  /** Followed by " (edited)", in its own style. */
-  edited?: boolean;
+  /** Text after it, in its own style, such as " (edited)". */
+  suffix?: ReactNode;
 }) {
-  const openProfile = useOpenProfile();
-  const ranges = mentionRanges(text, mentions);
   const parts = new Array<ReactNode>();
   let at = 0;
-  for (const range of ranges) {
+  for (const range of mentionRanges(text, mentions)) {
     parts.push(...withLinks(text.slice(at, range.start), at));
     parts.push(
-      <MentionChip
+      <MentionLink
         key={`mention-${range.start}`}
         text={text.slice(range.start, range.end)}
         accountId={range.accountId}
@@ -170,39 +111,11 @@ export function LinkedText({
     at = range.end;
   }
   parts.push(...withLinks(text.slice(at), at));
-  const mentioned = [
-    ...new Map(
-      ranges.map((range) => [
-        range.accountId,
-        text.slice(range.start + 1, range.end),
-      ]),
-    ),
-  ];
   // After the parts, not among them: they're keyed, and it has none.
   return (
-    <Text
-      accessibilityLabel={
-        ranges.length > 0 ? text + (edited ? EDITED : "") : undefined
-      }
-      accessibilityActions={
-        mentioned.length > 0
-          ? mentioned.map(([accountId, name]) => ({
-              label: `Open ${name}'s profile`,
-              name: accountId,
-            }))
-          : undefined
-      }
-      onAccessibilityAction={(event) => {
-        const accountId = event.nativeEvent.actionName;
-        if (mentioned.some(([mentionedId]) => mentionedId === accountId)) {
-          openProfile(accountId);
-        }
-      }}
-      className={className}
-      style={ranges.length > 0 ? ROOM_BELOW : undefined}
-    >
+    <Text className={className}>
       {parts}
-      {edited && <EditedSuffix />}
+      {suffix}
     </Text>
   );
 }
