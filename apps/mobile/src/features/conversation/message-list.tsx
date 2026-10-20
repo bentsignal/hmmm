@@ -1,5 +1,5 @@
-import type { Ref, RefObject } from "react";
-import type { SharedValue } from "react-native-reanimated";
+import type { ComponentProps, Ref, RefObject } from "react";
+import type { AnimatedRef, SharedValue } from "react-native-reanimated";
 import { useImperativeHandle, useRef, useState } from "react";
 import { FlatList, View } from "react-native";
 import { KeyboardChatScrollView } from "react-native-keyboard-controller";
@@ -35,6 +35,30 @@ import { Row } from "./message-row";
 import { RevealTimes } from "./reveal";
 import { headerHeight } from "./row-header";
 import { TypingRow } from "./typing-indicator";
+
+/**
+ * The list's scroll view, which `useLatest` also scrolls through
+ * `scrollRef`, alongside the list's own ref.
+ */
+function ChatScrollView({
+  ref,
+  scrollRef,
+  ...props
+}: ComponentProps<typeof KeyboardChatScrollView> & {
+  ref?: Ref<Animated.ScrollView>;
+  scrollRef: AnimatedRef<Animated.ScrollView>;
+}) {
+  return (
+    <KeyboardChatScrollView
+      {...props}
+      ref={(node: Animated.ScrollView | null) => {
+        scrollRef(node);
+        if (typeof ref === "function") ref(node);
+        else if (ref) ref.current = node;
+      }}
+    />
+  );
+}
 
 /** What the conversation screen can ask of its list. */
 export interface MessageListHandle {
@@ -75,6 +99,8 @@ export interface RowsProps {
   shown: boolean;
 }
 
+/** The gap between who's typing (the newest row) and the composer. */
+const COMPOSER_GAP = 8;
 /** How many screens of rows stay mounted, centered on the screen. */
 const WINDOW_SCREENS = 11;
 /** How long the conversation takes to fade in. */
@@ -98,7 +124,6 @@ function Rows({
   anchorId,
   bottomInset,
   topInset,
-  composerHeight,
   typists,
   latest,
   freeze,
@@ -114,6 +139,7 @@ function Rows({
     layout,
     listRef,
     rows: leaving.rows,
+    toLatest: latest.toLatest,
     typists,
   });
   return (
@@ -148,12 +174,15 @@ function Rows({
         )
       }
       renderScrollComponent={(props) => (
-        <KeyboardChatScrollView
+        <ChatScrollView
           {...props}
+          scrollRef={latest.scrollRef}
           inverted
           offset={bottomInset}
           freeze={freeze}
           blankSpace={blank.blankSpace}
+          // Room for the composer floating over the bottom (see useLatest).
+          extraContentPadding={latest.composer}
           onContentInsetChange={(insets) => latest.onInsetChange(insets.top)}
         />
       )}
@@ -183,7 +212,6 @@ function Rows({
       scrollEventThrottle={16}
       onContentSizeChange={(_, height) => {
         blank.onContentHeight(height);
-        latest.onContentChange(composerHeight);
         placement.onLaidOut();
       }}
       onScrollToIndexFailed={placement.onMissed}
@@ -193,12 +221,12 @@ function Rows({
       // A thread starts at the top, under its original (see
       // `useBlankSpace`).
       onLayout={(event) => blank.onListHeight(event.nativeEvent.layout.height)}
-      // Room under who's typing for the composer floating over it, and
+      // A gap under who's typing, above the composer's inset, and room
       // above the oldest for the header: the messages scroll under both.
       // Inverted, the list's header is at the bottom, its footer at the top.
-      ListHeaderComponent={<View style={{ height: composerHeight + 8 }} />}
+      ListHeaderComponent={<View style={{ height: COMPOSER_GAP }} />}
       ListFooterComponent={<View style={{ height: top + 8 }} />}
-      scrollIndicatorInsets={{ bottom: top, top: composerHeight }}
+      scrollIndicatorInsets={{ bottom: top }}
       style={{ flex: 1 }}
     />
   );
@@ -251,15 +279,21 @@ export function MessageList({
   // created under a fully transparent parent never draws.
   const loaded = useSharedValue(0);
   const cover = useAnimatedStyle(() => ({ opacity: 1 - loaded.value }));
-  const latest = useLatest(listRef, props.anchorId === undefined);
   const [shown, setShown] = useState(false);
-  const { isNearLatest, scrollToLatest, scrollToNewest } = latest;
+  const keyboard = useMenuKeyboard();
+  const blank = useBlankSpace(thread !== undefined);
+  const latest = useLatest({
+    blankSpace: blank.blankSpace,
+    composerHeight: props.composerHeight,
+    freeze: keyboard.freeze,
+    keyboardOffset: props.bottomInset,
+    startsAtLatest: props.anchorId === undefined,
+  });
+  const { isNearLatest, scrollToLatest } = latest;
   // Read out first: the worklet must not capture `props` (messages hold
   // Dates, which worklets can't copy).
   const { hasNewer } = props;
   const showJump = useDerivedValue(() => hasNewer || !isNearLatest.value);
-  const keyboard = useMenuKeyboard();
-  const blank = useBlankSpace(thread !== undefined);
   const leaving = useLeavingRows(
     messages,
     (shown) => newestFirst(shown, props.layout, thread, notices),
@@ -323,7 +357,7 @@ export function MessageList({
         bottom={props.composerHeight + 12}
         onPress={() => {
           if (hasNewer) onJumpToLatest();
-          else scrollToNewest();
+          else scrollToLatest();
         }}
       />
     </MessageActionsProvider>
