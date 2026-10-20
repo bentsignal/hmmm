@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Platform, Pressable, Text } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import { textParts } from "@decentralized-convex/messages";
 
 import type { Mention } from "./types";
@@ -41,16 +41,19 @@ function Link({ text, url }: { text: string; url: string }) {
  * line up, so the chip stays about that tall and drops until its name's
  * baseline meets the line's. Each platform clips the name to the chip, so
  * on iOS the name's own line is that short too, and on Android, which
- * draws text taller, the chip is a little taller instead.
+ * draws text taller, the chip is a little taller instead. Its background
+ * reaches past it (`fill`), padding the name without opening the line.
  */
 const CHIP_FIT = Platform.select({
   android: {
     chip: { height: 20, transform: [{ translateY: 3.75 }] },
     name: { includeFontPadding: false },
+    fill: { top: -2, bottom: -2 },
   },
   default: {
     chip: { transform: [{ translateY: 2.5 }] },
     name: { lineHeight: 16, transform: [{ translateY: 1.5 }] },
+    fill: { top: -2.5, bottom: -3 },
   },
 });
 
@@ -84,16 +87,21 @@ function MentionChip({
       onLongPress={press?.onLongPress}
       onPressIn={press?.onPressIn}
       onPressOut={press?.onPressOut}
-      className={cn(
-        "justify-center rounded-md px-1 active:opacity-60",
-        onAccent
-          ? "bg-on-accent/25"
-          : accountId === address
-            ? "bg-accent/30"
-            : "bg-accent/15",
-      )}
-      style={[{ borderCurve: "continuous" }, CHIP_FIT.chip]}
+      hitSlop={{ top: 3, bottom: 3 }}
+      className="justify-center px-1.5 active:opacity-60"
+      style={CHIP_FIT.chip}
     >
+      <View
+        className={cn(
+          "absolute inset-x-0 rounded-md",
+          onAccent
+            ? "bg-on-accent/25"
+            : accountId === address
+              ? "bg-accent/30"
+              : "bg-accent/15",
+        )}
+        style={[{ borderCurve: "continuous" }, CHIP_FIT.fill]}
+      />
       <Text
         style={CHIP_FIT.name}
         className={cn(
@@ -106,6 +114,12 @@ function MentionChip({
     </Pressable>
   );
 }
+
+/**
+ * Text clips what's drawn past its edges, so text with a chip gets room
+ * below its last line for the chip's background, taking no more space.
+ */
+const ROOM_BELOW = { paddingBottom: 4, marginBottom: -4 };
 
 /** Text with its links, starting `offset` into the message (for keys). */
 function withLinks(text: string, offset: number) {
@@ -185,6 +199,7 @@ export function LinkedText({
         }
       }}
       className={className}
+      style={ranges.length > 0 ? ROOM_BELOW : undefined}
     >
       {parts}
       {edited && <EditedSuffix />}
