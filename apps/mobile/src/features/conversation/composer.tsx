@@ -1,7 +1,7 @@
 import type { Mention } from "@decentralized-convex/messages";
 import type { ReactNode, Ref, RefObject } from "react";
 import { useImperativeHandle, useRef, useState } from "react";
-import { Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Platform, StyleSheet, TextInput, View } from "react-native";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import Animated, {
   interpolate,
@@ -19,6 +19,7 @@ import type {
   StagedFile,
 } from "~/features/messaging/attachments";
 import type { PastedImage } from "~/lib/paste-images";
+import { GesturePressable } from "~/components/gesture-pressable";
 import { GlassSurface } from "~/components/glass-surface";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { cn } from "~/lib/cn";
@@ -100,11 +101,12 @@ function SendButton({
         style,
       ]}
     >
-      <Pressable
+      <GesturePressable
         accessibilityRole="button"
         accessibilityLabel={saves ? "Save" : "Send"}
         onPress={onPress}
-        className="bg-accent items-center justify-center rounded-full active:opacity-80"
+        className="bg-accent items-center justify-center rounded-full"
+        pressedClassName="opacity-80"
         style={{ height: SEND, width: SEND }}
       >
         <SymbolIcon
@@ -117,7 +119,7 @@ function SendButton({
           weight="bold"
           tintColorClassName="accent-on-accent"
         />
-      </Pressable>
+      </GesturePressable>
     </Animated.View>
   );
 }

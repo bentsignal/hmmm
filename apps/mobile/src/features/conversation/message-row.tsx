@@ -235,10 +235,22 @@ function threadReplies(message: Message, profileOf: ProfileOf) {
 function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
   const stacked = layout === "stacked";
   if (row.type === "day") {
-    return <DaySeparator date={row.date} stacked={stacked} />;
+    return (
+      <DaySeparator
+        date={row.date}
+        stacked={stacked}
+        opensThread={row.opensThread}
+      />
+    );
   }
   if (row.type === "time") {
-    return <TimeHeader date={row.date} stacked={stacked} />;
+    return (
+      <TimeHeader
+        date={row.date}
+        stacked={stacked}
+        opensThread={row.opensThread}
+      />
+    );
   }
   if (row.type === "replies") {
     return <RepliesDivider count={row.count} />;
