@@ -13,6 +13,7 @@ import Animated, {
 import type { Blank } from "./blank-space";
 import type { LeaveState } from "./leave";
 import type { Growth } from "./moves";
+import type { TypingDrop } from "./typing-drop";
 import {
   inFrame,
   land,
@@ -43,16 +44,29 @@ export function useGrowth() {
 export function GrowthProvider({
   list,
   blank,
+  typingDrop,
   children,
 }: {
   list: AnimatedRef<View>;
   blank?: Blank;
+  /** Where who's typing is drawn (see `useTypingDrop`). */
+  typingDrop: TypingDrop;
   children: ReactNode;
 }) {
   const [moves] = useState(() => Array.from({ length: MOVES }, newMove));
   const typing = useSharedValue(0);
+  const { drop, dropped } = typingDrop;
   return (
-    <GrowthContext value={{ blank, list, moves, typing }}>
+    <GrowthContext
+      value={{
+        blank,
+        list,
+        moves,
+        typing,
+        typingDrop: drop,
+        typingDropped: dropped,
+      }}
+    >
       {children}
     </GrowthContext>
   );

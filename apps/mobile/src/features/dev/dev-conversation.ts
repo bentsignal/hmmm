@@ -55,6 +55,8 @@ export function useDevConversation(
     ) => void;
     sendMessage: (draft: OutgoingDraft) => void;
   },
+  /** In a thread: the bots answer `ask` there. */
+  threadId?: string,
 ) {
   const edits = useMessageEdits(conversationId);
   const devTools = useDevTools();
@@ -85,7 +87,7 @@ export function useDevConversation(
         sendMessage({ body, files: [], linkPreviews: [], mentions: [] }),
       ask: (body) => {
         sendMessage({ body, files: [], linkPreviews: [], mentions: [] });
-        devTools.replyToMe(conversationId);
+        devTools.replyToMe(conversationId, threadId);
       },
     };
     return () => {

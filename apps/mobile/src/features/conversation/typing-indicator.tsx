@@ -18,10 +18,12 @@ import type { Newest, TypingSeen } from "./typing-change";
 import type { MessageLayout } from "~/features/preferences/store";
 import { useGrowth } from "./grow";
 import {
+  anyPending,
   GROW_EASING,
   GROW_MS,
   inFrame,
   land,
+  moved,
   showWithRoom,
   startMove,
 } from "./moves";
@@ -34,7 +36,9 @@ import { typingSpaceHeight } from "./typing-space";
 // like Messages: it opens as the first person starts, and stays the last
 // row as messages arrive above it, changing in place as people start and
 // stop. It goes as the last one stops, shrinking away as the messages
-// come back down, or, when they sent something, into what they sent.
+// come back down, or, when they sent something, into what they sent. In a
+// thread too short to reach the composer, it waits down by the composer
+// instead (see `useTypingDrop`).
 
 /** Fading under the message it became, in stacked rows. */
 const BECOME_MS = 320;
@@ -174,9 +178,33 @@ function HandingOff({
 }
 
 /**
+ * The indicator's place at the bottom of its row, drawn down by the
+ * composer in a thread with room under its replies (see `useTypingDrop`).
+ * That changes with the room as rows open and close, so it lands in their
+ * layout commit, as the moves do (see `Move`).
+ */
+function Dropped({ children }: { children: ReactNode }) {
+  const growth = useGrowth();
+  const style = useAnimatedStyle(() =>
+    moved(growth.typingDrop.get(), anyPending(growth.moves)),
+  );
+  return (
+    <Animated.View
+      pointerEvents="none"
+      className="absolute inset-x-0 bottom-0"
+      style={style}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
+/**
  * Who's typing, and who just stopped (`ghosts`), as the typing row shows
  * them, and the message that takes its place when the last one typing
- * sends it (`becoming`).
+ * sends it (`becoming`). Not while it's `dropped` down by the composer
+ * (see `useTypingDrop`): the message opens under the newest reply, away
+ * from it, so it comes in as any other does, and the indicator goes.
  */
 export function useTypingRow({
   typists,
@@ -189,6 +217,7 @@ export function useTypingRow({
   rows: readonly MessageRow[];
   layout: MessageLayout;
 }) {
+  const { typingDropped: dropped } = useGrowth();
   const [seen, setSeen] = useState<TypingSeen>({
     newestKey: newest?.key,
     typists,
@@ -201,7 +230,7 @@ export function useTypingRow({
     if (left !== undefined) {
       const message = rows[0];
       const became =
-        left.became && message?.type === "message"
+        left.became && !dropped && message?.type === "message"
           ? { key: message.key, morphs: morphs(message.message, layout) }
           : undefined;
       // The same change again so soon replaces the one still going.
@@ -225,7 +254,9 @@ export function useTypingRow({
  * first person starts, the messages above making room (see `Move`), and
  * closes as the last one stops, unless what they sent takes it (see
  * `Arrive`). The indicator sits at its bottom, so it stays put as its
- * space opens and closes, and as messages open above it.
+ * space opens and closes, and as messages open above it. In a thread with
+ * room under its replies, it's drawn down by the composer instead (see
+ * `useTypingDrop`), and stays put there as replies open above it.
  */
 export function TypingRow({
   typists,
@@ -305,7 +336,7 @@ export function TypingRow({
   return (
     <View ref={row} collapsable={false}>
       <Animated.View ref={room} style={space} />
-      <View pointerEvents="none" className="absolute inset-x-0 bottom-0">
+      <Dropped>
         {ghosts.map((ghost) =>
           ghost.became === undefined ? (
             <Leaving
@@ -327,7 +358,7 @@ export function TypingRow({
           ),
         )}
         {typing && <Appearing layout={layout}>{indicator(typists)}</Appearing>}
-      </View>
+      </Dropped>
     </View>
   );
 }

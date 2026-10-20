@@ -99,8 +99,9 @@ export function useLatest({
   const offset = useScrollOffset(scrollRef);
   const composer = useDerivedValue(() => (IOS ? composerHeight : 0));
   const keyboard = useKeyboardInset(keyboardOffset, freeze);
-  // The inset as last reported, for the jump button.
+  // The inset and scroll position as last reported, for the jump button.
   const inset = useRef(0);
+  const scrolled = useRef(0);
   const gliding = useSharedValue(false);
   // The composer's height when the content last changed (Android).
   const seenComposer = useRef<number | undefined>(undefined);
@@ -115,6 +116,11 @@ export function useLatest({
     "worklet";
     if (!IOS) return 0;
     return -Math.max(blankSpace?.get() ?? 0, keyboard.get() + composer.get());
+  }
+
+  function nearLatest() {
+    const bottom = IOS ? -inset.current : 0;
+    isNearLatest.set(scrolled.current - bottom < NEAR_LATEST);
   }
 
   function glide() {
@@ -163,6 +169,10 @@ export function useLatest({
     },
     onInsetChange: (top: number) => {
       inset.current = top;
+      // In a thread, its room under the replies shrinks as they come in,
+      // and the list scrolls with it: the scroll can be reported before
+      // the inset it went with, which showed the jump button at the bottom.
+      nearLatest();
     },
     scrollHandlers: {
       // Your own drag takes over from a glide.
@@ -187,7 +197,8 @@ export function useLatest({
       scheduleOnUI(glide);
     },
     onScroll: (y: number) => {
-      isNearLatest.set(y - (IOS ? -inset.current : 0) < NEAR_LATEST);
+      scrolled.current = y;
+      nearLatest();
     },
   };
 }
