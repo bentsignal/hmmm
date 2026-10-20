@@ -102,7 +102,7 @@ export function useLatest({
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const offset = useScrollOffset(scrollRef);
   const { live, laidOut = 0 } = composerHeight;
-  const composer = useSharedValue(IOS ? live.get() : 0);
+  const composer = useComposerRoom(composerHeight);
   const keyboard = useKeyboardInset(keyboardOffset, freeze);
   // The inset and scroll position as last reported, for the jump button.
   const inset = useRef(0);
@@ -152,19 +152,15 @@ export function useLatest({
     requestAnimationFrame(step);
   }
 
-  // On iOS, eases to each height the composer reports: its layout reaches
-  // the UI thread a step at a time as it animates (attachments opening or
-  // closing), and jumping to each moved the list in steps. At the newest
-  // message, the list glides along to stay there: `KeyboardChatScrollView`
-  // moves the scroll by each change from where the list was a frame
-  // before, so on its own it falls behind a room that changes every frame.
+  // At the newest message as the composer changes height on iOS, the list
+  // glides along to stay there: `KeyboardChatScrollView` moves the scroll
+  // by each change from where the list was a frame before, so on its own
+  // it falls behind a room that changes every frame (see `useComposerRoom`).
   useAnimatedReaction(
     () => (IOS ? live.get() : 0),
     (now, before) => {
       if (before === null || now === before) return;
-      const atLatest = offset.get() - bottom() < NEAR_LATEST;
-      composer.set(withTiming(now, { duration: COMPOSER_EASE_MS }));
-      if (atLatest) glide();
+      if (offset.get() - bottom() < NEAR_LATEST) glide();
     },
   );
 
@@ -222,6 +218,30 @@ export function useLatest({
       nearLatest();
     },
   };
+}
+
+/**
+ * The list's room for the composer on iOS (`extraContentPadding`): it
+ * eases to each height the composer reports, whose layout reaches the UI
+ * thread a step at a time as it animates (attachments opening or closing),
+ * and jumping to each moved the list in steps. It starts from React's
+ * first height and takes the composer's own on the UI thread at once:
+ * `live`, read on the JavaScript thread as the list mounts, can still be
+ * 0, which left the newest messages under the composer and the keyboard,
+ * out of reach. On Android the composer is a row instead (`composerRow`).
+ */
+function useComposerRoom({ live, laidOut = 0 }: ComposerHeight) {
+  const composer = useSharedValue(IOS ? laidOut : 0);
+  useAnimatedReaction(
+    () => (IOS ? live.get() : 0),
+    (now, before) => {
+      if (before === null) composer.set(now);
+      else if (now !== before) {
+        composer.set(withTiming(now, { duration: COMPOSER_EASE_MS }));
+      }
+    },
+  );
+  return composer;
 }
 
 /**
