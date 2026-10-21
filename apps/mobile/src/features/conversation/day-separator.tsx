@@ -45,9 +45,11 @@ function FadingRule({ fadeTo }: { fadeTo: "left" | "right" }) {
  * text. Bubbles keep a plain centered label.
  *
  * Over a thread's original (`opensThread`) nothing is above it but the
- * list's 16pt under the screen's header, so it adds only enough to match
- * the space below it: 12pt stacked (28pt either side) and 4pt in bubbles
- * (20pt either side).
+ * list's 16pt under the screen's header, so it adds only 12pt stacked and
+ * 4pt in bubbles. Under it, the label sits as far above the original as
+ * the replies' divider sits below it, about 23pt as drawn: its own 4pt
+ * stacked (the row adds 20pt) and 8pt in bubbles (the row adds 14pt), or
+ * 4pt over a sender's name, which sits lower in its line than a bubble.
  */
 function Header({
   stacked,
@@ -71,8 +73,8 @@ function Header({
   return (
     <View
       className={cn(
-        "flex-row items-center gap-3 pb-2",
-        opensThread ? "pt-3" : "pt-7",
+        "flex-row items-center gap-3",
+        opensThread ? "pt-3 pb-1" : "pt-7 pb-2",
       )}
     >
       <FadingRule fadeTo="left" />
@@ -108,18 +110,22 @@ export function TimeHeader({
   date,
   stacked = false,
   opensThread = false,
+  named = false,
 }: {
   date: Date;
   stacked?: boolean;
   /** Over a thread's original (see `Header`). */
   opensThread?: boolean;
+  /** Over a thread's original that shows its sender's name. */
+  named?: boolean;
 }) {
   const { day, time } = formatTimeHeader(date);
+  const thread = named ? "pt-1 pb-1" : "pt-1 pb-2";
   return (
     <Header
       stacked={stacked}
       opensThread={opensThread}
-      bubbles={opensThread ? "pt-1 pb-1.5" : "pt-4 pb-1.5"}
+      bubbles={opensThread ? thread : "pt-4 pb-1.5"}
     >
       <Text className="font-semibold">{day}</Text> {time}
     </Header>

@@ -10,10 +10,23 @@ const GROUP_WINDOW_MS = 5 * 60 * 1000;
 export type MessageRow =
   /**
    * A header over the messages of a day (stacked) or after a pause
-   * (bubbles). `opensThread` over a thread's original, with nothing above.
+   * (bubbles). `opensThread` over a thread's original, with nothing above;
+   * `author` is then the original's sender.
    */
-  | { type: "day"; key: string; date: Date; opensThread: boolean }
-  | { type: "time"; key: string; date: Date; opensThread: boolean }
+  | {
+      type: "day";
+      key: string;
+      date: Date;
+      opensThread: boolean;
+      author?: string;
+    }
+  | {
+      type: "time";
+      key: string;
+      date: Date;
+      opensThread: boolean;
+      author?: string;
+    }
   /** In a thread, between its original and the replies. */
   | { type: "replies"; key: string; date: Date; count: number }
   /** Someone joining or leaving a group. */
@@ -123,6 +136,7 @@ function headerRow(
   const last = built.get(message)?.header;
   if (last?.type === type && last.opensThread === opensThread) return last;
   return {
+    author: opensThread ? message.authorId : undefined,
     date: message.sentAt,
     key: `${type}-${message.id}`,
     opensThread,

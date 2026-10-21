@@ -249,6 +249,7 @@ function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
         date={row.date}
         stacked={stacked}
         opensThread={row.opensThread}
+        named={showAuthors && row.author !== undefined && row.author !== self}
       />
     );
   }
