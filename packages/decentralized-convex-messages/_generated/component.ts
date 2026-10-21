@@ -231,7 +231,20 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 };
                 type: "registerPushToken";
               }
-            | { args: { token: string }; type: "unregisterPushToken" };
+            | { args: { token: string }; type: "unregisterPushToken" }
+            | {
+                args: {
+                  accountId: string;
+                  avatarUrl?: null | string;
+                  name?: null | string;
+                };
+                type: "saveContact";
+              }
+            | { args: { accountId: string }; type: "removeContact" }
+            | {
+                args: { messagesFrom?: "everyone" | "contacts" | "mutual" };
+                type: "setPrivacySettings";
+              };
           version: string;
         },
         | {
@@ -459,7 +472,10 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         | { routes?: Array<string>; type: "renameChannel"; value: null }
         | { routes?: Array<string>; type: "deleteChannel"; value: null }
         | { routes?: Array<string>; type: "registerPushToken"; value: null }
-        | { routes?: Array<string>; type: "unregisterPushToken"; value: null },
+        | { routes?: Array<string>; type: "unregisterPushToken"; value: null }
+        | { routes?: Array<string>; type: "saveContact"; value: null }
+        | { routes?: Array<string>; type: "removeContact"; value: null }
+        | { routes?: Array<string>; type: "setPrivacySettings"; value: null },
         Name
       >;
       dispatchQueries: FunctionReference<
@@ -1789,6 +1805,44 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 version: string;
               }>;
               routes?: Array<string>;
+              type: "contacts";
+              value: Array<{
+                accountId: string;
+                addedAt: number;
+                avatarUrl?: string;
+                name?: string;
+              }>;
+            }
+          | {
+              include?: Array<{
+                lastChanged: string;
+                operation: { args: any; type: string };
+                plugin: string;
+                version: string;
+              }>;
+              routes?: Array<string>;
+              type: "privacySettings";
+              value: { messagesFrom: "everyone" | "contacts" | "mutual" };
+            }
+          | {
+              include?: Array<{
+                lastChanged: string;
+                operation: { args: any; type: string };
+                plugin: string;
+                version: string;
+              }>;
+              routes?: Array<string>;
+              type: "messagePermission";
+              value: { direct: boolean; groups: boolean };
+            }
+          | {
+              include?: Array<{
+                lastChanged: string;
+                operation: { args: any; type: string };
+                plugin: string;
+                version: string;
+              }>;
+              routes?: Array<string>;
               type: "threadState";
               value: { following: boolean; lastReadAt: null | number };
             }
@@ -1997,6 +2051,9 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 type: "threads";
               }
             | { args: {}; type: "inboxThreads" }
+            | { args: {}; type: "contacts" }
+            | { args: {}; type: "privacySettings" }
+            | { args: { accountId: string }; type: "messagePermission" }
             | {
                 args: { conversationId: string; threadId: string };
                 type: "threadState";
@@ -3306,6 +3363,44 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               threadId: string;
               unreadCount: number;
             }>;
+          }
+        | {
+            include?: Array<{
+              lastChanged: string;
+              operation: { args: any; type: string };
+              plugin: string;
+              version: string;
+            }>;
+            routes?: Array<string>;
+            type: "contacts";
+            value: Array<{
+              accountId: string;
+              addedAt: number;
+              avatarUrl?: string;
+              name?: string;
+            }>;
+          }
+        | {
+            include?: Array<{
+              lastChanged: string;
+              operation: { args: any; type: string };
+              plugin: string;
+              version: string;
+            }>;
+            routes?: Array<string>;
+            type: "privacySettings";
+            value: { messagesFrom: "everyone" | "contacts" | "mutual" };
+          }
+        | {
+            include?: Array<{
+              lastChanged: string;
+              operation: { args: any; type: string };
+              plugin: string;
+              version: string;
+            }>;
+            routes?: Array<string>;
+            type: "messagePermission";
+            value: { direct: boolean; groups: boolean };
           }
         | {
             include?: Array<{
