@@ -182,6 +182,7 @@ scripts/phone.sh list           # every cached dev client, marking main's
   (its Markdown link too, for the phone that needs it) only when he has to
   install, and say plainly whether he does. Don't send the server address
   or QR codes unless he asks.
+
 - **Over Tailscale** (he's away from the Mac's Wi-Fi), put HTTPS in front
   of Metro, since iOS blocks plain HTTP to tailnet addresses, and print
   the open link for that address. Send it the same way. A tailnet server
@@ -193,6 +194,7 @@ scripts/phone.sh list           # every cached dev client, marking main's
   scripts/phone.sh --android link https://airshawn.tailf45482.ts.net:<port>
   tailscale serve --https=<port> off                            # with phone.sh down
   ```
+
 - JavaScript edits hot-reload on his phone. Re-run `up` after native
   changes, `app.config.ts`, or `.env.local`.
 - With an isolated backend, Vera Dev talks to this worktree's domain, which
