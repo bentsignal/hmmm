@@ -132,11 +132,12 @@ through every round of feedback. It comes down when the PR merges (the
 `merge` skill) or Shawn drops the work. A server the phone hasn't
 loaded from in 24 hours stops on its own; `phone.sh up` brings it back,
 so run it again at the start of each feedback round and when Shawn says
-he can't find the server.
+the link doesn't load.
 
 ```sh
 scripts/phone.sh up             # iPhone; --android for his Android phone
-scripts/phone.sh link           # the server address and links again
+scripts/phone.sh link           # the links again
+scripts/phone.sh link <url>     # the open link for another server (Tailscale)
 scripts/phone.sh down           # when the PR merges or the work is dropped
 scripts/phone.sh main           # main's dev client, to put back on his phone
 scripts/phone.sh list           # every cached dev client, marking main's
@@ -147,7 +148,7 @@ scripts/phone.sh list           # every cached dev client, marking main's
 - Vera Dev on his phone is normally **main's dev client**, which runs every
   worktree that hasn't changed native code. `up` compares this worktree's
   native fingerprint with main's and says which case it is:
-  - **Main's dev client:** he only picks the server in Vera Dev.
+  - **Main's dev client:** he only taps the open link.
   - **This worktree's own dev client** (native code changed): `up` builds
     it if needed (about 15 minutes, cached for every worktree) and he
     installs it first. Afterwards he needs main's back (see `down`).
@@ -155,13 +156,37 @@ scripts/phone.sh list           # every cached dev client, marking main's
     installed one): he installs it once; it serves every worktree after.
 - `up` starts the worktree's Metro (the same one the simulators use),
   served over the Mac's Wi-Fi (the phone must be on the same network), and
-  prints its **server** address (`server: http://<IP>:<port>`), an
-  **install** link, and an **open** link. Shawn opens Vera Dev himself and
-  picks the server from its list, where every running worktree's Metro
-  shows up by address, so the address is what he needs. Put it first, on
-  its own line, port included (`http://10.0.0.152:8892`). Add the install
-  link only when he has to install, and say plainly whether he does. Don't
-  send QR codes or the open link unless he asks for them.
+  prints an **open** link, an **install** link, and the server address.
+  The open link is an https page that opens Vera Dev on this worktree's
+  server, so Shawn gets there in one tap. Both links come out as Markdown,
+  labeled by phone:
+
+  ```
+  open:     [Open in Vera Dev on iPhone](https://vera-evidence.b-cdn.net/dev-client/open-cfde0a5324fd.html?url=http%3A%2F%2F10.0.0.124%3A8651)
+  install:  [Install Vera Dev on iPhone](https://vera-evidence.b-cdn.net/dev-client/ios/…/index.html)
+  server:   http://10.0.0.124:8651
+  ```
+
+  Put the open link first, on its own line, copied exactly from the
+  `open:` line. **It must render as a clickable link**, or he's back to
+  copying and pasting:
+  - Send it as a Markdown link, `[label](url)`. Never in backticks or a
+    code block, and never the bare URL.
+  - Never send the `vera-dev://` URL. His chat only makes http and https
+    links tappable; the page opens `vera-dev://` for him.
+  - Don't edit the URL. It's already encoded, and a space or line break
+    inside the parentheses breaks the link.
+
+  Testing on both phones, run `up` for each and send both open links, the
+  iPhone one and the Android one, on their own lines. Add the install link
+  (its Markdown link too, for the phone that needs it) only when he has to
+  install, and say plainly whether he does. Don't send the server address
+  or QR codes unless he asks.
+- **Over Tailscale** (he's away from the Mac's Wi-Fi), the server is an
+  https tailnet address from `tailscale serve`, since iOS blocks plain
+  HTTP to tailnet addresses. `scripts/phone.sh link <that URL>` prints the
+  open link for it; send that one the same way. A tailnet server doesn't
+  show up in Vera Dev's list, so the link is the only easy way in.
 - JavaScript edits hot-reload on his phone. Re-run `up` after native
   changes, `app.config.ts`, or `.env.local`.
 - With an isolated backend, Vera Dev talks to this worktree's domain, which
@@ -274,7 +299,8 @@ with `--with-backend`, and open apps on older versions will show "Updating
 Vera…" for a few seconds when it does.
 
 Then start the dev server (step 4b) and tell Shawn it's ready to test:
-the server address first, then (with an isolated backend) the iPhone and
+the open link first (one per phone he's testing on, clickable Markdown,
+step 4b), then (with an isolated backend) the iPhone and
 Android sign-in links (step 4b), then the PR link, a two-line summary, what
 to try on his phone (concrete steps for this change), whether he has to
 install its own dev client, and anything he should look at closely. **Stop there.**

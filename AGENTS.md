@@ -109,19 +109,27 @@ See [apps/mobile/README.md](apps/mobile/README.md#vera-dev).
 - **Day to day, Vera Dev is main's dev client.** When your worktree's work
   is ready to test, run `scripts/phone.sh up` (`--android` for his Android
   phone) in it. It serves the worktree's Metro on the Mac's Wi-Fi address
-  (the phone must be on the same network). Tell him the **server address**
-  it prints (`server: http://<IP>:<port>`), first and on its own line: he
-  opens Vera Dev and picks that one from its list, where several worktrees'
-  servers can show up at once. Don't send QR codes or the open link unless
-  he asks. JavaScript changes then hot-reload on his phone with no build.
+  (the phone must be on the same network) and prints an **open link**: one
+  tap on his phone opens Vera Dev on this worktree's server. Send him the
+  `open:` line's Markdown link exactly as printed, first and on its own
+  line, as
+  `[Open in Vera Dev on iPhone](https://vera-evidence.b-cdn.net/dev-client/open-….html?url=…)`.
+  **It must be a clickable Markdown link.** Never put it in backticks or a
+  code block, never send the bare URL, and never send the `vera-dev://`
+  URL the page opens (his chat only makes http and https links tappable).
+  Testing on both phones, send two links, one labeled iPhone and one
+  labeled Android (`phone.sh up` and `phone.sh --android up` each print
+  theirs). Don't send the server address or QR codes unless he asks.
+  JavaScript changes then hot-reload on his phone with no build.
 - **Native builds only when native code changed.** `phone.sh up` compares
   the worktree's native fingerprint with main's. A worktree that changed
   native code gets its own dev client (built once, about 15 minutes, and
   cached); he installs it from the install link, and when he's done,
   `phone.sh down` prints main's install link to put main's dev client back
-  (`phone.sh main` any time). Tell Shawn when he has to install something;
-  otherwise he only picks the server. `phone.sh list` shows every cached
-  dev client.
+  (`phone.sh main` any time). Tell Shawn when he has to install something,
+  with the `install:` line's Markdown link, also clickable and labeled by
+  phone; otherwise he only taps the open link. `phone.sh list` shows every
+  cached dev client.
 - **Releases are tested in the dev client too**, serving `main` (the
   `vera-release` skill), so fixes reach his phone without a build. The real
   app gets tested in TestFlight.

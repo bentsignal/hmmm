@@ -6,9 +6,11 @@
 #
 #   scripts/phone.sh [--android] <command>     (iPhone without --android)
 #
-#   up       build the dev client if needed, start Metro, print the server
-#            address (what Shawn picks in Vera Dev) and the links
-#   link     print the server address and links again
+#   up       build the dev client if needed, start Metro, print the open
+#            link (what Shawn taps to load this worktree) and the others
+#   link [<server url>]
+#            print the links again; with a URL (a Tailscale address), the
+#            open link for that server instead of the Wi-Fi one
 #   status   the dev client for this fingerprint, Metro, and the Wi-Fi address
 #   down     stop serving the phone; Metro stops unless a simulator uses it
 #   main     the install link for main's dev client (building it if needed)
@@ -40,7 +42,8 @@ STATE_DIR="$ROOT/.cache/sim"
 CACHE="$HOME/Library/Caches/vera/phone-dev-client-$PLATFORM"
 MAIN_CHECKOUT="$HOME/Library/Caches/vera/main-checkout"
 RELEASE_XCODE="/Applications/Xcode-27.app/Contents/Developer"
-SCHEME="vera-dev"
+PHONE_NAME="$([ "$PLATFORM" = ios ] && echo iPhone || echo Android)"
+CDN="https://vera-evidence.b-cdn.net"
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 mkdir -p "$STATE_DIR" "$CACHE"
 # shellcheck source=lib/metro.sh
@@ -161,24 +164,42 @@ ensure_client() {
   BUILT=1
 }
 
-open_url() {
-  echo "$SCHEME://expo-development-client/?url=$(node -p 'encodeURIComponent(process.argv[1])' "http://$(address):$PORT")"
+# The https page that opens Vera Dev at a server (scripts/lib/open-page.html),
+# uploaded once per version of the page. Chat apps only make http(s) links
+# tappable, so Shawn gets this instead of a vera-dev:// link.
+open_page() {
+  local file="$ROOT/scripts/lib/open-page.html" hash path log
+  hash="$(shasum -a 256 "$file" | cut -c1-12)"
+  path="dev-client/open-$hash.html"
+  if [ ! -f "$HOME/Library/Caches/vera/open-page-$hash" ]; then
+    log="$(bunny storage files upload "$file" --zone vera-evidence --to "$path" --content-type text/html 2>&1)" || {
+      echo "$log" >&2
+      exit 1
+    }
+    touch "$HOME/Library/Caches/vera/open-page-$hash"
+  fi
+  echo "$CDN/$path"
 }
 
+# What Shawn taps to load the server at $1 in Vera Dev.
+open_url() {
+  echo "$(open_page)?url=$(node -p 'encodeURIComponent(process.argv[1])' "$1")"
+}
+
+# The links as Markdown, ready to send Shawn as they are. $1 is the server,
+# the Mac's Wi-Fi address by default.
 links() {
   load_metro
-  local install open
+  local server="${1:-http://$(address):$PORT}" install open
   install="$(cat "$CLIENT_DIR/install-url")"
-  open="$(open_url)"
+  open="$(open_url "$server")"
   "$ROOT/scripts/qr.sh" "$install" "$STATE_DIR/phone-$PLATFORM-install.png" >/dev/null
   "$ROOT/scripts/qr.sh" "$open" "$STATE_DIR/phone-$PLATFORM-open.png" >/dev/null
-  # Shawn picks the server from Vera Dev's list, where every worktree's
-  # Metro shows up by address; this is the one to tell him.
-  echo "server:   http://$(address):$PORT"
-  echo "install:  $install"
+  echo "open:     [Open in Vera Dev on $PHONE_NAME]($open)"
+  echo "install:  [Install Vera Dev on $PHONE_NAME]($install)"
+  echo "server:   $server"
+  echo "QR codes: $STATE_DIR/phone-$PLATFORM-open.png"
   echo "          $STATE_DIR/phone-$PLATFORM-install.png"
-  echo "open:     $open"
-  echo "          $STATE_DIR/phone-$PLATFORM-open.png"
 }
 
 # Metro writes to its log whenever the phone loads a bundle, reloads, or
@@ -253,8 +274,8 @@ up() {
 client() {
   ensure_client
   "$ROOT/scripts/qr.sh" "$(cat "$CLIENT_DIR/install-url")" "$STATE_DIR/phone-$PLATFORM-install.png" >/dev/null
-  echo "install:  $(cat "$CLIENT_DIR/install-url")"
-  echo "          $STATE_DIR/phone-$PLATFORM-install.png"
+  echo "install:  [Install Vera Dev on $PHONE_NAME]($(cat "$CLIENT_DIR/install-url"))"
+  echo "QR code:  $STATE_DIR/phone-$PLATFORM-install.png"
 }
 
 main_client() {
@@ -323,7 +344,7 @@ case "$command" in
       echo "Metro is not running; run scripts/phone.sh up" >&2
       exit 1
     }
-    links
+    links "${1:-}"
     ;;
   status)
     reclaimed
@@ -335,7 +356,7 @@ case "$command" in
   list) list ;;
   sweep) sweep ;;
   *)
-    sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'
     exit 2
     ;;
 esac

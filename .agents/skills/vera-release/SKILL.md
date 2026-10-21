@@ -118,10 +118,13 @@ scripts/phone.sh up             # and again with --android for his Android phone
 
 Run `phone.sh up` from the release checkout (detached at `origin/main`, no
 isolated backend). It builds a dev client only when `main`'s native
-fingerprint has none yet (about 15 minutes); otherwise Shawn just picks the
-server in Vera Dev. Tell him the server address `phone.sh` prints
-(`server: http://<IP>:<port>`), first and on its own line, plus the install
-link when he needs one. No QR codes or open link unless he asks.
+fingerprint has none yet (about 15 minutes); otherwise Shawn just taps the
+open link. Send him the `open:` line's Markdown link for each phone
+(`[Open in Vera Dev on iPhone](https://…)` and the Android one), first and
+each on its own line, plus the install link when he needs one. They must be
+clickable Markdown links: never in backticks or a code block, never the
+bare URL, and never the `vera-dev://` URL (the `vera-feature` skill, step
+4b). No server address or QR codes unless he asks.
 
 Make an internal build (`pnpm release build internal`, `--android`) or an
 internal OTA (`pnpm release ota internal "<summary>"`) only when Shawn asks
