@@ -155,6 +155,7 @@ function useThreads({
     threadId === undefined
       ? view.parts
       : { liveThreadIds: [], since: undefined, threadIds: [[threadId]] },
+    threadId === undefined ? view.next?.parts : undefined,
   );
   const sending = sendingReplies(outbox);
   function threadOf(id: string) {
@@ -237,6 +238,7 @@ export function useMessages(
     inThread
       ? { ...parts, messageIds: [[threadId], ...parts.messageIds] }
       : parts,
+    view.next?.parts,
   );
   const outbox = useOutbox(address, conversationId);
   const threads = useThreads({

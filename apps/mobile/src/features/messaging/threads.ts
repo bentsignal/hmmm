@@ -128,14 +128,22 @@ export function useThreadSummaries(
   session: string,
   conversationId: string,
   { liveThreadIds, since, threadIds }: ThreadSources,
+  /** The window opening instead, if any (see `useReactions`). */
+  ahead?: Pick<ThreadSources, "since" | "threadIds">,
 ) {
   const batches = threadIds.flatMap(chunks);
+  function queriesFor(ids: readonly (readonly string[])[], after?: number) {
+    return [
+      ...ids.map((batch) => summariesQuery(session, conversationId, batch)),
+      ...(after === undefined
+        ? []
+        : [summariesSinceQuery(session, conversationId, after)]),
+    ];
+  }
   const { loaded, threads } = useQueries({
     queries: [
-      ...batches.map((ids) => summariesQuery(session, conversationId, ids)),
-      ...(since === undefined
-        ? []
-        : [summariesSinceQuery(session, conversationId, since)]),
+      ...queriesFor(batches, since),
+      ...queriesFor(ahead?.threadIds.flatMap(chunks) ?? [], ahead?.since),
     ],
     combine: (results) => {
       const sinceAnswer =

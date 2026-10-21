@@ -236,17 +236,28 @@ export function useReactions(
   session: string,
   conversationId: string,
   { liveIds, messageIds, since }: ReactionSources,
+  /**
+   * The window opening instead, if any (see `jumpToLatest`): asked for
+   * too, so they're there when it shows.
+   */
+  ahead?: Pick<ReactionSources, "messageIds" | "since">,
 ) {
   const [overrides, setOverrides] = useState<ReadonlyMap<string, boolean>>(
     new Map(),
   );
   const batches = messageIds.flatMap(chunks);
+  function queriesFor(ids: readonly (readonly string[])[], after?: number) {
+    return [
+      ...ids.map((batch) => reactionsQuery(session, conversationId, batch)),
+      ...(after === undefined
+        ? []
+        : [reactionsSinceQuery(session, conversationId, after)]),
+    ];
+  }
   const { loaded, reactions } = useQueries({
     queries: [
-      ...batches.map((ids) => reactionsQuery(session, conversationId, ids)),
-      ...(since === undefined
-        ? []
-        : [reactionsSinceQuery(session, conversationId, since)]),
+      ...queriesFor(batches, since),
+      ...queriesFor(ahead?.messageIds.flatMap(chunks) ?? [], ahead?.since),
     ],
     // TanStack shares this structurally with the last result, so a message
     // whose reactions didn't change keeps the same array and its row
