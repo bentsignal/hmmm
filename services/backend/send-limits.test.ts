@@ -44,14 +44,22 @@ void test("a refusal says when to try again and takes nothing", () => {
     ok: false,
     retryAfterMs: Math.ceil(0.75 * SEND_REFILL_MS),
   });
-  const later = currentSends(empty, ME, refused.ok ? 0 : refused.retryAfterMs);
+  const later = currentSends(empty, ME, refused.retryAfterMs);
   assert.equal(takeSend(later).ok, true);
 });
 
 void test("the bucket refills up to a burst, never past it", () => {
-  const bucket = currentSends({ accountId: ME, tokens: 0, updatedAt: 0 }, ME, 1e9);
+  const bucket = currentSends(
+    { accountId: ME, tokens: 0, updatedAt: 0 },
+    ME,
+    1e9,
+  );
   assert.equal(bucket.tokens, SEND_BURST);
   // A clock that went backwards doesn't drain it.
-  const back = currentSends({ accountId: ME, tokens: 5, updatedAt: 1000 }, ME, 0);
+  const back = currentSends(
+    { accountId: ME, tokens: 5, updatedAt: 1000 },
+    ME,
+    0,
+  );
   assert.equal(back.tokens, 5);
 });

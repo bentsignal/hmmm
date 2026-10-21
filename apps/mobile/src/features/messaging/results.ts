@@ -1,5 +1,5 @@
-import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import type { PdsQueryData } from "@decentralized-convex/tanstack-query";
+import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { PdsInitialResponseTimeoutError } from "@decentralized-convex/client";
 
 /** The merged result once any PDS has answered, otherwise undefined. */

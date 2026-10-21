@@ -88,6 +88,24 @@ function compare(left: unknown, right: unknown) {
   return String(left).localeCompare(String(right));
 }
 
+function results(found: Row[]) {
+  return {
+    [Symbol.asyncIterator]: async function* () {
+      yield* found;
+      await Promise.resolve();
+    },
+    collect: () => Promise.resolve(found),
+    first: () => Promise.resolve(found[0] ?? null),
+    order: (direction: "asc" | "desc") =>
+      results(direction === "desc" ? [...found].reverse() : found),
+    take: (count: number) => Promise.resolve(found.slice(0, count)),
+    unique: () => {
+      if (found.length > 1) throw new Error("Not unique");
+      return Promise.resolve(found[0] ?? null);
+    },
+  };
+}
+
 /**
  * A fake context holding `tables`. It reads and writes like a mutation's,
  * so it also stands in for a query's. `rows` reads a table back.
@@ -142,24 +160,6 @@ export function fakeCtx(tables: Record<string, Record<string, unknown>[]>) {
       filters,
     };
     return builder;
-  }
-
-  function results(found: Row[]) {
-    return {
-      [Symbol.asyncIterator]: async function* () {
-        yield* found;
-        await Promise.resolve();
-      },
-      collect: () => Promise.resolve(found),
-      first: () => Promise.resolve(found[0] ?? null),
-      order: (direction: "asc" | "desc") =>
-        results(direction === "desc" ? [...found].reverse() : found),
-      take: (count: number) => Promise.resolve(found.slice(0, count)),
-      unique: () => {
-        if (found.length > 1) throw new Error("Not unique");
-        return Promise.resolve(found[0] ?? null);
-      },
-    };
   }
 
   const ctx = {

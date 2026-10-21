@@ -36,6 +36,8 @@ export interface PageResult<Message extends WindowMessage = WindowMessage> {
    * along (see `stayLive`), rather than a copy that may be behind.
    */
   readonly fresh: boolean;
+  /** When it arrived. */
+  readonly at: number;
 }
 
 export interface View {
@@ -72,31 +74,36 @@ export function pageKey(cursor: PageCursor) {
   return JSON.stringify(cursor);
 }
 
+/** `view`, as any window (rather than the kind it's made as). */
+function asView(view: View) {
+  return view;
+}
+
 /** The window over the latest messages as of `openedAt`. */
-export function latestView(openedAt: number): View {
+export function latestView(openedAt: number) {
   const opened = { before: openedAt + 1 };
   const pages = [opened, { after: openedAt }];
-  return {
+  return asView({
     anchor: undefined,
     followed: [],
     initial: pages,
     liveSince: openedAt,
     opened,
     pages,
-  };
+  });
 }
 
 /** A window around one message. */
-export function anchoredView(messageId: string): View {
+export function anchoredView(messageId: string) {
   const opened = { around: messageId };
-  return {
+  return asView({
     anchor: messageId,
     followed: [],
     initial: [opened],
     liveSince: undefined,
     opened,
     pages: [opened],
-  };
+  });
 }
 
 /** Every loaded message once, oldest first. */
@@ -116,11 +123,7 @@ export function mergePages<Message extends WindowMessage>(
 }
 
 /** Adds a page unless the window already has it. */
-export function withPage(
-  view: View,
-  cursor: PageCursor,
-  at: "end" | "start",
-): View {
+export function withPage(view: View, cursor: PageCursor, at: "end" | "start") {
   const key = pageKey(cursor);
   if (view.pages.some((page) => pageKey(page) === key)) return view;
   return {
@@ -134,8 +137,44 @@ export function withPage(
  * millisecond earlier, so a message sent the same millisecond isn't
  * skipped; the one already loaded shows once.
  */
-export function pageAfter(message: WindowMessage): PageCursor {
+export function pageAfter(message: WindowMessage) {
   return { after: message.sentAt - 1 };
+}
+
+/**
+ * The window's newest page has nothing newer: it's followed from now on,
+ * and the window is at the latest messages, if it wasn't already.
+ */
+function reached(
+  view: View,
+  key: string,
+  results: readonly (PageResult | undefined)[],
+) {
+  const followed = view.followed.includes(key);
+  if (followed && view.liveSince !== undefined) return undefined;
+  const newest = mergePages(results.map((result) => result?.data)).at(-1);
+  return {
+    view: {
+      ...view,
+      followed: followed ? view.followed : [...view.followed, key],
+      liveSince: view.liveSince ?? newest?.sentAt ?? Date.now(),
+    },
+  };
+}
+
+/**
+ * The window's newest page is full: if the window followed it as it
+ * filled, the next page starts after it; if it was full when first seen,
+ * the window is behind.
+ */
+function filled(view: View, key: string, last: PageData) {
+  // In older messages: the list asks for newer ones as it scrolls down.
+  if (view.liveSince === undefined) return undefined;
+  if (!view.followed.includes(key)) return "behind" as const;
+  const newest = last.messages.at(-1);
+  if (newest === undefined) return undefined;
+  const next = withPage(view, pageAfter(newest), "end");
+  return next === view ? undefined : { view: next };
 }
 
 /**
@@ -148,33 +187,38 @@ export function pageAfter(message: WindowMessage): PageCursor {
 export function advance(
   view: View,
   results: readonly (PageResult | undefined)[],
-): { readonly view: View } | "behind" | undefined {
+) {
   const index = view.pages.length - 1;
   const cursor = view.pages[index];
   const last = results[index];
-  if (cursor === undefined || last === undefined || !last.fresh) {
-    return undefined;
-  }
+  if (cursor === undefined || last?.fresh !== true) return undefined;
   const key = pageKey(cursor);
-  const followed = view.followed.includes(key);
-  if (!last.data.hasNewer) {
-    if (followed && view.liveSince !== undefined) return undefined;
-    const newest = mergePages(results.map((result) => result?.data)).at(-1);
-    return {
-      view: {
-        ...view,
-        followed: followed ? view.followed : [...view.followed, key],
-        liveSince: view.liveSince ?? newest?.sentAt ?? Date.now(),
-      },
-    };
-  }
-  // In older messages: the list asks for newer ones as it scrolls down.
-  if (view.liveSince === undefined) return undefined;
-  if (!followed) return "behind";
-  const newest = last.data.messages.at(-1);
-  if (newest === undefined) return undefined;
-  const next = withPage(view, pageAfter(newest), "end");
-  return next === view ? undefined : { view: next };
+  return last.data.hasNewer
+    ? filled(view, key, last.data)
+    : reached(view, key, results);
+}
+
+/**
+ * The window and the one it's opening instead (`next`, see
+ * `jumpToLatest`), each advanced with its pages' results. Behind, it opens
+ * again at the latest messages as of when it learned it was behind, and
+ * shows them once they've loaded. The same state back when nothing changed.
+ */
+export function follow(
+  state: { readonly view: View; readonly next: View | undefined },
+  results: readonly (PageResult | undefined)[],
+  nextResults: readonly (PageResult | undefined)[],
+) {
+  const step = advance(state.view, results);
+  const nextStep = state.next && advance(state.next, nextResults);
+  const view = typeof step === "object" ? step.view : state.view;
+  const behindAt = step === "behind" ? results.at(-1)?.at : undefined;
+  const next =
+    typeof nextStep === "object"
+      ? nextStep.view
+      : (state.next ??
+        (behindAt === undefined ? undefined : latestView(behindAt)));
+  return view === state.view && next === state.next ? state : { next, view };
 }
 
 /**
@@ -229,6 +273,8 @@ export function windowParts<Message extends WindowMessage>(
 /** Messages' threads: their own, or for a reply, its original's. */
 function threadsOf(messages: readonly WindowMessage[]) {
   return [
-    ...new Set(messages.map((message) => message.threadId ?? message.messageId)),
+    ...new Set(
+      messages.map((message) => message.threadId ?? message.messageId),
+    ),
   ];
 }

@@ -20,7 +20,6 @@ import {
   homeToken,
 } from "./federation-auth";
 
-
 /**
  * The app's one TanStack cache. Every signed-in account's PDS queries live
  * here, keyed by the account's address. A screen closed in the last ten
@@ -49,7 +48,7 @@ function yoursPending() {
   );
 }
 let notifyTimer: ReturnType<typeof setTimeout> | undefined;
-const notifies: (() => void)[] = [];
+const notifies = new Array<() => void>();
 function notifyNow() {
   clearTimeout(notifyTimer);
   notifyTimer = undefined;

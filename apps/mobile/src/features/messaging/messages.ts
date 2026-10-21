@@ -8,6 +8,7 @@ import { pdsMutation } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
 import type { OutgoingDraft, OutgoingMessage } from "./outbox";
+import type { ReactionSummary } from "./reactions";
 import type {
   Message,
   ReplyTarget,
@@ -16,7 +17,6 @@ import type {
 import { useAccount } from "./account";
 import { useMessageWindow } from "./message-window";
 import { sendOutgoing, useOutbox } from "./outbox";
-import type { ReactionSummary } from "./reactions";
 import { reactionsCached, useReactions } from "./reactions";
 import { useMarkUpTo } from "./read-marks";
 import { shownMessage, shownUnconfirmed } from "./shown-messages";

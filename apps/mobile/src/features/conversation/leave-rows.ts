@@ -192,16 +192,16 @@ export function useLeavingRows(
       : new Map<string, number>();
   // On their own, so each stays the same function from render to render:
   // every row takes them (see `Row`).
-  const faded = (batch: number) => {
+  function faded(batch: number) {
     setLeaving((now) =>
       now.map((item) =>
         item.batch === batch ? { ...item, closing: true } : item,
       ),
     );
-  };
-  const gone = (batch: number) => {
+  }
+  function gone(batch: number) {
     setLeaving((now) => now.filter((item) => item.batch !== batch));
-  };
+  }
   return {
     rows,
     leavingOf: (key: string): RowLeaving | undefined => {

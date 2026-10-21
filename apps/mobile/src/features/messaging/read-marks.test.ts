@@ -1,14 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import type { MarkState } from "./read-marks.ts";
 import { MARK_READ_EVERY_MS, nextMark } from "./read-marks.ts";
 
 /** Marks made as the newest message changes at `times` (ms), as the hook makes them. */
 function marksFor(times: readonly number[]) {
-  let state: MarkState = { markedAt: -Infinity, readAt: 0 };
+  let state = { markedAt: -Infinity, readAt: 0 };
   let wakeAt: number | undefined;
-  const marks: number[] = [];
+  const marks = new Array<number>();
   let newest = 0;
   function mark(at: number) {
     state = { markedAt: at, readAt: newest };
@@ -20,8 +19,8 @@ function marksFor(times: readonly number[]) {
     newest = time;
     const next = nextMark(state, newest, time);
     if (next === undefined) continue;
-    if ("now" in next) mark(time);
-    else wakeAt = next.wakeAt;
+    if (next === "now") mark(time);
+    else wakeAt = next;
   }
   if (wakeAt !== undefined) mark(wakeAt);
   return marks;

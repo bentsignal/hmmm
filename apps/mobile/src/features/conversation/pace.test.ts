@@ -2,20 +2,20 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { Message } from "./types";
-import { onlyOthersArrived, sameMessages, waitFor } from "./pace.ts";
+import { onlyOthersArrived, sameMessages } from "./pace.ts";
 
 const ME = "me@vera.test";
 const MAYA = "maya@vera.test";
 
-function message(index: number, authorId = MAYA): Message {
+function message(index: number, authorId = MAYA) {
   return {
     attachments: [],
     authorId,
-    body: `Message ${index}`,
-    id: `m${index}`,
+    body: `Message ${String(index)}`,
+    id: `m${String(index)}`,
     reactions: [],
     sentAt: new Date(index * 1000),
-  };
+  } satisfies Message;
 }
 
 const shown = [message(1), message(2)];
@@ -37,18 +37,15 @@ void test("your own message, and any other change, shows at once", () => {
   assert.equal(onlyOthersArrived(shown, [message(0), ...shown], ME), false);
   // A reaction or edit (a message changed).
   assert.equal(
-    onlyOthersArrived(shown, [message(1), { ...message(2), body: "edited" }, message(3)], ME),
+    onlyOthersArrived(
+      shown,
+      [message(1), { ...message(2), body: "edited" }, message(3)],
+      ME,
+    ),
     false,
   );
   // A deletion.
   assert.equal(onlyOthersArrived(shown, [message(1)], ME), false);
-});
-
-void test("a message during a rise waits for it to finish; one after a pause doesn't", () => {
-  assert.equal(waitFor(1_000, 1_100, 420), 320);
-  assert.equal(waitFor(1_000, 2_000, 420), 0);
-  // Nearly done: it goes with the redraw already happening.
-  assert.equal(waitFor(1_000, 1_380, 420), 0);
 });
 
 void test("the same messages in a new list are the same", () => {

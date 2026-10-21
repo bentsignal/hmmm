@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import type { Message } from "./types";
 import { GROW_MS } from "./moves";
-import { onlyOthersArrived, sameMessages, waitFor } from "./pace";
+import { onlyOthersArrived, sameMessages } from "./pace";
 
 // How fast the list takes new messages from other people. Each one that
 // arrives redraws the list and rises in over `GROW_MS`; in a busy
@@ -20,24 +20,28 @@ export const PACE_MS = GROW_MS;
  * when what it shows changes.
  */
 export function usePacedMessages(messages: readonly Message[], self: string) {
-  const [shown, setShown] = useState({ at: 0, messages });
-  const same = sameMessages(shown.messages, messages);
-  // Anything but others' new messages shows in this very render.
-  if (!same && !onlyOthersArrived(shown.messages, messages, self)) {
-    setShown({ at: shown.at, messages });
-  }
-  const waiting = !same;
-  // eslint-disable-next-line no-restricted-syntax -- Waiting for a rise to finish is a matter of time, which no data change marks.
-  useEffect(() => {
-    if (!waiting) return undefined;
-    const wait = waitFor(shown.at, Date.now(), PACE_MS);
-    const show = () => setShown({ at: Date.now(), messages });
-    if (wait === 0) {
-      show();
-      return undefined;
+  const [shown, setShown] = useState(messages);
+  // Others' messages are rising in (`rising`): more wait until they have.
+  // Each rise has its own number, so one that starts in the render right
+  // after another ends still gets its timer.
+  const [rise, setRise] = useState({ count: 0, rising: false });
+  if (!sameMessages(shown, messages)) {
+    const others = onlyOthersArrived(shown, messages, self);
+    // In this very render, so nothing lags at a normal pace.
+    if (!others || !rise.rising) setShown(messages);
+    if (others && !rise.rising) {
+      setRise({ count: rise.count + 1, rising: true });
     }
-    const timer = setTimeout(show, wait);
+  }
+  const { count, rising } = rise;
+  // eslint-disable-next-line no-restricted-syntax -- A rise finishing is a matter of time, which no data change marks.
+  useEffect(() => {
+    if (!rising) return undefined;
+    const timer = setTimeout(
+      () => setRise((current) => ({ count: current.count, rising: false })),
+      PACE_MS,
+    );
     return () => clearTimeout(timer);
-  }, [messages, shown.at, waiting]);
-  return shown.messages;
+  }, [count, rising]);
+  return shown;
 }

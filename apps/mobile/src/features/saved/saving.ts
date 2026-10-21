@@ -152,13 +152,20 @@ function pageParts(
   queryClient: QueryClient,
   address: string,
   conversation: Conversation,
-  openedAt: number,
-  pages: readonly { messages: readonly PdsMessage[] }[],
+  window: {
+    openedAt: number;
+    pages: readonly { messages: readonly PdsMessage[] }[];
+  },
 ) {
+  const { openedAt, pages } = window;
   const { conversationId, kind, members } = conversation;
   const parts = latestPageParts(
     openedAt,
-    pages.map(({ messages }) => ({ hasNewer: false, hasOlder: false, messages })),
+    pages.map(({ messages }) => ({
+      hasNewer: false,
+      hasOlder: false,
+      messages,
+    })),
   );
   const reactions = [
     ...parts.messageIds
@@ -221,7 +228,10 @@ function conversationSaved(
     pageQueries.map((query) => liveSelected(queryClient, query)),
   );
   if (conversation == null || pages === undefined) return undefined;
-  const parts = pageParts(queryClient, address, conversation, openedAt, pages);
+  const parts = pageParts(queryClient, address, conversation, {
+    openedAt,
+    pages,
+  });
   const entries = complete(
     [
       found.queryKey,

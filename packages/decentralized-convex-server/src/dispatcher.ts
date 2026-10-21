@@ -8,7 +8,6 @@ import type {
   PluginRequirements,
 } from "@decentralized-convex/plugin";
 import type {
-  Auth,
   GenericDataModel,
   GenericMutationCtx,
   GenericQueryCtx,
@@ -24,10 +23,8 @@ import {
 } from "@decentralized-convex/plugin";
 import { ConvexError, v } from "convex/values";
 
-import type { DispatcherComponents } from "./dispatcher-types.ts";
 import type { RoutedQueryResult } from "./routed-query.ts";
 import {
-  answerIncluded,
   dispatchRequests,
   invokeQueryOperation,
   queryResponse,
@@ -187,117 +184,6 @@ export function defineComponentDispatchers<
   } as const;
 }
 
-/** A write a client asked the router for, for the host's `beforeMutation`. */
-export interface PdsRouterMutationRequest {
-  readonly identity: DispatcherIdentity | null;
-  readonly operation: unknown;
-  readonly plugin: string;
-}
-
-/** A write the router just completed, for the host's `afterMutation`. */
-export interface PdsRouterMutation extends PdsRouterMutationRequest {
-  readonly value: unknown;
-}
-
-export function definePdsRouter<DataModel extends GenericDataModel>({
-  afterMutation,
-  beforeMutation,
-  components,
-  mutation,
-  query,
-}: {
-  /**
-   * Runs in the same transaction before each plugin write a client asks
-   * for, so the host can refuse it (by throwing, such as a rate limit's
-   * `ConvexError`) before the plugin does any work. Writes the host makes
-   * to a Component directly don't pass through here.
-   */
-  readonly beforeMutation?: (
-    ctx: GenericMutationCtx<DataModel>,
-    mutation: PdsRouterMutationRequest,
-  ) => Promise<void>;
-  /**
-   * Runs in the same transaction after each successful plugin write, so
-   * the host can react to it (schedule work, record something) without
-   * changing a plugin's protocol. Writes the host makes to a Component
-   * directly don't pass through here.
-   */
-  readonly afterMutation?: (
-    ctx: GenericMutationCtx<DataModel>,
-    mutation: PdsRouterMutation,
-  ) => Promise<void>;
-  readonly components: unknown;
-  readonly mutation: MutationBuilder<DataModel, "public">;
-  readonly query: QueryBuilder<DataModel, "public">;
-}) {
-  const installed = readDispatcherComponents(components);
-  return {
-    dispatchMutation: mutation({
-      args: {
-        lastChanged: v.string(),
-        operation: v.any(),
-        plugin: v.string(),
-        version: v.string(),
-      },
-      returns: v.any(),
-      handler: async (ctx, request) => {
-        const component = getDispatcherComponent(installed, request.plugin);
-        const identity = await resolveIdentity(ctx);
-        await beforeMutation?.(ctx, {
-          identity,
-          operation: request.operation,
-          plugin: request.plugin,
-        });
-        const response = await ctx.runMutation(component.mutation, {
-          identity,
-          lastChanged: request.lastChanged,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          operation: request.operation,
-          version: request.version,
-        });
-        await afterMutation?.(ctx, {
-          identity,
-          operation: request.operation,
-          plugin: request.plugin,
-          value: response.value,
-        });
-        return response.value;
-      },
-    }),
-    dispatchQuery: query({
-      args: {
-        lastChanged: v.string(),
-        operation: v.any(),
-        plugin: v.string(),
-        version: v.string(),
-      },
-      returns: v.any(),
-      handler: async (ctx, request) => {
-        const component = getDispatcherComponent(installed, request.plugin);
-        const identity = await resolveIdentity(ctx);
-        const response = await ctx.runQuery(component.query, {
-          identity,
-          lastChanged: request.lastChanged,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          operation: request.operation,
-          version: request.version,
-        });
-        const included = await answerIncluded(
-          ctx,
-          installed,
-          identity,
-          response.include ?? [],
-        );
-        return {
-          ...(included.length > 0 ? { included } : {}),
-          routes: response.routes ?? [],
-          value: response.value,
-        };
-      },
-    }),
-  } as const;
-}
-
 function invokeOperation<Operations extends OperationMap, Context>(
   handlers: OperationHandlers<Operations, Context>,
   ctx: Context,
@@ -317,43 +203,4 @@ function invokeOperation<Operations extends OperationMap, Context>(
     ctx,
     { args: operation.args, identity },
   ]);
-}
-
-function readDispatcherComponents(components: unknown): DispatcherComponents {
-  // Convex generates `components` as a lazy proxy. Computed property access creates the same
-  // FunctionReferences as static `components.myPlugin.dispatcher.*` access.
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return components as DispatcherComponents;
-}
-
-function getDispatcherComponent(
-  components: DispatcherComponents,
-  plugin: string,
-) {
-  const component = components[plugin];
-  if (component === undefined) {
-    throw new ConvexError({ code: "PLUGIN_NOT_INSTALLED", plugin });
-  }
-  return {
-    mutation: component.dispatcher.dispatchMutation,
-    query: component.dispatcher.dispatchQuery,
-  };
-}
-
-async function resolveIdentity(ctx: {
-  readonly auth: Auth;
-}): Promise<DispatcherIdentity | null> {
-  const identity = await ctx.auth.getUserIdentity();
-  return identity === null
-    ? null
-    : {
-        ...(typeof identity.accountId === "string"
-          ? { accountId: identity.accountId }
-          : {}),
-        issuer: identity.issuer,
-        ...(identity.email === undefined ? {} : { email: identity.email }),
-        ...(identity.name === undefined ? {} : { name: identity.name }),
-        subject: identity.subject,
-        tokenIdentifier: identity.tokenIdentifier,
-      };
 }

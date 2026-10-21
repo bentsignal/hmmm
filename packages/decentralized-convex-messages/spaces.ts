@@ -9,7 +9,6 @@ import {
   fail,
   getConversation,
   getMember,
-  readAt,
   getSpace,
   getSpaceMember,
   isRetriedCreate,
@@ -19,6 +18,7 @@ import {
   normalizeName,
 } from "./model.ts";
 import { channelName } from "./naming.ts";
+import { readAt } from "./readStates.ts";
 import { notificationSettings } from "./settings.ts";
 import { deleteThreads } from "./threads.ts";
 

@@ -15,17 +15,13 @@ export interface MarkState {
 }
 
 /**
- * What to do now that the newest message is `newest`: mark it read now,
- * or wait until `wakeAt` and ask again.
+ * What to do now that the newest message is `newest`: mark it read
+ * (`now`), wait until the time returned and ask again, or nothing.
  */
-export function nextMark(
-  state: MarkState,
-  newest: number,
-  now: number,
-): { readonly now: true } | { readonly wakeAt: number } | undefined {
+export function nextMark(state: MarkState, newest: number, now: number) {
   if (newest <= state.readAt) return undefined;
   const wakeAt = state.markedAt + MARK_READ_EVERY_MS;
-  return now >= wakeAt ? { now: true } : { wakeAt };
+  return now >= wakeAt ? ("now" as const) : wakeAt;
 }
 
 /**
@@ -51,14 +47,14 @@ export function useMarkUpTo(
     const next = nextMark(state.current, newest, Date.now());
     if (next === undefined) return undefined;
     const readAt = newest;
-    if ("now" in next) {
+    if (next === "now") {
       markNow(readAt);
       return undefined;
     }
     waiting.current = readAt;
     const timer = setTimeout(
       () => markNow(readAt),
-      Math.max(0, next.wakeAt - Date.now()),
+      Math.max(0, next - Date.now()),
     );
     return () => clearTimeout(timer);
   }, [mark, newest]);

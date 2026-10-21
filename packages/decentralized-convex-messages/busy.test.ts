@@ -4,8 +4,8 @@ import type { TestContext } from "node:test";
 
 import { markRead } from "./conversations.ts";
 import { fakeCtx } from "./fakeCtx.ts";
-import { pageIncludes } from "./includes.ts";
 import { inbox } from "./inbox.ts";
+import { pageIncludes } from "./includes.ts";
 import { react, reactions } from "./reactions.ts";
 import { send } from "./sending.ts";
 import { threadSummaries } from "./threads.ts";
@@ -119,10 +119,10 @@ void test("reading writes only the reader's read state", async (t) => {
   const fake = groups();
   await say(fake, MAYA, "one");
   await say(fake, MAYA, "two");
-  const unread = async () =>
-    (await inbox(fake.ctx, LEO, {})).find(
-      (item) => item.conversationId === GROUP,
-    )?.unreadCount;
+  async function unread() {
+    const listed = await inbox(fake.ctx, LEO, {});
+    return listed.find((item) => item.conversationId === GROUP)?.unreadCount;
+  }
   assert.equal(await unread(), 2);
   const before = fake.writes().length;
   await markRead(fake.ctx, LEO, { conversationId: GROUP, readAt: 1_000 });
@@ -180,20 +180,24 @@ void test("how far someone read before read states still counts", async (t) => {
 
 void test("reactions and threads since a time cover the newest messages", async (t) => {
   at(t, 10_000);
-  const reaction = (messageId: string, reactedAt: number) => ({
-    accountId: LEO,
-    conversationId: GROUP,
-    emoji: "👍",
-    messageId,
-    reactedAt,
-  });
-  const thread = (threadId: string, lastReplyAt: number) => ({
-    conversationId: GROUP,
-    lastReplyAt,
-    replyCount: 1,
-    repliers: [LEO],
-    threadId,
-  });
+  function reaction(messageId: string, reactedAt: number) {
+    return {
+      accountId: LEO,
+      conversationId: GROUP,
+      emoji: "👍",
+      messageId,
+      reactedAt,
+    };
+  }
+  function thread(threadId: string, lastReplyAt: number) {
+    return {
+      conversationId: GROUP,
+      lastReplyAt,
+      replyCount: 1,
+      repliers: [LEO],
+      threadId,
+    };
+  }
   const { ctx } = fakeCtx({
     conversations: [
       { conversationId: GROUP, createdBy: MAYA, kind: "group", updatedAt: 0 },

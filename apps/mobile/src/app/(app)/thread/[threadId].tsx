@@ -17,6 +17,7 @@ import { useComposerHeight } from "~/features/conversation/composer-height";
 import { FloatingComposer } from "~/features/conversation/floating-composer";
 import { mentionableIn } from "~/features/conversation/mentionable";
 import { MessageList } from "~/features/conversation/message-list";
+import { usePacedMessages } from "~/features/conversation/paced-messages";
 import {
   THREAD_HEADER_HEIGHT,
   ThreadHeader,
@@ -25,7 +26,6 @@ import { useEditing } from "~/features/conversation/use-editing";
 import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
 import { useDevConversation } from "~/features/dev/dev-conversation";
 import { useDevTools } from "~/features/dev/dev-tools";
-import { usePacedMessages } from "~/features/conversation/paced-messages";
 import { AccountScope, useAccount } from "~/features/messaging/account";
 import { useConversation } from "~/features/messaging/conversations";
 import { useMessages } from "~/features/messaging/messages";

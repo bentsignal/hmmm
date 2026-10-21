@@ -13,8 +13,8 @@ import { pds } from "@vera/backend/pds";
 import type { ThreadInfo } from "~/features/conversation/types";
 import { selectionTick } from "~/lib/native-extras";
 import { useAccount } from "./account";
-import { useMarkUpTo } from "./read-marks";
 import { chunks } from "./reactions";
+import { useMarkUpTo } from "./read-marks";
 import { cachedSelected, pdsResult, pdsResultOr } from "./results";
 import { showThreadFollowed, showThreadRead } from "./thread-lists";
 

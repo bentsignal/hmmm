@@ -17,9 +17,9 @@ import {
 import { FloatingComposer } from "~/features/conversation/floating-composer";
 import { mentionableIn } from "~/features/conversation/mentionable";
 import { MessageList } from "~/features/conversation/message-list";
+import { usePacedMessages } from "~/features/conversation/paced-messages";
 import { useEditing } from "~/features/conversation/use-editing";
 import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
-import { usePacedMessages } from "~/features/conversation/paced-messages";
 import { useReplies } from "~/features/conversation/use-replies";
 import { useDevConversation } from "~/features/dev/dev-conversation";
 import { AccountScope, useAccount } from "~/features/messaging/account";

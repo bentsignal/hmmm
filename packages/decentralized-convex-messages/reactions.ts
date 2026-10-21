@@ -4,8 +4,9 @@ import type { Doc } from "./_generated/dataModel.js";
 import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { messagesProtocol } from "./protocol.ts";
 import { internal } from "./_generated/api.js";
+import { markChanged } from "./changes.ts";
 import { MAX_LINK_PREVIEWS } from "./links.ts";
-import { fail, markChanged, memberAddresses, requireAccess } from "./model.ts";
+import { fail, memberAddresses, requireAccess } from "./model.ts";
 import {
   MAX_ATTACHMENTS,
   MAX_REACTION_MESSAGES,

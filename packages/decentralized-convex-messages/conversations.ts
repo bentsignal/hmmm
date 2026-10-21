@@ -9,7 +9,6 @@ import {
   findAccess,
   getConversation,
   isRetriedCreate,
-  markReadUpTo,
   memberAddresses,
   newId,
   normalizeAddress,
@@ -22,6 +21,7 @@ import {
 } from "./model.ts";
 import { directConversationId } from "./naming.ts";
 import { around, pageOf } from "./paging.ts";
+import { markReadUpTo } from "./readStates.ts";
 import { notificationSettings } from "./settings.ts";
 import { MAX_MEMBER_EVENTS } from "./shapes.ts";
 import { seeConversationActivity } from "./sightings.ts";

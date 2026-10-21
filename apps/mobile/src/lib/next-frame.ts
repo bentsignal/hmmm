@@ -3,7 +3,7 @@
 // instead of ten times. Each update scheduled from the UI thread is a
 // separate task on the JavaScript thread, which React can't batch.
 
-const waiting: (() => void)[] = [];
+const waiting = new Array<() => void>();
 
 /** Runs `update` in the next frame, with any others waiting for it. */
 export function inNextFrame(update: () => void) {

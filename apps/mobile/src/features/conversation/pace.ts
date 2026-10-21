@@ -28,18 +28,5 @@ export function onlyOthersArrived(
   for (let index = 0; index < shown.length; index += 1) {
     if (next[index] !== shown[index]) return false;
   }
-  return next
-    .slice(shown.length)
-    .every((message) => message.authorId !== self);
-}
-
-/**
- * How long others' new messages wait, after a redraw at `shownAt`, for
- * the rise it started (`paceMs`) to finish. Nearly done, they go now: the
- * app's query updates come at the same pace (see `NOTIFY_GAP_MS`), and a
- * redraw of its own a moment later would cost more than it saves.
- */
-export function waitFor(shownAt: number, now: number, paceMs: number) {
-  const wait = shownAt + paceMs - now;
-  return wait <= paceMs / 4 ? 0 : wait;
+  return next.slice(shown.length).every((message) => message.authorId !== self);
 }

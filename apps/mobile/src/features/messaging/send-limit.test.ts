@@ -10,6 +10,9 @@ void test("a send over the limit waits as long as the PDS says", () => {
 });
 
 void test("any other failure isn't waited out", () => {
-  assert.equal(retryAfter(new ConvexError({ code: "CONVERSATION_NOT_FOUND" })), undefined);
+  assert.equal(
+    retryAfter(new ConvexError({ code: "CONVERSATION_NOT_FOUND" })),
+    undefined,
+  );
   assert.equal(retryAfter(new Error("offline")), undefined);
 });

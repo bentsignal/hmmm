@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type { PageCursor, PageData, View, WindowMessage } from "./window-model.ts";
+import type {
+  PageCursor,
+  PageData,
+  View,
+  WindowMessage,
+} from "./window-model.ts";
 import {
   advance,
   anchoredView,
@@ -19,7 +24,7 @@ import {
 const PAGE = 50;
 
 function conversation() {
-  const messages: WindowMessage[] = [];
+  const messages = new Array<WindowMessage>();
   return {
     messages,
     send(sentAt: number, messageId = `m${sentAt}`, threadId?: string) {
@@ -59,7 +64,11 @@ function conversation() {
 type Conversation = ReturnType<typeof conversation>;
 
 function results(chat: Conversation, view: View, fresh = true) {
-  return view.pages.map((cursor) => ({ data: chat.page(cursor), fresh }));
+  return view.pages.map((cursor) => ({
+    at: 0,
+    data: chat.page(cursor),
+    fresh,
+  }));
 }
 
 /** Runs `advance` until the window settles, as the hook does each render. */
@@ -72,6 +81,13 @@ function settle(chat: Conversation, view: View) {
     current = next.view;
   }
   throw new Error("The window never settled");
+}
+
+/** `settle`, for a window that must not fall behind. */
+function settled(chat: Conversation, view: View) {
+  const next = settle(chat, view);
+  if (next === "behind") throw new Error("The window fell behind");
+  return next;
 }
 
 function shown(chat: Conversation, view: View) {
@@ -103,9 +119,7 @@ void test("a burst of 300 is followed page by page with nothing lost or doubled"
   const burst = shuffled(Array.from({ length: 300 }, (_, i) => 1_001 + i));
   for (const sentAt of burst.toSorted((left, right) => left - right)) {
     chat.send(sentAt);
-    const next = settle(chat, view);
-    assert.notEqual(next, "behind");
-    if (next !== "behind") view = next;
+    view = settled(chat, view);
   }
   const ids = shown(chat, view);
   // The frozen page's 50, and every message of the burst, once each.
@@ -122,12 +136,12 @@ void test("messages sent the same millisecond across a page boundary all show", 
   const chat = conversation();
   let view = latestView(0);
   for (let index = 0; index < 49; index += 1) chat.send(index + 1);
-  view = settle(chat, view) as View;
+  view = settled(chat, view);
   // The 50th and 51st arrive at once, both at 50.
   chat.send(50, "a");
   chat.send(50, "b");
   chat.send(51, "c");
-  view = settle(chat, view) as View;
+  view = settled(chat, view);
   const ids = shown(chat, view);
   assert.ok(ids.includes("a") && ids.includes("b") && ids.includes("c"));
 });
@@ -135,12 +149,11 @@ void test("messages sent the same millisecond across a page boundary all show", 
 void test("a window more than a page behind opens again instead of filling in", () => {
   const chat = conversation();
   history(chat, 60);
-  const view = settle(chat, latestView(60));
-  assert.notEqual(view, "behind");
+  const view = settled(chat, latestView(60));
   // Away for a while: 120 more arrive.
   for (let index = 61; index <= 180; index += 1) chat.send(index);
   // Reopened from cache: the copy is behind, and isn't followed yet.
-  const reopened = { ...(view as View), followed: [] };
+  const reopened = { ...view, followed: [] };
   assert.equal(advance(reopened, results(chat, reopened, false)), undefined);
   // Fresh from the PDS: the newest page is already full.
   assert.equal(advance(reopened, results(chat, reopened)), "behind");
@@ -161,13 +174,11 @@ void test("a window opened in older messages follows once it reaches the latest"
   history(chat, 120);
   let view = anchoredView("m100");
   // Its page reaches the newest message: it follows from there.
-  const reached = settle(chat, view);
-  assert.notEqual(reached, "behind");
-  view = reached as View;
+  view = settled(chat, view);
   assert.equal(view.liveSince, 120);
   for (let index = 121; index <= 200; index += 1) {
     chat.send(index);
-    view = settle(chat, view) as View;
+    view = settled(chat, view);
   }
   assert.equal(shown(chat, view).at(-1), "m200");
 
@@ -182,7 +193,7 @@ void test("reactions and threads: fixed batches before the window went live, by 
   let view = latestView(5);
   chat.send(6);
   chat.send(7, "reply", "m3");
-  view = settle(chat, view) as View;
+  view = settled(chat, view);
   const parts = windowParts(
     view,
     view.pages.map((cursor) => chat.page(cursor)),
@@ -204,7 +215,7 @@ void test("reactions and threads: fixed batches before the window went live, by 
 void test("only a recent, current window under the page limit opens again", () => {
   const chat = conversation();
   history(chat, 30);
-  const view = settle(chat, latestView(30)) as View;
+  const view = settled(chat, latestView(30));
   const last = chat.page({ after: 30 });
   const fresh = { age: 0, maxAge: 1_000 };
   assert.equal(reusable(view, last, fresh), true);

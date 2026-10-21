@@ -5,8 +5,10 @@ import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import type { CreatedKind } from "./naming.ts";
 import type { AlertLevel, Conversation, Message } from "./protocol.ts";
 import { chosenAlerts } from "./alertChoice.ts";
+import { changedAtOf } from "./changes.ts";
 import { latestMessage, unreadCount } from "./chatMessages.ts";
 import { createdId, isCreatedId } from "./naming.ts";
+import { readPosition } from "./readStates.ts";
 
 const ADDRESS_PATTERN = /^[a-z0-9][a-z0-9._-]{1,31}@[a-z0-9-]+(\.[a-z0-9-]+)+$/;
 const MAX_NAME_LENGTH = 80;
@@ -218,119 +220,6 @@ export async function requireAccess(
   return access;
 }
 
-function readStateOf(ctx: QueryCtx, conversationId: string, accountId: string) {
-  return ctx.db
-    .query("readStates")
-    .withIndex("by_conversation_account", (index) =>
-      index.eq("conversationId", conversationId).eq("accountId", accountId),
-    )
-    .unique();
-}
-
-/**
- * How far the account has read the conversation, given how far it had
- * read before `readStates` (see `readBefore`).
- */
-export async function readAt(
-  ctx: QueryCtx,
-  conversationId: string,
-  accountId: string,
-  readBefore: number,
-) {
-  const state = await readStateOf(ctx, conversationId, accountId);
-  return Math.max(state?.lastReadAt ?? 0, readBefore);
-}
-
-/** How far the account has read the conversation. */
-export function readPosition(
-  ctx: QueryCtx,
-  access: ConversationAccess,
-  accountId: string,
-) {
-  return readAt(
-    ctx,
-    access.conversation.conversationId,
-    accountId,
-    access.readBefore,
-  );
-}
-
-/**
- * Moves how far the account has read the conversation up to `readAt`.
- * Its own row, so moving it reruns only queries that show read state, and
- * two people reading or sending at once never touch the same document.
- */
-export async function markReadUpTo(
-  ctx: MutationCtx,
-  access: ConversationAccess,
-  accountId: string,
-  readAt: number,
-) {
-  const { conversationId } = access.conversation;
-  const state = await readStateOf(ctx, conversationId, accountId);
-  if (readAt <= Math.max(state?.lastReadAt ?? 0, access.readBefore)) return;
-  if (state === null) {
-    await ctx.db.insert("readStates", {
-      accountId,
-      conversationId,
-      lastReadAt: readAt,
-    });
-  } else {
-    await ctx.db.patch(state._id, { lastReadAt: readAt });
-  }
-}
-
-function changesOf(ctx: QueryCtx, conversationId: string) {
-  return ctx.db
-    .query("conversationChanges")
-    .withIndex("by_conversation", (index) =>
-      index.eq("conversationId", conversationId),
-    )
-    .unique();
-}
-
-/**
- * Notes that a reaction, edit, or deletion changed what the conversation
- * shows (`changedAt`), so apps know a copy of it they saved is out of
- * date. New messages don't need noting: they're the newest message.
- */
-export async function markChanged(
-  ctx: MutationCtx,
-  access: ConversationAccess,
-  at = Date.now(),
-) {
-  const { conversationId } = access.conversation;
-  const changes = await changesOf(ctx, conversationId);
-  if (changes === null) {
-    await ctx.db.insert("conversationChanges", { changedAt: at, conversationId });
-  } else if (at > changes.changedAt) {
-    await ctx.db.patch(changes._id, { changedAt: at });
-  }
-}
-
-/**
- * When the conversation last changed: its newest message (a reply kept in
- * its thread included), or a reaction, edit, or deletion since.
- */
-async function changedAtOf(ctx: QueryCtx, conversation: Doc<"conversations">) {
-  const [changes, newest] = await Promise.all([
-    changesOf(ctx, conversation.conversationId),
-    ctx.db
-      .query("messages")
-      .withIndex("by_conversation_sent", (index) =>
-        index.eq("conversationId", conversation.conversationId),
-      )
-      .order("desc")
-      .first(),
-  ]);
-  const at = Math.max(
-    conversation.changedAt ?? 0,
-    changes?.changedAt ?? 0,
-    newest?.sentAt ?? 0,
-  );
-  return at === 0 ? undefined : at;
-}
-
 /** Channel read state is stored lazily, so create the row on first write. */
 export async function upsertMember(
   ctx: MutationCtx,
@@ -339,11 +228,7 @@ export async function upsertMember(
   patch: Partial<
     Pick<
       Doc<"members">,
-      | "alerts"
-      | "alertsSince"
-      | "hiddenFromInbox"
-      | "muted"
-      | "pinnedAt"
+      "alerts" | "alertsSince" | "hiddenFromInbox" | "muted" | "pinnedAt"
     >
   >,
 ) {

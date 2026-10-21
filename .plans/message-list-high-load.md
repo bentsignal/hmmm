@@ -247,3 +247,64 @@ query results.
 - Send limit: 30 at once, refilling one every 2 seconds.
 - Arrivals faster than the animation rise together, only under load.
 - One pull request for all of it, tested together on his phone.
+
+## What was built
+
+Everything in steps 1–3 above, with these changes from the plan, found by
+measuring:
+
+- **Rows are memoized** (`Row` in `message-row.tsx`, with a comment on
+  why). The list is inverted, so each new message is inserted first and
+  moves every other row's index, and FlatList redraws each cell whose
+  index moved. That redraw happens inside FlatList, where the React
+  Compiler can't skip it: 50–80 row renders per update before, under 1
+  after. Moving per-row state onto row items (the plan's first idea) didn't
+  help, since the index still moves.
+- **Pacing** (`paced-messages.ts`): others' new messages wait while a
+  rise is in progress (`GROW_MS`) and then rise together; your own
+  messages, older pages, reactions, edits, and deletions show at once. At
+  a normal pace nothing waits: the first after a pause shows in the same
+  render as its data.
+- **Query updates** (`account-session.ts`): screens learn of new results
+  in the next frame and at most every 400ms (`NOTIFY_GAP_MS`), except while
+  something you did is on its way, so optimistic updates stay instant.
+  Every React commit costs something fixed while the arrival moves run
+  (Reanimated reapplies the moving rows' props on each commit): with the
+  conversation at the bottom, Fabric's `completeRoot` was 4.6s of a 20s
+  burst, 1.5s scrolled up where nothing moves on screen.
+- **Rows that finish fading in at once open in one commit** (`inNextFrame`
+  in `lib/next-frame.ts`), instead of one commit each.
+- **Sends** go one after another per account, so they reach the PDS in
+  order, and a send over the limit waits its turn.
+- **`dev:burst`** schedules a burst from the bots on the backend, so the
+  computer running it doesn't compete with the simulator:
+  `npx convex run dev:burst '{"conversationId":"…","count":300,"seconds":83}'`.
+- **Not done: push coalescing** (step 1.4). The PDS's per-message push work
+  was about 0.1s of server time each and doesn't affect the app; it's left
+  for its own change.
+
+## Results
+
+iOS simulator, dev build (Vera Dev), the seeded group, 300 messages over
+83 seconds from three bots, three sends from the app during it.
+
+| | Before | After |
+| --- | --- | --- |
+| Your sends, taken by the PDS | 76s late (write conflicts), hidden meanwhile | on time, shown throughout |
+| Messages missing or doubled at the end | none | none |
+| The window thrown away (blank) | when sending past 50 arrivals | never |
+| Reopening after 120 arrived away | an old point, then blank for 10s+ | the latest message, at once |
+| How far behind the list ran | growing, seconds | 0.8s median, 1.1s p90, steady |
+| Longest JavaScript stall | 4.3s | 1.4s (local burst), 0.6s (server burst, 90 messages) |
+| Row renders per update | 55–66 | under 1 |
+| Queries added during the burst | 105 (none removed) | 30 |
+| Server query runs per message (one phone open) | ~7, plus a second round for each `markRead` | the live page, the conversation, the inbox |
+| UI frames at a normal pace (6 messages, 3s apart) | 6 slow, ~34ms each | 6 slow, ~34–47ms each |
+
+The JavaScript thread is still busy most of a burst in a dev build: dev
+React's owner stacks, performance tracks, and DevTools bookkeeping run on
+every commit (a release build has none of it), and so does Reanimated's
+reconciling of the moving rows. What matters is that the list keeps up and
+nothing falls further behind; the remaining cost is per commit, and the
+next step if it shows on a phone is fewer commits still while messages
+stream in (for example, pausing arrival moves for rows off screen).
