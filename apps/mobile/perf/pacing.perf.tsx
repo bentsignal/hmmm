@@ -12,7 +12,7 @@ import {
 import { message, OTHER, PAGE, SELF } from "./messages";
 
 /** What the list was given each time it changed. */
-const mockShown: (readonly Message[])[] = [];
+const mockShown = new Array<readonly Message[]>();
 
 function Paced({ messages }: { messages: readonly Message[] }) {
   const shown = usePacedMessages(messages, SELF);
