@@ -132,11 +132,11 @@ through every round of feedback. It comes down when the PR merges (the
 `merge` skill) or Shawn drops the work. A server the phone hasn't
 loaded from in 24 hours stops on its own; `phone.sh up` brings it back,
 so run it again at the start of each feedback round and when Shawn says
-he can't find the server.
+the link doesn't load.
 
 ```sh
 scripts/phone.sh up             # iPhone; --android for his Android phone
-scripts/phone.sh link           # the server address and links again
+scripts/phone.sh link           # the links again
 scripts/phone.sh down           # when the PR merges or the work is dropped
 scripts/phone.sh main           # main's dev client, to put back on his phone
 scripts/phone.sh list           # every cached dev client, marking main's
@@ -147,21 +147,63 @@ scripts/phone.sh list           # every cached dev client, marking main's
 - Vera Dev on his phone is normally **main's dev client**, which runs every
   worktree that hasn't changed native code. `up` compares this worktree's
   native fingerprint with main's and says which case it is:
-  - **Main's dev client:** he only picks the server in Vera Dev.
+  - **Main's dev client:** he only taps the open link.
   - **This worktree's own dev client** (native code changed): `up` builds
     it if needed (about 15 minutes, cached for every worktree) and he
     installs it first. Afterwards he needs main's back (see `down`).
   - **A new dev client for main** (main's native code changed since he last
     installed one): he installs it once; it serves every worktree after.
-- `up` starts the worktree's Metro (the same one the simulators use),
-  served over the Mac's Wi-Fi (the phone must be on the same network), and
-  prints its **server** address (`server: http://<IP>:<port>`), an
-  **install** link, and an **open** link. Shawn opens Vera Dev himself and
-  picks the server from its list, where every running worktree's Metro
-  shows up by address, so the address is what he needs. Put it first, on
-  its own line, port included (`http://10.0.0.152:8892`). Add the install
-  link only when he has to install, and say plainly whether he does. Don't
-  send QR codes or the open link unless he asks for them.
+- `up` starts the worktree's Metro (the same one the simulators use). One
+  Metro serves both the Mac's Wi-Fi, for when Shawn is home, and his
+  tailnet, for when he's out: `up` puts `tailscale serve` (HTTPS, tailnet
+  only) in front of it, so there's no second server. An open link is an
+  https page that opens Vera Dev on this worktree's server in one tap.
+  `up` prints what to send him between the `----` lines:
+
+  ````
+  ---- send Shawn this as it is ----
+  - [Open in Vera Dev on iPhone](https://vera-evidence.b-cdn.net/dev-client/open-cfde0a5324fd.html?url=http%3A%2F%2F10.0.0.124%3A8651)
+  - [Open in Vera Dev on iPhone over Tailscale](https://vera-evidence.b-cdn.net/dev-client/open-cfde0a5324fd.html?url=https%3A%2F%2Fairshawn.tailf45482.ts.net%3A8651)
+
+  Home Wi-Fi:
+
+  ```text
+  http://10.0.0.124:8651
+  ```
+
+  Tailscale:
+
+  ```text
+  https://airshawn.tailf45482.ts.net:8651
+  ```
+  ---- end ----
+  add when he has to install first:
+  - [Install Vera Dev on iPhone](https://vera-evidence.b-cdn.net/dev-client/ios/…/index.html)
+  ````
+
+  Put it first in your message, every time, copied exactly as printed
+  (without the `----` lines). He's usually home; the Tailscale link and
+  address are for when he isn't, and need Tailscale on on his phone. Each
+  part has to keep its form, or he's back to copying and pasting by hand:
+  - **The open links are a Markdown list of clickable links.** One `- `
+    item per line (lines without it run together into one paragraph),
+    each `[label](url)`. Never in backticks or a code block, never the
+    bare URL, and never the `vera-dev://` URL: his chat only makes http
+    and https links tappable, and the page opens `vera-dev://` for him.
+    Don't edit a URL; a space or line break inside the parentheses breaks
+    it.
+  - **Each server address is in its own fenced code block** (` ```text `),
+    which T3 gives a copy button. Inline code has none.
+
+  The open links are for his iPhone. On Android they crash Vera Dev for
+  now (an Expo bug, see `apps/mobile/README.md`), so there he copies an
+  address and pastes it into Vera Dev. That makes the block the same for
+  both phones (`phone.sh --android up` prints it too); send it once. If
+  Tailscale isn't running on the Mac, `up` prints no Tailscale link or
+  address; say so. Add the install link (for the phone that needs it) only
+  when he has to install, and say plainly whether he does. Don't send QR
+  codes unless he asks.
+
 - JavaScript edits hot-reload on his phone. Re-run `up` after native
   changes, `app.config.ts`, or `.env.local`.
 - With an isolated backend, Vera Dev talks to this worktree's domain, which
@@ -274,7 +316,8 @@ with `--with-backend`, and open apps on older versions will show "Updating
 Vera…" for a few seconds when it does.
 
 Then start the dev server (step 4b) and tell Shawn it's ready to test:
-the server address first, then (with an isolated backend) the iPhone and
+the block `phone.sh up` prints first (the open links as a list of
+clickable links, then each address in its own code block, step 4b), then (with an isolated backend) the iPhone and
 Android sign-in links (step 4b), then the PR link, a two-line summary, what
 to try on his phone (concrete steps for this change), whether he has to
 install its own dev client, and anything he should look at closely. **Stop there.**

@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import type { FlatList } from "react-native";
 import type Animated from "react-native-reanimated";
-import type { SharedValue } from "react-native-reanimated";
+import type { AnimatedRef, SharedValue } from "react-native-reanimated";
 import { useRef } from "react";
 import { Platform } from "react-native";
 import { useKeyboardHandler } from "react-native-keyboard-controller";
@@ -14,7 +14,7 @@ import {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { scheduleOnUI } from "react-native-worklets";
+import { scheduleOnRN, scheduleOnUI } from "react-native-worklets";
 
 import type { ComposerHeight } from "./composer-height";
 import type { ListRow } from "./typing-row";
@@ -44,6 +44,11 @@ const GLIDE_MAX_MS = 1000;
 const COMPOSER_EASE_MS = 120;
 /** Frames to wait for the message a conversation opens on to be measured. */
 const ANCHOR_TRIES = 30;
+/**
+ * Frames to wait, as a conversation opens at its newest message, for the
+ * list's insets to reach its scroll view (see `openAt`).
+ */
+const OPEN_TRIES = 30;
 
 const IOS = Platform.OS === "ios";
 
@@ -181,13 +186,14 @@ export function useLatest({
     /** Glides down to the newest message, as after sending one. */
     scrollToLatest: () => scheduleOnUI(glide),
     /**
-     * Puts the list at the newest message as it opens: it starts at
-     * offset 0, which on iOS leaves the newest message under the insets.
+     * Puts the list at the newest message as it opens, then calls `done`:
+     * it starts at offset 0, which on iOS leaves the newest message under
+     * the insets (see `openAt`).
      */
-    toLatest: () => {
+    toLatest: (done: () => void) => {
       scheduleOnUI(() => {
         "worklet";
-        scrollTo(scrollRef, 0, bottom(), false);
+        openAt({ done, offset, scrollRef, to: bottom });
       });
     },
     onInsetChange: (top: number) => {
@@ -224,6 +230,40 @@ export function useLatest({
       nearLatest();
     },
   };
+}
+
+/**
+ * Scrolls the list to `to` as it opens, again each frame until it's there,
+ * then calls `done`. The list can lay out before `KeyboardChatScrollView`
+ * has put its insets on the scroll view, and a scroll can't go past the
+ * inset the view has yet: a single scroll then stayed at 0, with the
+ * newest message under the composer.
+ */
+function openAt({
+  scrollRef,
+  offset,
+  to,
+  done,
+}: {
+  scrollRef: AnimatedRef<Animated.ScrollView>;
+  /** Where the list is, as its scroll events report it. */
+  offset: SharedValue<number>;
+  to: () => number;
+  done: () => void;
+}) {
+  "worklet";
+  let tries = 0;
+  function step() {
+    const target = to();
+    if (Math.abs(offset.get() - target) <= GLIDE_DONE || tries >= OPEN_TRIES) {
+      scheduleOnRN(done);
+      return;
+    }
+    tries += 1;
+    scrollTo(scrollRef, 0, target, false);
+    requestAnimationFrame(step);
+  }
+  step();
 }
 
 /**
@@ -338,8 +378,8 @@ export function usePlacement({
 }: {
   listRef: RefObject<FlatList<ListRow> | null>;
   anchorIndex: number;
-  /** Puts the list at the newest message (see `useLatest`). */
-  toLatest: () => void;
+  /** Puts the list at the newest message, then calls back (see `useLatest`). */
+  toLatest: (done: () => void) => void;
   onReady: () => void;
   onLoadNewer: () => void;
   onLoadOlder: () => void;
@@ -367,8 +407,7 @@ export function usePlacement({
       if (state.current.started) return;
       state.current.started = true;
       if (anchorIndex === -1) {
-        toLatest();
-        place();
+        toLatest(place);
         return;
       }
       scrollToAnchor({
