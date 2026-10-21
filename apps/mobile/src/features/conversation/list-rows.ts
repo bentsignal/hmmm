@@ -30,8 +30,8 @@ export function useListRows({
   | "typists"
 > & {
   rows: readonly MessageRow[];
-  /** Puts the list at the newest message (see `useLatest`). */
-  toLatest: () => void;
+  /** Puts the list at the newest message, then calls back (see `useLatest`). */
+  toLatest: (done: () => void) => void;
 }) {
   const typing = useTypingRow({
     layout,
