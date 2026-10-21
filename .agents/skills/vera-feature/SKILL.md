@@ -107,6 +107,12 @@ scripts/sim.sh frames start
 scripts/sim.sh frames stop   # {"frames":…,"hz":60,"slow":0,"dropped":0,"worst":[]}
 ```
 
+`frames start` waits until no device on the Mac is booting, and no device
+boots until your `frames stop`, so stop as soon as you have the
+interaction. `frames stop` ends with a `mac:` line: if it says a device
+booted during the recording, or the Mac was busy and the report shows slow
+frames, measure again.
+
 `slow` must be 0 while things move (one slow frame as something mounts,
 before anything moves, is the most to accept). Measure before and after
 your change, and put both reports in the PR. A slow animation usually
@@ -122,13 +128,16 @@ dev variant, `chat.vera.app.dev`, amber icon; the TestFlight app stays
 beside it).
 
 **Serve it as soon as the work is ready to test** (step 7), and keep it up
-through every round of feedback. It comes down when Shawn closes the work
-out (the `close-it-out` skill).
+through every round of feedback. It comes down when the PR merges (the
+`merge` skill) or Shawn drops the work. A server the phone hasn't
+loaded from in 24 hours stops on its own; `phone.sh up` brings it back,
+so run it again at the start of each feedback round and when Shawn says
+he can't find the server.
 
 ```sh
 scripts/phone.sh up             # iPhone; --android for his Android phone
 scripts/phone.sh link           # the server address and links again
-scripts/phone.sh down           # when the work is closed out
+scripts/phone.sh down           # when the PR merges or the work is dropped
 scripts/phone.sh main           # main's dev client, to put back on his phone
 scripts/phone.sh list           # every cached dev client, marking main's
 ```
@@ -275,16 +284,20 @@ Don't merge.
 
 - Feedback: make the changes on the same branch with the dev server still
   up (JavaScript hot-reloads on his phone; re-run `phone.sh up` after
-  native changes). `scripts/sim.sh up` again, refresh the evidence if the
+  native changes, or if it stopped for being idle). `scripts/sim.sh up` again, refresh the evidence if the
   UI changed, `scripts/sim.sh down`, push, and report again. Expect a few
   rounds; refining the change here is cheaper than finding it in the
   release.
-- Merge only when Shawn approves this PR in the thread ("close it out",
-  "merge it", "approved", "ship it"), normally after testing it on his
-  phone. Then follow the `close-it-out` skill: it merges, tears down an
+- Merge only when Shawn approves this PR in the thread ("merge it",
+  "approved", "ship it"), normally after testing it on his phone. Then
+  follow the `merge` skill: it merges, tears down an
   isolated backend, pushes main's backend to the shared dev deployment,
   stops the dev server and devices, and settles the thread. Merging does
   not release anything; releases are separate (the `vera-release` skill).
+- If Shawn drops the work instead (closes the PR, abandons it, or replaces
+  it with another thread), wind it down the same way without merging: the
+  `merge` skill's steps 1 and 5, plus `scripts/backend.sh teardown`
+  if the worktree has an isolated backend.
 
 ## Troubleshooting
 

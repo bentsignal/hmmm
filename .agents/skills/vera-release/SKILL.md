@@ -90,7 +90,7 @@ slow or offline states. Take a screenshot of each result, or a video for
 motion, and upload them with `scripts/evidence.sh`.
 
 Fix what fails before Shawn sees it (the same way as fixes in step 3) and
-run that step again. Then `sim.sh down` both devices.
+run that step again. `sim.sh down` each device when you're done with it.
 
 Send Shawn the write-up with the list in two parts:
 
