@@ -8,9 +8,9 @@ import { reportStage } from "./schema";
 
 // The team's known bugs, in Convex: every issue support filed, and every
 // other issue on GitHub, synced by the "follow bug reports" cron
-// (supportBugSync.ts, from supportReports.ts `track`). Support checks these before filing
-// (supportLookup.ts), so a report filed a minute ago is already there,
-// unlike in GitHub's search. Each person following a bug has a bugReports
+// (supportBugSync.ts, from supportReports.ts `track`). Support checks these
+// before filing (supportLookup.ts), so a report filed a minute ago is
+// already there, unlike in GitHub's search. Each person following a bug has a bugReports
 // row pointing to it (`bug`), which is how they hear it's fixed and out.
 
 /** How much of an issue's description is kept to compare reports against. */
@@ -49,17 +49,21 @@ export const record = internalMutation({
   },
 });
 
-/** Every known bug (newest first), each open one with its follower count. */
+/**
+ * Every known bug, most recently reported first, each open one with its
+ * follower count.
+ */
 export const forSearch = internalQuery({
   args: {},
   handler: async (ctx) => {
-    const bugs = await ctx.db.query("knownBugs").order("desc").take(2000);
-    return Promise.all(
+    const bugs = await ctx.db.query("knownBugs").take(2000);
+    const counted = await Promise.all(
       bugs.map(async (bug) => ({
         ...bug,
         followers: bug.active ? await followerCount(ctx, bug._id) : 0,
       })),
     );
+    return counted.sort((a, b) => b.reportedAt - a.reportedAt);
   },
 });
 
