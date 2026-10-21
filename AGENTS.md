@@ -42,8 +42,8 @@ Shawn starts each feature or fix in its own T3 Code worktree and thread
 - Verify in this worktree's own simulator (`scripts/sim.sh`), never another
   worktree's or a shared one. Load the `vera-simulator` skill before any
   simulator or emulator use: devices start only through `scripts/sim.sh`,
-  which queues them so many worktrees can share the Mac: one device runs
-  at a time, so performance checks run on a Mac that isn't swamped. Open a device in
+  which queues them so many worktrees can share the Mac: up to three run
+  at once, and a boot never overlaps a performance measurement. Open a device in
   T3's Device panel (`device_open`) at most once, and close it
   (`device_close`) before `scripts/sim.sh down`. Shut the device down as
   soon as you have your evidence, and always before you end your turn;
@@ -64,7 +64,7 @@ Shawn starts each feature or fix in its own T3 Code worktree and thread
   doesn't re-test each change. The dev server stays up through the rounds
   of feedback and comes down when the PR merges or Shawn drops the work.
 - Merge only after Shawn approves that PR in the thread ("merge it", "ship
-  it", "approved"), following the `vera-merge` skill: a merge commit,
+  it", "approved"), following the `merge` skill: a merge commit,
   deleting the branch, then the dev server and devices down and the
   thread settled. Approval of one PR is not approval of another.
 - After merging a PR that changed the backend (Convex functions, schema, or

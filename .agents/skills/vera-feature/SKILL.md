@@ -107,6 +107,12 @@ scripts/sim.sh frames start
 scripts/sim.sh frames stop   # {"frames":…,"hz":60,"slow":0,"dropped":0,"worst":[]}
 ```
 
+`frames start` waits until no device on the Mac is booting, and no device
+boots until your `frames stop`, so stop as soon as you have the
+interaction. `frames stop` ends with a `mac:` line: if it says a device
+booted during the recording, or the Mac was busy and the report shows slow
+frames, measure again.
+
 `slow` must be 0 while things move (one slow frame as something mounts,
 before anything moves, is the most to accept). Measure before and after
 your change, and put both reports in the PR. A slow animation usually
@@ -123,7 +129,7 @@ beside it).
 
 **Serve it as soon as the work is ready to test** (step 7), and keep it up
 through every round of feedback. It comes down when the PR merges (the
-`vera-merge` skill) or Shawn drops the work. A server the phone hasn't
+`merge` skill) or Shawn drops the work. A server the phone hasn't
 loaded from in 24 hours stops on its own; `phone.sh up` brings it back,
 so run it again at the start of each feedback round and when Shawn says
 he can't find the server.
@@ -284,13 +290,13 @@ Don't merge.
   release.
 - Merge only when Shawn approves this PR in the thread ("merge it",
   "approved", "ship it"), normally after testing it on his phone. Then
-  follow the `vera-merge` skill: it merges, tears down an
+  follow the `merge` skill: it merges, tears down an
   isolated backend, pushes main's backend to the shared dev deployment,
   stops the dev server and devices, and settles the thread. Merging does
   not release anything; releases are separate (the `vera-release` skill).
 - If Shawn drops the work instead (closes the PR, abandons it, or replaces
   it with another thread), wind it down the same way without merging: the
-  `vera-merge` skill's steps 1 and 5, plus `scripts/backend.sh teardown`
+  `merge` skill's steps 1 and 5, plus `scripts/backend.sh teardown`
   if the worktree has an isolated backend.
 
 ## Troubleshooting

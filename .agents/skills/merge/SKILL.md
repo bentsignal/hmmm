@@ -1,5 +1,5 @@
 ---
-name: vera-merge
+name: merge
 description: Use whenever Shawn asks you to merge this thread's pull request or approves it to merge, such as "merge it", "merge", "ship it", or "approved".
 ---
 

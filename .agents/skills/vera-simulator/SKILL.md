@@ -5,12 +5,14 @@ description: Required before you use an iOS simulator or Android emulator in thi
 
 # Simulators and emulators
 
-Many worktrees run at once on Shawn's Mac, and two or more simulators
-running together fight over its CPU and GPU until every one of them lags,
-which also makes frame measurements worthless. `scripts/sim.sh up` waits in
-the simulator queue (`scripts/simq.ts`), which runs **one device at a time
-on the whole Mac**, iOS and Android alike. The queue only works if every
-agent goes through it.
+Many worktrees run at once on Shawn's Mac. `scripts/sim.sh up` waits in
+the simulator queue (`scripts/simq.ts`), which runs **up to three devices
+at once on the whole Mac**, iOS and Android alike: three can animate
+together as smoothly as one, while at four the GPU runs out and every
+device lags. Booting a device pins every core for half a minute or more,
+so boots and performance measurements (`sim.sh frames start`) wait in the
+same line and never overlap. The queue only works if every agent goes
+through it.
 
 ## Rules
 
@@ -31,9 +33,8 @@ agent goes through it.
    run `up` again right away to keep your place; the place lapses after 5
    minutes. If your harness can run commands in the background and wake you
    when they finish, run `up` that way and do other work meanwhile, such as
-   validation or pushing your branch. The slot is the Mac's only one, so
-   use it for one platform, `down` it, then bring up the other: your own
-   iOS simulator blocks your Android `up` too, and the queue says so.
+   validation or pushing your branch. `frames start` can wait the same
+   way, for a device that's booting, and exits 75 the same way too.
 5. **Hold a device only while you're using it.** Bring it up when you're
    ready to verify, not while you're still writing code, and `down` as soon
    as you have your evidence, before you wait for CI or for Shawn. **Never
@@ -48,7 +49,8 @@ agent goes through it.
    `device_list` first: if your device is already in `open`, reuse the
    agent-device flags you have instead of opening it again. `device_close`
    it before `sim.sh down`, and never `device_open` another worktree's
-   device.
+   device or the shared `Vera template` simulator, which every worktree's
+   is cloned from and which stays shut down.
 7. **If the queue shut your device down**, your next `sim.sh` command says
    so. Run `up` again. The queue shuts down devices that haven't had a
    `sim.sh` command for 10 minutes when others are waiting, after 30
@@ -72,10 +74,9 @@ scripts/sim.sh down           # delete the device; Metro stops with the last one
 
 Every command takes `--android` first for this worktree's Android emulator
 (`scripts/sim.sh --android up`, `scripts/sim.sh --android shot after`). Both
-platforms share the worktree's Metro and the queue's one slot. Check
+platforms share the worktree's Metro and wait in the same queue. Check
 Android whenever a change touches layout, navigation, platform files
-(`.ios.tsx`/`.android.tsx`), or native config, one platform after the
-other (rule 4). In T3 Code, `device_open`
+(`.ios.tsx`/`.android.tsx`), or native config. In T3 Code, `device_open`
 takes the emulator serial `up` prints (`emulator-55xx`), with
 `platform: "android"`.
 
