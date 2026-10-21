@@ -12,6 +12,7 @@ import { pds } from "@vera/backend/pds";
 import type { StagedFile } from "./attachments";
 import type { AccountSession } from "~/features/session/account-session";
 import { TooLargeError, uploadStaged } from "./attachments";
+import { retryAfter } from "./send-limit";
 import { setUploadProgress } from "./upload-progress";
 
 // Messages this device sent that the PDS hasn't confirmed yet, with their
@@ -196,10 +197,51 @@ async function upload(
 }
 
 /**
+ * Each account's sends, one after another, so they reach its PDS in the
+ * order they were sent, and a refused one holds the rest back until it
+ * goes. Only the send itself waits here, not uploads, and a send that
+ * hangs holds the rest back no longer than `SEND_TIMEOUT_MS`.
+ */
+const sendQueues = new Map<string, Promise<unknown>>();
+
+function enqueue<Result>(account: string, work: () => Promise<Result>) {
+  const queued = (sendQueues.get(account) ?? Promise.resolve()).then(work);
+  const settled = Promise.race([
+    queued.catch(() => undefined),
+    new Promise((resolve) => setTimeout(resolve, SEND_TIMEOUT_MS)),
+  ]);
+  sendQueues.set(account, settled);
+  void settled.then(() => {
+    if (sendQueues.get(account) === settled) sendQueues.delete(account);
+  });
+  return queued;
+}
+
+/**
+ * Runs `attempt`, waiting and trying again while the PDS refuses it for
+ * going over the sender's limit (see `retryAfter`), until `giveUpAt`.
+ */
+async function sendPatiently<Result>(
+  attempt: () => Promise<Result>,
+  giveUpAt: number,
+): Promise<Result> {
+  try {
+    return await attempt();
+  } catch (error) {
+    const wait = retryAfter(error);
+    if (wait === undefined || Date.now() + wait > giveUpAt) throw error;
+    await new Promise((resolve) => setTimeout(resolve, wait));
+    return sendPatiently(attempt, giveUpAt);
+  }
+}
+
+/**
  * Sends a message whose files are all uploaded. A send can hang (a dropped
  * connection the client keeps retrying), so after a while it shows as not
  * sent and can be tried again. Sends are idempotent by message ID, so a
- * late success and a retry agree, and whichever lands marks it sent.
+ * late success and a retry agree, and whichever lands marks it sent. A
+ * send refused for going over the sender's limit waits its turn, still
+ * showing as sending.
  */
 async function send(
   session: AccountSession,
@@ -209,19 +251,21 @@ async function send(
   const { messageId } = message;
   const attempt = (attempts.get(messageId) ?? 0) + 1;
   attempts.set(messageId, attempt);
-  const sent = session.pds
-    .mutate(
-      pds.messages.send({
-        attachments,
-        body: message.body,
-        conversationId: message.conversationId,
-        // Undefined (left out) when empty: older servers don't take it.
-        mentions: message.mentions,
-        messageId,
-        ...replyArgs(message.reply),
-      }),
-    )
-    .then(
+  const request = pds.messages.send({
+    attachments,
+    body: message.body,
+    conversationId: message.conversationId,
+    // Undefined (left out) when empty: older servers don't take it.
+    mentions: message.mentions,
+    messageId,
+    ...replyArgs(message.reply),
+  });
+  const giveUpAt = Date.now() + SEND_TIMEOUT_MS;
+  const sent = enqueue(session.address, () =>
+    Date.now() >= giveUpAt
+      ? Promise.reject(new Error("Timed out waiting to send"))
+      : sendPatiently(() => session.pds.mutate(request), giveUpAt),
+  ).then(
       (sent) => {
         update(messageId, (current) => ({
           ...current,

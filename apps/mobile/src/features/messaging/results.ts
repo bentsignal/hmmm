@@ -1,3 +1,4 @@
+import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import type { PdsQueryData } from "@decentralized-convex/tanstack-query";
 import { PdsInitialResponseTimeoutError } from "@decentralized-convex/client";
 
@@ -43,4 +44,15 @@ export function pdsResultOr<Result, Source, Fallback>(
   return data?.status === "error" && !unanswered(data)
     ? fallback
     : pdsResult(data);
+}
+
+/** What's cached of a query, as its screen reads it (its `select`). */
+export function cachedSelected<Data, Selected>(
+  queryClient: QueryClient,
+  options: { queryKey: QueryKey; select?: (data: Data) => Selected },
+) {
+  const data = queryClient
+    .getQueryCache()
+    .find<Data>({ exact: true, queryKey: options.queryKey })?.state.data;
+  return data === undefined ? undefined : options.select?.(data);
 }
