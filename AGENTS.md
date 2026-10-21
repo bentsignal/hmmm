@@ -108,29 +108,27 @@ See [apps/mobile/README.md](apps/mobile/README.md#vera-dev).
 
 - **Day to day, Vera Dev is main's dev client.** When your worktree's work
   is ready to test, run `scripts/phone.sh up` (`--android` for his Android
-  phone) in it. It serves the worktree's Metro on the Mac's Wi-Fi address,
-  and over Tailscale for when he's away from home, and prints an **open
-  link** for each: one tap on his phone opens Vera Dev on this worktree's
-  server. Send him the `open:` line's Markdown link exactly as printed,
-  first and on its own line, then the `away:` line's Tailscale link on the
-  next, as
-  `[Open in Vera Dev on iPhone](https://vera-evidence.b-cdn.net/dev-client/open-….html?url=…)`.
-  **They must be clickable Markdown links.** Never put them in backticks or
-  a code block, never send the bare URL, and never send the `vera-dev://`
-  URL the page opens (his chat only makes http and https links tappable).
-  Testing on both phones, send each link for each phone, labeled iPhone
-  and Android (`phone.sh up` and `phone.sh --android up` each print
-  theirs): the home links first, then the Tailscale ones. Don't send the
-  server address or QR codes unless he asks. JavaScript changes then
-  hot-reload on his phone with no build.
+  phone) in it. One Metro serves the Mac's Wi-Fi address and, through a
+  Tailscale proxy, his tailnet for when he's away from home. It prints a
+  Markdown list to send him as it is, first in your message: an **open
+  link** for each address (one tap on his iPhone opens Vera Dev on this
+  worktree's server) and the server addresses, always included. **It must
+  stay a Markdown list of clickable links**: one `- ` item per line, links
+  as `[label](url)`, never in backticks or a code block, never a bare URL,
+  and never the `vera-dev://` URL the page opens (his chat only makes http
+  and https links tappable). On Android the open links crash Vera Dev for
+  now (an Expo bug, see apps/mobile/README.md), so `phone.sh --android up`
+  tells him to type the server address instead; testing on both phones,
+  send the iPhone list plus that line. Don't send QR codes unless he asks.
+  JavaScript changes then hot-reload on his phone with no build.
 - **Native builds only when native code changed.** `phone.sh up` compares
   the worktree's native fingerprint with main's. A worktree that changed
   native code gets its own dev client (built once, about 15 minutes, and
   cached); he installs it from the install link, and when he's done,
   `phone.sh down` prints main's install link to put main's dev client back
   (`phone.sh main` any time). Tell Shawn when he has to install something,
-  with the `install:` line's Markdown link, also clickable and labeled by
-  phone; otherwise he only taps the open link. `phone.sh list` shows every
+  with the install link `phone.sh` prints (a list item too, labeled by
+  phone); otherwise he only taps the open link. `phone.sh list` shows every
   cached dev client.
 - **Releases are tested in the dev client too**, serving `main` (the
   `vera-release` skill), so fixes reach his phone without a build. The real

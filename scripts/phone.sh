@@ -221,7 +221,8 @@ unserve_tailnet() {
   fi
 }
 
-# The links as Markdown, ready to send Shawn as they are.
+# The links as a Markdown list, ready to send Shawn as they are. One Metro
+# serves both addresses; Tailscale is a proxy in front of it.
 links() {
   load_metro
   local install open tailnet
@@ -230,10 +231,18 @@ links() {
   tailnet="$(serve_tailnet)"
   "$ROOT/scripts/qr.sh" "$install" "$STATE_DIR/phone-$PLATFORM-install.png" >/dev/null
   "$ROOT/scripts/qr.sh" "$open" "$STATE_DIR/phone-$PLATFORM-open.png" >/dev/null
-  echo "open:     [Open in Vera Dev on $PHONE_NAME]($open)"
-  [ -z "$tailnet" ] || echo "away:     [Open in Vera Dev on $PHONE_NAME over Tailscale]($(open_url "$tailnet"))"
-  echo "install:  [Install Vera Dev on $PHONE_NAME]($install)"
-  echo "server:   http://$(address):$PORT${tailnet:+ and $tailnet}"
+  echo "send Shawn this list as it is:"
+  if [ "$PLATFORM" = ios ]; then
+    echo "- [Open in Vera Dev on iPhone]($open)"
+    [ -z "$tailnet" ] || echo "- [Open in Vera Dev on iPhone over Tailscale]($(open_url "$tailnet"))"
+  else
+    # expo-dev-launcher 57 crashes on links from a browser
+    # (apps/mobile/README.md, "Android open links").
+    echo "- Android: type the server address into Vera Dev; open links crash it for now"
+  fi
+  echo "- Server: \`http://$(address):$PORT\`${tailnet:+, over Tailscale \`$tailnet\`}"
+  echo "add when he has to install first:"
+  echo "- [Install Vera Dev on $PHONE_NAME]($install)"
   echo "QR codes: $STATE_DIR/phone-$PLATFORM-open.png"
   echo "          $STATE_DIR/phone-$PLATFORM-install.png"
 }
@@ -311,7 +320,7 @@ up() {
 client() {
   ensure_client
   "$ROOT/scripts/qr.sh" "$(cat "$CLIENT_DIR/install-url")" "$STATE_DIR/phone-$PLATFORM-install.png" >/dev/null
-  echo "install:  [Install Vera Dev on $PHONE_NAME]($(cat "$CLIENT_DIR/install-url"))"
+  echo "- [Install Vera Dev on $PHONE_NAME]($(cat "$CLIENT_DIR/install-url"))"
   echo "QR code:  $STATE_DIR/phone-$PLATFORM-install.png"
 }
 

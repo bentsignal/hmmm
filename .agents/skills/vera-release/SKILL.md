@@ -119,13 +119,13 @@ scripts/phone.sh up             # and again with --android for his Android phone
 Run `phone.sh up` from the release checkout (detached at `origin/main`, no
 isolated backend). It builds a dev client only when `main`'s native
 fingerprint has none yet (about 15 minutes); otherwise Shawn just taps the
-open link. Send him the `open:` line's Markdown link for each phone
-(`[Open in Vera Dev on iPhone](https://…)` and the Android one), first and
-each on its own line, then the `away:` lines' Tailscale links for when he's
-out, plus the install link when he needs one. They must be
-clickable Markdown links: never in backticks or a code block, never the
-bare URL, and never the `vera-dev://` URL (the `vera-feature` skill, step
-4b). No server address or QR codes unless he asks.
+open link. Send him the list `phone.sh up` prints, first and exactly as
+printed: the open links (home and Tailscale), the server addresses, and the
+Android line from `--android up`, plus the install link when he needs one.
+It must stay a Markdown list of clickable links: one `- ` item per line,
+never in backticks or a code block, never a bare URL, and never the
+`vera-dev://` URL (the `vera-feature` skill, step 4b). No QR codes unless
+he asks.
 
 Make an internal build (`pnpm release build internal`, `--android`) or an
 internal OTA (`pnpm release ota internal "<summary>"`) only when Shawn asks
