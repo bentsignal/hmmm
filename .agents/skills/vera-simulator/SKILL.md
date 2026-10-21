@@ -5,10 +5,12 @@ description: Required before you use an iOS simulator or Android emulator in thi
 
 # Simulators and emulators
 
-Many worktrees run at once on Shawn's Mac, and each simulator with its
-Metro takes 2 to 4 GB. `scripts/sim.sh up` waits in the simulator queue
-(`scripts/simq.ts`), which starts one device at a time and only while the
-Mac has free memory. The queue only works if every agent goes through it.
+Many worktrees run at once on Shawn's Mac, and two or more simulators
+running together fight over its CPU and GPU until every one of them lags,
+which also makes frame measurements worthless. `scripts/sim.sh up` waits in
+the simulator queue (`scripts/simq.ts`), which runs **one device at a time
+on the whole Mac**, iOS and Android alike. The queue only works if every
+agent goes through it.
 
 ## Rules
 
@@ -29,7 +31,9 @@ Mac has free memory. The queue only works if every agent goes through it.
    run `up` again right away to keep your place; the place lapses after 5
    minutes. If your harness can run commands in the background and wake you
    when they finish, run `up` that way and do other work meanwhile, such as
-   validation or pushing your branch.
+   validation or pushing your branch. The slot is the Mac's only one, so
+   use it for one platform, `down` it, then bring up the other: your own
+   iOS simulator blocks your Android `up` too, and the queue says so.
 5. **Hold a device only while you're using it.** Bring it up when you're
    ready to verify, not while you're still writing code, and `down` as soon
    as you have your evidence, before you wait for CI or for Shawn. **Never
@@ -47,7 +51,7 @@ Mac has free memory. The queue only works if every agent goes through it.
    device.
 7. **If the queue shut your device down**, your next `sim.sh` command says
    so. Run `up` again. The queue shuts down devices that haven't had a
-   `sim.sh` command for 20 minutes when others are waiting, after 30
+   `sim.sh` command for 10 minutes when others are waiting, after 30
    minutes even if nobody is (any `sim.sh` command counts, `status`
    included), and right away if one stopped running without `sim.sh down`.
 
@@ -68,9 +72,10 @@ scripts/sim.sh down           # delete the device; Metro stops with the last one
 
 Every command takes `--android` first for this worktree's Android emulator
 (`scripts/sim.sh --android up`, `scripts/sim.sh --android shot after`). Both
-platforms share the worktree's Metro and wait in the same queue. Check
+platforms share the worktree's Metro and the queue's one slot. Check
 Android whenever a change touches layout, navigation, platform files
-(`.ios.tsx`/`.android.tsx`), or native config. In T3 Code, `device_open`
+(`.ios.tsx`/`.android.tsx`), or native config, one platform after the
+other (rule 4). In T3 Code, `device_open`
 takes the emulator serial `up` prints (`emulator-55xx`), with
 `platform: "android"`.
 
@@ -125,8 +130,8 @@ reason to keep one around.
 ## Troubleshooting
 
 - **`up` keeps saying you're queued:** `scripts/sim.sh queue` shows why.
-  That's working as intended; keep waiting. Tell Shawn if the line hasn't
-  moved in half an hour.
+  That's working as intended; keep waiting, and do other work meanwhile.
+  Tell Shawn if the line hasn't moved in half an hour.
 - **`up` says Metro didn't start:** read `.cache/sim/metro.log`. A port
   clash is resolved automatically. Kill only the PID in `.cache/sim/metro`,
   never by pattern (other worktrees run Metro too).

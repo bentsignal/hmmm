@@ -80,8 +80,8 @@ Write up for Shawn:
 ### Run the list yourself first
 
 Before sending Shawn anything, run every step of that list yourself, in
-this checkout's iOS simulator and its Android emulator (the
-`vera-simulator` skill), against the dev PDS with `main`'s backend
+this checkout's iOS simulator, then its Android emulator (the
+`vera-simulator` skill; the Mac runs one device at a time), against the dev PDS with `main`'s backend
 (`pnpm release backend dev`). Sign in as the checkout's `wt…` user and
 `scripts/sim.sh seed` for bots to talk to; a second account
 (`scripts/sim.sh signin <name>`) or the dev bots play the other side of a
@@ -90,7 +90,7 @@ slow or offline states. Take a screenshot of each result, or a video for
 motion, and upload them with `scripts/evidence.sh`.
 
 Fix what fails before Shawn sees it (the same way as fixes in step 3) and
-run that step again. Then `sim.sh down` both devices.
+run that step again. `sim.sh down` each device when you're done with it.
 
 Send Shawn the write-up with the list in two parts:
 

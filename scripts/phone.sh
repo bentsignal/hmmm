@@ -13,6 +13,8 @@
 #   down     stop serving the phone; Metro stops unless a simulator uses it
 #   main     the install link for main's dev client (building it if needed)
 #   list     every cached dev client, marking main's
+#   sweep    stop any worktree's phone server the phone hasn't loaded from
+#            in a day (up, sim.sh up, and the agents' Stop hook run it)
 #
 # Dev clients are EAS `development` builds (ad hoc, with the notification
 # extension), built locally once per fingerprint and cached in
@@ -179,8 +181,54 @@ links() {
   echo "          $STATE_DIR/phone-$PLATFORM-open.png"
 }
 
+# Metro writes to its log whenever the phone loads a bundle, reloads, or
+# logs, so a phone server whose log hasn't changed in a day is one Shawn
+# stopped testing: usually a thread that ended without `phone.sh down`.
+# Stops those in every worktree and leaves a note that the worktree's next
+# phone.sh command prints. A simulator using the same Metro keeps it; the
+# simulator queue looks after those.
+PHONE_IDLE_MINUTES=$((24 * 60))
+sweep() {
+  local tree state platform served
+  git -C "$ROOT" worktree list --porcelain | sed -n 's/^worktree //p' | while read -r tree; do
+    state="$tree/.cache/sim"
+    served=""
+    for platform in ios android; do
+      [ -f "$state/phone-$platform" ] && served="$served $platform"
+    done
+    [ -n "$served" ] || continue
+    grep -Eqs '^DEVICE=.+' "$state/ios" "$state/android" && continue
+    [ -n "$(find "$state/metro.log" -mmin +"$PHONE_IDLE_MINUTES" 2>/dev/null)" ] || continue
+    (
+      STATE_DIR="$state"
+      for platform in $served; do
+        OWN_CLIENT=""
+        # shellcheck disable=SC1090
+        . "$state/phone-$platform"
+        flag="$([ "$platform" = android ] && echo " --android" || true)"
+        {
+          echo "Stopped serving the $platform phone: nothing loaded from it for a day. \`scripts/phone.sh$flag up\` serves it again."
+          [ -z "$OWN_CLIENT" ] || echo "Vera Dev on the phone may still be this worktree's dev client; \`scripts/phone.sh$flag main\` gives Shawn main's back."
+        } >"$state/phone-$platform.reclaimed"
+        rm -f "$state/phone-$platform"
+      done
+      release_metro >/dev/null
+    )
+    echo "stopped the idle phone server in $(basename "$tree")"
+  done
+}
+
+# Prints, once, why this worktree's phone server was stopped.
+reclaimed() {
+  [ -f "$STATE_DIR/phone-$PLATFORM.reclaimed" ] || return 0
+  cat "$STATE_DIR/phone-$PLATFORM.reclaimed" >&2
+  rm -f "$STATE_DIR/phone-$PLATFORM.reclaimed"
+}
+
 up() {
   local main own=""
+  reclaimed
+  sweep
   address >/dev/null
   # Offline or mid-conflict, serve anyway and say main's is unknown.
   main="$(main_fingerprint)" || main=""
@@ -271,18 +319,23 @@ case "$command" in
     }
     load_metro
     metro_running || {
+      reclaimed
       echo "Metro is not running; run scripts/phone.sh up" >&2
       exit 1
     }
     links
     ;;
-  status) status ;;
+  status)
+    reclaimed
+    status
+    ;;
   down) down ;;
   main) main_client ;;
   client) client ;;
   list) list ;;
+  sweep) sweep ;;
   *)
-    sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'
     exit 2
     ;;
 esac

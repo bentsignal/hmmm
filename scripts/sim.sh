@@ -261,6 +261,7 @@ up() {
   load
   ensure_client
   rm -f "$STATE_DIR/$PLATFORM.reclaimed"
+  "$ROOT/scripts/phone.sh" sweep || true
   queue acquire "$PLATFORM"
   "ensure_${PLATFORM}_device"
   install_client

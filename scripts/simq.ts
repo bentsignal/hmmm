@@ -1,9 +1,10 @@
 // The simulator queue. Every worktree that runs `scripts/sim.sh up` asks it
-// for a slot first, and it admits simulators and emulators one at a time,
-// only while the Mac has free memory for another. Many agents can then ask
-// at once without slowing the machine to a crawl. scripts/sim.sh is the
-// only caller; the daemon starts on first use and exits after ten idle
-// minutes. `VERA_SIMQ=off scripts/sim.sh up` skips it.
+// for a slot first. By default one simulator or emulator runs on the Mac at
+// a time: two or more fight over the CPU and GPU (memory is rarely what runs
+// out), every device lags, and frame measurements stop meaning anything.
+// Many agents can then ask at once without slowing the machine to a crawl.
+// scripts/sim.sh is the only caller; the daemon starts on first use and
+// exits after ten idle minutes. `VERA_SIMQ=off scripts/sim.sh up` skips it.
 //
 //   node --experimental-strip-types scripts/simq.ts <command> [--worktree <path>]
 //
@@ -17,10 +18,10 @@
 //
 // Admission, in order: one device starts at a time (the next waits until
 // the last one has launched, plus a few seconds for memory to settle); the
-// first device always gets in; then the queue's head gets in only if
-// memory pressure is normal and free memory covers its estimate plus a
-// reserve. When the head can't get in, a device nobody has used for
-// `idleMinutes` is shut down to make room.
+// first device always gets in; then the queue's head gets in only while
+// fewer than `max` devices are up, memory pressure is normal, and free
+// memory covers its estimate plus a reserve. When the head can't get in, a
+// device nobody has used for `idleMinutes` is shut down to make room.
 //
 // Devices also come down with nobody waiting: one unused for
 // `maxIdleMinutes` (an agent that ended its turn with it up), and one that
@@ -28,7 +29,7 @@
 // simulator), so its slot, Metro, and state don't linger. Tune it in
 // ~/.config/vera/simq.json:
 //
-//   { "reserveGb": 5, "iosGb": 3, "androidGb": 4, "max": 6, "idleMinutes": 20, "maxIdleMinutes": 30 }
+//   { "max": 1, "reserveGb": 5, "iosGb": 3, "androidGb": 4, "idleMinutes": 10, "maxIdleMinutes": 30 }
 //
 // Edits apply on the next check, with no restart.
 import { execFileSync, spawn } from "node:child_process";
@@ -73,7 +74,7 @@ type Config = {
   reserveGb: number;
   iosGb: number;
   androidGb: number;
-  max?: number;
+  max: number;
   idleMinutes: number;
   maxIdleMinutes: number;
 };
@@ -83,7 +84,7 @@ type Memory = {
   pressure: "normal" | "warn" | "critical";
 };
 
-const VERSION = 2;
+const VERSION = 3;
 const DIR = join(homedir(), "Library/Caches/vera/simq");
 const SOCKET = join(DIR, "daemon.sock");
 const LOCK = join(DIR, "daemon.lock");
@@ -119,7 +120,8 @@ function readConfig(): Config {
     reserveGb: Math.max(4, Math.round((totalmem() / GB) * 0.15 * 10) / 10),
     iosGb: 3,
     androidGb: 4,
-    idleMinutes: 20,
+    max: 1,
+    idleMinutes: 10,
     maxIdleMinutes: 30,
   };
   try {
@@ -436,8 +438,16 @@ function daemon() {
         ((head.kind === "ios" ? config.iosGb : config.androidGb) +
           config.reserveGb) *
         GB;
-      if (config.max && all.length >= config.max) {
-        blocked = `${all.length} devices are up, the configured max`;
+      if (all.length >= config.max) {
+        blocked =
+          config.max === 1
+            ? `${label(all[0]!)} is up; one device runs at a time`
+            : `${all.length} devices are up, the max`;
+        // A worktree holding its other platform waits on itself.
+        const own = all.find((lease) => lease.worktree === head.worktree);
+        if (own) {
+          blocked += `. It's yours: \`scripts/sim.sh${own.kind === "android" ? " --android" : ""} down\` first`;
+        }
       } else if (memory.pressure !== "normal") {
         blocked = `memory pressure is ${memory.pressure}`;
       } else if (memory.free < need) {
@@ -722,7 +732,7 @@ async function printStatus() {
   console.log(
     `memory: ${gb(memory.free)} of ${gb(memory.total)} free, ${memory.pressure} pressure; ` +
       `reserve ${config.reserveGb} GB, ios ${config.iosGb} GB, android ${config.androidGb} GB` +
-      `${config.max ? `, max ${config.max}` : ""}, idle after ${config.idleMinutes}m (${config.maxIdleMinutes}m with nobody waiting)`,
+      `, max ${config.max}, idle after ${config.idleMinutes}m (${config.maxIdleMinutes}m with nobody waiting)`,
   );
   console.log(s.leases.length ? "devices:" : "devices: none");
   for (const lease of s.leases) {

@@ -42,7 +42,8 @@ Shawn starts each feature or fix in its own T3 Code worktree and thread
 - Verify in this worktree's own simulator (`scripts/sim.sh`), never another
   worktree's or a shared one. Load the `vera-simulator` skill before any
   simulator or emulator use: devices start only through `scripts/sim.sh`,
-  which queues them so many worktrees can share the Mac. Open a device in
+  which queues them so many worktrees can share the Mac: one device runs
+  at a time, so performance checks run on a Mac that isn't swamped. Open a device in
   T3's Device panel (`device_open`) at most once, and close it
   (`device_close`) before `scripts/sim.sh down`. Shut the device down as
   soon as you have your evidence, and always before you end your turn;
@@ -61,10 +62,11 @@ Shawn starts each feature or fix in its own T3 Code worktree and thread
   **stop**. Shawn tests every change on his phone in its worktree before it
   merges, and you refine it on the branch until he's happy; the release
   doesn't re-test each change. The dev server stays up through the rounds
-  of feedback and comes down when the work is closed out.
+  of feedback and comes down when the PR merges or Shawn drops the work.
 - Merge only after Shawn approves that PR in the thread ("merge it", "ship
-  it", "approved"), with a merge commit, deleting the branch. Approval of
-  one PR is not approval of another.
+  it", "approved"), following the `vera-merge` skill: a merge commit,
+  deleting the branch, then the dev server and devices down and the
+  thread settled. Approval of one PR is not approval of another.
 - After merging a PR that changed the backend (Convex functions, schema, or
   a plugin's server code; anything that got an isolated backend), push
   main's backend to the shared dev deployment right away
@@ -129,7 +131,10 @@ See [apps/mobile/README.md](apps/mobile/README.md#vera-dev).
   or to check update or channel behavior, which a dev client can't show.
   It replaces the dev client in the Vera Dev slot; he reinstalls main's
   from `scripts/phone.sh main`.
-- Keep it up until the work is closed out, then `scripts/phone.sh down`.
+- Keep it up until the PR merges or Shawn drops the work, then
+  `scripts/phone.sh down`. A server the phone hasn't loaded from in 24
+  hours stops on its own (any worktree's `phone.sh up`, `sim.sh up`, or
+  an agent's turn ending checks); `phone.sh up` brings it back.
 
 ## Required validation after changes
 
