@@ -13,8 +13,8 @@ const FadingContext = createContext<readonly SharedValue<number>[]>([]);
 /** Whether every one of `fades` has reached full opacity. */
 function shownFully(fades: readonly SharedValue<number>[]) {
   "worklet";
-  for (const fade of fades) {
-    if (fade.get() < 1) return false;
+  for (const opacity of fades) {
+    if (opacity.value < 1) return false;
   }
   return true;
 }
