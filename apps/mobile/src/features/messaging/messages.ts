@@ -19,6 +19,7 @@ import { sendOutgoing, useOutbox } from "./outbox";
 import { useReactions } from "./reactions";
 import { shownMessage, shownUnconfirmed } from "./shown-messages";
 import { useThreadSummaries } from "./threads";
+import { unconfirmedSends } from "./unconfirmed";
 
 /**
  * The pages whose messages show. The pages the window opened with wait for
@@ -216,7 +217,6 @@ export function useMessages(
       threadIds.every(threads.isLoaded),
   );
   const sentById = new Map(outbox.map((item) => [item.messageId, item]));
-  const confirmed = new Set(view.messages.map((message) => message.messageId));
   const atLatest = !view.hasNewer;
   function how(message: { threadId?: string; messageId: string }) {
     return {
@@ -226,9 +226,8 @@ export function useMessages(
       thread: threads.threadOf(message.threadId ?? message.messageId),
     };
   }
-  const unconfirmed = (atLatest ? outboxFor(outbox, threadId) : [])
-    .filter((message) => !confirmed.has(message.messageId))
-    .map((message) =>
+  const unconfirmed = unconfirmedSends(outboxFor(outbox, threadId), view).map(
+    (message) =>
       shownUnconfirmed(message, {
         ...how({
           messageId: message.messageId,
@@ -238,7 +237,7 @@ export function useMessages(
         conversationId,
         reactions: [],
       }),
-    );
+  );
   const { root } = view;
   // A thread waits for its original's reactions too. (Its original is
   // missing once its pages have loaded without it.)
