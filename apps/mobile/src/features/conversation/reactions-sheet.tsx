@@ -3,15 +3,19 @@ import { useState } from "react";
 import { FlatList, Platform, Pressable, Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 // eslint-disable-next-line no-restricted-imports -- Expo Router has no route loaders to preload suspense queries.
-import { useQuery } from "@tanstack/react-query";
-import { pdsQuery } from "@decentralized-convex/tanstack-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  pdsQuery,
+  pdsSessionQueryKey,
+} from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
 import type { ReactionPart } from "~/features/messaging/reactions";
 import { Avatar } from "~/components/avatar";
 import { useAccount } from "~/features/messaging/account";
+import { loadedBatchWith } from "~/features/messaging/loaded-batch";
 import { useProfiles } from "~/features/messaging/profiles";
-import { reactionPart } from "~/features/messaging/reactions";
+import { reactionPart, reactionsQuery } from "~/features/messaging/reactions";
 import { pdsResult } from "~/features/messaging/results";
 import { cn } from "~/lib/cn";
 import { selectionTick } from "~/lib/native-extras";
@@ -167,9 +171,22 @@ export function ReactionsSheet({
   emoji?: string;
 }) {
   const { address } = useAccount();
+  const queryClient = useQueryClient();
+  // The conversation already has this message's reactions, live, in the
+  // query for its batch of messages: reading that one shows them at once.
+  // A query of its own would show an empty sheet until the PDS answered,
+  // which on a slow connection looked like nobody had reacted.
+  const [messageIds] = useState(
+    () =>
+      loadedBatchWith(
+        queryClient.getQueriesData({ queryKey: pdsSessionQueryKey(address) }),
+        (ids) => reactionsQuery(address, conversationId, ids).queryKey,
+        messageId,
+      ) ?? [messageId],
+  );
   const { data } = useQuery(
     pdsQuery({
-      args: { conversationId, messageIds: [messageId] },
+      args: { conversationId, messageIds },
       options: { select: (result) => pdsResult(result)?.flat() },
       query: pds.messages.reactions,
       session: address,
@@ -177,7 +194,10 @@ export function ReactionsSheet({
   );
   const [picked, setPicked] = useState(emoji ?? ALL);
   const reactors = byPerson(
-    (data ?? []).filter((reaction) => reactionPart(reaction) === part),
+    (data ?? []).filter(
+      (reaction) =>
+        reaction.messageId === messageId && reactionPart(reaction) === part,
+    ),
   );
   const groups = byEmoji(reactors);
   // With one emoji, everyone already used it: no tabs, just the people.
