@@ -3,7 +3,7 @@ import { v } from "convex/values";
 
 import type { IssueState, Platform } from "../bug-reports";
 import type { Doc } from "./_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
 import type { GitHubConfig } from "./github";
 import type { Releases } from "./githubReleases";
 import {
@@ -23,6 +23,7 @@ import { sendAsBot, SUPPORT } from "./bots";
 import { githubConfig, issueStates } from "./github";
 import { delivered, lazyReleases } from "./githubReleases";
 import { reportStage } from "./schema";
+import { checkKnownBugs, syncKnownBugs } from "./supportBugSync";
 import { explainClosure } from "./supportClosures";
 
 // The bug reports Vera Support files (supportAgent.ts) and how they're
@@ -31,7 +32,9 @@ import { explainClosure } from "./supportClosures";
 // being worked on, when it's fixed, and when the fix is out. "Out" means
 // the fix's commit is in the newest production release tags (see
 // docs/releasing.md): an update or store build for app changes, a backend
-// deploy for backend changes.
+// deploy for backend changes. Each row is one person following one known
+// bug (supportKnownBugs.ts): whoever reported it first, and anyone who
+// reported the same thing after, all hear the same updates.
 
 /**
  * A report to follow: a new issue support filed, or (with `stage`) an
@@ -41,6 +44,7 @@ import { explainClosure } from "./supportClosures";
 export const insert = internalMutation({
   args: {
     accountId: v.string(),
+    bug: v.optional(v.id("knownBugs")),
     conversationId: v.string(),
     issueNumber: v.optional(v.number()),
     issueUrl: v.optional(v.string()),
@@ -55,8 +59,9 @@ export const insert = internalMutation({
       .collect();
     const same = theirs.find(
       (report) =>
-        args.issueNumber !== undefined &&
-        report.issueNumber === args.issueNumber,
+        (args.issueNumber !== undefined &&
+          report.issueNumber === args.issueNumber) ||
+        (args.bug !== undefined && report.bug === args.bug),
     );
     if (same !== undefined) return same._id;
     return ctx.db.insert("bugReports", {
@@ -224,44 +229,64 @@ export const track = internalAction({
   handler: async (ctx): Promise<{ checked: number }> => {
     const config = githubConfig();
     if (config === null) return { checked: 0 };
-    const reports = await ctx.runQuery(internal.supportReports.tracked, {});
+    try {
+      await syncKnownBugs(ctx, config);
+    } catch (error) {
+      // Reporters still hear about their own reports.
+      console.error("Couldn't sync known bugs from GitHub", error);
+    }
+    const [reports, bugs] = await Promise.all([
+      ctx.runQuery(internal.supportReports.tracked, {}),
+      ctx.runQuery(internal.supportKnownBugs.toCheck, {}),
+    ]);
     const numbered = reports.flatMap((report) =>
       report.issueNumber === undefined
         ? []
         : [{ ...report, issueNumber: report.issueNumber }],
     );
-    const states = await issueStates(
-      config,
-      numbered.map((report) => report.issueNumber),
-    );
+    const states = await issueStates(config, [
+      ...numbered.map((report) => report.issueNumber),
+      ...bugs.map((bug) => bug.issueNumber),
+    ]);
     const releases = lazyReleases(config);
+    await checkKnownBugs(ctx, config, releases, bugs, states);
     for (const report of numbered) {
       const state = states.get(report.issueNumber);
-      if (state === undefined) continue;
-      if (state.state === "CLOSED" && state.duplicateOf !== null) {
-        await ctx.runMutation(internal.supportClosures.followOriginal, {
-          issueNumber: state.duplicateOf,
-          issueUrl: `https://github.com/${config.owner}/${config.name}/issues/${String(state.duplicateOf)}`,
-          reportId: report._id,
-        });
-        continue;
-      }
-      const update = await progressFrom(
-        config,
-        releases,
-        state,
-        report.platform,
-      );
-      if (hasNews(report, update)) {
-        await ctx.runMutation(internal.supportReports.advance, {
-          progress: update,
-          reportId: report._id,
-        });
+      if (state !== undefined) {
+        await checkReport(ctx, config, releases, report, state);
       }
     }
-    return { checked: numbered.length };
+    return { checked: numbered.length + bugs.length };
   },
 });
+
+/**
+ * Tells a report's follower what moved on its issue, or moves them onto
+ * the original when it was closed as a duplicate.
+ */
+async function checkReport(
+  ctx: ActionCtx,
+  config: GitHubConfig,
+  releases: () => Promise<Releases>,
+  report: Doc<"bugReports"> & { platform: Platform },
+  state: IssueState,
+) {
+  if (state.state === "CLOSED" && state.duplicateOf !== null) {
+    await ctx.runMutation(internal.supportClosures.followOriginal, {
+      issueNumber: state.duplicateOf,
+      issueUrl: `https://github.com/${config.owner}/${config.name}/issues/${String(state.duplicateOf)}`,
+      reportId: report._id,
+    });
+    return;
+  }
+  const update = await progressFrom(config, releases, state, report.platform);
+  if (hasNews(report, update)) {
+    await ctx.runMutation(internal.supportReports.advance, {
+      progress: update,
+      reportId: report._id,
+    });
+  }
+}
 
 /** Whether a report's issue moved since the last check. */
 function hasNews(report: Doc<"bugReports">, update: Progress) {

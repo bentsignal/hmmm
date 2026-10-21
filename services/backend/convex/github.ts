@@ -28,6 +28,15 @@ export async function github(
   path: string,
   init: { body?: unknown; method?: string } = {},
 ): Promise<unknown> {
+  return (await githubResponse(config, path, init)).body;
+}
+
+/** A request's JSON, and the next page's path when there is one. */
+export async function githubResponse(
+  config: GitHubConfig,
+  path: string,
+  init: { body?: unknown; method?: string } = {},
+) {
   const response = await fetch(`https://api.github.com${path}`, {
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
     headers: {
@@ -45,10 +54,14 @@ export async function github(
       `GitHub ${init.method ?? "GET"} ${path}: ${String(response.status)} ${await response.text()}`,
     );
   }
-  return response.json();
+  const next = /<https:\/\/api\.github\.com([^>]+)>;\s*rel="next"/.exec(
+    response.headers.get("Link") ?? "",
+  )?.[1];
+  const body: unknown = await response.json();
+  return { body, next: next ?? null };
 }
 
-class GitHubError extends Error {
+export class GitHubError extends Error {
   constructor(
     readonly status: number,
     message: string,
@@ -101,8 +114,26 @@ const PULL_REQUEST_FIELDS = `number url state merged baseRefName
   labels(first: 20) { nodes { name } }
   files(first: 100) { nodes { path } }`;
 
-/** Each issue's state, by number, in one request. Missing issues are left out. */
+/** Issues read per GraphQL request, so a long list stays within GitHub's limits. */
+const ISSUES_PER_REQUEST = 20;
+
+/** Each issue's state, by number. Missing issues are left out. */
 export async function issueStates(
+  config: GitHubConfig,
+  numbers: readonly number[],
+) {
+  const states = new Map<number, IssueState>();
+  const unique = [...new Set(numbers)];
+  for (let start = 0; start < unique.length; start += ISSUES_PER_REQUEST) {
+    const chunk = unique.slice(start, start + ISSUES_PER_REQUEST);
+    for (const [number, state] of await issueStatesOnce(config, chunk)) {
+      states.set(number, state);
+    }
+  }
+  return states;
+}
+
+async function issueStatesOnce(
   config: GitHubConfig,
   numbers: readonly number[],
 ) {
@@ -276,7 +307,7 @@ function excerpt(body: unknown) {
   return typeof body === "string" ? body.slice(0, 400) : "";
 }
 
-function stringOrNull(value: unknown) {
+export function stringOrNull(value: unknown) {
   return typeof value === "string" ? value : null;
 }
 

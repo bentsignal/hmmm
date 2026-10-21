@@ -65,9 +65,17 @@ which conversation. The issue itself never names the reporter: look them up
 here when Shawn needs to. Issues never include screenshots, only support's
 description of them; read the conversation (`support:read`) for the images.
 
-Before filing, support searches GitHub for an existing issue or merged fix.
-When one matches, it follows that issue for the reporter instead of filing
-a duplicate, or tells them the fix is already out.
+Before filing, support checks the team's known bugs, kept in Convex
+(`supportKnownBugs.ts`): every issue support filed, the moment it's filed,
+and every other GitHub issue, synced every 10 minutes. The model reads all
+the open ones and compares them by meaning; keywords and GitHub's search
+cover closed issues and merged fixes. When one matches, it follows that bug
+for the reporter instead of filing a duplicate (they get the same updates
+as the first reporter), or tells them the fix is already out.
+
+```sh
+npx convex run supportKnownBugs:list '{"open":true}' --prod   # each known bug and who follows it
+```
 
 A PR that fixes one says `Fixes #<issue>` in its description. That links
 the PR to the issue, which is how support knows a fix is being worked on,
@@ -79,9 +87,20 @@ duplicate of another issue moves them onto that one. Closing it with a
 comment has support explain the comment to them in plain words, so say
 why when you close one.
 
-Without `GITHUB_TOKEN` and `GITHUB_REPOSITORY` on a deployment (dev and
-isolated deployments don't have them), reports are kept on the PDS only and
-logged instead of filed.
+Without `GITHUB_TOKEN` and `GITHUB_REPOSITORY` on a deployment, reports
+are kept on the PDS only and logged instead of filed. They're still known
+bugs there, so duplicates are caught the same way. Production and the
+shared dev deployment have both, and an isolated deployment copies them
+from shared dev, so support files real public issues on `bentsignal/vera`
+from all of them. Before testing support on an isolated backend, remove
+them there (`npx convex env remove GITHUB_TOKEN` and `GITHUB_REPOSITORY`,
+from `services/backend` in that worktree). A dev bot (maya, jonah, priya,
+leo) can then write to support without a device:
+
+```sh
+npx convex run devSupport:write '{"username":"maya","body":"<message>"}'
+npx convex run support:read '{"conversationId":"<the ID it returns>"}'
+```
 
 ## Triage for Shawn
 
