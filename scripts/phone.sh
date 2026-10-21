@@ -7,10 +7,9 @@
 #   scripts/phone.sh [--android] <command>     (iPhone without --android)
 #
 #   up       build the dev client if needed, start Metro, print the open
-#            link (what Shawn taps to load this worktree) and the others
-#   link [<server url>]
-#            print the links again; with a URL (a Tailscale address), the
-#            open link for that server instead of the Wi-Fi one
+#            links (what Shawn taps to load this worktree, at home and over
+#            Tailscale) and the others
+#   link     print the links again
 #   status   the dev client for this fingerprint, Metro, and the Wi-Fi address
 #   down     stop serving the phone; Metro stops unless a simulator uses it
 #   main     the install link for main's dev client (building it if needed)
@@ -186,18 +185,55 @@ open_url() {
   echo "$(open_page)?url=$(node -p 'encodeURIComponent(process.argv[1])' "$1")"
 }
 
-# The links as Markdown, ready to send Shawn as they are. $1 is the server,
-# the Mac's Wi-Fi address by default.
+# The Mac's name on the tailnet (airshawn.<tailnet>.ts.net), or nothing
+# when Tailscale isn't running.
+tailnet_host() {
+  command -v tailscale >/dev/null || return 0
+  tailscale status --json 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{
+    try{const j=JSON.parse(s);if(j.BackendState==="Running")console.log(j.Self.DNSName.replace(/\.$/,""))}catch{}
+  })'
+}
+
+# Serves Metro over HTTPS on the tailnet too (tailnet only), so Shawn can
+# test away from the Mac's Wi-Fi. iOS blocks plain HTTP to tailnet
+# addresses, and Metro answers with bundle URLs on whatever host the phone
+# used, so the bundle comes over the same proxy. Prints the server URL.
+serve_tailnet() {
+  local host
+  host="$(tailnet_host)"
+  [ -n "$host" ] || return 0
+  if tailscale serve --bg --https="$PORT" "http://127.0.0.1:$PORT" >/dev/null 2>&1; then
+    echo "https://$host:$PORT"
+  else
+    echo "couldn't serve Metro over Tailscale; only the Wi-Fi link works" >&2
+  fi
+}
+
+# Stops serving Metro on the tailnet once neither phone uses it. Runs
+# before release_metro, which forgets the port.
+unserve_tailnet() {
+  if [ -f "$STATE_DIR/phone-ios" ] || [ -f "$STATE_DIR/phone-android" ]; then
+    return 0
+  fi
+  load_metro
+  if [ -n "$PORT" ] && command -v tailscale >/dev/null; then
+    tailscale serve --https="$PORT" off >/dev/null 2>&1 || true
+  fi
+}
+
+# The links as Markdown, ready to send Shawn as they are.
 links() {
   load_metro
-  local server="${1:-http://$(address):$PORT}" install open
+  local install open tailnet
   install="$(cat "$CLIENT_DIR/install-url")"
-  open="$(open_url "$server")"
+  open="$(open_url "http://$(address):$PORT")"
+  tailnet="$(serve_tailnet)"
   "$ROOT/scripts/qr.sh" "$install" "$STATE_DIR/phone-$PLATFORM-install.png" >/dev/null
   "$ROOT/scripts/qr.sh" "$open" "$STATE_DIR/phone-$PLATFORM-open.png" >/dev/null
   echo "open:     [Open in Vera Dev on $PHONE_NAME]($open)"
+  [ -z "$tailnet" ] || echo "away:     [Open in Vera Dev on $PHONE_NAME over Tailscale]($(open_url "$tailnet"))"
   echo "install:  [Install Vera Dev on $PHONE_NAME]($install)"
-  echo "server:   $server"
+  echo "server:   http://$(address):$PORT${tailnet:+ and $tailnet}"
   echo "QR codes: $STATE_DIR/phone-$PLATFORM-open.png"
   echo "          $STATE_DIR/phone-$PLATFORM-install.png"
 }
@@ -233,6 +269,7 @@ sweep() {
         } >"$state/phone-$platform.reclaimed"
         rm -f "$state/phone-$platform"
       done
+      unserve_tailnet
       release_metro >/dev/null
     )
     echo "stopped the idle phone server in $(basename "$tree")"
@@ -321,6 +358,7 @@ down() {
   [ -f "$STATE_DIR/phone-$PLATFORM" ] && . "$STATE_DIR/phone-$PLATFORM"
   rm -f "$STATE_DIR/phone-$PLATFORM"
   echo "stopped serving the $PLATFORM phone"
+  unserve_tailnet
   release_metro
   if [ -n "$OWN_CLIENT" ]; then
     echo "Vera Dev on the phone is this worktree's dev client; give Shawn main's back:"
@@ -344,7 +382,7 @@ case "$command" in
       echo "Metro is not running; run scripts/phone.sh up" >&2
       exit 1
     }
-    links "${1:-}"
+    links
     ;;
   status)
     reclaimed
@@ -356,7 +394,7 @@ case "$command" in
   list) list ;;
   sweep) sweep ;;
   *)
-    sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'
     exit 2
     ;;
 esac

@@ -121,7 +121,8 @@ isolated backend). It builds a dev client only when `main`'s native
 fingerprint has none yet (about 15 minutes); otherwise Shawn just taps the
 open link. Send him the `open:` line's Markdown link for each phone
 (`[Open in Vera Dev on iPhone](https://…)` and the Android one), first and
-each on its own line, plus the install link when he needs one. They must be
+each on its own line, then the `away:` lines' Tailscale links for when he's
+out, plus the install link when he needs one. They must be
 clickable Markdown links: never in backticks or a code block, never the
 bare URL, and never the `vera-dev://` URL (the `vera-feature` skill, step
 4b). No server address or QR codes unless he asks.

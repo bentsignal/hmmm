@@ -137,7 +137,6 @@ the link doesn't load.
 ```sh
 scripts/phone.sh up             # iPhone; --android for his Android phone
 scripts/phone.sh link           # the links again
-scripts/phone.sh link <url>     # the open link for another server (Tailscale)
 scripts/phone.sh down           # when the PR merges or the work is dropped
 scripts/phone.sh main           # main's dev client, to put back on his phone
 scripts/phone.sh list           # every cached dev client, marking main's
@@ -155,21 +154,25 @@ scripts/phone.sh list           # every cached dev client, marking main's
   - **A new dev client for main** (main's native code changed since he last
     installed one): he installs it once; it serves every worktree after.
 - `up` starts the worktree's Metro (the same one the simulators use),
-  served over the Mac's Wi-Fi (the phone must be on the same network), and
-  prints an **open** link, an **install** link, and the server address.
-  The open link is an https page that opens Vera Dev on this worktree's
-  server, so Shawn gets there in one tap. Both links come out as Markdown,
-  labeled by phone:
+  served over the Mac's Wi-Fi for when Shawn is home, and over Tailscale
+  (HTTPS through `tailscale serve`, tailnet only) for when he's out. It
+  prints two **open** links, an **install** link, and the server
+  addresses. An open link is an https page that opens Vera Dev on this
+  worktree's server, so Shawn gets there in one tap. The links come out as
+  Markdown, labeled by phone:
 
   ```
   open:     [Open in Vera Dev on iPhone](https://vera-evidence.b-cdn.net/dev-client/open-cfde0a5324fd.html?url=http%3A%2F%2F10.0.0.124%3A8651)
+  away:     [Open in Vera Dev on iPhone over Tailscale](https://vera-evidence.b-cdn.net/dev-client/open-cfde0a5324fd.html?url=https%3A%2F%2Fairshawn.tailf45482.ts.net%3A8651)
   install:  [Install Vera Dev on iPhone](https://vera-evidence.b-cdn.net/dev-client/ios/…/index.html)
-  server:   http://10.0.0.124:8651
+  server:   http://10.0.0.124:8651 and https://airshawn.tailf45482.ts.net:8651
   ```
 
-  Put the open link first, on its own line, copied exactly from the
-  `open:` line. **It must render as a clickable link**, or he's back to
-  copying and pasting:
+  Put the `open:` link first, on its own line, and the `away:` link on the
+  next, each copied exactly as printed. He's usually home; the Tailscale
+  link is for when he isn't, and he needs Tailscale on on his phone for
+  it. **They must render as clickable links**, or he's back to copying and
+  pasting:
   - Send it as a Markdown link, `[label](url)`. Never in backticks or a
     code block, and never the bare URL.
   - Never send the `vera-dev://` URL. His chat only makes http and https
@@ -177,23 +180,13 @@ scripts/phone.sh list           # every cached dev client, marking main's
   - Don't edit the URL. It's already encoded, and a space or line break
     inside the parentheses breaks the link.
 
-  Testing on both phones, run `up` for each and send both open links, the
-  iPhone one and the Android one, on their own lines. Add the install link
+  Testing on both phones, run `up` for each and send all four, each on its
+  own line: the iPhone and Android home links, then the iPhone and Android
+  Tailscale links. If Tailscale isn't running on the Mac, `up` prints no
+  `away:` line; say so. Add the install link
   (its Markdown link too, for the phone that needs it) only when he has to
   install, and say plainly whether he does. Don't send the server address
   or QR codes unless he asks.
-
-- **Over Tailscale** (he's away from the Mac's Wi-Fi), put HTTPS in front
-  of Metro, since iOS blocks plain HTTP to tailnet addresses, and print
-  the open link for that address. Send it the same way. A tailnet server
-  doesn't show up in Vera Dev's list, so the link is the only easy way in.
-
-  ```sh
-  tailscale serve --bg --https=<port> http://127.0.0.1:<port>   # Metro's port, from `up`
-  scripts/phone.sh link https://airshawn.tailf45482.ts.net:<port>
-  scripts/phone.sh --android link https://airshawn.tailf45482.ts.net:<port>
-  tailscale serve --https=<port> off                            # with phone.sh down
-  ```
 
 - JavaScript edits hot-reload on his phone. Re-run `up` after native
   changes, `app.config.ts`, or `.env.local`.
@@ -307,8 +300,8 @@ with `--with-backend`, and open apps on older versions will show "Updating
 Vera…" for a few seconds when it does.
 
 Then start the dev server (step 4b) and tell Shawn it's ready to test:
-the open link first (one per phone he's testing on, clickable Markdown,
-step 4b), then (with an isolated backend) the iPhone and
+the open links first (home, then Tailscale, for each phone he's testing
+on, as clickable Markdown, step 4b), then (with an isolated backend) the iPhone and
 Android sign-in links (step 4b), then the PR link, a two-line summary, what
 to try on his phone (concrete steps for this change), whether he has to
 install its own dev client, and anything he should look at closely. **Stop there.**

@@ -108,19 +108,21 @@ See [apps/mobile/README.md](apps/mobile/README.md#vera-dev).
 
 - **Day to day, Vera Dev is main's dev client.** When your worktree's work
   is ready to test, run `scripts/phone.sh up` (`--android` for his Android
-  phone) in it. It serves the worktree's Metro on the Mac's Wi-Fi address
-  (the phone must be on the same network) and prints an **open link**: one
-  tap on his phone opens Vera Dev on this worktree's server. Send him the
-  `open:` line's Markdown link exactly as printed, first and on its own
-  line, as
+  phone) in it. It serves the worktree's Metro on the Mac's Wi-Fi address,
+  and over Tailscale for when he's away from home, and prints an **open
+  link** for each: one tap on his phone opens Vera Dev on this worktree's
+  server. Send him the `open:` line's Markdown link exactly as printed,
+  first and on its own line, then the `away:` line's Tailscale link on the
+  next, as
   `[Open in Vera Dev on iPhone](https://vera-evidence.b-cdn.net/dev-client/open-….html?url=…)`.
-  **It must be a clickable Markdown link.** Never put it in backticks or a
-  code block, never send the bare URL, and never send the `vera-dev://`
+  **They must be clickable Markdown links.** Never put them in backticks or
+  a code block, never send the bare URL, and never send the `vera-dev://`
   URL the page opens (his chat only makes http and https links tappable).
-  Testing on both phones, send two links, one labeled iPhone and one
-  labeled Android (`phone.sh up` and `phone.sh --android up` each print
-  theirs). Don't send the server address or QR codes unless he asks.
-  JavaScript changes then hot-reload on his phone with no build.
+  Testing on both phones, send each link for each phone, labeled iPhone
+  and Android (`phone.sh up` and `phone.sh --android up` each print
+  theirs): the home links first, then the Tailscale ones. Don't send the
+  server address or QR codes unless he asks. JavaScript changes then
+  hot-reload on his phone with no build.
 - **Native builds only when native code changed.** `phone.sh up` compares
   the worktree's native fingerprint with main's. A worktree that changed
   native code gets its own dev client (built once, about 15 minutes, and
