@@ -6,9 +6,10 @@
 #
 #   scripts/phone.sh [--android] <command>     (iPhone without --android)
 #
-#   up       build the dev client if needed, start Metro, print the server
-#            address (what Shawn picks in Vera Dev) and the links
-#   link     print the server address and links again
+#   up       build the dev client if needed, start Metro, print the open
+#            links (what Shawn taps to load this worktree, at home and over
+#            Tailscale) and the others
+#   link     print the links again
 #   status   the dev client for this fingerprint, Metro, and the Wi-Fi address
 #   down     stop serving the phone; Metro stops unless a simulator uses it
 #   main     the install link for main's dev client (building it if needed)
@@ -40,7 +41,8 @@ STATE_DIR="$ROOT/.cache/sim"
 CACHE="$HOME/Library/Caches/vera/phone-dev-client-$PLATFORM"
 MAIN_CHECKOUT="$HOME/Library/Caches/vera/main-checkout"
 RELEASE_XCODE="/Applications/Xcode-27.app/Contents/Developer"
-SCHEME="vera-dev"
+PHONE_NAME="$([ "$PLATFORM" = ios ] && echo iPhone || echo Android)"
+CDN="https://vera-evidence.b-cdn.net"
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 mkdir -p "$STATE_DIR" "$CACHE"
 # shellcheck source=lib/metro.sh
@@ -161,24 +163,88 @@ ensure_client() {
   BUILT=1
 }
 
-open_url() {
-  echo "$SCHEME://expo-development-client/?url=$(node -p 'encodeURIComponent(process.argv[1])' "http://$(address):$PORT")"
+# The https page that opens Vera Dev at a server (scripts/lib/open-page.html),
+# uploaded once per version of the page. Chat apps only make http(s) links
+# tappable, so Shawn gets this instead of a vera-dev:// link.
+open_page() {
+  local file="$ROOT/scripts/lib/open-page.html" hash path log
+  hash="$(shasum -a 256 "$file" | cut -c1-12)"
+  path="dev-client/open-$hash.html"
+  if [ ! -f "$HOME/Library/Caches/vera/open-page-$hash" ]; then
+    log="$(bunny storage files upload "$file" --zone vera-evidence --to "$path" --content-type text/html 2>&1)" || {
+      echo "$log" >&2
+      exit 1
+    }
+    touch "$HOME/Library/Caches/vera/open-page-$hash"
+  fi
+  echo "$CDN/$path"
 }
 
+# What Shawn taps to load the server at $1 in Vera Dev.
+open_url() {
+  echo "$(open_page)?url=$(node -p 'encodeURIComponent(process.argv[1])' "$1")"
+}
+
+# The Mac's name on the tailnet (airshawn.<tailnet>.ts.net), or nothing
+# when Tailscale isn't running.
+tailnet_host() {
+  command -v tailscale >/dev/null || return 0
+  tailscale status --json 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{
+    try{const j=JSON.parse(s);if(j.BackendState==="Running")console.log(j.Self.DNSName.replace(/\.$/,""))}catch{}
+  })'
+}
+
+# Serves Metro over HTTPS on the tailnet too (tailnet only), so Shawn can
+# test away from the Mac's Wi-Fi. iOS blocks plain HTTP to tailnet
+# addresses, and Metro answers with bundle URLs on whatever host the phone
+# used, so the bundle comes over the same proxy. Prints the server URL.
+serve_tailnet() {
+  local host
+  host="$(tailnet_host)"
+  [ -n "$host" ] || return 0
+  if tailscale serve --bg --https="$PORT" "http://127.0.0.1:$PORT" >/dev/null 2>&1; then
+    echo "https://$host:$PORT"
+  else
+    echo "couldn't serve Metro over Tailscale; only the Wi-Fi link works" >&2
+  fi
+}
+
+# Stops serving Metro on the tailnet once neither phone uses it. Runs
+# before release_metro, which forgets the port.
+unserve_tailnet() {
+  if [ -f "$STATE_DIR/phone-ios" ] || [ -f "$STATE_DIR/phone-android" ]; then
+    return 0
+  fi
+  load_metro
+  if [ -n "$PORT" ] && command -v tailscale >/dev/null; then
+    tailscale serve --https="$PORT" off >/dev/null 2>&1 || true
+  fi
+}
+
+# What to send Shawn, as Markdown he can use in one tap: the open links as
+# a list, then each server address in its own code block (T3 gives code
+# blocks a copy button). One Metro serves both addresses; Tailscale is a
+# proxy in front of it. The open links are for his iPhone only:
+# expo-dev-launcher 57 crashes on links from an Android browser
+# (apps/mobile/README.md, "Android open links"), so Android uses an address.
 links() {
   load_metro
-  local install open
+  local install wifi tailnet
   install="$(cat "$CLIENT_DIR/install-url")"
-  open="$(open_url)"
+  wifi="http://$(address):$PORT"
+  tailnet="$(serve_tailnet)"
   "$ROOT/scripts/qr.sh" "$install" "$STATE_DIR/phone-$PLATFORM-install.png" >/dev/null
-  "$ROOT/scripts/qr.sh" "$open" "$STATE_DIR/phone-$PLATFORM-open.png" >/dev/null
-  # Shawn picks the server from Vera Dev's list, where every worktree's
-  # Metro shows up by address; this is the one to tell him.
-  echo "server:   http://$(address):$PORT"
-  echo "install:  $install"
+  "$ROOT/scripts/qr.sh" "$(open_url "$wifi")" "$STATE_DIR/phone-$PLATFORM-open.png" >/dev/null
+  echo "---- send Shawn this as it is ----"
+  echo "- [Open in Vera Dev on iPhone]($(open_url "$wifi"))"
+  [ -z "$tailnet" ] || echo "- [Open in Vera Dev on iPhone over Tailscale]($(open_url "$tailnet"))"
+  printf '\nHome Wi-Fi:\n\n```text\n%s\n```\n' "$wifi"
+  [ -z "$tailnet" ] || printf '\nTailscale:\n\n```text\n%s\n```\n' "$tailnet"
+  echo "---- end ----"
+  echo "add when he has to install first:"
+  echo "- [Install Vera Dev on $PHONE_NAME]($install)"
+  echo "QR codes: $STATE_DIR/phone-$PLATFORM-open.png"
   echo "          $STATE_DIR/phone-$PLATFORM-install.png"
-  echo "open:     $open"
-  echo "          $STATE_DIR/phone-$PLATFORM-open.png"
 }
 
 # Metro writes to its log whenever the phone loads a bundle, reloads, or
@@ -212,6 +278,7 @@ sweep() {
         } >"$state/phone-$platform.reclaimed"
         rm -f "$state/phone-$platform"
       done
+      unserve_tailnet
       release_metro >/dev/null
     )
     echo "stopped the idle phone server in $(basename "$tree")"
@@ -253,8 +320,8 @@ up() {
 client() {
   ensure_client
   "$ROOT/scripts/qr.sh" "$(cat "$CLIENT_DIR/install-url")" "$STATE_DIR/phone-$PLATFORM-install.png" >/dev/null
-  echo "install:  $(cat "$CLIENT_DIR/install-url")"
-  echo "          $STATE_DIR/phone-$PLATFORM-install.png"
+  echo "- [Install Vera Dev on $PHONE_NAME]($(cat "$CLIENT_DIR/install-url"))"
+  echo "QR code:  $STATE_DIR/phone-$PLATFORM-install.png"
 }
 
 main_client() {
@@ -300,6 +367,7 @@ down() {
   [ -f "$STATE_DIR/phone-$PLATFORM" ] && . "$STATE_DIR/phone-$PLATFORM"
   rm -f "$STATE_DIR/phone-$PLATFORM"
   echo "stopped serving the $PLATFORM phone"
+  unserve_tailnet
   release_metro
   if [ -n "$OWN_CLIENT" ]; then
     echo "Vera Dev on the phone is this worktree's dev client; give Shawn main's back:"
@@ -335,7 +403,7 @@ case "$command" in
   list) list ;;
   sweep) sweep ;;
   *)
-    sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'
     exit 2
     ;;
 esac
