@@ -138,9 +138,15 @@ export default defineSchema({
     /** When support told them reports are public (`share_privacy_notice`). */
     noticeSharedAt: v.optional(v.number()),
   }).index("by_account", ["accountId"]),
-  /** A bug someone reported to support, and its GitHub issue. */
+  /**
+   * A bug someone reported to support, and its GitHub issue: one per
+   * person following it, whether they reported it first or after
+   * (`bug`).
+   */
   bugReports: defineTable({
     accountId: v.string(),
+    /** The known bug this follows (supportKnownBugs.ts). */
+    bug: v.optional(v.id("knownBugs")),
     conversationId: v.string(),
     /** The commit that fixed it and what it needs to reach people. */
     fix: v.optional(
@@ -164,5 +170,34 @@ export default defineSchema({
     tracking: v.boolean(),
   })
     .index("by_account", ["accountId"])
+    .index("by_bug", ["bug"])
+    .index("by_issue", ["issueNumber"])
     .index("by_tracking", ["tracking"]),
+  /**
+   * The team's known bugs and ideas, one per GitHub issue (or per report
+   * kept on this PDS without GitHub): what support checks before filing,
+   * with no wait for GitHub's search to catch up (supportKnownBugs.ts).
+   */
+  knownBugs: defineTable({
+    /** Not settled yet: its issue is checked for progress. */
+    active: v.boolean(),
+    /** The issue's description, as public as the issue (anonymized when support filed it). */
+    description: v.string(),
+    /** The issue this was closed as a duplicate of. */
+    duplicateOf: v.optional(v.number()),
+    /** When GitHub last changed the issue, for the next sync. */
+    githubUpdatedAt: v.optional(v.number()),
+    issueNumber: v.optional(v.number()),
+    issueUrl: v.optional(v.string()),
+    kind: v.union(v.literal("bug"), v.literal("idea")),
+    /** When it was first reported (the issue's creation). */
+    reportedAt: v.number(),
+    stage: reportStage,
+    /** The first reporter's everyday phrase, when support filed it. */
+    summary: v.optional(v.string()),
+    title: v.string(),
+  })
+    .index("by_active", ["active"])
+    .index("by_github_updated", ["githubUpdatedAt"])
+    .index("by_issue", ["issueNumber"]),
 });
