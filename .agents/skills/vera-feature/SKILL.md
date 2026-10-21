@@ -158,39 +158,51 @@ scripts/phone.sh list           # every cached dev client, marking main's
   tailnet, for when he's out: `up` puts `tailscale serve` (HTTPS, tailnet
   only) in front of it, so there's no second server. An open link is an
   https page that opens Vera Dev on this worktree's server in one tap.
-  `up` prints the list to send him:
+  `up` prints what to send him between the `----` lines:
 
-  ```
-  send Shawn this list as it is:
+  ````
+  ---- send Shawn this as it is ----
   - [Open in Vera Dev on iPhone](https://vera-evidence.b-cdn.net/dev-client/open-cfde0a5324fd.html?url=http%3A%2F%2F10.0.0.124%3A8651)
   - [Open in Vera Dev on iPhone over Tailscale](https://vera-evidence.b-cdn.net/dev-client/open-cfde0a5324fd.html?url=https%3A%2F%2Fairshawn.tailf45482.ts.net%3A8651)
-  - Server: `http://10.0.0.124:8651`, over Tailscale `https://airshawn.tailf45482.ts.net:8651`
-  add when he has to install first:
-  - [Install Vera Dev on iPhone](https://vera-evidence.b-cdn.net/dev-client/ios/…/index.html)
+
+  Home Wi-Fi:
+
+  ```text
+  http://10.0.0.124:8651
   ```
 
-  Put the list first in your message, copied exactly as printed, with
-  every item: both open links and the server addresses, always. He's
-  usually home; the Tailscale link is for when he isn't, and needs
-  Tailscale on on his phone. **The links must render as clickable links in
-  a list**, or he's back to copying and pasting:
-  - Keep it a Markdown list, one `- ` item per line. Lines without the
-    `- ` run together into one paragraph.
-  - Send links as Markdown, `[label](url)`. Never in backticks or a code
-    block, and never the bare URL.
-  - Never send the `vera-dev://` URL. His chat only makes http and https
-    links tappable; the page opens `vera-dev://` for him.
-  - Don't edit a URL. It's already encoded, and a space or line break
-    inside the parentheses breaks the link.
+  Tailscale:
 
-  **Android:** the open links crash Vera Dev there for now (an Expo bug,
-  see `apps/mobile/README.md`), so `phone.sh --android up` prints a line
-  telling him to type the server address instead. Testing on both phones,
-  run `up` for each and send the iPhone list plus that Android line, with
-  the server addresses once. If Tailscale isn't running on the Mac, `up`
-  prints no Tailscale link or address; say so. Add the install link (for
-  the phone that needs it) only when he has to install, and say plainly
-  whether he does. Don't send QR codes unless he asks.
+  ```text
+  https://airshawn.tailf45482.ts.net:8651
+  ```
+  ---- end ----
+  add when he has to install first:
+  - [Install Vera Dev on iPhone](https://vera-evidence.b-cdn.net/dev-client/ios/…/index.html)
+  ````
+
+  Put it first in your message, every time, copied exactly as printed
+  (without the `----` lines). He's usually home; the Tailscale link and
+  address are for when he isn't, and need Tailscale on on his phone. Each
+  part has to keep its form, or he's back to copying and pasting by hand:
+  - **The open links are a Markdown list of clickable links.** One `- `
+    item per line (lines without it run together into one paragraph),
+    each `[label](url)`. Never in backticks or a code block, never the
+    bare URL, and never the `vera-dev://` URL: his chat only makes http
+    and https links tappable, and the page opens `vera-dev://` for him.
+    Don't edit a URL; a space or line break inside the parentheses breaks
+    it.
+  - **Each server address is in its own fenced code block** (` ```text `),
+    which T3 gives a copy button. Inline code has none.
+
+  The open links are for his iPhone. On Android they crash Vera Dev for
+  now (an Expo bug, see `apps/mobile/README.md`), so there he copies an
+  address and pastes it into Vera Dev. That makes the block the same for
+  both phones (`phone.sh --android up` prints it too); send it once. If
+  Tailscale isn't running on the Mac, `up` prints no Tailscale link or
+  address; say so. Add the install link (for the phone that needs it) only
+  when he has to install, and say plainly whether he does. Don't send QR
+  codes unless he asks.
 
 - JavaScript edits hot-reload on his phone. Re-run `up` after native
   changes, `app.config.ts`, or `.env.local`.
@@ -304,8 +316,8 @@ with `--with-backend`, and open apps on older versions will show "Updating
 Vera…" for a few seconds when it does.
 
 Then start the dev server (step 4b) and tell Shawn it's ready to test:
-the list `phone.sh up` prints first (open links and server addresses, as
-a Markdown list of clickable links, step 4b), then (with an isolated backend) the iPhone and
+the block `phone.sh up` prints first (the open links as a list of
+clickable links, then each address in its own code block, step 4b), then (with an isolated backend) the iPhone and
 Android sign-in links (step 4b), then the PR link, a two-line summary, what
 to try on his phone (concrete steps for this change), whether he has to
 install its own dev client, and anything he should look at closely. **Stop there.**

@@ -110,16 +110,17 @@ See [apps/mobile/README.md](apps/mobile/README.md#vera-dev).
   is ready to test, run `scripts/phone.sh up` (`--android` for his Android
   phone) in it. One Metro serves the Mac's Wi-Fi address and, through a
   Tailscale proxy, his tailnet for when he's away from home. It prints a
-  Markdown list to send him as it is, first in your message: an **open
-  link** for each address (one tap on his iPhone opens Vera Dev on this
-  worktree's server) and the server addresses, always included. **It must
-  stay a Markdown list of clickable links**: one `- ` item per line, links
-  as `[label](url)`, never in backticks or a code block, never a bare URL,
-  and never the `vera-dev://` URL the page opens (his chat only makes http
-  and https links tappable). On Android the open links crash Vera Dev for
-  now (an Expo bug, see apps/mobile/README.md), so `phone.sh --android up`
-  tells him to type the server address instead; testing on both phones,
-  send the iPhone list plus that line. Don't send QR codes unless he asks.
+  block to send him as it is, first in your message, every time: the two
+  **open links** as a Markdown list (one tap on his iPhone opens Vera Dev
+  on this worktree's server, at home or over Tailscale), then the home and
+  Tailscale server addresses, each in its own code block so he can copy it
+  in one tap. **Keep it exactly as printed**: the links as list items in
+  `[label](url)` form, never in backticks, never bare, never the
+  `vera-dev://` URL the page opens (his chat only makes http and https
+  links tappable), and each address in its own fenced block. On Android
+  he pastes an address into Vera Dev, because the open links crash it
+  there (an Expo bug, see apps/mobile/README.md), so the block is the same
+  for both phones; send it once. Don't send QR codes unless he asks.
   JavaScript changes then hot-reload on his phone with no build.
 - **Native builds only when native code changed.** `phone.sh up` compares
   the worktree's native fingerprint with main's. A worktree that changed

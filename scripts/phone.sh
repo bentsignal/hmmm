@@ -221,26 +221,26 @@ unserve_tailnet() {
   fi
 }
 
-# The links as a Markdown list, ready to send Shawn as they are. One Metro
-# serves both addresses; Tailscale is a proxy in front of it.
+# What to send Shawn, as Markdown he can use in one tap: the open links as
+# a list, then each server address in its own code block (T3 gives code
+# blocks a copy button). One Metro serves both addresses; Tailscale is a
+# proxy in front of it. The open links are for his iPhone only:
+# expo-dev-launcher 57 crashes on links from an Android browser
+# (apps/mobile/README.md, "Android open links"), so Android uses an address.
 links() {
   load_metro
-  local install open tailnet
+  local install wifi tailnet
   install="$(cat "$CLIENT_DIR/install-url")"
-  open="$(open_url "http://$(address):$PORT")"
+  wifi="http://$(address):$PORT"
   tailnet="$(serve_tailnet)"
   "$ROOT/scripts/qr.sh" "$install" "$STATE_DIR/phone-$PLATFORM-install.png" >/dev/null
-  "$ROOT/scripts/qr.sh" "$open" "$STATE_DIR/phone-$PLATFORM-open.png" >/dev/null
-  echo "send Shawn this list as it is:"
-  if [ "$PLATFORM" = ios ]; then
-    echo "- [Open in Vera Dev on iPhone]($open)"
-    [ -z "$tailnet" ] || echo "- [Open in Vera Dev on iPhone over Tailscale]($(open_url "$tailnet"))"
-  else
-    # expo-dev-launcher 57 crashes on links from a browser
-    # (apps/mobile/README.md, "Android open links").
-    echo "- Android: type the server address into Vera Dev; open links crash it for now"
-  fi
-  echo "- Server: \`http://$(address):$PORT\`${tailnet:+, over Tailscale \`$tailnet\`}"
+  "$ROOT/scripts/qr.sh" "$(open_url "$wifi")" "$STATE_DIR/phone-$PLATFORM-open.png" >/dev/null
+  echo "---- send Shawn this as it is ----"
+  echo "- [Open in Vera Dev on iPhone]($(open_url "$wifi"))"
+  [ -z "$tailnet" ] || echo "- [Open in Vera Dev on iPhone over Tailscale]($(open_url "$tailnet"))"
+  printf '\nHome Wi-Fi:\n\n```text\n%s\n```\n' "$wifi"
+  [ -z "$tailnet" ] || printf '\nTailscale:\n\n```text\n%s\n```\n' "$tailnet"
+  echo "---- end ----"
   echo "add when he has to install first:"
   echo "- [Install Vera Dev on $PHONE_NAME]($install)"
   echo "QR codes: $STATE_DIR/phone-$PLATFORM-open.png"

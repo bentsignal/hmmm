@@ -77,7 +77,7 @@ The phone holds one Vera Dev at a time:
 
   **Android open links.** On Android, an open link crashes Vera Dev with a
   `NullPointerException` in `DevLauncherController.createAppIntent`, so for
-  now Shawn types the server address there. A browser adds the `BROWSABLE`
+  now Shawn pastes the server address there. A browser adds the `BROWSABLE`
   category to every link it opens, and expo-dev-launcher 57 copies the
   link's categories into a new `Intent` with `categories.addAll(...)`.
   A new `Intent` has no categories set (`null`), so that copy throws.
