@@ -12,6 +12,7 @@ import Animated, {
 import { scheduleOnRN } from "react-native-worklets";
 import { useCSSVariable } from "uniwind";
 
+import { Fading } from "./fading";
 import { useGrowth } from "./grow";
 import { GROW_EASING, GROW_MS, inFrame, land, startMove } from "./moves";
 import { useOnMount } from "./typing-parts";
@@ -255,7 +256,9 @@ function Opening({
             className="inset-x-0 top-0"
             style={content}
           >
-            <BecomingContext value={morphs}>{children}</BecomingContext>
+            <Fading opacity={shown}>
+              <BecomingContext value={morphs}>{children}</BecomingContext>
+            </Fading>
           </Animated.View>
         </Animated.View>
         <Fade rise={rise} />

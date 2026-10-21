@@ -5,6 +5,7 @@ import type { ReactionSummary } from "~/features/messaging/reactions";
 import { Emoji } from "~/components/emoji";
 import { GlassSurface } from "~/components/glass-surface";
 import { cn } from "~/lib/cn";
+import { useOpaque } from "./fading";
 import { LONG_PRESS_MS } from "./message-actions";
 
 /**
@@ -32,6 +33,8 @@ function Chip({
   onPress: () => void;
   onLongPress: () => void;
 }) {
+  // Its glass comes in once the message it's under is fully shown.
+  const opaque = useOpaque();
   return (
     <Animated.View entering={POP_IN} exiting={POP_OUT}>
       <Pressable
@@ -44,6 +47,10 @@ function Chip({
         onLongPress={onLongPress}
       >
         <GlassSurface
+          // Brought in once laid out and once the message is fully shown:
+          // glass there from the frame a chip mounts often stayed blank.
+          materialize
+          shown={opaque}
           isInteractive
           tintColorClassName={reaction.mine ? "accent-accent/25" : undefined}
           androidClassName={reaction.mine ? "bg-accent/20" : undefined}
