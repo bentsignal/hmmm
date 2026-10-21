@@ -242,23 +242,8 @@ query results.
 - Before and after: the burst's JS-stall and frame reports, the reopen
   sequence, iOS and Android, and videos for the PR.
 
-### Pull requests
+## Decided with Shawn (2026-10-21)
 
-1. PDS: no shared writes per send, read state in its own table, `since`
-   queries (backend; isolated deployment).
-2. Send rate limit, with the client's retry.
-3. Client window model, with the transport's single publish and per-frame
-   batching.
-4. List rendering (per-row state, stable rows, arrivals under load).
-5. Push coalescing.
-
-Each is tested on Shawn's phone before the next merges; 3 depends on 1
-for the `since` queries.
-
-## Open questions for Shawn
-
-- The send limit: 30 at once, one every 2 seconds?
-- Should arrivals that come faster than the animation rise together (only
-  under load), or keep one animation per message?
-- PR order above, or land the client first (it fixes most of what he saw
-  even on the current PDS)?
+- Send limit: 30 at once, refilling one every 2 seconds.
+- Arrivals faster than the animation rise together, only under load.
+- One pull request for all of it, tested together on his phone.

@@ -36,6 +36,7 @@ export type {
   OperationHandlerContext,
   OperationHandlers,
   PdsRouterMutation,
+  PdsRouterMutationRequest,
   QueryOperationHandlers,
 } from "./dispatcher.ts";
 export { queryResult, routedQueryResult } from "./routed-query.ts";

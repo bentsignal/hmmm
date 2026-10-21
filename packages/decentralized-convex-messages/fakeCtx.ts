@@ -11,6 +11,7 @@ const INDEXES: Record<string, Record<string, string[]>> = {
     by_account_key: ["accountId", "key", "seenAt"],
     by_account_seen: ["accountId", "seenAt"],
   },
+  conversationChanges: { by_conversation: ["conversationId"] },
   conversations: {
     by_conversation: ["conversationId"],
     by_space: ["spaceId"],
@@ -38,8 +39,12 @@ const INDEXES: Record<string, Record<string, string[]>> = {
   notificationSettings: { by_account: ["accountId"] },
   reactions: {
     by_author_reacted: ["messageAuthorId", "reactedAt"],
+    by_conversation_reacted: ["conversationId", "reactedAt"],
     by_message: ["messageId"],
     by_message_account: ["messageId", "accountId"],
+  },
+  readStates: {
+    by_conversation_account: ["conversationId", "accountId"],
   },
   spaceInvites: {
     by_account: ["accountId"],
@@ -90,6 +95,8 @@ function compare(left: unknown, right: unknown) {
 export function fakeCtx(tables: Record<string, Record<string, unknown>[]>) {
   let clock = 0;
   const rows: Record<string, Row[]> = {};
+  // Every write after setup, as "<table> <insert|patch|delete>".
+  const writes: string[] = [];
   function insert(table: string, value: Record<string, unknown>) {
     const row = { _creationTime: (clock += 1), _id: `${table}:${clock}` };
     (rows[table] ??= []).push({ ...row, ...value });
@@ -161,18 +168,22 @@ export function fakeCtx(tables: Record<string, Record<string, unknown>[]>) {
     db: {
       delete: (id: string) => {
         const table = id.slice(0, id.indexOf(":"));
+        writes.push(`${table} delete`);
         rows[table] = (rows[table] ?? []).filter((row) => row._id !== id);
         return Promise.resolve();
       },
       patch: (id: string, value: Record<string, unknown>) => {
         const table = id.slice(0, id.indexOf(":"));
+        writes.push(`${table} patch`);
         rows[table] = (rows[table] ?? []).map((row) =>
           row._id === id ? { ...row, ...value } : row,
         );
         return Promise.resolve();
       },
-      insert: (table: string, value: Record<string, unknown>) =>
-        Promise.resolve(insert(table, value)),
+      insert: (table: string, value: Record<string, unknown>) => {
+        writes.push(`${table} insert`);
+        return Promise.resolve(insert(table, value));
+      },
       query: (table: string) => ({
         withIndex: (
           index: string,
@@ -190,5 +201,7 @@ export function fakeCtx(tables: Record<string, Record<string, unknown>[]>) {
   return {
     ctx: fake,
     rows: (table: string) => rows[table] ?? [],
+    /** The writes made since setup, as "<table> <insert|patch|delete>". */
+    writes: () => [...writes],
   };
 }

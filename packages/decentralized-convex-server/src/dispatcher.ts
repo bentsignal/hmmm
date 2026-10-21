@@ -187,20 +187,35 @@ export function defineComponentDispatchers<
   } as const;
 }
 
-/** A write the router just completed, for the host's `afterMutation`. */
-export interface PdsRouterMutation {
+/** A write a client asked the router for, for the host's `beforeMutation`. */
+export interface PdsRouterMutationRequest {
   readonly identity: DispatcherIdentity | null;
   readonly operation: unknown;
   readonly plugin: string;
+}
+
+/** A write the router just completed, for the host's `afterMutation`. */
+export interface PdsRouterMutation extends PdsRouterMutationRequest {
   readonly value: unknown;
 }
 
 export function definePdsRouter<DataModel extends GenericDataModel>({
   afterMutation,
+  beforeMutation,
   components,
   mutation,
   query,
 }: {
+  /**
+   * Runs in the same transaction before each plugin write a client asks
+   * for, so the host can refuse it (by throwing, such as a rate limit's
+   * `ConvexError`) before the plugin does any work. Writes the host makes
+   * to a Component directly don't pass through here.
+   */
+  readonly beforeMutation?: (
+    ctx: GenericMutationCtx<DataModel>,
+    mutation: PdsRouterMutationRequest,
+  ) => Promise<void>;
   /**
    * Runs in the same transaction after each successful plugin write, so
    * the host can react to it (schedule work, record something) without
@@ -228,6 +243,11 @@ export function definePdsRouter<DataModel extends GenericDataModel>({
       handler: async (ctx, request) => {
         const component = getDispatcherComponent(installed, request.plugin);
         const identity = await resolveIdentity(ctx);
+        await beforeMutation?.(ctx, {
+          identity,
+          operation: request.operation,
+          plugin: request.plugin,
+        });
         const response = await ctx.runMutation(component.mutation, {
           identity,
           lastChanged: request.lastChanged,

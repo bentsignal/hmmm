@@ -141,7 +141,12 @@ export interface ConversationAccess {
   /** When alerts were last turned back on (0: never muted). */
   readonly alertsSince: number;
   readonly conversation: Doc<"conversations">;
-  readonly lastReadAt: number;
+  /**
+   * How far the caller had read before `readStates`, which `readPosition`
+   * falls back to. Not read there here, so most queries don't depend on
+   * the caller's read state.
+   */
+  readonly readBefore: number;
   readonly member: Doc<"members"> | null;
   /** A channel's: the caller's choice for its whole space, if any. */
   readonly spaceAlerts: AlertLevel | undefined;
@@ -169,8 +174,8 @@ export async function findAccess(
           alerts: chosenAlerts(member),
           alertsSince: member.alertsSince ?? 0,
           conversation,
-          lastReadAt: member.lastReadAt,
           member,
+          readBefore: member.lastReadAt,
           spaceAlerts: undefined,
         };
   }
@@ -196,9 +201,9 @@ async function channelAccess(
       spaceMember.alertsSince ?? 0,
     ),
     conversation,
-    // Space members start with everything before they joined marked read.
-    lastReadAt: member?.lastReadAt ?? spaceMember._creationTime,
     member,
+    // Space members start with everything before they joined marked read.
+    readBefore: member?.lastReadAt ?? spaceMember._creationTime,
     spaceAlerts: chosenAlerts(spaceMember),
   };
 }
@@ -213,16 +218,117 @@ export async function requireAccess(
   return access;
 }
 
+function readStateOf(ctx: QueryCtx, conversationId: string, accountId: string) {
+  return ctx.db
+    .query("readStates")
+    .withIndex("by_conversation_account", (index) =>
+      index.eq("conversationId", conversationId).eq("accountId", accountId),
+    )
+    .unique();
+}
+
 /**
- * Notes that what the conversation shows changed (`changedAt`), so apps
- * know a copy of it they saved is out of date.
+ * How far the account has read the conversation, given how far it had
+ * read before `readStates` (see `readBefore`).
+ */
+export async function readAt(
+  ctx: QueryCtx,
+  conversationId: string,
+  accountId: string,
+  readBefore: number,
+) {
+  const state = await readStateOf(ctx, conversationId, accountId);
+  return Math.max(state?.lastReadAt ?? 0, readBefore);
+}
+
+/** How far the account has read the conversation. */
+export function readPosition(
+  ctx: QueryCtx,
+  access: ConversationAccess,
+  accountId: string,
+) {
+  return readAt(
+    ctx,
+    access.conversation.conversationId,
+    accountId,
+    access.readBefore,
+  );
+}
+
+/**
+ * Moves how far the account has read the conversation up to `readAt`.
+ * Its own row, so moving it reruns only queries that show read state, and
+ * two people reading or sending at once never touch the same document.
+ */
+export async function markReadUpTo(
+  ctx: MutationCtx,
+  access: ConversationAccess,
+  accountId: string,
+  readAt: number,
+) {
+  const { conversationId } = access.conversation;
+  const state = await readStateOf(ctx, conversationId, accountId);
+  if (readAt <= Math.max(state?.lastReadAt ?? 0, access.readBefore)) return;
+  if (state === null) {
+    await ctx.db.insert("readStates", {
+      accountId,
+      conversationId,
+      lastReadAt: readAt,
+    });
+  } else {
+    await ctx.db.patch(state._id, { lastReadAt: readAt });
+  }
+}
+
+function changesOf(ctx: QueryCtx, conversationId: string) {
+  return ctx.db
+    .query("conversationChanges")
+    .withIndex("by_conversation", (index) =>
+      index.eq("conversationId", conversationId),
+    )
+    .unique();
+}
+
+/**
+ * Notes that a reaction, edit, or deletion changed what the conversation
+ * shows (`changedAt`), so apps know a copy of it they saved is out of
+ * date. New messages don't need noting: they're the newest message.
  */
 export async function markChanged(
   ctx: MutationCtx,
   access: ConversationAccess,
   at = Date.now(),
 ) {
-  await ctx.db.patch(access.conversation._id, { changedAt: at });
+  const { conversationId } = access.conversation;
+  const changes = await changesOf(ctx, conversationId);
+  if (changes === null) {
+    await ctx.db.insert("conversationChanges", { changedAt: at, conversationId });
+  } else if (at > changes.changedAt) {
+    await ctx.db.patch(changes._id, { changedAt: at });
+  }
+}
+
+/**
+ * When the conversation last changed: its newest message (a reply kept in
+ * its thread included), or a reaction, edit, or deletion since.
+ */
+async function changedAtOf(ctx: QueryCtx, conversation: Doc<"conversations">) {
+  const [changes, newest] = await Promise.all([
+    changesOf(ctx, conversation.conversationId),
+    ctx.db
+      .query("messages")
+      .withIndex("by_conversation_sent", (index) =>
+        index.eq("conversationId", conversation.conversationId),
+      )
+      .order("desc")
+      .first(),
+  ]);
+  const at = Math.max(
+    conversation.changedAt ?? 0,
+    changes?.changedAt ?? 0,
+    newest?.sentAt ?? 0,
+  );
+  return at === 0 ? undefined : at;
 }
 
 /** Channel read state is stored lazily, so create the row on first write. */
@@ -236,7 +342,6 @@ export async function upsertMember(
       | "alerts"
       | "alertsSince"
       | "hiddenFromInbox"
-      | "lastReadAt"
       | "muted"
       | "pinnedAt"
     >
@@ -253,7 +358,7 @@ export async function upsertMember(
     alertsSince: patch.alertsSince,
     conversationId: access.conversation.conversationId,
     hiddenFromInbox: patch.hiddenFromInbox,
-    lastReadAt: patch.lastReadAt ?? access.lastReadAt,
+    lastReadAt: access.readBefore,
     muted: patch.muted ?? access.alerts === "none",
     pinnedAt: patch.pinnedAt,
     role: "member",
@@ -314,17 +419,21 @@ export async function toConversation(
 ): Promise<Conversation> {
   const { conversation, member } = access;
   // Concurrent reads: an inbox converts every conversation it lists.
-  const [lastMessage, space, members, unread] = await Promise.all([
+  const [latest, space, members, unread, changedAt] = await Promise.all([
     latestMessage(ctx, conversation.conversationId),
     conversation.spaceId === undefined
       ? null
       : getSpace(ctx, conversation.spaceId),
     memberAddresses(ctx, conversation),
-    unreadCount(ctx, conversation.conversationId, accountId, access.lastReadAt),
+    readPosition(ctx, access, accountId).then((readAt) =>
+      unreadCount(ctx, conversation.conversationId, accountId, readAt),
+    ),
+    changedAtOf(ctx, conversation),
   ]);
+  const lastMessage = latest.shown;
   return {
     alerts,
-    changedAt: conversation.changedAt,
+    changedAt,
     conversationId: conversation.conversationId,
     kind: conversation.kind,
     lastMessage: lastMessage === null ? null : toMessage(lastMessage),
@@ -339,6 +448,8 @@ export async function toConversation(
     spaceId: conversation.spaceId ?? null,
     spaceName: space?.name,
     unreadCount: unread,
-    updatedAt: conversation.updatedAt,
+    // Sends don't write the conversation, so its newest message (even a
+    // deleted one) is when it was last messaged.
+    updatedAt: Math.max(conversation.updatedAt, latest.newestSentAt ?? 0),
   };
 }

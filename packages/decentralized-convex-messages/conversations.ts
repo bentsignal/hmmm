@@ -9,6 +9,7 @@ import {
   findAccess,
   getConversation,
   isRetriedCreate,
+  markReadUpTo,
   memberAddresses,
   newId,
   normalizeAddress,
@@ -18,7 +19,6 @@ import {
   requireAccess,
   toConversation,
   toMessage,
-  upsertMember,
 } from "./model.ts";
 import { directConversationId } from "./naming.ts";
 import { around, pageOf } from "./paging.ts";
@@ -200,9 +200,7 @@ export async function markRead(
 ) {
   const access = await requireAccess(ctx, args.conversationId, self);
   const readAt = Math.min(args.readAt, Date.now());
-  if (readAt > access.lastReadAt) {
-    await upsertMember(ctx, access, self, { lastReadAt: readAt });
-  }
+  await markReadUpTo(ctx, access, self, readAt);
   // Reading a conversation sees its activity too.
   await seeConversationActivity(ctx, self, args.conversationId, readAt);
   return null;

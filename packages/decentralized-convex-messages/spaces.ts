@@ -9,6 +9,7 @@ import {
   fail,
   getConversation,
   getMember,
+  readAt,
   getSpace,
   getSpaceMember,
   isRetriedCreate,
@@ -263,7 +264,12 @@ export async function toSpace(
           ctx,
           conversation.conversationId,
           accountId,
-          member?.lastReadAt ?? self._creationTime,
+          await readAt(
+            ctx,
+            conversation.conversationId,
+            accountId,
+            member?.lastReadAt ?? self._creationTime,
+          ),
         ),
       };
     }),
