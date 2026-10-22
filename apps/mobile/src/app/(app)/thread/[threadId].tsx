@@ -229,6 +229,7 @@ function Thread({
             onLoadOlder={thread.loadOlder}
             onLoadNewer={thread.loadNewer}
             onJumpToLatest={thread.jumpToLatest}
+            onAtLatest={thread.setAtLatest}
             bottomInset={composerBottomInset}
             topInset={THREAD_HEADER_HEIGHT}
             composerHeight={shown.composerHeight}

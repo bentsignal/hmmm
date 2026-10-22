@@ -210,3 +210,14 @@ Fixed along the way: rows that came in while scrolled away no longer play
 their arrival when you return to them (`noteRows`); a conversation,
 thread, or profile pushed twice by a tap during a stall now opens once
 (`dangerouslySingular`).
+
+### 2026-10-22: next, from Shawn's phone test of #258
+
+In order: (1) the reply flicker and the typing rubber band (done:
+same-frame batches, typing held with paced messages); (2) the fast-scroll
+jump to the bottom; (3) memory: measure a release build, cap what's kept
+per conversation; (4) Convex: query count and cost, slow opens and opens
+from a notification that hang; (5) firehose mode: past a rate, new
+messages show at once with no rise or fade (as Discord's chat does when
+it's busy), and animate again once it slows; (6) the message types made
+easy to add without risking the rest.

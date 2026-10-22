@@ -28,7 +28,7 @@ import { newestFirst } from "./build-rows";
 import { GrowthProvider } from "./grow";
 import { JumpToLatest } from "./jump-to-latest";
 import { useLeavingRows } from "./leave-rows";
-import { ANCHOR, useLatest } from "./list-position";
+import { ANCHOR, useLatest, useReportLatest } from "./list-position";
 import { useListRows } from "./list-rows";
 import { useMenuKeyboard } from "./menu-keyboard";
 import { MessageActionsProvider } from "./message-actions";
@@ -183,6 +183,10 @@ function Rows({
           {...props}
           scrollRef={latest.scrollRef}
           inverted
+          // A tap on the status bar scrolls an iOS list to its top, which
+          // inverted is the newest message: one brushed while flinging up
+          // through older messages took the list all the way down.
+          scrollsToTop={false}
           offset={bottomInset}
           freeze={freeze}
           blankSpace={blank.blankSpace}
@@ -257,6 +261,8 @@ type MessageListProps = Omit<
   onReply?: (message: Message) => void;
   /** The menu's Edit and Delete, on your own messages (`useEditing`). */
   editing?: MessageEdits;
+  /** The reader came down to the latest messages, or left them. */
+  onAtLatest?: (atLatest: boolean) => void;
 };
 
 /**
@@ -275,6 +281,7 @@ export function MessageList({
   messages,
   notices,
   thread,
+  onAtLatest,
   ...props
 }: MessageListProps) {
   const listRef = useRef<FlatList<ListRow>>(null);
@@ -300,6 +307,7 @@ export function MessageList({
     keyboardOffset: props.bottomInset,
   });
   const { isNearLatest, scrollToLatest } = latest;
+  useReportLatest(isNearLatest, onAtLatest);
   // Read out first: the worklet must not capture `props` (messages hold
   // Dates, which worklets can't copy).
   const { hasNewer } = props;

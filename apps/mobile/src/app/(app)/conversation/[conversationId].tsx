@@ -176,7 +176,6 @@ function Conversation({
   const layout = useMessageLayout(conversation?.kind);
   const notices = useMemberNotices(conversationId, conversation, messages);
   const typing = useShownAndTyping(conversationId, messages.messages, address);
-  const shownMessages = typing.messages;
   // Not laid out yet: the list leaves room for it under the newest
   // message, so it waits rather than shift once it knows.
   const { composerHeight, onHeight } = useComposerHeight();
@@ -211,7 +210,7 @@ function Conversation({
           <MessageList
             ref={list}
             key={messages.viewKey}
-            messages={shownMessages}
+            messages={typing.messages}
             notices={notices.notices}
             self={address}
             layout={layout}
@@ -222,6 +221,7 @@ function Conversation({
             onLoadOlder={messages.loadOlder}
             onLoadNewer={messages.loadNewer}
             onJumpToLatest={messages.jumpToLatest}
+            onAtLatest={messages.setAtLatest}
             bottomInset={composerBottomInset}
             topInset={CONVERSATION_HEADER_HEIGHT}
             composerHeight={composerHeight}

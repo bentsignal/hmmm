@@ -180,6 +180,9 @@ function useWindowState(
         : anchoredView(anchor),
   }));
   const { next, view } = state;
+  // Whether the reader is at the latest messages (see `filled`), as the
+  // list reports it.
+  const [atLatest, setAtLatest] = useState(true);
   remember(windowKeyOf(session, source), view);
   const results = useQueries({
     queries: [...view.pages, ...(next?.pages ?? [])].map((cursor) =>
@@ -202,9 +205,10 @@ function useWindowState(
     state,
     resultsOf(view, 0),
     resultsOf(next, view.pages.length),
+    atLatest,
   );
   if (followed !== state) setState(followed);
-  return { results, setState, state };
+  return { results, setAtLatest, setState, state };
 }
 
 /** What the screen asks of the window, besides what it shows. */
@@ -234,6 +238,7 @@ function windowActions(
     jumpToLatest: () =>
       setState((current) => ({
         ...current,
+        behind: false,
         next: current.next ?? latestView(Date.now()),
       })),
     /**
@@ -288,12 +293,21 @@ export function useMessageWindow(
   source: WindowSource,
   anchor?: string,
 ) {
-  const { results, setState, state } = useWindowState(session, source, anchor);
+  const { results, setAtLatest, setState, state } = useWindowState(
+    session,
+    source,
+    anchor,
+  );
   const { next, view } = state;
   const shown = shownPages(view, results.slice(0, view.pages.length));
   return {
     ...windowActions(setState, windowKeyOf(session, source), shown),
     anchor: view.anchor,
+    /**
+     * Tells the window whether the reader is at the latest messages: away
+     * from them, it never reopens there on its own (see `filled`).
+     */
+    setAtLatest,
     /** Which queries the loaded pages' reactions and threads come from. */
     parts: shown.parts,
     /** A thread's original message, once a page has it. */

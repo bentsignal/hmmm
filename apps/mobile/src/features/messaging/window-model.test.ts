@@ -10,6 +10,7 @@ import type {
 import {
   advance,
   anchoredView,
+  follow,
   latestView,
   MAX_REUSED_PAGES,
   mergePages,
@@ -157,6 +158,46 @@ void test("a window more than a page behind opens again instead of filling in", 
   assert.equal(advance(reopened, results(chat, reopened, false)), undefined);
   // Fresh from the PDS: the newest page is already full.
   assert.equal(advance(reopened, results(chat, reopened)), "behind");
+});
+
+void test("scrolled back in older messages, a window behind follows instead of jumping", () => {
+  const chat = conversation();
+  history(chat, 60);
+  const view = settled(chat, latestView(60));
+  for (let index = 61; index <= 180; index += 1) chat.send(index);
+  // The newest page came back full, but the reader is up in older
+  // messages: pages are added under them rather than the window
+  // reopening at the latest (which put the list at the newest message).
+  let current = view;
+  current = { ...view, followed: [] };
+  for (let step = 0; step < 10; step += 1) {
+    const next = advance(current, results(chat, current), false);
+    if (next === "behind") throw new Error("It reopened at the latest");
+    if (next === undefined) break;
+    current = next.view;
+  }
+  assert.equal(shown(chat, current).at(-1), "m180");
+  assert.equal(shown(chat, current)[0], shown(chat, view)[0]);
+});
+
+void test("scrolling up before a reopen at the latest shows drops it", () => {
+  const chat = conversation();
+  history(chat, 60);
+  const view = { ...settled(chat, latestView(60)), followed: [] };
+  for (let index = 61; index <= 180; index += 1) chat.send(index);
+  const opening = follow(
+    { next: undefined, view },
+    results(chat, view),
+    [],
+    true,
+  );
+  assert.equal(opening.behind, true);
+  assert.notEqual(opening.next, undefined);
+  // Its pages are still loading when the reader scrolls back up.
+  const scrolled = follow(opening, results(chat, view), [], false);
+  assert.equal(scrolled.next, undefined);
+  assert.equal(scrolled.behind, false);
+  assert.notEqual(scrolled.view, view);
 });
 
 void test("a cached copy isn't followed until the PDS confirms it", () => {
