@@ -293,3 +293,37 @@ The row's opacity goes in the layout commit with its height: on its own,
 the commit put back the opacity React first drew it with, and the rows
 above moved up off an empty space for two frames (found with a blank-band
 detector over the recording). 150 messages in 15 s: 44 slow frames.
+
+A batch big enough on its own (six rows mounting together, as after the
+app catches up) also opens at once: on Android a screenful rose and faded
+in together and the screen went blank for a third of a second.
+
+**Robustness.** From a review of what a new kind of row or message
+touches (about 8 files for a new row kind, 14 for a new kind of message
+content, few of them caught by the compiler):
+
+- Rows get their order once, as they're built, strictly increasing
+  (`orders.ts`); same-millisecond messages, or a notice at a message's
+  moment, shared one before. Pieces read it from the row
+  (`useRowOrder`) instead of each working it out again.
+- Header rows carry their `owner`; switches over row kinds are
+  exhaustive; a notice's text is a table by kind.
+- `build-rows` and the move math (`move-math.ts`) have unit tests.
+- A line appearing under a message while it's on screen (a thread's
+  count after its first reply, "Not sent") eases in through `Appearing`;
+  the first reply's count jumped the rows above by 20 points in a frame.
+  "Not sent" uses the same path but wasn't exercised on screen (no way to
+  make a send fail from the simulator).
+
+Next, in order, if wanted: one part model (`messageParts(message,
+layout)` with places, from which `partCount`, `lastPart`,
+`bubbleTopPart` and the footer's place derive; pin today's numbering in a
+test first), class names that mirror layout constants made styles from
+them, and a render test across both layouts and every state. Not
+recommended: merging Arrive, Grow, and Leave, or animating any height
+change from `onLayout` (a frame late by design).
+
+Seen once and not reproduced since: a reaction's space reached the screen
+a frame before the rows' lift, a 40-point jump for one frame, late in a
+long simulator session. A ~1 pt one-frame blip as a stacked row's
+thread count opens.
