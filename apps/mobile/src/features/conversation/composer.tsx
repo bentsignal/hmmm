@@ -20,12 +20,12 @@ import type {
 } from "~/features/messaging/attachments";
 import type { PastedImage } from "~/lib/paste-images";
 import { GesturePressable } from "~/components/gesture-pressable";
-import { GlassSurface } from "~/components/glass-surface";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { cn } from "~/lib/cn";
 import { PASTE_IMAGES_NATIVE_ID, usePastedImages } from "~/lib/paste-images";
 import { AttachMenu } from "./attach-menu";
 import { readDraft, saveDraftText } from "./drafts";
+import { GlassField, useFieldGlass } from "./field-glass";
 import { FieldTop } from "./field-top";
 import { MentionPicker } from "./mention-picker";
 import { canSendNow } from "./use-editing";
@@ -138,6 +138,21 @@ function useSides() {
           )
         : ANDROID_EDGE,
   }));
+}
+
+/**
+ * How many lines the field measures: an empty field is one line tall,
+ * whatever it last held. React Native sizes a field by the text its native
+ * view last reported, not by `value`, so a field emptied by sending stayed
+ * as tall as the message until that report came back through JavaScript,
+ * busy then with the message just sent. Measuring a line at most while
+ * it's empty shrinks it in the same frame as its text clears, and keeps it
+ * from growing back while the keyboard puts an autocorrected message back
+ * (see `useDraft`). Only on iOS, where `numberOfLines` limits just the
+ * measuring: on Android it fixes the field's lines, and keeps one after.
+ */
+function measuredLines(draft: string) {
+  return draft === "" && Platform.OS === "ios" ? 1 : undefined;
 }
 
 /**
@@ -336,12 +351,14 @@ export function Composer({
     reportedChanges(onChangeText, editing !== undefined),
     mentionable,
   );
+  const { field, held, settle } = useFieldGlass();
   const canSend = canSendNow(draft, staged, editing);
   const saves = editing !== undefined;
   const hint = staged.length > 0 || saves ? "Add a message" : placeholder;
 
   function send() {
     if (!canSend) return;
+    settle();
     const text = draft.trim();
     if (editing === undefined) onSend(text, sent(text));
     else edit?.save(text, saved(text));
@@ -359,10 +376,7 @@ export function Composer({
       <Bar bottomInset={bottomInset} onHeight={onHeight}>
         {/* An edit changes only the text. */}
         {editing === undefined && <AttachMenu onPick={onPick} />}
-        <GlassSurface
-          className="flex-1 justify-center rounded-[20px]"
-          style={{ minHeight: CONTROL }}
-        >
+        <GlassField field={field} held={held} minHeight={CONTROL}>
           <FieldTop
             edit={edit}
             replyingTo={replyingTo}
@@ -374,6 +388,7 @@ export function Composer({
             ref={input}
             nativeID={PASTE_IMAGES_NATIVE_ID}
             multiline
+            numberOfLines={measuredLines(draft)}
             value={draft}
             onChangeText={change}
             onSelectionChange={mention.onSelectionChange}
@@ -389,7 +404,7 @@ export function Composer({
             cursorColorClassName="accent-accent"
           />
           <SendButton visible={canSend} saves={saves} onPress={send} />
-        </GlassSurface>
+        </GlassField>
       </Bar>
     </View>
   );
