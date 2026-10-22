@@ -2,7 +2,6 @@ import type { ViewToken } from "react-native";
 import { useState } from "react";
 
 import type { ListRow } from "./typing-row";
-import { orderOfRow } from "./build-rows";
 import { useGrowth } from "./grow";
 import { onScreenRange } from "./screen-range";
 
@@ -19,7 +18,7 @@ export function useOnScreenRows() {
     () =>
       ({ viewableItems }: { viewableItems: ViewToken<ListRow>[] }) => {
         const orders = viewableItems.flatMap(({ item }) =>
-          item.type === "typing" ? [] : [orderOfRow(item)],
+          item.type === "typing" ? [] : [item.order],
         );
         if (orders.length === 0) return;
         onScreen.set(onScreenRange(Math.min(...orders), Math.max(...orders)));

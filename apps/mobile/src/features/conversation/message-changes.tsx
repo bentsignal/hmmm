@@ -4,8 +4,8 @@ import Animated, { FadeIn, useAnimatedRef } from "react-native-reanimated";
 import type { Message } from "./types";
 import { cn } from "~/lib/cn";
 import { BUBBLE_RADIUS } from "./bubble-shape";
-import { rowOrder } from "./build-rows";
 import { GrowingSpace, useChangedSinceMount } from "./grow";
+import { useRowOrder } from "./row-order";
 import { Place } from "./row-place";
 
 // What a message shows of being changed after it was sent: edited, or
@@ -74,12 +74,13 @@ export function EditedLabel({
 
 /** "Edited" as it opens, for a message edited while you watch. */
 function LateEdited({ message, isOwn }: { message: Message; isOwn: boolean }) {
+  const order = useRowOrder(message);
   const measured = useAnimatedRef<View>();
   return (
     <Animated.View ref={measured} style={{ marginTop: -COLUMN_GAP }}>
       <GrowingSpace
         height={EDITED_LINE + COLUMN_GAP}
-        order={rowOrder(message.sentAt)}
+        order={order}
         place={Place.bottom}
         animate
         measured={measured}

@@ -3,9 +3,9 @@ import Animated from "react-native-reanimated";
 import type { ReplyCard } from "./reply-card";
 import type { Message } from "./types";
 import { topReacted } from "./bubble-top";
-import { rowOrder } from "./build-rows";
 import { usePieceLift } from "./grow";
 import { QUOTE_GAP, QuoteBubble, ReplyCurve } from "./reply-card";
+import { useRowOrder } from "./row-order";
 import { Place } from "./row-place";
 import { TAPBACK_SPACE } from "./tapbacks";
 
@@ -25,7 +25,7 @@ export function MovingReplyCurve({
   message: Message;
   isOwn: boolean;
 }) {
-  const lift = usePieceLift(rowOrder(message.sentAt), Place.top);
+  const lift = usePieceLift(useRowOrder(message), Place.top);
   return (
     <Animated.View
       pointerEvents="none"
@@ -45,7 +45,7 @@ export function MovingQuote({
   message: Message;
   card: ReplyCard;
 }) {
-  const lift = usePieceLift(rowOrder(message.sentAt), Place.top);
+  const lift = usePieceLift(useRowOrder(message), Place.top);
   return (
     <Animated.View style={[{ marginBottom: QUOTE_GAP }, lift]}>
       <QuoteBubble message={message} card={card} />

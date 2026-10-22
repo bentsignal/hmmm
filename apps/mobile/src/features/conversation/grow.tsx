@@ -12,20 +12,19 @@ import Animated, {
 
 import type { Blank } from "./blank-space";
 import type { LeaveState } from "./leave";
-import type { Growth, MoveNow } from "./moves";
+import type { MoveNow } from "./move-math";
+import type { Growth } from "./moves";
 import type { OnScreen } from "./screen-range";
 import type { TypingDrop } from "./typing-drop";
 import { useHeldHeight } from "./held-height";
+import { allStill, pieceShift, rowShift } from "./move-math";
 import {
-  allStill,
   inFrame,
   land,
   moved,
   MOVES,
   movesNow,
   newMove,
-  pieceShift,
-  rowShift,
   showWithRoom,
   startMove,
 } from "./moves";

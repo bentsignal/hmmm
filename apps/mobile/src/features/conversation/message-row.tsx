@@ -17,7 +17,6 @@ import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
 import type { MessageLayout } from "~/features/preferences/store";
 import { Arrive } from "./arrive";
-import { orderOfRow } from "./build-rows";
 import { DaySeparator, TimeHeader } from "./day-separator";
 import { useRowLift } from "./grow";
 import { Leave, useLeaveState } from "./leave";
@@ -25,6 +24,7 @@ import { MemberNotice } from "./member-notice";
 import { MessageBubble } from "./message-bubble";
 import { MessageStacked } from "./message-stacked";
 import { RepliesDivider } from "./replies-divider";
+import { RowOrderContext } from "./row-order";
 import { MessageRowTarget } from "./row-target";
 
 export type ProfileOf = (address: string) => {
@@ -100,7 +100,7 @@ export const Row = memo(function Row({
   onFaded: (batch: number) => void;
   onClosed: (batch: number) => void;
 }) {
-  const order = orderOfRow(row);
+  const { order } = row;
   return (
     <RowLift
       order={order}
@@ -118,13 +118,16 @@ export const Row = memo(function Row({
         arriving={arriving || becoming !== undefined}
         becoming={becoming}
       >
-        <RowContent
-          row={row}
-          self={self}
-          layout={layout}
-          profileOf={profileOf}
-          showAuthors={showAuthors}
-        />
+        {/* What in it moves with the rows moves as this row (see `useRowOrder`). */}
+        <RowOrderContext value={order}>
+          <RowContent
+            row={row}
+            self={self}
+            layout={layout}
+            profileOf={profileOf}
+            showAuthors={showAuthors}
+          />
+        </RowOrderContext>
       </RowShell>
     </RowLift>
   );
@@ -245,37 +248,60 @@ export function RowContent({
   showAuthors,
 }: RowProps) {
   const stacked = layout === "stacked";
-  if (row.type === "day") {
-    return (
-      <DaySeparator
-        date={row.date}
-        stacked={stacked}
-        opensThread={row.opensThread}
-      />
-    );
+  switch (row.type) {
+    case "day":
+      return (
+        <DaySeparator
+          date={row.date}
+          stacked={stacked}
+          opensThread={row.opensThread}
+        />
+      );
+    case "time":
+      return (
+        <TimeHeader
+          date={row.date}
+          stacked={stacked}
+          opensThread={row.opensThread}
+          named={showAuthors && row.author !== undefined && row.author !== self}
+        />
+      );
+    case "replies":
+      return <RepliesDivider count={row.count} />;
+    case "notice":
+      return (
+        <MemberNotice
+          notice={row.notice}
+          stacked={stacked}
+          followsNotice={row.followsNotice}
+        />
+      );
+    case "message":
+      return (
+        <MessageContent
+          row={row}
+          self={self}
+          layout={layout}
+          profileOf={profileOf}
+          showAuthors={showAuthors}
+        />
+      );
+    default:
+      return row satisfies never;
   }
-  if (row.type === "time") {
-    return (
-      <TimeHeader
-        date={row.date}
-        stacked={stacked}
-        opensThread={row.opensThread}
-        named={showAuthors && row.author !== undefined && row.author !== self}
-      />
-    );
-  }
-  if (row.type === "replies") {
-    return <RepliesDivider count={row.count} />;
-  }
-  if (row.type === "notice") {
-    return (
-      <MemberNotice
-        notice={row.notice}
-        stacked={stacked}
-        followsNotice={row.followsNotice}
-      />
-    );
-  }
+}
+
+/** A message's row: the message, with its reply card or thread. */
+function MessageContent({
+  row,
+  self,
+  layout,
+  profileOf,
+  showAuthors,
+}: Omit<RowProps, "row"> & {
+  row: Extract<MessageRow, { type: "message" }>;
+}) {
+  const stacked = layout === "stacked";
   const { message } = row;
   const card = replyCard(message, profileOf);
   const replies = threadReplies(message, profileOf);

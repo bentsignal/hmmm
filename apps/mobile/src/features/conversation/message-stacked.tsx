@@ -8,7 +8,6 @@ import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
 import { formatTime } from "~/lib/format";
 import { AuthorLink } from "./author-link";
-import { rowOrder } from "./build-rows";
 import { Settle, useChangedSinceMount } from "./grow";
 import { useMessageActions } from "./message-actions";
 import { lastPart, partCount } from "./message-parts";
@@ -22,6 +21,7 @@ import {
   STACKED_RUN_GAP,
   stackedHeader,
 } from "./row-header";
+import { useRowOrder } from "./row-order";
 import { useRowTarget } from "./row-touch";
 import { useSqueeze } from "./squeeze";
 import { StackedFooter, StackedParts } from "./stacked-parts";
@@ -265,6 +265,7 @@ function StackedRow({
   card?: ReplyCard;
   replies?: ThreadReplies;
 }) {
+  const order = useRowOrder(message);
   const row = useRef<View>(null);
   const content = useRef<View>(null);
   const squeeze = useLiftRow({ author, content, message, row, startsGroup });
@@ -279,7 +280,7 @@ function StackedRow({
     >
       <Settle
         header={stackedHeader(startsGroup, card !== undefined)}
-        order={rowOrder(message.sentAt)}
+        order={order}
       />
       <View ref={row}>
         <Animated.View className="flex-row gap-3" style={squeeze}>

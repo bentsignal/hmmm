@@ -12,11 +12,11 @@ import type { Parts } from "./reaction-parts";
 import type { Message } from "./types";
 import type { ReactionPart } from "~/features/messaging/reactions";
 import { cn } from "~/lib/cn";
-import { rowOrder } from "./build-rows";
 import { GrowingSpace } from "./grow";
 import { MessageTargetProvider, useLiftMessage } from "./message-actions";
 import { PartChips } from "./part-chips";
 import { PartsProvider, usePartReactions } from "./reaction-parts";
+import { useRowOrder } from "./row-order";
 import { Place } from "./row-place";
 import { useRowTarget } from "./row-touch";
 import { useSqueeze } from "./squeeze";
@@ -187,7 +187,7 @@ export function InteractiveMessage({
     measured: body,
     message,
     onTopPlaced: setTopLeft,
-    order: rowOrder(message.sentAt),
+    order: useRowOrder(message),
     reactionStyle,
     reactions,
     shape,
