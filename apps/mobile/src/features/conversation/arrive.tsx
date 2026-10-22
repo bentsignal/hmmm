@@ -13,9 +13,11 @@ import { scheduleOnRN } from "react-native-worklets";
 import { useCSSVariable } from "uniwind";
 
 import { inNextFrame } from "~/lib/next-frame";
+import { joinArrivals } from "./arrive-batch";
 import { Fading } from "./fading";
 import { useGrowth } from "./grow";
-import { GROW_EASING, GROW_MS, inFrame, land, startMove } from "./moves";
+import { justListed } from "./listed-rows";
+import { GROW_EASING, GROW_MS, inFrame, land } from "./moves";
 import { useOnMount } from "./typing-parts";
 
 /** How long a message that comes in takes to fade in as it opens. */
@@ -75,13 +77,15 @@ function useOpenStyles() {
   const height = useSharedValue(CLOSED);
   const shown = useSharedValue(0);
   const { opened: open, laidOut, fadedIn } = useOpened();
-  // Its height and how much it shows change together, in the same layout
-  // commit as the moves (see `Move`).
+  // Its height, in the same layout commit as the moves (see `Move`).
   const style = useAnimatedStyle(() => ({
     // eslint-disable-next-line vera/no-layout-animation -- Not animated: it opens once, in the same frame as the moves, which do the moving.
     height: height.get() === OWN ? "auto" : height.get(),
-    opacity: shown.get(),
   }));
+  // How much it shows, on its own: in a style with the height, each frame
+  // of the fade was a layout commit of the whole list, and in a busy
+  // conversation one row or another is always fading in.
+  const fade = useAnimatedStyle(() => ({ opacity: shown.get() }));
   // What shows of it while it's closed or rising: its own place and the
   // fade under it (`EMERGE`); then all of it, as tall as what's in it.
   const window = useAnimatedStyle(() =>
@@ -100,7 +104,7 @@ function useOpenStyles() {
     laidOut,
     fadedIn,
     content: [content, open && OPEN.content],
-    style: [style, open && OPEN.style],
+    style: [style, fade, open && OPEN.style],
     window: [window, open && OPEN.window],
   };
 }
@@ -191,53 +195,50 @@ function Opening({
         return;
       }
       const natural = box?.height ?? 0;
-      let delta = natural;
-      if (taking) {
-        delta -= growth.typing.get();
-        growth.typing.set(0);
-      }
-      height.set(natural);
-      // Growing out of the indicator, it's there at once.
-      shown.set(withTiming(1, { duration: morphs ? 0 : FADE_MS }, fadedIn));
-      const move = startMove(
-        growth,
-        { order, place: 0, whole: true },
-        delta,
-        outer,
-      );
-      // Under the messages above as they make room, it rises with them
-      // out of its space, fading in out of the gap below it and hidden
-      // past that, so it never covers them or who's typing below. One that takes the indicator's place
-      // is already where it belongs.
-      const rises = move !== undefined && !taking;
-      // Once open and still, it's as tall as what's in it, as that
-      // changes, and nothing cuts it off.
-      function release() {
-        height.set(OWN);
-        laidOut();
-      }
-      if (rises) {
-        rising.set(true);
-        rise.set(delta);
-        requestAnimationFrame(() => {
-          rise.set(
-            withTiming(
-              0,
-              { duration: GROW_MS, easing: GROW_EASING },
-              // Even cut short, so it never stays a fixed height.
-              () => release(),
-            ),
-          );
-        });
-      }
-      land({
-        done: () => {
-          rising.set(false);
-          if (!rises) release();
-        },
-        height: natural,
+      joinArrivals(growth, {
         measured: outer,
-        move,
+        natural,
+        order,
+        taking,
+        open: (move, by, lands) => {
+          height.set(natural);
+          // Growing out of the indicator, it's there at once.
+          shown.set(withTiming(1, { duration: morphs ? 0 : FADE_MS }, fadedIn));
+          // Under the messages above as they make room, it rises with them
+          // out of its space, fading in out of the gap below it and hidden
+          // past that, so it never covers them or who's typing below. One
+          // that takes the indicator's place is already where it belongs.
+          const rises = move !== undefined && !taking;
+          // Once open and still, it's as tall as what's in it, as that
+          // changes, and nothing cuts it off.
+          function release() {
+            height.set(OWN);
+            laidOut();
+          }
+          if (rises) {
+            rising.set(true);
+            rise.set(by);
+            requestAnimationFrame(() => {
+              rise.set(
+                withTiming(
+                  0,
+                  { duration: GROW_MS, easing: GROW_EASING },
+                  // Even cut short, so it never stays a fixed height.
+                  () => release(),
+                ),
+              );
+            });
+          }
+          land({
+            done: () => {
+              rising.set(false);
+              if (!rises) release();
+            },
+            height: natural,
+            measured: outer,
+            move: lands ? move : undefined,
+          });
+        },
       });
     }
     inFrame(open);
@@ -314,7 +315,7 @@ export function Arrive({
   becoming: Becoming | undefined;
   children: ReactNode;
 }) {
-  const [first] = useState(() => !arrived.has(rowKey));
+  const [first] = useState(() => !arrived.has(rowKey) && justListed(rowKey));
   if (!arrived.has(rowKey)) arrived.set(rowKey, becoming);
   if (!first) return children;
   return (

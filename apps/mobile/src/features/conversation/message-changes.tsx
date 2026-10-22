@@ -67,9 +67,14 @@ export function EditedLabel({
 }) {
   const edited = message.editedAt !== undefined;
   const late = useChangedSinceMount(edited);
-  const measured = useAnimatedRef<View>();
   if (!edited) return null;
   if (!late) return <EditedText isOwn={isOwn} />;
+  return <LateEdited message={message} isOwn={isOwn} />;
+}
+
+/** "Edited" as it opens, for a message edited while you watch. */
+function LateEdited({ message, isOwn }: { message: Message; isOwn: boolean }) {
+  const measured = useAnimatedRef<View>();
   return (
     <Animated.View ref={measured} style={{ marginTop: -COLUMN_GAP }}>
       <GrowingSpace

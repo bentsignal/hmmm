@@ -1,8 +1,11 @@
 import type { View } from "react-native";
-import type { AnimatedRef, SharedValue } from "react-native-reanimated";
-import {
+import type { SharedValue } from "react-native-reanimated";
+import { useState } from "react";
+import { StyleSheet } from "react-native";
+import Animated, {
+  makeMutable,
   useAnimatedReaction,
-  useSharedValue,
+  useAnimatedRef,
   withTiming,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
@@ -22,12 +25,16 @@ export interface LeaveState {
   readonly kept: SharedValue<number>;
 }
 
-/** Every row's, so one that starts leaving keeps its views as they are. */
-export function useLeaveState() {
-  return {
-    kept: useSharedValue(-1),
-    opacity: useSharedValue(1),
-  } satisfies LeaveState;
+/**
+ * A row's, made as it starts leaving: made for every row as it mounted,
+ * its two shared values were a good part of what a row cost.
+ */
+export function useLeaveState(leaving: boolean) {
+  const [state, setState] = useState<LeaveState | null>(null);
+  if (leaving && state === null) {
+    setState({ kept: makeMutable(-1), opacity: makeMutable(1) });
+  }
+  return state;
 }
 
 /**
@@ -41,19 +48,19 @@ export function useLeaveState() {
 export function Leave({
   leaving: { batch, closing, room },
   order,
-  measured,
   state,
   onFaded,
   onClosed,
 }: {
   leaving: RowLeaving;
   order: number;
-  measured: AnimatedRef<View>;
   state: LeaveState;
   onFaded: (batch: number) => void;
   onClosed: (batch: number) => void;
 }) {
   const close = useClose();
+  // The row, measured: a view across all of it, only while it leaves.
+  const measured = useAnimatedRef<View>();
   const { opacity, kept } = state;
   useAnimatedReaction(
     () => batch,
@@ -77,5 +84,11 @@ export function Leave({
     },
     [closing, batch, order, room],
   );
-  return null;
+  return (
+    <Animated.View
+      ref={measured}
+      pointerEvents="none"
+      style={StyleSheet.absoluteFill}
+    />
+  );
 }

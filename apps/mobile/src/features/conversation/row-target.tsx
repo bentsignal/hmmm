@@ -2,21 +2,23 @@ import type { ReactNode } from "react";
 import type { GestureResponderEvent } from "react-native";
 import { useId } from "react";
 import { Pressable } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Gesture } from "react-native-gesture-handler";
 
 import type { MenuPress } from "./row-touch";
 import type { Message } from "./types";
 import { impact } from "~/lib/native-extras";
 import { wasLinkTap } from "./link-tap";
-import { LONG_PRESS_MS, useMessageActions } from "./message-actions";
+import { useMessageActions } from "./message-actions";
 import {
   MenuPressContext,
   reportTouch,
   rowGestureBegan,
   RowIdContext,
   rowTarget,
-  touchedPart,
+  touchedRow,
+  useRowTap,
 } from "./row-touch";
+import { LONG_PRESS_MS } from "./squeeze";
 
 /**
  * Two taps this close together are a double tap. A single tap waits this
@@ -39,19 +41,51 @@ function openRowMenu(row: string, y: number) {
 }
 
 /**
- * A message's row, across the screen and from the top of the sender's name
- * to the bottom of the message, which takes its taps, double taps, and
- * holds wherever they land: a tap opens the message's thread in a
- * conversation, and a double tap or a hold lifts it with its menu, the
- * same either way. On a part with its own menu (`MenuTargetView`), a
- * double tap lifts just that part, as a hold on it does. Parts
- * that are buttons of their own (a photo, a link card, the thread's count,
- * a reaction) keep their touches to themselves.
+ * The taps on the list's message rows (see `MessageRowTarget`): a tap
+ * opens a message's thread in a conversation, and a double tap lifts it
+ * with its menu, as a hold does. On a part with its own menu
+ * (`MenuTargetView`), a double tap lifts just that part.
  *
- * The taps are native recognizers, since a Pressable drops the second of
- * two quick taps. They see every touch in the row; the Pressables say
- * where it landed, the row's own only when no part's took it. A single
- * tap fires once a double tap can no longer begin.
+ * One pair of native recognizers for the whole list, since a Pressable
+ * drops the second of two quick taps; a pair in every row cost each row
+ * as it mounted. They see every touch in the list; the rows' Pressables
+ * say which row and part it landed on, and touches anywhere else do
+ * nothing. A single tap fires once a double tap can no longer begin.
+ */
+export function useRowTaps() {
+  const { openThread } = useMessageActions();
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .maxDelay(DOUBLE_TAP_MS)
+    .runOnJS(true)
+    .onBegin(rowGestureBegan)
+    .onEnd((event, success) => {
+      const touched = touchedRow(event.absoluteY);
+      if (!success || touched === null) return;
+      if (touched.part !== "row") touched.part.openMenu();
+      else if (touched.holdable) openRowMenu(touched.row, event.absoluteY);
+    });
+  const singleTap = Gesture.Tap()
+    // A hold opens the menu instead.
+    .maxDuration(LONG_PRESS_MS)
+    .maxDistance(TAP_SLOP)
+    .enabled(openThread !== undefined)
+    .runOnJS(true)
+    .onBegin(rowGestureBegan)
+    .onEnd((event, success) => {
+      const touched = touchedRow(event.absoluteY);
+      if (!success || touched === null || wasLinkTap()) return;
+      touched.openThread?.();
+    });
+  return Gesture.Exclusive(doubleTap, singleTap);
+}
+
+/**
+ * A message's row, across the screen and from the top of the sender's name
+ * to the bottom of the message, which takes its taps (see `useRowTaps`)
+ * and holds wherever they land: a hold lifts it with its menu. Parts that
+ * are buttons of their own (a photo, a link card, the thread's count, a
+ * reaction) keep their touches to themselves.
  */
 export function MessageRowTarget({
   message,
@@ -66,52 +100,33 @@ export function MessageRowTarget({
   // A deleted one has its thread, but no menu.
   const sent = message.status === undefined;
   const holdable = sent && message.deleted !== true;
-  const doubleTap = Gesture.Tap()
-    .numberOfTaps(2)
-    .maxDelay(DOUBLE_TAP_MS)
-    .runOnJS(true)
-    .onBegin(rowGestureBegan)
-    .onEnd((event, success) => {
-      const part = touchedPart();
-      if (!success || part === null) return;
-      if (part !== "row") part.openMenu();
-      else if (holdable) openRowMenu(row, event.absoluteY);
-    });
-  const singleTap = Gesture.Tap()
-    // A hold opens the menu instead.
-    .maxDuration(LONG_PRESS_MS)
-    .maxDistance(TAP_SLOP)
-    .enabled(openThread !== undefined && sent)
-    .runOnJS(true)
-    .onBegin(rowGestureBegan)
-    .onEnd((_, success) => {
-      if (!success || touchedPart() === null || wasLinkTap()) return;
-      openThread?.(message);
-    });
+  useRowTap(row, {
+    holdable,
+    openThread:
+      openThread !== undefined && sent ? () => openThread(message) : undefined,
+  });
   const press = {
     delayLongPress: LONG_PRESS_MS,
     onLongPress: (event: GestureResponderEvent) => {
       if (holdable) openRowMenu(row, event.nativeEvent.pageY);
     },
     onPressIn: (event: GestureResponderEvent) => {
-      reportTouch("row");
+      reportTouch("row", row, event.nativeEvent.pageY);
       if (holdable) rowTarget(row)?.pressIn(event.nativeEvent.pageY);
     },
     onPressOut: () => rowTarget(row)?.release(),
   } satisfies MenuPress;
   return (
     <RowIdContext value={row}>
-      <GestureDetector gesture={Gesture.Exclusive(doubleTap, singleTap)}>
-        <Pressable
-          // Not one element to VoiceOver: the message's parts keep their
-          // own, and the thread's count and quote are its buttons.
-          accessible={false}
-          {...press}
-        >
-          {/* Links in text that isn't a part of its own hold the row. */}
-          <MenuPressContext value={press}>{children}</MenuPressContext>
-        </Pressable>
-      </GestureDetector>
+      <Pressable
+        // Not one element to VoiceOver: the message's parts keep their
+        // own, and the thread's count and quote are its buttons.
+        accessible={false}
+        {...press}
+      >
+        {/* Links in text that isn't a part of its own hold the row. */}
+        <MenuPressContext value={press}>{children}</MenuPressContext>
+      </Pressable>
     </RowIdContext>
   );
 }

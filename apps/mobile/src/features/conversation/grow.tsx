@@ -1,25 +1,29 @@
 import type { ReactNode } from "react";
-import type { View } from "react-native";
 import type { AnimatedRef, SharedValue } from "react-native-reanimated";
 import { createContext, use, useState } from "react";
+import { View } from "react-native";
 import Animated, {
   measure,
   useAnimatedReaction,
   useAnimatedRef,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
 } from "react-native-reanimated";
 
 import type { Blank } from "./blank-space";
 import type { LeaveState } from "./leave";
-import type { Growth } from "./moves";
+import type { Growth, MoveNow } from "./moves";
+import type { OnScreen } from "./screen-range";
 import type { TypingDrop } from "./typing-drop";
 import { useHeldHeight } from "./held-height";
 import {
+  allStill,
   inFrame,
   land,
   moved,
   MOVES,
+  movesNow,
   newMove,
   pieceShift,
   rowShift,
@@ -27,11 +31,20 @@ import {
   startMove,
 } from "./moves";
 import { Place } from "./row-place";
+import { ALL_ON_SCREEN, inRange } from "./screen-range";
 
 // Rows that grow and shrink while the messages around them stay still
 // (see `Move` in `moves.ts`).
 
 const GrowthContext = createContext<Growth | null>(null);
+
+/** Lists so far, each one's number (see `Growth.id`). */
+let lists = 0;
+
+function nextListId() {
+  lists += 1;
+  return lists;
+}
 
 export function useGrowth() {
   const growth = use(GrowthContext);
@@ -55,14 +68,20 @@ export function GrowthProvider({
   children: ReactNode;
 }) {
   const [moves] = useState(() => Array.from({ length: MOVES }, newMove));
+  const shifts = useDerivedValue(() => movesNow(moves));
+  const onScreen = useSharedValue(ALL_ON_SCREEN);
+  const [id] = useState(nextListId);
   const typing = useSharedValue(0);
   const { drop, dropped } = typingDrop;
   return (
     <GrowthContext
       value={{
         blank,
+        id,
         list,
         moves,
+        onScreen,
+        shifts,
         typing,
         typingDrop: drop,
         typingDropped: dropped,
@@ -100,22 +119,47 @@ export function useClose() {
 }
 
 /**
+ * A row's style while it's off screen and something moves: the same
+ * object each frame, which Reanimated sees hasn't changed and sends
+ * nothing for. In a busy conversation something is always moving, and
+ * every row mounted (five screens either way) sent a transform each frame.
+ */
+const OFF_SCREEN = { transform: [{ translateY: 0 }] };
+
+/**
+ * A row's transform while space above it moves (see `rowShift`): none at
+ * rest (see `allStill`), and none off screen.
+ */
+function rowMoved(
+  moves: readonly MoveNow[],
+  range: OnScreen,
+  { order, withOwn }: { order: number; withOwn: boolean },
+) {
+  "worklet";
+  if (allStill(moves)) return {};
+  if (!inRange(range, order)) return OFF_SCREEN;
+  const { pending, shift } = rowShift(moves, order, withOwn);
+  return moved(shift, pending);
+}
+
+/**
  * A row's place while space above it moves: rows older than the growing
  * one, and, when `withOwn`, the growing row itself (stacked rows, whose
  * reactions open below the message). And its fade and height as it leaves
- * (see `Leave`).
+ * (see `Leave`), once it has started to.
  */
 export function useRowLift(
   order: number,
   withOwn: boolean,
-  { opacity, kept }: LeaveState,
+  leave: LeaveState | null,
   /** It's leaving now (see `Leave`). */
   leaving: boolean,
 ) {
-  const { moves } = useGrowth();
+  const { shifts, onScreen } = useGrowth();
   return useAnimatedStyle(() => {
-    const { pending, shift } = rowShift(moves, order, withOwn);
-    const style = moved(shift, pending);
+    const style = rowMoved(shifts.get(), onScreen.get(), { order, withOwn });
+    if (leave === null) return style;
+    const { opacity, kept } = leave;
     const height = kept.get();
     if (height !== -1) {
       // eslint-disable-next-line vera/no-layout-animation -- Not animated: a leaving row's height changes once, in the same frame as `useClose` draws what moved back where it was.
@@ -137,8 +181,11 @@ export function useRowLift(
  * below the space stays put.
  */
 export function usePieceLift(order: number, place: number, rowMoves = false) {
-  const { moves } = useGrowth();
+  const { shifts } = useGrowth();
   return useAnimatedStyle(() => {
+    const moves = shifts.get();
+    // Empty at rest, as `useRowLift`'s is.
+    if (allStill(moves)) return {};
     const { pending, shift } = pieceShift(moves, { order, place, rowMoves });
     return moved(shift, pending);
   });
@@ -151,9 +198,24 @@ export function usePieceLift(order: number, place: number, rowMoves = false) {
  * Nothing until it first opens, so rows that never need it cost nothing.
  */
 export function GrowingSpace(props: SpaceProps) {
-  const [used, setUsed] = useState(props.height > 0);
-  if (!used && props.height > 0) setUsed(true);
-  return used ? <Space {...props} /> : null;
+  const first = useFirst(props.height);
+  const changed = useChangedSinceMount(props.height);
+  const [used, setUsed] = useState(changed);
+  if (!used && changed) setUsed(true);
+  if (used) {
+    // From what it held as a plain view, if it did.
+    return (
+      <Space {...props} from={props.from ?? (first > 0 ? first : undefined)} />
+    );
+  }
+  if (first === 0) return null;
+  // Open when the row appeared (reactions it already had), and not
+  // changed since: a plain view of that height, without the shared values
+  // and styles of one that moves.
+  if (!props.animate && props.children === undefined) {
+    return <View style={{ height: first }} />;
+  }
+  return <Space {...props} />;
 }
 
 interface SpaceProps {
@@ -219,8 +281,13 @@ function Space({
  * something it was shown with.
  */
 export function useChangedSinceMount<Value>(value: Value) {
+  return value !== useFirst(value);
+}
+
+/** What `value` was when the component mounted. */
+function useFirst<Value>(value: Value) {
   const [first] = useState(value);
-  return value !== first;
+  return first;
 }
 
 /**
@@ -233,7 +300,6 @@ export function useChangedSinceMount<Value>(value: Value) {
 export function Settle({ header, order }: { header: number; order: number }) {
   const [shown, setShown] = useState(header);
   const [lost, setLost] = useState({ height: 0, times: 0 });
-  const measured = useAnimatedRef<View>();
   if (header !== shown) {
     setShown(header);
     if (header < shown) {
@@ -241,11 +307,17 @@ export function Settle({ header, order }: { header: number; order: number }) {
     }
   }
   if (lost.height === 0) return null;
+  return <Settling key={lost.times} lost={lost.height} order={order} />;
+}
+
+/** `Settle`'s space as it closes, mounted only then. */
+function Settling({ lost, order }: { lost: number; order: number }) {
+  const measured = useAnimatedRef<View>();
   return (
-    <Animated.View key={lost.times} ref={measured}>
+    <Animated.View ref={measured}>
       <Space
         height={0}
-        from={lost.height}
+        from={lost}
         order={order}
         place={Place.gap}
         animate

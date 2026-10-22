@@ -1,5 +1,9 @@
 import type { View } from "react-native";
-import type { AnimatedRef, SharedValue } from "react-native-reanimated";
+import type {
+  AnimatedRef,
+  DerivedValue,
+  SharedValue,
+} from "react-native-reanimated";
 import {
   Easing,
   makeMutable,
@@ -9,6 +13,7 @@ import {
 } from "react-native-reanimated";
 
 import type { Blank } from "./blank-space";
+import type { OnScreen } from "./screen-range";
 
 // How the messages move as a row's space opens or closes (see `Move`), for
 // `grow.tsx` and the rows that open (see `Arrive`).
@@ -73,7 +78,21 @@ export interface Move {
 export const MOVES = 4;
 
 export interface Growth {
+  /** Tells this list apart on the UI thread (see `joinArrivals`). */
+  readonly id: number;
   readonly moves: readonly Move[];
+  /**
+   * The moves as they are this frame, for the rows and pieces they draw
+   * (see `rowShift`): one value each row's style reads, rather than every
+   * move's seven, which each row sent to the UI thread as it mounted.
+   */
+  readonly shifts: DerivedValue<MoveNow[]>;
+  /**
+   * The orders of the rows on screen, and as many again either side (see
+   * `onScreenRange`): the rows a move draws. Every row outside it is
+   * drawn where it's laid out, without a transform each frame.
+   */
+  readonly onScreen: SharedValue<OnScreen>;
   /** The list, to tell whether a row is on screen. */
   readonly list: AnimatedRef<View>;
   /** The space under the newest message for who's typing. */
@@ -88,6 +107,32 @@ export interface Growth {
    * thread's original stays put while its replies move.
    */
   readonly blank?: Blank;
+}
+
+/** A move's values as they are this frame (see `movesNow`). */
+export interface MoveNow {
+  readonly pivot: number;
+  readonly place: number;
+  readonly whole: boolean;
+  readonly offset: number;
+  readonly below: number;
+  readonly pending: boolean;
+}
+
+/** What the rows and pieces need of the moves this frame. */
+export function movesNow(moves: readonly Move[]) {
+  "worklet";
+  return moves.map(
+    (move) =>
+      ({
+        below: move.below.get(),
+        offset: move.offset.get(),
+        pending: move.pending.get(),
+        pivot: move.pivot.get(),
+        place: move.place.get(),
+        whole: move.whole.get(),
+      }) satisfies MoveNow,
+  );
 }
 
 /** No row is growing: no order is below it. No rows closing together. */
@@ -294,7 +339,7 @@ export function inFrame(change: () => void) {
  * with what's above the space; newer ones with what's below it.
  */
 export function rowShift(
-  moves: readonly Move[],
+  moves: readonly MoveNow[],
   order: number,
   withOwn: boolean,
 ) {
@@ -302,17 +347,31 @@ export function rowShift(
   let shift = 0;
   let pending = false;
   for (const move of moves) {
-    const pivot = move.pivot.get();
+    const { pivot } = move;
     // A space at the top of a row (see `Settle`) leaves the row below it.
-    const own =
-      withOwn && !move.whole.get() && pivot === order && move.place.get() >= 0;
+    const own = withOwn && !move.whole && pivot === order && move.place >= 0;
     let by = 0;
-    if (pivot > order || own) by = move.offset.get();
-    else if (pivot < order) by = move.below.get();
+    if (pivot > order || own) by = move.offset;
+    else if (pivot < order) by = move.below;
     shift += by;
-    if (by !== 0 && move.pending.get()) pending = true;
+    if (by !== 0 && move.pending) pending = true;
   }
   return { pending, shift };
+}
+
+/**
+ * Whether every move is at rest, so nothing is drawn away from where it's
+ * laid out. A row's style is then empty rather than a transform to 0: a
+ * style Reanimated sees change as a row mounts (a new transform array is
+ * a change) is kept and put back into every layout commit after, for
+ * every row mounted, until it's copied back into React.
+ */
+export function allStill(moves: readonly MoveNow[]) {
+  "worklet";
+  for (const move of moves) {
+    if (move.offset !== 0 || move.below !== 0 || move.pending) return false;
+  }
+  return true;
 }
 
 /** Whether any space hasn't reached the screen yet (see `Move`). */
@@ -332,18 +391,18 @@ export function moved(translateY: number, pending: boolean) {
 }
 
 /** How far one move of its own row draws the piece at `place`. */
-function pieceBy(move: Move, place: number, rowMoves: boolean) {
+function pieceBy(move: MoveNow, place: number, rowMoves: boolean) {
   "worklet";
-  const above = move.place.get() > place;
+  const above = move.place > place;
   // As in `rowShift`: a space at a row's top doesn't move the row.
-  const rowGoes = rowMoves && move.place.get() >= 0;
-  if (above) return rowGoes ? 0 : move.offset.get();
-  return move.below.get() - (rowGoes ? move.offset.get() : 0);
+  const rowGoes = rowMoves && move.place >= 0;
+  if (above) return rowGoes ? 0 : move.offset;
+  return move.below - (rowGoes ? move.offset : 0);
 }
 
 /** How far the moves draw a piece of a row from where it's laid out. */
 export function pieceShift(
-  moves: readonly Move[],
+  moves: readonly MoveNow[],
   {
     order,
     place,
@@ -354,10 +413,10 @@ export function pieceShift(
   let shift = 0;
   let pending = false;
   for (const move of moves) {
-    if (move.pivot.get() !== order || move.whole.get()) continue;
+    if (move.pivot !== order || move.whole) continue;
     const by = pieceBy(move, place, rowMoves);
     shift += by;
-    if (by !== 0 && move.pending.get()) pending = true;
+    if (by !== 0 && move.pending) pending = true;
   }
   return { pending, shift };
 }

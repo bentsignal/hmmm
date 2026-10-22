@@ -10,12 +10,23 @@ export type LiftMode = MenuTarget["mode"];
 /** What a touch on a message's row landed on: the row, or a part's text. */
 export type TouchedPart = "row" | { readonly openMenu: () => void };
 
+/** What a tap on a row does there (see `useRowTap`). */
+interface RowTap {
+  /** Opens the message's thread, when a tap does. */
+  readonly openThread: (() => void) | undefined;
+  /** Whether a double tap opens its menu. */
+  readonly holdable: boolean;
+}
+
 /**
  * Where the latest touch landed, as the row or a part with its own menu
- * reports it, and when the row's gesture seeing it began. One touch lands
+ * reports it: which row, its height on screen, and when. And when the
+ * list's taps (see `useRowTaps`) last saw a touch begin. One touch lands
  * at a time, so they're kept for every row at once.
  */
-let touch: { at: number; part: TouchedPart } | undefined;
+let touch:
+  | { at: number; part: TouchedPart; row: string; y: number }
+  | undefined;
 let gestureBegan = 0;
 
 /**
@@ -25,13 +36,25 @@ let gestureBegan = 0;
  * close.
  */
 const REPORT_SLACK_MS = 250;
+/**
+ * How far a gesture's touch can be from a report and still be the same
+ * one: the list's taps see touches anywhere in the list, and a double
+ * tap's second touch lands a little off the first.
+ */
+const REPORT_SLACK_Y = 40;
 
-/** Says the latest touch landed on the row, or on a part with a menu. */
-export function reportTouch(part: TouchedPart) {
-  touch = { at: Date.now(), part };
+/** Each message row's taps, by the row's ID (see `useRowTap`). */
+const rowTaps = new Map<string, RowTap>();
+
+/**
+ * Says the latest touch landed on the row `row`, or on a part of it with a
+ * menu, at the height `y` on screen.
+ */
+export function reportTouch(part: TouchedPart, row: string, y: number) {
+  touch = { at: Date.now(), part, row, y };
 }
 
-/** Marks a row's gesture beginning, for a new touch. */
+/** Marks the list's taps seeing a touch begin. */
 export function rowGestureBegan() {
   gestureBegan = Date.now();
 }
@@ -42,14 +65,33 @@ export function ofLatestTouch(at: number) {
 }
 
 /**
- * What the row gesture's touch landed on: the row, a part with a menu, or
- * null for something with a press of its own (a photo, a reaction).
+ * What the list's taps' touch at the height `y` landed on: a row, or a
+ * part of one with a menu, and that row's taps. Null for anything else,
+ * or something with a press of its own (a photo, a reaction).
  */
-export function touchedPart() {
-  if (touch === undefined || !ofLatestTouch(touch.at)) {
+export function touchedRow(y: number) {
+  if (
+    touch === undefined ||
+    !ofLatestTouch(touch.at) ||
+    Math.abs(touch.y - y) > REPORT_SLACK_Y
+  ) {
     return null;
   }
-  return touch.part;
+  const tap = rowTaps.get(touch.row);
+  return tap === undefined
+    ? null
+    : { ...tap, part: touch.part, row: touch.row };
+}
+
+/** Registers what taps on the row `id` do (see `useRowTaps`). */
+export function useRowTap(id: string, tap: RowTap) {
+  useImperativeHandle(
+    (handle: RowTap | null) => {
+      if (handle === null) rowTaps.delete(id);
+      else rowTaps.set(id, handle);
+    },
+    () => tap,
+  );
 }
 
 /** Something a hold lifts with its menu, squeezing it while held. */

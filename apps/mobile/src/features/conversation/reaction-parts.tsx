@@ -139,17 +139,12 @@ function TapbackPart({
   const has = reactions.length > 0;
   return (
     <ReactionPartProvider part={part}>
-      {/* One view, so the space adds no gap between parts of its own. */}
-      <View>
-        {!top && (
-          <GrowingSpace
-            height={has ? PART_TAPBACK_SPACE : 0}
-            order={parts.order}
-            place={place}
-            animate={animate}
-            measured={parts.measured}
-          />
-        )}
+      <SpaceAbove
+        open={top ? undefined : has}
+        parts={parts}
+        place={place}
+        animate={animate}
+      >
         <Piece ref={ref} parts={parts} place={place}>
           {children}
           {/* After the part, so they draw over it on every platform. */}
@@ -166,8 +161,42 @@ function TapbackPart({
             />
           )}
         </Piece>
-      </View>
+      </SpaceAbove>
     </ReactionPartProvider>
+  );
+}
+
+/**
+ * Space above a part for its tapbacks, open while it has some (`open`),
+ * with the part in one view, so the space adds no gap between parts of
+ * its own. The top part's tapbacks rise into space above the message
+ * instead (`open` undefined), so it's the part alone.
+ */
+function SpaceAbove({
+  open,
+  parts,
+  place,
+  animate,
+  children,
+}: {
+  open: boolean | undefined;
+  parts: Parts;
+  place: number;
+  animate: boolean;
+  children: ReactNode;
+}) {
+  if (open === undefined) return children;
+  return (
+    <View>
+      <GrowingSpace
+        height={open ? PART_TAPBACK_SPACE : 0}
+        order={parts.order}
+        place={place}
+        animate={animate}
+        measured={parts.measured}
+      />
+      {children}
+    </View>
   );
 }
 

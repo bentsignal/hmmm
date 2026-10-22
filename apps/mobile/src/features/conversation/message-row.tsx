@@ -4,7 +4,6 @@ import { memo } from "react";
 import { View } from "react-native";
 import Animated, {
   useAnimatedReaction,
-  useAnimatedRef,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -150,21 +149,18 @@ function RowLift({
   onClosed: (batch: number) => void;
   children: ReactNode;
 }) {
-  const measured = useAnimatedRef<View>();
-  const leave = useLeaveState();
+  const leave = useLeaveState(leaving !== undefined);
   const lift = useRowLift(order, withOwn, leave, leaving !== undefined);
   return (
     <Animated.View
-      ref={measured}
       // Fading out as one (see `SendingFade`).
       needsOffscreenAlphaCompositing={leaving !== undefined}
       style={lift}
     >
-      {leaving !== undefined && (
+      {leaving !== undefined && leave !== null && (
         <Leave
           leaving={leaving}
           order={order}
-          measured={measured}
           state={leave}
           onFaded={onFaded}
           onClosed={onClosed}
@@ -241,7 +237,13 @@ function threadReplies(message: Message, profileOf: ProfileOf) {
   } satisfies ThreadReplies;
 }
 
-function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
+export function RowContent({
+  row,
+  self,
+  layout,
+  profileOf,
+  showAuthors,
+}: RowProps) {
   const stacked = layout === "stacked";
   if (row.type === "day") {
     return (

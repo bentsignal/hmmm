@@ -105,6 +105,8 @@ export interface RowsProps {
 const COMPOSER_GAP = 8;
 /** How many screens of rows stay mounted, centered on the screen. */
 const WINDOW_SCREENS = 11;
+/** How many screens from either end the next page is asked for. */
+const LOAD_AHEAD_SCREENS = 10;
 /** How long the conversation takes to fade in. */
 const FADE_MS = 220;
 
@@ -135,13 +137,14 @@ function Rows({
 }: RowsProps) {
   // Under the header, from the top of the screen.
   const top = useSafeAreaInsets().top + topInset;
-  const { anchorIndex, listRows, placement, typing } = useListRows({
+  const { anchorIndex, listRows, listProps, placement, typing } = useListRows({
     ...pages,
     anchorId,
     layout,
     listRef,
     rows: leaving.rows,
     toLatest: latest.toLatest,
+    scrollHandlers: latest.scrollHandlers,
     typists,
   });
   return (
@@ -190,35 +193,30 @@ function Rows({
         />
       )}
       // Enough to fill the screen at once, and to reach the message it
-      // opens on, so that one can be scrolled to before it shows. A page
-      // that loads renders all at once, so the list grows (and the scroll
-      // bar moves) once per page, not once per batch.
+      // opens on, so that one can be scrolled to before it shows.
       initialNumToRender={Math.max(20, anchorIndex + 15)}
-      maxToRenderPerBatch={8}
-      // Just the screen until it has faded in: mounting rows takes the UI
-      // thread, and a frame spent on it shows as a hitch in the fade. Then
-      // five screens either way, filled in small batches.
+      // Just the screen until it has faded in (mounting rows on the UI
+      // thread hitches the fade), then five screens either way.
       windowSize={shown ? WINDOW_SCREENS : 1}
       // Rows added or growing below what's on screen leave it be: a new
       // message opens in place (see useLatest). Off until it has faded in,
       // so it opens at the bottom whatever arrives meanwhile.
       maintainVisibleContentPosition={shown ? ANCHOR : undefined}
       // Inverted: the list's end is the oldest message, at the top. Older
-      // ones load three screens early, so a fast scroll rarely reaches
-      // the top before they're there.
+      // ones load ten screens early, so a fast fling doesn't reach the top
+      // before they're there (at three, it did, every page).
       onEndReached={placement.loadOlder}
-      onEndReachedThreshold={3}
+      onEndReachedThreshold={LOAD_AHEAD_SCREENS}
       onStartReached={placement.loadNewer}
-      onStartReachedThreshold={3}
+      onStartReachedThreshold={LOAD_AHEAD_SCREENS}
       onScroll={(event) => latest.onScroll(event.nativeEvent.contentOffset.y)}
-      {...latest.scrollHandlers}
       scrollEventThrottle={16}
       onContentSizeChange={(_, height) => {
         blank.onContentHeight(height);
         latest.onContentChange();
         placement.onLaidOut();
       }}
-      onScrollToIndexFailed={placement.onMissed}
+      {...listProps}
       keyboardDismissMode="interactive"
       keyboardShouldPersistTaps="handled"
       contentInsetAdjustmentBehavior="never"

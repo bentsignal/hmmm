@@ -6,7 +6,7 @@ import { Emoji } from "~/components/emoji";
 import { GlassSurface } from "~/components/glass-surface";
 import { cn } from "~/lib/cn";
 import { useOpaque } from "./fading";
-import { LONG_PRESS_MS } from "./message-actions";
+import { LONG_PRESS_MS } from "./squeeze";
 
 /**
  * Reactions pop in when they arrive and shrink away when taken back. One

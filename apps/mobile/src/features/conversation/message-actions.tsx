@@ -1,13 +1,8 @@
 import type { ReactNode, RefObject } from "react";
-import type { View as NativeView } from "react-native";
+import type { GestureResponderEvent, View as NativeView } from "react-native";
 import { createContext, use, useRef, useState } from "react";
 import { Pressable } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 
 import type {
   MenuTarget,
@@ -21,7 +16,13 @@ import { useAccount } from "~/features/messaging/account";
 import { impact } from "~/lib/native-extras";
 import { GlassMessageMenu } from "./glass-message-menu";
 import { handlersFor } from "./menu-actions";
-import { MenuPressContext, reportTouch, usePartTarget } from "./row-touch";
+import {
+  MenuPressContext,
+  reportTouch,
+  RowIdContext,
+  usePartTarget,
+} from "./row-touch";
+import { LONG_PRESS_MS, SqueezeProvider, useSqueeze } from "./squeeze";
 
 /** Adds or takes back your reaction on a part of a message. */
 export type ToggleReaction = (
@@ -137,7 +138,7 @@ export function MessageActionsProvider({
             : { messageId: target.message.id, part: target.part }
         }
       >
-        {children}
+        <SqueezeProvider>{children}</SqueezeProvider>
       </LiftedPartContext>
       {target !== null && (
         <GlassMessageMenu
@@ -163,11 +164,6 @@ export function MessageActionsProvider({
     </MessageActionsContext>
   );
 }
-
-/** Press-and-hold squeezes the held element a little, as iOS does. */
-const PRESS_SCALE = 0.96;
-export const LONG_PRESS_MS = 320;
-const RELEASE_SPRING = { damping: 14, stiffness: 320 };
 
 /** The message whose parts (bubble, link cards) open its menu. */
 interface MessageTarget {
@@ -233,27 +229,6 @@ export function useLiftMessage({
   const { open } = useMessageActions();
   return (mode: LiftMode) => {
     lift(open, measured, { align, message, mode, part, preview, shape });
-  };
-}
-
-/**
- * The squeeze while something is held, as iOS does: it shrinks a little
- * toward the hold's length, and springs back as it lifts or is let go. Put
- * `style` on what squeezes.
- */
-export function useSqueeze() {
-  const scale = useSharedValue(1);
-  const style = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-  return {
-    pressIn: () => {
-      scale.set(withTiming(PRESS_SCALE, { duration: LONG_PRESS_MS }));
-    },
-    release: () => {
-      scale.set(withSpring(1, RELEASE_SPRING));
-    },
-    style,
   };
 }
 
@@ -355,12 +330,19 @@ export function MenuTargetView({
   children: ReactNode;
 }) {
   const ref = useRef<NativeView>(null);
+  const row = use(RowIdContext);
   const target = useMenuTarget({ measured: ref, preview: children, shape });
   if (target === null) return children;
   const press = {
     ...target.press,
-    onPressIn: () => {
-      reportTouch({ openMenu: target.openMenu });
+    onPressIn: (event: GestureResponderEvent) => {
+      if (row !== null) {
+        reportTouch(
+          { openMenu: target.openMenu },
+          row,
+          event.nativeEvent.pageY,
+        );
+      }
       target.press.onPressIn();
     },
   };

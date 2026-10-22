@@ -61,6 +61,18 @@ export default function AppLayout() {
   );
 }
 
+/**
+ * A screen there's one of per value of its route's `param`, so a second
+ * tap while one opens (on a busy JavaScript thread) brings that one up
+ * rather than pushing another.
+ */
+function singularBy(param: string) {
+  return (_name: string, params: Record<string, unknown>) => {
+    const value = params[param];
+    return typeof value === "string" ? value : undefined;
+  };
+}
+
 function AppStack() {
   const formScreen = useFormScreenOptions();
   return (
@@ -68,12 +80,14 @@ function AppStack() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
         name="conversation/[conversationId]"
+        dangerouslySingular={singularBy("conversationId")}
         // The screen draws its own iMessage-style header, with messages
         // scrolling under it. Swiping back still works without the bar.
         options={{ headerShown: false, title: "" }}
       />
       <Stack.Screen
         name="thread/[threadId]"
+        dangerouslySingular={singularBy("threadId")}
         // Like a conversation, it draws its own header.
         options={{ headerShown: false, title: "" }}
       />
@@ -87,6 +101,7 @@ function AppStack() {
       />
       <Stack.Screen
         name="profile/[address]"
+        dangerouslySingular={singularBy("address")}
         options={{ headerTransparent: Platform.OS === "ios", title: "" }}
       />
       <Stack.Screen

@@ -10,7 +10,7 @@ import { formatTime } from "~/lib/format";
 import { AuthorLink } from "./author-link";
 import { rowOrder } from "./build-rows";
 import { Settle, useChangedSinceMount } from "./grow";
-import { useMessageActions, useSqueeze } from "./message-actions";
+import { useMessageActions } from "./message-actions";
 import { lastPart, partCount } from "./message-parts";
 import { InteractiveMessage } from "./message-reactions";
 import { NotSent, SendingFade, SENT_FADE_MS } from "./message-status";
@@ -23,6 +23,7 @@ import {
   stackedHeader,
 } from "./row-header";
 import { useRowTarget } from "./row-touch";
+import { useSqueeze } from "./squeeze";
 import { StackedFooter, StackedParts } from "./stacked-parts";
 
 const AVATAR_COLUMN = 36;

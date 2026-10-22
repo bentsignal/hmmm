@@ -14,15 +14,12 @@ import type { ReactionPart } from "~/features/messaging/reactions";
 import { cn } from "~/lib/cn";
 import { rowOrder } from "./build-rows";
 import { GrowingSpace } from "./grow";
-import {
-  MessageTargetProvider,
-  useLiftMessage,
-  useSqueeze,
-} from "./message-actions";
+import { MessageTargetProvider, useLiftMessage } from "./message-actions";
 import { PartChips } from "./part-chips";
 import { PartsProvider, usePartReactions } from "./reaction-parts";
 import { Place } from "./row-place";
 import { useRowTarget } from "./row-touch";
+import { useSqueeze } from "./squeeze";
 import { NAME_CLEARANCE, TAPBACK_SPACE } from "./tapbacks";
 
 /**

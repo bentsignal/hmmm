@@ -15,6 +15,7 @@ import type { Message } from "./types";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { deleteOutgoing, retryOutgoing } from "~/features/messaging/outbox";
 import { Fading } from "./fading";
+import { useChangedSinceMount } from "./grow";
 
 function showNotSent(messageId: string) {
   Alert.alert(
@@ -43,6 +44,20 @@ export const SENT_FADE_MS = 300;
  * to full once the PDS has it, instead of a "Sending…" or "Delivered" label.
  */
 export function SendingFade({
+  status,
+  children,
+}: {
+  status: Message["status"];
+  children: ReactNode;
+}) {
+  // Sent before it showed, as nearly every message is: nothing to fade, and
+  // none of the fade's work as it mounts while scrolling.
+  const changed = useChangedSinceMount(status);
+  if (status === undefined && !changed) return children;
+  return <Fade status={status}>{children}</Fade>;
+}
+
+function Fade({
   status,
   children,
 }: {
