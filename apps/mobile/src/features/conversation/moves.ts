@@ -88,6 +88,11 @@ export interface Growth {
    * thread's original stays put while its replies move.
    */
   readonly blank?: Blank;
+  /**
+   * Counts moves as they start to ease, for the list's room for the
+   * composer to close with after a send (see `useComposerRoom`).
+   */
+  readonly moving?: SharedValue<number>;
 }
 
 /** No row is growing: no order is below it. No rows closing together. */
@@ -222,6 +227,7 @@ export function startMove(
   // ahead by as much.
   requestAnimationFrame(() => {
     const ease = { duration: GROW_MS, easing: GROW_EASING };
+    growth.moving?.set(growth.moving.get() + 1);
     move.below.set(withTiming(0, ease));
     move.offset.set(
       withTiming(0, ease, (finished) => {

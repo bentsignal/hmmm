@@ -333,6 +333,7 @@ export function MessageList({
             // rows that change size update it at once (see `lift`).
             blank={blank.sizes && { ...blank.sizes, floor: latest.floor }}
             typingDrop={typingDrop}
+            moving={latest.moving}
           >
             <Rows
               {...props}

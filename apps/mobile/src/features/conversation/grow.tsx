@@ -46,12 +46,15 @@ export function GrowthProvider({
   list,
   blank,
   typingDrop,
+  moving,
   children,
 }: {
   list: AnimatedRef<View>;
   blank?: Blank;
   /** Where who's typing is drawn (see `useTypingDrop`). */
   typingDrop: TypingDrop;
+  /** Counts moves as they start (see `Growth`). */
+  moving?: SharedValue<number>;
   children: ReactNode;
 }) {
   const [moves] = useState(() => Array.from({ length: MOVES }, newMove));
@@ -63,6 +66,7 @@ export function GrowthProvider({
         blank,
         list,
         moves,
+        moving,
         typing,
         typingDrop: drop,
         typingDropped: dropped,
