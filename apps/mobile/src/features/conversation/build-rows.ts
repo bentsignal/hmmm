@@ -228,7 +228,6 @@ function noticeHeader(
   } satisfies HeaderRow;
 }
 
-
 /**
  * Messages and notices in one list, oldest first; a notice comes after
  * messages sent at the same moment.
@@ -341,7 +340,6 @@ function dateOfRow(row: Exclude<MessageRow, { type: "replies" }>) {
       return row satisfies never;
   }
 }
-
 
 /**
  * Rows newest first, as the inverted list lays them out from the bottom.

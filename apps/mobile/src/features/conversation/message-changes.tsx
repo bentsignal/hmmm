@@ -5,6 +5,7 @@ import type { Message } from "./types";
 import { cn } from "~/lib/cn";
 import { BUBBLE_RADIUS } from "./bubble-shape";
 import { GrowingSpace, useChangedSinceMount } from "./grow";
+import { BUBBLE_COLUMN_GAP } from "./row-header";
 import { useRowOrder } from "./row-order";
 import { Place } from "./row-place";
 
@@ -38,8 +39,6 @@ export function DeletedText() {
 
 /** The "Edited" line's height, fixed so its space can open before it. */
 const EDITED_LINE = 16;
-/** The bubble column's gap (`gap-0.5`), which the label's space takes in. */
-const COLUMN_GAP = 2;
 const SHOW = FadeIn.duration(220);
 
 function EditedText({ isOwn }: { isOwn: boolean }) {
@@ -77,15 +76,15 @@ function LateEdited({ message, isOwn }: { message: Message; isOwn: boolean }) {
   const order = useRowOrder(message);
   const measured = useAnimatedRef<View>();
   return (
-    <Animated.View ref={measured} style={{ marginTop: -COLUMN_GAP }}>
+    <Animated.View ref={measured} style={{ marginTop: -BUBBLE_COLUMN_GAP }}>
       <GrowingSpace
-        height={EDITED_LINE + COLUMN_GAP}
+        height={EDITED_LINE + BUBBLE_COLUMN_GAP}
         order={order}
         place={Place.bottom}
         animate
         measured={measured}
       >
-        <Animated.View entering={SHOW} style={{ marginTop: COLUMN_GAP }}>
+        <Animated.View entering={SHOW} style={{ marginTop: BUBBLE_COLUMN_GAP }}>
           <EditedText isOwn={isOwn} />
         </Animated.View>
       </GrowingSpace>

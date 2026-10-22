@@ -24,6 +24,11 @@ export const STACKED_GAP = 6;
 /** The name line over a stacked run, and the column's gap under it. */
 export const STACKED_NAME_LINE = 20;
 export const STACKED_NAME_GAP = 4;
+/**
+ * The gap between the parts of a bubble's column (`gap-0.5`): a line that
+ * opens under the bubble takes it in (see `Appearing`).
+ */
+export const BUBBLE_COLUMN_GAP = 2;
 
 /** How the list shows its rows, for their headers. */
 export interface HeaderContext {

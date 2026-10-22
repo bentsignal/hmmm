@@ -3,8 +3,10 @@ import { View } from "react-native";
 import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
 import { attachmentPart } from "~/features/messaging/reactions";
+import { Appearing } from "./appearing";
 import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
+import { useChangedSinceMount } from "./grow";
 import { LinkCardView } from "./link-preview-card";
 import { LinkedText } from "./linked-text";
 import { MenuTargetView } from "./message-actions";
@@ -13,6 +15,7 @@ import { linkPart, partCount } from "./message-parts";
 import { linkCardsOf, visibleBody } from "./message-text";
 import { Placed, Reactable } from "./reaction-parts";
 import { RepliesFooter, ThreadFooter } from "./reply-card";
+import { useRowOrder } from "./row-order";
 
 /**
  * A message's parts, top to bottom: its text, its attachments, and its
@@ -83,14 +86,18 @@ export function StackedFooter({
   card?: ReplyCard;
   replies?: ThreadReplies;
 }) {
+  const order = useRowOrder(message);
+  // Its first reply came while you watched (see `Appearing`).
+  const repliesLate = useChangedSinceMount(replies !== undefined);
   if (card === undefined && replies === undefined) return null;
+  const place = message.attachments.length + linkCardsOf(message).length + 1;
   return (
-    <Placed
-      place={message.attachments.length + linkCardsOf(message).length + 1}
-    >
+    <Placed place={place}>
       {card !== undefined && <ThreadFooter message={message} card={card} />}
       {replies !== undefined && (
-        <RepliesFooter message={message} replies={replies} />
+        <Appearing late={repliesLate} order={order} place={place}>
+          <RepliesFooter message={message} replies={replies} />
+        </Appearing>
       )}
     </Placed>
   );

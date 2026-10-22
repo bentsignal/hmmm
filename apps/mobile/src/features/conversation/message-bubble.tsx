@@ -7,6 +7,7 @@ import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
 import { attachmentPart } from "~/features/messaging/reactions";
 import { cn } from "~/lib/cn";
+import { Appearing } from "./appearing";
 import { useBecoming } from "./arrive";
 import { attachmentKey } from "./attachment-key";
 import { AttachmentView } from "./attachment-view";
@@ -15,7 +16,7 @@ import { BubbleBody } from "./bubble-body";
 import { GrowingText } from "./bubble-morph";
 import { MovingQuote, MovingReplyCurve } from "./bubble-reply";
 import { aboveBubble, bubbleTopPart } from "./bubble-top";
-import { Settle, usePieceLift } from "./grow";
+import { Settle, useChangedSinceMount, usePieceLift } from "./grow";
 import { LinkCardView } from "./link-preview-card";
 import { MenuTargetView } from "./message-actions";
 import { DeletedBubble, EditedLabel } from "./message-changes";
@@ -27,7 +28,7 @@ import { Reactable } from "./reaction-parts";
 import { RepliesFooter, ThreadFooter } from "./reply-card";
 import { replyIndent } from "./reply-parts";
 import { RevealedTime, SlideWithReveal } from "./reveal";
-import { BUBBLE_HEADER, bubbleHeader } from "./row-header";
+import { BUBBLE_COLUMN_GAP, BUBBLE_HEADER, bubbleHeader } from "./row-header";
 import { useRowOrder } from "./row-order";
 import { Place } from "./row-place";
 
@@ -187,6 +188,8 @@ function BubbleColumn({
   replies?: ThreadReplies;
 }) {
   const order = useRowOrder(message);
+  // Its first reply came while you watched (see `Appearing`).
+  const repliesLate = useChangedSinceMount(replies !== undefined);
   // Where the name's text ends, inside its padding.
   const [nameEnd, setNameEnd] = useState<number>();
   // Tapbacks rise beside the name, which keeps its place. Over a quote,
@@ -224,14 +227,21 @@ function BubbleColumn({
         />
       </InteractiveMessage>
       <EditedLabel message={message} isOwn={isOwn} />
-      <NotSent message={message} />
+      <NotSent message={message} gap={BUBBLE_COLUMN_GAP} />
       {card !== undefined && (
         <View style={replyIndent(isOwn)}>
           <ThreadFooter message={message} card={card} isOwn={isOwn} />
         </View>
       )}
       {replies !== undefined && (
-        <RepliesFooter message={message} replies={replies} isOwn={isOwn} />
+        <Appearing
+          late={repliesLate}
+          order={order}
+          place={Place.bottom}
+          gap={BUBBLE_COLUMN_GAP}
+        >
+          <RepliesFooter message={message} replies={replies} isOwn={isOwn} />
+        </Appearing>
       )}
     </View>
   );
