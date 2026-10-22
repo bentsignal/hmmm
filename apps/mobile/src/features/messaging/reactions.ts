@@ -296,11 +296,14 @@ export function useReactions(
   }
 
   const loadedIds = new Set(loaded);
+  const live = new Set(liveIds);
 
   return {
     /** A message's reactions, or undefined while they are still loading. */
     reactionsOf: (messageId: string) =>
       loadedIds.has(messageId) ? (reactions[messageId] ?? NONE) : undefined,
+    /** The `since` of the query with a message's reactions, if it's by time. */
+    sinceOf: (messageId: string) => (live.has(messageId) ? since : undefined),
     toggle: (messageId: string, emoji: string, part: ReactionPart) => {
       const on = !(
         reactions[messageId]?.some(

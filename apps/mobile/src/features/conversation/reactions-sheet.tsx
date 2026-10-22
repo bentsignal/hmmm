@@ -153,29 +153,20 @@ function Title() {
 }
 
 /**
- * Who reacted to a part of a message (see `ReactionPart`), like Discord's sheet: a tab for everyone and
- * one per emoji with its count, and the people under the selected tab, each
- * with what they reacted with. It draws its own title, since a native
- * header on a sheet floats over the tabs.
+ * The reactions the sheet lists, from the conversation's query that has
+ * this message's: by time for its newest messages (`since`), otherwise the
+ * one for this message's batch. Those are already loaded and live, so the
+ * sheet shows them at once. A query of its own would show an empty sheet
+ * until the PDS answered, which on a slow connection looked like nobody
+ * had reacted.
  */
-export function ReactionsSheet({
-  conversationId,
-  messageId,
-  part,
-  emoji,
-}: {
-  conversationId: string;
-  messageId: string;
-  part: ReactionPart;
-  /** The tab to open on, such as the reaction that was held. */
-  emoji?: string;
-}) {
+function useMessageReactions(
+  conversationId: string,
+  messageId: string,
+  since: number | undefined,
+) {
   const { address } = useAccount();
   const queryClient = useQueryClient();
-  // The conversation already has this message's reactions, live, in the
-  // query for its batch of messages: reading that one shows them at once.
-  // A query of its own would show an empty sheet until the PDS answered,
-  // which on a slow connection looked like nobody had reacted.
   const [messageIds] = useState(
     () =>
       loadedBatchWith(
@@ -186,12 +177,43 @@ export function ReactionsSheet({
   );
   const { data } = useQuery(
     pdsQuery({
-      args: { conversationId, messageIds },
+      args:
+        since === undefined
+          ? { conversationId, messageIds }
+          : { conversationId, since },
       options: { select: (result) => pdsResult(result)?.flat() },
       query: pds.messages.reactions,
       session: address,
     }),
   );
+  return data;
+}
+
+/**
+ * Who reacted to a part of a message (see `ReactionPart`), like Discord's sheet: a tab for everyone and
+ * one per emoji with its count, and the people under the selected tab, each
+ * with what they reacted with. It draws its own title, since a native
+ * header on a sheet floats over the tabs.
+ */
+export function ReactionsSheet({
+  conversationId,
+  messageId,
+  part,
+  emoji,
+  since,
+}: {
+  conversationId: string;
+  messageId: string;
+  part: ReactionPart;
+  /** The tab to open on, such as the reaction that was held. */
+  emoji?: string;
+  /**
+   * The conversation's query by time that has this message's reactions,
+   * when it's one of the newest (see `ReactionSources`).
+   */
+  since?: number;
+}) {
+  const data = useMessageReactions(conversationId, messageId, since);
   const [picked, setPicked] = useState(emoji ?? ALL);
   const reactors = byPerson(
     (data ?? []).filter(

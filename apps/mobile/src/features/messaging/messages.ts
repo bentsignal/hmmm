@@ -232,7 +232,7 @@ export function useMessages(
   const inThread = threadId !== undefined;
   const view = useMessageWindow(address, { conversationId, threadId }, anchor);
   const { parts } = view;
-  const { reactionsOf, toggle } = useReactions(
+  const { reactionsOf, sinceOf, toggle } = useReactions(
     address,
     conversationId,
     inThread
@@ -299,6 +299,8 @@ export function useMessages(
     replyCount: replyCountOf(threads.threadOf, threadId),
     /** Adds or removes your reaction, showing it right away. */
     toggleReaction: toggle,
+    /** Which query by time has a message's reactions, if one does. */
+    reactionsSince: sinceOf,
     /** Only set when the newest loaded message is the newest there is. */
     newestSentAt: newestSentAt(view),
     /**

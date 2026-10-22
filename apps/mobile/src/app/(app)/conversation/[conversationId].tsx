@@ -161,8 +161,8 @@ function Conversation({
   const composerBottomInset = useComposerBottomInset();
   const { address } = useAccount();
   const afterSend = useAfterSend(conversationId);
-  const viewReactions = useReactionsSheet(conversationId);
   const messages = useMessages(conversationId, { anchor: anchorId });
+  const viewReactions = useReactionsSheet(conversationId, messages);
   const loaded = useConversation(conversationId, messages.messages);
   const { conversation, isLoading, profileOf, profilesLoaded } = loaded;
   const layout = useMessageLayout(conversation?.kind);

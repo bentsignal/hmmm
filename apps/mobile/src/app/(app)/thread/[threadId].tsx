@@ -173,8 +173,8 @@ function Thread({
   const composerBottomInset = useComposerBottomInset();
   const { address } = useAccount();
   const devTools = useDevTools();
-  const viewReactions = useReactionsSheet(conversationId);
   const thread = useMessages(conversationId, { threadId });
+  const viewReactions = useReactionsSheet(conversationId, thread);
   const { conversation, profileOf, profilesLoaded, title } = useConversation(
     conversationId,
     shownMessages(thread),
