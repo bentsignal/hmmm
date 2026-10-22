@@ -4,8 +4,8 @@ import { useQueries, useQueryClient } from "@tanstack/react-query";
 
 import type { PageCursor, PageData, View } from "./window-model";
 import type { Page, WindowSource } from "./window-pages";
+import { isLive } from "./live-queries";
 import { pdsFailed } from "./results";
-import { isLive } from "./stay-live";
 import {
   anchoredView,
   follow,
@@ -45,28 +45,51 @@ function openLatest(
   source: WindowSource,
   now = Date.now(),
 ) {
-  const windowKey = windowKeyOf(session, source);
-  const last = lastWindows.get(windowKey);
+  const last = reusedWindow(queryClient, session, source, now);
+  if (last !== undefined) {
+    // Followed again only once the PDS confirms its pages (`advance`).
+    return isLive(queryClient, session, source.conversationId)
+      ? last
+      : { ...last, followed: [] };
+  }
+  const view = latestView(now);
+  lastWindows.set(windowKeyOf(session, source), { at: now, view });
+  return view;
+}
+
+/** The window last shown, if opening again now would show it again. */
+function reusedWindow(
+  queryClient: QueryClient,
+  session: string,
+  source: WindowSource,
+  now: number,
+) {
+  const last = lastWindows.get(windowKeyOf(session, source));
   const lastCursor = last?.view.pages.at(-1);
   const lastPage =
     lastCursor === undefined
       ? undefined
       : cachedPage(queryClient, session, source, lastCursor);
-  if (
+  const reused =
     last !== undefined &&
     reusable(last.view, lastPage, {
       age: now - last.at,
       maxAge: REUSE_WINDOW_MS,
-    })
-  ) {
-    // Followed again only once the PDS confirms its pages (`advance`).
-    return isLive(queryClient, session, source.conversationId)
-      ? last.view
-      : { ...last.view, followed: [] };
-  }
-  const view = latestView(now);
-  lastWindows.set(windowKey, { at: now, view });
-  return view;
+    });
+  return reused ? last.view : undefined;
+}
+
+/**
+ * Whether the window a conversation or thread last showed opens again as
+ * it was: a long one (scrolled far back) opens afresh at the latest
+ * messages, with pages of its own.
+ */
+export function windowReused(
+  queryClient: QueryClient,
+  session: string,
+  source: WindowSource,
+) {
+  return reusedWindow(queryClient, session, source, Date.now()) !== undefined;
 }
 
 /**

@@ -3,7 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import { inboxQuery } from "~/features/messaging/inbox";
 import { refetchConversation } from "~/features/messaging/prefetch";
-import { isLive } from "~/features/messaging/stay-live";
+import { isLive } from "~/features/messaging/live-queries";
 import { recentConversations, versionOf } from "./recent";
 import { liveSelected } from "./saved-cache";
 import { readVersions } from "./saved-files";

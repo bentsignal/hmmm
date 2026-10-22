@@ -1,14 +1,11 @@
 import type { Query, QueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import {
-  partialMatchKey,
-  QueryObserver,
-  useQueryClient,
-} from "@tanstack/react-query";
-import { pdsSessionQueryKey } from "@decentralized-convex/tanstack-query";
+import { QueryObserver, useQueryClient } from "@tanstack/react-query";
 
 import { fieldOf } from "~/features/saved/fields";
 import { useAccount } from "./account";
+import { isAbout } from "./live-queries";
+import { windowReused } from "./message-window";
 
 /** How long a conversation stays live after its screen closes. */
 const STAY_LIVE_MS = 3 * 60 * 1000;
@@ -21,29 +18,18 @@ const STAY_LIVE_MAX = 5;
  */
 const staying = new Map<string, () => void>();
 
-/** Whether a query is one of the session's about the conversation. */
-function isAbout(query: Query, session: string, conversationId: string) {
-  const request = query.queryKey[5];
-  const args = fieldOf(fieldOf(request, "operation"), "args");
-  return (
-    partialMatchKey(query.queryKey, pdsSessionQueryKey(session)) &&
-    fieldOf(args, "conversationId") === conversationId
-  );
-}
+/** What a window's pages ask for: their messages, reactions, and threads. */
+const PAGE_OPERATIONS = new Set([
+  "list",
+  "thread",
+  "reactions",
+  "threadSummaries",
+]);
 
-/**
- * Whether anything about the conversation is live: its screen is open, or
- * it's staying live after closing.
- */
-export function isLive(
-  queryClient: QueryClient,
-  session: string,
-  conversationId: string,
-) {
-  return queryClient
-    .getQueryCache()
-    .findAll({ predicate: (query) => query.isActive() })
-    .some((query) => isAbout(query, session, conversationId));
+/** Whether `query` is one of a window's pages (see `PAGE_OPERATIONS`). */
+function ofPages(query: Query) {
+  const operation = fieldOf(fieldOf(query.queryKey[5], "operation"), "type");
+  return typeof operation === "string" && PAGE_OPERATIONS.has(operation);
 }
 
 /**
@@ -105,10 +91,19 @@ export function useStayLive(conversationId: string, threadId?: string) {
     return () => {
       unsubscribe();
       clearTimeout(takeOver);
+      // A window that won't open again as it was (see `windowReused`)
+      // has nothing to keep its pages live for: scrolled far back, they
+      // were dozens of queries, live for minutes.
+      const reused = windowReused(queryClient, address, {
+        conversationId,
+        threadId,
+      });
       stayLive(
         queryClient,
         key,
-        [...shown].flatMap((hash) => cache.get(hash) ?? []),
+        [...shown]
+          .flatMap((hash) => cache.get(hash) ?? [])
+          .filter((query) => reused || !ofPages(query)),
       );
     };
   }, [queryClient, address, conversationId, threadId]);
