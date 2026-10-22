@@ -128,6 +128,43 @@ void test("publishes each update from home once while its routes stay the same",
   await client.close();
 });
 
+void test("shows what home has when a routed PDS can't be found, and finds it later", async () => {
+  const connections = new Map<string, ControlledConnection>();
+  let reachable = false;
+  const client = new DecentralizedConvexClient({
+    connectionFactory: (url) => {
+      const connection = new ControlledConnection();
+      connections.set(url, connection);
+      return connection;
+    },
+    pds: {
+      discover: (domain) =>
+        reachable || domain === "a.test"
+          ? Promise.resolve(discoveredPds(domain))
+          : Promise.reject(new Error(`${domain} is unreachable`)),
+      home: discoveredPds("a.test"),
+    },
+  });
+  const observer = client.watchPdsQuery(listNotesRequest, {
+    revealPartialResultsAfter: 0,
+  });
+
+  connections.get("https://a.test")?.emit([{ body: "a" }], ["b.test"]);
+  await wait(0);
+  assert.equal(observer.getSnapshot().status, "partial");
+  assert.deepEqual(observer.getSnapshot().data, [{ body: "a" }]);
+
+  // Found on the next try, a second later.
+  reachable = true;
+  await wait(1050);
+  connections.get("https://b.test")?.emit([{ body: "b" }]);
+  assert.equal(observer.getSnapshot().status, "success");
+  assert.deepEqual(observer.getSnapshot().data, [{ body: "a" }, { body: "b" }]);
+
+  observer.close();
+  await client.close();
+});
+
 const listNotesRequest = {
   lastChanged: corePackage.lastChanged,
   operation: { args: {}, type: "list" },

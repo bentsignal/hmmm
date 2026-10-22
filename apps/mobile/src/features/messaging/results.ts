@@ -31,6 +31,13 @@ function unanswered<Result, Source>(
   );
 }
 
+/** Whether the PDS answered with an error: not one it may still answer. */
+export function pdsFailed<Result, Source>(
+  data: PdsQueryData<Result, Source> | undefined,
+) {
+  return data?.status === "error" && !unanswered(data);
+}
+
 /**
  * Like `pdsResult`, but `fallback` once the PDS has failed, for optional
  * extras (such as from a PDS that predates them) that shouldn't hold up a
@@ -41,9 +48,7 @@ export function pdsResultOr<Result, Source, Fallback>(
   data: PdsQueryData<Result, Source> | undefined,
   fallback: Fallback,
 ) {
-  return data?.status === "error" && !unanswered(data)
-    ? fallback
-    : pdsResult(data);
+  return pdsFailed(data) ? fallback : pdsResult(data);
 }
 
 /** What's cached of a query, as its screen reads it (its `select`). */

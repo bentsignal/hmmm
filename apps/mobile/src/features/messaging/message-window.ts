@@ -4,6 +4,7 @@ import { useQueries, useQueryClient } from "@tanstack/react-query";
 
 import type { PageCursor, PageData, View } from "./window-model";
 import type { Page, WindowSource } from "./window-pages";
+import { pdsFailed } from "./results";
 import { isLive } from "./stay-live";
 import {
   anchoredView,
@@ -201,6 +202,9 @@ function useWindowState(
           };
     });
   }
+  if (anchorMissing(queryClient, { results, session, source, view })) {
+    setState(() => ({ next: undefined, view: latestView(Date.now()) }));
+  }
   const followed = follow(
     state,
     resultsOf(view, 0),
@@ -209,6 +213,36 @@ function useWindowState(
   );
   if (followed !== state) setState(followed);
   return { results, setAtLatest, setState, state };
+}
+
+/**
+ * The window opened at a message its PDS doesn't have (deleted since a
+ * notification about it, or kept on another PDS): it opens at the latest
+ * messages instead of waiting for that one for good.
+ */
+function anchorMissing(
+  queryClient: QueryClient,
+  {
+    results,
+    session,
+    source,
+    view,
+  }: {
+    results: readonly { dataUpdatedAt: number }[];
+    session: string;
+    source: WindowSource;
+    view: View;
+  },
+) {
+  if (view.anchor === undefined) return false;
+  // Read so the window hears when the page's answer comes, error or not.
+  if (results[view.pages.indexOf(view.opened)]?.dataUpdatedAt === 0) {
+    return false;
+  }
+  const raw = queryClient.getQueryData<Parameters<typeof pdsFailed>[0]>(
+    pageQuery(session, source, view.opened).queryKey,
+  );
+  return pdsFailed(raw);
 }
 
 /** What the screen asks of the window, besides what it shows. */

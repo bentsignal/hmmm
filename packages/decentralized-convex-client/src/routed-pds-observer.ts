@@ -12,11 +12,20 @@ import type {
   FederationTarget,
   IncludedPdsQuery,
 } from "./types.ts";
-import { PdsInitialResponseTimeoutError } from "./errors.ts";
+import { PdsInitialResponseTimeoutError, toError } from "./errors.ts";
 import { includedOnHome } from "./included.ts";
 import { PdsClient } from "./pds.ts";
 import { createFederatedSnapshot } from "./snapshot.ts";
 import { groupFederationTargets } from "./targets.ts";
+
+/**
+ * Where the PDSes a query's routes name stand while they can't be found
+ * (see `#routesFailed`).
+ */
+const UNRESOLVED = "unresolved:";
+/** The first wait before finding a query's PDSes again, doubling to the most. */
+const ROUTE_RETRY_MS = 1000;
+const ROUTE_RETRY_MAX_MS = 30_000;
 
 export class RoutedPdsQueryObserver<
   Request extends AnyPdsQueryRequest,
@@ -46,6 +55,8 @@ export class RoutedPdsQueryObserver<
   #partialResultsTimer?: ReturnType<typeof setTimeout>;
   #routesResolved = false;
   #routingGeneration = 0;
+  #routeFailures = 0;
+  #routeRetry?: ReturnType<typeof setTimeout>;
   #snapshot: FederatedQuerySnapshot<Combined, PdsRequestResult<Request>>;
   readonly #startedAt = Date.now();
 
@@ -92,6 +103,7 @@ export class RoutedPdsQueryObserver<
     if (this.#closed) return;
     this.#closed = true;
     this.#routingGeneration += 1;
+    clearTimeout(this.#routeRetry);
     if (this.#partialResultsTimer !== undefined) {
       clearTimeout(this.#partialResultsTimer);
     }
@@ -120,9 +132,7 @@ export class RoutedPdsQueryObserver<
           );
         }
         this.#update(this.#home.url, { data, status: "live" });
-        void this.#reconcileRoutes(routes).catch(() => {
-          // The point query exposes route-discovery failures through its normal error result.
-        });
+        void this.#reconcileRoutes(routes);
       },
       (error) => this.#update(this.#home.url, { error, status: "error" }),
     );
@@ -131,8 +141,17 @@ export class RoutedPdsQueryObserver<
 
   async #reconcileRoutes(routes: readonly string[]) {
     const generation = ++this.#routingGeneration;
-    const resolved = await this.#resolveRoutes(routes);
+    clearTimeout(this.#routeRetry);
+    let resolved: readonly FederationTarget[];
+    try {
+      resolved = await this.#resolveRoutes(routes);
+    } catch (error) {
+      if (this.#closed || generation !== this.#routingGeneration) return;
+      this.#routesFailed(routes, toError(error));
+      return;
+    }
     if (this.#closed || generation !== this.#routingGeneration) return;
+    this.#routeFailures = 0;
 
     const targets = groupFederationTargets([
       { id: this.#home.ids[0] ?? this.#home.url, url: this.#home.url },
@@ -146,6 +165,32 @@ export class RoutedPdsQueryObserver<
     // changes what this shows. Publishing again otherwise would show the
     // same result twice for every update.
     if (first || removed || added) this.#publish();
+  }
+
+  /**
+   * The PDSes the routes name couldn't all be found (one unreachable, or
+   * too old for the request). Until they are, they count as one that
+   * failed, so what the others have shows as a partial result instead of
+   * the query waiting for good; finding them is tried again, waiting
+   * longer each time, and again with every update from home.
+   */
+  #routesFailed(routes: readonly string[], error: Error) {
+    this.#sources.set(UNRESOLVED, {
+      error,
+      status: "error",
+      target: { ids: [...routes], url: UNRESOLVED },
+    });
+    this.#routesResolved = true;
+    this.#publish();
+    const delay = Math.min(
+      ROUTE_RETRY_MAX_MS,
+      ROUTE_RETRY_MS * 2 ** this.#routeFailures,
+    );
+    this.#routeFailures += 1;
+    this.#routeRetry = setTimeout(
+      () => void this.#reconcileRoutes(routes),
+      delay,
+    );
   }
 
   /** Stops asking PDSes no longer routed to; whether there were any. */
