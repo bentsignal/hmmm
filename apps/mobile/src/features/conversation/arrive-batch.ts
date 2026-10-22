@@ -12,7 +12,8 @@ import { startMove } from "./moves";
 // Past a pace no one reads every message at (a stream's chat in a busy
 // moment), rows open at once instead, as Discord's do: no rise, no fade,
 // the messages above simply making room. Once it slows, they rise in
-// again.
+// again. So does a batch big enough on its own (as after the app catches
+// up): a screenful rising and fading in together blanked the screen.
 
 /** The window the pace is counted over. */
 const PACE_WINDOW_MS = 2000;
@@ -20,6 +21,10 @@ const PACE_WINDOW_MS = 2000;
 const FIREHOSE_FROM = 8;
 /** ...until no more than this many do. */
 const FIREHOSE_UNTIL = 3;
+/** This many rows mounting together open at once, whatever the pace. */
+const BIG_BATCH = 6;
+/** Rows mounted within this of each other came in together. */
+const TOGETHER_MS = 100;
 
 /** A row that has been measured and opens now. */
 export interface Arrival {
@@ -57,13 +62,20 @@ interface Opened {
 interface Batch {
   move: Move | undefined;
   readonly opened: Opened[];
-  /** They open at once (see `firehose`), decided as the first opens. */
+  /**
+   * They open at once (see `firehose` and `BIG_BATCH`), decided as the
+   * first opens.
+   */
   readonly instant: boolean;
 }
 
-/** When a list's rows last opened, and whether it's a firehose. */
+/**
+ * When a list's rows last opened and mounted, and whether it's a
+ * firehose.
+ */
 interface Pace {
   times: number[];
+  mounts: number[];
   fast: boolean;
 }
 
@@ -75,6 +87,22 @@ declare global {
 }
 
 /**
+ * The list `id`'s pace, kept on the UI thread (see `batchFor`). Defined
+ * before the worklets that call it: a worklet isn't hoisted.
+ */
+function paceOf(id: number) {
+  "worklet";
+  globalThis.__arrivalPace ??= new Map();
+  const paces = globalThis.__arrivalPace;
+  let pace = paces.get(id);
+  if (pace === undefined) {
+    pace = { fast: false, mounts: [], times: [] };
+    paces.set(id, pace);
+  }
+  return pace;
+}
+
+/**
  * Counts a row opening in the list `id`, and tells whether rows are
  * coming in so fast they should open at once: from `FIREHOSE_FROM` in the
  * last `PACE_WINDOW_MS` until it's down to `FIREHOSE_UNTIL`, so a pace
@@ -82,16 +110,33 @@ declare global {
  */
 function firehose(id: number) {
   "worklet";
-  globalThis.__arrivalPace ??= new Map();
-  const paces = globalThis.__arrivalPace;
+  const pace = paceOf(id);
   const now = Date.now();
-  const pace = paces.get(id) ?? { fast: false, times: [] };
   pace.times = pace.times.filter((time) => now - time < PACE_WINDOW_MS);
   pace.times.push(now);
   if (pace.times.length >= FIREHOSE_FROM) pace.fast = true;
   else if (pace.times.length <= FIREHOSE_UNTIL) pace.fast = false;
-  paces.set(id, pace);
   return pace.fast;
+}
+
+/**
+ * Notes a row arriving in the list `id` as it mounts, before it's
+ * measured and opens: a batch knows from these how many rows came in with
+ * its first (see `BIG_BATCH`).
+ */
+export function arrivalMounted(id: number) {
+  "worklet";
+  const pace = paceOf(id);
+  const now = Date.now();
+  pace.mounts = pace.mounts.filter((time) => now - time < TOGETHER_MS);
+  pace.mounts.push(now);
+}
+
+/** How many rows mounted with the ones opening now (see `arrivalMounted`). */
+function mountedTogether(id: number) {
+  "worklet";
+  const now = Date.now();
+  return paceOf(id).mounts.filter((time) => now - time < TOGETHER_MS).length;
 }
 
 /**
@@ -106,7 +151,8 @@ function batchFor(id: number) {
   let batch = batches.get(id);
   const fast = firehose(id);
   if (batch === undefined) {
-    batch = { instant: fast, move: undefined, opened: [] };
+    const instant = fast || mountedTogether(id) >= BIG_BATCH;
+    batch = { instant, move: undefined, opened: [] };
     batches.set(id, batch);
     requestAnimationFrame(() => batches.delete(id));
   }

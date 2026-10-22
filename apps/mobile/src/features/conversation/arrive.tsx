@@ -13,11 +13,11 @@ import { scheduleOnRN } from "react-native-worklets";
 import { useCSSVariable } from "uniwind";
 
 import { inNextFrame } from "~/lib/next-frame";
-import { joinArrivals } from "./arrive-batch";
+import { arrivalMounted, joinArrivals } from "./arrive-batch";
 import { Fading } from "./fading";
 import { useGrowth } from "./grow";
 import { justListed } from "./listed-rows";
-import { GROW_EASING, GROW_MS, inCommit, inFrame, land } from "./moves";
+import { GROW_EASING, GROW_MS, inCommit, inFrame, land, moved } from "./moves";
 import { useOnMount } from "./typing-parts";
 
 /** How long a message that comes in takes to fade in as it opens. */
@@ -214,6 +214,7 @@ function Opening({
   const rising = useSharedValue(false);
   useOnMount(() => {
     "worklet";
+    arrivalMounted(growth.id);
     let tries = 0;
     function open() {
       const box = measure(inner);
@@ -277,10 +278,7 @@ function Opening({
     inFrame(open);
   });
   // In the layout commit with the opening, then on the fast path.
-  const risen = useAnimatedStyle(() => {
-    const moved = { transform: [{ translateY: rise.get() }] };
-    return rising.get() ? { ...moved, backfaceVisibility: "visible" } : moved;
-  });
+  const risen = useAnimatedStyle(() => moved(rise.get(), rising.get()));
   return (
     <Animated.View
       ref={outer}
