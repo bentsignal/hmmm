@@ -36,9 +36,24 @@ export const queryClient = new QueryClient({
 // separate message on the connection, and each redrew the app on its own;
 // every redraw has a cost however little changed. While something you did
 // is on its way (a mutation), they show in the next frame, so what it
-// changes shows at once.
+// changes shows at once; so does a query's first result, which a screen
+// opening or a page of older messages is waiting on (the throttle held
+// each of those up by as much again).
 const NOTIFY_GAP_MS = 400;
 let notifiedAt = -Infinity;
+/** A query got its first result since screens last heard. */
+let firstResult = false;
+queryClient.getQueryCache().subscribe((event) => {
+  // Before the notification it brings reaches the scheduler: the cache
+  // tells its listeners straight away, and screens through the scheduler.
+  if (
+    event.type === "updated" &&
+    event.action.type === "success" &&
+    event.query.state.dataUpdateCount === 1
+  ) {
+    firstResult = true;
+  }
+});
 /** Whether something you did is on its way (not `background` upkeep). */
 function yoursPending() {
   return (
@@ -52,6 +67,7 @@ const notifies = new Array<() => void>();
 function notifyNow() {
   clearTimeout(notifyTimer);
   notifyTimer = undefined;
+  firstResult = false;
   requestAnimationFrame(() => {
     notifiedAt = performance.now();
     for (const notify of notifies.splice(0)) notify();
@@ -59,7 +75,7 @@ function notifyNow() {
 }
 notifyManager.setScheduler((notify) => {
   notifies.push(notify);
-  const yours = yoursPending();
+  const yours = firstResult || yoursPending();
   if (notifies.length > 1 && !yours) return;
   const wait = notifiedAt + NOTIFY_GAP_MS - performance.now();
   if (wait <= 0 || yours) notifyNow();
