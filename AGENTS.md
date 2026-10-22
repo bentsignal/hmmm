@@ -154,6 +154,10 @@ At the end of every run, run these in order:
 3. `pnpm run test`
 4. `pnpm run react-doctor --base origin/main` when the app changed (use
    the PR's base branch if it isn't `main`)
+5. `scripts/motion/check.sh` when anything in the message list moves
+   differently (arrivals, reactions, deletes, typing; its README lists
+   the files): it records each animation in the simulator and fails on
+   jank, so a change that breaks one is caught before Shawn's phone
 
 If all succeed, run `pnpm run format:fix`, then summarize the changes.
 
