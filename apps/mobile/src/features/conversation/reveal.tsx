@@ -11,7 +11,7 @@ import Animated, {
 import { scheduleOnRN } from "react-native-worklets";
 
 import { formatTime } from "~/lib/format";
-import { useRowTaps } from "./row-target";
+import { rowTaps } from "./row-taps";
 
 /** How far a drag slides your messages over to show times. */
 export const REVEAL_WIDTH = 72;
@@ -46,7 +46,14 @@ function useReveal() {
  * messages over and brings every message's time in from the right edge.
  * Letting go springs everything back. Vertical drags still scroll.
  */
-export function RevealTimes({ children }: { children: ReactNode }) {
+export function RevealTimes({
+  opensThreads = false,
+  children,
+}: {
+  /** A tap on a message opens its thread (see `rowTaps`). */
+  opensThreads?: boolean;
+  children: ReactNode;
+}) {
   const reveal = useSharedValue(0);
   const sliding = useSharedValue(false);
   const [revealing, setRevealing] = useState(false);
@@ -73,7 +80,7 @@ export function RevealTimes({ children }: { children: ReactNode }) {
       );
     });
   // The rows' taps, which never start once the drag has.
-  const taps = useRowTaps();
+  const taps = rowTaps(opensThreads);
   return (
     <RevealContext value={{ reveal, revealing, sliding }}>
       <GestureDetector gesture={Gesture.Race(pan, taps)}>

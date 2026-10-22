@@ -323,7 +323,7 @@ export function MessageList({
       // reports it again on Android; the list stays still through both.
       menuKeyboard={keyboard}
     >
-      <RevealTimes>
+      <RevealTimes opensThreads={onOpenThread !== undefined}>
         <View ref={frame} style={{ flex: 1 }}>
           <GrowthProvider
             list={frame}
