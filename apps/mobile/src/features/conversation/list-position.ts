@@ -12,12 +12,12 @@ import {
   useDerivedValue,
   useScrollOffset,
   useSharedValue,
-  withTiming,
 } from "react-native-reanimated";
 import { scheduleOnRN, scheduleOnUI } from "react-native-worklets";
 
 import type { ComposerHeight } from "./composer-height";
 import type { ListRow } from "./typing-row";
+import { useComposerRoom } from "./composer-height";
 
 // Where the conversation list is scrolled: placing it when it opens, and
 // keeping up with the newest message.
@@ -40,8 +40,6 @@ const GLIDE_MS = 70;
 const GLIDE_DONE = 2;
 /** The longest a glide takes before it jumps the rest of the way. */
 const GLIDE_MAX_MS = 1000;
-/** How long the list's room for the composer takes to follow its height. */
-const COMPOSER_EASE_MS = 120;
 /** Frames to wait for the message a conversation opens on to be measured. */
 const ANCHOR_TRIES = 30;
 /**
@@ -108,7 +106,7 @@ export function useLatest({
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const offset = useScrollOffset(scrollRef);
   const { live, laidOut = 0 } = composerHeight;
-  const composer = useComposerRoom(composerHeight);
+  const { room: composer, moving, settled } = useComposerRoom(composerHeight);
   const keyboard = useKeyboardInset(keyboardOffset, freeze);
   // The inset and scroll position as last reported, for the jump button.
   const inset = useRef(0);
@@ -147,7 +145,9 @@ export function useLatest({
       run.last = time;
       const to = bottom();
       const left = offset.get() - to;
-      if (Math.abs(left) <= GLIDE_DONE || time - run.start > GLIDE_MAX_MS) {
+      // On until the room is the composer's too (see `useComposerRoom`).
+      const there = Math.abs(left) <= GLIDE_DONE && settled();
+      if (there || time - run.start > GLIDE_MAX_MS) {
         if (left !== 0) scrollTo(scrollRef, 0, to, false);
         gliding.set(false);
         return;
@@ -158,15 +158,17 @@ export function useLatest({
     requestAnimationFrame(step);
   }
 
-  // At the newest message as the composer changes height on iOS, the list
-  // glides along to stay there: `KeyboardChatScrollView` moves the scroll
-  // by each change from where the list was a frame before, so on its own
-  // it falls behind a room that changes every frame (see `useComposerRoom`).
+  // At the newest message (as it was: the room can already have the new
+  // height) as the composer changes height on iOS, the list glides along to
+  // stay there: `KeyboardChatScrollView` moves the scroll by each change
+  // from where the list was a frame before, so on its own it falls behind a
+  // room that changes every frame (see `useComposerRoom`).
   useAnimatedReaction(
     () => (IOS ? live.get() : 0),
     (now, before) => {
       if (before === null || now === before) return;
-      if (offset.get() - bottom() < NEAR_LATEST) glide();
+      const was = -Math.max(blankSpace?.get() ?? 0, keyboard.get() + before);
+      if (offset.get() - was < NEAR_LATEST) glide();
     },
   );
 
@@ -175,6 +177,8 @@ export function useLatest({
     scrollRef,
     /** The composer's room on iOS, the list's `extraContentPadding`. */
     composer,
+    /** Counts the rows' moves as they start (see `Growth`). */
+    moving,
     /**
      * The room for the keyboard and composer under the newest row, on iOS
      * (see `Blank`'s `floor`). Android draws its insets in (see above).
@@ -264,30 +268,6 @@ function openAt({
     requestAnimationFrame(step);
   }
   step();
-}
-
-/**
- * The list's room for the composer on iOS (`extraContentPadding`): it
- * eases to each height the composer reports, whose layout reaches the UI
- * thread a step at a time as it animates (attachments opening or closing),
- * and jumping to each moved the list in steps. It starts from React's
- * first height and takes the composer's own on the UI thread at once:
- * `live`, read on the JavaScript thread as the list mounts, can still be
- * 0, which left the newest messages under the composer and the keyboard,
- * out of reach. On Android the composer is a row instead (`composerRow`).
- */
-function useComposerRoom({ live, laidOut = 0 }: ComposerHeight) {
-  const composer = useSharedValue(IOS ? laidOut : 0);
-  useAnimatedReaction(
-    () => (IOS ? live.get() : 0),
-    (now, before) => {
-      if (before === null) composer.set(now);
-      else if (now !== before) {
-        composer.set(withTiming(now, { duration: COMPOSER_EASE_MS }));
-      }
-    },
-  );
-  return composer;
 }
 
 /**

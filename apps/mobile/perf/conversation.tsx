@@ -11,7 +11,13 @@ function profileOf() {
   return profile;
 }
 /** A composer laid out once, as on iOS. */
-const COMPOSER = { laidOut: 56, live: makeMutable(56) };
+const COMPOSER = {
+  laidOut: 56,
+  live: makeMutable(56),
+  room: makeMutable(56),
+  sent: makeMutable(false),
+  stepsUntil: makeMutable(0),
+};
 /** Nobody typing, the same array each time. */
 const NOBODY = Object.freeze<string[]>([]);
 

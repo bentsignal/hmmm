@@ -37,7 +37,8 @@ and works out how far each band moved between frames:
   (something gone for a frame, an opacity landing late).
 - **blank**: a tall empty band between rows.
 
-Jump-backs under 8 points and small flickers are reported as **minor** and
+Jump-backs under 8 points and faint flickers (a band of text a fraction of a
+point off for a frame) are reported as **minor** and
 don't fail the check. Any React commit while rows move (a server's answer
 landing then) can draw them a few points back for one frame, and the app
 can't hold those off. Anything past that is something the list did.

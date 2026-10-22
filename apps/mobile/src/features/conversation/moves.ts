@@ -69,6 +69,8 @@ export interface Move {
   readonly batch: SharedValue<number>;
   /** Its space hasn't reached the screen yet. */
   readonly pending: SharedValue<boolean>;
+  /** The list's count of moves as they start to ease (see `Growth`). */
+  readonly moving?: SharedValue<number>;
 }
 
 /** Moves at once: a message, its time header, and typing, together. */
@@ -98,6 +100,11 @@ export interface Growth {
    * thread's original stays put while its replies move.
    */
   readonly blank?: Blank;
+  /**
+   * Counts moves as they start to ease, for the list's room for the
+   * composer to close with after a send (see `useComposerRoom`).
+   */
+  readonly moving?: SharedValue<number>;
 }
 
 /**
@@ -137,8 +144,9 @@ export const NONE = -1;
  */
 export const IN_COMMIT = { zIndex: 0 } as const;
 
-export function newMove() {
+export function newMove(moving?: SharedValue<number>) {
   return {
+    moving,
     batch: makeMutable(NONE),
     below: makeMutable(0),
     offset: makeMutable(0),
@@ -232,6 +240,7 @@ function blankChange(blank: Blank | undefined, delta: number) {
 function ease(move: Move) {
   "worklet";
   const timing = { duration: GROW_MS, easing: GROW_EASING };
+  move.moving?.set(move.moving.get() + 1);
   move.below.set(withTiming(0, timing));
   move.offset.set(
     withTiming(0, timing, (finished) => {

@@ -57,15 +57,20 @@ export function GrowthProvider({
   list,
   blank,
   typingDrop,
+  moving,
   children,
 }: {
   list: AnimatedRef<View>;
   blank?: Blank;
   /** Where who's typing is drawn (see `useTypingDrop`). */
   typingDrop: TypingDrop;
+  /** Counts moves as they start (see `Growth`). */
+  moving?: SharedValue<number>;
   children: ReactNode;
 }) {
-  const [moves] = useState(() => Array.from({ length: MOVES }, newMove));
+  const [moves] = useState(() =>
+    Array.from({ length: MOVES }, () => newMove(moving)),
+  );
   const onScreen = useSharedValue(ALL_ON_SCREEN);
   const [id] = useState(nextListId);
   const typing = useSharedValue(0);
@@ -77,6 +82,7 @@ export function GrowthProvider({
         id,
         list,
         moves,
+        moving,
         onScreen,
         typing,
         typingDrop: drop,

@@ -185,7 +185,7 @@ function Thread({
   const paced = usePacedMessages(thread.messages, address);
   const replies = paced.messages;
   const typing = useThreadTyping(conversationId, threadId, paced);
-  const { composerHeight, onHeight } = useComposerHeight();
+  const { composerHeight, report } = useComposerHeight();
   const list = useRef<MessageListHandle>(null);
   const { composer, draftId, editing } = useDraft(conversationId, threadId);
   useWhileOpen(conversationId, threadId, thread);
@@ -253,7 +253,7 @@ function Thread({
           placeholder="Reply"
           edit={editing}
           mentionable={mentionableIn(conversation, address, profileOf)}
-          onHeight={onHeight}
+          report={report}
           onChangeText={typing.report}
           onSend={(draft) => {
             thread.sendMessage(draft);

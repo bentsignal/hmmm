@@ -76,7 +76,12 @@ export interface Flag {
  * can't hold off; one past these is something the list did.
  */
 const MAJOR_JUMP_BACK = 8;
-const MAJOR_FLICKER = 25;
+/**
+ * A band of text a fraction of a point off for a frame (as rows settle)
+ * scores up to the low 30s; a row gone or half faded for a frame, 38 and
+ * up.
+ */
+const MAJOR_FLICKER = 35;
 
 /** Whether `flag` fails the check, or is only reported. */
 export function major(flag: Flag) {

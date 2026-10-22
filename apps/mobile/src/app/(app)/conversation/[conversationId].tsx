@@ -178,7 +178,7 @@ function Conversation({
   const typing = useShownAndTyping(conversationId, messages.messages, address);
   // Not laid out yet: the list leaves room for it under the newest
   // message, so it waits rather than shift once it knows.
-  const { composerHeight, onHeight } = useComposerHeight();
+  const { composerHeight, report } = useComposerHeight();
   const list = useRef<MessageListHandle>(null);
   useWhileOpen(conversationId, messages);
 
@@ -245,7 +245,7 @@ function Conversation({
         ref={composer}
         draftId={conversationId}
         mentionable={mentionableIn(conversation, address, profileOf)}
-        onHeight={onHeight}
+        report={report}
         onChangeText={typing.report}
         replyingTo={replies.replyingTo}
         onCancelReply={replies.cancel}
