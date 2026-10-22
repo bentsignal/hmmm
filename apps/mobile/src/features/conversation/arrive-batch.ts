@@ -8,6 +8,18 @@ import { startMove } from "./moves";
 // conversation a dozen or more mount at once, and each starting a move of
 // its own took the few moves there are from one another, drawing rows over
 // each other mid-rise.
+//
+// Past a pace no one reads every message at (a stream's chat in a busy
+// moment), rows open at once instead, as Discord's do: no rise, no fade,
+// the messages above simply making room. Once it slows, they rise in
+// again.
+
+/** The window the pace is counted over. */
+const PACE_WINDOW_MS = 2000;
+/** This many rows opening in the window, it's a firehose... */
+const FIREHOSE_FROM = 8;
+/** ...until no more than this many do. */
+const FIREHOSE_UNTIL = 3;
 
 /** A row that has been measured and opens now. */
 export interface Arrival {
@@ -23,12 +35,14 @@ export interface Arrival {
    * Opens it, drawn `rise` below its place, with the move that makes room
    * for it; the row that started the frame's move waits for it to reach
    * the screen (`lands`). Returns what raises it further, for a newer row
-   * opening under it in the same frame.
+   * opening under it in the same frame. `instant`, it shows at once, with
+   * nothing moving (see `firehose`).
    */
   readonly open: (
     move: Move | undefined,
     rise: number,
     lands: boolean,
+    instant: boolean,
   ) => (by: number) => void;
 }
 
@@ -43,11 +57,41 @@ interface Opened {
 interface Batch {
   move: Move | undefined;
   readonly opened: Opened[];
+  /** They open at once (see `firehose`), decided as the first opens. */
+  readonly instant: boolean;
+}
+
+/** When a list's rows last opened, and whether it's a firehose. */
+interface Pace {
+  times: number[];
+  fast: boolean;
 }
 
 declare global {
   /** This frame's opening rows, by list (see `batchFor`). */
   var __arrivals: Map<number, Batch> | undefined;
+  /** Each list's pace (see `firehose`). */
+  var __arrivalPace: Map<number, Pace> | undefined;
+}
+
+/**
+ * Counts a row opening in the list `id`, and tells whether rows are
+ * coming in so fast they should open at once: from `FIREHOSE_FROM` in the
+ * last `PACE_WINDOW_MS` until it's down to `FIREHOSE_UNTIL`, so a pace
+ * near either doesn't flip back and forth.
+ */
+function firehose(id: number) {
+  "worklet";
+  globalThis.__arrivalPace ??= new Map();
+  const paces = globalThis.__arrivalPace;
+  const now = Date.now();
+  const pace = paces.get(id) ?? { fast: false, times: [] };
+  pace.times = pace.times.filter((time) => now - time < PACE_WINDOW_MS);
+  pace.times.push(now);
+  if (pace.times.length >= FIREHOSE_FROM) pace.fast = true;
+  else if (pace.times.length <= FIREHOSE_UNTIL) pace.fast = false;
+  paces.set(id, pace);
+  return pace.fast;
 }
 
 /**
@@ -60,12 +104,25 @@ function batchFor(id: number) {
   globalThis.__arrivals ??= new Map();
   const batches = globalThis.__arrivals;
   let batch = batches.get(id);
+  const fast = firehose(id);
   if (batch === undefined) {
-    batch = { move: undefined, opened: [] };
+    batch = { instant: fast, move: undefined, opened: [] };
     batches.set(id, batch);
     requestAnimationFrame(() => batches.delete(id));
   }
   return batch;
+}
+
+/**
+ * How much room a row opening takes: its height, less the typing
+ * indicator's space when it takes its place, which closes now.
+ */
+function roomFor(growth: Growth, arrival: Arrival) {
+  "worklet";
+  if (!arrival.taking) return arrival.natural;
+  const room = arrival.natural - growth.typing.get();
+  growth.typing.set(0);
+  return room;
 }
 
 /**
@@ -79,10 +136,10 @@ function batchFor(id: number) {
 export function joinArrivals(growth: Growth, arrival: Arrival) {
   "worklet";
   const batch = batchFor(growth.id);
-  let room = arrival.natural;
-  if (arrival.taking) {
-    room -= growth.typing.get();
-    growth.typing.set(0);
+  const room = roomFor(growth, arrival);
+  if (batch.instant) {
+    arrival.open(undefined, 0, false, true);
+    return;
   }
   // Older rows already open rise by this one too; it rises by the newer.
   let rise = room;
@@ -104,6 +161,6 @@ export function joinArrivals(growth: Growth, arrival: Arrival) {
   // The row that starts the frame's move waits for it to land.
   const lands = batch.move === undefined && move !== undefined;
   batch.move ??= move;
-  const raise = arrival.open(move, rise, lands);
+  const raise = arrival.open(move, rise, lands, false);
   batch.opened.push({ order: arrival.order, raise, room });
 }

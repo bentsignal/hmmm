@@ -17,7 +17,7 @@ import { joinArrivals } from "./arrive-batch";
 import { Fading } from "./fading";
 import { useGrowth } from "./grow";
 import { justListed } from "./listed-rows";
-import { GROW_EASING, GROW_MS, inFrame, land } from "./moves";
+import { GROW_EASING, GROW_MS, inCommit, inFrame, land } from "./moves";
 import { useOnMount } from "./typing-parts";
 
 /** How long a message that comes in takes to fade in as it opens. */
@@ -85,7 +85,16 @@ function useOpenStyles() {
   // How much it shows, on its own: in a style with the height, each frame
   // of the fade was a layout commit of the whole list, and in a busy
   // conversation one row or another is always fading in.
-  const fade = useAnimatedStyle(() => ({ opacity: shown.get() }));
+  // Shown while it's still opening (at once, in a firehose), it's in the
+  // commit with its height: sent on its own, the commit put the opacity
+  // React first drew it with back over it, and the messages above moved
+  // up off an empty space for a frame or two.
+  const fade = useAnimatedStyle(() =>
+    inCommit(
+      { opacity: shown.get() },
+      shown.get() === 1 && height.get() !== OWN,
+    ),
+  );
   // What shows of it while it's closed or rising: its own place and the
   // fade under it (`EMERGE`); then all of it, as tall as what's in it.
   const window = useAnimatedStyle(() =>
@@ -165,6 +174,25 @@ function useOpened() {
   };
 }
 
+/**
+ * Fades a row opening in, then calls `done`. Growing out of the typing
+ * indicator (`morphs`), it shows from the next frame; in a firehose
+ * (`instant`), in this one, with its height.
+ */
+function fadeIn(
+  shown: SharedValue<number>,
+  { morphs, instant }: { morphs: boolean; instant: boolean },
+  done: () => void,
+) {
+  "worklet";
+  if (instant) {
+    shown.set(1);
+    done();
+    return;
+  }
+  shown.set(withTiming(1, { duration: morphs ? 0 : FADE_MS }, done));
+}
+
 function Opening({
   order,
   becoming,
@@ -200,10 +228,10 @@ function Opening({
         natural,
         order,
         taking,
-        open: (move, by, lands) => {
+        open: (move, by, lands, instant) => {
           height.set(natural);
-          // Growing out of the indicator, it's there at once.
-          shown.set(withTiming(1, { duration: morphs ? 0 : FADE_MS }, fadedIn));
+          // Growing out of the indicator, or in a firehose, it's there at once.
+          fadeIn(shown, { instant, morphs }, fadedIn);
           // Under the messages above as they make room, it rises with them
           // out of its space, fading in out of the gap below it and hidden
           // past that, so it never covers them or who's typing below. One

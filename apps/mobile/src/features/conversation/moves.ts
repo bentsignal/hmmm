@@ -379,11 +379,16 @@ export function anyPending(moves: readonly Move[]) {
   return false;
 }
 
+/** `style`, in the layout commit while `pending` (see `Move`). */
+export function inCommit<Style extends object>(style: Style, pending: boolean) {
+  "worklet";
+  return pending ? { ...style, ...IN_COMMIT } : style;
+}
+
 /** A transform to `translateY`, in the layout commit while it's `pending`. */
 export function moved(translateY: number, pending: boolean) {
   "worklet";
-  const style = { transform: [{ translateY }] };
-  return pending ? { ...style, ...IN_COMMIT } : style;
+  return inCommit({ transform: [{ translateY }] }, pending);
 }
 
 /** How far one move of its own row draws the piece at `place`. */
