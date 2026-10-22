@@ -1,4 +1,5 @@
 import type { SymbolViewProps } from "expo-symbols";
+import { useState } from "react";
 import { Text, View } from "react-native";
 import { Image } from "expo-image";
 import { withUniwind } from "uniwind";
@@ -43,45 +44,67 @@ export function Avatar({
 }: {
   name: string;
   size?: keyof typeof SIZES;
-  /** Profile photo; it fades in over the initials once loaded. */
+  /**
+   * Profile photo. It fades in from nothing once loaded, never over the
+   * initials (gray first, then a face, read as two pictures); they show
+   * only if it can't load.
+   */
   uri?: string | null;
   /** Shown instead of initials when there is no photo. */
   glyph?: AvatarGlyph;
 }) {
   const { box, text, glyph: glyphSize } = SIZES[size];
+  // The photo that couldn't load, if one didn't.
+  const [failed, setFailed] = useState<string>();
+  const photo = uri != null && uri !== "" && uri !== failed ? uri : undefined;
   return (
     <View accessibilityLabel={name} className={cn("rounded-full", box)}>
-      <View
-        className={cn(
-          "absolute items-center justify-center rounded-full",
-          // Under a photo, the monogram stays a point inside its edge, so
-          // the gray doesn't show through the photo's smoothed rim as a ring.
-          uri ? "inset-px" : "inset-0",
-        )}
-        style={{ experimental_backgroundImage: MONOGRAM_GRADIENT }}
-      >
-        {glyph === undefined ? (
-          <Text className={cn("font-semibold text-white", text)}>
-            {initials(name)}
-          </Text>
-        ) : (
-          <SymbolIcon
-            name={glyph}
-            size={glyphSize}
-            weight="semibold"
-            tintColor="#ffffff"
-          />
-        )}
-      </View>
-      {uri ? (
+      {photo === undefined ? (
+        <Monogram name={name} text={text} glyph={glyph} glyphSize={glyphSize} />
+      ) : (
         <StyledImage
-          source={{ uri }}
+          source={{ uri: photo }}
           contentFit="cover"
-          // Fades over the initials instead of popping in.
+          // Fades in rather than popping in, when it isn't already in
+          // memory (see `usePhotosReady`).
           transition={180}
+          onError={() => setFailed(photo)}
           className="absolute inset-0 rounded-full"
         />
-      ) : null}
+      )}
+    </View>
+  );
+}
+
+/** Initials (or `glyph`) on iMessage's gray, for someone without a photo. */
+function Monogram({
+  name,
+  text,
+  glyph,
+  glyphSize,
+}: {
+  name: string;
+  text: string;
+  glyph: AvatarGlyph | undefined;
+  glyphSize: number;
+}) {
+  return (
+    <View
+      className="absolute inset-0 items-center justify-center rounded-full"
+      style={{ experimental_backgroundImage: MONOGRAM_GRADIENT }}
+    >
+      {glyph === undefined ? (
+        <Text className={cn("font-semibold text-white", text)}>
+          {initials(name)}
+        </Text>
+      ) : (
+        <SymbolIcon
+          name={glyph}
+          size={glyphSize}
+          weight="semibold"
+          tintColor="#ffffff"
+        />
+      )}
     </View>
   );
 }
