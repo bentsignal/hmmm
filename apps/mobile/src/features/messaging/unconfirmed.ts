@@ -8,7 +8,11 @@ interface Send {
 }
 
 interface Window {
-  readonly hasNewer: boolean;
+  /**
+   * At the latest messages, following new ones (see `advance`), even while
+   * its newest page is full and the next is still loading.
+   */
+  readonly live: boolean;
   readonly hasOlder: boolean;
   /** Oldest first. */
   readonly messages: readonly { messageId: string; sentAt: number }[];
@@ -26,7 +30,7 @@ export function unconfirmedSends<Sent extends Send>(
   outbox: readonly Sent[],
   window: Window,
 ) {
-  if (window.hasNewer) return [];
+  if (!window.live) return [];
   const listed = new Set(window.messages.map((message) => message.messageId));
   const start = window.hasOlder ? window.messages[0]?.sentAt : undefined;
   return outbox.filter(

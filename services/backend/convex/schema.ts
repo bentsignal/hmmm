@@ -112,6 +112,12 @@ export default defineSchema({
     tokens: v.number(),
     updatedAt: v.number(),
   }).index("by_account", ["accountId", "bot"]),
+  /** Each person's allowance of messages to send (sendLimits.ts). */
+  sendLimits: defineTable({
+    accountId: v.string(),
+    tokens: v.number(),
+    updatedAt: v.number(),
+  }).index("by_account", ["accountId"]),
   /** What each assistant reply cost, for keeping an eye on the bill (usage.ts). */
   assistantUsage: defineTable({
     accountId: v.string(),

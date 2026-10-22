@@ -9,7 +9,7 @@ const at702 = Date.UTC(2026, 9, 20, 19, 2);
 
 /** The latest 50 messages, from 7:02 on, with older ones before them. */
 const latest = {
-  hasNewer: false,
+  live: true,
   hasOlder: true,
   messages: Array.from({ length: 50 }, (_, index) => ({
     messageId: `m${index}`,
@@ -63,5 +63,16 @@ void test("with every message loaded, any send not listed yet shows", () => {
 
 void test("away from the latest messages, no send shows", () => {
   const outbox = [send("now", at702 + 10 * minute, "sending")];
-  assert.deepEqual(unconfirmedSends(outbox, { ...latest, hasNewer: true }), []);
+  assert.deepEqual(unconfirmedSends(outbox, { ...latest, live: false }), []);
+});
+
+void test("in a burst, your sends keep showing while the next page loads", () => {
+  // 50 messages arrived after the window opened: its newest page is full,
+  // and the next has yet to load. Yours, sent mid-burst, stay at the
+  // bottom until a page lists them (the PDS may take them a while).
+  const outbox = [
+    send("mid", at702 + 10 * minute, "sending"),
+    send("taken", at702 + 11 * minute, "sent"),
+  ];
+  assert.deepEqual(ids(unconfirmedSends(outbox, latest)), ["mid", "taken"]);
 });

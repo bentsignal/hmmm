@@ -17,6 +17,7 @@ import {
 import { FloatingComposer } from "~/features/conversation/floating-composer";
 import { mentionableIn } from "~/features/conversation/mentionable";
 import { MessageList } from "~/features/conversation/message-list";
+import { usePacedMessages } from "~/features/conversation/paced-messages";
 import { useEditing } from "~/features/conversation/use-editing";
 import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
 import { useReplies } from "~/features/conversation/use-replies";
@@ -166,7 +167,10 @@ function Conversation({
   const { conversation, isLoading, profileOf, profilesLoaded } = loaded;
   const layout = useMessageLayout(conversation?.kind);
   const notices = useMemberNotices(conversationId, conversation, messages);
-  const typing = useConversationTyping(conversationId, messages.messages);
+  // Others' new messages, paced in a busy conversation (who's typing
+  // follows what's shown, so a message grows out of its indicator).
+  const shownMessages = usePacedMessages(messages.messages, address);
+  const typing = useConversationTyping(conversationId, shownMessages);
   // Not laid out yet: the list leaves room for it under the newest
   // message, so it waits rather than shift once it knows.
   const { composerHeight, onHeight } = useComposerHeight();
@@ -201,7 +205,7 @@ function Conversation({
           <MessageList
             ref={list}
             key={messages.viewKey}
-            messages={messages.messages}
+            messages={shownMessages}
             notices={notices.notices}
             self={address}
             layout={layout}
