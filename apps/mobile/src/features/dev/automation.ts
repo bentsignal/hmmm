@@ -6,6 +6,7 @@ import type { Preferences } from "~/features/preferences/store";
 import { env } from "~/env";
 import { setPreference } from "~/features/preferences/store";
 import { storedAccounts } from "~/features/session/account-store";
+import { benchApi } from "./bench/bench-api";
 import { devConversation } from "./dev-conversation";
 import { devSignInPath } from "./dev-sign-in-path";
 import { frameReport, startFrames, stopFrames } from "./frames";
@@ -20,7 +21,7 @@ function isAppPath(path: string): path is Href & string {
  * every `simctl openurl`, which scripts cannot answer.
  */
 export function installDevAutomation() {
-  if (!__DEV__ || !env.devTools) return;
+  if ((!__DEV__ && !env.profileBundle) || !env.devTools) return;
   Object.assign(globalThis, {
     veraDev: {
       open(path: string) {
@@ -40,6 +41,8 @@ export function installDevAutomation() {
       },
       /** The open conversation, to react and send without tapping. */
       conversation: devConversation,
+      /** The open list benchmark (see features/dev/bench). */
+      bench: benchApi,
       /** `scripts/sim.sh frames start` and `stop`: see frames.ts. */
       frames: { report: frameReport, start: startFrames, stop: stopFrames },
     },
