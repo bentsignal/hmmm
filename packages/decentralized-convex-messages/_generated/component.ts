@@ -1967,7 +1967,11 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               }
             | { args: { conversationId: string }; type: "memberEvents" }
             | {
-                args: { conversationId: string; messageIds: Array<string> };
+                args: {
+                  conversationId: string;
+                  messageIds?: Array<string>;
+                  since?: number;
+                };
                 type: "reactions";
               }
             | {
@@ -1984,7 +1988,11 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 type: "thread";
               }
             | {
-                args: { conversationId: string; messageIds: Array<string> };
+                args: {
+                  conversationId: string;
+                  messageIds?: Array<string>;
+                  since?: number;
+                };
                 type: "threadSummaries";
               }
             | {

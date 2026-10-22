@@ -17,6 +17,7 @@ import { useComposerHeight } from "~/features/conversation/composer-height";
 import { FloatingComposer } from "~/features/conversation/floating-composer";
 import { mentionableIn } from "~/features/conversation/mentionable";
 import { MessageList } from "~/features/conversation/message-list";
+import { usePacedMessages } from "~/features/conversation/paced-messages";
 import {
   THREAD_HEADER_HEIGHT,
   ThreadHeader,
@@ -180,7 +181,9 @@ function Thread({
   );
   const layout = useMessageLayout(conversation?.kind);
   const state = useThreadState(conversationId, threadId);
-  const typing = useThreadTyping(conversationId, threadId, thread.messages);
+  // Others' new replies, paced in a busy thread (see `usePacedMessages`).
+  const replies = usePacedMessages(thread.messages, address);
+  const typing = useThreadTyping(conversationId, threadId, replies);
   const { composerHeight, onHeight } = useComposerHeight();
   const list = useRef<MessageListHandle>(null);
   const { composer, draftId, editing } = useDraft(conversationId, threadId);
@@ -216,7 +219,7 @@ function Thread({
             ref={list}
             key={thread.viewKey}
             thread={{ replyCount: thread.replyCount, root: shown.root }}
-            messages={thread.messages}
+            messages={replies}
             self={address}
             layout={shown.layout}
             profileOf={profileOf}

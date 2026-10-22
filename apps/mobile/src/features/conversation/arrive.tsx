@@ -12,6 +12,7 @@ import Animated, {
 import { scheduleOnRN } from "react-native-worklets";
 import { useCSSVariable } from "uniwind";
 
+import { inNextFrame } from "~/lib/next-frame";
 import { Fading } from "./fading";
 import { useGrowth } from "./grow";
 import { GROW_EASING, GROW_MS, inFrame, land, startMove } from "./moves";
@@ -129,12 +130,17 @@ const OPEN = {
  */
 function useOpened() {
   const [opened, setOpened] = useState(false);
+  // With the others opening now: several arrive together in a busy
+  // conversation (see `inNextFrame`).
+  function markOpened() {
+    inNextFrame(() => setOpened(true));
+  }
   // Each step once: laid out at its own height, and faded in.
   const laidOut = useSharedValue(false);
   const fadedIn = useSharedValue(false);
   function settle() {
     "worklet";
-    if (laidOut.get() && fadedIn.get()) scheduleOnRN(setOpened, true);
+    if (laidOut.get() && fadedIn.get()) scheduleOnRN(markOpened);
   }
   return {
     opened,
