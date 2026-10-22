@@ -4,7 +4,10 @@ import { router } from "expo-router";
 
 import type { Preferences } from "~/features/preferences/store";
 import { env } from "~/env";
+import { inboxQuery } from "~/features/messaging/inbox";
+import { cachedSelected } from "~/features/messaging/results";
 import { setPreference } from "~/features/preferences/store";
+import { queryClient } from "~/features/session/account-session";
 import { storedAccounts } from "~/features/session/account-store";
 import { benchApi } from "./bench/bench-api";
 import { devConversation } from "./dev-conversation";
@@ -48,6 +51,19 @@ export function installDevAutomation() {
       frames: { report: frameReport, start: startFrames, stop: stopFrames },
       /** The JavaScript heap and the query cache (see memory.ts). */
       memory: memoryReport,
+      /**
+       * The newest group the signed-in account is in, once the inbox has
+       * loaded, for scripts that need one (scripts/motion).
+       */
+      firstGroup() {
+        const account = storedAccounts()[0];
+        if (account === undefined) return null;
+        const inbox = cachedSelected(queryClient, inboxQuery(account.address));
+        return (
+          inbox?.find((conversation) => conversation.kind === "group")
+            ?.conversationId ?? null
+        );
+      },
     },
   });
 }

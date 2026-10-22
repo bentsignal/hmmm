@@ -327,3 +327,45 @@ Seen once and not reproduced since: a reaction's space reached the screen
 a frame before the rows' lift, a 40-point jump for one frame, late in a
 long simulator session. A ~1 pt one-frame blip as a stacked row's
 thread count opens.
+
+### 2026-10-22: third round, from Shawn's phone test
+
+Fixed: a photo fading in over the gray initials (now from nothing, and
+the conversation waits up to a second for the faces it shows); the jump
+button's chevron missing after scrolling (an animated style React put
+back to its first, hidden style; now from the same state as the circle).
+
+**Why reactions (and more) jumped.** Reanimated 4.5 on React Native 0.86
+waits to commit layout while React is committing, and sends what isn't
+layout straight to the view. The moves' transforms are the latter, the
+space they make up for is the former, so whenever a React commit was in
+flight as a move started, the rows jumped by the space for a frame or
+more. `IN_COMMIT` (then `backfaceVisibility`) no longer held transforms
+back. What fixed it, each checked with the motion check:
+
+- Layout animations (`entering`/`exiting`) in the list hold up commits;
+  tapbacks and chips now come in with `Entrance` and go with
+  `useLeaving` (animated styles), Edited and the late lines likewise.
+- Moves start two frames after the React commit that brought the change
+  (`afterCommit`), and ease only from when the change is laid out
+  (`land` → `ease`), not the frame after it was asked for.
+- The app's own React renders wait until the rows are still:
+  `useHeldHeight` hands React the height ~45 frames later, leaving
+  tapbacks and chips unmount after the move, `Entrance` goes plain after.
+- Moves stay in the commit (`IN_COMMIT`, now `zIndex: 0`) until still.
+- Stacked chips mount with their space and grow in from when it lands
+  (`useAppear`), rather than a React render mid-move.
+- A space under all of a bubble (a thread's count, Edited) moves its own
+  row (`rowGoes` in move-math.ts); its bubble jumped up while the rows
+  above eased.
+
+Left: any React commit while rows move (a server's answer landing then)
+can still draw them a few points back for one frame (reported as minor);
+the typing indicator still uses layout animations (`entering`, `exiting`,
+`layout={SHIFT}`) and blips ±5 pt as typing starts, and a reply taking
+its place sometimes jumps (seen before this round too). Converting the
+typing indicator is next.
+
+**The motion check** (`scripts/motion/check.sh`, README there): plays each
+list animation in the simulator, records it, and fails on snaps,
+jump-backs, flickers, and blank bands.
