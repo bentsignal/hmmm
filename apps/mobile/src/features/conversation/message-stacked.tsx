@@ -1,13 +1,14 @@
 import type { RefObject } from "react";
 import { useRef } from "react";
 import { Text, View } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 
 import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
 import { Avatar } from "~/components/avatar";
 import { formatTime } from "~/lib/format";
 import { AuthorLink } from "./author-link";
+import { Entrance } from "./entrance";
 import { Settle, useChangedSinceMount } from "./grow";
 import { useMessageActions } from "./message-actions";
 import { lastPart, partCount } from "./message-parts";
@@ -27,7 +28,6 @@ import { useSqueeze } from "./squeeze";
 import { StackedFooter, StackedParts } from "./stacked-parts";
 
 const AVATAR_COLUMN = 36;
-const SHOW = FadeIn.duration(220);
 
 /**
  * The name line, when the row starts a run. One that starts a run late
@@ -47,9 +47,9 @@ function RunName({
   if (!startsGroup) return null;
   if (!late) return <NameLine message={message} author={author} />;
   return (
-    <Animated.View entering={SHOW}>
+    <Entrance kind="fade">
       <NameLine message={message} author={author} />
-    </Animated.View>
+    </Entrance>
   );
 }
 
@@ -113,22 +113,21 @@ function AvatarSlot({
   return (
     <View style={{ width: AVATAR_COLUMN }}>
       {startsGroup && (
-        <Animated.View
-          entering={late ? SHOW : undefined}
-          className="absolute top-0 left-0"
-        >
-          <AuthorLink
-            address={message.authorId}
-            name={author.displayName}
-            repeated
-          >
-            <Avatar
+        <View className="absolute top-0 left-0">
+          <Entrance kind="fade" active={late}>
+            <AuthorLink
+              address={message.authorId}
               name={author.displayName}
-              size="row"
-              uri={author.avatarUrl}
-            />
-          </AuthorLink>
-        </Animated.View>
+              repeated
+            >
+              <Avatar
+                name={author.displayName}
+                size="row"
+                uri={author.avatarUrl}
+              />
+            </AuthorLink>
+          </Entrance>
+        </View>
       )}
     </View>
   );

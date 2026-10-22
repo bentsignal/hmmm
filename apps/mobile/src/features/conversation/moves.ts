@@ -128,9 +128,14 @@ export const NONE = -1;
 /**
  * A style prop that doesn't change how anything looks and that Reanimated
  * doesn't send straight to the view, so a style carrying it lands in the
- * same layout commit as a space opening (see `Move`).
+ * same layout commit as a space opening (see `Move`). Reanimated decides
+ * by whether a style has a layout prop (`PropsLayoutFilter.h`), and it
+ * counts `zIndex` as one; 0 is every view's own. (It was
+ * `backfaceVisibility`, which Reanimated 4.5 on React Native 0.85 sends
+ * straight to the view like any other: the moves landed ahead of the
+ * space whenever its commit was late, and the rows jumped.)
  */
-const IN_COMMIT = { backfaceVisibility: "visible" } as const;
+export const IN_COMMIT = { zIndex: 0 } as const;
 
 export function newMove() {
   return {
@@ -218,10 +223,34 @@ function blankChange(blank: Blank | undefined, delta: number) {
 }
 
 /**
+ * Eases what `move` draws into place, from where it's held: once the
+ * change it makes up for is on screen (see `land`). Started any sooner, it
+ * ran while the change waited for its layout commit (which waits while
+ * React commits, as it does when a reaction comes in), and the change
+ * landed with the move already partly eased: the rows jumped the rest.
+ */
+function ease(move: Move) {
+  "worklet";
+  const timing = { duration: GROW_MS, easing: GROW_EASING };
+  move.below.set(withTiming(0, timing));
+  move.offset.set(
+    withTiming(0, timing, (finished) => {
+      if (finished !== true) return;
+      move.batch.set(NONE);
+      // In the layout commit until it's still (see `IN_COMMIT`): sent
+      // straight to the view, the transforms never reached React Native's
+      // copy of the views, and a commit of React's mid-move (or just
+      // after) put an older one back for a frame.
+      move.pending.set(false);
+    }),
+  );
+}
+
+/**
  * Draws what a space at `pivot` moves as before it changed by `delta`,
  * then eases it into place. Rows closing in the same `batch` move what's
  * above the newest of them once, by all their heights. Call it in the same frame callback that
- * changes the space (see `inFrame`). A row below the bottom of the screen
+ * changes the space (see `afterCommit`). A row below the bottom of the screen
  * moves nothing: the list's scroll anchor keeps what's on screen still
  * then.
  */
@@ -247,37 +276,30 @@ export function startMove(
   move.whole.set(pivot.whole ?? false);
   move.batch.set(batch);
   move.pending.set(true);
+  // Held where they were until the change is on screen, then eased into
+  // place (see `land`).
   move.offset.set((carries ? move.offset.get() : 0) + delta + moved);
   move.below.set((carries ? move.below.get() : 0) + moved);
-  // Easing from the frame after, once the change is on screen: the frame
-  // that lays it out can run long, and an ease started with it would skip
-  // ahead by as much.
-  requestAnimationFrame(() => {
-    const ease = { duration: GROW_MS, easing: GROW_EASING };
-    move.below.set(withTiming(0, ease));
-    move.offset.set(
-      withTiming(0, ease, (finished) => {
-        if (finished === true) move.batch.set(NONE);
-      }),
-    );
-  });
   return move;
 }
 
 /**
  * Waits, from the next frame, for `measured` to be `height` tall in the
- * list's layout, then lets `move` go back to the fast path (see `Move`)
- * and calls `done`.
+ * list's layout: then eases `move` into place (see `ease`) and calls
+ * `landed`, in that frame, and `done` the frame after.
  */
 export function land({
   move,
   measured,
   height,
+  landed,
   done,
 }: {
   move: Move | undefined;
   measured: AnimatedRef<View>;
   height: number;
+  /** In the frame it's laid out at `height`, to start what eases with it. */
+  landed?: () => void;
   done?: () => void;
 }) {
   "worklet";
@@ -290,8 +312,9 @@ export function land({
       requestAnimationFrame(check);
       return;
     }
-    move?.pending.set(false);
-    done?.();
+    if (move !== undefined) ease(move);
+    landed?.();
+    requestAnimationFrame(() => done?.());
   }
   requestAnimationFrame(check);
 }
@@ -310,14 +333,17 @@ export function showWithRoom() {
 }
 
 /**
- * Runs `change` at the start of the next frame. Every space and move set
- * in one such callback has its styles worked out together, after it, so
- * they reach the screen in the same frame (see `Move`); and a space that
- * just mounted has its style hooked up by then.
+ * Runs `change` at the start of the frame after next. Every space and move
+ * set in one such callback has its styles worked out together, after it,
+ * so they reach the screen in the same commit (see `Move`). Not the next:
+ * the changes it makes come with a React commit (a reaction, a message, a
+ * line under one), which is still reaching the screen then, and Reanimated
+ * waits while React commits, sending the moves on without the space (see
+ * `IN_COMMIT`).
  */
-export function inFrame(change: () => void) {
+export function afterCommit(change: () => void) {
   "worklet";
-  requestAnimationFrame(change);
+  requestAnimationFrame(() => requestAnimationFrame(change));
 }
 
 /** Whether any space hasn't reached the screen yet (see `Move`). */

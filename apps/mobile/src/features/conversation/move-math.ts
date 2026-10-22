@@ -1,6 +1,21 @@
 // What the moves draw where (see `Move` in moves.ts), worked out from
 // their values this frame: no Reanimated here, so it's tested on its own.
 
+import { Place } from "./row-place.ts";
+
+/**
+ * Whether a move of its own row moves the row itself: in a row that moves
+ * with its pieces (stacked, `withOwn`), any space but one at its top (see
+ * `Settle`); in one that stays (bubbles), a space under everything in it
+ * (a thread's count, "Edited"), where all of the row is above the space.
+ * Its pieces above the space then had nothing to move them, and the
+ * bubble jumped up while the rows above eased.
+ */
+function rowGoes(move: MoveNow, withOwn: boolean) {
+  "worklet";
+  return (withOwn && move.place >= 0) || move.place === Place.bottom;
+}
+
 /** A move's values as they are this frame (see `movesNow`). */
 export interface MoveNow {
   readonly pivot: number;
@@ -26,8 +41,7 @@ export function rowShift(
   let pending = false;
   for (const move of moves) {
     const { pivot } = move;
-    // A space at the top of a row (see `Settle`) leaves the row below it.
-    const own = withOwn && !move.whole && pivot === order && move.place >= 0;
+    const own = !move.whole && pivot === order && rowGoes(move, withOwn);
     let by = 0;
     if (pivot > order || own) by = move.offset;
     else if (pivot < order) by = move.below;
@@ -56,10 +70,10 @@ export function allStill(moves: readonly MoveNow[]) {
 function pieceBy(move: MoveNow, place: number, rowMoves: boolean) {
   "worklet";
   const above = move.place > place;
-  // As in `rowShift`: a space at a row's top doesn't move the row.
-  const rowGoes = rowMoves && move.place >= 0;
-  if (above) return rowGoes ? 0 : move.offset;
-  return move.below - (rowGoes ? move.offset : 0);
+  // As in `rowShift`.
+  const goes = rowGoes(move, rowMoves);
+  if (above) return goes ? 0 : move.offset;
+  return move.below - (goes ? move.offset : 0);
 }
 
 /** How far the moves draw a piece of a row from where it's laid out. */

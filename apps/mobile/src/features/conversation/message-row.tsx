@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 // eslint-disable-next-line no-restricted-imports -- `memo` for list rows, see `Row`.
-import { memo } from "react";
+import { memo, useState } from "react";
 import { View } from "react-native";
 import Animated, {
   useAnimatedReaction,
@@ -24,6 +24,7 @@ import { MemberNotice } from "./member-notice";
 import { MessageBubble } from "./message-bubble";
 import { MessageStacked } from "./message-stacked";
 import { RepliesDivider } from "./replies-divider";
+import { RowMountedContext } from "./row-mounted";
 import { RowOrderContext } from "./row-order";
 import { MessageRowTarget } from "./row-target";
 
@@ -101,6 +102,7 @@ export const Row = memo(function Row({
   onClosed: (batch: number) => void;
 }) {
   const { order } = row;
+  const [mountedAt] = useState(() => performance.now());
   return (
     <RowLift
       order={order}
@@ -120,13 +122,15 @@ export const Row = memo(function Row({
       >
         {/* What in it moves with the rows moves as this row (see `useRowOrder`). */}
         <RowOrderContext value={order}>
-          <RowContent
-            row={row}
-            self={self}
-            layout={layout}
-            profileOf={profileOf}
-            showAuthors={showAuthors}
-          />
+          <RowMountedContext value={mountedAt}>
+            <RowContent
+              row={row}
+              self={self}
+              layout={layout}
+              profileOf={profileOf}
+              showAuthors={showAuthors}
+            />
+          </RowMountedContext>
         </RowOrderContext>
       </RowShell>
     </RowLift>

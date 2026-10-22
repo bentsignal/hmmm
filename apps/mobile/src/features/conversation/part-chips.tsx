@@ -4,10 +4,11 @@ import type { AnimatedRef } from "react-native-reanimated";
 import { createContext, use, useState } from "react";
 import { View } from "react-native";
 import Animated, {
+  interpolate,
   useAnimatedReaction,
+  useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
-import { scheduleOnRN } from "react-native-worklets";
 
 import type {
   ReactionPart,
@@ -16,7 +17,9 @@ import type {
 import { reactionsOn } from "~/features/messaging/reactions";
 import { impact, selectionTick } from "~/lib/native-extras";
 import { GrowingSpace, usePieceLift } from "./grow";
+import { useLeaving } from "./leaving";
 import { useMessageActions } from "./message-actions";
+import { showWithRoom } from "./moves";
 import { ChipRow } from "./reaction-chips";
 
 /** How a part's reactions make room for themselves (see `GrowingSpace`). */
@@ -53,6 +56,11 @@ function Chips({
  * They mount then rather than fading in with the space: a chip's glass
  * that mounts under a parent with opacity below 1 can stay blank (see
  * `GlassSurface`), as the first reaction on a message did.
+ *
+ * Taken back, the last of them fade out where they are, moving with the
+ * message as their space closes. Held still on screen as when they came,
+ * the message's text slid down over them; gone at once, they were drawn a
+ * chip lower for the frames before React let go of them.
  */
 function GrowingChips({
   open,
@@ -60,20 +68,20 @@ function GrowingChips({
   ...row
 }: ComponentProps<typeof ChipRow> & { open: boolean; room: Room }) {
   const [natural, setNatural] = useState(0);
-  // Rises from 0 as the messages clear the space (see `showWithRoom`), and
-  // drops to 0 the moment it closes.
-  const opened = useSharedValue(0);
-  const [roomy, setRoomy] = useState(false);
-  useAnimatedReaction(
-    () => opened.get() > 0,
-    (now, before) => {
-      if (now !== before) scheduleOnRN(setRoomy, now);
-    },
-  );
   const stay = usePieceLift(room.order, room.place, true);
+  // Mounted with the space (a render of React's mid-move draws the rows,
+  // for a frame, where they were a few frames before), and grown in once
+  // the messages have started clearing it (see `useAppear`).
+  const shown = open && natural > 0;
+  const leave = useLeaving(shown, row.reactions, "fade");
+  const appear = useAppear(leave.leaving);
   return (
     <View>
-      <GrowingSpace height={open ? natural : 0} opened={opened} {...room} />
+      <GrowingSpace
+        height={open ? natural : 0}
+        onLanded={appear.onLanded}
+        {...room}
+      />
       <View
         // The chips' height, from a copy with no glass that's never drawn,
         // laid out on its own as wide as the row so it has its full height
@@ -82,15 +90,53 @@ function GrowingChips({
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
         className="absolute inset-x-0 top-0 opacity-0"
-        onLayout={(event) => setNatural(event.nativeEvent.layout.height)}
+        onLayout={(event) => {
+          // Not as it empties on closing: nothing to make room for then.
+          if (open) setNatural(event.nativeEvent.layout.height);
+        }}
       >
         {open && <ChipRow ghost {...row} />}
       </View>
-      <Animated.View className="absolute inset-x-0 top-0" style={stay}>
-        {open && roomy && <ChipRow {...row} />}
+      <Animated.View
+        pointerEvents={leave.leaving ? "none" : "auto"}
+        className="absolute inset-x-0 top-0"
+        style={leave.leaving ? leave.style : stay}
+      >
+        <Animated.View style={appear.style}>
+          {(shown || leave.leaving) && (
+            <ChipRow {...row} reactions={leave.value} />
+          )}
+        </Animated.View>
       </Animated.View>
     </View>
   );
+}
+
+/**
+ * How chips that come with their space grow in: once the messages have
+ * started clearing it, in step with them (see `showWithRoom`), from when
+ * the space is on screen (`onLanded`). Back to nothing once they've gone
+ * (`leaving` over), for the next time.
+ */
+function useAppear(leaving: boolean) {
+  const shown = useSharedValue(0);
+  useAnimatedReaction(
+    () => leaving,
+    (now, before) => {
+      if (before === true && !now) shown.set(0);
+    },
+    [leaving],
+  );
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(shown.get(), [0, 0.6, 1], [0, 1.06, 1]) }],
+  }));
+  return {
+    onLanded: (opening: boolean) => {
+      "worklet";
+      if (opening) shown.set(showWithRoom());
+    },
+    style,
+  };
 }
 
 /**

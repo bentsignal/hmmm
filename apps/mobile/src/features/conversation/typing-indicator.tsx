@@ -19,10 +19,11 @@ import type { MessageLayout } from "~/features/preferences/store";
 import { useGrowth } from "./grow";
 import { useHeldHeight } from "./held-height";
 import {
+  afterCommit,
   anyPending,
   GROW_EASING,
   GROW_MS,
-  inFrame,
+  IN_COMMIT,
   land,
   moved,
   showWithRoom,
@@ -164,7 +165,7 @@ function HandingOff({
   );
   // In the layout commit, so it goes in the frame the message opens.
   const style = useAnimatedStyle(() => ({
-    backfaceVisibility: "visible",
+    ...IN_COMMIT,
     opacity: shown.get(),
   }));
   return (
@@ -309,7 +310,7 @@ export function TypingRow({
         land({ height: now, measured: room, move });
       }
       if (!handingOff) {
-        inFrame(close);
+        afterCommit(close);
         return;
       }
       // If no message takes it after all, it closes on its own.

@@ -2,12 +2,10 @@ import type { ReactNode } from "react";
 import type { LayoutChangeEvent } from "react-native";
 import { useState } from "react";
 import { View } from "react-native";
-import Animated, { FadeIn, useAnimatedRef } from "react-native-reanimated";
+import Animated, { useAnimatedRef } from "react-native-reanimated";
 
+import { Entrance } from "./entrance";
 import { GrowingSpace } from "./grow";
-
-/** How long a line that appears fades in, once its space has opened. */
-const SHOW = FadeIn.duration(220);
 
 /**
  * A line a row shows from some point while it's on screen, under the
@@ -79,12 +77,13 @@ function LateLine({
         order={order}
         place={place}
         animate
+        early
         measured={measured}
       >
         {height > 0 && (
-          <Animated.View entering={SHOW} style={{ marginTop: gap }}>
-            {children}
-          </Animated.View>
+          <View style={{ marginTop: gap }}>
+            <Entrance kind="fade">{children}</Entrance>
+          </View>
         )}
       </GrowingSpace>
     </Animated.View>

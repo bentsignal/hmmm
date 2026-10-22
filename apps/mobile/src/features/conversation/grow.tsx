@@ -19,7 +19,7 @@ import type { TypingDrop } from "./typing-drop";
 import { useHeldHeight } from "./held-height";
 import { allStill, pieceShift, rowShift } from "./move-math";
 import {
-  inFrame,
+  afterCommit,
   land,
   moved,
   MOVES,
@@ -201,6 +201,11 @@ export function GrowingSpace(props: SpaceProps) {
   const changed = useChangedSinceMount(props.height);
   const [used, setUsed] = useState(changed);
   if (!used && changed) setUsed(true);
+  // Mounted at no height ahead of opening, so its view is on screen by
+  // then: one that mounts as it opens has nothing for its height to go to
+  // in that frame, while the moves go to the rows already there.
+  if (props.early === true) return <Space {...props} />;
+
   if (used) {
     // From what it held as a plain view, if it did.
     return (
@@ -233,6 +238,13 @@ interface SpaceProps {
    * and hidden as it closes.
    */
   opened?: SharedValue<number>;
+  /** Mounted at no height before it first opens (see `GrowingSpace`). */
+  early?: boolean;
+  /**
+   * When the change is on screen and the messages start easing (see
+   * `land`): `opening` or closing.
+   */
+  onLanded?: (opening: boolean) => void;
   children?: ReactNode;
 }
 
@@ -244,6 +256,7 @@ function Space({
   measured,
   from,
   opened,
+  onLanded,
   children,
 }: SpaceProps) {
   const growth = useGrowth();
@@ -254,17 +267,26 @@ function Space({
   useAnimatedReaction(
     () => height,
     (now) => {
-      inFrame(() => {
+      // A frame later than it could: the React commit that brought the
+      // change is still reaching the screen in the first, and Reanimated,
+      // which waits while React commits, would send the moves on without
+      // the space (see `IN_COMMIT`).
+      afterCommit(() => {
         const delta = now - space.get();
         if (delta === 0) return;
         space.set(now);
         opened?.set(now > 0 ? showWithRoom() : 0);
         if (!animate) return;
         const move = startMove(growth, { order, place }, delta, measured);
-        land({ height: now, measured: ref, move });
+        land({
+          height: now,
+          landed: () => onLanded?.(delta > 0),
+          measured: ref,
+          move,
+        });
       });
     },
-    [height, animate, order, place],
+    [height, animate, order, place, onLanded],
   );
   const style = useHeldHeight(space);
   return (

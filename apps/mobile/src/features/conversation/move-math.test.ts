@@ -74,3 +74,13 @@ void test("when the row moves itself, its pieces below the space move back", () 
   assert.equal(at(0), 0);
   assert.equal(at(3), -40);
 });
+
+void test("a space under all of a bubble moves its row with the rows above", () => {
+  const moves = [opening(1_000)];
+  // The row moves, not its pieces on their own as well.
+  assert.equal(rowShift(moves, 10, false).shift, 40);
+  assert.equal(
+    pieceShift(moves, { order: 10, place: 0, rowMoves: false }).shift,
+    0,
+  );
+});

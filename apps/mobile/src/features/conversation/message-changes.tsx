@@ -1,9 +1,10 @@
 import { Text, View } from "react-native";
-import Animated, { FadeIn, useAnimatedRef } from "react-native-reanimated";
+import Animated, { useAnimatedRef } from "react-native-reanimated";
 
 import type { Message } from "./types";
 import { cn } from "~/lib/cn";
 import { BUBBLE_RADIUS } from "./bubble-shape";
+import { Entrance } from "./entrance";
 import { GrowingSpace, useChangedSinceMount } from "./grow";
 import { BUBBLE_COLUMN_GAP } from "./row-header";
 import { useRowOrder } from "./row-order";
@@ -39,7 +40,6 @@ export function DeletedText() {
 
 /** The "Edited" line's height, fixed so its space can open before it. */
 const EDITED_LINE = 16;
-const SHOW = FadeIn.duration(220);
 
 function EditedText({ isOwn }: { isOwn: boolean }) {
   return (
@@ -84,9 +84,11 @@ function LateEdited({ message, isOwn }: { message: Message; isOwn: boolean }) {
         animate
         measured={measured}
       >
-        <Animated.View entering={SHOW} style={{ marginTop: BUBBLE_COLUMN_GAP }}>
-          <EditedText isOwn={isOwn} />
-        </Animated.View>
+        <View style={{ marginTop: BUBBLE_COLUMN_GAP }}>
+          <Entrance kind="fade">
+            <EditedText isOwn={isOwn} />
+          </Entrance>
+        </View>
       </GrowingSpace>
     </Animated.View>
   );

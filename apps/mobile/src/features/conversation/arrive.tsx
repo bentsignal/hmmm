@@ -17,7 +17,14 @@ import { arrivalMounted, joinArrivals } from "./arrive-batch";
 import { Fading } from "./fading";
 import { useGrowth } from "./grow";
 import { justListed } from "./listed-rows";
-import { GROW_EASING, GROW_MS, inCommit, inFrame, land, moved } from "./moves";
+import {
+  afterCommit,
+  GROW_EASING,
+  GROW_MS,
+  inCommit,
+  land,
+  moved,
+} from "./moves";
 import { useOnMount } from "./typing-parts";
 
 /** How long a message that comes in takes to fade in as it opens. */
@@ -247,6 +254,10 @@ function Opening({
           if (rises) {
             rising.set(true);
             rise.set(by);
+            // From the next frame, with the move (not from when it's on
+            // screen, as the move eases: rising later, it was let go of
+            // as Reanimated handed its values back to React, and it
+            // flashed half faded for a frame).
             requestAnimationFrame(() => {
               rise.set(
                 withTiming(
@@ -267,15 +278,15 @@ function Opening({
             measured: outer,
             move: lands ? move : undefined,
           });
-          // Before its rise starts, next frame, a newer row opening under
-          // it can add to it.
+          // Before its rise starts, once it's on screen, a newer row
+          // opening under it can add to it.
           return (more: number) => {
             if (rises) rise.set(rise.get() + more);
           };
         },
       });
     }
-    inFrame(open);
+    afterCommit(open);
   });
   // In the layout commit with the opening, then on the fast path.
   const risen = useAnimatedStyle(() => moved(rise.get(), rising.get()));
