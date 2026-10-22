@@ -221,3 +221,75 @@ from a notification that hang; (5) firehose mode: past a rate, new
 messages show at once with no rise or fade (as Discord's chat does when
 it's busy), and animate again once it slows; (6) the message types made
 easy to add without risking the rest.
+
+### 2026-10-22: the second round on #258
+
+**The jump to the bottom.** A tap on the status bar scrolls an iOS list
+to its top, which inverted is the newest message, and a thumb flinging up
+through older messages starts right under it. Reproduced in the
+simulator (75,000 points up to the bottom in one tap); the message lists
+now set `scrollsToTop={false}`. Also closed: a window more than a page
+behind reopened at the latest (remounting the list there) even while the
+reader was up in older messages, as after coming back to the app. It now
+follows page by page while away from the latest (`setAtLatest`). An
+earlier claim that flings alone reproduced the jump was a misread of a
+recording; with OCR of numbered messages they were monotonic.
+
+**Memory.** Measured in the simulator with `veraDev.memory()` and
+`footprint`, in the dev client and with a production bundle served to it
+(a second Metro with `--no-dev --minify`, so Shawn's phone kept its own):
+
+| | dev bundle | production bundle |
+| --- | --- | --- |
+| Inbox | 505 MB, 35 MB live JS | 466 MB, 21 MB |
+| Conversation open | 630 MB, 79 MB | 590 MB, 47 MB |
+| 30 flings into history | 1066 MB, 245 MB | 738 MB, 82 MB |
+| Back to the inbox | 1040 MB, 164 MB | 719 MB, 32 MB |
+| Nine more conversations, one by one | | 661 MB, 31 MB |
+
+The production bundle gives its JavaScript back and doesn't climb
+conversation after conversation. The dev bundle's extra is the dev
+build's: bytecode compiled at runtime (153 MB of `CodeBlock`), React's
+per-element debug stacks and `console.createTask` handles, and React
+DevTools' global hook holding unmounted views (a heap snapshot traced
+the closed conversation's elements to `__REACT_DEVTOOLS_GLOBAL_HOOK__`).
+Vera Dev on the phone carries all of that. Hermes keeps its heap at its
+peak size, so the footprint stays near the high mark either way. Let go
+of: a long window's pages after its conversation closes (`useStayLive`
+kept 80+ queries live for three minutes; now 17).
+
+**Convex.** A page costs ~130 ms on the server (dispatch has ~85 ms of
+fixed cost); most of the 1.3 s per older page was the client. Done:
+
+- A query's first result shows in the next frame instead of waiting for
+  the 400 ms update throttle (`account-session.ts`).
+- Opening at a message the PDS doesn't have (deleted since its
+  notification, or kept on another PDS) waited forever behind "Can't
+  connect"; it opens at the latest instead. Reproduced and fixed.
+- A routed query whose PDS couldn't be found stayed pending for good; it
+  now shows what the others have and keeps trying
+  (`routed-pds-observer.ts`).
+- A slow open reopened the window at its saved time even with its pages
+  loaded (`show-saved.ts` read a field pages don't have).
+
+Not done, each its own change with an isolated backend:
+
+- `typing` is included in the `conversation` query and in thread pages,
+  and reads the whole conversation, so they re-run with every typing
+  update (`includes.ts`, `typing.ts`): drop it from the includes, index
+  typing by `(conversationId, threadId, typedAt)`.
+- `markRead` reads ~1,650 documents every ~2.5 s while reading, because
+  `seeConversationActivity` scans every reaction to your messages
+  (`sightings.ts`): index reactions by author and conversation.
+- Only one older page is ever asked for at a time (its cursor needs the
+  oldest message); a page size argument or a cursor from the server
+  would let the list ask two ahead.
+- A conversation spread over several PDSes pages each with the overall
+  oldest message, skipping some of the others' (`loadOlder`).
+
+**Firehose.** Rows opening faster than 8 in 2 seconds open at once, a
+batch at a time (`arrive-batch.ts`), until it's down to 3 in 2 seconds.
+The row's opacity goes in the layout commit with its height: on its own,
+the commit put back the opacity React first drew it with, and the rows
+above moved up off an empty space for two frames (found with a blank-band
+detector over the recording). 150 messages in 15 s: 44 slow frames.
