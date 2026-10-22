@@ -238,6 +238,11 @@ function Opening({
             measured: outer,
             move: lands ? move : undefined,
           });
+          // Before its rise starts, next frame, a newer row opening under
+          // it can add to it.
+          return (more: number) => {
+            if (rises) rise.set(rise.get() + more);
+          };
         },
       });
     }

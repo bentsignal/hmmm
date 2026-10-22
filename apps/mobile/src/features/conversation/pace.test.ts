@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { Message } from "./types";
-import { onlyOthersArrived, sameMessages } from "./pace.ts";
+import { onlyOthersArrived, sameMessages, waitingAuthors } from "./pace.ts";
 
 const ME = "me@vera.test";
 const MAYA = "maya@vera.test";
@@ -51,4 +51,12 @@ void test("your own message, and any other change, shows at once", () => {
 void test("the same messages in a new list are the same", () => {
   assert.equal(sameMessages(shown, [...shown]), true);
   assert.equal(sameMessages(shown, [message(1)]), false);
+});
+
+void test("whoever has a message waiting its turn is still typing it", () => {
+  const leo = "leo@vera.test";
+  const next = [...shown, message(3), message(4, leo)];
+  assert.deepEqual([...waitingAuthors(shown, next)], [MAYA, leo]);
+  assert.equal(waitingAuthors(next, next).size, 0);
+  assert.equal(waitingAuthors(shown, shown).size, 0);
 });

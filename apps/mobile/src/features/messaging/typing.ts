@@ -9,7 +9,7 @@ import { pds } from "@vera/backend/pds";
 import type { AccountSession } from "~/features/session/account-session";
 import { useAccount } from "./account";
 import { pdsResultOr } from "./results";
-import { lastSentByAuthor, shownTypists } from "./typing-state";
+import { lastSentByAuthor, shownTypists, withWaiting } from "./typing-state";
 
 /** The key `useTypists` asks for who's typing in a conversation by. */
 export function typingQueryKey(session: string, conversationId: string) {
@@ -23,6 +23,12 @@ export function typingQueryKey(session: string, conversationId: string) {
 /** Nobody, the same array each time so the list doesn't redraw. */
 const NOBODY = Object.freeze<string[]>([]);
 
+function sameIds(left: readonly string[], right: readonly string[]) {
+  return (
+    left.length === right.length && left.every((id, at) => id === right[at])
+  );
+}
+
 /**
  * Who else is typing in a conversation, or with `threadId`, in that
  * thread, in the order they started. `messages` are the ones on screen:
@@ -35,9 +41,12 @@ export function useTypists(
   {
     threadId,
     messages,
+    waiting,
   }: {
     threadId?: string;
     messages: readonly { authorId: string; sentAt: Date }[];
+    /** Who has a message waiting its turn to show (see `withWaiting`). */
+    waiting: ReadonlySet<string>;
   },
 ) {
   const { address } = useAccount();
@@ -72,9 +81,12 @@ export function useTypists(
     );
     return () => clearTimeout(timer);
   }, [nextChange]);
+  const [last, setLast] = useState<readonly string[]>(NOBODY);
+  const typists = withWaiting(last, shown.accountIds, waiting);
+  if (!sameIds(typists, last)) setLast(typists);
   return {
     isLoading: data === undefined,
-    typists: shown.accountIds.length === 0 ? NOBODY : shown.accountIds,
+    typists: typists.length === 0 ? NOBODY : typists,
   };
 }
 

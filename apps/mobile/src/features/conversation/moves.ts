@@ -1,9 +1,5 @@
 import type { View } from "react-native";
-import type {
-  AnimatedRef,
-  DerivedValue,
-  SharedValue,
-} from "react-native-reanimated";
+import type { AnimatedRef, SharedValue } from "react-native-reanimated";
 import {
   Easing,
   makeMutable,
@@ -82,12 +78,6 @@ export interface Growth {
   readonly id: number;
   readonly moves: readonly Move[];
   /**
-   * The moves as they are this frame, for the rows and pieces they draw
-   * (see `rowShift`): one value each row's style reads, rather than every
-   * move's seven, which each row sent to the UI thread as it mounted.
-   */
-  readonly shifts: DerivedValue<MoveNow[]>;
-  /**
    * The orders of the rows on screen, and as many again either side (see
    * `onScreenRange`): the rows a move draws. Every row outside it is
    * drawn where it's laid out, without a transform each frame.
@@ -119,7 +109,13 @@ export interface MoveNow {
   readonly pending: boolean;
 }
 
-/** What the rows and pieces need of the moves this frame. */
+/**
+ * What the rows and pieces need of the moves this frame. Read straight
+ * from the moves in each style: a derived value of them, which would make
+ * each style's closure smaller, reached the styles of rows mounted before
+ * it a frame late (Reanimated didn't order them after it), so rows jumped
+ * for a frame as one opened.
+ */
 export function movesNow(moves: readonly Move[]) {
   "worklet";
   return moves.map(

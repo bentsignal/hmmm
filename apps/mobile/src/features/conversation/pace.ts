@@ -30,3 +30,24 @@ export function onlyOthersArrived(
   }
   return next.slice(shown.length).every((message) => message.authorId !== self);
 }
+
+/** Nobody's message is waiting (see `waitingAuthors`). */
+const NOBODY_WAITING = new Set<string>();
+
+/**
+ * Who has a message in `next` that `shown` doesn't show yet: messages
+ * waiting their turn. They still show as typing until it does, so it grows
+ * out of their indicator rather than the indicator closing first.
+ */
+export function waitingAuthors(
+  shown: readonly Message[],
+  next: readonly Message[],
+) {
+  if (shown === next) return NOBODY_WAITING;
+  const ids = new Set(shown.map((message) => message.id));
+  const authors = new Set<string>();
+  for (const message of next) {
+    if (!ids.has(message.id)) authors.add(message.authorId);
+  }
+  return authors.size === 0 ? NOBODY_WAITING : authors;
+}

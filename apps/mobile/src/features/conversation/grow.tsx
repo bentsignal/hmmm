@@ -7,7 +7,6 @@ import Animated, {
   useAnimatedReaction,
   useAnimatedRef,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
 } from "react-native-reanimated";
 
@@ -68,7 +67,6 @@ export function GrowthProvider({
   children: ReactNode;
 }) {
   const [moves] = useState(() => Array.from({ length: MOVES }, newMove));
-  const shifts = useDerivedValue(() => movesNow(moves));
   const onScreen = useSharedValue(ALL_ON_SCREEN);
   const [id] = useState(nextListId);
   const typing = useSharedValue(0);
@@ -81,7 +79,6 @@ export function GrowthProvider({
         list,
         moves,
         onScreen,
-        shifts,
         typing,
         typingDrop: drop,
         typingDropped: dropped,
@@ -155,9 +152,12 @@ export function useRowLift(
   /** It's leaving now (see `Leave`). */
   leaving: boolean,
 ) {
-  const { shifts, onScreen } = useGrowth();
+  const { moves, onScreen } = useGrowth();
   return useAnimatedStyle(() => {
-    const style = rowMoved(shifts.get(), onScreen.get(), { order, withOwn });
+    const style = rowMoved(movesNow(moves), onScreen.get(), {
+      order,
+      withOwn,
+    });
     if (leave === null) return style;
     const { opacity, kept } = leave;
     const height = kept.get();
@@ -181,12 +181,12 @@ export function useRowLift(
  * below the space stays put.
  */
 export function usePieceLift(order: number, place: number, rowMoves = false) {
-  const { shifts } = useGrowth();
+  const { moves } = useGrowth();
   return useAnimatedStyle(() => {
-    const moves = shifts.get();
+    const now = movesNow(moves);
     // Empty at rest, as `useRowLift`'s is.
-    if (allStill(moves)) return {};
-    const { pending, shift } = pieceShift(moves, { order, place, rowMoves });
+    if (allStill(now)) return {};
+    const { pending, shift } = pieceShift(now, { order, place, rowMoves });
     return moved(shift, pending);
   });
 }

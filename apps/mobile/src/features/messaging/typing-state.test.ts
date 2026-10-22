@@ -6,6 +6,7 @@ import {
   shownTypists,
   typingFaces,
   typingLabel,
+  withWaiting,
 } from "./typing-state.ts";
 
 const MAYA = "maya@vera.chat";
@@ -116,4 +117,20 @@ void test("photos show for up to four people, then three and a count", () => {
     faces: [1, 2, 3],
     more: 4,
   });
+});
+
+void test("someone whose message is waiting its turn still shows typing", () => {
+  const waiting = new Set([LEO]);
+  // Leo's message is held while another rises: he stays, in his place.
+  assert.deepEqual(withWaiting([LEO, MAYA], [MAYA], waiting), [LEO, MAYA]);
+  // Once it shows, he goes.
+  assert.deepEqual(withWaiting([LEO, MAYA], [MAYA], new Set()), [MAYA]);
+  // Someone new starting meanwhile joins at the end.
+  assert.deepEqual(withWaiting([LEO], ["sam@vera.test"], waiting), [
+    LEO,
+    "sam@vera.test",
+  ]);
+  // Nobody waiting: who's typing is as the PDS says.
+  const shown = [MAYA];
+  assert.equal(withWaiting([LEO], shown, new Set()), shown);
 });
