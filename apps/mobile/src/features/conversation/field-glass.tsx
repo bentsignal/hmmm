@@ -26,8 +26,15 @@ const WAIT_FRAMES = 30;
  * field the whole way, as when attachments close as it eases. If the field
  * doesn't get shorter, the glass lets go.
  */
-function settle(field: AnimatedRef<View>, held: SharedValue<number>) {
+function settle(
+  field: AnimatedRef<View>,
+  held: SharedValue<number>,
+  sends: SharedValue<number>,
+) {
   "worklet";
+  // A later send takes the glass over.
+  const send = sends.get() + 1;
+  sends.set(send);
   const before = measure(field);
   if (before === null) return;
   const from = before.height;
@@ -36,6 +43,7 @@ function settle(field: AnimatedRef<View>, held: SharedValue<number>) {
   let lost = 0;
   let start: number | undefined;
   function frame(time: number) {
+    if (sends.get() !== send) return;
     const now = measure(field)?.height ?? from;
     if (start === undefined) {
       if (now < from - 0.5) {
@@ -69,13 +77,14 @@ export function useFieldGlass() {
   const field = useAnimatedRef<View>();
   /** The least height the glass is drawn at, while it eases down. */
   const held = useSharedValue(0);
+  const sends = useSharedValue(0);
   return {
     field,
     held,
     // Android's bar is solid, with a border along its top that moves at
     // once: glass held above it would show over the messages.
     settle: () => {
-      if (Platform.OS === "ios") scheduleOnUI(settle, field, held);
+      if (Platform.OS === "ios") scheduleOnUI(settle, field, held, sends);
     },
   };
 }
