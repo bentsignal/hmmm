@@ -10,6 +10,7 @@ import { benchApi } from "./bench/bench-api";
 import { devConversation } from "./dev-conversation";
 import { devSignInPath } from "./dev-sign-in-path";
 import { frameReport, startFrames, stopFrames } from "./frames";
+import { memoryReport } from "./memory";
 
 function isAppPath(path: string): path is Href & string {
   return path.startsWith("/");
@@ -45,6 +46,8 @@ export function installDevAutomation() {
       bench: benchApi,
       /** `scripts/sim.sh frames start` and `stop`: see frames.ts. */
       frames: { report: frameReport, start: startFrames, stop: stopFrames },
+      /** The JavaScript heap and the query cache (see memory.ts). */
+      memory: memoryReport,
     },
   });
 }
