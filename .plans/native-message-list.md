@@ -561,3 +561,36 @@ It now uses a React Native button with Material close symbol and a 48 dp
 hit area. The real app's close action returned to the conversation, and
 an after-fix recording/screenshot were captured. Temporary probes were
 removed. Carousel/keyboard/media QA continues before final phone builds.
+
+Final Android source is now ada19507. It adds the early shared-client
+outbound compression policy, containing-block lookup for all carousel
+item parts, and detach/reparent hardening. Eleven message-list JVM tests,
+two networking tests, and plugin startup tests pass. A negative-control
+host test reproduces the prior attached-view exception with eager detach
+recycling enabled, then passes with the normal detach policy.
+
+The combined native client passed a wire test with 25 native app WebSocket
+exchanges. Compression was negotiated on every connection, every outgoing
+client frame had RSV1 clear, and all 25 compressed server echoes had RSV1
+set and decoded correctly. Twenty repeated inspector attach/detach probes
+also passed. The fresh fatal logcat buffer was empty. Three real-app
+third-photo menu-close/viewer-open/close cycles passed with snapshot guards.
+The first recording transfer was lost in subsequent emulator cleanup, so
+the same guarded cycle is being recorded again before final delivery.
+
+The theme mapper omitted the contract's existing backgroundElevated field.
+It now sends the same CSS background as RN link cards, fixing their black
+instead of elevated gray background in dark mode. Android before/after
+screenshots are required; iOS screenshots will be refreshed too.
+
+Final Android FPS captures were discarded after ADB lost emulator-5644
+and the queue reclaimed it. The launcher now chooses free standard console
+ports 5560–5584, within ADB's discovery range, instead of ports through5658.
+No queue daemon/config was changed or bypassed. Measurements must be rerun.
+
+iOS scroll-video blank flags were reviewed separately. They all occur as
+the same hay-bale photo crosses the viewport, whose large white sky is
+classified as a blank band in both lists. First and last flagged native
+frames show the complete image moving through, with no missing row.
+Flung rows also exceed the analyzer's 40 pt matching range; its movement
+flags during these fast scroll clips are not a motion pass/fail result.
