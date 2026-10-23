@@ -77,14 +77,53 @@ fun TextView.style(units: Units, style: TextStyle, color: Int, typeface: Typefac
   if (getTag(R.id.message_list_style) == applied) return
   setTag(R.id.message_list_style, applied)
   setTextSize(TypedValue.COMPLEX_UNIT_PX, units.sp(style.size))
-  TextViewCompat.setLineHeight(this, Math.round(units.sp(style.lineHeight)))
+  if (this is ListText) lineHeightPx = Math.round(units.sp(style.lineHeight))
+  else TextViewCompat.setLineHeight(this, Math.round(units.sp(style.lineHeight)))
   setTextColor(color)
   this.typeface = typeface
   includeFontPadding = false
 }
 
+/**
+ * Each line exactly `height` tall, the text centered in it, as React
+ * Native draws `lineHeight` on Android (its `CustomLineHeightSpan`): one
+ * line of 17/22 text is 22 tall, not the font's own height.
+ */
+class ExactLineHeight(private val height: Int) : android.text.style.LineHeightSpan {
+  override fun chooseHeight(text: CharSequence, start: Int, end: Int, spanstartv: Int, lineHeight: Int, fm: android.graphics.Paint.FontMetricsInt) {
+    val leading = height - (fm.descent - fm.ascent)
+    fm.ascent -= Math.ceil(leading / 2.0).toInt()
+    fm.descent += Math.floor(leading / 2.0).toInt()
+    fm.top = fm.ascent
+    fm.bottom = fm.descent
+  }
+}
+
+/** The list's text views: their text set with the style's exact line height. */
+@android.annotation.SuppressLint("AppCompatCustomView")
+open class ListText(context: Context) : TextView(context) {
+  /** Pixels a line, or 0 for the font's own. */
+  var lineHeightPx = 0
+    set(value) {
+      if (field == value) return
+      field = value
+      text = text
+    }
+
+  override fun setText(text: CharSequence?, type: BufferType?) {
+    if (lineHeightPx <= 0 || text.isNullOrEmpty()) {
+      super.setText(text, type)
+      return
+    }
+    val spanned = android.text.SpannableString(text)
+    for (old in spanned.getSpans(0, spanned.length, ExactLineHeight::class.java)) spanned.removeSpan(old)
+    spanned.setSpan(ExactLineHeight(lineHeightPx), 0, spanned.length, Spanned.SPAN_INCLUSIVE_INCLUSIVE)
+    super.setText(spanned, type)
+  }
+}
+
 fun plainText(context: Context): TextView =
-  TextView(context).apply {
+  ListText(context).apply {
     includeFontPadding = false
     isClickable = false
     isFocusable = false

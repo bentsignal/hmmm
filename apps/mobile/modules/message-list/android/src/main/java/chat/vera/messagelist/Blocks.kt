@@ -24,7 +24,7 @@ import android.widget.TextView
  * of a deleted message (`outlined`).
  */
 @SuppressLint("AppCompatCustomView")
-class BubbleTextView(context: Context, private val units: Units) : TextView(context) {
+class BubbleTextView(context: Context, private val units: Units) : ListText(context) {
   private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
   private val path = Path()
   private var tail = false
