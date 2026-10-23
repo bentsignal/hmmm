@@ -765,13 +765,16 @@ report describes. A fix is verified only once it's checked on a device,
 and the items Shawn raised only on his phones close only when he checks
 them on his phones.
 
-### Status (integration source, not yet verified on a device)
+### Status (iOS simulator checked; phones and Android runtime pending)
 
-- Inputs: this branch at `78d4c94c`, with iOS source-ready
-  `cd09c26440b079522c06bec9820236f51a0e89bb` and Android source-ready
-  `31c7225980822283b468356d39c6b75af79fd36a` merged in cleanly (no
-  conflicts), plus integration's uncommitted shared changes below. No
-  data-pass merge.
+- Now: the branch head is `b13615a5`, committed and pushed, with all 9
+  CI checks green. It includes iOS `4cdb168d` (the glass default, with
+  the `5cca8d96` exact-tile lift correction) and Android `31c72259`. No
+  data-pass merge. See "Final iOS checkpoint, 2026-10-23 evening" below.
+- First inputs (historical): this branch at `78d4c94c`, with iOS
+  source-ready `cd09c26440b079522c06bec9820236f51a0e89bb` and Android
+  source-ready `31c7225980822283b468356d39c6b75af79fd36a` merged in
+  cleanly, plus integration's shared changes, since committed.
 - Contract revision 3 is adopted in contract.ts, accepted by both native
   owners: `hold.element`/`reactionKey`, reaction `press.frame`,
   `TypingRow.showFaces`, no feature flag.
@@ -786,9 +789,10 @@ them on his phones.
   `devMixed:seed` with reactions on the parts the app draws, and the
   frame report's fixed thresholds (`frame-summary.ts`).
 - Dictation: a source-backed candidate. It needs iOS built from source
-  (`with-react-native-from-source.cjs`) and the react-native patch.
-  It's unverified until the combined build shows the patched file
-  compiled and Shawn checks it on his iPhone.
+  (`with-react-native-from-source.cjs`) and the react-native patch. The
+  final simulator build compiles the patched file for both architectures
+  (below). The symptom is still unreproduced and unverified until Shawn
+  checks it on his iPhone.
 - Root checks, in order, on the final source, all passing:
   `pnpm run lint` (15 tasks), `pnpm run typecheck` (17), `pnpm run test`
   (mobile 194, backend 41, jest 3 suites and 7 tests),
@@ -822,9 +826,11 @@ them on his phones.
   iOS simulator build with the patched text input compiled, iOS
   resting-geometry evidence, the jump-to-latest fix, and the iOS chip
   material measurement (glass now the iOS 26+ default).
-- Pending: the `4cdb168d` client compile, glass look checks in light and
-  dark, the final motion and performance runs, Android runtime, and Vera
-  Dev on both phones. Every item below still waits on Shawn's phones.
+- Done since, in the iOS simulator: the `4cdb168d` client compile, the
+  glass look check in light and dark with no override, the final motion
+  runs, and the final head-to-head (see the final checkpoint).
+- Pending: Android runtime; the Vera Dev clients (the iPhone build is
+  running, Android after it); and every item below, on Shawn's phones.
 
 ### 1. Reactions
 
@@ -903,7 +909,9 @@ known, accepted difference.
       Android stays fill (no blur on the A16). Measured since, in the
       simulator (see the runtime checkpoint): glass stayed within fill's
       noise, so iOS made glass the default on iOS 26 and later (`4cdb168d`),
-      with fill before 26. Not done: the look check, the phone, and dark.
+      with fill before 26. Since, in the final build with no override,
+      the default reads glass and looks legible in light and dark. Not
+      done: dark performance, and Shawn's phone.
 - [ ] Keep the native real-content lift as it is; it works well. The
       regression check is the existing hold, menu, land and viewer cycles.
 
@@ -1551,6 +1559,101 @@ performance runs and the builds; source is frozen. Shawn's earlier
 report that the private previews were dramatically better, including on
 the Galaxy A16, stands, and it still isn't approval to merge. No new
 production previews, stores or OTA.
+
+### Final iOS checkpoint, 2026-10-23 evening
+
+The head is `b13615a5`, with all 9 CI checks green there (read by the
+orchestrator), and the ordered root checks passed earlier on the same
+source. No source changed since. iOS simulator only. Android's runtime
+and both phones are still pending.
+
+**Final build.** The combined simulator client, fingerprint
+`876311a084e8563a2379dc3da938fda6b5c5e018`, built from iOS `4cdb168d`,
+including the `5cca8d96` exact-tile lift. The orchestrator verified its
+code signature. Its build log
+(`.cache/native-polish-build/ios-final-source-proof.json`,
+`ios-material-default-client.log`) compiles `RCTTextInputComponentView.mm`
+from react-native's `patch_hash=f048d109…` directory, for arm64 and
+x86_64. That shows the dictation patch is in the binary, nothing more:
+the spinner symptom is still unreproduced.
+
+**Chip default with no override.** LLDB read `VeraChipMaterial` as nil and
+`ChipMaterial.current` as glass
+(`.cache/native-polish-build/material-default-no-override.log`). The glass
+chips are legible in light and dark
+(`.cache/evidence/polish-ios-glass-default-{light,dark}.png`). Dark wasn't
+measured for performance, and the light measurement isn't extended to it.
+
+**Motion check.** Light: 18 of 18 passed, exit 0
+(`.cache/native-polish-build/ios-final-motion-light.log`, recordings in
+`.cache/motion/20261023-191725`). Dark: 17 of 18, exit 1
+(`ios-final-motion-dark.log`, `.cache/motion/20261023-192734`). Bubbles
+firehose failed with 2 flags and 0 minor in 94 frames: a jump-back at
+8.365 s (middle, 308 pt, −11) and a flicker at 9.128 s (left, 596 pt, 56).
+There were no Metro errors. My review of the extracted frames
+(`.cache/native-polish-build/dark-firehose-frame-times.txt`, contact sheet
+`.cache/evidence/dark-firehose-review/contact.png`): the four source
+frames at 8.172, 8.365, 8.640 and 9.128 s are 193, 275 and 488 ms apart,
+much sparser than the frames around them. The rows keep their identity
+and move up. Two arrivals land between rows already shown: Firehose 42
+appears between 41 and 43, and 55 lands below 58. That's `dev:burst`
+sending each message at a random moment around its slot, the known
+firehose cause above. The flags fall in those wide gaps, past the
+analyzer's ±40 pt search. I found no reversal or missing row, so there's
+no code change. The formal result stays 17 of 18, not an all-pass. A
+sparse capture can't prove every frame.
+
+**Head-to-head, current.** Both lists in the real app, with production
+JavaScript (`__DEV__` false), the same native `benchFling` and UI-thread
+driver, no injected gestures, and no concurrent build or boot. The same
+busy group, the React Native list first and then native, one run each.
+The native list loads 5 screens ahead and the React Native list 3. Scroll
+is 5,500 pt/s for 10 s; the burst is 150 messages over 15 s. Files:
+`.cache/bench/20261023-193617-all.jsonl` (bubbles) and
+`.cache/bench/20261023-194044-all.jsonl` (stacked), each with its
+`.frames-stop.log`.
+
+| Layout, scenario | FPS RN → native | Slow     | Worst          | JS stalls | Mac CPU avg (peak) RN / native |
+| ---------------- | --------------- | -------- | -------------- | --------- | ------------------------------ |
+| Bubbles, scroll  | 52.0 → 58.8     | 77 → 14  | 67.7 → 44.6 ms | 41 → 9    | 19% (20%) / 15% (21%)          |
+| Bubbles, burst   | 50.5 → 59.5     | 131 → 11 | 112 → 40.8 ms  | 84 → 15   | 27% (42%) / 10% (18%)          |
+| Stacked, scroll  | 53.5 → 58.6     | 73 → 14  | 53.7 → 48.8 ms | 41 → 12   | 23% (29%) / 19% (22%)          |
+| Stacked, burst   | 50.7 → 59.5     | 139 → 10 | 79.7 → 42.5 ms | 100 → 15  | 16% (22%) / 9% (15%)           |
+
+Scrolling, native travelled 55,000 pt with no wait at the oldest row in
+both layouts. The React Native list travelled 39,964 pt with 2,639 ms
+waiting (bubbles) and 42,470 pt with 2,531 ms (stacked). Loaded rows
+started at 50 (React Native) and 100 (native) in bubbles, and 100 and 100
+in stacked. They ended at 500 and 700 in bubbles, and 700 and 900 in
+stacked. So the lists did different amounts of loading, and the run
+order, warm caches and row counts still affect these numbers. Native
+still has slow frames, so there's no zero-slow claim, and nothing here
+says glass is faster. These are the current results, separate from the
+earlier preview-round numbers above, and they're the simulator, not a
+phone.
+
+**Devices.** The orchestrator's own iOS simulator and its panel were
+brought down, and Metro stopped at 19:45. An `xcodebuild clean`
+recovered 64 GB. The physical iPhone's Vera Dev build (`scripts/phone.sh up`,
+normal Metro, the isolated backend with no data pass) started at
+19:45:35 EDT under the shared lock
+(`.cache/native-polish-build/phone-ios-polish.log`). It has no artifact or
+link yet. The iPhone's link goes to Shawn as soon as it's verified, before
+Android's. There's no estimate here for either.
+
+**Still open.** Android runtime: every Android fix is source-verified
+only. Shawn's phones: dictation; the iOS reaction tap feel and haptics;
+interactive keyboard dismissal (the driver couldn't perform it); the
+composer's shrink on the A16; carousel and deck feel; viewer paging; glass
+on his 120 Hz iPhone; the typing hand-off with real bots; and the
+newest-row acceptance (item 9). Item 9 has resting 8 pt gaps across the
+iOS cases measured so far. Still missing there: Android, the safe-area
+variants, some cells of the matrix, and frame-exact transitions. It's not
+a once-and-for-all claim. Then the separate combined native plus
+data-pass test. The update gate stays off. Its old-runtime OTA order stays
+in docs/next-release.md. Shawn's report of dramatic improvement on his
+iPhone and Galaxy A16 with the earlier previews stands, and isn't merge
+approval. No stores, production OTA, or shared backend deploys.
 
 ### Pending checks only a phone can do
 
