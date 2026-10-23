@@ -97,13 +97,13 @@ record() {
 fling() {
   local list=$1
   open_fresh $list || return
-  js 'globalThis.veraFling = undefined; veraDev.stalls.start()' >/dev/null
+  js 'globalThis.veraFling = undefined; globalThis.veraLoadedBefore = veraDev.conversation().messages().length; veraDev.stalls.start()' >/dev/null
   frames_start $(( MS / 1000 + 1 ))
   js "void veraDev.list().fling($SPEED, $MS).then((result) => { globalThis.veraFling = result; })" >/dev/null
   sleep $(( MS / 1000 + 2 ))
   local frames=$(frames_stop)
   local stalls=$(js 'JSON.stringify(veraDev.stalls.stop())' | sed 's/^"//; s/"$//; s/\\"/"/g')
-  local result=$(js 'JSON.stringify(globalThis.veraFling ?? null)' | sed 's/^"//; s/"$//; s/\\"/"/g')
+  local result=$(js 'JSON.stringify(globalThis.veraFling == null ? null : { ...globalThis.veraFling, loadedBefore: globalThis.veraLoadedBefore, loadedAfter: veraDev.conversation().messages().length })' | sed 's/^"//; s/"$//; s/\\"/"/g')
   if [[ $result == null || -z $result ]]; then echo "$list fling did not finish" >&2; return 1; fi
   record $list fling "${frames:-null}" "${stalls:-null}" "${result:-null}"
 }
