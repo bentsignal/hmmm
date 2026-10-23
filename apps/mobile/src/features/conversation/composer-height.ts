@@ -1,8 +1,11 @@
+import type { View } from "react-native";
 import type { SharedValue } from "react-native-reanimated";
 import { useState } from "react";
 import { Platform } from "react-native";
 import {
+  measure,
   useAnimatedReaction,
+  useAnimatedRef,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
@@ -68,12 +71,27 @@ export function useComposerHeight() {
   const sent = useSharedValue(false);
   const stepsUntil = useSharedValue(0);
   const [laidOut, setLaidOut] = useState<number>();
+  /** The composer's bar, measured on the UI thread (see `heightNow`). */
+  const bar = useAnimatedRef<View>();
+  /**
+   * The bar's height as laid out now, or `fallback` before it's laid out.
+   * Measured rather than worked out from `live`: its layout can reach
+   * `onHeight` first, and taking a change off `live` again then left the
+   * list's room short by it, the newest messages under the composer until
+   * the composer next changed height.
+   */
+  function heightNow(fallback: number) {
+    "worklet";
+    return measure(bar)?.height ?? fallback;
+  }
   const report = {
     onHeight: (height: number) => {
-      // Already there, from `onSentShorter`.
+      // Already there, from `onSentShorter` or `onTyped`.
       if (Math.abs(height - live.get()) >= 0.5) live.set(height);
       if (Platform.OS !== "ios" || laidOut === undefined) setLaidOut(height);
     },
+    /** For the bar whose height this is (see `heightNow`). */
+    bar,
     /**
      * Sending made the composer `by` shorter, seen on the UI thread the
      * frame it happened (a worklet). Its layout reaches JavaScript only
@@ -83,8 +101,11 @@ export function useComposerHeight() {
      */
     onSentShorter: (by: number) => {
       "worklet";
+      const height = heightNow(live.get() - by);
+      // `onHeight` got there first: the room has the new height already.
+      if (Math.abs(height - live.get()) < 0.5) return;
       sent.set(true);
-      live.set(live.get() - by);
+      live.set(height);
     },
     /**
      * The field got `by` taller or shorter as you typed, seen on the UI
@@ -92,7 +113,8 @@ export function useComposerHeight() {
      */
     onTyped: (by: number) => {
       "worklet";
-      live.set(live.get() + by);
+      const height = heightNow(live.get() + by);
+      if (Math.abs(height - live.get()) >= 0.5) live.set(height);
     },
     /** The list's room (see `ComposerHeight`), for the field's glass. */
     room,

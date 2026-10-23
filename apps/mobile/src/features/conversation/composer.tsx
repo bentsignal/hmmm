@@ -257,17 +257,19 @@ export interface ComposerHandle {
  */
 function Bar({
   bottomInset,
-  onHeight,
+  report: { bar, onHeight },
   children,
 }: {
   bottomInset: number;
-  onHeight?: (height: number) => void;
+  /** Its height, for the list (see `useComposerHeight`). */
+  report: Pick<ComposerReport, "bar" | "onHeight">;
   children: ReactNode;
 }) {
   const sides = useSides();
   return (
     <Animated.View
-      onLayout={(event) => onHeight?.(event.nativeEvent.layout.height)}
+      ref={bar}
+      onLayout={(event) => onHeight(event.nativeEvent.layout.height)}
       className={cn(
         "flex-row items-end gap-2",
         // No glass on Android: a solid bar, down through the navigation
@@ -382,7 +384,7 @@ export function Composer({
           onPick={pick}
         />
       )}
-      <Bar bottomInset={bottomInset} onHeight={report.onHeight}>
+      <Bar bottomInset={bottomInset} report={report}>
         {/* An edit changes only the text. */}
         {editing === undefined && <AttachMenu onPick={onPick} />}
         <GlassField field={field} held={held} minHeight={CONTROL}>
