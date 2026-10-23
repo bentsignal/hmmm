@@ -40,7 +40,7 @@ if ! scripts/sim.sh status 2>/dev/null | grep -E "^$PLATFORM: .+" | grep -qv ': 
   echo "the $PLATFORM device isn't up: scripts/sim.sh $FLAG up" >&2
   exit 2
 fi
-sim relaunch; sleep 10
+sim relaunch; sleep 2
 shown=$(js "veraDev.nativeList($([[ $LIST == native ]] && echo true || echo false))" | tr -d '"')
 js "veraDev.preference(\"appearance\", \"$APPEARANCE\")" >/dev/null
 if [[ $shown != "$LIST" ]]; then
@@ -55,6 +55,17 @@ fi
 
 say() { convex dev:say "{\"conversationId\":\"$GROUP\",\"username\":\"$1\",\"body\":\"$2\"}"; }
 typing() { convex dev:type "{\"conversationId\":\"$GROUP\",\"username\":\"$1\",\"typing\":$2}"; }
+
+ready() {
+  for attempt in {1..20}; do
+    if [[ $(js "veraDev.conversation()?.id === \"$GROUP\" && veraDev.list()?.kind === \"$LIST\" && veraDev.conversation().messages().length > 0") == true ]]; then
+      sleep 2
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
 
 # Fresh, varied messages at the bottom, so no two rows look alike (the
 # analyzer tells moves apart by what the rows show).
@@ -113,14 +124,19 @@ for layout in bubbles stacked; do
     label="$PLATFORM-$LIST-$APPEARANCE-$layout-$name"
     [[ -n $FILTER && $label != *$FILTER* ]] && continue
     L0=$(wc -l < .cache/sim/metro.log)
-    sim relaunch; sleep 10
+    sim relaunch; sleep 2
     if [[ $(js 'veraDev.nativeList()' | tr -d '"') != "$LIST" ]]; then
       summary+=("FAIL $label (not showing the $LIST list)")
       failed=1
       continue
     fi
     js "veraDev.preference(\"groupLayout\", \"$layout\")" >/dev/null
-    sim open "/conversation/$GROUP"; sleep 6
+    sim open "/conversation/$GROUP"
+    if ! ready; then
+      summary+=("FAIL $label (conversation did not become ready)")
+      failed=1
+      continue
+    fi
     setup "$label"
     case $needs in
       target|target-reacted)
