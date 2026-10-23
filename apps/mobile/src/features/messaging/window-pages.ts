@@ -102,3 +102,29 @@ export function cachedPage(
         threadPageQuery(session, { conversationId, threadId }, cursor),
       );
 }
+
+/**
+ * Fetches a page the window will add soon, unless it's cached or already
+ * loading, so it's there when the window does.
+ */
+export function prefetchPage(
+  queryClient: QueryClient,
+  session: string,
+  { conversationId, threadId }: WindowSource,
+  cursor: PageCursor,
+) {
+  const options =
+    threadId === undefined
+      ? listPageQuery(session, conversationId, cursor)
+      : threadPageQuery(session, { conversationId, threadId }, cursor);
+  if (queryClient.getQueryState(options.queryKey) !== undefined) return;
+  if (threadId === undefined) {
+    void queryClient.prefetchQuery(
+      listPageQuery(session, conversationId, cursor),
+    );
+  } else {
+    void queryClient.prefetchQuery(
+      threadPageQuery(session, { conversationId, threadId }, cursor),
+    );
+  }
+}
