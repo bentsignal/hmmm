@@ -4,6 +4,7 @@ import type { Message, MemberNotice as Notice } from "../conversation/types.ts";
 import type {
   Block,
   FooterLine,
+  HeaderRow,
   MessageRow,
   Person,
   Reaction,
@@ -190,7 +191,7 @@ function noticeSpans(notice: Notice) {
   ] satisfies Span[];
 }
 
-function headerRow(id: string, label: string, style: "day" | "time") {
+function headerRow(id: string, label: string, style: HeaderRow["style"]) {
   return {
     fallbackText: label,
     id,
@@ -215,12 +216,14 @@ function nativeRow(built: BuiltRow, context: RowContext) {
         spans,
       } satisfies Row;
     }
-    // A thread's divider under its original: a day separator's look.
+    // A thread's divider under its original (`RepliesDivider`).
     case "replies":
       return headerRow(
         built.key,
-        counted(built.count, "1 reply", "replies"),
-        "day",
+        built.count === 0
+          ? "No replies yet"
+          : counted(built.count, "1 reply", "replies"),
+        "replies",
       );
     case "day":
       return headerRow(

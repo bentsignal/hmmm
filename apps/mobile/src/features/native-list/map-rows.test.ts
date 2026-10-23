@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { MessageRow } from "./contract.ts";
+import { newestFirst } from "../conversation/build-rows.ts";
 import { V1_BLOCK_TYPES, V1_ROW_KINDS } from "./contract.ts";
 import {
   at,
   blockAt,
+  context,
   isBlock,
   isMessage,
   LEO,
@@ -19,7 +21,7 @@ import {
   rowsOf,
   START,
 } from "./map-rows.testing.ts";
-import { supported } from "./map-rows.ts";
+import { nativeRows, supported } from "./map-rows.ts";
 
 function typesOf(row: MessageRow) {
   return row.blocks.map((block) => block.type);
@@ -34,6 +36,26 @@ void test("rows come newest first, with a header over the oldest", () => {
   const header = rowAt(rows, 3, "header");
   assert.equal(header.style, "time");
   assert.match(header.label, /^Today /);
+});
+
+void test("a thread's divider sits under its original", () => {
+  function divider(replyCount: number) {
+    const root = message("root", 0);
+    const replies = replyCount === 0 ? [] : [message("reply", 1)];
+    const rows = nativeRows(
+      newestFirst(replies, "bubbles", { replyCount, root }),
+      [],
+      context(),
+    );
+    const found = rows.find(
+      (row) => row.kind === "header" && row.style === "replies",
+    );
+    assert.ok(found?.kind === "header");
+    return found.label;
+  }
+  assert.equal(divider(3), "3 replies");
+  assert.equal(divider(1), "1 reply");
+  assert.equal(divider(0), "No replies yet");
 });
 
 void test("stacked rows get day separators", () => {

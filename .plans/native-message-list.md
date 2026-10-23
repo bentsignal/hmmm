@@ -291,3 +291,63 @@ cleanly.
   production build. Floods of new messages too.
 - The motion check passes for every scenario, both layouts.
 - Shawn has tried it in his real group chat in the production app.
+
+## Integration (2026-10-23, overnight)
+
+`t3/native-message-list-integration` merges #266 (JavaScript), #277 (iOS)
+and #275 (Android) without merging the PRs, wires the native list into the
+real app, and checks it against the React Native list in a seeded busy
+group (`devBusy:seed '{"count":600,"livened":300}'` from `t3/data-pass`,
+brought over unchanged) on an isolated backend.
+
+### The switch
+
+- On by default in dev builds (`NATIVE_LIST.byDefault = env.devTools`),
+  off in production until Shawn turns it on over the air.
+- A "Testing" section on a conversation's info page (tap the header) has
+  the switch in dev builds and for `NATIVE_LIST.testers`, so the two
+  lists can be compared in the same chat: flip it, go back. It's also in
+  Developer settings (dev builds) and More → About (testers, production).
+- Scripts: `veraDev.nativeList(true|false)` flips it and returns which
+  list conversations show (`"native"` or `"rn"`).
+
+### Motion check
+
+`scripts/motion/check.sh` (from `t3/message-list-performance`) tests the
+native list by default and the React Native one with `MOTION_LIST=rn`. It
+flips the switch first and fails a scenario that shows the other list.
+
+### Contract additions from the integration
+
+All optional, so older binaries and older JavaScript keep working:
+
+- `insets.keyboardOverlap`: the composer rises by the keyboard minus its
+  own bottom inset (20 pt on iOS), not minus the safe area, so without it
+  the newest message sat 14 pt behind the composer with the keyboard up.
+- `keyboardFrozen`: held while the long-press menu's modal has the
+  keyboard down (iOS), as `useMenuKeyboard` does for the React Native list.
+- `alignTop`: threads start at the top, under their original
+  (`useBlankSpace`).
+
+### What the comparison found
+
+- Opening at a message in the busy group: the native list is placed and
+  showing at once. The React Native list stalled JavaScript for 15 s and
+  more (`VirtualizedList … dt: 15695`) and the app didn't answer for most
+  of a minute.
+- Stacked text in the React Native list sets no line height, so it's San
+  Francisco's own (20.3 pt at 17); bubbles set 22. The theme now sends
+  20.3 for stacked body text.
+- iOS draws bubble text at 21.2 pt line spacing instead of 22, and
+  bubbles 4.5 pt narrower than the React Native list's 75% of the row
+  (sent to the iOS thread).
+
+### Motion check, first run (iOS simulator, busy group)
+
+`MOTION_LIST=native`: 16 of 18 scenarios pass (arrival, typing to a
+message, reaction on and off, first reply, send, edit, delete, in both
+layouts). Both firehoses fail on jump-backs: `dev:burst` sends each message
+at a random moment around its slot, so later messages land between rows
+already shown, which a firehose shows at once. The React Native list fails
+the same scenario worse (bubbles 6 failing, stacked 11 with a blank band,
+against native's 7 and 1).
