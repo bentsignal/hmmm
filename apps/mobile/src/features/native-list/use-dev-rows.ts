@@ -25,6 +25,8 @@ export function useDevRows() {
   // The menu over a held message, and whether the message is lifted into it.
   const [held, setHeld] = useState<DevHold | undefined>();
   const [lifting, setLifting] = useState(false);
+  // A thread: a couple of rows, at the top (`alignTop`).
+  const [thread, setThread] = useState(false);
   const [last, setLast] = useState("");
   // Opening on a message (a search or notification): a new list each time.
   const [opening, setOpening] = useState({ initialRowId: "", key: 0 });
@@ -118,7 +120,13 @@ export function useDevRows() {
     nextTyping: () => setTyping(typing === 2 ? 0 : typing === 0 ? 1 : 2),
     onEvent,
     reset,
-    rows: typing === 0 ? rows : [devTyping(layout, typing), ...rows],
+    rows: thread
+      ? rows.slice(0, 2)
+      : typing === 0
+        ? rows
+        : [devTyping(layout, typing), ...rows],
+    thread,
+    toggleThread: () => setThread(!thread),
     toggleReaction,
     typed,
     typing,

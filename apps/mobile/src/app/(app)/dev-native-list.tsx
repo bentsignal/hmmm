@@ -68,6 +68,7 @@ export default function DevNativeList() {
             : undefined
         }
         initialRowId={dev.initialRowId}
+        alignTop={dev.thread}
         onEvent={dev.onEvent}
       >
         <DevCustomRows rows={dev.rows} />
@@ -137,6 +138,10 @@ function Controls({
       <Button label="typed" onPress={dev.typed} />
       <Button label="latest" onPress={onLatest} />
       <Button label="open m30" onPress={() => dev.openAt("m30")} />
+      <Button
+        label={dev.thread ? "thread" : "chat"}
+        onPress={dev.toggleThread}
+      />
     </View>
   );
 }

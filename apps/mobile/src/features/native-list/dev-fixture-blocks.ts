@@ -205,7 +205,14 @@ const MIXED = [
   // A block type this binary doesn't know: drawn as the row's
   // `fallbackText` (see UNKNOWN_BLOCK).
   () => [POLL],
-  (index: number) => [text(line(index))],
+  () => [
+    text("The menu's up"),
+    {
+      site: "example.com",
+      type: "linkCard",
+      url: "https://example.com/menus/autumn-2026",
+    },
+  ],
   (index: number) => [text(line(index))],
 ] satisfies ((index: number) => Block[])[];
 

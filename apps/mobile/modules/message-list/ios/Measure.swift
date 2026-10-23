@@ -64,6 +64,8 @@ struct LinkCardLayout {
   var site: TextBox?
   var title: TextBox?
   var description: TextBox?
+  /// A link with no preview: a link icon beside its host and address.
+  var icon: CGRect?
 }
 
 enum PartContent {
@@ -571,6 +573,19 @@ struct Measurer {
 
   func linkCard(_ card: Block.LinkCard, width: CGFloat) -> (layout: LinkCardLayout, height: CGFloat) {
     var layout = LinkCardLayout(card: card)
+    let noTitle = card.title?.isEmpty ?? true
+    let noDescription = card.description?.isEmpty ?? true
+    if card.imageUrl == nil, noTitle, noDescription {
+      // No preview (link-preview-card.tsx): an icon, the host, the address.
+      let textX: CGFloat = 12 + 36 + 12
+      let inner = width - textX - 12
+      let host = box(plain(card.site, 15, theme.foreground, weight: .semibold, lineHeight: 20, truncate: true), x: textX, y: 10, maxWidth: inner, lineHeight: 20, maxLines: 1)
+      let address = box(plain(card.url, 13, theme.muted, lineHeight: 18, truncate: true), x: textX, y: 32, maxWidth: inner, lineHeight: 18, maxLines: 1)
+      layout.title = host
+      layout.description = address
+      layout.icon = CGRect(x: 12, y: 12, width: 36, height: 36)
+      return (layout, 60)
+    }
     var y: CGFloat = 0
     if card.imageUrl != nil {
       layout.image = CGRect(x: 0, y: 0, width: width, height: 134)

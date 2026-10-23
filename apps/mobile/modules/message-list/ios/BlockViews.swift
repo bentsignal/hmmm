@@ -187,6 +187,7 @@ final class LinkCardView: UIView {
   private let site = TextView()
   private let title = TextView()
   private let detail = TextView()
+  private let icon = UIImageView()
 
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -198,7 +199,11 @@ final class LinkCardView: UIView {
     image.layer.cornerRadius = 16
     image.layer.cornerCurve = .continuous
     image.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-    [image, site, title, detail].forEach(addSubview)
+    icon.contentMode = .center
+    icon.layer.cornerRadius = 8
+    icon.layer.cornerCurve = .continuous
+    icon.image = UIImage(systemName: "link", withConfiguration: UIImage.SymbolConfiguration(pointSize: 16))
+    [image, site, title, detail, icon].forEach(addSubview)
   }
 
   required init?(coder: NSCoder) { fatalError() }
@@ -215,6 +220,10 @@ final class LinkCardView: UIView {
       image.isHidden = true
       Images.cancel(image)
     }
+    icon.isHidden = layout.icon == nil
+    icon.frame = layout.icon ?? .zero
+    icon.backgroundColor = theme.fill
+    icon.tintColor = theme.muted
     for (view, box) in [(site, layout.site), (title, layout.title), (detail, layout.description)] {
       view.isHidden = box == nil
       view.text = box?.string
