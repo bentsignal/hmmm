@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { mutation } from "./_generated/server.js";
 import { getConversation } from "./model.ts";
 import { attachment } from "./protocol.ts";
+import { scheduleNumbering } from "./sequences.ts";
 
 /**
  * Inserts already-authored messages with their original timestamps, for
@@ -32,6 +33,7 @@ export const importHistory = mutation({
       latest = Math.max(latest, message.sentAt);
     }
     await ctx.db.patch(conversation._id, { updatedAt: latest });
+    await scheduleNumbering(ctx, conversationId, 0);
     return null;
   },
 });
