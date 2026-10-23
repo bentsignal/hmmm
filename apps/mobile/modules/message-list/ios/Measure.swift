@@ -43,11 +43,36 @@ struct ChipLayout {
 
 struct CarouselLayout {
   var items: [MediaItem]
-  /// Each card's frame in the strip's content.
+  /// Each card's frame in the strip's content. The strip is the row's full
+  /// width, so cards scroll past the photo column to the screen's edge; at
+  /// rest the first starts `leadingInset` in, where the row's text does.
   var cards: [CGRect]
   var chips: [ChipLayout]
   var contentWidth: CGFloat
   var leadingInset: CGFloat
+
+  /// The offset that puts a card's left edge where the row's text starts.
+  func offset(of card: Int) -> CGFloat {
+    cards[card].minX - leadingInset
+  }
+
+  /// Where a swipe settles: the card whose resting place is nearest where
+  /// the scroll would have come to rest by itself (`projected`), so a hard
+  /// fling travels several cards and a slow one one. Moving forward never
+  /// settles behind where it was let go, and back never ahead.
+  func settle(projected: CGFloat, current: CGFloat, velocity: CGFloat, maxOffset: CGFloat) -> CGFloat {
+    guard !cards.isEmpty else { return 0 }
+    let starts = cards.indices.map { min(offset(of: $0), maxOffset) }
+    var target = starts.indices.min { abs(starts[$0] - projected) < abs(starts[$1] - projected) } ?? 0
+    if velocity > 0.05, starts[target] < current, target + 1 < starts.count { target += 1 }
+    if velocity < -0.05, starts[target] > current, target > 0 { target -= 1 }
+    return starts[target]
+  }
+
+  /// The reaction chip at a point in the strip's content.
+  func chip(at point: CGPoint) -> ChipLayout? {
+    chips.first { $0.frame.insetBy(dx: -4, dy: -4).contains(point) }
+  }
 }
 
 struct DeckLayout {
@@ -56,6 +81,28 @@ struct DeckLayout {
   var sizes: [CGSize]
   var cardTop: CGFloat
   var dotsY: CGFloat
+  /// Each card's own tapbacks, over its top corner while it's in front, in
+  /// the deck's coordinates.
+  var tapbacks: [[TapbackLayout]] = []
+
+  /// The front card's tapback at a point in the deck's coordinates.
+  func tapback(at point: CGPoint, front: Int) -> TapbackLayout? {
+    guard front < tapbacks.count else { return nil }
+    return tapbacks[front].reversed().first { $0.frame.insetBy(dx: -6, dy: -6).contains(point) }
+  }
+}
+
+/// A reaction a tap or hold landed on.
+struct ReactionHit: Equatable {
+  enum Kind { case tapback, chip }
+  var kind: Kind
+  /// Its layout's `id`, for its view.
+  var id: String
+  var part: String
+  var key: String
+  var mine: Bool
+  /// In the coordinates it was found in.
+  var frame: CGRect
 }
 
 struct LinkCardLayout {
@@ -111,6 +158,42 @@ struct MessageLayout {
   var slides = false
   /// Everything the message draws, for the frame a hold reports.
   var bounds: CGRect = .zero
+  /// A stacked row's carousel that starts beside its author's photo: the
+  /// scale the photo shrinks to (from its top) as cards scroll under it.
+  var avatarRecede: CGFloat?
+
+  /// The part a reaction's `part` is on, as taps and holds on it report:
+  /// which of `parts`, and for media, which item (`index`). The message's
+  /// own reactions are on its first text, or its first part.
+  func target(forPart part: String) -> (at: Int, index: Int?)? {
+    for (at, candidate) in parts.enumerated() {
+      switch candidate.content {
+      case let .media(item, _) where item.part == part || candidate.part == part:
+        return (at, 0)
+      case let .carousel(carousel):
+        if let index = carousel.items.firstIndex(where: { $0.part == part }) { return (at, index) }
+      case let .deck(deck):
+        if let index = deck.items.firstIndex(where: { $0.part == part }) { return (at, index) }
+      default:
+        if candidate.part == part { return (at, nil) }
+      }
+    }
+    let text = parts.firstIndex { if case .text = $0.content { return true } else { return false } }
+    return (text ?? (parts.isEmpty ? nil : 0)).map { ($0, nil) }
+  }
+
+  /// The tapback or chip at a point in the message's coordinates: the
+  /// front tapback first, as drawn. Not a carousel's chips or a deck's
+  /// tapbacks, which move with their cards (their views find those).
+  func reaction(at point: CGPoint) -> ReactionHit? {
+    for tapback in tapbacks.reversed() where tapback.frame.insetBy(dx: -6, dy: -6).contains(point) {
+      return ReactionHit(kind: .tapback, id: tapback.id, part: tapback.part, key: tapback.reaction.key, mine: tapback.reaction.mine, frame: tapback.frame)
+    }
+    for chip in chips where chip.frame.insetBy(dx: -2, dy: -2).contains(point) {
+      return ReactionHit(kind: .chip, id: chip.id, part: chip.part, key: chip.reaction.key, mine: chip.reaction.mine, frame: chip.frame)
+    }
+    return nil
+  }
 }
 
 struct TypingLayout {
@@ -200,8 +283,8 @@ struct Measurer {
       }
     case let .notice(spans):
       return notice(spans)
-    case let .typing(layout, people, label):
-      return .typing(typing(layout: layout, people: people, label: label))
+    case let .typing(layout, people, label, showFaces):
+      return .typing(typing(layout: layout, people: people, label: label, showFaces: showFaces))
     case let .custom(text):
       if let height = customHeights[row.id] { return .custom(height: height) }
       return fallback(text)
@@ -389,12 +472,20 @@ struct Measurer {
     for (index, block) in message.blocks.enumerated() {
       let first = layout.parts.isEmpty
       let reactions: [Reaction]
+      var fan: CGFloat
       switch block {
-      case let .media(items, _) where items.count == 1: reactions = items[0].reactions
-      case let .media(items, _): reactions = mergedReactions(items)
-      default: reactions = index == reactionBlock ? message.reactions : []
+      case let .media(items, _) where items.count == 1:
+        reactions = items[0].reactions
+        fan = fanWidth(reactions)
+      case let .media(items, _):
+        // A deck: each card's own, on it while it's in front (room for the
+        // widest fan).
+        reactions = []
+        fan = items.map { fanWidth($0.reactions) }.max() ?? 0
+      default:
+        reactions = index == reactionBlock ? message.reactions : []
+        fan = fanWidth(reactions)
       }
-      let fan = fanWidth(reactions)
 
       // Size the part first; its x depends on its width.
       let available = maxBubble - indent
@@ -429,7 +520,11 @@ struct Measurer {
           let sizes = items.map(deckCardSize)
           let tallest = sizes.prefix(3).map(\.height).max() ?? 220
           size = CGSize(width: Metrics.deckWidth, height: 10 + tallest + 6 + 6)
-          content = .deck(DeckLayout(items: items, sizes: sizes, cardTop: 10, dotsY: 10 + tallest + 6))
+          var deck = DeckLayout(items: items, sizes: sizes, cardTop: 10, dotsY: 10 + tallest + 6)
+          deck.tapbacks = zip(items, sizes).map { item, card in
+            tapbacks(item.reactions, part: item.part, over: CGRect(origin: CGPoint(x: 0, y: deck.cardTop), size: card), side: tapbackSide)
+          }
+          content = .deck(deck)
         }
       case let .file(name, sizeLabel, url, _):
         size = CGSize(width: min(Metrics.cardWidth, available), height: 64)
@@ -480,15 +575,8 @@ struct Measurer {
         bodyTop = frame.minY
       }
       layout.parts.append(PartLayout(frame: frame, content: content, part: partId(block, message: message), blockIndex: index))
-      if fan > 0 {
-        let partKey = reactionPart(block, message: message)
-        var anchor = frame
-        if case let .deck(deck) = content {
-          // A deck's tapbacks go on its front card.
-          anchor = CGRect(origin: CGPoint(x: frame.minX, y: frame.minY + deck.cardTop), size: deck.sizes[0])
-          if side == .right { anchor.origin.x = frame.maxX - deck.sizes[0].width }
-        }
-        layout.tapbacks += tapbacks(reactions, part: partKey, over: anchor, side: tapbackSide)
+      if !reactions.isEmpty {
+        layout.tapbacks += tapbacks(reactions, part: reactionPart(block, message: message), over: frame, side: tapbackSide)
       }
       y = frame.maxY + (tail ? Metrics.tailDrop : 0)
     }
@@ -618,25 +706,6 @@ struct Measurer {
     return (layout, y - 2 + 10)
   }
 
-  func mergedReactions(_ items: [MediaItem]) -> [Reaction] {
-    var merged: [String: (Reaction, Int, Bool)] = [:]
-    var order: [String] = []
-    for item in items {
-      for reaction in item.reactions {
-        if let existing = merged[reaction.key] {
-          merged[reaction.key] = (existing.0, existing.1 + reaction.count, existing.2 || reaction.mine)
-        } else {
-          merged[reaction.key] = (reaction, reaction.count, reaction.mine)
-          order.append(reaction.key)
-        }
-      }
-    }
-    return order.compactMap { key in
-      guard let (reaction, count, mine) = merged[key] else { return nil }
-      return Reaction(copying: reaction, count: count, mine: mine)
-    }
-  }
-
   /// The part a block reports for taps and holds.
   func partId(_ block: Block, message: MessageRow) -> String? {
     if case let .media(items, part) = block { return part ?? (items.count == 1 ? items[0].part : nil) }
@@ -717,7 +786,8 @@ struct Measurer {
           content = .media(items[0], radius: Metrics.mediaRadius)
           chipReactions = items[0].reactions
         } else {
-          var x: CGFloat = 0
+          // The strip spans the row; cards start where its text does.
+          var x: CGFloat = contentX
           var cards: [CGRect] = []
           var allChips: [ChipLayout] = []
           var chipsHeight: CGFloat = 0
@@ -731,9 +801,14 @@ struct Measurer {
             x += size.width + Metrics.carouselGap
           }
           let contentWidth = x - Metrics.carouselGap + pad
-          // Edge to edge: the strip runs to the screen's right edge.
-          frame = CGRect(x: contentX, y: y, width: width - contentX, height: Metrics.carouselHeight + chipsHeight)
-          content = .carousel(CarouselLayout(items: items, cards: cards, chips: allChips, contentWidth: contentWidth, leadingInset: 0))
+          // Edge to edge: the strip runs from the screen's left edge to its
+          // right, so cards scroll past the photo column.
+          frame = CGRect(x: 0, y: y, width: width, height: Metrics.carouselHeight + chipsHeight)
+          content = .carousel(CarouselLayout(items: items, cards: cards, chips: allChips, contentWidth: contentWidth, leadingInset: contentX))
+          if let photo = layout.avatar?.frame, photo.maxY > frame.minY {
+            // The photo shrinks from its top to clear the cards.
+            layout.avatarRecede = max(0.4, (frame.minY - 2 - photo.minY) / photo.height)
+          }
         }
       case let .file(name, sizeLabel, url, _):
         let cardWidth = min(Metrics.cardWidth, contentWidth)
@@ -842,11 +917,15 @@ struct Measurer {
     return .notice(TextBox(string: result, frame: frame), height: 12 + size.height + 4)
   }
 
-  func typing(layout: MessageRow.Layout, people: [Person], label: String) -> TypingLayout {
+  /// `showFaces`: photos of who's typing, in groups and spaces
+  /// (typing-parts.tsx). Without them a DM's bubble sits where its
+  /// messages do, at the edge, and a stacked label at the text column.
+  func typing(layout: MessageRow.Layout, people: [Person], label: String, showFaces: Bool = true) -> TypingLayout {
     let pad = theme.horizontalPadding
     if layout == .bubbles {
       let height: CGFloat = 14 + Metrics.typingBubble.height + Metrics.tailDrop
-      let shown = people.count == 4 ? people : Array(people.prefix(3))
+      let faced = showFaces ? people : []
+      let shown = faced.count == 4 ? faced : Array(faced.prefix(3))
       let size = Metrics.bubbleAvatar
       var faces: [(Person, CGRect)] = []
       for (index, person) in shown.enumerated() {
@@ -854,13 +933,13 @@ struct Measurer {
       }
       var x = pad + (faces.isEmpty ? 0 : CGFloat(faces.count - 1) * (size - 6) + size)
       var overflow: TextBox?
-      if people.count > 4 {
-        let string = plain("+\(people.count - 3)", 12, theme.muted, weight: .semibold, lineHeight: 16, alignment: .center)
+      if faced.count > 4 {
+        let string = plain("+\(faced.count - 3)", 12, theme.muted, weight: .semibold, lineHeight: 16, alignment: .center)
         let width = max(32, measure(string, width: 60, lineHeight: 16).width + 8)
         overflow = TextBox(string: string, frame: CGRect(x: x - 6, y: height - size - 2, width: width, height: size + 4))
         x += width - 6
       }
-      if !people.isEmpty { x += Metrics.avatarGap }
+      if !faced.isEmpty { x += Metrics.avatarGap }
       let bubble = CGRect(x: x, y: 14, width: Metrics.typingBubble.width, height: Metrics.typingBubble.height)
       let dots = (0..<3).map { index in
         CGRect(x: bubble.minX + (bubble.width - 32) / 2 + CGFloat(index) * 12, y: bubble.midY - 4, width: 8, height: 8)
@@ -869,15 +948,17 @@ struct Measurer {
     }
     let height: CGFloat = 10 + 20 + 2
     let size: CGFloat = 18
-    let shown = people.count == 4 ? people : Array(people.prefix(3))
+    let faced = showFaces ? people : []
+    let shown = faced.count == 4 ? faced : Array(faced.prefix(3))
     var faces: [(Person, CGRect)] = []
     for (index, person) in shown.enumerated() {
       faces.append((person, CGRect(x: pad + CGFloat(index) * (size - 4), y: 11, width: size, height: size)))
     }
-    var x = pad + (faces.isEmpty ? 0 : CGFloat(faces.count - 1) * (size - 4) + size) + 8
+    // No faces: the label starts where a stacked message's text does.
+    var x = faced.isEmpty ? pad + theme.avatarSize + 12 : pad + CGFloat(faces.count - 1) * (size - 4) + size + 8
     var overflow: TextBox?
-    if people.count > 4 {
-      let string = plain("+\(people.count - 3)", 10, theme.muted, weight: .semibold, lineHeight: 20)
+    if faced.count > 4 {
+      let string = plain("+\(faced.count - 3)", 10, theme.muted, weight: .semibold, lineHeight: 20)
       let measured = measure(string, width: 40, lineHeight: 20)
       overflow = TextBox(string: string, frame: CGRect(x: x - 4, y: 10, width: measured.width, height: 20))
       x += measured.width + 4
@@ -891,10 +972,6 @@ struct Measurer {
 }
 
 extension Reaction {
-  init(copying reaction: Reaction, count: Int, mine: Bool) {
-    self.init(key: reaction.key, emoji: reaction.emoji, imageUrl: reaction.imageUrl, label: reaction.label, count: count, mine: mine)
-  }
-
   init(key: String, emoji: String?, imageUrl: URL?, label: String, count: Int, mine: Bool) {
     self.key = key
     self.emoji = emoji
@@ -908,4 +985,136 @@ extension Reaction {
 extension NSAttributedString.Key {
   /// The index of the span a run of text came from (links and mentions).
   static let spanIndex = NSAttributedString.Key("veraSpanIndex")
+}
+
+extension MessageRow {
+  /// Grows out of the typing bubble it replaces (typing-row.ts `morphs`):
+  /// a bubble of text alone, with no media, quote, or link card.
+  var morphsFromTyping: Bool {
+    guard layout == .bubbles, !blocks.isEmpty else { return false }
+    return blocks.allSatisfy { block in
+      if case let .text(_, jumbo, _) = block { return !jumbo }
+      return false
+    }
+  }
+}
+
+/// Where a card of a bubbles deck sits in its pile (DeckView), as plain
+/// numbers so Tests/ checks them. The pile is three cards: the front one,
+/// the next one behind it on the right, and the one before behind it on
+/// the left, each turned and offset so a corner shows. A swipe left
+/// brings the next card forward, a swipe right the one before; the front
+/// card goes out with the finger and tucks in behind on that side. The
+/// two undo each other. Android draws the same pile.
+struct DeckPose: Equatable {
+  var x: CGFloat = 0
+  var y: CGFloat = 0
+  /// Radians, clockwise, about the card's bottom center.
+  var angle: CGFloat = 0
+  var scale: CGFloat = 1
+  var alpha: CGFloat = 1
+  /// 0 in front, 1 behind: how blurred and dimmed it is.
+  var depth: CGFloat = 0
+}
+
+enum DeckPile {
+  enum Side { case left, right }
+  enum Role: Equatable {
+    case front
+    case behind(Side)
+    /// Further down the pile, hidden, on the side it will come from or
+    /// went to.
+    case hidden(Side)
+  }
+
+  static let front = DeckPose()
+  static func behind(_ side: Side) -> DeckPose {
+    let sign: CGFloat = side == .right ? 1 : -1
+    return DeckPose(x: 4 * sign, y: -10, angle: sign * 3 * .pi / 180, scale: 0.96, depth: 1)
+  }
+  static func hidden(_ side: Side) -> DeckPose {
+    var pose = behind(side)
+    pose.alpha = 0
+    return pose
+  }
+  static func pose(_ role: Role) -> DeckPose {
+    switch role {
+    case .front: return front
+    case let .behind(side): return behind(side)
+    case let .hidden(side): return hidden(side)
+    }
+  }
+
+  /// The drag that brings a card behind fully forward, as a share of the
+  /// card's width.
+  static let reveal: CGFloat = 0.6
+  /// Where a thrown card goes, beside the pile, before it tucks in: just
+  /// past the card's width, so it changes sides with nothing overlapping.
+  static func out(width: CGFloat) -> CGFloat { width + 12 }
+
+  /// What `item` is in a pile of `count` with `front` in front. With two,
+  /// the card behind is on `lone`'s side: where the last card went.
+  static func role(of item: Int, front: Int, count: Int, lone: Side = .right) -> Role {
+    let depth = ((item - front) % count + count) % count
+    if depth == 0 { return .front }
+    if count == 2 { return .behind(lone) }
+    if depth == 1 { return .behind(.right) }
+    if depth == count - 1 { return .behind(.left) }
+    return .hidden(depth <= count / 2 ? .right : .left)
+  }
+
+  /// The front card after a swipe: left brings the next, right the one
+  /// before.
+  static func front(after front: Int, forward: Bool, count: Int) -> Int {
+    guard count > 0 else { return 0 }
+    return ((front + (forward ? 1 : -1)) % count + count) % count
+  }
+
+  /// The cards drawn: the front, the two behind it, and the two that come
+  /// into view next (so they're there before a swipe ends).
+  static func shown(front: Int, count: Int) -> [Int] {
+    guard count > 0 else { return [] }
+    var items: [Int] = []
+    for step in [0, 1, count - 1, 2, count - 2] where step >= 0 && step < count {
+      let item = (front + step) % count
+      if !items.contains(item) { items.append(item) }
+    }
+    return items
+  }
+
+  static func mix(_ a: DeckPose, _ b: DeckPose, _ t: CGFloat) -> DeckPose {
+    func lerp(_ x: CGFloat, _ y: CGFloat) -> CGFloat { x + (y - x) * t }
+    return DeckPose(x: lerp(a.x, b.x), y: lerp(a.y, b.y), angle: lerp(a.angle, b.angle), scale: lerp(a.scale, b.scale),
+                    alpha: lerp(a.alpha, b.alpha), depth: lerp(a.depth, b.depth))
+  }
+}
+
+extension MessageLayout {
+  /// How far the author's photo has shrunk (`avatarRecede`) with the
+  /// carousel scrolled `offset` in: from full size at rest to the recede
+  /// scale over the photo's size plus 12 of scrolling, on CSS `ease`, as
+  /// Android does. 1 when it doesn't recede.
+  func avatarScale(carouselOffset offset: CGFloat) -> CGFloat {
+    guard let recede = avatarRecede, let photo = avatar?.frame, photo.height > 0 else { return 1 }
+    let t = min(1, max(0, offset / (photo.height + 12)))
+    return 1 - (1 - recede) * Ease.css(t)
+  }
+}
+
+enum Ease {
+  /// CSS `ease`, cubic-bezier(0.25, 0.1, 0.25, 1): the list's curve.
+  static func css(_ x: CGFloat) -> CGFloat {
+    if x <= 0 { return 0 }
+    if x >= 1 { return 1 }
+    // Solve the curve's x(t) = x by bisection, then return y(t).
+    func bezier(_ t: CGFloat, _ a: CGFloat, _ b: CGFloat) -> CGFloat {
+      3 * (1 - t) * (1 - t) * t * a + 3 * (1 - t) * t * t * b + t * t * t
+    }
+    var low: CGFloat = 0, high: CGFloat = 1
+    for _ in 0..<24 {
+      let mid = (low + high) / 2
+      if bezier(mid, 0.25, 0.25) < x { low = mid } else { high = mid }
+    }
+    return bezier((low + high) / 2, 0.1, 1)
+  }
 }

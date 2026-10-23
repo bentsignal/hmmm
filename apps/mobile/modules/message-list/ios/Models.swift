@@ -259,7 +259,9 @@ enum RowContent: Equatable {
   case message(MessageRow)
   case header(style: String, label: String)
   case notice(spans: [Span])
-  case typing(layout: MessageRow.Layout, people: [Person], label: String)
+  /// `showFaces`: photos of who's typing (groups and spaces, not
+  /// one-on-one). Older JavaScript doesn't send it: faces show then.
+  case typing(layout: MessageRow.Layout, people: [Person], label: String, showFaces: Bool)
   /// A custom row: drawn by React (CustomRows.swift) once its view is
   /// mounted, its fallback text until then.
   case custom(fallbackText: String)
@@ -285,7 +287,8 @@ struct Row: Equatable {
       content = .typing(
         layout: json.string("layout").flatMap(MessageRow.Layout.init(rawValue:)) ?? .bubbles,
         people: json.objects("people").map { Person($0) },
-        label: json.str("label")
+        label: json.str("label"),
+        showFaces: json["showFaces"] == nil ? true : json.bool("showFaces")
       )
     case "custom":
       content = .custom(fallbackText: fallbackText ?? "")
@@ -302,6 +305,58 @@ struct Row: Equatable {
   var isTyping: Bool {
     if case .typing = content { return true }
     return false
+  }
+}
+
+/// A reaction toggled by a tap, shown at once while JavaScript catches up
+/// (MessageListView's `reactionOverrides`): the row's JSON as JavaScript
+/// would send it once it has.
+enum ReactionToggle {
+  /// Whether the reaction `key` in the row is yours, if the row has it.
+  static func mine(_ row: JSON, key: String) -> Bool? {
+    for list in lists(row) {
+      if let reaction = list.first(where: { $0.str("key") == key }) { return reaction.bool("mine") }
+    }
+    return nil
+  }
+
+  /// The row with the reaction `key` made yours or not: its count up or
+  /// down by one, and gone at zero. Unchanged if it's already so, or the
+  /// row doesn't have it.
+  static func setting(_ row: JSON, key: String, mine: Bool) -> JSON {
+    func apply(_ reactions: [JSON]) -> [JSON] {
+      reactions.compactMap { reaction in
+        guard reaction.str("key") == key, reaction.bool("mine") != mine else { return reaction }
+        var next = reaction
+        let count = reaction.int("count", 1) + (mine ? 1 : -1)
+        if count <= 0 { return nil }
+        next["count"] = count
+        next["mine"] = mine
+        return next
+      }
+    }
+    var row = row
+    if row["reactions"] != nil { row["reactions"] = apply(row.objects("reactions")) }
+    if let blocks = row["blocks"] as? [Any] {
+      row["blocks"] = blocks.map { value -> Any in
+        guard var block = value as? JSON, block.str("type") == "media", let items = block["items"] as? [Any] else { return value }
+        block["items"] = items.map { value -> Any in
+          guard var item = value as? JSON, item["reactions"] != nil else { return value }
+          item["reactions"] = apply(item.objects("reactions"))
+          return item
+        }
+        return block
+      }
+    }
+    return row
+  }
+
+  private static func lists(_ row: JSON) -> [[JSON]] {
+    var lists = [row.objects("reactions")]
+    for block in row.objects("blocks") where block.str("type") == "media" {
+      for item in block.objects("items") { lists.append(item.objects("reactions")) }
+    }
+    return lists
   }
 }
 
