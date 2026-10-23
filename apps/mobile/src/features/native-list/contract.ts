@@ -334,6 +334,13 @@ export interface Insets {
    * which the keyboard covers.
    */
   readonly bottom: number;
+  /**
+   * How much of `bottom` the keyboard covers when it's up. Native adds
+   * `max(0, keyboard height - keyboardOverlap)`, which is how far the
+   * composer rises (`KeyboardStickyView`'s opened offset). Optional: a
+   * binary or JavaScript without it uses the bottom safe area.
+   */
+  readonly keyboardOverlap?: number;
 }
 
 export interface MessageListViewProps {
@@ -347,6 +354,22 @@ export interface MessageListViewProps {
    * dismissal by dragging the list), adding its height to `insets.bottom`.
    */
   readonly keyboard: boolean;
+  /**
+   * While true, native holds the keyboard height it has and ignores the
+   * keyboard moving, so nothing moves while a modal over the list (the
+   * long-press menu) takes the keyboard down and brings it back. When it
+   * turns false, native follows the keyboard again, easing to where it is
+   * now over the keyboard's own duration if that's somewhere else.
+   */
+  readonly keyboardFrozen?: boolean;
+  /**
+   * A thread: while the rows don't fill the list, they sit at the top,
+   * under `insets.top`, rather than at the bottom. The space below them is
+   * what the keyboard opens into, so opening it moves nothing until it
+   * would cover the rows. Once the rows fill the list it behaves as
+   * without it.
+   */
+  readonly alignTop?: boolean;
   /** A row lifted into the menu: hidden in the list while it's up. */
   readonly liftedRowId?: string;
   /** Opens on this row (a search or notification) instead of the newest. */

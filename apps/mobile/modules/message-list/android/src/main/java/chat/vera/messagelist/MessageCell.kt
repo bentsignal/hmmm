@@ -333,6 +333,7 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
         val text = view as TextView
         text.style(units, theme.body, if (block is DeletedBlock) theme.muted else theme.foreground)
         text.setTypeface(Typeface.DEFAULT, if (block is DeletedBlock) Typeface.ITALIC else Typeface.NORMAL)
+        text.setTag(R.id.message_list_style, null)
         text.text = label
         if (view is BubbleTextView) {
           if (block is DeletedBlock) view.bindBubble(theme.separator, false, row.isOwn, theme.bubbleRadius, outlined = true)
@@ -386,7 +387,9 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
   private val avatarColumn: Boolean
     get() = row?.let { !stacked && it.showAuthor && !it.isOwn } == true
 
-  override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+  override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) = timed({ "measure ${row?.id}" }) { measureNow(widthMeasureSpec) }
+
+  private fun measureNow(widthMeasureSpec: Int) {
     val row = row
     val width = MeasureSpec.getSize(widthMeasureSpec)
     if (row == null) {
@@ -755,7 +758,7 @@ class HeaderCell(context: Context, private val env: CellEnv) : ViewGroup(context
 
   /** "Today 9:41 AM": the day in bold, as iMessage has it. */
   private fun timeHeader(label: String): CharSequence {
-    val match = Regex("\\d{1,2}[:.]\\d{2}").find(label) ?: return label
+    val match = TIME.find(label) ?: return label
     if (match.range.first == 0) return label
     return SpannableStringBuilder(label).apply {
       setSpan(WeightSpan(Fonts.semibold), 0, match.range.first, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -791,6 +794,9 @@ class HeaderCell(context: Context, private val env: CellEnv) : ViewGroup(context
     rule.shader = null
   }
 }
+
+/** The time in a header's label, after the day. */
+private val TIME = Regex("\\d{1,2}[:.]\\d{2}")
 
 /** "Leo joined the conversation", centered between messages. Also draws rows this binary can't. */
 class NoticeCell(context: Context, private val env: CellEnv) : ViewGroup(context) {

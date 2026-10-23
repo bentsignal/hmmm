@@ -31,6 +31,8 @@ class MessageListModule : Module() {
       Prop("behavior") { view: MessageListView, behavior: ReadableMap? -> view.setBehavior(behavior) }
       Prop("insets") { view: MessageListView, insets: ReadableMap? -> view.setInsets(insets) }
       Prop("keyboard") { view: MessageListView, keyboard: Boolean? -> view.setKeyboard(keyboard == true) }
+      Prop("keyboardFrozen") { view: MessageListView, frozen: Boolean? -> view.setKeyboardFrozen(frozen == true) }
+      Prop("alignTop") { view: MessageListView, alignTop: Boolean? -> view.setAlignTop(alignTop == true) }
       Prop("liftedRowId") { view: MessageListView, id: String? -> view.setLiftedRowId(id) }
       Prop("initialRowId") { view: MessageListView, id: String? -> view.setInitialRowId(id) }
       // Rows this binary can't read are drawn as their fallback text, whatever the version.

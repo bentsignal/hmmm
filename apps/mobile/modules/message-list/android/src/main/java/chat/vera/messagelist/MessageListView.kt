@@ -49,7 +49,7 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
   private val mediaPool = RecyclerView.RecycledViewPool().apply { setMaxRecycledViews(CarouselAdapter.VIEW_TYPE, 24) }
   private val env = CellEnv(units, images, mediaPool)
   private val rows = RowsAdapter(env)
-  private val manager = LinearLayoutManager(context, RecyclerView.VERTICAL, true)
+  private val manager = ListLayoutManager(context)
   private val animator = ListItemAnimator(units)
   private val recycler = RecyclerView(context)
 
@@ -66,6 +66,13 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
   private var insetBottom = 0f
   private var followKeyboard = false
   private var keyboard = 0
+
+  /** How much of `insets.bottom` the keyboard covers, from JavaScript; null for the navigation bar. */
+  private var keyboardOverlap: Int? = null
+
+  /** Holding the keyboard height while a modal over the list takes the keyboard (`keyboardFrozen`). */
+  private var keyboardFrozen = false
+  private var keyboardEase: ValueAnimator? = null
   private var imeAnimating = false
   private var initialRowId: String? = null
 
@@ -90,6 +97,7 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
   override val shouldUseAndroidLayout = true
 
   init {
+    tracing = (context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
     clipChildren = false
     clipToPadding = false
     recycler.layoutManager = manager
@@ -112,8 +120,10 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
 
     recycler.addOnScrollListener(object : RecyclerView.OnScrollListener() {
       override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-        report(dy)
-        preload()
+        timed({ "onScrolled" }) {
+          report(dy)
+          preload()
+        }
       }
     })
     watchKeyboard()
@@ -147,7 +157,32 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
   fun setInsets(map: ReadableMap?) {
     insetTop = map?.num("top")?.toFloat() ?: 0f
     insetBottom = map?.num("bottom")?.toFloat() ?: 0f
+    keyboardOverlap = map?.num("keyboardOverlap")?.let { units.px(it.toFloat()) }
     applyPadding()
+  }
+
+  fun setKeyboardFrozen(frozen: Boolean) {
+    if (frozen == keyboardFrozen) return
+    keyboardFrozen = frozen
+    if (frozen) {
+      keyboardEase?.cancel()
+      return
+    }
+    // Following again: ease to where the keyboard is now, if it moved meanwhile.
+    val target = keyboardLift(ViewCompat.getRootWindowInsets(this))
+    if (target == keyboard) return
+    keyboardEase = ValueAnimator.ofInt(keyboard, target).apply {
+      duration = KEYBOARD_EASE_MS
+      interpolator = EASE
+      addUpdateListener { setKeyboardLift(it.animatedValue as Int) }
+      start()
+    }
+  }
+
+  fun setAlignTop(alignTop: Boolean) {
+    if (alignTop == manager.alignTop) return
+    manager.alignTop = alignTop
+    layoutNow()
   }
 
   fun setKeyboard(enabled: Boolean) {
@@ -184,7 +219,7 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
       val before = workerRows
       workerRows = next
       val diff = if (before.isEmpty()) null else DiffUtil.calculateDiff(RowsDiff(before, next), false)
-      main.post { apply(next, diff) }
+      main.post { timed({ "apply ${next.size} rows" }) { apply(next, diff) } }
     }
   }
 
@@ -212,6 +247,7 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
     var insertedCount = 0
     val shownIn = HashSet<String>()
     val arrivals = HashSet<String>()
+    val rising = HashSet<String>()
     for ((index, row) in next.withIndex()) {
       if (row.id in beforeIds) continue
       insertedCount++
@@ -219,6 +255,7 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
       if (index < firstKept) {
         if (!wasAtBottom) continue
         if (row is MessageRow && row.arrived) arrivals.add(row.id)
+        if (row !is TypingRow) rising.add(row.id)
       }
       shownIn.add(row.id)
     }
@@ -227,14 +264,14 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
     // A firehose or a big change: everything takes its place at once.
     animator.animate = !firehose && changed <= BIG_CHANGE
     animator.inserted = shownIn
-    animator.arrivals = arrivals
+    animator.rising = rising
     animator.handoff = handoff(before, next, arrivals)
     rows.apply(next, diff)
     val newestInserted = firstKept > 0
     if (wasAtBottom && newestInserted) manager.scrollToPositionWithOffset(0, 0)
     layoutNow()
     animator.inserted = emptySet()
-    animator.arrivals = emptySet()
+    animator.rising = emptySet()
     animator.handoff = null
     animator.animate = true
     recycler.post { report(0) }
@@ -328,8 +365,15 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
   private fun keyboardLift(insets: WindowInsetsCompat?): Int {
     if (insets == null || !followKeyboard) return 0
     val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-    val bars = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
-    return maxOf(0, ime - bars)
+    val covered = keyboardOverlap ?: insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+    return maxOf(0, ime - covered)
+  }
+
+  /** The keyboard moved: followed unless it's frozen. */
+  private fun followKeyboard(lift: Int) {
+    if (keyboardFrozen) return
+    keyboardEase?.cancel()
+    setKeyboardLift(lift)
   }
 
   private fun setKeyboardLift(lift: Int) {
@@ -348,19 +392,19 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
         }
 
         override fun onProgress(insets: WindowInsetsCompat, running: MutableList<WindowInsetsAnimationCompat>): WindowInsetsCompat {
-          if (running.any { it.typeMask and WindowInsetsCompat.Type.ime() != 0 }) setKeyboardLift(keyboardLift(insets))
+          if (running.any { it.typeMask and WindowInsetsCompat.Type.ime() != 0 }) followKeyboard(keyboardLift(insets))
           return insets
         }
 
         override fun onEnd(animation: WindowInsetsAnimationCompat) {
           if (animation.typeMask and WindowInsetsCompat.Type.ime() == 0) return
           imeAnimating = false
-          setKeyboardLift(keyboardLift(ViewCompat.getRootWindowInsets(this@MessageListView)))
+          followKeyboard(keyboardLift(ViewCompat.getRootWindowInsets(this@MessageListView)))
         }
       },
     )
     ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
-      if (!imeAnimating) setKeyboardLift(keyboardLift(insets))
+      if (!imeAnimating) followKeyboard(keyboardLift(insets))
       insets
     }
   }
@@ -459,18 +503,25 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
   }
 
   /** Starts loading the photos of the rows just past the screen, at the size they'll be drawn. */
-  private fun preload() {
+  private fun preload() = timed({ "preload" }) { preloadNow() }
+
+  private fun preloadNow() {
     val last = manager.findLastVisibleItemPosition()
     val first = manager.findFirstVisibleItemPosition()
     if (last == RecyclerView.NO_POSITION) return
     val range = (last + 1..minOf(rows.itemCount - 1, last + PRELOAD_AHEAD)) + (maxOf(0, first - 3) until first)
+    // A few at a time: each request costs main-thread time, and a fling
+    // brings new rows into range every frame.
+    var started = 0
     for (position in range) {
+      if (started >= PRELOADS_PER_FRAME) break
       val row = rows.rows.getOrNull(position) as? MessageRow ?: continue
       for (block in row.blocks) {
         when (block) {
           is MediaBlock -> for ((index, item) in block.items.withIndex()) {
             val key = "${item.shownUrl}#${row.stacked}"
             if (!preloaded.add(key)) continue
+            started++
             if (block.items.size == 1) {
               val max = if (row.stacked) recycler.width else (recycler.width * env.theme.bubbleMaxWidthFraction).toInt()
               val w = minOf(units.px(240f), max)
@@ -716,6 +767,7 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
     /** More rows than this changing at once take their places without animating. */
     private const val BIG_CHANGE = 30
     private const val PRELOAD_AHEAD = 10
+    private const val PRELOADS_PER_FRAME = 3
     private const val JUMP_FROM = 20
 
     /** The React Native list's: a double tap's second tap within this, and a hold. */
@@ -724,5 +776,8 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
 
     /** `visible` at most this often. */
     private const val VISIBLE_MS = 100L
+
+    /** About the keyboard's own duration, for easing to it after `keyboardFrozen`. */
+    private const val KEYBOARD_EASE_MS = 250L
   }
 }

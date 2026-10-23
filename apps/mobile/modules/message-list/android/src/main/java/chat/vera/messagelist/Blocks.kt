@@ -68,6 +68,7 @@ class BubbleTextView(context: Context, private val units: Units) : TextView(cont
   private var growFromWidth = 0f
   private var growFromHeight = 0f
   private var growth = 1f
+  private var textShown = 1f
   private var growAnimator: android.animation.ValueAnimator? = null
   private val growPath = Path()
 
@@ -80,11 +81,19 @@ class BubbleTextView(context: Context, private val units: Units) : TextView(cont
     growFromWidth = fromWidth
     growFromHeight = fromHeight
     growth = 0f
+    textShown = 0f
     growAnimator = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
-      duration = ms
-      interpolator = EASE
+      // The bubble over `ms`; its text fades in over 220 ms a third of the way in (as on iOS).
+      duration = maxOf(ms, ms / 3 + 220)
+      interpolator = android.view.animation.LinearInterpolator()
       addUpdateListener {
-        growth = it.animatedValue as Float
+        val elapsed = currentPlayTime.toFloat()
+        growth = EASE.getInterpolation((elapsed / ms).coerceIn(0f, 1f))
+        textShown = ((elapsed - ms / 3f) / 220f).coerceIn(0f, 1f)
+        if (animatedFraction >= 1f) {
+          growth = 1f
+          textShown = 1f
+        }
         invalidate()
       }
       start()
@@ -104,14 +113,14 @@ class BubbleTextView(context: Context, private val units: Units) : TextView(cont
     canvas.translate(if (isOwn) width - w else 0f, fullHeight - h)
     canvas.drawPath(growPath, paint)
     canvas.restore()
-    val alpha = (growth * growth * 255).toInt()
+    val alpha = (textShown * 255).toInt()
     val saved = canvas.saveLayerAlpha(0f, 0f, width.toFloat(), height.toFloat(), alpha)
     super.onDraw(canvas)
     canvas.restoreToCount(saved)
   }
 
   override fun onDraw(canvas: Canvas) {
-    if (growth < 1f) {
+    if (growth < 1f || textShown < 1f) {
       drawGrowing(canvas)
       return
     }

@@ -32,9 +32,13 @@ class ListItemAnimator(private val units: Units) : SimpleItemAnimator() {
   /** A row's alpha at rest: 0 while it's lifted into the menu. */
   var restingAlpha: (RecyclerView.ViewHolder) -> Float = { 1f }
 
-  /** Rows inserted by the coming pass, and those of them that rise in as arrivals. */
+  /**
+   * Rows inserted by the coming pass, and those of them new at the bottom
+   * (an arrival, the header over it), which rise together from below with
+   * the rows above them, as on iOS.
+   */
   var inserted: Set<String> = emptySet()
-  var arrivals: Set<String> = emptySet()
+  var rising: Set<String> = emptySet()
 
   /** A message growing out of the typing bubble it replaces (see `MessageCell.growFromTyping`). */
   var handoff: String? = null
@@ -70,7 +74,7 @@ class ListItemAnimator(private val units: Units) : SimpleItemAnimator() {
     val id = rowId(holder)
     val view = holder.itemView
     if (animate && id != null && id == handoff) {
-      (view as? MessageCell)?.growFromTyping(fadeMs)
+      (view as? MessageCell)?.growFromTyping(GROW_MS)
       dispatchAddFinished(holder)
       return false
     }
@@ -79,8 +83,12 @@ class ListItemAnimator(private val units: Units) : SimpleItemAnimator() {
       return false
     }
     view.alpha = 0f
-    view.translationY = if (id in arrivals) units.pxf(RISE) else 0f
-    pending.add(Pending(holder, ADD, false))
+    val kind = when {
+      view is TypingCell -> ADD_TYPING
+      id in rising -> ADD_RISING
+      else -> ADD
+    }
+    pending.add(Pending(holder, kind, false))
     return true
   }
 
@@ -140,6 +148,10 @@ class ListItemAnimator(private val units: Units) : SimpleItemAnimator() {
   override fun runPendingAnimations() {
     val batch = ArrayList(pending)
     pending.clear()
+    // Everything new at the bottom rises by its height together, so it
+    // moves as one with the rows above making room for it.
+    val rise = batch.filter { it.kind == ADD_RISING }.sumOf { it.holder.itemView.height }
+    for (item in batch) if (item.kind == ADD_RISING) item.holder.itemView.translationY = rise.toFloat()
     for (item in batch) start(item)
   }
 
@@ -149,27 +161,53 @@ class ListItemAnimator(private val units: Units) : SimpleItemAnimator() {
     val startY = view.translationY
     val startAlpha = view.alpha
     val animator = ValueAnimator.ofFloat(0f, 1f)
-    animator.interpolator = EASE
+    // Each part keeps its own time: moves over `moveMs`, fades over
+    // `fadeMs`, all on the list's curve, from one clock.
+    animator.interpolator = android.view.animation.LinearInterpolator()
     animator.duration = when (item.kind) {
       ADD -> fadeMs
-      REMOVE -> minOf(200L, fadeMs)
+      ADD_RISING -> maxOf(moveMs, fadeMs)
+      ADD_TYPING -> TYPING_DELAY_MS + TYPING_IN_MS
+      REMOVE -> if (view is TypingCell) moveMs else REMOVE_MS
       else -> moveMs
     }
+    fun eased(ms: Long, delay: Long = 0): Float {
+      val t = ((animator.currentPlayTime - delay).toFloat() / ms).coerceIn(0f, 1f)
+      return EASE.getInterpolation(t)
+    }
     val clip = Rect()
+    if (item.kind == ADD_TYPING) {
+      // From its bubble's corner, as on iOS.
+      view.pivotX = units.pxf(16f)
+      view.pivotY = view.height.toFloat()
+      view.scaleX = 0.75f
+      view.scaleY = 0.75f
+    }
     animator.addUpdateListener {
-      val t = it.animatedValue as Float
       when (item.kind) {
-        ADD -> {
+        ADD -> view.alpha = eased(fadeMs)
+        ADD_RISING -> {
+          view.translationY = startY * (1f - eased(moveMs))
+          view.alpha = eased(fadeMs)
+        }
+        ADD_TYPING -> {
+          val t = eased(TYPING_IN_MS, TYPING_DELAY_MS)
           view.alpha = t
-          view.translationY = startY * (1f - t)
+          view.scaleX = 0.75f + 0.25f * t
+          view.scaleY = view.scaleX
         }
         REMOVE -> {
-          view.alpha = startAlpha * (1f - t)
-          // Who's typing sinks away as it fades.
-          if (view is TypingCell) view.translationY = startY + units.pxf(SINK) * t
+          if (view is TypingCell) {
+            // Who's typing sinks away by its height as it fades.
+            val t = EASE_OUT.getInterpolation((animator.currentPlayTime.toFloat() / moveMs).coerceIn(0f, 1f))
+            view.alpha = startAlpha * (1f - t)
+            view.translationY = startY + view.height * t
+          } else {
+            view.alpha = startAlpha * (1f - eased(REMOVE_MS))
+          }
         }
         else -> {
-          view.translationY = startY * (1f - t)
+          view.translationY = startY * (1f - eased(moveMs))
           if (item.clip) {
             // What's under the row's content shows only as its space opens.
             clip.set(-view.width, -view.height, view.width * 2, view.height - view.translationY.toInt())
@@ -183,7 +221,7 @@ class ListItemAnimator(private val units: Units) : SimpleItemAnimator() {
 
       override fun onAnimationStart(animation: Animator) {
         when (item.kind) {
-          ADD -> dispatchAddStarting(holder)
+          ADD, ADD_RISING, ADD_TYPING -> dispatchAddStarting(holder)
           REMOVE -> dispatchRemoveStarting(holder)
           CHANGE -> dispatchChangeStarting(holder, true)
           else -> dispatchMoveStarting(holder)
@@ -199,9 +237,11 @@ class ListItemAnimator(private val units: Units) : SimpleItemAnimator() {
         done = true
         running.remove(holder)
         view.translationY = 0f
+        view.scaleX = 1f
+        view.scaleY = 1f
         view.clipBounds = null
         when (item.kind) {
-          ADD -> {
+          ADD, ADD_RISING, ADD_TYPING -> {
             view.alpha = restingAlpha(holder)
             dispatchAddFinished(holder)
           }
@@ -231,9 +271,11 @@ class ListItemAnimator(private val units: Units) : SimpleItemAnimator() {
   private fun finishNow(entry: Pending) {
     val view = entry.holder.itemView
     view.translationY = 0f
+    view.scaleX = 1f
+    view.scaleY = 1f
     view.clipBounds = null
     when (entry.kind) {
-      ADD -> {
+      ADD, ADD_RISING, ADD_TYPING -> {
         view.alpha = restingAlpha(entry.holder)
         dispatchAddFinished(entry.holder)
       }
@@ -262,11 +304,17 @@ class ListItemAnimator(private val units: Units) : SimpleItemAnimator() {
     private const val REMOVE = 1
     private const val MOVE = 2
     private const val CHANGE = 3
+    private const val ADD_RISING = 4
+    private const val ADD_TYPING = 5
 
-    /** How far below its place an arriving message starts, as the React Native list's `EMERGE`. */
-    const val RISE = 10f
+    /** iOS's: removed rows fade this fast; who's typing appears after a beat. */
+    private const val REMOVE_MS = 180L
+    private const val TYPING_DELAY_MS = 105L
+    private const val TYPING_IN_MS = 315L
 
-    /** How far the typing indicator sinks as it goes. */
-    const val SINK = 12f
+    /** How long a message takes to grow out of the typing bubble. */
+    const val GROW_MS = 320L
+
+
   }
 }
