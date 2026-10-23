@@ -36,6 +36,9 @@ class ListItemAnimator(private val units: Units) : SimpleItemAnimator() {
   var inserted: Set<String> = emptySet()
   var arrivals: Set<String> = emptySet()
 
+  /** A message growing out of the typing bubble it replaces (see `MessageCell.growFromTyping`). */
+  var handoff: String? = null
+
   private class Pending(val holder: RecyclerView.ViewHolder, val kind: Int, val clip: Boolean)
 
   private val pending = ArrayList<Pending>()
@@ -53,7 +56,8 @@ class ListItemAnimator(private val units: Units) : SimpleItemAnimator() {
 
   override fun animateRemove(holder: RecyclerView.ViewHolder): Boolean {
     endAnimation(holder)
-    if (!animate) {
+    // The message that replaces the typing bubble grows out of it: the bubble just goes.
+    if (!animate || (handoff != null && holder.itemView is TypingCell)) {
       dispatchRemoveFinished(holder)
       return false
     }
@@ -65,6 +69,11 @@ class ListItemAnimator(private val units: Units) : SimpleItemAnimator() {
     endAnimation(holder)
     val id = rowId(holder)
     val view = holder.itemView
+    if (animate && id != null && id == handoff) {
+      (view as? MessageCell)?.growFromTyping(fadeMs)
+      dispatchAddFinished(holder)
+      return false
+    }
     if (!animate || id == null || id !in inserted) {
       dispatchAddFinished(holder)
       return false
@@ -154,7 +163,11 @@ class ListItemAnimator(private val units: Units) : SimpleItemAnimator() {
           view.alpha = t
           view.translationY = startY * (1f - t)
         }
-        REMOVE -> view.alpha = startAlpha * (1f - t)
+        REMOVE -> {
+          view.alpha = startAlpha * (1f - t)
+          // Who's typing sinks away as it fades.
+          if (view is TypingCell) view.translationY = startY + units.pxf(SINK) * t
+        }
         else -> {
           view.translationY = startY * (1f - t)
           if (item.clip) {
@@ -252,5 +265,8 @@ class ListItemAnimator(private val units: Units) : SimpleItemAnimator() {
 
     /** How far below its place an arriving message starts, as the React Native list's `EMERGE`. */
     const val RISE = 10f
+
+    /** How far the typing indicator sinks as it goes. */
+    const val SINK = 12f
   }
 }
