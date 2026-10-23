@@ -1,15 +1,16 @@
 import { Linking, Modal, Pressable, Text, View } from "react-native";
 
-import { useNeedsNativeListBinary } from "~/features/native-list/switch";
 import { STORE_LABEL, STORE_URL } from "./store-link";
+import { useMustReplaceBinary } from "./watch-outdated-runtimes";
 
 /**
  * Covers the app when it needs a new store build, not an over-the-air
- * update: the native message list is on and this binary has none (see
- * `NATIVE_LIST.requireBinary`). The store-build twin of `UpdateCover`.
+ * update: the backend lists this binary's runtime as outdated (see
+ * services/backend/outdated-runtimes.ts), once its replacement is out. The
+ * store-build twin of `UpdateCover`; one tap opens TestFlight or Play.
  */
 export function StoreUpdateCover() {
-  if (!useNeedsNativeListBinary()) return null;
+  if (!useMustReplaceBinary()) return null;
   return (
     <Modal
       visible

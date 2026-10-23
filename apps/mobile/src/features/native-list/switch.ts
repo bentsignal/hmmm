@@ -1,5 +1,4 @@
 import { useSyncExternalStore } from "react";
-import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import * as Updates from "expo-updates";
 
@@ -21,11 +20,6 @@ export const NATIVE_LIST = {
   byDefault: env.devTools || previewBuild,
   /** Private production builds expose the switch for every signed-in account. */
   previewBuild,
-  /**
-   * Whether a binary without it asks to be updated while it's on
-   * (`StoreUpdateCover`). Off until a store build with it is out.
-   */
-  requireBinary: false,
   /**
    * Accounts that see the switch in production builds, where the
    * Developer section is hidden (More → About). Dev builds show it to
@@ -87,17 +81,4 @@ export const nativeListInstalled =
 /** Whether conversations use the native list. */
 export function useNativeList() {
   return useNativeListOn() && nativeListInstalled;
-}
-
-/**
- * Whether this binary needs a store update to keep going: the native list
- * is on, it's required, and this binary has none.
- */
-export function useNeedsNativeListBinary() {
-  return (
-    useNativeListOn() &&
-    NATIVE_LIST.requireBinary &&
-    Platform.OS !== "web" &&
-    nativeSupport === null
-  );
 }
