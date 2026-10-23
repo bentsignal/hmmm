@@ -256,6 +256,8 @@ fun decodeTheme(map: ReadableMap?): Theme {
   fun metric(key: String, fallback: Float) = m?.num(key)?.toFloat() ?: fallback
   return Theme(
     background = color("background", d.background),
+    // Optional: older JavaScript doesn't send it.
+    backgroundElevated = color("backgroundElevated", color("background", d.background)),
     foreground = color("foreground", d.foreground),
     muted = color("muted", d.muted),
     subtle = color("subtle", d.subtle),

@@ -140,6 +140,8 @@ data class TextStyle(val size: Float, val lineHeight: Float)
 
 data class Theme(
   val background: Int,
+  /** Cards over the background (link previews). */
+  val backgroundElevated: Int,
   val foreground: Int,
   val muted: Int,
   val subtle: Int,
@@ -176,6 +178,7 @@ data class Theme(
     val DEFAULT =
       Theme(
         background = 0xFFFFFFFF.toInt(),
+        backgroundElevated = 0xFFFFFFFF.toInt(),
         foreground = 0xFF000000.toInt(),
         muted = 0x993C3C43.toInt(),
         subtle = 0x4D3C3C43,
