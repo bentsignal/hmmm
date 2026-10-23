@@ -39,8 +39,12 @@ data class Target(
   }
 }
 
-/** What holding a view lifts into the menu: a `hold` event with its frame. */
-data class HoldTarget(val rowId: String, val part: String?, val index: Int? = null)
+/**
+ * What holding a view lifts into the menu: a `hold` event with its frame.
+ * On a reaction, `reactionKey` says which; `part` and `index` stay those of
+ * the part it belongs to, so the frame is that part's.
+ */
+data class HoldTarget(val rowId: String, val part: String?, val index: Int? = null, val reactionKey: String? = null)
 
 var View.pressTarget: Target?
   get() = getTag(R.id.message_list_press) as? Target
@@ -99,6 +103,10 @@ fun hitTest(root: View, x: Float, y: Float): Hit {
         val cx = lx - child.left - child.translationX + view.scrollX
         val cy = ly - child.top - child.translationY + view.scrollY
         if (cx >= 0 && cy >= 0 && cx <= child.width && cy <= child.height) {
+          // A carousel spans the row; beside its cards (over the avatar)
+          // the touch is on what's under it.
+          if (child is CarouselView && !child.hasCardAt(cx, cy)) continue
+          if (child is TapbacksView && !child.hasTapbackAt(cx, cy)) continue
           visit(child, cx, cy)
           break
         }

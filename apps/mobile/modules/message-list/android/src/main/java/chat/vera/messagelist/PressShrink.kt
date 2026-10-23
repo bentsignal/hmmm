@@ -25,6 +25,13 @@ class PressShrink(private val main: Handler) {
     main.postDelayed(work, 80)
   }
 
+  /** A reaction: pressed at once and a little further, since its tap fires on release. */
+  fun pressNow(view: View) {
+    release()
+    pressed = view
+    view.animate().scaleX(0.9f).scaleY(0.9f).setDuration(90).setInterpolator(DecelerateInterpolator()).start()
+  }
+
   fun release() {
     pending?.let { main.removeCallbacks(it) }
     pending = null

@@ -54,6 +54,14 @@ class BubbleTextView(context: Context, private val units: Units) : ListText(cont
     invalidate()
   }
 
+  private companion object {
+    /** React Native's `TEXT_IN`: the text fades in over this, after the bubble's grown. */
+    const val TEXT_IN_MS = 220f
+
+    /** About how bright a typing dot is between pulses. */
+    const val DOT_REST_ALPHA = 0.5f
+  }
+
   /** As wide as its widest line, like a bubble in Messages, not as wide as it may be. */
   override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
     super.onMeasure(widthMeasureSpec, heightMeasureSpec)
@@ -71,25 +79,29 @@ class BubbleTextView(context: Context, private val units: Units) : ListText(cont
   private var textShown = 1f
   private var growAnimator: android.animation.ValueAnimator? = null
   private val growPath = Path()
+  private val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 
   /**
    * Grows from a bubble `fromWidth` by `fromHeight` (who's typing) to its
-   * own size, from its tail's corner, as its text fades in.
+   * own size, from its tail's corner, as the React Native list's
+   * `BubbleMorph`: the typing dots (`dotsColor`) gone by a third of the
+   * way, then, once it's its size, its text fading in, so the text never
+   * spills out of a bubble still growing.
    */
-  fun grow(fromWidth: Float, fromHeight: Float, ms: Long) {
+  fun grow(fromWidth: Float, fromHeight: Float, ms: Long, dotsColor: Int) {
     growAnimator?.cancel()
     growFromWidth = fromWidth
     growFromHeight = fromHeight
+    dotPaint.color = dotsColor
     growth = 0f
     textShown = 0f
     growAnimator = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
-      // The bubble over `ms`; its text fades in over 220 ms a third of the way in (as on iOS).
-      duration = maxOf(ms, ms / 3 + 220)
+      duration = ms + TEXT_IN_MS.toLong()
       interpolator = android.view.animation.LinearInterpolator()
       addUpdateListener {
         val elapsed = currentPlayTime.toFloat()
         growth = EASE.getInterpolation((elapsed / ms).coerceIn(0f, 1f))
-        textShown = ((elapsed - ms / 3f) / 220f).coerceIn(0f, 1f)
+        textShown = ((elapsed - ms) / TEXT_IN_MS).coerceIn(0f, 1f)
         if (animatedFraction >= 1f) {
           growth = 1f
           textShown = 1f
@@ -113,10 +125,26 @@ class BubbleTextView(context: Context, private val units: Units) : ListText(cont
     canvas.translate(if (isOwn) width - w else 0f, fullHeight - h)
     canvas.drawPath(growPath, paint)
     canvas.restore()
+    drawLeavingDots(canvas, fullHeight)
     val alpha = (textShown * 255).toInt()
     val saved = canvas.saveLayerAlpha(0f, 0f, width.toFloat(), height.toFloat(), alpha)
     super.onDraw(canvas)
     canvas.restoreToCount(saved)
+  }
+
+  /** The typing dots where they were in the typing bubble, fading out by a third of the growth. */
+  private fun drawLeavingDots(canvas: Canvas, fullHeight: Float) {
+    val shown = 1f - growth * 3f
+    if (shown <= 0f) return
+    val dot = units.pxf(8f)
+    val gap = units.pxf(4f)
+    val left = if (isOwn) width - growFromWidth else 0f
+    val cx = left + growFromWidth / 2f
+    val cy = fullHeight - growFromHeight / 2f
+    val base = dotPaint.alpha
+    dotPaint.alpha = (base * shown * DOT_REST_ALPHA).toInt()
+    for (index in -1..1) canvas.drawCircle(cx + index * (dot + gap), cy, dot / 2f, dotPaint)
+    dotPaint.alpha = base
   }
 
   override fun onDraw(canvas: Canvas) {

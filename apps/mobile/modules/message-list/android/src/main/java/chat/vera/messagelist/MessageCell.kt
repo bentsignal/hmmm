@@ -30,6 +30,10 @@ class CellEnv(
 
   /** A deck brought another card to the front: its row's reactions show for it. */
   var onDeckChanged: ((MessageCell) -> Unit)? = null
+
+  /** Where each carousel was left, and each deck's front photo, by row and block: kept as cells recycle. */
+  val carouselOffsets = HashMap<String, Int>()
+  val deckFronts = HashMap<String, Int>()
 }
 
 /** The shape of a block, for the cell's view type: cells of one shape recycle into each other. */
@@ -47,6 +51,25 @@ fun shapeOf(block: Block): Shape =
   }
 
 data class Signature(val stacked: Boolean, val isOwn: Boolean, val shapes: List<Shape>)
+
+/**
+ * What a part's tapbacks show: for photos, the shown photo's own reactions
+ * (a deck's front one, `front`), so tapping them acts on what's in view;
+ * then the message's own reactions (`own`) if they sit on this part.
+ */
+internal fun tapbackReactions(block: Block, front: Int?, own: List<Reaction>): List<Reaction> {
+  if (block !is MediaBlock) return own
+  val item = block.items.getOrNull(front ?: 0) ?: block.items.firstOrNull()
+  return (item?.reactions ?: emptyList()) + own
+}
+
+/**
+ * Whether a message can grow out of the typing bubble, as the React
+ * Native list's `morphs()`: bubbles, and only text (no photos, quote, link
+ * card, or jumbo emoji).
+ */
+internal fun morphs(row: MessageRow): Boolean =
+  !row.stacked && row.blocks.isNotEmpty() && row.blocks.all { it is TextBlock && !it.jumbo }
 
 fun signatureOf(row: MessageRow) = Signature(row.stacked, row.isOwn && !row.stacked, row.blocks.map(::shapeOf))
 
@@ -124,8 +147,8 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
         Shape.JUMBO -> plainText(context)
         Shape.MEDIA_ONE -> MediaView(context, units)
         Shape.MEDIA_GROUP ->
-          if (stacked) CarouselView(context, units, env.images, env.mediaPool)
-          else DeckView(context, units, env.images).also { deck -> deck.onCurrent = { env.onDeckChanged?.invoke(this) } }
+          if (stacked) CarouselView(context, units, env.images, env.mediaPool, env.carouselOffsets).also { strip -> strip.onOffset = { recede(it) } }
+          else DeckView(context, units, env.images, env.deckFronts).also { deck -> deck.onCurrent = { env.onDeckChanged?.invoke(this) } }
         Shape.FILE -> FileCardView(context, units)
         Shape.LINK -> LinkCardView(context, units, env.images)
         Shape.QUOTE -> QuoteView(context, units, env.images)
@@ -213,12 +236,11 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
         val reactions = blockReactions(row, block, view, index == reactionsAt)
         taps.bind(reactions, theme, animate)
         taps.visibility = if (taps.shownCount > 0 || animate) VISIBLE else GONE
-        val front = reactions.lastOrNull()
-        taps.pressTarget = Target("reaction", row.id, part = partOf(block, view), reactionKey = front?.key)
+        aimTapbacks(taps, row, block, view, reactions)
       }
       partChips[slot]?.let { chips ->
         val item = (block as? MediaBlock)?.items?.firstOrNull()
-        chips.bind(item?.reactions ?: emptyList(), theme, row.id, item?.part, animate)
+        chips.bind(item?.reactions ?: emptyList(), theme, row.id, item?.part, animate, index = 0)
       }
     }
     stackedQuote?.let { quote ->
@@ -261,29 +283,34 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
       else -> block.part
     }
 
+  /** The media item a part's tapbacks sit on, for `index`: a deck's front photo, or a lone photo. */
+  private fun indexOf(block: Block, view: View): Int? =
+    when {
+      block !is MediaBlock -> null
+      view is DeckView -> view.current
+      else -> 0
+    }
+
+  /**
+   * A tap on tapbacks is on their front (newest) reaction; a hold too, which
+   * says so (`reactionKey`) and reports the part they sit on.
+   */
+  private fun aimTapbacks(taps: TapbacksView, row: MessageRow, block: Block, view: View, reactions: List<Reaction>) {
+    val front = reactions.lastOrNull()
+    val part = partOf(block, view)
+    val index = indexOf(block, view)
+    taps.pressTarget = Target("reaction", row.id, part = part, index = index, reactionKey = front?.key)
+    taps.holdTarget = front?.let { HoldTarget(row.id, part, index, reactionKey = it.key) }
+  }
+
   /** Which block the message's own reactions sit on: its text, or else its first part. */
   private fun reactionsBlock(row: MessageRow): Int {
     val text = row.blocks.indexOfFirst { it is TextBlock || it is DeletedBlock || it is UnknownBlock }
     return if (text >= 0) text else 0
   }
 
-  private fun blockReactions(row: MessageRow, block: Block, view: View, own: Boolean): List<Reaction> {
-    val mine = if (own) row.reactions else emptyList()
-    if (block !is MediaBlock) return mine
-    // A deck shows every card's reactions together, over its front card (as on iOS).
-    if (view is DeckView) return merged(block.items.flatMap { it.reactions }) + mine
-    return block.items.first().reactions + mine
-  }
-
-  /** Reactions with the same key as one: their counts added, yours if any were. */
-  private fun merged(reactions: List<Reaction>): List<Reaction> {
-    val byKey = LinkedHashMap<String, Reaction>()
-    for (reaction in reactions) {
-      val seen = byKey[reaction.key]
-      byKey[reaction.key] = if (seen == null) reaction else seen.copy(count = seen.count + reaction.count, mine = seen.mine || reaction.mine)
-    }
-    return byKey.values.toList()
-  }
+  private fun blockReactions(row: MessageRow, block: Block, view: View, own: Boolean): List<Reaction> =
+    tapbackReactions(block, (view as? DeckView)?.current, if (own) row.reactions else emptyList())
 
   /** The deck brought another card forward: show its reactions. */
   fun deckChanged() {
@@ -295,10 +322,14 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
         val reactions = blockReactions(row, block, view, blockIndex[slot] == reactionsBlock(row))
         taps.bind(reactions, env.theme, animate = true)
         taps.visibility = VISIBLE
+        aimTapbacks(taps, row, block, view, reactions)
       }
     }
     requestLayout()
   }
+
+  /** Where stacked rows' text starts: past the avatar. */
+  private fun stackedColumn(): Int = units.px(env.theme.horizontalPadding + env.theme.avatarSize + 12f)
 
   private fun contentMax(): Int {
     val theme = env.theme
@@ -360,8 +391,8 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
             view.pressTarget = Target("media", row.id, part = item.part, index = 0)
             view.holdTarget = HoldTarget(row.id, item.part, 0)
           }
-          is CarouselView -> view.bind(row.id, block.items, theme, units.px(CarouselSizes.BLEED), animate = false)
-          is DeckView -> view.bind(row.id, block.items, theme, maxWidth, row.isOwn)
+          is CarouselView -> view.bind(row.id, "${row.id}#$index", block.items, theme, stackedColumn(), units.px(theme.horizontalPadding), animate = false)
+          is DeckView -> view.bind(row.id, "${row.id}#$index", block.items, theme, maxWidth)
         }
       }
       is FileBlock -> {
@@ -384,7 +415,9 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
     bind(row, animate = true)
     for ((slot, view) in blockViews.withIndex()) {
       val block = row.blocks.getOrNull(blockIndex[slot]) as? MediaBlock ?: continue
-      if (view is CarouselView) view.bind(row.id, block.items, env.theme, units.px(CarouselSizes.BLEED), animate = true)
+      if (view is CarouselView) {
+        view.bind(row.id, "${row.id}#${blockIndex[slot]}", block.items, env.theme, stackedColumn(), units.px(env.theme.horizontalPadding), animate = true)
+      }
     }
   }
 
@@ -499,7 +532,8 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
       if (slot > 0) y += units.px(4f)
       blockTops[slot] = y
       if (view is CarouselView) {
-        view.measure(MeasureSpec.makeMeasureSpec(width - columnX, MeasureSpec.EXACTLY), unspecified())
+        // Edge to edge: the whole row, with the column as its inset.
+        view.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), unspecified())
       } else {
         view.measure(atMost(columnWidth), unspecified())
       }
@@ -554,7 +588,9 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
         if (taps.visibility != VISIBLE) return@let
         val reach = units.px(TapbacksView.SIZE / 2f - TapbacksView.CENTER_INSET)
         val tx = if (row.isOwn) view.left - reach else view.right + reach - taps.measuredWidth
-        place(taps, tx, blockTops[slot] - units.px(TapbacksView.SPACE))
+        // A deck's go on its front photo's corner, below the room for the cards behind.
+        val anchor = blockTops[slot] + if (view is DeckView) units.px(DeckSizes.PEEK) else 0
+        place(taps, tx, anchor - units.px(TapbacksView.SPACE))
       }
     }
     var y = blocksBottom
@@ -598,14 +634,22 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
       time.visibility = GONE
     }
     var y = blocksTop
+    recedeTo = 1f
+    var strip: CarouselView? = null
     for ((slot, view) in blockViews.withIndex()) {
-      place(view, columnX, blockTops[slot])
+      place(view, if (view is CarouselView) 0 else columnX, blockTops[slot])
       y = blockTops[slot] + view.measuredHeight
       partChips[slot]?.let { chips ->
         place(chips, columnX, y)
         y += chips.measuredHeight
       }
+      // Photos passing the avatar: it shrinks toward its top, to clear them.
+      if (view is CarouselView && row.startsGroup && strip == null && blockTops[slot] < top + avatar.measuredHeight) {
+        strip = view
+        recedeTo = ((blockTops[slot] - top - units.px(2f)).toFloat() / avatar.measuredHeight).coerceIn(0.4f, 1f)
+      }
     }
+    recede(strip?.let { it.offset() ?: it.restoredOffset } ?: 0)
     for (footer in footers) {
       if (footer.visibility != VISIBLE) continue
       place(footer, columnX, y)
@@ -630,6 +674,29 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
     for (taps in tapbacks) taps?.translationX = slide
     for (footer in footers) footer.translationX = slide
     if (row.isOwn && replyIndent(row) > 0) invalidate()
+  }
+
+  // MARK: The avatar as photos pass
+
+  /** How small the avatar gets as a carousel passes under it; 1 when none does. */
+  private var recedeTo = 1f
+
+  /**
+   * At rest the avatar is as it is. As the strip under it scrolls, it
+   * shrinks toward its top center, eased over its own width and the gap,
+   * until its bottom clears the photos. Scrolling back reverses it.
+   */
+  private fun recede(offset: Int) {
+    val scale = if (recedeTo >= 1f) 1f
+    else {
+      val progress = (offset / units.pxf(env.theme.avatarSize + 12f)).coerceIn(0f, 1f)
+      1f - (1f - recedeTo) * EASE.getInterpolation(progress)
+    }
+    if (avatar.scaleX == scale && avatar.pivotY == 0f) return
+    avatar.pivotX = avatar.measuredWidth / 2f
+    avatar.pivotY = 0f
+    avatar.scaleX = scale
+    avatar.scaleY = scale
   }
 
   // MARK: Holding
@@ -760,7 +827,7 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
   /** Grows its last bubble out of the typing bubble it replaces, its text and name fading in. */
   fun growFromTyping(ms: Long) {
     val bubble = blockViews.lastOrNull() as? BubbleTextView ?: return
-    bubble.grow(units.pxf(60f), units.pxf(38f), ms)
+    bubble.grow(units.pxf(60f), units.pxf(38f), ms, env.theme.muted)
     if (name.visibility == VISIBLE) {
       name.alpha = 0f
       name.animate().alpha(1f).setDuration(ms).setInterpolator(EASE).start()
@@ -933,8 +1000,11 @@ class TypingCell(context: Context, private val env: CellEnv) : ViewGroup(context
   private var stacked = false
   private var people = emptyList<String>()
   private var shifting = false
+  private var showFaces = true
 
   init {
+    // The faces' rings reach past the bottom, where the message's avatar ends.
+    clipChildren = false
     addView(faces)
     addView(bubble)
     addView(dots)
@@ -950,9 +1020,12 @@ class TypingCell(context: Context, private val env: CellEnv) : ViewGroup(context
     people = nextPeople
     shifting = changed
     stacked = row.stacked
+    showFaces = row.showFaces
     contentDescription = row.label
+    // One-on-one: no photos, only who's typing (they still say whose message grows out of it).
+    val shownPeople = if (showFaces) row.people else emptyList()
     if (stacked) {
-      faces.bind(row.people, theme, env.images, 18f, 4f, 1.5f, 3, changed)
+      faces.bind(shownPeople, theme, env.images, 18f, 4f, 1.5f, 3, changed)
       dots.bind(theme.muted, 4f, 2f)
       label.style(units, theme.footnote, theme.muted)
       if (changed && label.text.toString() != row.label) {
@@ -971,7 +1044,7 @@ class TypingCell(context: Context, private val env: CellEnv) : ViewGroup(context
       label.visibility = VISIBLE
       bubble.visibility = GONE
     } else {
-      faces.bind(row.people, theme, env.images, 28f, 6f, 2f, 3, changed)
+      faces.bind(shownPeople, theme, env.images, 28f, 6f, BUBBLE_RING, 3, changed)
       dots.bind(theme.muted, 8f, 4f)
       bubble.paint.color = theme.bubbleIncoming
       bubble.visibility = VISIBLE
@@ -1011,7 +1084,8 @@ class TypingCell(context: Context, private val env: CellEnv) : ViewGroup(context
     if (stacked) {
       val top = units.px(10f)
       val line = units.px(20f)
-      var x = hpad
+      // Without photos, the label starts where the messages' text does.
+      var x = if (faces.measuredWidth > 0) hpad else hpad + units.px(env.theme.avatarSize + 12f)
       for (view in listOf(faces, label, dots)) {
         if (view.measuredWidth == 0) continue
         val y = top + (line - view.measuredHeight) / 2
@@ -1024,9 +1098,14 @@ class TypingCell(context: Context, private val env: CellEnv) : ViewGroup(context
     val bottom = measuredHeight
     var x = hpad
     if (faces.measuredWidth > 0) {
-      val fy = bottom - units.px(BubbleShape.TAIL_DROP) - faces.measuredHeight
-      faces.layout(x, fy, x + faces.measuredWidth, fy + faces.measuredHeight)
-      x += faces.measuredWidth + units.px(10f)
+      // Each photo where the message's avatar will be: its edge at the
+      // margin and its bottom at the tail's, the ring around it outside.
+      // The bubble then starts where the message's bubble does.
+      val ring = units.px(BUBBLE_RING)
+      val fx = hpad - ring
+      val fy = bottom - faces.measuredHeight + ring
+      faces.layout(fx, fy, fx + faces.measuredWidth, fy + faces.measuredHeight)
+      x = fx + faces.measuredWidth - ring + units.px(10f)
     }
     val by = bottom - bubble.measuredHeight
     bubble.layout(x, by, x + bubble.measuredWidth, bottom)
@@ -1035,5 +1114,10 @@ class TypingCell(context: Context, private val env: CellEnv) : ViewGroup(context
     val dy = by + (bubbleHeight - dots.measuredHeight) / 2
     dots.layout(dx, dy, dx + dots.measuredWidth, dy + dots.measuredHeight)
     shifted()
+  }
+
+  companion object {
+    /** The ring around each photo beside the typing bubble. */
+    const val BUBBLE_RING = 2f
   }
 }
