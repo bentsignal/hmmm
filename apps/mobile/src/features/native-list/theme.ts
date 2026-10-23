@@ -21,6 +21,7 @@ const VARIABLES = [
   "--color-bubble-incoming",
   "--color-bubble-outgoing",
   "--color-destructive",
+  "--color-background-elevated",
 ] as const;
 
 /** The light scheme, for a variable that hasn't resolved. */
@@ -36,6 +37,7 @@ const LIGHT = [
   "#e9e9eb",
   "#007aff",
   "#ff3b30",
+  "#ffffff",
 ] as const;
 
 /** The tint behind the message a search or notification opened on. */
@@ -103,6 +105,7 @@ export function themeOf(values: readonly unknown[], layout: MessageLayout) {
     colors: {
       accent: color(6),
       background: color(0),
+      backgroundElevated: color(11),
       bubbleIncoming: color(8),
       bubbleOutgoing: color(9),
       destructive: color(10),
