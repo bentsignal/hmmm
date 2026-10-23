@@ -22,7 +22,7 @@ const module = requireOptionalNativeModule<{
  * What the installed binary can draw, or null when it has no native list
  * (an older build): the app keeps the React Native list then.
  */
-export const nativeSupport: NativeSupport | null =
+export const nativeSupport =
   Platform.OS === "web" ? null : (module?.support ?? null);
 
 /** The native list view, once `nativeSupport` says it's there. */

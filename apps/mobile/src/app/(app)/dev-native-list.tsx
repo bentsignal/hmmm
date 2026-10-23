@@ -1,8 +1,8 @@
-import type { ListEvent, Row } from "~/features/native-list/native";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import type { ListEvent, Row } from "~/features/native-list/native";
 import {
   FIXTURE_BEHAVIOR,
   FIXTURE_THEME,
@@ -64,7 +64,9 @@ export default function DevNativeList() {
     if (nativeEvent.type === "reachedOlder" && loaded < 600) {
       // An older page, a moment later, as from the server.
       setTimeout(() => {
-        setRows((now) => withRuns([...now, ...fixtureRows(50, loaded, layout)]));
+        setRows((now) =>
+          withRuns([...now, ...fixtureRows(50, loaded, layout)]),
+        );
         setLoaded(loaded + 50);
       }, 400);
     }
@@ -79,16 +81,15 @@ export default function DevNativeList() {
       </View>
     );
   }
-  const shown = typing
-    ? [{ ...FIXTURE_TYPING, layout }, ...rows]
-    : rows;
+  const shown = typing ? [{ ...FIXTURE_TYPING, layout }, ...rows] : rows;
   return (
     <View
       className="flex-1"
       style={{ backgroundColor: dark ? "#000000" : "#ffffff" }}
     >
       <MessageListView
-        style={{ flex: 1 }}
+        // The binding's props are the contract's; a native view still takes a style.
+        {...{ style: { flex: 1 } }}
         contractVersion={CONTRACT_VERSION}
         rows={shown}
         theme={dark ? FIXTURE_THEME_DARK : FIXTURE_THEME}
@@ -117,7 +118,10 @@ export default function DevNativeList() {
         <Button label="+20" onPress={() => arrive(20)} />
         <Button label="react" onPress={toggleReaction} />
         <Button label="typing" onPress={() => setTyping(!typing)} />
-        <Button label={dark ? "light" : "dark"} onPress={() => setDark(!dark)} />
+        <Button
+          label={dark ? "light" : "dark"}
+          onPress={() => setDark(!dark)}
+        />
       </View>
     </View>
   );
