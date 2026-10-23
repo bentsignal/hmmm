@@ -16,11 +16,11 @@ import { AccountScope, useAccount } from "~/features/messaging/account";
 import { useConversation } from "~/features/messaging/conversations";
 import { useProfileState } from "~/features/messaging/profiles";
 import { useSpace } from "~/features/messaging/spaces";
-import { ConversationListSection } from "~/features/native-list/native-list-switch";
 import {
   threadPeople,
   useConversationThreads,
 } from "~/features/messaging/thread-lists";
+import { ConversationListSection } from "~/features/native-list/native-list-switch";
 import { ProfileCard } from "~/features/profile/profile-card";
 
 const CHANNEL_GLYPH = { android: "tag", ios: "number" } as const;

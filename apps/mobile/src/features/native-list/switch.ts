@@ -53,6 +53,15 @@ export function setNativeList(on: boolean) {
   for (const listener of listeners) listener();
 }
 
+function isOn(chosen: (typeof CHOICES)[number] | undefined) {
+  return chosen === undefined ? NATIVE_LIST.byDefault : chosen === "on";
+}
+
+/** Whether the native list is on here, outside React (dev scripts). */
+export function nativeListOn() {
+  return isOn(choice);
+}
+
 /** Whether the native list is on here: chosen, or the default. */
 export function useNativeListOn() {
   const chosen = useSyncExternalStore(
@@ -62,7 +71,7 @@ export function useNativeListOn() {
     },
     () => choice,
   );
-  return chosen === undefined ? NATIVE_LIST.byDefault : chosen === "on";
+  return isOn(chosen);
 }
 
 /** Whether this binary has a native list this JavaScript can talk to. */
