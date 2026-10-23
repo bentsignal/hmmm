@@ -266,6 +266,11 @@ export interface FooterLine {
 export interface Theme {
   readonly colors: {
     readonly background: string;
+    /**
+     * Cards over the background (link previews). Optional: older
+     * JavaScript doesn't send it, and native uses `background` then.
+     */
+    readonly backgroundElevated?: string;
     readonly foreground: string;
     readonly muted: string;
     readonly subtle: string;
@@ -323,7 +328,11 @@ export interface Behavior {
 export interface Insets {
   /** Under the header. */
   readonly top: number;
-  /** Over the composer (the keyboard is added natively, see `keyboard`). */
+  /**
+   * Over the composer, including the bottom safe area it sits on. Native
+   * adds the keyboard (see `keyboard`): its height above that safe area,
+   * which the keyboard covers.
+   */
   readonly bottom: number;
 }
 
