@@ -433,13 +433,19 @@ stop() {
   name="$(cat "$STATE_DIR/$PLATFORM.recording" 2>/dev/null || true)"
   if [ "$PLATFORM" = android ] && [ -n "$name" ]; then
     sleep 1
-    # Video is already compressed. Avoid adb's compressed sync transfer,
-    # which can disconnect this emulator during a large pull.
+    # Stream the completed file through the shell. The emulator's adb sync
+    # transfer can disconnect just after screenrecord exits.
     local transferred=0
     for attempt in 1 2 3; do
-      if adb_device pull -Z "/sdcard/$name.mp4" "$EVIDENCE/$name.mp4" >/dev/null; then
-        transferred=1
-        break
+      local expected actual
+      expected="$(adb_device shell stat -c %s "/sdcard/$name.mp4" 2>/dev/null | tr -d '\r' || true)"
+      if adb_device exec-out cat "/sdcard/$name.mp4" >"$EVIDENCE/$name.mp4.partial"; then
+        actual="$(wc -c <"$EVIDENCE/$name.mp4.partial" | tr -d ' ')"
+        if [ "$actual" = "$expected" ] && [ "$actual" != 0 ]; then
+          mv "$EVIDENCE/$name.mp4.partial" "$EVIDENCE/$name.mp4"
+          transferred=1
+          break
+        fi
       fi
       sleep 2
     done
