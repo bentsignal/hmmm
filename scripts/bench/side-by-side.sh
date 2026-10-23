@@ -59,11 +59,11 @@ scenario_react() {
 }
 scenario_hold() {
   ${=BENCH_AD:?set BENCH_AD} longpress ${=HOLD_TARGET} 700 >/dev/null 2>&1; sleep 2
-  local close=${BENCH_CLOSE:-}
-  if [[ -z $close ]]; then
-    close=$(${=BENCH_AD} snapshot -i | awk '/^@e[0-9]+ .*"Close"/ { print $1; exit }')
-  fi
-  if [[ -z $close ]]; then echo 'no menu backdrop in the snapshot' >&2; return 1; fi
+  # The backdrop covers the whole screen; its accessibility center can be
+  # underneath a reaction button. Check it exists, then tap the clear corner.
+  local backdrop=$(${=BENCH_AD} snapshot -i | awk '/^@e[0-9]+ .*"Close"/ { print $1; exit }')
+  if [[ -z $backdrop ]]; then echo 'no menu backdrop in the snapshot' >&2; return 1; fi
+  local close=${BENCH_CLOSE:-20 80}
   ${=BENCH_AD} click ${=close} >/dev/null 2>&1; sleep 2
 }
 
