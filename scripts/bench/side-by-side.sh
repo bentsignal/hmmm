@@ -15,7 +15,7 @@
 # Needs BENCH_GROUP (see head-to-head.sh). Writes
 # .cache/evidence/h2h-<scenario>.mp4. Hold the heavy-work lock: recording
 # takes the Mac's time.
-set -u
+set -euo pipefail
 cd "$(dirname "$0")/../.."
 FLAG=()
 [[ ${1:-} == --android ]] && { FLAG=(--android); shift; }
@@ -23,6 +23,7 @@ SCENARIOS=(${@:-fling burst react hold})
 GROUP=${BENCH_GROUP:?set BENCH_GROUP to the conversation}
 PREFIX=h2h${FLAG:+-android}
 E=.cache/evidence
+LAYOUT=${BENCH_LAYOUT:-stacked}
 
 sim() { scripts/sim.sh $FLAG "$@"; }
 js() { sim eval "$1" 2>/dev/null | tail -1; }
@@ -34,8 +35,12 @@ open_fresh() {
   local list=$1
   sim relaunch >/dev/null 2>&1; sleep 8
   js "veraDev.nativeList($([[ $list == native ]] && echo true || echo false))" >/dev/null
+  js "veraDev.preference(\"groupLayout\", \"$LAYOUT\"); veraDev.preference(\"appearance\", \"light\")" >/dev/null
   sim relaunch >/dev/null 2>&1; sleep 8
   sim open "/conversation/$GROUP" >/dev/null; sleep 8
+  if [[ $(js 'veraDev.list()?.kind' | tr -d '"') != $list ]]; then
+    echo "the conversation did not mount the $list list" >&2; return 1
+  fi
 }
 
 scenario_fling() {
@@ -50,16 +55,28 @@ scenario_react() {
   js "veraDev.conversation().react(\"$TARGET\", \"\u{1F44D}\")" >/dev/null; sleep 2.5
 }
 scenario_hold() {
-  ${=BENCH_AD:?set BENCH_AD} longpress ${=BENCH_HOLD:?set BENCH_HOLD} 700 >/dev/null 2>&1; sleep 2
-  ${=BENCH_AD} click ${=BENCH_CLOSE:?set BENCH_CLOSE} >/dev/null 2>&1; sleep 2
+  ${=BENCH_AD:?set BENCH_AD} longpress ${=HOLD_TARGET} 700 >/dev/null 2>&1; sleep 2
+  local close=${BENCH_CLOSE:-}
+  if [[ -z $close ]]; then
+    close=$(${=BENCH_AD} snapshot -i | awk '/^@e[0-9]+ .*"Close"/ { print $1; exit }')
+  fi
+  if [[ -z $close ]]; then echo 'no menu backdrop in the snapshot' >&2; return 1; fi
+  ${=BENCH_AD} click ${=close} >/dev/null 2>&1; sleep 2
 }
 
 for scenario in $SCENARIOS; do
   for list in rn native; do
     open_fresh $list
     if [[ $scenario == react || $scenario == hold ]]; then
-      TARGET="$scenario me ($list) $(date +%H%M%S)"
+      TARGET="$scenario me"
       say maya "$TARGET"; sleep 4
+    fi
+    if [[ $scenario == hold ]]; then
+      HOLD_TARGET=${BENCH_HOLD:-}
+      if [[ -z $HOLD_TARGET ]]; then
+        HOLD_TARGET=$(${=BENCH_AD:?set BENCH_AD} snapshot -i | awk -v target="$TARGET" 'index($0, target) && /^@e[0-9]+ / { print $1; exit }')
+      fi
+      if [[ -z $HOLD_TARGET ]]; then echo 'held message is not visible' >&2; exit 1; fi
     fi
     sim record "$PREFIX-$scenario-$list" >/dev/null; sleep 0.5
     scenario_$scenario
