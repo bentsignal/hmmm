@@ -132,9 +132,9 @@ fun plainText(context: Context): TextView =
   }
 
 /**
- * A message's spans as styled text: links and mentions in the accent color
- * (or the bubble's text color, underlined, on your own), bold, italic,
- * code. Links and mentions carry what a tap on them reports.
+ * Links inherit the row's text color and are underlined. Mentions use the
+ * accent color, or the bubble's onAccent color on your own. Other spans
+ * supply bold, italic, and code. Links and mentions carry their tap targets.
  */
 fun styledText(
   spans: List<Span>,
@@ -155,7 +155,7 @@ fun styledText(
       "italic" -> set(StyleSpan(Typeface.ITALIC))
       "code" -> set(TypefaceSpan("monospace"))
       "link" -> {
-        set(ForegroundColorSpan(if (onAccent) theme.onAccent else theme.accent))
+        if (onAccent) set(ForegroundColorSpan(theme.onAccent))
         set(UnderlineSpan())
         set(TargetSpan(Target("link", rowId, part = part, url = span.url ?: span.text)))
       }
