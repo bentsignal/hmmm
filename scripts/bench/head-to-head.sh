@@ -15,7 +15,9 @@
 # - burst: BENCH_BURST messages from the bots over BENCH_BURST_SECONDS
 #   (dev:burst), at the bottom.
 #
-# Each reports the UI thread's frames (scripts/sim.sh frames), the
+# Each reports the UI thread's frames (scripts/sim.sh frames; on Android
+# the main thread's time per frame instead, android-frames.mjs, since the
+# emulators draw with software GL at about 10 frames a second), the
 # JavaScript thread's stalls over 50 ms (veraDev.stalls), and for the fling
 # how far it got and how long it waited at the oldest message. No test
 # driver touches the screen while it measures.
@@ -38,6 +40,21 @@ RUN=.cache/bench/$(date +%Y%m%d-%H%M%S)-${FLAG:+android-}${WHAT}.jsonl
 mkdir -p .cache/bench
 
 sim() { scripts/sim.sh $FLAG "$@"; }
+ANDROID_SERIAL=$( [[ -n $FLAG ]] && . .cache/sim/android && echo $SERIAL )
+
+# Measures frames for `seconds` while the scenario runs (in the background).
+frames_start() {
+  if [[ -n $FLAG ]]; then
+    node scripts/bench/android-frames.mjs $ANDROID_SERIAL chat.vera.app.dev $1 > .cache/bench/frames.json &
+    FRAMES_PID=$!
+  else
+    sim frames start >/dev/null
+  fi
+}
+frames_stop() {
+  if [[ -n $FLAG ]]; then wait $FRAMES_PID; cat .cache/bench/frames.json
+  else sim frames stop | grep -m1 '^{'; fi
+}
 js() { sim eval "$1" 2>/dev/null | tail -1; }
 
 open_fresh() {
@@ -59,10 +76,10 @@ fling() {
   local list=$1
   open_fresh $list || return
   js 'globalThis.veraFling = undefined; veraDev.stalls.start()' >/dev/null
-  sim frames start >/dev/null
+  frames_start $(( MS / 1000 + 1 ))
   js "void veraDev.list().fling($SPEED, $MS).then((result) => { globalThis.veraFling = result; })" >/dev/null
   sleep $(( MS / 1000 + 2 ))
-  local frames=$(sim frames stop | grep -m1 '^{')
+  local frames=$(frames_stop)
   local stalls=$(js 'JSON.stringify(veraDev.stalls.stop())' | sed 's/^"//; s/"$//; s/\\"/"/g')
   local result=$(js 'JSON.stringify(globalThis.veraFling ?? null)' | sed 's/^"//; s/"$//; s/\\"/"/g')
   record $list fling "${frames:-null}" "${stalls:-null}" "${result:-null}"
@@ -72,10 +89,10 @@ burst() {
   local list=$1
   open_fresh $list || return
   js 'veraDev.stalls.start()' >/dev/null
-  sim frames start >/dev/null
+  frames_start $(( BURST_SECONDS + 3 ))
   (cd services/backend && npx convex run dev:burst "{\"conversationId\":\"$GROUP\",\"count\":$BURST,\"seconds\":$BURST_SECONDS,\"label\":\"Burst\"}" >/dev/null 2>&1)
   sleep $(( BURST_SECONDS + 3 ))
-  local frames=$(sim frames stop | grep -m1 '^{')
+  local frames=$(frames_stop)
   local stalls=$(js 'JSON.stringify(veraDev.stalls.stop())' | sed 's/^"//; s/"$//; s/\\"/"/g')
   record $list burst "${frames:-null}" "${stalls:-null}"
 }
