@@ -10,6 +10,7 @@ import { useRouter } from "expo-router";
 import type { ViewerItem } from "./media-group";
 import type { Pager } from "./photo-viewer-state";
 import { PlayBadge } from "./attachment-view";
+import { pagesAround } from "./photo-pager";
 import { PhotoViewer } from "./photo-viewer";
 import { ViewerCloseButton } from "./viewer-close-button";
 
@@ -95,6 +96,7 @@ function Page({
         size={sizeOf(item)}
         onClose={onClose}
         pager={pager}
+        current={current}
         chrome={
           current
             ? (close) => (
@@ -133,14 +135,18 @@ export function MediaGroupViewer({
   const first = Math.min(Math.max(0, start), items.length - 1);
   const [index, setIndex] = useState(first);
   const position = useSharedValue(first);
-  const pager = { count: items.length, onSettle: setIndex, position };
-  // The shown page and its neighbors, so a swipe has the next one ready.
-  const pages = [index - 1, index, index + 1].filter(
-    (page) => page >= 0 && page < items.length,
-  );
+  const backdrop = useSharedValue(1);
+  const pager = { backdrop, count: items.length, onTurn: setIndex, position };
+  const backdropStyle = useAnimatedStyle(() => ({ opacity: backdrop.get() }));
   return (
     <View style={StyleSheet.absoluteFill}>
-      {pages.map((page) => {
+      {/* Still while the pages slide over it, so nothing shows between or
+          past them; the shown page fades it as it's swiped away. */}
+      <Animated.View
+        className="bg-black"
+        style={[StyleSheet.absoluteFill, backdropStyle]}
+      />
+      {pagesAround(index, items.length).map((page) => {
         const item = items[page];
         return (
           item !== undefined && (

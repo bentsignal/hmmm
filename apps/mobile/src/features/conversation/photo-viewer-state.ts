@@ -16,6 +16,7 @@ import {
 import { scheduleOnRN } from "react-native-worklets";
 
 import type { Point, Sample, Size, Transform } from "./photo-transform";
+import { pagePosition, pageTarget } from "./photo-pager";
 import {
   dismissProgress,
   doubleTapTransform,
@@ -109,22 +110,22 @@ export interface Viewer {
 
 /**
  * A group of photos the viewer swipes through sideways: `position` is the
- * page shown, fractional mid-swipe, and `onSettle` hears the page it
- * settles on.
+ * page shown, fractional mid-swipe, and `onTurn` hears the page a swipe
+ * goes to as it's let go. The group draws one backdrop behind every page
+ * (`backdrop`, its opacity), which the shown page fades as it's swiped
+ * away: each page drawing its own moved it with the page, so the
+ * conversation showed past the first and last pages and between them.
  */
 export interface Pager {
   position: SharedValue<number>;
   count: number;
-  onSettle: (index: number) => void;
+  onTurn: (index: number) => void;
+  backdrop: SharedValue<number>;
 }
 
-/** How far a swipe goes past the first or last page, as a fraction. */
-const PAGE_BAND = 0.25;
-/** A sideways flick this fast (points a second) turns the page. */
-const PAGE_FLICK = 500;
 const PAGE_SPRING = { dampingRatio: 1, duration: 380 } as const;
 
-/** Moves the pager with a sideways drag `dx` from where it began. */
+/** Moves the pager with a sideways drag `dx` (window points) from where it began. */
 export function dragPage(
   pager: Pager,
   from: number,
@@ -132,37 +133,29 @@ export function dragPage(
   width: number,
 ) {
   "worklet";
-  const raw = from - dx / Math.max(width, 1);
-  const last = pager.count - 1;
-  const over = raw < 0 ? raw : raw > last ? raw - last : 0;
-  pager.position.set(
-    raw - over + Math.sign(over) * Math.min(Math.abs(over), PAGE_BAND),
-  );
+  pager.position.set(pagePosition(from, dx, width, pager.count));
+}
+
+/**
+ * Stops the pager where it is, for a sideways drag that starts while the
+ * last one's spring is still running, and says where that is.
+ */
+export function catchPage(pager: Pager) {
+  "worklet";
+  cancelAnimation(pager.position);
+  return pager.position.get();
 }
 
 /** Lets go of a sideways drag: on to the next page, or back. */
 export function releasePage(
   pager: Pager,
-  {
-    from,
-    dx,
-    speedX,
-    width,
-  }: { from: number; dx: number; speedX: number; width: number },
+  swipe: { from: number; dx: number; speedX: number; width: number },
 ) {
   "worklet";
-  const toward =
-    Math.abs(speedX) > PAGE_FLICK
-      ? -Math.sign(speedX)
-      : Math.abs(dx) > width / 3
-        ? -Math.sign(dx)
-        : 0;
-  const target = Math.min(pager.count - 1, Math.max(0, from + toward));
-  pager.position.set(
-    withSpring(target, PAGE_SPRING, (finished) => {
-      if (finished === true) scheduleOnRN(pager.onSettle, target);
-    }),
-  );
+  const target = pageTarget({ ...swipe, count: pager.count });
+  // Now, not once it lands, so the page after it mounts during the spring.
+  scheduleOnRN(pager.onTurn, target);
+  pager.position.set(withSpring(target, PAGE_SPRING));
 }
 
 export function useViewer(size: Size | undefined) {

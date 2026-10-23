@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import Animated, {
+  useAnimatedReaction,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 import { Image } from "expo-image";
 
 import type { Size } from "./photo-transform";
@@ -29,6 +32,7 @@ export function PhotoViewer({
   onClose,
   chrome,
   pager,
+  current = true,
 }: {
   url: string;
   /** The photo's pixel size, when the message knows it. */
@@ -39,8 +43,13 @@ export function PhotoViewer({
    * fades the viewer out, then calls `onClose`.
    */
   chrome?: (close: () => void) => ReactNode;
-  /** One of a group, swiped through sideways (see `MediaGroupViewer`). */
+  /**
+   * One of a group, swiped through sideways (see `MediaGroupViewer`), over
+   * the group's backdrop rather than its own.
+   */
   pager?: Pager;
+  /** In a group, the page shown, which fades the group's backdrop. */
+  current?: boolean;
 }) {
   const viewer = useViewer(size);
   const gesture = Gesture.Simultaneous(
@@ -55,6 +64,13 @@ export function PhotoViewer({
   // Each style captures `viewer` itself: Reanimated updates a style for the
   // shared values its own function captures, not ones a helper reaches.
   const backdropStyle = useAnimatedStyle(() => ({ opacity: fadeOf(viewer) }));
+  useAnimatedReaction(
+    () => fadeOf(viewer),
+    (fade) => {
+      if (current) pager?.backdrop.set(fade);
+    },
+    [current],
+  );
   const chromeStyle = useAnimatedStyle(() => ({ opacity: fadeOf(viewer) }));
   const photoStyle = useAnimatedStyle(() => {
     // The swipe to close draws on top of the zoom.
@@ -75,10 +91,12 @@ export function PhotoViewer({
 
   return (
     <>
-      <Animated.View
-        className="bg-black"
-        style={[StyleSheet.absoluteFill, backdropStyle]}
-      />
+      {pager === undefined && (
+        <Animated.View
+          className="bg-black"
+          style={[StyleSheet.absoluteFill, backdropStyle]}
+        />
+      )}
       {/* Touches land on a frame that doesn't move, so their positions are
           in screen terms however the photo is zoomed. */}
       <GestureDetector gesture={gesture}>

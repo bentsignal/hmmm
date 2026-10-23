@@ -24,6 +24,7 @@ import {
   velocity,
 } from "./photo-transform";
 import {
+  catchPage,
   dragPage,
   IDLE,
   release,
@@ -37,8 +38,19 @@ import {
 /** How far a finger moves before a touch counts as a drag. */
 const SLOP = 6;
 
-/** The touches still down, from the center of the frame. */
-function fingers(viewer: Viewer, event: GestureTouchEvent, lifting: boolean) {
+/**
+ * The touches still down, from the center of the frame. In a group, the
+ * frame slides with its page, so a sideways swipe tracks them in the
+ * window instead (`window`): in the frame's terms, the page's own
+ * movement fed back in, and it followed the finger at half speed and
+ * wobbled.
+ */
+function fingers(
+  viewer: Viewer,
+  event: GestureTouchEvent,
+  lifting: boolean,
+  window = false,
+) {
   "worklet";
   const frame = viewer.frame.get();
   // A lift's event still lists the lifted touches among all of them.
@@ -48,8 +60,8 @@ function fingers(viewer: Viewer, event: GestureTouchEvent, lifting: boolean) {
   return event.allTouches
     .filter((touch) => !lifted.has(touch.id))
     .map((touch) => ({
-      x: touch.x - frame.width / 2,
-      y: touch.y - frame.height / 2,
+      x: (window ? touch.absoluteX : touch.x) - frame.width / 2,
+      y: (window ? touch.absoluteY : touch.y) - frame.height / 2,
     }));
 }
 
@@ -127,9 +139,15 @@ function onTouchesDown(
 
 /**
  * Starts a sideways swipe through a group (`pager`) when one finger has
- * moved more across than down; true if it did.
+ * moved more across than down; true if it did. From here it's tracked in
+ * the window (`inWindow`, see `fingers`).
  */
-function startsPage(viewer: Viewer, points: Point[], pager?: Pager) {
+function startsPage(
+  viewer: Viewer,
+  points: Point[],
+  inWindow: Point[],
+  pager?: Pager,
+) {
   "worklet";
   const track = viewer.track.get();
   const focal = centroid(points);
@@ -138,15 +156,13 @@ function startsPage(viewer: Viewer, points: Point[], pager?: Pager) {
   if (pager === undefined || points.length !== 1 || across <= down) {
     return false;
   }
-  rebase(viewer, "page", points);
-  viewer.track.set({
-    ...viewer.track.get(),
-    pageFrom: Math.round(pager.position.get()),
-  });
+  rebase(viewer, "page", inWindow);
+  // Caught mid-spring, it carries on from where it's drawn.
+  viewer.track.set({ ...viewer.track.get(), pageFrom: catchPage(pager) });
   return true;
 }
 
-/** Moves a sideways swipe through a group with the finger. */
+/** Moves a sideways swipe through a group with the finger, in the window. */
 function movePage(viewer: Viewer, focal: Point, pager?: Pager) {
   "worklet";
   const track = viewer.track.get();
@@ -180,14 +196,19 @@ function endPage(viewer: Viewer, pager?: Pager) {
  * photo away (or sideways, to the next one of a group); zoomed in, it
  * moves the photo.
  */
-function startDrag(viewer: Viewer, points: Point[], pager?: Pager) {
+function startDrag(
+  viewer: Viewer,
+  points: Point[],
+  inWindow: Point[],
+  pager?: Pager,
+) {
   "worklet";
   const track = viewer.track.get();
   const focal = centroid(points);
   const moved = Math.hypot(focal.x - track.origin.x, focal.y - track.origin.y);
   if (moved < SLOP) return;
   const dismissing = viewer.scale.get() <= MIN_SCALE + 0.01;
-  if (dismissing && startsPage(viewer, points, pager)) return;
+  if (dismissing && startsPage(viewer, points, inWindow, pager)) return;
   if (dismissing) {
     viewer.anchor.set(track.origin);
     viewer.track.set({ ...track, raw: { scale: 1, x: 0, y: 0 } });
@@ -207,13 +228,13 @@ function onTouchesMove(
   if (points.length === 0 || track.mode === "idle") return;
   const focal = centroid(points);
   if (track.mode === "pending") {
-    startDrag(viewer, points, pager);
+    startDrag(viewer, points, fingers(viewer, event, false, true), pager);
     return;
   }
   const now = Date.now();
   const frame = viewer.frame.get();
   if (track.mode === "page") {
-    movePage(viewer, focal, pager);
+    movePage(viewer, centroid(fingers(viewer, event, false, true)), pager);
     return;
   }
   if (track.mode === "dismiss") {
