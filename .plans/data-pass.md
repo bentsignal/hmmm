@@ -396,3 +396,44 @@ A conversation or thread opening is one round trip to the PDS plus
 drawing, the same before and after: what changed is what they cost the
 server and the phone afterwards, not their first answer. (One before run
 of a thread took 2,129 ms and didn't repeat.)
+
+### 8. Included queries on the first answer only (A)
+
+A query's first answer is the one-shot fetch TanStack already makes
+(`queryFn`); it comes with what the result includes, as before, so a page
+arrives with its reactions, thread summaries and profiles. The live
+subscription now asks the PDS with `include: false` (a new optional
+argument on `pds:dispatchQuery`): the PDS neither answers the includes nor
+works out which they'd be (a page's include list is now a function,
+`IncludedQueries`), so nothing a query includes reruns it or is resent
+with it. Each included query is followed by its own small subscription,
+as it already was. A subscription answer that arrives before the one-shot
+waits for it, so a page never shows without its reactions. Every page,
+not just the ones a conversation opens with, now waits for its reactions
+and threads before showing; they come in the same answer, so it costs no
+time. Apps already installed don't send the flag and keep today's
+behavior.
+
+The live page holds 10 messages (it was 20 in #272); measured below.
+
+Headless phone, busy group, a page of 50 open with its reactions,
+summaries, conversation and profiles; one reaction to a message on it:
+
+|                   |                        Before |                   After |
+| ----------------- | ----------------------------: | ----------------------: |
+| Server runs       | page, reactions, conversation | reactions, conversation |
+| Documents read    |                           114 |                      31 |
+| Sent to the phone |                         23 KB |                  1.1 KB |
+
+60 messages over 30 s into an open conversation, following the newest
+page as the app does:
+
+| Live page                | Documents (page runs) | Sent to the phone |
+| ------------------------ | --------------------: | ----------------: |
+| 20, with includes (#272) |                 2,160 |            321 KB |
+| 20, without              |                 1,117 |            216 KB |
+| 10, without              |                   873 |            134 KB |
+
+Pages of 10 take a few more calls (66 against 61 here, one first answer
+per page). A window reopened more than 10 messages behind opens afresh at
+the latest, as a cold open would.
