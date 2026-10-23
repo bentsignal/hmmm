@@ -74,29 +74,33 @@ export function holdTypists(
     newestKey === hold.newestKey
       ? new Set<string>()
       : arrivedSince(recent, hold.newestKey);
+  const typing = new Set(typists);
+  const shown = new Set(hold.shown);
   const stopped = hold.shown.filter(
-    (address) => !typists.includes(address) && !arrived.has(address),
+    (address) => !typing.has(address) && !arrived.has(address),
   );
+  const waiting = new Set(stopped);
   return {
     leaving: stopped,
     newestKey,
     shown: [
       ...hold.shown.filter(
-        (address) => typists.includes(address) || stopped.includes(address),
+        (address) => typing.has(address) || waiting.has(address),
       ),
-      ...typists.filter((address) => !hold.shown.includes(address)),
+      ...typists.filter((address) => !shown.has(address)),
     ],
   } satisfies TypingHold;
 }
 
 /** Lets `expired` go if they've still sent nothing and aren't typing. */
 export function dropLeaving(hold: TypingHold, expired: readonly string[]) {
-  const gone = hold.leaving.filter((address) => expired.includes(address));
-  if (gone.length === 0) return hold;
+  const due = new Set(expired);
+  const gone = new Set(hold.leaving.filter((address) => due.has(address)));
+  if (gone.size === 0) return hold;
   return {
     ...hold,
-    leaving: hold.leaving.filter((address) => !gone.includes(address)),
-    shown: hold.shown.filter((address) => !gone.includes(address)),
+    leaving: hold.leaving.filter((address) => !gone.has(address)),
+    shown: hold.shown.filter((address) => !gone.has(address)),
   } satisfies TypingHold;
 }
 
@@ -118,10 +122,11 @@ export function timerChanges(
   running: Iterable<string>,
   leaving: readonly string[],
 ) {
-  const started = [...running];
+  const started = new Set(running);
+  const now = new Set(leaving);
   return {
-    start: leaving.filter((address) => !started.includes(address)),
-    stop: started.filter((address) => !leaving.includes(address)),
+    start: leaving.filter((address) => !started.has(address)),
+    stop: [...started].filter((address) => !now.has(address)),
   };
 }
 

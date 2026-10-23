@@ -808,7 +808,15 @@ them on his phones.
   along with one of two typists sending and more arrivals than the 20
   rows. `devMixed.ts` also uses `.at()` with checks, since the
   regenerated `api.d.ts` now type-checks it under the app's stricter
-  settings.
+  settings. CI's React Doctor on the pushed `770858fe` then failed with 9
+  `js-set-map-lookups` findings in `typing-hold.ts` (array `includes`
+  inside filters). The local run had passed only because the file was
+  still untracked; it scanned 66 files, against 85 once everything was
+  tracked. The lookups are now Sets, with the same results and order.
+  Reproduced and rechecked locally on the 85-file scan, then the ordered
+  root checks again: lint, typecheck, test (mobile 194, backend 41, jest
+  3 suites and 7 tests) and React Doctor (no issues), all exit 0, then
+  `format:fix`.
 - Pending: the orchestrator's isolated backend push and
   `devMixed:seed`; the combined simulator builds; after evidence; the
   iOS chip material measurement (fill stays the default); Vera Dev on
