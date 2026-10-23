@@ -133,6 +133,8 @@ data class TypingRow(
   val stacked: Boolean,
   val people: List<Person>,
   val label: String,
+  /** Their photos beside it: groups and spaces, not one-on-one. Missing in older JavaScript: shown. */
+  val showFaces: Boolean = true,
 ) : Row()
 
 /** A custom row, or a kind this binary doesn't know: its `fallbackText`. */

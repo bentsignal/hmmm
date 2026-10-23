@@ -189,6 +189,7 @@ fun decodeRow(map: ReadableMap): Row? {
           stacked = map.str("layout") == "stacked",
           people = people(map.array("people")),
           label = map.str("label") ?: "",
+          showFaces = map.boolOr("showFaces", true),
         )
       else -> FallbackRow(id, fallback)
     }

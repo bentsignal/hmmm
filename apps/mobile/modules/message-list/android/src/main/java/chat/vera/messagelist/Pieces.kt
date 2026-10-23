@@ -372,6 +372,17 @@ class TapbacksView(context: Context, private val units: Units) : View(context) {
     return units.px(SIZE + (count - 1) * STACK_OFFSET)
   }
 
+  /**
+   * Whether (x, y), in this view, is on a tapback. The view is as wide as
+   * three fanned out, so with fewer, the rest of it is over the bubble and
+   * a tap or hold there is on the bubble.
+   */
+  fun hasTapbackAt(x: Float, y: Float): Boolean {
+    if (shownCount == 0 || y < 0 || y > height) return false
+    val reach = contentWidth()
+    return if (incoming) x >= width - reach else x <= reach
+  }
+
   override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
     setMeasuredDimension(units.px(SIZE + (MAX_SHOWN - 1) * STACK_OFFSET), units.px(SIZE))
   }

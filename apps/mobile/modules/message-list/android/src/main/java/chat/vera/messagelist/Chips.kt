@@ -10,7 +10,8 @@ import android.view.ViewGroup
 
 /**
  * One reaction under a stacked message: a small pill with the emoji and
- * its count, tinted when it includes yours. Tapping toggles it.
+ * its count, tinted when it includes yours. Tapping toggles it; holding
+ * it reports a hold on its reaction.
  */
 class ChipView(context: Context, private val units: Units) : View(context) {
   var reaction: Reaction? = null
@@ -25,13 +26,16 @@ class ChipView(context: Context, private val units: Units) : View(context) {
     importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
   }
 
-  fun bind(reaction: Reaction, theme: Theme, rowId: String, part: String?) {
+  fun bind(reaction: Reaction, theme: Theme, rowId: String, part: String?, index: Int? = null) {
     val resize = reaction.count != this.reaction?.count || reaction.shown != this.reaction?.shown
     this.reaction = reaction
     this.theme = theme
     emoji.textSize = units.sp(13f)
     count.textSize = units.sp(theme.footnote.size)
-    pressTarget = Target("reaction", rowId, part = part, reactionKey = reaction.key)
+    pressTarget = Target("reaction", rowId, part = part, index = index, reactionKey = reaction.key)
+    // The part it belongs to (the photo, for an item's chip), so a hold
+    // reports that part's frame, with the reaction said separately.
+    holdTarget = HoldTarget(rowId, part, index, reactionKey = reaction.key)
     if (resize) requestLayout()
     invalidate()
   }
@@ -78,7 +82,7 @@ class ChipsView(context: Context, private val units: Units) : ViewGroup(context)
   val isEmpty: Boolean
     get() = chips.isEmpty()
 
-  fun bind(reactions: List<Reaction>, theme: Theme, rowId: String, part: String?, animate: Boolean) {
+  fun bind(reactions: List<Reaction>, theme: Theme, rowId: String, part: String?, animate: Boolean, index: Int? = null) {
     val keys = reactions.map { it.key }.toSet()
     // Taken back: out of the row, shrinking away where it was.
     val gone = chips.keys.filter { it !in keys }
@@ -115,7 +119,7 @@ class ChipsView(context: Context, private val units: Units) : ViewGroup(context)
         chips[reaction.key] = chip
         addView(chip, order)
       }
-      chip.bind(reaction, theme, rowId, part)
+      chip.bind(reaction, theme, rowId, part, index)
       if (added && animate) popIn(chip)
       order++
     }

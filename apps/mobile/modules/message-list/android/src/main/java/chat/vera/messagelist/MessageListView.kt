@@ -315,7 +315,7 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
     val message = next.firstOrNull() as? MessageRow ?: return null
     if (message.id !in arrivals || message.isOwn || message.stacked) return null
     if (typing.people.none { it.id == message.author.id }) return null
-    if (message.blocks.lastOrNull() !is TextBlock) return null
+    if (!morphs(message)) return null
     return message.id
   }
 
@@ -580,29 +580,58 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
 
   private fun press(target: Target) = send(target.event())
 
-  /** A hold (or double tap) on a row: its part's frame in window coordinates, for the menu. */
+  /** A rectangle in `cell`, in window coordinates (points), as events report frames. */
+  private fun windowFrame(cell: MessageCell, rect: android.graphics.Rect): Map<String, Double> {
+    val origin = IntArray(2)
+    cell.getLocationInWindow(origin)
+    return mapOf(
+      "x" to units.dp((origin[0] + rect.left).toFloat()).toDouble(),
+      "y" to units.dp((origin[1] + rect.top).toFloat()).toDouble(),
+      "width" to units.dp(rect.width().toFloat()).toDouble(),
+      "height" to units.dp(rect.height().toFloat()).toDouble(),
+    )
+  }
+
+  /**
+   * A hold (or double tap) on a row: its part's frame in window coordinates,
+   * for the menu. On a reaction it says so (`element`, `reactionKey`) and
+   * still reports the part the reaction belongs to, so JavaScript shows who
+   * reacted, and JavaScript without that opens the menu on the part.
+   */
   private fun hold(holder: RowHolder, hit: Hit?) {
     val row = holder.row as? MessageRow ?: return
     val cell = holder.itemView as? MessageCell ?: return
     val target = hit?.hold ?: HoldTarget(row.id, row.blocks.firstOrNull { it is TextBlock }?.part ?: row.blocks.firstOrNull()?.part)
     val pieces = cell.liftPieces(target.part, target.index)
     val rect = pieces?.frame ?: cell.holdRect(hit?.holdView)
-    heldScale = target to (pieces?.views?.firstOrNull()?.scaleX ?: 1f)
-    val origin = IntArray(2)
-    cell.getLocationInWindow(origin)
-    val frame = mapOf(
-      "x" to units.dp((origin[0] + rect.left).toFloat()).toDouble(),
-      "y" to units.dp((origin[1] + rect.top).toFloat()).toDouble(),
-      "width" to units.dp(rect.width().toFloat()).toDouble(),
-      "height" to units.dp(rect.height().toFloat()).toDouble(),
-    )
+    heldScale = HoldTarget(target.rowId, target.part, target.index) to (pieces?.views?.firstOrNull()?.scaleX ?: 1f)
     val event = HashMap<String, Any>()
     event["type"] = "hold"
     event["rowId"] = target.rowId
     target.part?.let { event["part"] = it }
     target.index?.let { event["index"] = it }
-    event["frame"] = frame
-    cell.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+    target.reactionKey?.let {
+      event["element"] = "reaction"
+      event["reactionKey"] = it
+    }
+    event["frame"] = windowFrame(cell, rect)
+    // A hold on a reaction buzzes in JavaScript (`impact()`); a message hold here.
+    if (target.reactionKey == null) cell.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+    send(event)
+  }
+
+  /**
+   * A tap on a reaction: a tick now, on the touch, and the press with the
+   * frame of the part it belongs to (bubbles show who reacted there).
+   */
+  private fun reactionTapped(holder: RowHolder, hit: Hit, target: Target) {
+    val cell = holder.itemView as? MessageCell
+    (hit.pressView ?: cell)?.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+    val event = HashMap(target.event())
+    if (cell != null) {
+      val rect = cell.liftPieces(target.part, target.index)?.frame ?: cell.holdRect(hit.pressView)
+      event["frame"] = windowFrame(cell, rect)
+    }
     send(event)
   }
 
@@ -788,9 +817,13 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
           }
           val hit = under(e.x, e.y)
           horizontalTaken = hit?.second?.horizontal == true
+          // A touch that stops a moving carousel only stops it.
+          if (hit != null && inMovingScroller(hit.second.pressView ?: hit.second.holdView, hit.first.itemView)) tapping = false
           if (tapping && !second && hit?.first?.row is MessageRow) {
             main.postDelayed(holdRunnable, LONG_PRESS_MS)
-            hit.second.holdView?.let { shrink.begin(it) }
+            // A reaction fires on the tap: it shows the press at once.
+            if (hit.second.press?.type == "reaction") hit.second.pressView?.let { shrink.pressNow(it) }
+            else hit.second.holdView?.let { shrink.begin(it) }
           }
         }
         MotionEvent.ACTION_MOVE -> {
@@ -820,12 +853,20 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
     private fun tapped(e: MotionEvent) {
       val found = under(e.x, e.y) ?: return
       val (holder, hit) = found
+      val target = hit.press
       if (second) {
         second = false
-        if (holder.row is MessageRow) hold(holder, hit)
+        // A second tap on a reaction is another tap on it, never the menu.
+        if (target?.type != "reaction") {
+          if (holder.row is MessageRow) hold(holder, hit)
+          return
+        }
+      }
+      if (target == null) return
+      if (target.type == "reaction") {
+        reactionTapped(holder, hit, target)
         return
       }
-      val target = hit.press ?: return
       if (target.immediate) {
         press(target)
         return
