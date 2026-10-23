@@ -8,38 +8,30 @@ import type {
   Row,
   Theme,
 } from "./contract";
-import { withRuns } from "./fixture-runs";
 
 // Made-up rows for building and checking the native list on its own
 // (`/dev-native-list`), before the app's messages are mapped to it: every
 // row kind and block type, both layouts, in a varied mix like a real
 // group chat (photos, videos, link cards, reactions).
 
-const MAYA = {
-  avatarUrl: null,
-  id: "maya",
-  initials: "MC",
-  name: "Maya Chen",
-} satisfies Person;
-const JONAH = {
-  avatarUrl: null,
-  id: "jonah",
-  initials: "JW",
-  name: "Jonah Weiss",
-} satisfies Person;
-const PRIYA = {
-  avatarUrl: "https://picsum.photos/id/64/200/200",
-  id: "priya",
-  initials: "PN",
-  name: "Priya Natarajan",
-} satisfies Person;
-const ME = {
-  avatarUrl: null,
-  id: "me",
-  initials: "ME",
-  name: "Me",
-} satisfies Person;
-const PEOPLE = [MAYA, JONAH, PRIYA, ME];
+const PEOPLE = [
+  { avatarUrl: null, id: "maya", initials: "MC", name: "Maya Chen" },
+  { avatarUrl: null, id: "jonah", initials: "JW", name: "Jonah Weiss" },
+  {
+    avatarUrl: "https://picsum.photos/id/64/200/200",
+    id: "priya",
+    initials: "PN",
+    name: "Priya Natarajan",
+  },
+  { avatarUrl: null, id: "me", initials: "ME", name: "Me" },
+] satisfies Person[];
+
+const ME = { avatarUrl: null, id: "me", initials: "ME", name: "Me" };
+
+/** Someone from `PEOPLE`, by index. */
+function person(index: number) {
+  return PEOPLE[index] ?? ME;
+}
 
 const LINES = [
   "Is anyone around this weekend?",
@@ -82,7 +74,7 @@ function blocksFor(index: number) {
     case 2:
       return [
         {
-          items: [media(index, 0)],
+          items: [photo(index, 0)],
           part: `attachment:p${index}-0`,
           type: "media",
         },
@@ -92,7 +84,7 @@ function blocksFor(index: number) {
         { spans: [{ text }], type: "text", part: "message" },
         {
           items: [0, 1, 2, 3].map((item) =>
-            media(index, item, 900 + item * 100, 1200),
+            photo(index, item, 900 + item * 100, 1200),
           ),
           type: "media",
         },
@@ -134,7 +126,7 @@ function blocksFor(index: number) {
     case 7:
       return [
         {
-          author: MAYA,
+          author: person(0),
           messageId: "quoted",
           text: "Is anyone around this weekend?",
           type: "quote",
@@ -165,23 +157,6 @@ function blocksFor(index: number) {
   }
 }
 
-/** Who wrote the message `index` back: runs of two or three, like a real chat. */
-function authorAt(index: number) {
-  const run = Math.floor((index + 3) / 3) + Math.floor(index / 7);
-  return PEOPLE[run % PEOPLE.length] ?? ME;
-}
-
-/** A photo, or every third one a video with its length. */
-function media(seed: number, index: number, width = 1200, height = 900) {
-  const item = photo(seed, index, width, height);
-  if ((seed + index) % 3 !== 0) return item;
-  return {
-    ...item,
-    durationSeconds: 7 + ((seed * 13) % 200),
-    kind: "video",
-  } satisfies MediaItem;
-}
-
 /** A message, `index` back from the newest. */
 export function fixtureMessage(
   index: number,
@@ -189,7 +164,7 @@ export function fixtureMessage(
   sentAt: number,
   arrived = false,
 ) {
-  const author = authorAt(index);
+  const author = person(index % 3 === 0 ? 3 : index % 3);
   const blocks = blocksFor(index);
   return {
     accessibilityLabel: `${author.name}: ${LINES[index % LINES.length] ?? ""}`,
@@ -199,7 +174,7 @@ export function fixtureMessage(
     endsGroup: true,
     footer:
       index % 11 === 3
-        ? [{ kind: "replies", people: [JONAH], text: "2 replies" }]
+        ? [{ kind: "replies", people: [person(1)], text: "2 replies" }]
         : index % 13 === 5
           ? [{ kind: "edited", text: "Edited" }]
           : [],
@@ -254,7 +229,7 @@ export function fixtureRows(
       });
     }
   }
-  return withRuns(rows);
+  return rows;
 }
 
 export const FIXTURE_TYPING = {
@@ -262,7 +237,7 @@ export const FIXTURE_TYPING = {
   kind: "typing",
   label: "Maya is typing",
   layout: "bubbles",
-  people: [MAYA],
+  people: [person(0)],
 } satisfies Row;
 
 /** The light theme, as the app's CSS variables have it (global.css). */

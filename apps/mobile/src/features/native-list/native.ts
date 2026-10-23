@@ -1,4 +1,5 @@
 import type { ComponentType, Ref } from "react";
+import type { StyleProp, ViewStyle } from "react-native";
 import { Platform } from "react-native";
 import { requireNativeView, requireOptionalNativeModule } from "expo";
 
@@ -25,14 +26,14 @@ const module = requireOptionalNativeModule<{
 export const nativeSupport =
   Platform.OS === "web" ? null : (module?.support ?? null);
 
+/** The view's props in React: the contract's, a ref, and a style. */
+type ViewProps = MessageListViewProps & {
+  ref?: Ref<MessageListViewMethods>;
+  style?: StyleProp<ViewStyle>;
+};
+
 /** The native list view, once `nativeSupport` says it's there. */
 export const MessageListView =
-  nativeSupport === null
-    ? null
-    : requireNativeView<
-        MessageListViewProps & { ref?: Ref<MessageListViewMethods> }
-      >("MessageList");
+  nativeSupport === null ? null : requireNativeView<ViewProps>("MessageList");
 
-export type MessageListViewComponent = ComponentType<
-  MessageListViewProps & { ref?: Ref<MessageListViewMethods> }
->;
+export type MessageListViewComponent = ComponentType<ViewProps>;

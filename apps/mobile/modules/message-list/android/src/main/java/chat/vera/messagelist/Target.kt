@@ -27,7 +27,8 @@ data class Target(
     val out = HashMap<String, Any>()
     out["type"] = "press"
     out["rowId"] = rowId
-    out["target"] = type
+    // Not `target`: React Native overwrites that on every event with the view's tag.
+    out["element"] = type
     part?.let { out["part"] = it }
     index?.let { out["index"] = it }
     reactionKey?.let { out["reactionKey"] = it }

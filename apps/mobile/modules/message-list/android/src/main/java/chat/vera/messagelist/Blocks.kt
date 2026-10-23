@@ -134,7 +134,7 @@ class LinkCardView(context: Context, private val units: Units, private val image
   fun bind(block: LinkCardBlock, theme: Theme, maxWidth: Int) {
     this.block = block
     cardWidth = minOf(units.px(256f), maxWidth)
-    setBackgroundColor(theme.background)
+    setBackgroundColor(theme.backgroundElevated)
     border.color = theme.separator
     border.strokeWidth = maxOf(1f, units.pxf(0.5f))
     imageHeight = if (block.imageUrl == null) 0 else {
