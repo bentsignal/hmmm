@@ -15,6 +15,7 @@ import { setPreference } from "~/features/preferences/store";
 import { queryClient } from "~/features/session/account-session";
 import { storedAccounts } from "~/features/session/account-store";
 import { devConversation } from "./dev-conversation";
+import { devList, startStalls, stopStalls } from "./dev-list";
 import { devSignInPath } from "./dev-sign-in-path";
 import { frameReport, startFrames, stopFrames } from "./frames";
 
@@ -28,7 +29,7 @@ function isAppPath(path: string): path is Href & string {
  * every `simctl openurl`, which scripts cannot answer.
  */
 export function installDevAutomation() {
-  if (!__DEV__ || !env.devTools) return;
+  if ((!__DEV__ && !env.profileBundle) || !env.devTools) return;
   Object.assign(globalThis, {
     veraDev: {
       open(path: string) {
@@ -48,6 +49,10 @@ export function installDevAutomation() {
       },
       /** The open conversation, to react and send without tapping. */
       conversation: devConversation,
+      /** The open conversation's list, to fling it at a constant speed. */
+      list: devList,
+      /** The JavaScript thread's stalls: `start()`, then `stop()`. */
+      stalls: { start: startStalls, stop: stopStalls },
       /** `scripts/sim.sh frames start` and `stop`: see frames.ts. */
       frames: { report: frameReport, start: startFrames, stop: stopFrames },
       /**

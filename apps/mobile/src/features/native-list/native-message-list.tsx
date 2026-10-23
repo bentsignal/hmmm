@@ -22,6 +22,7 @@ import {
   useLiftedMessageId,
   useMessageActions,
 } from "~/features/conversation/message-actions";
+import { useDevNativeFling } from "./dev-native-fling";
 import { LiftedPreview } from "./lifted-preview";
 import { nativeRows } from "./map-rows";
 import {
@@ -157,6 +158,7 @@ function NativeRows({
   ...shown
 }: RowsProps) {
   const view = useRef<MessageListViewMethods>(null);
+  useDevNativeFling(view);
   const { open } = useMessageActions();
   const { layout, self } = shown;
   const place = usePlace(shown.anchorId === undefined, hasNewer);

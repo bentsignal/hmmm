@@ -34,7 +34,8 @@ metro_running() {
 # keys miss some dependency and config changes, and a stale cache can break
 # startup ("Maximum call stack size exceeded" after a dependency update), so
 # Metro clears it when these change.
-cache_inputs() { cat "$ROOT/pnpm-lock.yaml" "$MOBILE/metro.config.cjs" | cksum | cut -d' ' -f1; }
+# A profile bundle (see start_metro) inlines different env, so it counts.
+cache_inputs() { { cat "$ROOT/pnpm-lock.yaml" "$MOBILE/metro.config.cjs"; echo "profile=${VERA_METRO_PROFILE:-}"; } | cksum | cut -d' ' -f1; }
 
 start_metro() {
   local inputs clear=()
@@ -47,7 +48,15 @@ start_metro() {
   fi
   (
     cd "$MOBILE"
-    nohup npx expo start --dev-client --port "$PORT" ${clear[@]+"${clear[@]}"} </dev/null >"$STATE_DIR/metro.log" 2>&1 &
+    # VERA_METRO_PROFILE=1 serves a production bundle (minified, without
+    # React's development checks) to the dev client, for measuring
+    # performance as a release build would have it.
+    local profile=()
+    if [ "${VERA_METRO_PROFILE:-}" = 1 ]; then
+      profile=(--no-dev --minify)
+      export EXPO_PUBLIC_PROFILE_BUNDLE=1
+    fi
+    nohup npx expo start --dev-client --port "$PORT" ${clear[@]+"${clear[@]}"} ${profile[@]+"${profile[@]}"} </dev/null >"$STATE_DIR/metro.log" 2>&1 &
     echo $! >"$STATE_DIR/metro.pid"
   )
   METRO_PID="$(cat "$STATE_DIR/metro.pid")"
