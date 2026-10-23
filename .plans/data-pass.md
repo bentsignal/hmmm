@@ -128,7 +128,41 @@ conversation without their includes on every rerun (A), the inbox's rows
 apart from its list (B), Activity's shape (C), unread counts (D), and
 pushes (E).
 
-## Proposals (need Shawn's call)
+## Decided with Shawn (2026-10-22)
+
+- **A, yes.** A query's first answer is a one-shot call (not kept as a
+  subscription) that returns everything the first view needs: the page
+  with its reactions, thread summaries and profiles, so nothing shows
+  until the reactions are in. After that the app subscribes only to the
+  small pieces (messages, reactions, thread summaries); a reaction never
+  rebuilds a page, and there's no subscription per message. Smaller
+  pages are fine if they measure better; lean toward speed without
+  wasteful loading. Older apps keep today's behavior. To the person
+  using the app, everything arrives together (messages, reactions, reply
+  counts and thread lines, profiles and photos); only typing may arrive a
+  moment later, animating in as typing does.
+- **B, by the numbers**: Convex's pricing for calls, database I/O and
+  egress, a realistic day of opens and messages, today's one inbox query
+  against a list plus a query per row. Take it if it's a clear gain on
+  cost and speed, leaning toward speed. The math is below.
+- **C, yes, with items kept separate**: five threads with activity in one
+  channel are five items, opened one at a time. Only the repeated
+  conversation details go; nothing merges or groups. Older apps keep
+  working.
+- **D, replaced**: where only a dot shows, don't count; ask whether
+  anything is unread. VoiceOver says "unread" without a number.
+- **Real unread numbers**: badges show the real number, like Mail, into
+  the tens of thousands, not capped at 99. Counting has to be cheap, not
+  capped (for example, a sequence number per conversation, unread being
+  the newest number minus the last one read), minding deleted messages and
+  the reader's own.
+- **The badge rule**: the app icon badge counts every unread message from
+  a person in a direct message, every unread message in a group, and one
+  for each channel with anything unread. Activity items count as now
+  unless that clashes (written up below). Shawn tests it on his phone.
+- **E, skipped**: pushes aren't coalesced or delayed.
+
+## Proposals (as put to Shawn)
 
 ### A. Included queries answered once, not on every rerun
 
@@ -352,11 +386,11 @@ hasn't come from the PDS by then.
 iOS simulator, production bundle, the seeded account (29 conversations),
 cold launches (the app sent to the background first, so it saves), ms:
 
-| Screen | Before (main) | After (this stack) |
-| --- | --- | --- |
-| Inbox, from launch | 1,076 · 1,303 · 1,273 | 228 · 233 · 231 |
-| Busy group, from opening | 828 · 731 · 741 | 791 · 740 · 874 |
-| Thread, from opening | 709 · 861 · 707 · 693 · 687 | 694 · 741 · 711 |
+| Screen                   | Before (main)               | After (this stack) |
+| ------------------------ | --------------------------- | ------------------ |
+| Inbox, from launch       | 1,076 · 1,303 · 1,273       | 228 · 233 · 231    |
+| Busy group, from opening | 828 · 731 · 741             | 791 · 740 · 874    |
+| Thread, from opening     | 709 · 861 · 707 · 693 · 687 | 694 · 741 · 711    |
 
 A conversation or thread opening is one round trip to the PDS plus
 drawing, the same before and after: what changed is what they cost the
