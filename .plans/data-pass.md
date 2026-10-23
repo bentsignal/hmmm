@@ -335,3 +335,30 @@ of 50 resends 25 messages on average, a page of 20 resends 10. A window
 reopened more than one live page behind (20 messages now, 50 before)
 opens afresh at the latest messages, as it does when it's more than a
 page behind today.
+
+### 7. Opening: timings, and the saved Home at once
+
+`veraDev.timings()` (development and profile bundles on a dev PDS) says
+how long the inbox, a conversation, and a thread took to show their
+content: from the bundle starting for the first screen, from
+`veraDev.open` for each after. `VERA_METRO_PROFILE=1 scripts/sim.sh up`
+serves a production bundle to the dev client.
+
+The app now opens on the Home saved on the device at once (it showed only
+after the PDS hadn't answered for 2 seconds); the PDS's answers replace
+it as they arrive. The deadline still says "Can't connect" if the Inbox
+hasn't come from the PDS by then.
+
+iOS simulator, production bundle, the seeded account (29 conversations),
+cold launches (the app sent to the background first, so it saves), ms:
+
+| Screen | Before (main) | After (this stack) |
+| --- | --- | --- |
+| Inbox, from launch | 1,076 · 1,303 · 1,273 | 228 · 233 · 231 |
+| Busy group, from opening | 828 · 731 · 741 | 791 · 740 · 874 |
+| Thread, from opening | 709 · 861 · 707 · 693 · 687 | 694 · 741 · 711 |
+
+A conversation or thread opening is one round trip to the PDS plus
+drawing, the same before and after: what changed is what they cost the
+server and the phone afterwards, not their first answer. (One before run
+of a thread took 2,129 ms and didn't repeat.)
