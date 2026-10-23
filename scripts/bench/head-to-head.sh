@@ -16,8 +16,8 @@
 #   (dev:burst), at the bottom.
 #
 # Each reports the UI thread's frames (scripts/sim.sh frames; on Android
-# the main thread's time per frame instead, android-frames.mjs, since the
-# emulators draw with software GL at about 10 frames a second), the
+# the main thread's time per frame separately, android-frames.mjs, since
+# software GL and host load also affect callback intervals), the
 # JavaScript thread's stalls over 50 ms (veraDev.stalls), and for the fling
 # how far it got and how long it waited at the oldest message. No test
 # driver touches the screen while it measures.

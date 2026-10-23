@@ -9,9 +9,8 @@
 // how many frames, the main thread's time per frame (HandleInputStart to
 // SyncQueued: input, animation, layout and recording the frame) at the
 // 50th, 90th and 99th percentiles, the worst, and how many took over 16.7
-// ms. Emulators here draw with software GL at about 10 frames a second
-// whatever the app does, so the time between frames says nothing about
-// the app; the main thread's work does.
+// ms. Software GL and host load also affect the emulator's frame intervals,
+// so report this app work separately from end-to-end callback cadence.
 import { execFileSync } from "node:child_process";
 
 const [serial, pkg, seconds] = process.argv.slice(2);
