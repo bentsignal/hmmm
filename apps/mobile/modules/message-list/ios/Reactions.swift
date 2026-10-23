@@ -87,14 +87,21 @@ final class TapbackView: UIView, ReactionView {
 /// so `sheen` draws those as a stretchable image made once per look: no
 /// backdrop and no offscreen pass, so structurally it's drawn like a
 /// fill. Its actual cost hasn't been measured. `glass` is the
-/// system's live glass (iOS 26, a blur before), `fill` the flat color the
-/// list has drawn so far, which stays the default until the three are
-/// measured against each other. To compare them, set the app's
-/// `VeraChipMaterial` default to `glass`, `fill`, or `sheen` before launch.
+/// system's live glass (iOS 26, a blur before), `fill` a flat color. The
+/// app's `VeraChipMaterial` default picks one at launch, for comparisons.
 enum ChipMaterial: String {
   case sheen, glass, fill
 
-  static let current = UserDefaults.standard.string(forKey: "VeraChipMaterial").flatMap(ChipMaterial.init) ?? .fill
+  static let current = UserDefaults.standard.string(forKey: "VeraChipMaterial").flatMap(ChipMaterial.init) ?? standard
+
+  /// Glass where it was measured: on iOS 26 and later its slow frames
+  /// stayed within the noise of fill's, flinging the busy stacked chat in
+  /// the simulator (six interleaved runs, 2026-10-23). Before iOS 26,
+  /// glass falls back to a blur that wasn't measured, so it's fill there.
+  static var standard: ChipMaterial {
+    if #available(iOS 26.0, *) { return .glass }
+    return .fill
+  }
 }
 
 final class ChipView: UIView, ReactionView {

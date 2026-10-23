@@ -69,13 +69,11 @@ covers only `apps/mobile/modules/message-list/ios/`.
   the one before. The thrown card goes out with the finger and tucks in
   behind on that side. Each card cross-fades to a pre-blurred copy with
   depth. Android draws the same pile.
-- Stacked chips can be drawn three ways. `fill` is the default and the
-  control until they're measured. `sheen` is a stretchable image with
-  glass's tint, rim and shadow. It samples no backdrop and needs no
-  offscreen pass, but its cost hasn't been measured. `glass` is
-  `UIGlassEffect`.
-  The app's `VeraChipMaterial` default picks one at launch, for the
-  comparison.
+- Stacked chips can be drawn three ways: `glass` (`UIGlassEffect`),
+  `sheen` (a stretchable image with glass's tint, rim and shadow, with no
+  backdrop, its cost unmeasured) and `fill` (a flat color). The app's
+  `VeraChipMaterial` default picks one at launch. Without it, it's glass
+  on iOS 26 and later and fill before (see "Chip material" below).
 
 ## Carousel lift (follow-up)
 
@@ -93,6 +91,32 @@ have, an index no media has, or a carousel lift that can't name a card
 lifts nothing (`MessageLayout.liftedPart`, `CarouselLayout.liftedItem`).
 `Tests/run.sh` checks the lookups and the card's frame, alone and
 composed (118 checks).
+
+## Chip material
+
+Shawn prefers the React Native list's glass chips. Before deciding, I
+declared a rule: glass becomes the default if, flinging the same chat,
+its slow frames stay within the noise between each material's own two
+runs of fill's. Integration ran fill, sheen, glass, sheen, glass and fill
+on one binary (308a03ae). The runs were in the simulator at 60 Hz,
+stacked, light, the busy group, `benchFling` at 5500 pt/s for 8 s. LLDB
+checked each run's setting.
+
+| Material | Slow frames, two runs | Over 33 ms |
+| --- | --- | --- |
+| fill | 14 and 7 | 9 and 6 |
+| sheen | 6 and 9 | 5 and 7 |
+| glass | 5 and 8 | 5 and 5 |
+
+The worst frame in every run was 41.5 to 43.7 ms. The first fill run was
+the cold one: it loaded fewer rows (700, not 750) and waited 183 ms at the
+oldest row, so it doesn't decide anything. Glass stayed within the noise
+of the warm fill run, so it's the default on iOS 26 and later. That shows
+only that the simulator can't tell glass and fill apart. It doesn't show
+glass is faster, free of slow frames, or anything about a 120 Hz iPhone,
+the dark theme, or Android. Before iOS 26 glass would be an unmeasured
+blur, so it's fill there. Shawn's phone is the real check.
+The PR description has every run's numbers.
 
 ## Checks
 
