@@ -52,6 +52,10 @@ class MessageListModule : Module() {
         view.benchFling(speed, ms, promise)
       }.runOnQueue(Queues.MAIN)
 
+      AsyncFunction("landLift") { view: MessageListView, promise: Promise ->
+        view.landLift(promise)
+      }.runOnQueue(Queues.MAIN)
+
       AsyncFunction("scrollToRow") { view: MessageListView, rowId: String, animated: Boolean? ->
         view.scrollToRow(rowId, animated != false)
       }.runOnQueue(Queues.MAIN)

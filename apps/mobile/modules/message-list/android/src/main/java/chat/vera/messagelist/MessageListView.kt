@@ -232,6 +232,11 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
     }
   }
 
+  fun landLift(promise: expo.modules.kotlin.Promise) {
+    lift = null
+    lifter.land { promise.resolve(null) }
+  }
+
   /** Applies the props that changed together, once they're all in. */
   fun commit() {
     if (!rowsChanged) return

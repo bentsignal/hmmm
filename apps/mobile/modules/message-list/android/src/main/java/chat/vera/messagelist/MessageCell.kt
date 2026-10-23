@@ -142,6 +142,8 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
 
   val rowId: String?
     get() = row?.id
+  val landingBackground: Int
+    get() = env.theme.background
 
   // MARK: Binding
 

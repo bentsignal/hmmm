@@ -106,7 +106,12 @@ export default function DevNativeList() {
       {dev.held && (
         <DevMenu
           hold={dev.held}
-          onClosing={dev.menuClosing}
+          onClosing={() => {
+            dev.menuClosing();
+            return nativeSupport?.features?.includes("liftHandoff")
+              ? list.current?.landLift?.()
+              : undefined;
+          }}
           onClosed={dev.menuClosed}
         />
       )}

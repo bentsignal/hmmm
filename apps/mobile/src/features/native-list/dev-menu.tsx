@@ -43,7 +43,7 @@ export function DevMenu({
   onClosed,
 }: {
   hold: DevHold;
-  onClosing: () => void;
+  onClosing: () => void | Promise<void>;
   onClosed: () => void;
 }) {
   const screen = useWindowDimensions();
@@ -57,13 +57,16 @@ export function DevMenu({
     },
   );
   function close() {
-    onClosing();
+    const landing = onClosing();
+    function closed() {
+      void Promise.resolve(landing).then(onClosed);
+    }
     progress.set(
       withTiming(
         0,
         { duration: 240, easing: Easing.out(Easing.cubic) },
         (finished) => {
-          if (finished === true) scheduleOnRN(onClosed);
+          if (finished === true) scheduleOnRN(closed);
         },
       ),
     );

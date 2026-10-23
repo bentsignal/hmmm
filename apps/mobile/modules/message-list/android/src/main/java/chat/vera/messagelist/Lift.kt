@@ -4,6 +4,8 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.graphics.Rect
+import android.graphics.Canvas
+import android.os.Build
 import android.graphics.drawable.GradientDrawable
 import android.view.Choreographer
 import android.view.View
@@ -40,6 +42,9 @@ class Lifter(private val units: Units, private val activityRoot: () -> ViewGroup
   private var animation: ValueAnimator? = null
   private var frame: Choreographer.FrameCallback? = null
   private var restore: Pair<ViewGroup, ViewTreeObserver.OnPreDrawListener>? = null
+  private var handedBack = false
+  private var closing = false
+  private val completions = mutableListOf<() -> Unit>()
 
   fun lift(request: LiftRequest, holder: RowHolder, pressedScale: Float? = null) {
     if (lifted?.request == request) return
@@ -144,8 +149,11 @@ class Lifter(private val units: Units, private val activityRoot: () -> ViewGroup
     Choreographer.getInstance().postFrameCallback(callback)
   }
 
-  fun land() {
-    val current = lifted ?: return
+  fun land(onComplete: (() -> Unit)? = null) {
+    onComplete?.let { completions.add(it) }
+    val current = lifted ?: run { finish(); return }
+    if (closing) return
+    closing = true
     val view = current.container
     val fromScale = view.scaleX
     val fromY = view.translationY
@@ -169,7 +177,63 @@ class Lifter(private val units: Units, private val activityRoot: () -> ViewGroup
   private fun restoreOnDraw() {
     val root = activityRoot()
     if (root == null || !root.isAttachedToWindow) { finish(); return }
-    val listener = ViewTreeObserver.OnPreDrawListener { finish(); true }
+    val current = lifted ?: return
+    val listener = object : ViewTreeObserver.OnPreDrawListener {
+      override fun onPreDraw(): Boolean {
+        root.viewTreeObserver.removeOnPreDrawListener(this)
+        restore = null
+        if (lifted !== current) return true
+        // The two windows submit independent buffers. Keep a landing-only
+        // drawing at the identical resting frame until the source buffer
+        // commits. It draws the same native views, without a bitmap or a
+        // second message view, and never moves independently of them.
+        val frames = current.moved.map { piece -> piece to Rect(piece.view.left, piece.view.top, piece.view.right, piece.view.bottom) }
+        val cover = object : View(current.cell.context) {
+          override fun onDraw(canvas: Canvas) {
+            for ((index, entry) in frames.withIndex()) {
+              val (piece, bounds) = entry
+              val saved = canvas.save()
+              canvas.translate(bounds.left.toFloat(), bounds.top.toFloat())
+              canvas.clipRect(0, 0, bounds.width(), bounds.height())
+              if (index == 0) canvas.drawColor(current.cell.landingBackground)
+              if (piece.view.clipToOutline) {
+                val outline = android.graphics.Outline()
+                piece.view.outlineProvider?.getOutline(piece.view, outline)
+                val rect = Rect()
+                if (outline.getRect(rect)) {
+                  val path = android.graphics.Path()
+                  path.addRoundRect(android.graphics.RectF(rect), outline.radius, outline.radius, android.graphics.Path.Direction.CW)
+                  canvas.clipPath(path)
+                }
+              }
+              val layer = canvas.saveLayerAlpha(0f, 0f, bounds.width().toFloat(), bounds.height().toFloat(), (piece.view.alpha * 255).toInt())
+              piece.view.draw(canvas)
+              canvas.restoreToCount(layer)
+              canvas.restoreToCount(saved)
+            }
+          }
+        }
+        current.container.addView(cover)
+        cover.layout(0, 0, current.container.width, current.container.height)
+        returnPieces(current)
+        handedBack = true
+        val complete = Runnable { if (lifted === current) finish() }
+        if (Build.VERSION.SDK_INT >= 29 && root.isHardwareAccelerated) {
+          root.viewTreeObserver.registerFrameCommitCallback {
+            root.post {
+              if (lifted === current) {
+                root.viewTreeObserver.registerFrameCommitCallback { root.post(complete) }
+                root.invalidate()
+              }
+            }
+          }
+        } else {
+          root.postOnAnimation { root.postOnAnimation(complete) }
+        }
+        root.invalidate()
+        return true
+      }
+    }
     restore = root to listener
     root.viewTreeObserver.addOnPreDrawListener(listener)
     root.postInvalidateOnAnimation()
@@ -185,9 +249,25 @@ class Lifter(private val units: Units, private val activityRoot: () -> ViewGroup
     animation = null
     frame?.let { Choreographer.getInstance().removeFrameCallback(it) }
     frame = null
-    val current = lifted ?: return
+    val current = lifted ?: run { completeLanding(); return }
     lifted = null
-    // Original order, even when multiple views shared a parent.
+    if (!handedBack) returnPieces(current)
+    handedBack = false
+    current.host.overlay.remove(current.container)
+    current.cell.endLift()
+    current.cell.invalidate()
+    current.holder.setIsRecyclable(true)
+    completeLanding()
+  }
+
+  private fun completeLanding() {
+    closing = false
+    val ready = completions.toList()
+    completions.clear()
+    ready.forEach { it() }
+  }
+
+  private fun returnPieces(current: Lifted) {
     for (piece in current.moved.sortedBy { it.index }) {
       current.container.removeView(piece.view)
       piece.home.addView(piece.view, piece.index.coerceAtMost(piece.home.childCount), piece.params)
@@ -196,10 +276,7 @@ class Lifter(private val units: Units, private val activityRoot: () -> ViewGroup
       piece.view.translationY = piece.y
       piece.home.invalidate()
     }
-    current.host.overlay.remove(current.container)
-    current.cell.endLift()
     current.cell.invalidate()
-    current.holder.setIsRecyclable(true)
   }
 
   private fun animate(ms: Long, easing: (Float) -> Float, onEnd: (() -> Unit)? = null, update: (Float) -> Unit) {
