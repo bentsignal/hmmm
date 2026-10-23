@@ -325,6 +325,8 @@ launch() {
     xcrun simctl terminate "$DEVICE" "$BUNDLE_ID" 2>/dev/null || true
     xcrun simctl launch "$DEVICE" "$BUNDLE_ID" --initialUrl "http://127.0.0.1:$PORT" >/dev/null
   else
+    # RN's native inspector can still use the loopback packager address.
+    adb_device reverse "tcp:$PORT" "tcp:$PORT" >/dev/null
     adb_device shell am force-stop "$BUNDLE_ID"
     # The emulator's host alias survives adb transport reconnects, unlike
     # reverse forwarding, which can disappear while the app keeps running.
