@@ -31,7 +31,7 @@ function Empty({ title, detail }: { title: string; detail: string }) {
 export function InboxList() {
   const { conversations, isLoading } = useInbox();
   markShown("inbox", !isLoading);
-  useSavedHome(isLoading);
+  useSavedHome();
   const offline = useHomeOffline();
   const showAccount = useVisibleAccounts().length > 1;
   const show = usePreference("inboxShow");
