@@ -61,8 +61,6 @@ class RowCell: UICollectionViewCell {
 
   func hit(at point: CGPoint, hold: Bool) -> Hit? { nil }
 
-  /// For animating into place: the typing bubble, if this row has one.
-  var typingBubbleFrame: CGRect? { nil }
 
   override func prepareForReuse() {
     super.prepareForReuse()
@@ -370,15 +368,10 @@ final class MessageCell: RowCell {
     body.transform = layout?.slides == true ? CGAffineTransform(translationX: -reveal, y: 0) : .identity
   }
 
-  override var typingBubbleFrame: CGRect? {
-    guard let view = partViews.first as? BubbleView else { return nil }
-    return view.frame
-  }
-
   /// A message from someone typing grows out of their indicator: its first
   /// bubble starts as the typing bubble and opens to its full size.
   func grow(from typing: CGRect, duration: Double) {
-    guard let bubble = partViews.first as? BubbleView, let layout else { return }
+    guard let bubble = partViews.first as? BubbleView else { return }
     let final = bubble.frame
     UIView.performWithoutAnimation {
       bubble.frame = CGRect(x: final.minX, y: final.maxY - typing.height, width: typing.width, height: typing.height)
@@ -390,7 +383,6 @@ final class MessageCell: RowCell {
     UIView.animate(withDuration: 0.22, delay: duration / 3, options: []) {
       bubble.text.alpha = 1
     }
-    _ = layout
   }
 
   // MARK: Taps and holds
@@ -789,5 +781,4 @@ final class TypingCell: RowCell {
     }
   }
 
-  override var typingBubbleFrame: CGRect? { layout?.bubble }
 }
