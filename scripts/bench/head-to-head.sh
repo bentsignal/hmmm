@@ -37,6 +37,9 @@ MS=${BENCH_MS:-10000}
 BURST=${BENCH_BURST:-150}
 BURST_SECONDS=${BENCH_BURST_SECONDS:-15}
 LAYOUT=${BENCH_LAYOUT:-stacked}
+REVISION=$(git rev-parse HEAD)
+TARGET_PLATFORM=ios
+[[ -n $FLAG ]] && TARGET_PLATFORM=android
 RUN=.cache/bench/$(date +%Y%m%d-%H%M%S)-${FLAG:+android-}${WHAT}.jsonl
 mkdir -p .cache/bench
 
@@ -82,7 +85,7 @@ open_fresh() {
 
 record() {
   local list=$1 scenario=$2 frames=$3 stalls=$4 extra=${5:-null}
-  local line="{\"list\":\"$list\",\"layout\":\"$LAYOUT\",\"scenario\":\"$scenario\",\"frames\":$frames,\"stalls\":$stalls,\"fling\":$extra}"
+  local line="{\"revision\":\"$REVISION\",\"platform\":\"$TARGET_PLATFORM\",\"list\":\"$list\",\"layout\":\"$LAYOUT\",\"scenario\":\"$scenario\",\"speed\":$SPEED,\"durationMs\":$MS,\"burstCount\":$BURST,\"burstSeconds\":$BURST_SECONDS,\"frames\":$frames,\"stalls\":$stalls,\"fling\":$extra}"
   echo $line | tee -a $RUN
 }
 
