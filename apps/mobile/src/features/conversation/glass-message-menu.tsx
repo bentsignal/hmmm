@@ -87,8 +87,7 @@ const OPEN_SPRING = { damping: 19, mass: 0.9, stiffness: 230 };
 /** What lifts: the element, or the card around it. */
 function frameOf(target: MenuTarget) {
   const { rect, shape } = target;
-  // The native list lifts the element itself, with no card.
-  if (shape === "plain" || target.lift !== undefined) return rect;
+  if (shape === "plain") return rect;
   return {
     height: rect.height + CARD_INSET.y * 2,
     width: rect.width + CARD_INSET.x * 2,

@@ -8,13 +8,14 @@ import type { ToggleReaction } from "~/features/conversation/message-actions";
 import type { Message, MessageAttachment } from "~/features/conversation/types";
 import type { MessageLayout } from "~/features/preferences/store";
 import { groupParam } from "~/features/conversation/media-group";
-import { linkCardsOf } from "~/features/conversation/message-text";
+import { linkCardsOf, visibleBody } from "~/features/conversation/message-text";
 import { showNotSent } from "~/features/conversation/not-sent";
 import { showUploadProblem } from "~/features/conversation/upload-problem";
 import { useOpenProfile } from "~/features/profile/use-open-profile";
 import { impact } from "~/lib/native-extras";
 import { openLink } from "~/lib/open-link";
 import { heldPart, mediaOf } from "./held-part";
+import { isJumbo } from "./jumbo";
 import { parseReactionKey } from "./map-rows";
 
 type PressEvent = Extract<ListEvent, { type: "press" }>;
@@ -155,8 +156,12 @@ function menuTarget(
           },
     preview: lift === undefined ? preview(message, held) : null,
     rect: event.frame,
-    // Stacked text lifts on a card; everything else as it is.
-    shape: layout === "stacked" && text ? "card" : "plain",
+    // Text without a bubble (stacked, jumbo emoji) lifts on a card, as the
+    // native list draws it; everything else as it is.
+    shape:
+      text && (layout === "stacked" || isJumbo(visibleBody(message) ?? ""))
+        ? "card"
+        : "plain",
   } satisfies MenuTarget;
 }
 
