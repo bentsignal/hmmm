@@ -460,3 +460,43 @@ after measuring the glass cost.
 
 The active PR is #284 against `t3/native-message-list`, still draft while
 final evidence and phone builds are pending. No PR has been merged.
+
+### Revised phone deliverable
+
+Shawn changed the final deliverable to private production-config preview
+builds, replacing the planned dev clients. `preview` extends production
+configuration, uses `vera.chat` and `chat.vera.app`, and has its own update
+channel. iOS is ad hoc Release; Android is a locally signed APK. Upload
+only to install pages. Submit nothing to App Store Connect, TestFlight, or
+Play, and publish no production OTA. Preview defaults the native list on
+and exposes its switch in conversation info and More → About for every
+account. Store builds keep their previous default.
+
+`pnpm release plan` at `0c34b774` reports three backend differences from
+`backend/deploy/20261022T232315`: devBusy.ts, devFullSeed.ts, and generated
+API declarations. They only add/change development seed helpers. Normal
+app APIs, protocol, auth, and schema are unchanged; the preview needs no
+production backend deploy. Production breaking version is 3, matching the
+app source. The live Android association file and production passkey
+origins include the EAS production certificate E6:A1:C5:45…44:5F, as well
+as Google's Play certificate. Verify the actual APK certificate after
+building. EAS preview channel/branch were created empty, with no OTA.
+
+iOS installs over TestFlight using the same application identifier/team;
+verify the built entitlements and keep the existing app container. Android
+requires uninstalling the Play copy because its signer differs, then
+signing in again. Server conversations and passkeys remain with the
+account/provider. Returning to Play requires another uninstall/reinstall.
+Report final measurements and install links to orchestrator thread
+`mcp:e2458cbe-16a5-437c-94b3-475f2a786cb1`, plus the full report here and
+in #284.
+
+Final iOS motion script result is native 16/18 and RN 12/18. Native
+firehoses have 1 bubble and 6 stacked flags, versus RN's 18 and 21. iOS
+reviewed all four native windows. The bubble message moves monotonically
+up; stacked samples replace complete batches after 0.63–1.09 s gaps. The
+analyzer searches only ±40 pt and has no row identity or timestamp-gap
+gating, so repeated Firehose labels/avatars can correlate incorrectly. No
+confirmed native reversal or hide/show defect was found. Keep the formal
+flags and the limitation; this is not an all-pass motion gate. Native SHA
+remains 6b264fa2, and its owner's devices and Metro are down.

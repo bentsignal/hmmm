@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
+import * as Updates from "expo-updates";
 
 import { env } from "~/env";
 import { CONTRACT_VERSION, MessageListView, nativeSupport } from "./native";
@@ -9,14 +10,17 @@ import { CONTRACT_VERSION, MessageListView, nativeSupport } from "./native";
 // one (see .plans/native-message-list.md → Switching to it). Decided in
 // JavaScript, so an over-the-air update can flip it either way.
 
+const previewBuild = Updates.channel === "preview";
+
 export const NATIVE_LIST = {
   /**
    * Whether it's on for people who haven't chosen. On in dev builds, so
-   * every dev client tries it; off in production until Shawn has tried it
-   * in his group chat, when an over-the-air update turns it on for
-   * everyone.
+   * every dev client tries it, and on in private preview builds. Store
+   * builds stay off until Shawn has tried it in his group chat.
    */
-  byDefault: env.devTools,
+  byDefault: env.devTools || previewBuild,
+  /** Private production builds expose the switch for every signed-in account. */
+  previewBuild,
   /**
    * Whether a binary without it asks to be updated while it's on
    * (`StoreUpdateCover`). Off until a store build with it is out.

@@ -23,7 +23,10 @@ export function NativeListSwitch() {
 /** Whether a tester (`NATIVE_LIST.testers`) is signed in. */
 function useTester() {
   const accounts = useAccounts();
-  return accounts.some((account) => NATIVE_LIST.testers.has(account.address));
+  return (
+    NATIVE_LIST.previewBuild ||
+    accounts.some((account) => NATIVE_LIST.testers.has(account.address))
+  );
 }
 
 /**
