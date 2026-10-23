@@ -726,3 +726,20 @@ The HTTPS install page, manifest identity and delivered IPA size are verified:
 https://vera-evidence.b-cdn.net/preview/ios/20261023-7be83bbb-f0a3d139d4a0/index.html
 The ready link and switch location were sent immediately to the orchestrator.
 Android private preview began at 14:48 EDT and continues independently.
+
+Android preview build 7 succeeded at 14:55 EDT. The APK is non-debuggable,
+package chat.vera.app, with vera.chat in its embedded bundle and no isolated
+hostname. Compiled channel is preview; runtime
+23784f5af2957fcfbdce43fd9cf78f0b70db3e98 matches the production source
+fingerprint. The actual EAS certificate E6:A1:C5:45:24:F8:8C:7B:57:A9:66:9F:
+DF:D5:23:0B:5A:86:83:8F:F3:16:E1:1C:F7:A1:95:E3:B2:10:44:5F matches live
+production assetlinks and the passkey origin allowlist. This authorizes
+passkeys and invite links; physical passkey sign-in is not yet tested.
+The HTTPS install page, APK URL and delivered byte count are verified:
+https://vera-evidence.b-cdn.net/preview/android/20261023-7be83bbb-95cc421bdbd7/index.html
+Uninstall Play Vera first, install, sign in again. Server messages remain;
+local session/drafts/unsent messages/cache are removed. Return by uninstalling
+preview and reinstalling from Play. Both install links and these facts were
+sent to the orchestrator as soon as each was ready. Native defaults on and
+flips immediately at conversation title/details → Testing → Native Message
+List, also More → About → Testing. No stores or production OTA were used.
