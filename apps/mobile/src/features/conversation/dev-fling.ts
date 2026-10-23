@@ -47,7 +47,7 @@ export function useDevFling(
     const max = Math.max(0, content.get() - viewport.get());
     const from = offset.get();
     const to = Math.min(max, from + (speed.get() * step) / 1000);
-    if (to >= max) edgeMs.set(edgeMs.get() + step);
+    if (to <= from + 0.01) edgeMs.set(edgeMs.get() + step);
     travelled.set(travelled.get() + Math.max(0, to - from));
     scrollTo(scrollRef, 0, to, false);
   }, false);
