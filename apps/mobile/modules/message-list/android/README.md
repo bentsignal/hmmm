@@ -48,6 +48,11 @@ photo dimensions. `/dev-native-list` exercises
 both layouts, the lift menu, reactions, typing changes, keyboard, and media.
 Its `bench` button runs 5,500 dp/s for ten seconds and logs the result.
 
+`LiftTargetTest` covers a held third photo whose part differs from its media
+block after a caption, omitted blocks in the rendered slot mapping, and an
+unknown item that must not fall back to lifting the caption. Carousel lifts
+resolve the containing block by item part, then lift only its visible tile.
+
 The Android emulator uses software GL on this Mac. Frame intervals include
 that rendering cost and host contention; recordings establish visual behavior,
 not a 60 fps phone result. The integration branch owns the same-chat,
