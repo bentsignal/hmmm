@@ -81,7 +81,11 @@ export function useDevRows() {
   function onEvent({ nativeEvent }: { nativeEvent: ListEvent }) {
     setLast(JSON.stringify(nativeEvent).slice(0, 160));
     if (nativeEvent.type === "hold" && canLift) {
-      setHeld(nativeEvent);
+      // Stacked text has no bubble: it lifts on a card.
+      setHeld({
+        ...nativeEvent,
+        card: layout === "stacked" && nativeEvent.part === "message",
+      });
       setLifting(true);
     } else if (nativeEvent.type === "hold") {
       // An older binary: hide the row while the menu would be up.
