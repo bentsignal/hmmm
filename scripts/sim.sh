@@ -235,10 +235,22 @@ ensure_android_device() {
   local console=$((5560 + 2 * ($(hash_of "$ROOT") % 50)))
   while "$ADB" devices | grep -q "emulator-$console"; do console=$((console + 2)); done
   SERIAL="emulator-$console"
-  nohup "$ANDROID_HOME/emulator/emulator" -avd "$name" -port "$console" \
-    -no-window -no-snapshot -no-boot-anim -no-audio </dev/null \
-    >"$STATE_DIR/emulator.log" 2>&1 &
-  EMULATOR_PID=$!
+  # A separate session survives the launching tool's process-group cleanup.
+  # nohup alone ignores SIGHUP but still dies when that group is terminated.
+  EMULATOR_PID="$(node - "$ANDROID_HOME/emulator/emulator" "$name" "$console" "$STATE_DIR/emulator.log" <<'JS'
+const { spawn } = require("node:child_process");
+const { openSync, closeSync } = require("node:fs");
+const [emulator, name, port, log] = process.argv.slice(2);
+const output = openSync(log, "w");
+const child = spawn(emulator, ["-avd", name, "-port", port, "-no-window", "-no-snapshot", "-no-boot-anim", "-no-audio"], {
+  detached: true,
+  stdio: ["ignore", output, output],
+});
+child.unref();
+closeSync(output);
+console.log(child.pid);
+JS
+)"
   "$ADB" -s "$SERIAL" wait-for-device
   until [ "$(adb_device shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]; do
     sleep 2
