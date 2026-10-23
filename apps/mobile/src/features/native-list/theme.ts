@@ -128,7 +128,7 @@ export function useNativeTheme(layout: MessageLayout) {
   return themeOf(useCSSVariable([...VARIABLES]), layout);
 }
 
-/** Timings and thresholds, matching the React Native list. */
+/** RN timings, with more page lead for fast native scrolling. */
 export const BEHAVIOR = {
   // A new message fades in as the others make room (`Arrive`).
   fadeMs: 400,

@@ -419,3 +419,44 @@ not a comparison with React Native. The integration thread must compare
 the same data, production bundle, speed, and duration. The simulator has
 not reproduced the reported 5 FPS in Shawn's chat; the phone test remains
 the release gate.
+
+## Final integration checks in progress, 2026-10-23
+
+Both native owners explicitly marked their binaries ready: iOS `6b264fa2`
+and Android `a3615b73`. Both are merged into the integration branch.
+Android's optional `liftHandoff` feature adds `landLift(): Promise<void>`.
+The app clears its lift prop and starts native landing and the menu's
+240 ms fade together. It removes the Modal and runs the chosen action
+only after both finish. Older binaries and iOS retain their current close
+timing. Duplicate close taps are ignored. Android verified two photo
+open/close cycles with no analyzer flags across 103 changed frames.
+
+The first fair combined iOS production-bundle run used three-screen page
+lead on both lists, 5,500 pt/s for ten seconds, and 150 arrivals over
+15 seconds. No native builds or device boots overlapped.
+
+| Layout | Scenario | RN slow / frames | Native slow / frames | RN worst | Native worst |
+| --- | --- | --- | --- | --- | --- |
+| Bubbles | Scroll | 85 / 596 | 4 / 727 | 128.9 ms | 40.5 ms |
+| Stacked | Scroll | 69 / 629 | 1 / 729 | 60.8 ms | 43.7 ms |
+| Bubbles | Burst | 167 / 1001 | 3 / 1236 | 91.7 ms | 36.8 ms |
+| Stacked | Burst | 169 / 1024 | 5 / 1249 | 69.1 ms | 43.4 ms |
+
+Bubbles travelled 47,461 pt with 707 ms of loaded-edge wait on RN, versus
+54,703 pt with 50 ms on native. Stacked travelled 51,390 pt on RN and
+55,000 on native, both with no wait. Native page lead is now five screens
+to give network/JavaScript more time during fast scrolling; a fresh media
+seed is queued for the follow-up. RN keeps its existing three screens.
+The final report must distinguish this tuning from the baseline above.
+
+Real-app iOS checks on the final binary include both layouts and themes,
+photo viewer opening/return, a composer send with the keyboard up, thread
+original/replies placement, reaction count on/off, anchored opening,
+jump-to-latest, and menu open/close. Carousel item reactions target the
+selected attachment. Gesture recordings and the full motion script are
+still being collected. Filled iOS stacked reaction chips remain an
+explicit visual difference from RN glass; the native owner retained them
+after measuring the glass cost.
+
+The active PR is #284 against `t3/native-message-list`, still draft while
+final evidence and phone builds are pending. No PR has been merged.
