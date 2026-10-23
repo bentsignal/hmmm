@@ -77,6 +77,23 @@ covers only `apps/mobile/modules/message-list/ios/`.
   The app's `VeraChipMaterial` default picks one at launch, for the
   comparison.
 
+## Carousel lift (follow-up)
+
+Holding a carousel card lifted the whole strip, neighboring cards and
+chips included. `liftPieces` found the carousel block and lifted its
+view, framed as the whole strip, ignoring `index`. That had been so since
+before the polish; the full-width strip made it plain. Now the held
+card's photo lifts alone, framed where it's drawn
+(`CarouselLayout.cardFrame`), and lands back there. Its chips stay in the
+strip, as the React Native menu lifts only the photo (`MediaCopy`) and
+Android lifts only the tile. A stale index falls back to the item's part.
+An index with no part means an item of a group, so it picks the first
+media that has that item, never a caption. A part the message doesn't
+have, an index no media has, or a carousel lift that can't name a card
+lifts nothing (`MessageLayout.liftedPart`, `CarouselLayout.liftedItem`).
+`Tests/run.sh` checks the lookups and the card's frame, alone and
+composed (118 checks).
+
 ## Checks
 
 - `Tests/run.sh`: 94 checks. 61 of them are new, for the reaction toggle

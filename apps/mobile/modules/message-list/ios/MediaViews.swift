@@ -156,6 +156,12 @@ final class CarouselView: UIScrollView, UIScrollViewDelegate {
     layout?.cards.firstIndex { $0.contains(point) }
   }
 
+  /// A card's photo, which a hold lifts into the menu alone (Lift.swift).
+  func tile(_ index: Int) -> MediaTileView? {
+    guard let layout, index < layout.items.count, index < tiles.count else { return nil }
+    return tiles[index]
+  }
+
   func chipView(_ id: String) -> ChipView? {
     chips.views[id]
   }
