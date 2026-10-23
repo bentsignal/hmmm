@@ -177,5 +177,140 @@ equal(kindChange.reloaded, [0], "a kind change reloads")
 equal(kindChange.changed, ["b"], "a content change updates in place")
 check(ListDiff(old: rows(["a"]), oldHeights: [40], new: rows(["a"]), newHeights: [40]).isEmpty, "nothing changed, nothing to do")
 
+// MARK: Phone feedback, 2026-10-23 evening
+
+func reaction(_ key: String, count: Int = 1, mine: Bool = false) -> JSON {
+  ["key": key, "content": ["emoji": String(key.split(separator: " ").last ?? "")], "count": count, "mine": mine]
+}
+func item(_ id: String, reactions: [JSON] = [], width: Double = 1200, height: Double = 900) -> JSON {
+  ["id": id, "kind": "image", "url": "https://example.com/\(id).jpg", "width": width, "height": height, "part": id, "reactions": reactions]
+}
+func media(_ items: [JSON]) -> JSON { ["type": "media", "items": items] }
+func messageLayout(_ json: JSON) -> MessageLayout? {
+  if case let .message(layout) = measurer.layout(Row(json)) { return layout }
+  return nil
+}
+
+// A tapped chip, drawn toggled before JavaScript's rows say so.
+let chipRow = message("c", layout: "stacked", reactions: [reaction("message 👍", count: 2), reaction("message 🎉", mine: true)])
+equal(ReactionToggle.mine(chipRow, key: "message 🎉"), true, "a reaction's mine, read from the row")
+equal(ReactionToggle.mine(chipRow, key: "message 😮"), nil, "a reaction the row doesn't have")
+let added = ReactionToggle.setting(chipRow, key: "message 👍", mine: true)
+equal(added.objects("reactions")[0].int("count", 0), 3, "yours added: one more")
+equal(added.objects("reactions")[0].bool("mine"), true, "yours added: tinted")
+let takenBack = ReactionToggle.setting(chipRow, key: "message 🎉", mine: false)
+equal(takenBack.objects("reactions").map { $0.str("key") }, ["message 👍"], "yours taken back from a count of one: gone")
+equal(ReactionToggle.setting(added, key: "message 👍", mine: true).objects("reactions")[0].int("count", 0), 3,
+      "already yours: unchanged, so a repeated toggle can't count twice")
+let photoRow = message("p", layout: "stacked", blocks: [media([item("0", reactions: [reaction("0 👍")]), item("1", reactions: [reaction("1 👍")])])])
+let photoToggled = ReactionToggle.setting(photoRow, key: "1 👍", mine: true)
+let toggledItems = photoToggled.objects("blocks")[0].objects("items")
+equal(toggledItems.map { $0.objects("reactions")[0].int("count", 0) }, [1, 2], "only the tapped photo's reaction changes")
+
+// Taps and holds find the chip under the finger.
+if let layout = messageLayout(chipRow), let chip = layout.chips.first {
+  equal(layout.reaction(at: CGPoint(x: chip.frame.midX, y: chip.frame.midY))?.key, "message 👍", "a stacked chip is hit")
+  equal(layout.reaction(at: CGPoint(x: chip.frame.midX, y: chip.frame.midY))?.kind, .chip, "as a chip")
+  check(layout.reaction(at: CGPoint(x: chip.frame.midX, y: chip.frame.minY - 20)) == nil, "the text above a chip isn't")
+} else { check(false, "a stacked row with chips") }
+if let layout = messageLayout(message("t", reactions: [reaction("message 👍")])), let tapback = layout.tapbacks.first {
+  let hit = layout.reaction(at: CGPoint(x: tapback.frame.midX, y: tapback.frame.midY))
+  equal(hit?.kind, .tapback, "a bubble's tapback is hit")
+  equal(hit?.part, "message", "with its part")
+} else { check(false, "a bubble with a tapback") }
+
+// A deck's tapbacks are each card's own, shown on it in front.
+let deckRow = message("d", blocks: [media([item("0"), item("1", reactions: [reaction("1 ❤️")]), item("2")])])
+if let layout = messageLayout(deckRow), case let .deck(deck) = layout.parts.first?.content {
+  check(layout.tapbacks.isEmpty, "a deck's tapbacks aren't the message's")
+  equal(deck.tapbacks.map(\.count), [0, 1, 0], "each card has its own")
+  equal(deck.tapbacks[1].first?.reaction.key, "1 ❤️", "the second card's reaction, not merged")
+  equal(deck.tapbacks[1].first?.part, "1", "on the second card's part")
+  let spot = deck.tapbacks[1][0].frame
+  check(deck.tapback(at: CGPoint(x: spot.midX, y: spot.midY), front: 0) == nil, "not hit while another card is in front")
+  equal(deck.tapback(at: CGPoint(x: spot.midX, y: spot.midY), front: 1)?.reaction.key, "1 ❤️", "hit with its card in front")
+  equal(height(deckRow), height(message("d", blocks: [media([item("0", reactions: [reaction("0 ❤️")]), item("1"), item("2")])])),
+        "room for the tapbacks whichever card has them")
+} else { check(false, "several photos in bubbles are a deck") }
+
+// A reaction's taps and holds report the exact item it's on.
+if let layout = messageLayout(deckRow) {
+  check(layout.target(forPart: "1").map { $0.at == 0 && $0.index == 1 } == true, "a deck card's reaction: the deck, its item")
+}
+if let layout = messageLayout(photoRow) {
+  check(layout.target(forPart: "1").map { $0.index == 1 } == true, "a carousel item's chip: its item")
+  check(layout.target(forPart: "0").map { $0.index == 0 } == true, "the first item's: the first")
+}
+let captioned = message("q", layout: "stacked", blocks: [
+  ["type": "text", "part": "message", "spans": [["text": "Look"]]], media([item("1"), item("2")]),
+], reactions: [reaction("message 👍")])
+if let layout = messageLayout(captioned) {
+  check(layout.target(forPart: "message").map { $0.at == 0 && $0.index == nil } == true, "the caption's reaction: the caption, not a photo")
+  check(layout.target(forPart: "2").map { $0.at == 1 && $0.index == 1 } == true, "a photo's under a caption: that photo")
+}
+
+// The deck's pile: the next behind on the right, the one before on the
+// left; swipes either way undo each other.
+equal(DeckPile.front(after: 0, forward: true, count: 4), 1, "left: the next card")
+equal(DeckPile.front(after: 0, forward: false, count: 4), 3, "right: the one before")
+equal(DeckPile.front(after: DeckPile.front(after: 2, forward: true, count: 5), forward: false, count: 5), 2, "left then right: back where it was")
+equal(DeckPile.role(of: 1, front: 0, count: 5), .behind(.right), "the next card is behind on the right")
+equal(DeckPile.role(of: 4, front: 0, count: 5), .behind(.left), "the one before, on the left")
+equal(DeckPile.role(of: 2, front: 0, count: 5), .hidden(.right), "further down, hidden on the side it comes from")
+// A swipe left: the old front is now the one before, on the left, where it tucked in.
+equal(DeckPile.role(of: 0, front: DeckPile.front(after: 0, forward: true, count: 5), count: 5), .behind(.left), "thrown left, it's behind on the left")
+equal(DeckPile.role(of: 0, front: 1, count: 2, lone: .left), .behind(.left), "two cards: the one behind is where the last went")
+equal(DeckPile.shown(front: 0, count: 5), [0, 1, 4, 2, 3], "the pile and the two that come next are drawn")
+equal(DeckPile.shown(front: 1, count: 2), [1, 0], "two cards: both, once")
+check(DeckPile.behind(.right).angle > 0 && DeckPile.behind(.left).angle < 0, "the cards behind turn either way")
+check(DeckPile.behind(.right).x > 0 && DeckPile.behind(.left).x < 0, "and are offset to their sides")
+equal(DeckPile.mix(DeckPile.behind(.right), DeckPile.front, 0.5).depth, 0.5, "halfway forward, half blurred")
+equal(DeckPile.hidden(.left).alpha, 0, "hidden cards don't show")
+check(DeckPile.out(width: 220) > 220, "a thrown card clears the pile before it goes behind")
+
+// The stacked carousel spans the row and settles where a fling would stop.
+let carouselRow = message("k", layout: "stacked", showAuthor: true,
+                          blocks: [media((0..<5).map { item("\($0)", width: 900, height: 1200) })])
+if let layout = messageLayout(carouselRow), case let .carousel(strip) = layout.parts.first?.content, let frame = layout.parts.first?.frame {
+  let contentX = theme.horizontalPadding + theme.avatarSize + 12
+  equal(frame.minX, 0, "edge to edge: from the screen's left")
+  equal(frame.width, width, "to its right")
+  equal(strip.cards[0].minX, contentX, "the first card starts where the text does")
+  equal(strip.offset(of: 2), strip.cards[2].minX - contentX, "a card settles at the text's start")
+  let maxOffset = strip.contentWidth - width
+  equal(strip.settle(projected: strip.offset(of: 3) + 10, current: 0, velocity: 2, maxOffset: maxOffset), min(strip.offset(of: 3), maxOffset),
+        "a hard fling travels several cards")
+  equal(strip.settle(projected: 60, current: 40, velocity: 0.3, maxOffset: maxOffset), strip.offset(of: 1), "a slow swipe forward moves one")
+  equal(strip.settle(projected: 10_000, current: 0, velocity: 5, maxOffset: maxOffset), maxOffset, "the last card settles fully on screen")
+  equal(strip.settle(projected: strip.offset(of: 2) - 40, current: strip.offset(of: 2) - 30, velocity: -0.3, maxOffset: maxOffset),
+        strip.offset(of: 1), "back is never ahead")
+  if let recede = layout.avatarRecede, let photo = layout.avatar?.frame {
+    check(photo.minY + photo.height * recede <= frame.minY, "the photo shrinks clear of the cards")
+    equal(layout.avatarScale(carouselOffset: 0), 1, "at rest the photo is full size")
+    equal(layout.avatarScale(carouselOffset: photo.height + 12), recede, "scrolled past it, it's cleared the cards")
+    check(layout.avatarScale(carouselOffset: 10) > layout.avatarScale(carouselOffset: 20), "it shrinks as they pass")
+  } else { check(false, "the photo beside a carousel recedes") }
+  check(abs(Ease.css(0.5) - 0.8024) < 0.001, "CSS ease at half way")
+} else { check(false, "several photos in a stacked row are a carousel") }
+
+// Typing faces: groups and spaces, not one-on-one.
+func typing(_ layout: String, showFaces: Bool?) -> TypingLayout? {
+  var json: JSON = ["id": "t", "kind": "typing", "layout": layout, "people": [person("maya")], "label": "Maya is typing"]
+  if let showFaces { json["showFaces"] = showFaces }
+  if case let .typing(typing) = measurer.layout(Row(json)) { return typing }
+  return nil
+}
+equal(typing("bubbles", showFaces: false)?.faces.count, 0, "a DM's typing bubble has no photo")
+equal(typing("bubbles", showFaces: false)?.bubble?.minX, theme.horizontalPadding, "and sits where a DM's message does")
+equal(typing("bubbles", showFaces: true)?.faces.count, 1, "a group's has")
+equal(typing("bubbles", showFaces: nil)?.faces.count, 1, "older JavaScript: faces, as before")
+equal(typing("stacked", showFaces: false)?.faces.count, 0, "a stacked DM's line has no photo")
+equal(typing("stacked", showFaces: false)?.label?.frame.minX, theme.horizontalPadding + theme.avatarSize + 12, "its label starts at the text column")
+
+// Only a bubble of text grows out of the typing bubble (typing-row.ts).
+check(Row(message("g")).message?.morphsFromTyping == true, "text grows out of the typing bubble")
+check(Row(message("g", blocks: [photo(10, 10)])).message?.morphsFromTyping == false, "a photo doesn't")
+check(Row(message("g", layout: "stacked")).message?.morphsFromTyping == false, "nor a stacked row")
+
 print("\(checks - failures) of \(checks) checks passed")
 exit(failures == 0 ? 0 : 1)

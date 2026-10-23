@@ -75,6 +75,14 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
   private let lifter = Lifter()
   private var liftRequest: LiftRequest?
   private var liftChanged = false
+  // Reactions answer a tap at once: their own recognizer, which doesn't
+  // wait for a double tap, a light haptic, and the chip drawn toggled.
+  private lazy var reactionTap = UITapGestureRecognizer(target: self, action: #selector(reactionTapped(_:)))
+  private var messageTaps: [UIGestureRecognizer] = []
+  private let reactionHaptic = UIImpactFeedbackGenerator(style: .light)
+  /// Chips toggled by a tap, by row and reaction key: whether they're now
+  /// yours, until JavaScript's rows agree or the time passes.
+  private var reactionOverrides: [String: [String: (mine: Bool, until: CFTimeInterval)]] = [:]
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
@@ -103,7 +111,8 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     tap.require(toFail: doubleTap)
     let hold = UILongPressGestureRecognizer(target: self, action: #selector(held(_:)))
     hold.minimumPressDuration = 0.32
-    for gesture in [tap, doubleTap, hold] {
+    messageTaps = [tap, doubleTap]
+    for gesture in [tap, doubleTap, hold, reactionTap] {
       gesture.cancelsTouchesInView = false
       gesture.delegate = self
       collectionView.addGestureRecognizer(gesture)
@@ -136,6 +145,44 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
   func setRows(_ rows: [JSON]) {
     rawRows = rows
     rowsChanged = true
+  }
+
+  /// JavaScript's rows with the chips toggled since then drawn as toggled.
+  /// A toggle stops overriding once JavaScript's row agrees, or after 3 s
+  /// (JavaScript decided otherwise, or the row is gone).
+  private func rowsToMeasure() -> [JSON] {
+    guard !reactionOverrides.isEmpty else { return rawRows }
+    let now = CACurrentMediaTime()
+    var seen: Set<String> = []
+    let rows = rawRows.map { row -> JSON in
+      let id = row.str("id")
+      guard var toggles = reactionOverrides[id] else { return row }
+      seen.insert(id)
+      var row = row
+      for (key, toggle) in toggles {
+        if now > toggle.until || ReactionToggle.mine(row, key: key) == toggle.mine {
+          toggles[key] = nil
+        } else {
+          row = ReactionToggle.setting(row, key: key, mine: toggle.mine)
+        }
+      }
+      reactionOverrides[id] = toggles.isEmpty ? nil : toggles
+      return row
+    }
+    for id in reactionOverrides.keys where !seen.contains(id) { reactionOverrides[id] = nil }
+    return rows
+  }
+
+  /// Draws a tapped chip toggled now, ahead of JavaScript's rows.
+  private func preview(_ reaction: ReactionHit, rowId: String) {
+    var toggles = reactionOverrides[rowId] ?? [:]
+    toggles[reaction.key] = (!reaction.mine, CACurrentMediaTime() + 3)
+    reactionOverrides[rowId] = toggles
+    measure()
+    DispatchQueue.main.asyncAfter(deadline: .now() + 3.05) { [weak self] in
+      guard let self, self.reactionOverrides[rowId]?[reaction.key] != nil else { return }
+      self.measure()
+    }
   }
 
   func setTheme(_ theme: JSON?) {
@@ -314,7 +361,7 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     }
     measuring = true
     measureAgain = false
-    let input = MeasureQueue.Input(rows: rawRows, theme: state.theme, width: width, customHeights: customHeights)
+    let input = MeasureQueue.Input(rows: rowsToMeasure(), theme: state.theme, width: width, customHeights: customHeights)
     if !placed {
       // The first rows: measured right away, so the list never shows empty.
       let result = measurer.measureNow(input)
@@ -395,8 +442,9 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     // A message from someone typing grows out of their indicator.
     var grows: (id: String, from: CGRect)?
     if animated, let typingIndex = removed.first(where: { oldRows[$0].isTyping }),
-       case let .typing(_, people, _) = oldRows[typingIndex].content,
+       case let .typing(_, people, _, _) = oldRows[typingIndex].content,
        let message = arrived.first(where: { index in people.contains { $0.id == newRows[index].message?.author.id } }),
+       newRows[message].message?.morphsFromTyping == true,
        case let .typing(typingLayout) = layouts[typingIndex], let bubble = typingLayout.bubble {
       grows = (newIds[message], bubble)
     }
@@ -533,7 +581,7 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     }
     animator.startAnimation()
     if let grows, let cell = cell(for: grows.id) as? MessageCell {
-      cell.grow(from: grows.from, duration: 0.32)
+      cell.grow(from: grows.from, dots: state.theme.muted)
     }
     for index in atBottom where newRows[index].isTyping {
       (cell(for: newIds[index]) as? TypingCell)?.appear()
@@ -885,6 +933,38 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     send(hit.event)
   }
 
+  /// A reaction tapped: a light haptic and, for a stacked chip, the toggle
+  /// drawn at once; then the press, with its part's frame (contract:
+  /// `press.frame`), which bubbles' JavaScript shows who reacted over.
+  @objc private func reactionTapped(_ gesture: UITapGestureRecognizer) {
+    guard gesture.state == .ended, let (hit, cell) = hit(gesture, hold: false),
+          hit.event["element"] as? String == "reaction" else { return }
+    reactionHaptic.impactOccurred()
+    var event = hit.event
+    event["frame"] = windowFrame(hit, in: cell)
+    if let cell = cell as? MessageCell, let rowId = cell.rowId,
+       let reaction = cell.reaction(at: gesture.location(in: cell.contentView)), reaction.kind == .chip {
+      preview(reaction, rowId: rowId)
+    }
+    send(event)
+  }
+
+  /// A hit's frame in window coordinates, where the row is drawn mid-move
+  /// (the list is flipped, so up is −y).
+  private func windowFrame(_ hit: Hit, in cell: RowCell) -> [String: CGFloat] {
+    var frame = cell.contentView.convert(hit.frame, to: nil)
+    frame.origin.y -= (cell.layer.presentation()?.value(forKeyPath: "transform.translation.y") as? CGFloat) ?? 0
+    return ["x": frame.minX, "y": frame.minY, "width": frame.width, "height": frame.height]
+  }
+
+  /// Whether a touch is on a reaction: those go to `reactionTap` alone.
+  private func onReaction(_ touch: UITouch) -> Bool {
+    let point = touch.location(in: collectionView)
+    guard let indexPath = collectionView.indexPathForItem(at: point),
+          let cell = collectionView.cellForItem(at: indexPath) as? MessageCell else { return false }
+    return cell.reaction(at: touch.location(in: cell.contentView)) != nil
+  }
+
   /// The part under a finger, for the press shrink.
   private func pressedView(at point: CGPoint) -> UIView? {
     guard !collectionView.isDragging, !collectionView.isDecelerating,
@@ -899,10 +979,7 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     if gesture is UITapGestureRecognizer, gesture.state != .ended { return }
     guard let (hit, cell) = hit(gesture, hold: true) else { return }
     var event = hit.event
-    var frame = cell.contentView.convert(hit.frame, to: nil)
-    // Mid-move, where the row is drawn (the list is flipped, so up is −y).
-    frame.origin.y -= (cell.layer.presentation()?.value(forKeyPath: "transform.translation.y") as? CGFloat) ?? 0
-    event["frame"] = ["x": frame.minX, "y": frame.minY, "width": frame.width, "height": frame.height]
+    event["frame"] = windowFrame(hit, in: cell)
     send(event)
   }
 
@@ -927,6 +1004,14 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     while let current = view, current !== collectionView {
       if let strip = current as? CarouselView, strip.isDecelerating { return false }
       view = current.superview
+    }
+    // A reaction's tap is its own: the message's tap waits for the double
+    // tap to fail (about 0.3 s), which a reaction mustn't. The hold still
+    // sees it (who reacted).
+    if gesture === reactionTap || messageTaps.contains(where: { $0 === gesture }) {
+      let reaction = onReaction(touch)
+      if reaction, gesture === reactionTap { reactionHaptic.prepare() }
+      return gesture === reactionTap ? reaction : !reaction
     }
     return true
   }
@@ -1017,9 +1102,9 @@ final class MeasureQueue {
     var next: [String: Entry] = [:]
     rows.reserveCapacity(input.rows.count)
     layouts.reserveCapacity(input.rows.count)
+    // IDs are unique; a repeat would break the diff, so it's dropped.
     for json in input.rows {
       let row = Row(json)
-      // IDs are unique; a repeat would break the diff, so it's dropped.
       guard seen.insert(row.id).inserted else { continue }
       let layout: RowLayout
       // A custom row's height comes from React, so it's never cached.

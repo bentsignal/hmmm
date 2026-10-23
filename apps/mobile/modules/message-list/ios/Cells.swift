@@ -116,11 +116,19 @@ final class MessageCell: RowCell {
   /// Part of this message is lifted into the menu (see Lift.swift): an
   /// update waits until it's back.
   var isLifted = false {
-    didSet {
-      guard !isLifted, let (row, layout, state) = pendingConfigure else { return }
-      pendingConfigure = nil
-      configure(row, layout, state: state, animated: false)
-    }
+    didSet { applyPending() }
+  }
+  /// Growing out of the typing bubble (`grow`): an update to the same row
+  /// (its status, a read mark) waits until it has, rather than cutting the
+  /// morph short.
+  private var isGrowing = false {
+    didSet { applyPending() }
+  }
+
+  private func applyPending() {
+    guard !isLifted, !isGrowing, let (row, layout, state) = pendingConfigure else { return }
+    pendingConfigure = nil
+    configure(row, layout, state: state, animated: false)
   }
   private var pendingConfigure: (Row, RowLayout, ListState)?
   var bodyView: UIView { body }
@@ -155,9 +163,15 @@ final class MessageCell: RowCell {
   override func configure(_ row: Row, _ rowLayout: RowLayout, state: ListState, animated: Bool) {
     guard let message = row.message, case let .message(layout) = rowLayout else { return }
     let sameRow = rowId == row.id
-    if isLifted, sameRow {
+    if isLifted || isGrowing, sameRow {
       pendingConfigure = (row, rowLayout, state)
       return
+    }
+    if !sameRow, isGrowing {
+      // Recycled mid-grow: drop it.
+      partViews.first?.layer.removeAllAnimations()
+      (partViews.first as? BubbleView)?.endGrow()
+      isGrowing = false
     }
     super.configure(row, rowLayout, state: state, animated: animated)
     let animate = animated && sameRow
@@ -219,6 +233,8 @@ final class MessageCell: RowCell {
     }
     if let (person, frame) = layout.avatar {
       show(avatar) {
+        // Placed at full size; `recede` scales it after.
+        avatar.transform = .identity
         avatar.frame = frame
         avatar.set(person, size: frame.width, theme: theme)
       }
@@ -240,6 +256,7 @@ final class MessageCell: RowCell {
       return view
     }
     var views: [UIView] = []
+    var receding: CGFloat = 0
     for part in layout.parts {
       let key = "\(rowId)#\(part.blockIndex)"
       switch part.content {
@@ -263,14 +280,20 @@ final class MessageCell: RowCell {
           view.frame = part.frame
           view.onOffset = nil
           view.set(carousel, theme: theme, offset: state.carouselOffsets[key] ?? 0, animated: animated)
-          view.onOffset = { [weak state] offset in state?.carouselOffsets[key] = offset }
+        }
+        // The first carousel may pass under the author's photo.
+        let recedes = !views.contains { $0 is CarouselView }
+        if recedes { receding = view.contentOffset.x }
+        view.onOffset = { [weak state, weak self] offset in
+          state?.carouselOffsets[key] = offset
+          if recedes { self?.recede(offset) }
         }
         views.append(view)
       case let .deck(deck):
         let view = take(&decks) { DeckView() }
         show(view) {
           view.frame = part.frame
-          view.set(deck, theme: theme, index: state.deckIndices[key] ?? 0)
+          view.set(deck, theme: theme, index: state.deckIndices[key] ?? 0, animated: animated)
           view.onIndex = { [weak state] index in state?.deckIndices[key] = index }
         }
         views.append(view)
@@ -309,6 +332,7 @@ final class MessageCell: RowCell {
       view.isHidden = true
     }
     partViews = views
+    recede(receding)
 
     if let frame = layout.replyCurve {
       show(replyCurve) {
@@ -380,6 +404,19 @@ final class MessageCell: RowCell {
     highlight.layer.add(fade, forKey: "highlight")
   }
 
+  /// A stacked carousel's cards scroll under the author's photo
+  /// (`avatarRecede`): it shrinks toward its top center to clear them,
+  /// and grows back as they return (`MessageLayout.avatarScale`).
+  private func recede(_ offset: CGFloat) {
+    let size = layout?.avatarScale(carouselOffset: offset) ?? 1
+    guard size < 1 else {
+      if avatar.transform != .identity { avatar.transform = .identity }
+      return
+    }
+    let height = avatar.bounds.height
+    avatar.transform = CGAffineTransform(translationX: 0, y: -height * (1 - size) / 2).scaledBy(x: size, y: size)
+  }
+
   override func setReveal(_ reveal: CGFloat) {
     let reveal = message?.layout == .bubbles ? reveal : 0
     revealTime.alpha = reveal / Metrics.revealWidth
@@ -387,20 +424,19 @@ final class MessageCell: RowCell {
     body.transform = layout?.slides == true ? CGAffineTransform(translationX: -reveal, y: 0) : .identity
   }
 
-  /// A message from someone typing grows out of their indicator: its first
-  /// bubble starts as the typing bubble and opens to its full size.
-  func grow(from typing: CGRect, duration: Double) {
+  /// A message from someone typing grows out of their indicator, as
+  /// bubble-morph.tsx draws it: its bubble starts as the typing bubble
+  /// (`typing`, in the row's coordinates; both rows sit at the bottom) and
+  /// stretches to its own size from its tail's corner over 320 ms, the
+  /// tail riding along; the dots fade in the first third; then the text
+  /// fades in over 220 ms, so it never spills out of the bubble.
+  func grow(from typing: CGRect, dots: UIColor) {
     guard let bubble = partViews.first as? BubbleView else { return }
     let final = bubble.frame
-    UIView.performWithoutAnimation {
-      bubble.frame = CGRect(x: final.minX, y: final.maxY - typing.height, width: typing.width, height: typing.height)
-      bubble.text.alpha = 0
-    }
-    UIView.animate(withDuration: duration, delay: 0, options: [.beginFromCurrentState]) {
-      bubble.frame = final
-    }
-    UIView.animate(withDuration: 0.22, delay: duration / 3, options: []) {
-      bubble.text.alpha = 1
+    let start = CGRect(x: typing.minX, y: final.maxY - typing.height, width: typing.width, height: typing.height)
+    isGrowing = true
+    bubble.grow(from: body.convert(start, to: bubble.superview), dots: dots) { [weak self] in
+      self?.isGrowing = false
     }
   }
 
@@ -454,13 +490,21 @@ final class MessageCell: RowCell {
       return Hit(event: event, frame: body.convert(frame, to: contentView), view: view)
     }
 
+    if let (reaction, view) = reaction(inBody: point) {
+      // A tap toggles it or shows who reacted; a hold shows who reacted
+      // (a hold's `element` and `reactionKey`). Both report the part it's
+      // on, with a media item's `index`, and that part's frame
+      // (MessageListView adds it to a press as `frame`), so JavaScript
+      // lifts or opens the menu on exactly that item, and older JavaScript
+      // does what it did. The reaction shrinks under the finger.
+      let held = holdTarget(part: reaction.part)
+      var extra: [String: Any] = ["reactionKey": reaction.key, "part": reaction.part]
+      if let index = held?.index { extra["index"] = index }
+      if hold { extra["element"] = "reaction" }
+      return press(hold ? "hold" : "reaction", extra, frame: held?.frame ?? reaction.frame, view: view)
+    }
+
     if !hold {
-      for tapback in layout.tapbacks.reversed() where tapback.frame.insetBy(dx: -6, dy: -6).contains(point) {
-        return press("reaction", ["part": tapback.part, "reactionKey": tapback.reaction.key], frame: tapback.frame)
-      }
-      for chip in layout.chips where chip.frame.insetBy(dx: -2, dy: -2).contains(point) {
-        return press("reaction", ["part": chip.part, "reactionKey": chip.reaction.key], frame: chip.frame)
-      }
       if let (_, frame) = layout.avatar, frame.insetBy(dx: -4, dy: -4).contains(point) {
         return press("author", ["accountId": message.author.id], frame: frame)
       }
@@ -498,9 +542,6 @@ final class MessageCell: RowCell {
       case let .carousel(carousel):
         guard let strip = view as? CarouselView else { break }
         let inStrip = strip.convert(point, from: body)
-        if !hold, let chip = strip.chip(at: inStrip) {
-          return press("reaction", ["part": chip.part, "reactionKey": chip.reaction.key], frame: strip.convert(chip.frame, to: body))
-        }
         if let card = strip.index(at: inStrip), let frame = strip.cardFrame(card) {
           return press("media", ["index": card, "part": carousel.items[card].part], frame: strip.convert(frame, to: body), view: view)
         }
@@ -533,6 +574,59 @@ final class MessageCell: RowCell {
       return press("message", frame: hold ? layout.bounds : body.bounds)
     }
     return nil
+  }
+
+  /// The reaction under a point in the body's coordinates (its frame
+  /// there too), and its view: a tapback or chip of the message, a chip
+  /// under a carousel's card, or a tapback on a deck's front card.
+  private func reaction(inBody point: CGPoint) -> (ReactionHit, UIView?)? {
+    guard let layout else { return nil }
+    if let hit = layout.reaction(at: point) {
+      return (hit, hit.kind == .tapback ? tapbacks.views[hit.id] : chips.views[hit.id])
+    }
+    for (index, part) in layout.parts.enumerated() where index < partViews.count {
+      switch part.content {
+      case .carousel:
+        guard part.frame.contains(point), let strip = partViews[index] as? CarouselView,
+              let chip = strip.layout?.chip(at: strip.convert(point, from: body)) else { continue }
+        let hit = ReactionHit(kind: .chip, id: chip.id, part: chip.part, key: chip.reaction.key, mine: chip.reaction.mine,
+                              frame: strip.convert(chip.frame, to: body))
+        return (hit, strip.chipView(chip.id))
+      case .deck:
+        // Tapbacks stand above the deck's top: not only inside its frame.
+        guard let deck = partViews[index] as? DeckView,
+              let tapback = deck.layout?.tapback(at: deck.convert(point, from: body), front: deck.index) else { continue }
+        let hit = ReactionHit(kind: .tapback, id: tapback.id, part: tapback.part, key: tapback.reaction.key,
+                              mine: tapback.reaction.mine, frame: deck.convert(tapback.frame, to: body))
+        return (hit, deck.tapbackView(tapback.id))
+      default:
+        continue
+      }
+    }
+    return nil
+  }
+
+  /// Whether a point in the content view is on a reaction, which a tap
+  /// toggles at once (MessageListView routes it past the double tap).
+  func reaction(at point: CGPoint) -> ReactionHit? {
+    reaction(inBody: body.convert(point, from: contentView))?.0
+  }
+
+  /// The part a reaction belongs to (`MessageLayout.target`), with its
+  /// frame in the body: a carousel item's card, a deck's front card, or
+  /// the part.
+  private func holdTarget(part: String) -> (index: Int?, frame: CGRect)? {
+    guard let layout, let (at, index) = layout.target(forPart: part) else { return nil }
+    let view = at < partViews.count ? partViews[at] : nil
+    switch layout.parts[at].content {
+    case .carousel:
+      if let index, let strip = view as? CarouselView, let card = strip.cardFrame(index) { return (index, strip.convert(card, to: body)) }
+    case .deck:
+      if let stack = view as? DeckView { return (index, stack.convert(stack.front.frame, to: body)) }
+    default:
+      break
+    }
+    return (index, layout.parts[at].frame)
   }
 
   /// How far `y` is from a frame's span (0 inside it).
@@ -756,7 +850,7 @@ final class TypingCell: RowCell {
   required init?(coder: NSCoder) { fatalError() }
 
   override func configure(_ row: Row, _ rowLayout: RowLayout, state: ListState, animated: Bool) {
-    guard case let .typing(layout) = rowLayout, case let .typing(_, people, label) = row.content else { return }
+    guard case let .typing(layout) = rowLayout, case let .typing(_, people, label, _) = row.content else { return }
     let changing = animated && rowId == row.id
     super.configure(row, rowLayout, state: state, animated: animated)
     self.layout = layout

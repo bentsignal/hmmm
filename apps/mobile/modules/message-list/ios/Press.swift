@@ -79,9 +79,11 @@ final class PressShrink {
     pressed = nil
   }
 
-  /// Parts that shrink: not cards in a deck or a carousel, which move.
+  /// Parts that shrink: a reaction anywhere, but not cards in a deck or a
+  /// carousel, which move.
   static func shrinks(_ view: UIView) -> Bool {
-    if view.superview is DeckView || view.superview is CarouselView { return false }
+    if view is ChipView || view is TapbackView { return true }
+    if view.superview is DeckView || view.superview is CarouselView || view is DeckCardView { return false }
     return view is BubbleView || view is MediaTileView || view is FileView || view is LinkCardView || view is QuoteView
   }
 }

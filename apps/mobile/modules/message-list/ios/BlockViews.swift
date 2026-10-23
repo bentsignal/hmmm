@@ -137,11 +137,92 @@ final class BubbleView: UIView {
   }
 
   private func placeTail() {
-    guard let tailSide else { return }
+    guard tailSide != nil else { return }
     // bounds/center, not frame: the tail may be mirrored.
     tail.bounds = CGRect(x: 0, y: 0, width: 22, height: 27)
-    let x = tailSide == .right ? bounds.width - 11 : 11
-    tail.center = CGPoint(x: x, y: bounds.height - 20 + 13.5)
+    tail.center = tailCenter(in: bounds.size)
+  }
+
+  private func tailCenter(in size: CGSize) -> CGPoint {
+    CGPoint(x: tailSide == .right ? size.width - 11 : 11, y: size.height - 20 + 13.5)
+  }
+
+  // MARK: Growing out of the typing bubble
+
+  private var growDots: CALayer?
+
+  /// Plays the bubble from `start` (the typing bubble, in the superview's
+  /// coordinates) to where it is, as bubble-morph.tsx does: its size and
+  /// place over 320 ms (the list's ease), corners and tail riding along;
+  /// the typing dots, in their place, fade by a third of the way; the text
+  /// fades in over 220 ms once the bubble is its size. Only Core Animation
+  /// moves, so a busy main thread can't stall it.
+  func grow(from start: CGRect, dots color: UIColor, done: @escaping () -> Void) {
+    endGrow()
+    let final = frame
+    let duration = 0.32
+    let curve = CAMediaTimingFunction(controlPoints: 0.25, 0.1, 0.25, 1)
+    func basic(_ key: String, from: Any, to: Any) -> CABasicAnimation {
+      let animation = CABasicAnimation(keyPath: key)
+      animation.fromValue = from
+      animation.toValue = to
+      animation.duration = duration
+      animation.timingFunction = curve
+      return animation
+    }
+    // The typing bubble's dots (8 points, 12 apart, centered), kept at the
+    // same height above the bubble's bottom as it grows.
+    let dotsBox = CALayer()
+    let fromBottom = start.height / 2 + 4
+    dotsBox.frame = CGRect(x: (start.width - 32) / 2, y: final.height - fromBottom, width: 32, height: 8)
+    for index in 0..<3 {
+      let dot = CALayer()
+      dot.frame = CGRect(x: CGFloat(index) * 12, y: 0, width: 8, height: 8)
+      dot.cornerRadius = 4
+      dot.backgroundColor = color.cgColor
+      dotsBox.addSublayer(dot)
+    }
+    dotsBox.opacity = 0
+    layer.addSublayer(dotsBox)
+    growDots = dotsBox
+
+    CATransaction.begin()
+    CATransaction.setCompletionBlock { [weak self, weak dotsBox] in
+      dotsBox?.removeFromSuperlayer()
+      if let self, self.growDots === dotsBox { self.growDots = nil }
+      done()
+    }
+    layer.add(basic("bounds.size", from: NSValue(cgSize: start.size), to: NSValue(cgSize: final.size)), forKey: "growSize")
+    layer.add(basic("position", from: NSValue(cgPoint: CGPoint(x: start.midX, y: start.midY)),
+                    to: NSValue(cgPoint: CGPoint(x: final.midX, y: final.midY))), forKey: "growPosition")
+    layer.add(basic("cornerRadius", from: start.height / 2, to: layer.cornerRadius), forKey: "growCorners")
+    if tailSide != nil {
+      tail.layer.add(basic("position", from: NSValue(cgPoint: tailCenter(in: start.size)),
+                           to: NSValue(cgPoint: tailCenter(in: final.size))), forKey: "growTail")
+    }
+    // Everything inside is placed from the top left: lay the dots and the
+    // text from the bottom left, where the bubble grows from.
+    dotsBox.add(basic("position.y", from: start.height - fromBottom + 4, to: final.height - fromBottom + 4), forKey: "growDots")
+    let dotsOut = CAKeyframeAnimation(keyPath: "opacity")
+    dotsOut.values = [1, 0, 0]
+    dotsOut.keyTimes = [0, NSNumber(value: 1.0 / 3), 1]
+    dotsOut.duration = duration
+    dotsBox.add(dotsOut, forKey: "growDotsOut")
+    let textIn = CAKeyframeAnimation(keyPath: "opacity")
+    textIn.values = [0, 0, 1]
+    textIn.keyTimes = [0, NSNumber(value: duration / (duration + 0.22)), 1]
+    textIn.duration = duration + 0.22
+    text.layer.add(textIn, forKey: "growText")
+    CATransaction.commit()
+  }
+
+  /// Stops a grow at its end (the cell is recycled).
+  func endGrow() {
+    for key in ["growSize", "growPosition", "growCorners"] { layer.removeAnimation(forKey: key) }
+    tail.layer.removeAnimation(forKey: "growTail")
+    text.layer.removeAnimation(forKey: "growText")
+    growDots?.removeFromSuperlayer()
+    growDots = nil
   }
 }
 

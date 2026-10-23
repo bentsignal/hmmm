@@ -81,14 +81,35 @@ final class TapbackView: UIView, ReactionView {
   }
 }
 
+/// What a stacked chip is drawn with. The React Native list's chips were
+/// glass (`GlassSurface`). Chips sit on the conversation's plain
+/// background, where a live backdrop shows little but its rim and tint,
+/// so `sheen` draws those as a stretchable image made once per look: no
+/// backdrop and no offscreen pass, so structurally it's drawn like a
+/// fill. Its actual cost hasn't been measured. `glass` is the
+/// system's live glass (iOS 26, a blur before), `fill` the flat color the
+/// list has drawn so far, which stays the default until the three are
+/// measured against each other. To compare them, set the app's
+/// `VeraChipMaterial` default to `glass`, `fill`, or `sheen` before launch.
+enum ChipMaterial: String {
+  case sheen, glass, fill
+
+  static let current = UserDefaults.standard.string(forKey: "VeraChipMaterial").flatMap(ChipMaterial.init) ?? .fill
+}
+
 final class ChipView: UIView, ReactionView {
   private(set) var reactionId = ""
   private(set) var layout: ChipLayout?
   private let text = TextView()
   private let image = UIImageView()
+  private let material = UIImageView()
+  private var glass: UIVisualEffectView?
+
   override init(frame: CGRect) {
     super.init(frame: frame)
     image.contentMode = .scaleAspectFit
+    material.isUserInteractionEnabled = false
+    if ChipMaterial.current == .sheen { addSubview(material) }
     addSubview(text)
     addSubview(image)
   }
@@ -99,9 +120,17 @@ final class ChipView: UIView, ReactionView {
     self.layout = layout
     reactionId = layout.id
     layer.cornerRadius = Metrics.chipHeight / 2
-    // A fill, not the RN list's glass: glass chips more than doubled the
-    // slow frames flinging stacked rows (66 against 27 in the same run).
-    backgroundColor = layout.reaction.mine ? theme.accent.withAlphaComponent(0.2) : theme.fill
+    let tint = layout.reaction.mine ? theme.accent.withAlphaComponent(0.2) : theme.fill
+    switch ChipMaterial.current {
+    case .fill:
+      backgroundColor = tint
+    case .sheen:
+      backgroundColor = nil
+      material.image = Sheen.image(tint: tint, background: theme.background)
+    case .glass:
+      backgroundColor = nil
+      setGlass(tint: layout.reaction.mine ? theme.accent.withAlphaComponent(0.25) : nil)
+    }
     text.text = layout.text.string
     text.frame = layout.text.frame
     if let url = layout.reaction.imageUrl {
@@ -112,6 +141,88 @@ final class ChipView: UIView, ReactionView {
       image.isHidden = true
     }
     accessibilityLabel = "\(layout.reaction.label) \(layout.reaction.count)"
+  }
+
+  private func setGlass(tint: UIColor?) {
+    let view: UIVisualEffectView
+    if let glass {
+      view = glass
+    } else {
+      view = UIVisualEffectView(effect: nil)
+      view.isUserInteractionEnabled = false
+      view.clipsToBounds = true
+      view.layer.cornerRadius = Metrics.chipHeight / 2
+      insertSubview(view, at: 0)
+      glass = view
+    }
+    if #available(iOS 26.0, *) {
+      let effect = UIGlassEffect()
+      effect.tintColor = tint
+      view.effect = effect
+    } else {
+      view.effect = UIBlurEffect(style: .systemUltraThinMaterial)
+      view.backgroundColor = tint
+    }
+  }
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    material.frame = bounds.insetBy(dx: -Sheen.pad, dy: -Sheen.pad)
+    glass?.frame = bounds
+  }
+}
+
+/// `ChipMaterial.sheen`: a capsule in the chip's tint with glass's rim (a
+/// hairline brighter at the top) and a soft shadow, drawn once per tint
+/// and stretched to each chip's width.
+enum Sheen {
+  /// Room around the capsule for its shadow.
+  static let pad: CGFloat = 4
+  private static let cache = NSCache<NSString, UIImage>()
+
+  static func image(tint: UIColor, background: UIColor) -> UIImage {
+    let dark = background.luminance < 0.5
+    let key = "\(tint.hashValue)|\(dark)|\(UIScreen.main.scale)" as NSString
+    if let image = cache.object(forKey: key) { return image }
+    let height = Metrics.chipHeight
+    let capsule = CGRect(x: pad, y: pad, width: height + 2, height: height)
+    let size = CGSize(width: capsule.width + pad * 2, height: height + pad * 2)
+    let drawn = UIGraphicsImageRenderer(size: size).image { context in
+      let cg = context.cgContext
+      let path = UIBezierPath(roundedRect: capsule, cornerRadius: height / 2)
+      cg.saveGState()
+      cg.setShadow(offset: CGSize(width: 0, height: 1), blur: 3, color: UIColor.black.withAlphaComponent(dark ? 0.35 : 0.10).cgColor)
+      // The shadow needs something opaque under the tint to fall from.
+      background.withAlphaComponent(dark ? 0.6 : 0.9).setFill()
+      path.fill()
+      cg.restoreGState()
+      tint.setFill()
+      path.fill()
+      // The rim: a hairline, brightest along the top.
+      let rim = path.cgPath.copy(strokingWithWidth: 1, lineCap: .round, lineJoin: .round, miterLimit: 1)
+      cg.saveGState()
+      cg.addPath(rim)
+      cg.clip()
+      let top = UIColor.white.withAlphaComponent(dark ? 0.32 : 0.85).cgColor
+      let bottom = UIColor.white.withAlphaComponent(dark ? 0.06 : 0.25).cgColor
+      if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: [top, bottom] as CFArray, locations: [0, 1]) {
+        cg.drawLinearGradient(gradient, start: CGPoint(x: 0, y: capsule.minY), end: CGPoint(x: 0, y: capsule.maxY), options: [])
+      }
+      cg.restoreGState()
+    }
+    let inset = pad + height / 2
+    let image = drawn.resizableImage(withCapInsets: UIEdgeInsets(top: inset, left: inset, bottom: inset, right: inset), resizingMode: .stretch)
+    cache.setObject(image, forKey: key)
+    return image
+  }
+}
+
+extension UIColor {
+  /// Relative brightness, 0 (black) to 1 (white).
+  var luminance: CGFloat {
+    var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+    guard getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return 1 }
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue
   }
 }
 
@@ -138,7 +249,8 @@ final class ReactionPool<View: UIView & ReactionView> {
       let key = id(layout)
       if let view = views.removeValue(forKey: key) {
         set(view, layout)
-        view.frame = frame(layout)
+        // bounds and center: it may be shrunk under a finger.
+        Self.place(view, frame(layout))
         next[key] = view
       } else {
         let view = spare.popLast() ?? make()
@@ -148,7 +260,7 @@ final class ReactionPool<View: UIView & ReactionView> {
         view.isUserInteractionEnabled = true
         UIView.performWithoutAnimation {
           set(view, layout)
-          view.frame = frame(layout)
+          Self.place(view, frame(layout))
         }
         container.addSubview(view)
         next[key] = view
@@ -164,6 +276,11 @@ final class ReactionPool<View: UIView & ReactionView> {
       }
     }
     views = next
+  }
+
+  private static func place(_ view: UIView, _ frame: CGRect) {
+    view.bounds = CGRect(origin: .zero, size: frame.size)
+    view.center = CGPoint(x: frame.midX, y: frame.midY)
   }
 
   func bringToFront(order: [String]) {
