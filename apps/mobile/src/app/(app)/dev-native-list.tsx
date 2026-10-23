@@ -98,7 +98,7 @@ export default function DevNativeList() {
             onLatest={() => void list.current?.scrollToLatest(true)}
             onBench={() =>
               void list.current
-                ?.benchFling?.(5500, 8000)
+                ?.benchFling?.(5500, 10000)
                 .then((result) => setBench(JSON.stringify(result)))
             }
           />
