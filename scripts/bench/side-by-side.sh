@@ -19,7 +19,10 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 FLAG=()
 [[ ${1:-} == --android ]] && { FLAG=(--android); shift; }
-SCENARIOS=(${@:-fling burst react hold})
+SCENARIOS=("$@")
+if (( ${#SCENARIOS} == 0 )); then
+  SCENARIOS=(fling burst react hold)
+fi
 GROUP=${BENCH_GROUP:?set BENCH_GROUP to the conversation}
 PREFIX=h2h${FLAG:+-android}
 E=.cache/evidence

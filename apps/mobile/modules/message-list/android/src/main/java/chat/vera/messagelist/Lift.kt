@@ -8,6 +8,7 @@ import android.graphics.drawable.GradientDrawable
 import android.view.Choreographer
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.view.animation.PathInterpolator
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.views.modal.ReactModalHostView
@@ -38,6 +39,7 @@ class Lifter(private val units: Units, private val activityRoot: () -> ViewGroup
   private var lifted: Lifted? = null
   private var animation: ValueAnimator? = null
   private var frame: Choreographer.FrameCallback? = null
+  private var restore: Pair<ViewGroup, ViewTreeObserver.OnPreDrawListener>? = null
 
   fun lift(request: LiftRequest, holder: RowHolder, pressedScale: Float? = null) {
     if (lifted?.request == request) return
@@ -152,7 +154,7 @@ class Lifter(private val units: Units, private val activityRoot: () -> ViewGroup
     val dx = destination[0] + current.pieces.frame.left - current.screen[0]
     val dy = destination[1] + current.pieces.frame.top - current.screen[1]
     val easing = PathInterpolator(0.215f, 0.61f, 0.355f, 1f)
-    animate(240, { easing.getInterpolation(it) }, onEnd = { finish() }) { progress ->
+    animate(240, { easing.getInterpolation(it) }, onEnd = { restoreOnDraw() }) { progress ->
       view.scaleX = fromScale + (1f - fromScale) * progress
       view.scaleY = view.scaleX
       view.translationX = dx * progress
@@ -162,7 +164,22 @@ class Lifter(private val units: Units, private val activityRoot: () -> ViewGroup
     }
   }
 
+  /** The Dialog can draw before the activity. Return the real part only
+   * when the conversation is about to draw it, never into a cached hole. */
+  private fun restoreOnDraw() {
+    val root = activityRoot()
+    if (root == null || !root.isAttachedToWindow) { finish(); return }
+    val listener = ViewTreeObserver.OnPreDrawListener { finish(); true }
+    restore = root to listener
+    root.viewTreeObserver.addOnPreDrawListener(listener)
+    root.postInvalidateOnAnimation()
+  }
+
   fun finish() {
+    restore?.let { (root, listener) ->
+      if (root.viewTreeObserver.isAlive) root.viewTreeObserver.removeOnPreDrawListener(listener)
+    }
+    restore = null
     animation?.removeAllListeners()
     animation?.cancel()
     animation = null
@@ -177,9 +194,11 @@ class Lifter(private val units: Units, private val activityRoot: () -> ViewGroup
       piece.view.layout(piece.frame.left, piece.frame.top, piece.frame.right, piece.frame.bottom)
       piece.view.translationX = piece.x
       piece.view.translationY = piece.y
+      piece.home.invalidate()
     }
     current.host.overlay.remove(current.container)
     current.cell.endLift()
+    current.cell.invalidate()
     current.holder.setIsRecyclable(true)
   }
 
