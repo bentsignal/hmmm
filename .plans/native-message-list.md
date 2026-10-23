@@ -627,3 +627,14 @@ and 47/516 versus 1/586 for stacked. Bubbles main-thread p90 was
 software-rendered emulator intervals. Mac CPU during bubbles was 59/79%
 average, 81/91% peak; report this load and do not claim a quiet-host or
 zero-slow-frame gate. Burst measurements and motion review follow.
+
+Final Android bursts are 20261023-133640 and 20261023-133840.
+Bubbles RN/native: 28.4/59.5 capture FPS, 143/9 slow intervals,
+2,400/50 ms worst flagged interval, 91/25 JS stalls. Main-thread samples
+over 16.7 ms: 151/409 versus 0/97, worst work 2,392/9.1 ms.
+Stacked: 55.2/60.0 FPS, 76/0 slow intervals, 66.7 ms versus no flagged
+interval, 65/22 JS stalls. Main work over 16.7 ms: 70/257 versus 0/69,
+worst 60.6/2.6 ms. Burst host CPU averaged RN/native 46/16% bubbles,
+31/16% stacked; no builds or boots overlapped. These are sequential bursts
+in the same chat, so histories grow, with normal prefetch/cache behavior.
+The full final numbers and qualifications were sent to the orchestrator.
