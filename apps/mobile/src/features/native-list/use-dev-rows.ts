@@ -18,6 +18,8 @@ export function useDevRows() {
   const [typing, setTyping] = useState<0 | 1 | 2>(0);
   const [lifted, setLifted] = useState<string | undefined>();
   const [last, setLast] = useState("");
+  // Opening on a message (a search or notification): a new list each time.
+  const [opening, setOpening] = useState({ initialRowId: "", key: 0 });
   // Messages loaded so far, and whether a page is on its way: a ref, so a
   // second request while one loads doesn't load the same page twice.
   const loaded = useRef({ count: 60, loading: false });
@@ -89,6 +91,10 @@ export function useDevRows() {
 
   return {
     arrive,
+    initialRowId: opening.initialRowId || undefined,
+    key: opening.key,
+    openAt: (id: string) =>
+      setOpening({ initialRowId: id, key: opening.key + 1 }),
     heavy,
     last,
     layout,

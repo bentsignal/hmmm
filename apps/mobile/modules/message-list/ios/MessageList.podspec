@@ -16,5 +16,7 @@ Pod::Spec.new do |s|
   s.source_files = '**/*.swift'
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
+    # Optimized even in dev clients, so scrolling there is what ships.
+    'SWIFT_OPTIMIZATION_LEVEL' => '-O',
   }
 end

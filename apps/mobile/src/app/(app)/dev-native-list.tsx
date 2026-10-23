@@ -42,6 +42,7 @@ export default function DevNativeList() {
   return (
     <View className="bg-background flex-1">
       <MessageListView
+        key={dev.key}
         ref={list}
         style={{ flex: 1 }}
         contractVersion={CONTRACT_VERSION}
@@ -51,6 +52,7 @@ export default function DevNativeList() {
         insets={{ bottom: barHeight, top: insets.top + 44 }}
         keyboard
         liftedRowId={dev.lifted}
+        initialRowId={dev.initialRowId}
         onEvent={dev.onEvent}
       />
       <View
@@ -110,6 +112,7 @@ function Controls({
       <Button label={`typing ${dev.typing}`} onPress={dev.nextTyping} />
       <Button label="typed" onPress={dev.typed} />
       <Button label="latest" onPress={onLatest} />
+      <Button label="open m30" onPress={() => dev.openAt("m30")} />
     </View>
   );
 }
