@@ -266,6 +266,11 @@ export interface FooterLine {
 export interface Theme {
   readonly colors: {
     readonly background: string;
+    /**
+     * Cards over the background (link previews). Optional: older
+     * JavaScript doesn't send it, and native uses `background` then.
+     */
+    readonly backgroundElevated?: string;
     readonly foreground: string;
     readonly muted: string;
     readonly subtle: string;
