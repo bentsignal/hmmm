@@ -500,3 +500,33 @@ gating, so repeated Firehose labels/avatars can correlate incorrectly. No
 confirmed native reversal or hide/show defect was found. Keep the formal
 flags and the limitation; this is not an all-pass motion gate. Native SHA
 remains 6b264fa2, and its owner's devices and Metro are down.
+
+### Final iOS production-bundle comparison
+
+The five-screen native prefetch recheck used a fresh 600-message media seed,
+5,500 pt/s for ten seconds, then 150 arrivals over 15 seconds. Both lists
+started with 50 loaded messages. Capture FPS includes settling and driver
+round trips. There were no concurrent builds or device boots.
+
+| Layout | Scenario | RN capture FPS | Native capture FPS | RN slow | Native slow | RN worst | Native worst |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Bubbles | Scroll | 49.4 | 59.8 | 84 | 2 | 73.2 ms | 35.6 ms |
+| Stacked | Scroll | 52.4 | 59.7 | 72 | 4 | 83.3 ms | 38.6 ms |
+| Bubbles | Burst | 47.2 | 59.6 | 163 | 9 | 80.1 ms | 39.3 ms |
+| Stacked | Burst | 50.8 | 59.6 | 157 | 8 | 75.0 ms | 40.7 ms |
+
+Native scrolled 55,000 pt in both layouts with zero edge wait and loaded
+50 → 450 rows. RN bubbles scrolled 48,097 pt with 483 ms edge wait,
+50 → 350 rows; RN stacked scrolled 51,000 pt with zero edge wait,
+50 → 400. JS stalls above 50 ms fell from 60/67/101/108 to 5/5/12/12
+in the table's order. This improves the baseline but does not satisfy a
+zero-slow-frame claim. Shawn's real group chat remains the phone gate.
+
+Native dark-mode motion passed 17/18 scenarios. Only stacked firehose
+failed, with two failing and six minor flags. Light-mode results and the
+analyzer limitation above remain unchanged. All three runs had zero Metro
+errors. Real-app media verification also exercised selected-photo viewer
+opening after carousel swipe, deck swipe, video playback, photo menu
+open/close, avatar and mention profile navigation, URL opening in the
+in-app browser, and the timestamp swipe. Recorded evidence is in .cache.
+The iOS simulator and Metro were brought down after capture.
