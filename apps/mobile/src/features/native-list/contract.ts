@@ -100,10 +100,15 @@ export interface MessageRow extends RowBase {
   readonly accessibilityLabel: string;
 }
 
-/** A time header (bubbles, after a pause) or day separator (stacked). */
+/**
+ * A time header (bubbles, after a pause), a day separator (stacked), or a
+ * thread's divider under its original (`replies`: the label at the start
+ * in semibold footnote, then a hairline rule to the edge, as Slack draws
+ * it). A binary that doesn't know a style draws it as `day`.
+ */
 export interface HeaderRow extends RowBase {
   readonly kind: "header";
-  readonly style: "time" | "day";
+  readonly style: "time" | "day" | "replies";
   /** The text, already formatted: "Today 9:41 AM". */
   readonly label: string;
 }
@@ -124,9 +129,14 @@ export interface TypingRow extends RowBase {
 }
 
 /**
- * Something this binary has no native kind for yet. Version 1 draws its
- * `fallbackText`; a later version may host a React view here (the escape
- * hatch for rare row kinds).
+ * Something this binary has no native kind for yet: the escape hatch for
+ * rare row kinds (a poll, a custom card). Binaries with the `customRows`
+ * feature draw it with React: JavaScript renders the component inside a
+ * `MessageListRow` (native.ts) with this row's `rowId`, as a child of the
+ * list, laid out at the list's width (`position: "absolute"`, `left` and
+ * `right` 0); native puts it in the row's cell and makes the row as tall
+ * as React lays it out. Until then, and on other binaries, native draws
+ * its `fallbackText`. Slower than a native row: for rare rows only.
  */
 export interface CustomRow extends RowBase {
   readonly kind: "custom";
@@ -372,9 +382,35 @@ export interface MessageListViewProps {
   readonly alignTop?: boolean;
   /** A row lifted into the menu: hidden in the list while it's up. */
   readonly liftedRowId?: string;
+  /**
+   * Binaries with the `lift` feature: the held message itself lifts into
+   * the menu, above its blur, instead of a copy (don't set `liftedRowId`
+   * then, or render a copy). Set it as the menu opens; clear it as the
+   * menu starts closing, and the message plays back into place over the
+   * menu's 240 ms close.
+   */
+  readonly lift?: Lift;
   /** Opens on this row (a search or notification) instead of the newest. */
   readonly initialRowId?: string;
   readonly onEvent: (event: { nativeEvent: ListEvent }) => void;
+}
+
+/**
+ * Where the held part goes while the menu is open, as the menu laid it
+ * out (`menuLayout` in features/conversation/menu-layout.ts): moved by
+ * `shift` and scaled by `scale` from its top corner on its side
+ * (`origin`), or from its top middle. Native springs it there with the
+ * menu's open spring.
+ */
+export interface Lift {
+  readonly rowId: string;
+  /** As the `hold` event reported it. */
+  readonly part?: string;
+  readonly index?: number;
+  /** Points down; negative moves it up. */
+  readonly shift: number;
+  readonly scale: number;
+  readonly origin: "start" | "end" | "middle";
 }
 
 /** What happened in the list, for JavaScript to act on. */
@@ -432,6 +468,21 @@ export type ListEvent =
 export interface MessageListViewMethods {
   scrollToLatest(animated: boolean): Promise<void>;
   scrollToRow(rowId: string, animated: boolean): Promise<void>;
+  /**
+   * For benchmarks only (`veraDev.list.fling`; binaries with the
+   * `benchFling` feature): scrolls toward older messages at a constant
+   * `speed` (points a second) for `ms`, moved on the display link each
+   * frame on from wherever the list is, with no deceleration. The React
+   * Native list's benchmark drives it the same way (Reanimated's
+   * `scrollTo` in a frame callback), so the two compare fairly, free of a
+   * test driver's injected touches. At the oldest row it waits there while
+   * older rows load. Resolves when done with how far it went and how long
+   * it spent stuck at the oldest row.
+   */
+  benchFling?(
+    speed: number,
+    ms: number,
+  ): Promise<{ travelled: number; edgeMs: number }>;
 }
 
 /** What the installed binary reports (the module's constants). */
@@ -439,4 +490,12 @@ export interface NativeSupport {
   readonly contractVersion: number;
   readonly rowKinds: readonly string[];
   readonly blockTypes: readonly string[];
+  /**
+   * What the binary does beyond version 1's basics, so an over-the-air
+   * update knows what it can use. Missing in the first binaries.
+   * - `lift`: the `lift` prop (the real message lifts into the menu).
+   * - `customRows`: custom rows drawn by React (`MessageListRow`).
+   * - `benchFling`: the `benchFling` method, for benchmarks.
+   */
+  readonly features?: readonly string[];
 }

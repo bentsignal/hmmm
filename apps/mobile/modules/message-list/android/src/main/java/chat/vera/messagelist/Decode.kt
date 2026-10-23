@@ -177,7 +177,11 @@ fun decodeRow(map: ReadableMap): Row? {
           accessibilityLabel = map.str("accessibilityLabel") ?: fallback,
         )
       }
-      "header" -> HeaderRow(id, map.str("style") == "day", map.str("label") ?: "")
+      "header" -> {
+        // A style this binary doesn't know is drawn as a day separator.
+        val style = map.str("style").takeIf { it == "time" || it == "replies" } ?: "day"
+        HeaderRow(id, style, map.str("label") ?: "")
+      }
       "notice" -> NoticeRow(id, spans(map.array("spans")))
       "typing" ->
         TypingRow(
