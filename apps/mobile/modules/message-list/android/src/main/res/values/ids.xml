@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- What a tap on a view reports, and what holding it lifts. -->
+  <item name="message_list_press" type="id" />
+  <item name="message_list_hold" type="id" />
+  <!-- A view that takes horizontal drags itself (a carousel, a deck). -->
+  <item name="message_list_horizontal" type="id" />
+</resources>

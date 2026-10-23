@@ -6,9 +6,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   FIXTURE_BEHAVIOR,
   FIXTURE_THEME,
+  FIXTURE_THEME_DARK,
   FIXTURE_TYPING,
   fixtureMessage,
   fixtureRows,
+  withRuns,
 } from "~/features/native-list/fixtures";
 import {
   CONTRACT_VERSION,
@@ -29,6 +31,7 @@ export default function DevNativeList() {
   const [loaded, setLoaded] = useState(60);
   const [arrivals, setArrivals] = useState(0);
   const [typing, setTyping] = useState(false);
+  const [dark, setDark] = useState(false);
   const [last, setLast] = useState("");
 
   function relayout(next: "bubbles" | "stacked") {
@@ -40,7 +43,7 @@ export default function DevNativeList() {
       fixtureMessage(-(arrivals + index + 1), layout, Date.now(), true),
     ).reverse();
     setArrivals(arrivals + count);
-    setRows([...added, ...rows]);
+    setRows(withRuns([...added, ...rows]));
   }
   function toggleReaction() {
     setRows(
@@ -61,7 +64,7 @@ export default function DevNativeList() {
     if (nativeEvent.type === "reachedOlder" && loaded < 600) {
       // An older page, a moment later, as from the server.
       setTimeout(() => {
-        setRows((now) => [...now, ...fixtureRows(50, loaded, layout)]);
+        setRows((now) => withRuns([...now, ...fixtureRows(50, loaded, layout)]));
         setLoaded(loaded + 50);
       }, 400);
     }
@@ -80,12 +83,15 @@ export default function DevNativeList() {
     ? [{ ...FIXTURE_TYPING, layout }, ...rows]
     : rows;
   return (
-    <View className="bg-background flex-1">
+    <View
+      className="flex-1"
+      style={{ backgroundColor: dark ? "#000000" : "#ffffff" }}
+    >
       <MessageListView
         style={{ flex: 1 }}
         contractVersion={CONTRACT_VERSION}
         rows={shown}
-        theme={FIXTURE_THEME}
+        theme={dark ? FIXTURE_THEME_DARK : FIXTURE_THEME}
         behavior={FIXTURE_BEHAVIOR}
         insets={{ bottom: insets.bottom + 56, top: insets.top + 44 }}
         keyboard
@@ -111,6 +117,7 @@ export default function DevNativeList() {
         <Button label="+20" onPress={() => arrive(20)} />
         <Button label="react" onPress={toggleReaction} />
         <Button label="typing" onPress={() => setTyping(!typing)} />
+        <Button label={dark ? "light" : "dark"} onPress={() => setDark(!dark)} />
       </View>
     </View>
   );

@@ -1,0 +1,656 @@
+package chat.vera.messagelist
+
+import android.animation.ValueAnimator
+import android.annotation.SuppressLint
+import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
+import android.util.DisplayMetrics
+import android.view.GestureDetector
+import android.view.HapticFeedbackConstants
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewConfiguration
+import android.view.ViewTreeObserver
+import android.view.animation.DecelerateInterpolator
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsAnimationCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.LinearSmoothScroller
+import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.facebook.react.bridge.ReadableArray
+import com.facebook.react.bridge.ReadableMap
+import expo.modules.kotlin.AppContext
+import expo.modules.kotlin.viewevent.EventDispatcher
+import expo.modules.kotlin.views.ExpoView
+import java.util.ArrayDeque
+import java.util.concurrent.Executors
+import kotlin.math.abs
+
+/**
+ * The native message list (see src/features/native-list/contract.ts): a
+ * RecyclerView laid out from the bottom, newest row at position 0.
+ *
+ * JavaScript sends rows; they're read and diffed off the main thread, then
+ * applied in one pass, so a page of older messages costs data, not a burst
+ * of view creation. Rows added above the reader (older pages) don't move
+ * anything on screen; a message arriving at the bottom animates in; and
+ * scrolled away from the bottom, nothing visible moves.
+ */
+@SuppressLint("ViewConstructor")
+class MessageListView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
+  private val onEvent by EventDispatcher()
+
+  private val units = Units(context)
+  private val images = Images(Glide.with(context.applicationContext))
+  private val mediaPool = RecyclerView.RecycledViewPool().apply { setMaxRecycledViews(CarouselAdapter.VIEW_TYPE, 24) }
+  private val env = CellEnv(units, images, mediaPool)
+  private val rows = RowsAdapter(env)
+  private val manager = LinearLayoutManager(context, RecyclerView.VERTICAL, true)
+  private val animator = ListItemAnimator(units)
+  private val recycler = RecyclerView(context)
+
+  private val main = Handler(Looper.getMainLooper())
+  private val work = Executors.newSingleThreadExecutor { runnable -> Thread(runnable, "MessageList").apply { priority = Thread.NORM_PRIORITY - 1 } }
+
+  /** The last rows sent to be read, as the worker thread sees them. */
+  @Volatile private var workerRows: List<Row> = emptyList()
+  private var pendingRows: ReadableArray? = null
+  private var rowsChanged = false
+
+  private var behavior = Behavior.DEFAULT
+  private var insetTop = 0f
+  private var insetBottom = 0f
+  private var followKeyboard = false
+  private var keyboard = 0
+  private var imeAnimating = false
+  private var initialRowId: String? = null
+
+  private var shown = false
+  private var placeWhenSized = false
+  private var readySent = false
+  private var hasBubbles = false
+
+  // What was last reported, so each event is sent once per change.
+  private var olderAt = -1
+  private var newerAt = -1
+  private var nearLatest: Boolean? = null
+  private var visibleFirst = -1
+  private var visibleLast = -1
+
+  /** When recent arrivals came, for the firehose rule. */
+  private val arrivalTimes = ArrayDeque<Long>()
+  private var firehose = false
+
+  override val shouldUseAndroidLayout = true
+
+  init {
+    clipChildren = false
+    clipToPadding = false
+    recycler.layoutManager = manager
+    recycler.adapter = rows
+    recycler.itemAnimator = animator
+    recycler.setHasFixedSize(true)
+    recycler.clipToPadding = false
+    recycler.clipChildren = false
+    recycler.overScrollMode = View.OVER_SCROLL_NEVER
+    recycler.isVerticalScrollBarEnabled = false
+    recycler.setItemViewCacheSize(4)
+    recycler.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+    manager.initialPrefetchItemCount = 4
+    animator.restingAlpha = { holder -> if ((holder as? RowHolder)?.row?.id == rows.liftedRowId && rows.liftedRowId != null) 0f else 1f }
+    addView(recycler, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+
+    rows.onAccessibilityTarget = { target -> send(target.event()) }
+    rows.onAccessibilityHold = { holder -> hold(holder, null) }
+    env.onDeckChanged = { cell -> cell.deckChanged() }
+
+    recycler.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+      override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+        report(dy)
+        preload()
+      }
+    })
+    watchKeyboard()
+  }
+
+  // MARK: Props
+
+  fun setRows(array: ReadableArray?) {
+    pendingRows = array
+    rowsChanged = true
+  }
+
+  fun setTheme(map: ReadableMap?) {
+    val theme = decodeTheme(map)
+    if (theme == env.theme) return
+    env.theme = theme
+    if (rows.itemCount > 0) {
+      animator.animate = false
+      rows.notifyItemRangeChanged(0, rows.itemCount)
+      layoutNow()
+    }
+  }
+
+  fun setBehavior(map: ReadableMap?) {
+    behavior = decodeBehavior(map)
+    animator.moveMs = behavior.moveMs
+    animator.fadeMs = behavior.fadeMs
+  }
+
+  fun setInsets(map: ReadableMap?) {
+    insetTop = map?.num("top")?.toFloat() ?: 0f
+    insetBottom = map?.num("bottom")?.toFloat() ?: 0f
+    applyPadding()
+  }
+
+  fun setKeyboard(enabled: Boolean) {
+    followKeyboard = enabled
+    if (!enabled) keyboard = 0 else keyboard = keyboardLift(ViewCompat.getRootWindowInsets(this))
+    applyPadding()
+  }
+
+  fun setLiftedRowId(id: String?) {
+    if (id == rows.liftedRowId) return
+    rows.liftedRowId = id
+    for (index in 0 until recycler.childCount) {
+      val holder = recycler.getChildViewHolder(recycler.getChildAt(index)) as? RowHolder ?: continue
+      val lifted = id != null && holder.row?.id == id
+      val view = holder.itemView
+      view.animate().cancel()
+      if (lifted) view.alpha = 0f
+      // Back in place once the menu has closed over it.
+      else if (view.alpha < 1f) view.animate().alpha(1f).setDuration(120).start()
+    }
+  }
+
+  fun setInitialRowId(id: String?) {
+    if (!shown) initialRowId = id
+  }
+
+  /** Applies the props that changed together, once they're all in. */
+  fun commit() {
+    if (!rowsChanged) return
+    rowsChanged = false
+    val array = pendingRows
+    work.execute {
+      val next = decodeRows(array)
+      val before = workerRows
+      workerRows = next
+      val diff = if (before.isEmpty()) null else DiffUtil.calculateDiff(RowsDiff(before, next), false)
+      main.post { apply(next, diff) }
+    }
+  }
+
+  // MARK: Applying rows
+
+  private fun apply(next: List<Row>, diff: DiffUtil.DiffResult?) {
+    val before = rows.rows
+    hasBubbles = next.any { it is MessageRow && !it.stacked }
+    if (!shown || before.isEmpty()) {
+      animator.animate = false
+      rows.apply(next, null)
+      animator.animate = true
+      if (next.isNotEmpty()) {
+        if (width == 0 || height == 0) placeWhenSized = true else placeInitially(next)
+      }
+      return
+    }
+    val wasAtBottom = distanceFromLatest()?.let { it <= units.pxf(behavior.nearLatestPoints) } == true
+    val beforeIds = HashSet<String>(before.size * 2)
+    before.forEach { beforeIds.add(it.id) }
+    // Rows kept from before: new ones under the first are at the bottom
+    // (arrivals, who's typing); new ones past the last are an older page.
+    val firstKept = next.indexOfFirst { it.id in beforeIds }.let { if (it < 0) next.size else it }
+    val lastKept = next.indexOfLast { it.id in beforeIds }
+    var insertedCount = 0
+    val shownIn = HashSet<String>()
+    val arrivals = HashSet<String>()
+    for ((index, row) in next.withIndex()) {
+      if (row.id in beforeIds) continue
+      insertedCount++
+      if (index > lastKept) continue
+      if (index < firstKept) {
+        if (!wasAtBottom) continue
+        if (row is MessageRow && row.arrived) arrivals.add(row.id)
+      }
+      shownIn.add(row.id)
+    }
+    val changed = insertedCount + (before.size - (next.size - insertedCount))
+    countArrivals(next.take(firstKept).count { it is MessageRow && it.arrived && it.id !in beforeIds })
+    // A firehose or a big change: everything takes its place at once.
+    animator.animate = !firehose && changed <= BIG_CHANGE
+    animator.inserted = shownIn
+    animator.arrivals = arrivals
+    rows.apply(next, diff)
+    val newestInserted = firstKept > 0
+    if (wasAtBottom && newestInserted) manager.scrollToPositionWithOffset(0, 0)
+    layoutNow()
+    animator.inserted = emptySet()
+    animator.arrivals = emptySet()
+    animator.animate = true
+    recycler.post { report(0) }
+  }
+
+  /** Counts arrivals in the firehose window: past `firehoseFrom`, they show at once until it's down to `firehoseUntil`. */
+  private fun countArrivals(count: Int) {
+    val now = SystemClock.uptimeMillis()
+    repeat(count) { arrivalTimes.addLast(now) }
+    while (arrivalTimes.isNotEmpty() && now - arrivalTimes.first() > behavior.firehoseWindowMs) arrivalTimes.removeFirst()
+    val recent = arrivalTimes.size
+    if (!firehose && recent >= behavior.firehoseFrom) firehose = true
+    else if (firehose && recent <= behavior.firehoseUntil) firehose = false
+  }
+
+  /** Opens on `initialRowId`, centered, or on the newest row. */
+  private fun placeInitially(next: List<Row>) {
+    val target = initialRowId?.let { id -> next.indexOfFirst { it.id == id } } ?: -1
+    if (target > 0) {
+      manager.scrollToPositionWithOffset(target, visibleHeight() / 2)
+    } else {
+      manager.scrollToPositionWithOffset(0, 0)
+    }
+    layoutNow()
+    if (target > 0) centerOn(target)
+    shown = true
+    recycler.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+      override fun onPreDraw(): Boolean {
+        recycler.viewTreeObserver.removeOnPreDrawListener(this)
+        if (!readySent) {
+          readySent = true
+          // On the frame after it's drawn placed.
+          recycler.postOnAnimation { send(mapOf("type" to "ready")) }
+        }
+        report(0)
+        preload()
+        return true
+      }
+    })
+  }
+
+  /** Moves a laid-out row to the middle of what's visible. */
+  private fun centerOn(position: Int) {
+    val view = manager.findViewByPosition(position) ?: return
+    val middle = recycler.paddingTop + visibleHeight() / 2
+    val center = (view.top + view.bottom) / 2
+    val delta = center - middle
+    if (abs(delta) > 1) {
+      recycler.scrollBy(0, delta)
+    }
+  }
+
+  private fun visibleHeight() = recycler.height - recycler.paddingTop - recycler.paddingBottom
+
+  /**
+   * Measures and lays out the list now, rather than on a later frame (React
+   * Native doesn't lay out native children itself), so a change and its
+   * animation start in the same frame.
+   */
+  private fun layoutNow() {
+    if (width == 0 || height == 0) return
+    recycler.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY))
+    recycler.layout(0, 0, width, height)
+  }
+
+  // MARK: Insets and the keyboard
+
+  private fun applyPadding() {
+    val top = units.px(insetTop)
+    val bottom = units.px(insetBottom) + keyboard
+    if (recycler.paddingTop == top && recycler.paddingBottom == bottom) return
+    recycler.setPadding(0, top, 0, bottom)
+    layoutNow()
+  }
+
+  /** How far the keyboard lifts the list: its height, less the inset JavaScript already leaves under the composer. */
+  private fun keyboardLift(insets: WindowInsetsCompat?): Int {
+    if (insets == null || !followKeyboard) return 0
+    val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+    val bars = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+    return maxOf(0, ime - bars)
+  }
+
+  private fun setKeyboardLift(lift: Int) {
+    if (lift == keyboard) return
+    keyboard = lift
+    applyPadding()
+  }
+
+  /** Follows the keyboard frame by frame as it opens, closes, or is dragged down. */
+  private fun watchKeyboard() {
+    ViewCompat.setWindowInsetsAnimationCallback(
+      this,
+      object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
+        override fun onPrepare(animation: WindowInsetsAnimationCompat) {
+          if (animation.typeMask and WindowInsetsCompat.Type.ime() != 0) imeAnimating = true
+        }
+
+        override fun onProgress(insets: WindowInsetsCompat, running: MutableList<WindowInsetsAnimationCompat>): WindowInsetsCompat {
+          if (running.any { it.typeMask and WindowInsetsCompat.Type.ime() != 0 }) setKeyboardLift(keyboardLift(insets))
+          return insets
+        }
+
+        override fun onEnd(animation: WindowInsetsAnimationCompat) {
+          if (animation.typeMask and WindowInsetsCompat.Type.ime() == 0) return
+          imeAnimating = false
+          setKeyboardLift(keyboardLift(ViewCompat.getRootWindowInsets(this@MessageListView)))
+        }
+      },
+    )
+    ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
+      if (!imeAnimating) setKeyboardLift(keyboardLift(insets))
+      insets
+    }
+  }
+
+  override fun onAttachedToWindow() {
+    super.onAttachedToWindow()
+    setKeyboardLift(keyboardLift(ViewCompat.getRootWindowInsets(this)))
+  }
+
+  override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+    super.onSizeChanged(w, h, oldw, oldh)
+    if (w != oldw && oldw != 0 && rows.itemCount > 0) {
+      // Widths come from the row's width: rebind for the new one.
+      animator.animate = false
+      rows.notifyItemRangeChanged(0, rows.itemCount)
+      post { animator.animate = true }
+    }
+  }
+
+  override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+    super.onLayout(changed, l, t, r, b)
+    if (placeWhenSized && width > 0 && height > 0) {
+      placeWhenSized = false
+      post { placeInitially(rows.rows) }
+    }
+  }
+
+  override fun onDetachedFromWindow() {
+    super.onDetachedFromWindow()
+    revealAnimator?.cancel()
+  }
+
+  // MARK: Where the reader is
+
+  /** How far the newest row's bottom is below the visible bottom, or null when it's off screen. */
+  private fun distanceFromLatest(): Float? {
+    if (rows.itemCount == 0) return 0f
+    val view = manager.findViewByPosition(0) ?: return null
+    return (view.bottom - (recycler.height - recycler.paddingBottom)).toFloat().coerceAtLeast(0f)
+  }
+
+  private fun report(dy: Int) {
+    if (!shown || rows.itemCount == 0) return
+    val first = manager.findFirstVisibleItemPosition()
+    val last = manager.findLastVisibleItemPosition()
+    if (first == RecyclerView.NO_POSITION) return
+    val near = distanceFromLatest()?.let { it <= units.pxf(behavior.nearLatestPoints) } == true
+    if (near != nearLatest) {
+      nearLatest = near
+      send(mapOf("type" to "nearLatest", "near" to near))
+    }
+    if (first != visibleFirst || last != visibleLast) {
+      visibleFirst = first
+      visibleLast = last
+      val ids = ArrayList<String>()
+      for (position in first..last) rows.rows.getOrNull(position)?.let { ids.add(it.id) }
+      send(mapOf("type" to "visible", "rowIds" to ids))
+    }
+    // Asks for older rows well before the top, so a fling never reaches it.
+    val count = rows.itemCount
+    val average = averageRowHeight()
+    val ahead = behavior.loadAheadScreens * maxOf(1, visibleHeight())
+    if ((count - 1 - last) * average < ahead && olderAt != count) {
+      olderAt = count
+      send(mapOf("type" to "reachedOlder"))
+    }
+    if (dy > 0 && first * average < ahead && newerAt != count) {
+      newerAt = count
+      send(mapOf("type" to "reachedNewer"))
+    }
+  }
+
+  private fun averageRowHeight(): Float {
+    val n = recycler.childCount
+    if (n == 0) return units.pxf(60f)
+    var total = 0
+    for (index in 0 until n) total += recycler.getChildAt(index).height
+    return maxOf(units.pxf(20f), total.toFloat() / n)
+  }
+
+  /** Starts loading the photos of the rows just past the screen, at the size they'll be drawn. */
+  private fun preload() {
+    val last = manager.findLastVisibleItemPosition()
+    val first = manager.findFirstVisibleItemPosition()
+    if (last == RecyclerView.NO_POSITION) return
+    val range = (last + 1..minOf(rows.itemCount - 1, last + PRELOAD_AHEAD)) + (maxOf(0, first - 3) until first)
+    for (position in range) {
+      val row = rows.rows.getOrNull(position) as? MessageRow ?: continue
+      for (block in row.blocks) {
+        when (block) {
+          is MediaBlock -> for ((index, item) in block.items.withIndex()) {
+            val key = "${item.shownUrl}#${row.stacked}"
+            if (!preloaded.add(key)) continue
+            if (block.items.size == 1) {
+              val max = if (row.stacked) recycler.width else (recycler.width * env.theme.bubbleMaxWidthFraction).toInt()
+              val w = minOf(units.px(240f), max)
+              val h = if (item.width > 0 && item.height > 0) minOf(units.px(300f), w * item.height / item.width) else w
+              images.preload(item.shownUrl, w, h)
+            } else if (row.stacked) {
+              images.preload(item.shownUrl, units.px(CarouselSizes.cardWidth(item)), units.px(CarouselSizes.CARD_HEIGHT))
+            } else if (index < 2) {
+              val w = units.px(DeckSizes.CARD_WIDTH)
+              images.preload(item.shownUrl, w, units.px(block.items.maxOf { DeckSizes.cardHeight(it) }))
+            }
+          }
+          else -> Unit
+        }
+      }
+    }
+    if (preloaded.size > 2000) preloaded.clear()
+  }
+
+  private val preloaded = HashSet<String>()
+
+  // MARK: Events
+
+  private fun send(event: Map<String, Any>) {
+    onEvent(event)
+  }
+
+  private fun press(target: Target) = send(target.event())
+
+  /** A hold (or double tap) on a row: its part's frame in window coordinates, for the menu. */
+  private fun hold(holder: RowHolder, hit: Hit?) {
+    val row = holder.row as? MessageRow ?: return
+    val cell = holder.itemView as? MessageCell ?: return
+    val target = hit?.hold ?: HoldTarget(row.id, row.blocks.firstOrNull { it is TextBlock }?.part ?: row.blocks.firstOrNull()?.part)
+    val rect = cell.holdRect(hit?.holdView)
+    val origin = IntArray(2)
+    cell.getLocationInWindow(origin)
+    val frame = mapOf(
+      "x" to units.dp((origin[0] + rect.left).toFloat()).toDouble(),
+      "y" to units.dp((origin[1] + rect.top).toFloat()).toDouble(),
+      "width" to units.dp(rect.width().toFloat()).toDouble(),
+      "height" to units.dp(rect.height().toFloat()).toDouble(),
+    )
+    val event = HashMap<String, Any>()
+    event["type"] = "hold"
+    event["rowId"] = target.rowId
+    target.part?.let { event["part"] = it }
+    target.index?.let { event["index"] = it }
+    event["frame"] = frame
+    cell.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+    send(event)
+  }
+
+  // MARK: Scrolling from JavaScript
+
+  fun scrollToLatest(animated: Boolean) {
+    if (rows.itemCount == 0) return
+    if (!animated) {
+      recycler.stopScroll()
+      manager.scrollToPositionWithOffset(0, 0)
+      return
+    }
+    // From far away, jump close first so the scroll is short.
+    if (manager.findFirstVisibleItemPosition() > JUMP_FROM) manager.scrollToPositionWithOffset(JUMP_FROM, 0)
+    recycler.post {
+      val scroller = object : LinearSmoothScroller(context) {
+        override fun getVerticalSnapPreference() = SNAP_TO_END
+        override fun calculateSpeedPerPixel(displayMetrics: DisplayMetrics) = 40f / displayMetrics.densityDpi
+      }
+      scroller.targetPosition = 0
+      manager.startSmoothScroll(scroller)
+    }
+  }
+
+  fun scrollToRow(id: String, animated: Boolean) {
+    val position = rows.rows.indexOfFirst { it.id == id }
+    if (position < 0) return
+    if (!animated || abs(position - manager.findFirstVisibleItemPosition()) > JUMP_FROM) {
+      recycler.stopScroll()
+      manager.scrollToPositionWithOffset(position, visibleHeight() / 2)
+      layoutNow()
+      centerOn(position)
+      return
+    }
+    val scroller = object : LinearSmoothScroller(context) {
+      override fun calculateDtToFit(viewStart: Int, viewEnd: Int, boxStart: Int, boxEnd: Int, snapPreference: Int) =
+        (boxStart + (boxEnd - boxStart) / 2) - (viewStart + (viewEnd - viewStart) / 2)
+    }
+    scroller.targetPosition = position
+    manager.startSmoothScroll(scroller)
+  }
+
+  // MARK: Touch: taps, holds, and dragging times in
+
+  private var revealAnimator: ValueAnimator? = null
+
+  private fun setReveal(px: Float) {
+    env.reveal = px
+    for (index in 0 until recycler.childCount) (recycler.getChildAt(index) as? MessageCell)?.applyReveal()
+  }
+
+  private val touch = Touch()
+
+  init {
+    recycler.addOnItemTouchListener(touch)
+  }
+
+  private inner class Touch : GestureDetector.SimpleOnGestureListener(), RecyclerView.OnItemTouchListener {
+    private val slop = ViewConfiguration.get(context).scaledTouchSlop
+    private val detector = GestureDetector(context, this).apply { setIsLongpressEnabled(true) }
+    private var downX = 0f
+    private var downY = 0f
+    private var horizontalTaken = false
+    private var revealing = false
+    private var firstTapImmediate = false
+
+    /** This touch stopped a fling: it isn't a tap. */
+    private var stoppedScroll = false
+
+    private fun under(x: Float, y: Float): Pair<RowHolder, Hit>? {
+      val child = recycler.findChildViewUnder(x, y) ?: return null
+      val holder = recycler.getChildViewHolder(child) as? RowHolder ?: return null
+      val hit = hitTest(child, x - child.left - child.translationX, y - child.top - child.translationY)
+      return holder to hit
+    }
+
+    private fun cancelGestures() {
+      val now = SystemClock.uptimeMillis()
+      val cancel = MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, 0f, 0f, 0)
+      detector.onTouchEvent(cancel)
+      cancel.recycle()
+    }
+
+    override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
+      if (e.actionMasked == MotionEvent.ACTION_DOWN) stoppedScroll = rv.scrollState != RecyclerView.SCROLL_STATE_IDLE
+      if (!revealing && !stoppedScroll) detector.onTouchEvent(e)
+      when (e.actionMasked) {
+        MotionEvent.ACTION_DOWN -> {
+          downX = e.x
+          downY = e.y
+          revealing = false
+          revealAnimator?.cancel()
+          horizontalTaken = under(e.x, e.y)?.second?.horizontal == true
+        }
+        MotionEvent.ACTION_MOVE -> {
+          if (revealing || horizontalTaken || !hasBubbles || rv.scrollState == RecyclerView.SCROLL_STATE_DRAGGING) return revealing
+          val dx = e.x - downX
+          val dy = e.y - downY
+          if (dx < -slop && abs(dx) > abs(dy) * 1.2f) {
+            revealing = true
+            downX = e.x
+            cancelGestures()
+            rv.parent?.requestDisallowInterceptTouchEvent(true)
+            return true
+          }
+        }
+      }
+      return false
+    }
+
+    override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {
+      if (!revealing) return
+      when (e.actionMasked) {
+        MotionEvent.ACTION_MOVE -> setReveal((downX - e.x).coerceIn(0f, units.pxf(MessageCell.REVEAL_WIDTH)))
+        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+          revealing = false
+          val from = env.reveal
+          revealAnimator = ValueAnimator.ofFloat(from, 0f).apply {
+            duration = 300
+            interpolator = DecelerateInterpolator(1.6f)
+            addUpdateListener { setReveal(it.animatedValue as Float) }
+            start()
+          }
+        }
+      }
+    }
+
+    override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {
+      if (disallowIntercept) cancelGestures()
+    }
+
+    override fun onDown(e: MotionEvent) = true
+
+    override fun onSingleTapUp(e: MotionEvent): Boolean {
+      val (_, hit) = under(e.x, e.y) ?: return false
+      val target = hit.press ?: return false
+      firstTapImmediate = target.immediate
+      if (target.immediate) press(target)
+      return false
+    }
+
+    override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+      val (_, hit) = under(e.x, e.y) ?: return false
+      val target = hit.press ?: return false
+      if (!target.immediate) press(target)
+      return true
+    }
+
+    override fun onDoubleTap(e: MotionEvent): Boolean {
+      if (firstTapImmediate) return false
+      val (holder, hit) = under(e.x, e.y) ?: return false
+      hold(holder, hit)
+      return true
+    }
+
+    override fun onLongPress(e: MotionEvent) {
+      val (holder, hit) = under(e.x, e.y) ?: return
+      hold(holder, hit)
+    }
+  }
+
+  companion object {
+    /** More rows than this changing at once take their places without animating. */
+    private const val BIG_CHANGE = 30
+    private const val PRELOAD_AHEAD = 10
+    private const val JUMP_FROM = 20
+  }
+}
