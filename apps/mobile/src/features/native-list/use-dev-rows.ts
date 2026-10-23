@@ -66,18 +66,7 @@ export function useDevRows() {
     setRows([message, ...rows]);
   }
   function toggleReaction() {
-    setRows(
-      rows.map((row, index) => {
-        if (index !== 0 || row.kind !== "message") return row;
-        const has = row.reactions.some((reaction) => reaction.mine);
-        return {
-          ...row,
-          reactions: has
-            ? []
-            : [{ content: { emoji: "👍" }, count: 1, key: "👍", mine: true }],
-        };
-      }),
-    );
+    setRows(withReactionToggled(rows));
   }
   function loadOlder() {
     const { count, loading } = loaded.current;
@@ -131,4 +120,18 @@ export function useDevRows() {
     typed,
     typing,
   };
+}
+
+/** The newest message with your 👍 added, or taken away. */
+function withReactionToggled(rows: Row[]) {
+  return rows.map((row, index) => {
+    if (index !== 0 || row.kind !== "message") return row;
+    const has = row.reactions.some((reaction) => reaction.mine);
+    return {
+      ...row,
+      reactions: has
+        ? []
+        : [{ content: { emoji: "👍" }, count: 1, key: "👍", mine: true }],
+    };
+  });
 }
