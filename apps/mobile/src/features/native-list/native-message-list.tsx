@@ -1,6 +1,6 @@
 import type { SharedValue } from "react-native-reanimated";
 import { useImperativeHandle, useRef, useState } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import Animated, {
   useAnimatedReaction,
   useAnimatedStyle,
@@ -16,6 +16,7 @@ import type { MessageListProps } from "~/features/conversation/message-list";
 import type { Message } from "~/features/conversation/types";
 import { newestFirst } from "~/features/conversation/build-rows";
 import { JumpToLatest } from "~/features/conversation/jump-to-latest";
+import { useMenuKeyboard } from "~/features/conversation/menu-keyboard";
 import {
   MessageActionsProvider,
   useLiftedMessageId,
@@ -61,7 +62,27 @@ type RowsProps = Omit<
   "editing" | "onReply" | "onViewReactions" | "ref"
 > & {
   handle: MessageListProps["ref"];
+  /** The menu has the keyboard held where it was (`useMenuKeyboard`). */
+  keyboardFrozen: boolean;
 };
+
+/**
+ * Holds the keyboard where it is while the long-press menu (a modal) takes
+ * it down and brings it back, as the React Native list does
+ * (`useMenuKeyboard`). Only on iOS: Android's quirk it also covers is the
+ * React Native list's keyboard handling, which the native list doesn't use.
+ */
+function useFrozenKeyboard() {
+  const keyboard = useMenuKeyboard();
+  const [frozen, setFrozen] = useState(false);
+  useAnimatedReaction(
+    () => keyboard.freeze.get(),
+    (now, before) => {
+      if (now !== before) scheduleOnRN(setFrozen, now);
+    },
+  );
+  return { frozen: Platform.OS === "ios" && frozen, keyboard };
+}
 
 /**
  * The list's rows (see `nativeRows`), and the message each message row
@@ -128,6 +149,8 @@ function NativeRows({
   onLoadNewer,
   topInset,
   composerHeight,
+  bottomInset,
+  keyboardFrozen,
   ...shown
 }: RowsProps) {
   const view = useRef<MessageListViewMethods>(null);
@@ -181,9 +204,12 @@ function NativeRows({
           behavior={BEHAVIOR}
           insets={{
             bottom: composer + COMPOSER_GAP,
+            keyboardOverlap: bottomInset,
             top: safeTop + topInset + HEADER_GAP,
           }}
           keyboard
+          keyboardFrozen={keyboardFrozen}
+          alignTop={shown.thread !== undefined}
           liftedRowId={lifted}
           initialRowId={shown.anchorId}
           onEvent={onEvent}
@@ -219,6 +245,7 @@ export function NativeMessageList({
   editing,
   ...props
 }: MessageListProps) {
+  const { frozen, keyboard } = useFrozenKeyboard();
   return (
     <MessageActionsProvider
       onToggleReaction={props.onToggleReaction}
@@ -226,8 +253,9 @@ export function NativeMessageList({
       onOpenThread={props.onOpenThread}
       onReply={onReply}
       editing={editing}
+      menuKeyboard={keyboard}
     >
-      <NativeRows {...props} handle={ref} />
+      <NativeRows {...props} handle={ref} keyboardFrozen={frozen} />
     </MessageActionsProvider>
   );
 }

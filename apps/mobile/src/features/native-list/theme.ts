@@ -77,7 +77,9 @@ const TYPE = {
     name: { lineHeight: 16, size: 12 },
   },
   stacked: {
-    body: { lineHeight: 22, size: 17 },
+    // Stacked text sets no line height, so it has San Francisco's own at
+    // 17 pt (bubbles set 22).
+    body: { lineHeight: 20.3, size: 17 },
     caption: { lineHeight: 16, size: 12 },
     footnote: { lineHeight: 18, size: 13 },
     jumbo: { lineHeight: 52, size: 48 },
