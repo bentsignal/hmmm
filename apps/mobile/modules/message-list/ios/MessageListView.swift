@@ -170,11 +170,7 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
 
   override func layoutSubviews() {
     super.layoutSubviews()
-    if collectionView.bounds.size != bounds.size {
-      // bounds/center: the collection view is flipped.
-      collectionView.bounds = CGRect(origin: collectionView.bounds.origin, size: bounds.size)
-      collectionView.center = CGPoint(x: bounds.midX, y: bounds.midY)
-    }
+    fitCollectionView()
     if bounds.width > 0, bounds.width != measuredWidth {
       measure()
     }
@@ -186,6 +182,15 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
       keyboardHeight = keyboard
       applyInsets(keepDistance: !collectionView.isTracking)
     }
+  }
+
+  /// Sizes the list to the view. Props can arrive before the first layout,
+  /// so placing the first rows does this too.
+  private func fitCollectionView() {
+    guard collectionView.bounds.size != bounds.size else { return }
+    // bounds/center: the collection view is flipped.
+    collectionView.bounds = CGRect(origin: collectionView.bounds.origin, size: bounds.size)
+    collectionView.center = CGPoint(x: bounds.midX, y: bounds.midY)
   }
 
   /// The flipped list's insets: its top is the screen's bottom.
@@ -503,6 +508,7 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
 
   /// The first rows: open on `initialRowId` (centered) or the newest.
   private func place() {
+    fitCollectionView()
     collectionView.layoutIfNeeded()
     applyInsets(keepDistance: false)
     if let initialRowId, let frame = listLayout.frame(of: initialRowId) {

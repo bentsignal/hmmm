@@ -351,10 +351,16 @@ final class MessageCell: RowCell {
       return
     }
     state.highlightsShown.insert(rowId)
-    highlight.alpha = 1
-    UIView.animate(withDuration: 1.6, delay: 0.8, options: [.curveEaseInOut, .allowUserInteraction]) {
-      self.highlight.alpha = 0
-    }
+    // Holds for 0.8 s, then fades over 1.6 s. Core Animation, not
+    // UIView.animate: the first rows arrive inside React Native's prop
+    // update, which turns UIView animations off.
+    highlight.alpha = 0
+    let fade = CAKeyframeAnimation(keyPath: "opacity")
+    fade.values = [1, 1, 0]
+    fade.keyTimes = [0, NSNumber(value: 0.8 / 2.4), 1]
+    fade.timingFunctions = [CAMediaTimingFunction(name: .linear), CAMediaTimingFunction(name: .easeInEaseOut)]
+    fade.duration = 2.4
+    highlight.layer.add(fade, forKey: "highlight")
   }
 
   override func setReveal(_ reveal: CGFloat) {

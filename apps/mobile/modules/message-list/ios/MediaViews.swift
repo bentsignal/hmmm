@@ -266,7 +266,10 @@ final class DeckView: UIView, UIGestureRecognizerDelegate {
   }
 
   override func gestureRecognizerShouldBegin(_ gesture: UIGestureRecognizer) -> Bool {
-    guard gesture === pan, let layout, layout.items.count > 1 else { return false }
+    // UIKit asks this about every gesture starting on the deck, the list's
+    // scrolling included: only the deck's own drag is decided here.
+    guard gesture === pan else { return super.gestureRecognizerShouldBegin(gesture) }
+    guard let layout, layout.items.count > 1 else { return false }
     let velocity = pan.velocity(in: self)
     return abs(velocity.x) > abs(velocity.y)
   }
