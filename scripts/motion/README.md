@@ -15,11 +15,30 @@ scripts/sim.sh up && scripts/sim.sh signin   # and scripts/sim.sh seed, once
 scripts/motion/check.sh                      # every scenario, bubbles and stacked
 scripts/motion/check.sh react                # only scenarios whose name matches
 MOTION_LIST=rn scripts/motion/check.sh       # the React Native list (default: native)
+scripts/motion/check.sh --android           # this worktree's Android emulator
 ```
 
 It checks the native message list unless `MOTION_LIST=rn`, turning the
 switch (`veraDev.nativeList`) to that list first, and fails a scenario
 that shows the other one.
+
+Native builds and measurements share a lock across the platform threads:
+
+```sh
+scripts/bench/with-lock.sh scripts/sim.sh build
+scripts/sim.sh up # outside the lock, so a device queue wait can't block builds
+scripts/bench/with-lock.sh scripts/motion/check.sh
+```
+
+The real-app comparison is `scripts/bench/head-to-head.sh`, with
+`BENCH_GROUP` set to a busy media conversation. Serve a production bundle
+with `VERA_METRO_PROFILE=1` when starting Metro. Both lists use a UI-thread
+scroll at 5,500 points per second, then 150 arrivals over 15 seconds.
+Both flings run before either burst adds messages to the conversation.
+`BENCH_LAYOUT` selects `stacked` or `bubbles`. Results include UI frame
+timing, JS stalls, distance travelled, and time waiting at the loaded edge.
+Android also reports main-thread work from `gfxinfo`, separately from
+the emulator's frame rate. Run it under `scripts/bench/with-lock.sh`.
 
 It takes about ten minutes for everything. Run it after changing anything
 under `apps/mobile/src/features/conversation` that moves: `moves.ts`,

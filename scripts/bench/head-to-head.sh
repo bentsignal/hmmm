@@ -26,7 +26,7 @@
 # (a seeded busy group: devBusy:seed), and a production bundle for numbers
 # that mean anything (VERA_METRO_PROFILE=1 scripts/sim.sh up). Hold the
 # heavy-work lock while it runs. Results go to .cache/bench/<run>.jsonl.
-set -u
+set -euo pipefail
 cd "$(dirname "$0")/../.."
 FLAG=()
 [[ ${1:-} == --android ]] && { FLAG=(--android); shift; }
@@ -36,24 +36,33 @@ SPEED=${BENCH_SPEED:-5500}
 MS=${BENCH_MS:-10000}
 BURST=${BENCH_BURST:-150}
 BURST_SECONDS=${BENCH_BURST_SECONDS:-15}
+LAYOUT=${BENCH_LAYOUT:-stacked}
 RUN=.cache/bench/$(date +%Y%m%d-%H%M%S)-${FLAG:+android-}${WHAT}.jsonl
 mkdir -p .cache/bench
 
 sim() { scripts/sim.sh $FLAG "$@"; }
-ANDROID_SERIAL=$( [[ -n $FLAG ]] && . .cache/sim/android && echo $SERIAL )
+ANDROID_SERIAL=""
+if [[ -n $FLAG ]]; then
+  source .cache/sim/android
+  ANDROID_SERIAL=$SERIAL
+fi
 
 # Measures frames for `seconds` while the scenario runs (in the background).
 frames_start() {
+  sim frames start > "$RUN.frames-start.log"
   if [[ -n $FLAG ]]; then
     node scripts/bench/android-frames.mjs $ANDROID_SERIAL chat.vera.app.dev $1 > .cache/bench/frames.json &
     FRAMES_PID=$!
-  else
-    sim frames start >/dev/null
   fi
 }
 frames_stop() {
-  if [[ -n $FLAG ]]; then wait $FRAMES_PID; cat .cache/bench/frames.json
-  else sim frames stop | grep -m1 '^{'; fi
+  local ui=$(sim frames stop | tee -a "$RUN.frames-stop.log" | grep '^{')
+  if [[ -n $FLAG ]]; then
+    wait $FRAMES_PID
+    echo "{\"ui\":$ui,\"main\":$(cat .cache/bench/frames.json)}"
+  else
+    echo "{\"ui\":$ui,\"main\":null}"
+  fi
 }
 js() { sim eval "$1" 2>/dev/null | tail -1; }
 
@@ -62,13 +71,18 @@ open_fresh() {
   sim relaunch >/dev/null 2>&1; sleep 8
   local shown=$(js "veraDev.nativeList($([[ $list == native ]] && echo true || echo false))" | tr -d '"')
   if [[ $shown != $list ]]; then echo "wanted the $list list, got $shown" >&2; return 1; fi
+  js "veraDev.preference(\"groupLayout\", \"$LAYOUT\"); veraDev.preference(\"appearance\", \"light\")" >/dev/null
+  if [[ $(js '__DEV__') != false ]]; then echo 'benchmark requires a production bundle' >&2; return 1; fi
   sim relaunch >/dev/null 2>&1; sleep 8
   sim open "/conversation/$GROUP" >/dev/null; sleep 8
+  if [[ $(js 'veraDev.list()?.kind' | tr -d '"') != $list ]]; then
+    echo "the conversation did not mount the $list list" >&2; return 1
+  fi
 }
 
 record() {
   local list=$1 scenario=$2 frames=$3 stalls=$4 extra=${5:-null}
-  local line="{\"list\":\"$list\",\"scenario\":\"$scenario\",\"frames\":$frames,\"stalls\":$stalls,\"fling\":$extra}"
+  local line="{\"list\":\"$list\",\"layout\":\"$LAYOUT\",\"scenario\":\"$scenario\",\"frames\":$frames,\"stalls\":$stalls,\"fling\":$extra}"
   echo $line | tee -a $RUN
 }
 
@@ -82,6 +96,7 @@ fling() {
   local frames=$(frames_stop)
   local stalls=$(js 'JSON.stringify(veraDev.stalls.stop())' | sed 's/^"//; s/"$//; s/\\"/"/g')
   local result=$(js 'JSON.stringify(globalThis.veraFling ?? null)' | sed 's/^"//; s/"$//; s/\\"/"/g')
+  if [[ $result == null || -z $result ]]; then echo "$list fling did not finish" >&2; return 1; fi
   record $list fling "${frames:-null}" "${stalls:-null}" "${result:-null}"
 }
 
@@ -97,8 +112,11 @@ burst() {
   record $list burst "${frames:-null}" "${stalls:-null}"
 }
 
-for list in rn native; do
-  [[ $WHAT == fling || $WHAT == all ]] && fling $list
-  [[ $WHAT == burst || $WHAT == all ]] && burst $list
+for scenario in fling burst; do
+  if [[ $WHAT == $scenario || $WHAT == all ]]; then
+    for list in rn native; do
+      $scenario $list
+    done
+  fi
 done
 echo "results: $RUN"

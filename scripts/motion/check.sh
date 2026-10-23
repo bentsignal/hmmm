@@ -15,6 +15,13 @@
 set -u
 cd "$(dirname "$0")/../.."
 ROOT=$PWD
+FLAG=()
+PLATFORM=ios
+if [[ ${1:-} == --android ]]; then
+  FLAG=(--android)
+  PLATFORM=android
+  shift
+fi
 FILTER=${1:-}
 LIST=${MOTION_LIST:-native}
 if [[ $LIST != native && $LIST != rn ]]; then
@@ -24,12 +31,12 @@ fi
 RUN=$ROOT/.cache/motion/$(date +%Y%m%d-%H%M%S)
 mkdir -p "$RUN"
 
-sim() { scripts/sim.sh "$@" >/dev/null 2>&1; }
-js() { scripts/sim.sh eval "$1" 2>/dev/null | tail -1; }
+sim() { scripts/sim.sh $FLAG "$@" >/dev/null 2>&1; }
+js() { scripts/sim.sh $FLAG eval "$1" 2>/dev/null | tail -1; }
 convex() { (cd services/backend && npx convex run "$@" >/dev/null 2>&1); }
 
-if ! scripts/sim.sh status 2>/dev/null | grep -q "^ios: [0-9A-F]"; then
-  echo "the simulator isn't up: scripts/sim.sh up" >&2
+if ! scripts/sim.sh status 2>/dev/null | grep -E "^$PLATFORM: .+" | grep -qv ': none'; then
+  echo "the $PLATFORM device isn't up: scripts/sim.sh $FLAG up" >&2
   exit 2
 fi
 sim relaunch; sleep 10
@@ -101,7 +108,7 @@ for layout in bubbles stacked; do
     name=${entry%%:*}; rest=${entry#*:}
     fn=${rest%%:*}; rest=${rest#*:}
     needs=${rest%%:*}; analyzer_flags=${rest#*:}
-    label="$LIST-$layout-$name"
+    label="$PLATFORM-$LIST-$layout-$name"
     [[ -n $FILTER && $label != *$FILTER* ]] && continue
     L0=$(wc -l < .cache/sim/metro.log)
     sim relaunch; sleep 10

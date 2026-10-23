@@ -6,6 +6,7 @@
 #   scripts/sim.sh [--android] <command>     (iOS without --android)
 #
 #   up               build or reuse the dev client, boot, start Metro, open the app
+#   build            cache the dev client without entering the device queue
 #   signin [user]    dev sign-in (default: this worktree's test user)
 #   seed             bot DMs, a group, a space, and a space invite for the signed-in account
 #   open <path>      go to a route, such as `/more` or `/conversation/<id>`
@@ -428,6 +429,7 @@ case "$command" in
   *) [ -f "$STATE_DIR/$PLATFORM" ] && touch "$STATE_DIR/$PLATFORM" ;;
 esac
 case "$command" in
+  build) ensure_client && echo "$CLIENT" ;;
   up) up ;;
   signin) require_up && open_path "/dev-sign-in?username=${1:-$(default_user)}" ;;
   seed) require_up && open_path "/dev-seed" ;;
