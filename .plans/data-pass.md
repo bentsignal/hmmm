@@ -110,7 +110,7 @@ What it shows, in order of cost:
 5. **Typing reruns the conversation** (`conversation` includes `typing`),
    and every thread page; typing in one thread reruns the others' typing.
 
-## Pull requests, in order of cost
+## Pull requests
 
 Stacked, each on the one before:
 
@@ -120,13 +120,13 @@ Stacked, each on the one before:
 4. #270 The badge counts without reading what only shows.
 5. #271 The next page asked for ahead.
 6. #272 A small live page.
-7. Open timings in a production bundle, and the app opening on the saved
-   Home at once (with the simulator's timings).
-
-The rest needs a decision first (proposals below): pages and the
-conversation without their includes on every rerun (A), the inbox's rows
-apart from its list (B), Activity's shape (C), unread counts (D), and
-pushes (E).
+7. #273 The app opens on the saved Home at once; open timings.
+8. #274 Included queries answered once, on a query's first fetch (A).
+9. #276 Real unread numbers, counted by number.
+10. #278 Dots don't count (D).
+11. #279 The badge rule.
+12. #280 Activity lists each conversation once (C).
+13. #281 The inbox's rows apart from its list (B).
 
 ## Decided with Shawn (2026-10-22)
 
