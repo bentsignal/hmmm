@@ -325,10 +325,11 @@ launch() {
     xcrun simctl terminate "$DEVICE" "$BUNDLE_ID" 2>/dev/null || true
     xcrun simctl launch "$DEVICE" "$BUNDLE_ID" --initialUrl "http://127.0.0.1:$PORT" >/dev/null
   else
-    adb_device reverse "tcp:$PORT" "tcp:$PORT" >/dev/null
     adb_device shell am force-stop "$BUNDLE_ID"
+    # The emulator's host alias survives adb transport reconnects, unlike
+    # reverse forwarding, which can disappear while the app keeps running.
     adb_device shell am start -a android.intent.action.VIEW \
-      -d "vera-dev://expo-development-client/?url=$(node -p "encodeURIComponent('http://127.0.0.1:$PORT')")" \
+      -d "vera-dev://expo-development-client/?url=$(node -p "encodeURIComponent('http://10.0.2.2:$PORT')")" \
       "$BUNDLE_ID" >/dev/null
   fi
   for _ in $(seq 1 120); do
@@ -388,12 +389,21 @@ shot() {
 record() {
   require_up
   local name="$1"
-  if [ "$PLATFORM" = ios ]; then
-    xcrun simctl io "$DEVICE" recordVideo --codec h264 --force "$EVIDENCE/$name.mp4" >/dev/null 2>&1 &
-  else
-    adb_device shell screenrecord --bit-rate 8000000 "/sdcard/$name.mp4" >/dev/null 2>&1 &
-  fi
-  RECORD_PID=$!
+  RECORD_PID="$(node - "$PLATFORM" "$DEVICE" "$ADB" "$SERIAL" "$name" "$EVIDENCE" "$STATE_DIR" <<'JS'
+const { spawn } = require("node:child_process");
+const { openSync, closeSync } = require("node:fs");
+const [platform, device, adb, serial, name, evidence, state] = process.argv.slice(2);
+const output = openSync(`${state}/${platform}.recording.log`, "w");
+const command = platform === "ios" ? "xcrun" : adb;
+const args = platform === "ios"
+  ? ["simctl", "io", device, "recordVideo", "--codec", "h264", "--force", `${evidence}/${name}.mp4`]
+  : ["-s", serial, "shell", "screenrecord", "--bit-rate", "8000000", `/sdcard/${name}.mp4`];
+const child = spawn(command, args, { detached: true, stdio: ["ignore", output, output] });
+child.unref();
+closeSync(output);
+console.log(child.pid);
+JS
+)"
   echo "$name" >"$STATE_DIR/$PLATFORM.recording"
   save
   sleep 1
