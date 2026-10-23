@@ -207,6 +207,27 @@ function belowSize(target: MenuTarget, actions: number, reactorsMax: number) {
 }
 
 /**
+ * How far open the menu is, springing open as it mounts. A message the
+ * native list lifts itself (`onLift`) is sent where to go then, so it
+ * springs there with the menu.
+ */
+function useOpening(
+  layout: MenuLayout,
+  onLift: ((layout: MenuLayout) => void) | undefined,
+) {
+  const progress = useSharedValue(0);
+  useAnimatedReaction(
+    () => true,
+    (_, previous) => {
+      if (previous !== null) return;
+      progress.set(withSpring(1, OPEN_SPRING));
+      if (onLift !== undefined) scheduleOnRN(onLift, layout);
+    },
+  );
+  return progress;
+}
+
+/**
  * The iMessage-style overlay: the conversation blurs, the message lifts, a
  * Liquid Glass reaction bar springs out above it, and below it the actions
  * (a long press) or who reacted (a double tap, or its tapbacks). Closing
@@ -250,17 +271,8 @@ export function GlassMessageMenu({
     menu: belowSize(target, actions.length, reactorsMax),
     screen,
   });
-  const progress = useSharedValue(0);
+  const progress = useOpening(layout, target.lift?.onLift);
   const [closing, setClosing] = useState(false);
-  const onLift = target.lift?.onLift;
-  useAnimatedReaction(
-    () => true,
-    (_, previous) => {
-      if (previous !== null) return;
-      progress.set(withSpring(1, OPEN_SPRING));
-      if (onLift !== undefined) scheduleOnRN(onLift, layout);
-    },
-  );
 
   /**
    * Plays the overlay back into place, then runs `then`. Back to the chat
