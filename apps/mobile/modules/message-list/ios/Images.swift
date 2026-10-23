@@ -9,23 +9,30 @@ import UIKit
 enum Images {
   static let scale = UIScreen.main.scale
 
-  static func context(_ size: CGSize) -> [SDWebImageContextOption: Any] {
-    [.imageThumbnailPixelSize: CGSize(width: ceil(size.width * scale), height: ceil(size.height * scale))]
+  static func context(_ size: CGSize, blur: CGFloat = 0) -> [SDWebImageContextOption: Any] {
+    var context: [SDWebImageContextOption: Any] = [
+      .imageThumbnailPixelSize: CGSize(width: ceil(size.width * scale), height: ceil(size.height * scale)),
+    ]
+    // Blurred once, off the main thread, and cached that way.
+    if blur > 0 { context[.imageTransformer] = SDImageBlurTransformer(radius: blur * scale) }
+    return context
   }
 
   static let options: SDWebImageOptions = [.retryFailed, .decodeFirstFrameOnly]
 
   /// Shows `url` in `view`, sized for `size`. Images already in memory show
   /// at once; downloaded ones fade in.
-  static func load(_ view: UIImageView, _ url: URL?, size: CGSize, placeholder: UIImage? = nil) {
+  static func load(_ view: UIImageView, _ url: URL?, size: CGSize, placeholder: UIImage? = nil, blur: CGFloat = 0) {
     guard let url else {
       view.sd_cancelCurrentImageLoad()
       view.image = placeholder
       return
     }
-    if view.sd_imageURL == url, view.image != nil { return }
+    let blurKey = "veraBlur"
+    if view.sd_imageURL == url, view.image != nil, (view.layer.value(forKey: blurKey) as? CGFloat ?? 0) == blur { return }
+    view.layer.setValue(blur, forKey: blurKey)
     view.sd_imageTransition = .fade(duration: 0.18)
-    view.sd_setImage(with: url, placeholderImage: placeholder, options: options, context: context(size))
+    view.sd_setImage(with: url, placeholderImage: placeholder, options: options, context: context(size, blur: blur))
   }
 
   static func cancel(_ view: UIImageView) {

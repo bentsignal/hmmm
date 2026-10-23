@@ -43,14 +43,14 @@ final class MediaTileView: UIView {
 
   required init?(coder: NSCoder) { fatalError() }
 
-  func set(_ item: MediaItem, theme: Theme, size: CGSize, badges: Bool = true) {
+  func set(_ item: MediaItem, theme: Theme, size: CGSize, badges: Bool = true, blur: CGFloat = 0) {
     let changed = item.id != self.item?.id
     self.item = item
     backgroundColor = theme.fill
     if changed { image.image = nil }
     // The same item at a new URL (uploaded, now its thumbnail) keeps
     // showing what it has until the new one loads.
-    Images.load(image, item.displayUrl, size: size, placeholder: changed ? nil : image.image)
+    Images.load(image, item.displayUrl, size: size, placeholder: changed ? nil : image.image, blur: blur)
     let video = item.kind == .video && badges
     play.isHidden = !video
     if video, let seconds = item.durationSeconds {
@@ -243,7 +243,9 @@ final class DeckView: UIView, UIGestureRecognizerDelegate {
     for (card, item) in [(cards[0], index), (cards[1], next)] {
       card.transform = .identity
       card.frame = cardFrame(item)
-      card.set(layout.items[item], theme: theme, size: layout.sizes[item], badges: card === cards[0])
+      // The card behind is blurred (4 points) and dimmed, as in the RN design.
+      let front = card === cards[0]
+      card.set(layout.items[item], theme: theme, size: layout.sizes[item], badges: front, blur: front ? 0 : 4)
     }
     dim.frame = cards[1].bounds
     behind(progress: 0)

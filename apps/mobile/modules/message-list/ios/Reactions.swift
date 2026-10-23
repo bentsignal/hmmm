@@ -86,7 +86,6 @@ final class ChipView: UIView, ReactionView {
   private(set) var layout: ChipLayout?
   private let text = TextView()
   private let image = UIImageView()
-
   override init(frame: CGRect) {
     super.init(frame: frame)
     image.contentMode = .scaleAspectFit
@@ -99,8 +98,10 @@ final class ChipView: UIView, ReactionView {
   func set(_ layout: ChipLayout, theme: Theme) {
     self.layout = layout
     reactionId = layout.id
-    backgroundColor = layout.reaction.mine ? theme.accent.withAlphaComponent(0.2) : theme.fill
     layer.cornerRadius = Metrics.chipHeight / 2
+    // A fill, not the RN list's glass: glass chips more than doubled the
+    // slow frames flinging stacked rows (66 against 27 in the same run).
+    backgroundColor = layout.reaction.mine ? theme.accent.withAlphaComponent(0.2) : theme.fill
     text.text = layout.text.string
     text.frame = layout.text.frame
     if let url = layout.reaction.imageUrl {

@@ -64,6 +64,8 @@ struct LinkCardLayout {
   var site: TextBox?
   var title: TextBox?
   var description: TextBox?
+  /// A link with no preview: a link icon beside its host and address.
+  var icon: CGRect?
 }
 
 enum PartContent {
@@ -127,11 +129,14 @@ enum RowLayout {
   case notice(TextBox, height: CGFloat)
   case typing(TypingLayout)
   case fallback(TextBox, height: CGFloat)
+  /// A custom row drawn by React, as tall as React laid it out.
+  case custom(height: CGFloat)
 
   var height: CGFloat {
     switch self {
     case let .message(layout): return layout.height
     case let .header(_, height, _), let .notice(_, height), let .fallback(_, height): return height
+    case let .custom(height): return height
     case let .typing(layout): return layout.height
     }
   }
@@ -176,6 +181,8 @@ func measure(_ string: NSAttributedString, width: CGFloat, maxLines: Int = 0, li
 struct Measurer {
   let theme: Theme
   let width: CGFloat
+  /// Custom rows React has laid out, by row ID (CustomRows.swift).
+  var customHeights: [String: CGFloat] = [:]
 
   func layout(_ row: Row) -> RowLayout {
     switch row.content {
@@ -188,12 +195,21 @@ struct Measurer {
       return notice(spans)
     case let .typing(layout, people, label):
       return .typing(typing(layout: layout, people: people, label: label))
+    case let .custom(text):
+      if let height = customHeights[row.id] { return .custom(height: height) }
+      return fallback(text)
     case let .fallback(text):
-      let attributes = Fonts.attributes(Fonts.system(theme.caption.size), theme.muted, lineHeight: theme.caption.lineHeight, alignment: .center)
-      let string = NSAttributedString(string: text, attributes: attributes)
-      let size = measure(string, width: width - 64, lineHeight: theme.caption.lineHeight)
-      return .fallback(TextBox(string: string, frame: CGRect(x: 32, y: 8, width: width - 64, height: size.height)), height: size.height + 16)
+      return fallback(text)
     }
+  }
+
+  /// Plain text in a row's place: an unknown kind, or a custom row React
+  /// hasn't drawn yet.
+  func fallback(_ text: String) -> RowLayout {
+    let attributes = Fonts.attributes(Fonts.system(theme.caption.size), theme.muted, lineHeight: theme.caption.lineHeight, alignment: .center)
+    let string = NSAttributedString(string: text, attributes: attributes)
+    let size = measure(string, width: width - 64, lineHeight: theme.caption.lineHeight)
+    return .fallback(TextBox(string: string, frame: CGRect(x: 32, y: 8, width: width - 64, height: size.height)), height: size.height + 16)
   }
 
   // MARK: Text
@@ -329,7 +345,9 @@ struct Measurer {
     let incomingGroup = !message.isOwn && message.showAuthor
     let column = incomingGroup ? Metrics.bubbleAvatar + Metrics.avatarGap : 0
     let rowWidth = width - pad * 2
-    var maxBubble = min(floor(rowWidth * theme.bubbleMaxWidthFraction), rowWidth - column)
+    // 75% of the row inside its margins, as the React Native list's
+    // `max-w-[75%]` (not rounded: a wrap there is a point narrower).
+    var maxBubble = min(rowWidth * theme.bubbleMaxWidthFraction, rowWidth - column)
     let left = pad + column
     let right = width - pad
     let side: Side = message.isOwn ? .right : .left
@@ -555,6 +573,19 @@ struct Measurer {
 
   func linkCard(_ card: Block.LinkCard, width: CGFloat) -> (layout: LinkCardLayout, height: CGFloat) {
     var layout = LinkCardLayout(card: card)
+    let noTitle = card.title?.isEmpty ?? true
+    let noDescription = card.description?.isEmpty ?? true
+    if card.imageUrl == nil, noTitle, noDescription {
+      // No preview (link-preview-card.tsx): an icon, the host, the address.
+      let textX: CGFloat = 12 + 36 + 12
+      let inner = width - textX - 12
+      let host = box(plain(card.site, 15, theme.foreground, weight: .semibold, lineHeight: 20, truncate: true), x: textX, y: 10, maxWidth: inner, lineHeight: 20, maxLines: 1)
+      let address = box(plain(card.url, 13, theme.muted, lineHeight: 18, truncate: true), x: textX, y: 32, maxWidth: inner, lineHeight: 18, maxLines: 1)
+      layout.title = host
+      layout.description = address
+      layout.icon = CGRect(x: 12, y: 12, width: 36, height: 36)
+      return (layout, 60)
+    }
     var y: CGFloat = 0
     if card.imageUrl != nil {
       layout.image = CGRect(x: 0, y: 0, width: width, height: 134)

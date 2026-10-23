@@ -13,7 +13,8 @@ Pod::Spec.new do |s|
   # expo-image bundles SDWebImage already; the list shares its caches.
   s.dependency 'SDWebImage'
 
-  s.source_files = '**/*.swift'
+  # Tests/ runs on its own (Tests/run.sh), not in the app.
+  s.source_files = '*.swift'
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
     # Optimized even in dev clients, so scrolling there is what ships.

@@ -19,7 +19,7 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
   let onEvent = EventDispatcher()
 
   private let listLayout = ListLayout()
-  private lazy var collectionView = UICollectionView(frame: .zero, collectionViewLayout: listLayout)
+  private lazy var collectionView = ListCollectionView(frame: .zero, collectionViewLayout: listLayout)
   private let state = ListState()
 
   // What's on screen.
@@ -35,6 +35,14 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
   private var followsKeyboard = true
   private var initialRowId: String?
   private var keyboardHeight: CGFloat = 0
+  /// How much of `insets.bottom` the keyboard covers (contract:
+  /// `insets.keyboardOverlap`); the bottom safe area without it.
+  private var keyboardOverlap: CGFloat?
+  /// The menu's modal has the keyboard down: hold still (`keyboardFrozen`).
+  private var keyboardFrozen = false
+  private var keyboardThawed = false
+  /// A thread: short, the rows sit at the top (`alignTop`).
+  private var alignTop = false
 
   // Measuring, off the main thread.
   private let measurer = MeasureQueue()
@@ -60,6 +68,13 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
   // Dragging left to reveal times.
   private lazy var revealPan = UIPanGestureRecognizer(target: self, action: #selector(revealDragged(_:)))
   private let keyboardTracker = UIView()
+  // A held part shrinks a little as the hold builds.
+  private let pressTracker = PressTracker(target: nil, action: nil)
+  private let shrink = PressShrink()
+  // A held message lifted into the menu (Lift.swift).
+  private let lifter = Lifter()
+  private var liftRequest: LiftRequest?
+  private var liftChanged = false
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
@@ -78,6 +93,8 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     collectionView.register(MessageCell.self, forCellWithReuseIdentifier: "message")
     collectionView.register(TextRowCell.self, forCellWithReuseIdentifier: "text")
     collectionView.register(TypingCell.self, forCellWithReuseIdentifier: "typing")
+    collectionView.register(CustomRowCell.self, forCellWithReuseIdentifier: "custom")
+    collectionView.onAccessibilityScroll = { [weak self] direction in self?.accessibilityPage(direction) ?? false }
     addSubview(collectionView)
 
     let tap = UITapGestureRecognizer(target: self, action: #selector(tapped(_:)))
@@ -93,6 +110,12 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     }
     revealPan.delegate = self
     collectionView.addGestureRecognizer(revealPan)
+    pressTracker.delegate = self
+    pressTracker.onBegan = { [weak self] point in
+      self?.shrink.begin { [weak self] in self?.pressedView(at: point) }
+    }
+    pressTracker.onEnded = { [weak self] in self?.shrink.release() }
+    collectionView.addGestureRecognizer(pressTracker)
 
     // Follows the keyboard frame by frame, interactive dismissal included.
     keyboardTracker.isHidden = true
@@ -127,8 +150,28 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
   func setInsets(_ json: JSON?) {
     let json = json ?? [:]
     let next = UIEdgeInsets(top: json.cg("top", 0), left: 0, bottom: json.cg("bottom", 0), right: 0)
+    let overlap = json["keyboardOverlap"] == nil ? nil : json.cg("keyboardOverlap", 0)
+    if overlap != keyboardOverlap {
+      keyboardOverlap = overlap
+      setNeedsLayout()
+    }
     guard next != insets else { return }
     insets = next
+    applyInsets(keepDistance: true)
+  }
+
+  func setKeyboardFrozen(_ frozen: Bool) {
+    guard frozen != keyboardFrozen else { return }
+    keyboardFrozen = frozen
+    if !frozen {
+      keyboardThawed = true
+      setNeedsLayout()
+    }
+  }
+
+  func setAlignTop(_ top: Bool) {
+    guard top != alignTop else { return }
+    alignTop = top
     applyInsets(keepDistance: true)
   }
 
@@ -143,6 +186,24 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     for cell in collectionView.visibleCells {
       guard let cell = cell as? RowCell else { continue }
       cell.contentView.alpha = cell.rowId != nil && cell.rowId == id ? 0 : 1
+    }
+  }
+
+  func setLift(_ json: JSON?) {
+    let request = LiftRequest(json)
+    guard request != liftRequest else { return }
+    liftRequest = request
+    liftChanged = true
+  }
+
+  /// Lifts the held part into the menu, or plays it back into place.
+  private func applyLift() {
+    shrink.reset()
+    if let request = liftRequest, let window {
+      guard let cell = cell(for: request.rowId) as? MessageCell else { return }
+      lifter.lift(request, cell: cell, in: window)
+    } else if let rowId = lifter.rowId {
+      lifter.land(into: cell(for: rowId) as? MessageCell)
     }
   }
 
@@ -164,6 +225,10 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
       rowsChanged = false
       measure()
     }
+    if liftChanged {
+      liftChanged = false
+      applyLift()
+    }
   }
 
   // MARK: Layout
@@ -174,14 +239,29 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     if bounds.width > 0, bounds.width != measuredWidth {
       measure()
     }
-    // `insets.bottom` already covers the bottom safe area (the composer
-    // sits on it), and the keyboard covers that area too: add the rest.
-    // (Before iOS 17 the guide also stops at the safe area when it's down.)
-    let keyboard = followsKeyboard ? max(0, bounds.height - keyboardTracker.frame.minY - safeAreaInsets.bottom) : 0
+    // The keyboard covers part of `insets.bottom` (the composer's own
+    // bottom inset, `keyboardOverlap`): the list adds the rest, which is
+    // how far the composer rises. Before iOS 17 the guide stops at the safe
+    // area when the keyboard is down.
+    var raw = followsKeyboard ? max(0, bounds.height - keyboardTracker.frame.minY) : 0
+    if raw <= safeAreaInsets.bottom + 0.5 { raw = 0 }
+    let keyboard = max(0, raw - (keyboardOverlap ?? safeAreaInsets.bottom))
+    // While the menu's modal has the keyboard down, nothing moves.
+    if keyboardFrozen { return }
     if abs(keyboard - keyboardHeight) > 0.5 {
       keyboardHeight = keyboard
-      applyInsets(keepDistance: !collectionView.isTracking)
+      if keyboardThawed {
+        // Back from the menu with the keyboard elsewhere: ease there over
+        // the keyboard's own duration and curve.
+        UIView.animate(withDuration: 0.25, delay: 0, options: [UIView.AnimationOptions(rawValue: 7 << 16), .beginFromCurrentState]) {
+          self.applyInsets(keepDistance: true)
+          self.collectionView.layoutIfNeeded()
+        }
+      } else {
+        applyInsets(keepDistance: !collectionView.isTracking)
+      }
     }
+    keyboardThawed = false
   }
 
   /// Sizes the list to the view. Props can arrive before the first layout,
@@ -195,12 +275,15 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
 
   /// The flipped list's insets: its top is the screen's bottom.
   private func applyInsets(keepDistance: Bool) {
-    let bottom = insets.bottom + keyboardHeight
+    let over = insets.bottom + keyboardHeight
+    // A thread too short to fill the list sits at the top: the space below
+    // it is part of the bottom inset, and the keyboard opens into it.
+    let bottom = alignTop ? max(over, collectionView.bounds.height - insets.top - listLayout.contentHeight) : over
     let current = collectionView.contentInset
     guard current.top != bottom || current.bottom != insets.top else { return }
     let distance = collectionView.contentOffset.y + current.top
     collectionView.contentInset = UIEdgeInsets(top: bottom, left: 0, bottom: insets.top, right: 0)
-    collectionView.verticalScrollIndicatorInsets = UIEdgeInsets(top: bottom, left: 0, bottom: insets.top, right: 0)
+    collectionView.verticalScrollIndicatorInsets = UIEdgeInsets(top: over, left: 0, bottom: insets.top, right: 0)
     if keepDistance || !placed {
       // Keep the same distance from the newest message, so the list rides
       // up and down with the keyboard.
@@ -230,7 +313,7 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     }
     measuring = true
     measureAgain = false
-    let input = MeasureQueue.Input(rows: rawRows, theme: state.theme, width: width)
+    let input = MeasureQueue.Input(rows: rawRows, theme: state.theme, width: width, customHeights: customHeights)
     if !placed {
       // The first rows: measured right away, so the list never shows empty.
       let result = measurer.measureNow(input)
@@ -272,40 +355,22 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     let oldRows = rows
     let oldIds = oldRows.map(\.id)
     let newIds = newRows.map(\.id)
-    let oldIndex = listLayout.indexById()
-    var newIndex: [String: Int] = [:]
-    newIndex.reserveCapacity(newIds.count)
-    for (index, id) in newIds.enumerated() { newIndex[id] = index }
-
-    let removed = oldIds.enumerated().filter { newIndex[$0.element] == nil }.map(\.offset)
-    let inserted = newIds.enumerated().filter { oldIndex[$0.element] == nil }.map(\.offset)
-    // Rows whose order changed (rare): survivors out of sequence.
-    let survivorsOld = oldIds.filter { newIndex[$0] != nil }
-    let survivorsNew = newIds.filter { oldIndex[$0] != nil }
-    let reordered = survivorsOld != survivorsNew
-    var changed: Set<String> = []
-    // A row that turns into another kind needs another kind of cell.
-    var reloaded: [Int] = []
-    for (index, row) in newRows.enumerated() {
-      guard let old = oldIndex[row.id], old < oldRows.count else { continue }
-      if Self.reuseIdentifier(oldRows[old]) != Self.reuseIdentifier(row) {
-        reloaded.append(old)
-      } else if redraw || oldRows[old] != row || layouts[old].height != newLayouts[index].height {
-        changed.insert(row.id)
-      }
-    }
-    if inserted.isEmpty && removed.isEmpty && changed.isEmpty && reloaded.isEmpty && !reordered {
+    let diff = ListDiff(old: oldRows, oldHeights: layouts.map(\.height), new: newRows, newHeights: newLayouts.map(\.height), redraw: redraw)
+    if diff.isEmpty {
       rows = newRows
       layouts = newLayouts
       return
     }
-
-    // What's new at the bottom: below every row that was already there.
-    // The typing indicator stays under everything, so it doesn't count.
-    let firstSurvivor = survivorsNew.first { id in newIndex[id].map { !newRows[$0].isTyping } ?? false }
-      .flatMap { newIndex[$0] } ?? newRows.count
-    let atBottom = inserted.filter { $0 < firstSurvivor }
-    let arrived = atBottom.filter { newRows[$0].message?.arrived == true }
+    let removed = diff.removed
+    let inserted = diff.inserted
+    let reordered = diff.reordered
+    let reloaded = diff.reloaded
+    let newIndex = diff.newIndex
+    let atBottom = diff.atBottom
+    let arrived = diff.arrived
+    // (A message lifted into the menu holds its update until it's back:
+    // MessageCell.isLifted.)
+    let changed = diff.changed
     noteArrivals(arrived.count)
 
     let visible = Set(collectionView.indexPathsForVisibleItems.compactMap { $0.item < oldIds.count ? oldIds[$0.item] : nil })
@@ -368,6 +433,7 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
           collectionView.reloadItems(at: reloaded.map { IndexPath(item: $0, section: 0) })
         }
       }
+      if alignTop { applyInsets(keepDistance: pinned) }
       if pinned {
         setOffset(latestOffset)
       } else if let anchor, let frame = listLayout.frame(of: anchor.id) {
@@ -566,11 +632,7 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
   }
 
   static func reuseIdentifier(_ row: Row) -> String {
-    switch row.content {
-    case .message: return "message"
-    case .typing: return "typing"
-    default: return "text"
-    }
+    ListDiff.cellKind(row)
   }
 
   private func setAccessibility(_ cell: RowCell) {
@@ -630,6 +692,10 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     let started = CACurrentMediaTime()
     defer { Slow.check("scroll", since: started) }
     afterChange()
+  }
+
+  func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+    shrink.release()
   }
 
   /// After dragging the keyboard away, the bottom inset has shrunk under
@@ -706,6 +772,72 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     }
   }
 
+  /// VoiceOver's three-finger swipes: a page older (down) or newer (up).
+  private func accessibilityPage(_ direction: UIAccessibilityScrollDirection) -> Bool {
+    let inset = collectionView.adjustedContentInset
+    let page = (collectionView.bounds.height - inset.top - inset.bottom) * 0.9
+    let older = direction == .down || direction == .previous
+    guard older || direction == .up || direction == .next else { return false }
+    let current = collectionView.contentOffset.y
+    // The list is flipped: older is +y.
+    let target = min(max(current + (older ? page : -page), latestOffset), maxOffset)
+    guard abs(target - current) > 1 else { return false }
+    collectionView.setContentOffset(CGPoint(x: 0, y: target), animated: false)
+    collectionView.layoutIfNeeded()
+    afterChange()
+    UIAccessibility.post(notification: .pageScrolled, argument: older ? "Older messages" : "Newer messages")
+    return true
+  }
+
+  // MARK: Custom rows (CustomRows.swift)
+
+  /// Custom rows React has laid out, by row ID.
+  private var customHeights: [String: CGFloat] = [:]
+
+  /// JavaScript mounts each custom row's React view as a child of the list;
+  /// the list keeps it in its row's cell.
+  override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
+    guard let row = childComponentView as? CustomRowView else {
+      super.mountChildComponentView(childComponentView, index: index)
+      return
+    }
+    row.owner = self
+    state.customRows[row.rowId] = row
+    customRowResized(row)
+  }
+
+  override func unmountChildComponentView(_ childComponentView: UIView, index: Int) {
+    guard let row = childComponentView as? CustomRowView else {
+      super.unmountChildComponentView(childComponentView, index: index)
+      return
+    }
+    row.removeFromSuperview()
+    if state.customRows[row.rowId] === row {
+      state.customRows[row.rowId] = nil
+      customHeights[row.rowId] = nil
+      measure()
+    }
+    row.owner = nil
+  }
+
+  func customRowChanged(_ row: CustomRowView, from oldId: String) {
+    if state.customRows[oldId] === row {
+      state.customRows[oldId] = nil
+      customHeights[oldId] = nil
+    }
+    state.customRows[row.rowId] = row
+    customRowResized(row)
+  }
+
+  /// React laid the row out at a new height: the list makes room for it.
+  func customRowResized(_ row: CustomRowView) {
+    guard state.customRows[row.rowId] === row else { return }
+    let height = ceil(row.bounds.height)
+    guard height > 0, customHeights[row.rowId] != height else { return }
+    customHeights[row.rowId] = height
+    measure()
+  }
+
   // MARK: Gestures
 
   private func hit(_ gesture: UIGestureRecognizer, hold: Bool) -> (Hit, RowCell)? {
@@ -722,8 +854,17 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     send(hit.event)
   }
 
+  /// The part under a finger, for the press shrink.
+  private func pressedView(at point: CGPoint) -> UIView? {
+    guard !collectionView.isDragging, !collectionView.isDecelerating,
+          let indexPath = collectionView.indexPathForItem(at: point),
+          let cell = collectionView.cellForItem(at: indexPath) as? RowCell else { return nil }
+    return cell.hit(at: cell.contentView.convert(point, from: collectionView), hold: true)?.view
+  }
+
   @objc private func held(_ gesture: UIGestureRecognizer) {
     if let press = gesture as? UILongPressGestureRecognizer, press.state != .began { return }
+    shrink.release()
     if gesture is UITapGestureRecognizer, gesture.state != .ended { return }
     guard let (hit, cell) = hit(gesture, hold: true) else { return }
     var event = hit.event
@@ -760,8 +901,10 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
   }
 
   func gestureRecognizer(_ gesture: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
-    // Revealing times doesn't stop the list scrolling under the finger.
-    gesture === revealPan && other === collectionView.panGestureRecognizer
+    // The press tracker only watches. Revealing times doesn't stop the list
+    // scrolling under the finger.
+    gesture === pressTracker || other === pressTracker
+      || gesture === revealPan && other === collectionView.panGestureRecognizer
   }
 
   @objc private func revealDragged(_ pan: UIPanGestureRecognizer) {
@@ -798,6 +941,7 @@ final class MeasureQueue {
     let rows: [JSON]
     let theme: Theme
     let width: CGFloat
+    var customHeights: [String: CGFloat] = [:]
   }
 
   struct Output {
@@ -835,7 +979,7 @@ final class MeasureQueue {
       cacheWidth = input.width
       cacheTheme = input.theme.version
     }
-    let measurer = Measurer(theme: input.theme, width: input.width)
+    let measurer = Measurer(theme: input.theme, width: input.width, customHeights: input.customHeights)
     var rows: [Row] = []
     var layouts: [RowLayout] = []
     var seen: Set<String> = []
@@ -847,7 +991,10 @@ final class MeasureQueue {
       // IDs are unique; a repeat would break the diff, so it's dropped.
       guard seen.insert(row.id).inserted else { continue }
       let layout: RowLayout
-      if let entry = cache[row.id], entry.row == row {
+      // A custom row's height comes from React, so it's never cached.
+      if case .custom = row.content {
+        layout = measurer.layout(row)
+      } else if let entry = cache[row.id], entry.row == row {
         layout = entry.layout
       } else {
         layout = measurer.layout(row)

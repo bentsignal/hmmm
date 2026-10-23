@@ -18,6 +18,8 @@ final class ListState {
   /// How far the list is dragged left to reveal times.
   var reveal: CGFloat = 0
   var liftedRowId: String?
+  /// Custom rows' React views, by row ID (CustomRows.swift).
+  var customRows: [String: CustomRowView] = [:]
 }
 
 /// What a tap or hold landed on.
@@ -111,6 +113,17 @@ final class MessageCell: RowCell {
 
   /// The view drawn for each part, in order.
   private var partViews: [UIView] = []
+  /// Part of this message is lifted into the menu (see Lift.swift): an
+  /// update waits until it's back.
+  var isLifted = false {
+    didSet {
+      guard !isLifted, let (row, layout, state) = pendingConfigure else { return }
+      pendingConfigure = nil
+      configure(row, layout, state: state, animated: false)
+    }
+  }
+  private var pendingConfigure: (Row, RowLayout, ListState)?
+  var bodyView: UIView { body }
   private(set) var layout: MessageLayout?
   private(set) var message: MessageRow?
 
@@ -141,6 +154,10 @@ final class MessageCell: RowCell {
   override func configure(_ row: Row, _ rowLayout: RowLayout, state: ListState, animated: Bool) {
     guard let message = row.message, case let .message(layout) = rowLayout else { return }
     let sameRow = rowId == row.id
+    if isLifted, sameRow {
+      pendingConfigure = (row, rowLayout, state)
+      return
+    }
     super.configure(row, rowLayout, state: state, animated: animated)
     let animate = animated && sameRow
     let theme = state.theme
@@ -383,6 +400,37 @@ final class MessageCell: RowCell {
     UIView.animate(withDuration: 0.22, delay: duration / 3, options: []) {
       bubble.text.alpha = 1
     }
+  }
+
+  // MARK: Lifting into the menu
+
+  /// The held part (by the `part` and `index` a hold reported) and its
+  /// tapbacks, in the message's coordinates. `frameOnly` asks just where
+  /// it goes (while its views are out).
+  func liftPieces(part: String?, index: Int?, frameOnly: Bool = false) -> LiftPieces? {
+    guard let layout else { return nil }
+    func holds(_ candidate: PartLayout) -> Bool {
+      guard let part else { return false }
+      if candidate.part == part { return true }
+      switch candidate.content {
+      case let .media(item, _): return item.part == part
+      case let .carousel(carousel): return carousel.items.contains { $0.part == part }
+      case let .deck(deck): return deck.items.contains { $0.part == part }
+      default: return false
+      }
+    }
+    guard let at = layout.parts.firstIndex(where: holds) ?? (layout.parts.isEmpty ? nil : 0) else { return nil }
+    let held = layout.parts[at]
+    if frameOnly { return LiftPieces(frame: held.frame, views: []) }
+    guard at < partViews.count else { return nil }
+    var views = [partViews[at]]
+    // Its tapbacks go with it: those over this part's top corner.
+    let corner = held.frame.insetBy(dx: -Metrics.tapbackOverhang - 1, dy: -Metrics.tapbackSpace - 1)
+    for tapback in layout.tapbacks
+      where (part != nil && tapback.part == part) || (tapback.frame.midY < held.frame.minY + 10 && corner.contains(tapback.frame)) {
+      if let view = tapbacks.views[tapback.id] { views.append(view) }
+    }
+    return LiftPieces(frame: held.frame, views: views)
   }
 
   // MARK: Taps and holds

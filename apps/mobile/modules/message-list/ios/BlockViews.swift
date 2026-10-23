@@ -33,7 +33,17 @@ final class TextView: UIView {
   required init?(coder: NSCoder) { fatalError() }
 
   override func draw(_ rect: CGRect) {
-    text?.draw(with: bounds, options: [.usesLineFragmentOrigin, .usesFontLeading, .truncatesLastVisibleLine], context: nil)
+    guard let text, text.length > 0 else { return }
+    // A fixed line height puts its extra space above the glyphs: half of it
+    // goes below instead, so the text sits in the middle of its lines.
+    var lift: CGFloat = 0
+    if let font = text.attribute(.font, at: 0, effectiveRange: nil) as? UIFont,
+       let paragraph = text.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle,
+       paragraph.maximumLineHeight > font.lineHeight {
+      lift = (paragraph.maximumLineHeight - font.lineHeight) / 2
+    }
+    let area = CGRect(x: 0, y: -lift, width: bounds.width, height: bounds.height + lift)
+    text.draw(with: area, options: [.usesLineFragmentOrigin, .usesFontLeading, .truncatesLastVisibleLine], context: nil)
   }
 
   /// The index of the link or mention span at a point, if any.
@@ -177,6 +187,7 @@ final class LinkCardView: UIView {
   private let site = TextView()
   private let title = TextView()
   private let detail = TextView()
+  private let icon = UIImageView()
 
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -188,7 +199,11 @@ final class LinkCardView: UIView {
     image.layer.cornerRadius = 16
     image.layer.cornerCurve = .continuous
     image.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-    [image, site, title, detail].forEach(addSubview)
+    icon.contentMode = .center
+    icon.layer.cornerRadius = 8
+    icon.layer.cornerCurve = .continuous
+    icon.image = UIImage(systemName: "link", withConfiguration: UIImage.SymbolConfiguration(pointSize: 16))
+    [image, site, title, detail, icon].forEach(addSubview)
   }
 
   required init?(coder: NSCoder) { fatalError() }
@@ -205,6 +220,10 @@ final class LinkCardView: UIView {
       image.isHidden = true
       Images.cancel(image)
     }
+    icon.isHidden = layout.icon == nil
+    icon.frame = layout.icon ?? .zero
+    icon.backgroundColor = theme.fill
+    icon.tintColor = theme.muted
     for (view, box) in [(site, layout.site), (title, layout.title), (detail, layout.description)] {
       view.isHidden = box == nil
       view.text = box?.string

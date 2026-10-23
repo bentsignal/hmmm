@@ -1,10 +1,19 @@
 import { useRef, useState } from "react";
-import { Pressable, Text, TextInput, useColorScheme, View } from "react-native";
+import {
+  Pressable,
+  Text,
+  TextInput,
+  useColorScheme,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { MessageListViewMethods } from "~/features/native-list/native";
 import { DEV_THEME_DARK } from "~/features/native-list/dev-fixtures";
+import { devLift, DevMenu } from "~/features/native-list/dev-menu";
+import { DevCustomRows } from "~/features/native-list/dev-poll";
 import {
   FIXTURE_BEHAVIOR,
   FIXTURE_THEME,
@@ -28,6 +37,7 @@ export default function DevNativeList() {
   const scheme = useColorScheme();
   const list = useRef<MessageListViewMethods>(null);
   const dev = useDevRows();
+  const screen = useWindowDimensions();
   const [barHeight, setBarHeight] = useState(100);
 
   if (MessageListView === null || nativeSupport === null) {
@@ -52,9 +62,17 @@ export default function DevNativeList() {
         insets={{ bottom: barHeight, top: insets.top + 44 }}
         keyboard
         liftedRowId={dev.lifted}
+        lift={
+          dev.held && dev.lifting
+            ? devLift(dev.held, screen, insets).lift
+            : undefined
+        }
         initialRowId={dev.initialRowId}
+        alignTop={dev.thread}
         onEvent={dev.onEvent}
-      />
+      >
+        <DevCustomRows rows={dev.rows} />
+      </MessageListView>
       <View
         className="bg-background/80 absolute inset-x-0 top-0 gap-1 px-2 pb-1"
         style={{ paddingTop: insets.top }}
@@ -83,6 +101,13 @@ export default function DevNativeList() {
           />
         </View>
       </KeyboardStickyView>
+      {dev.held && (
+        <DevMenu
+          hold={dev.held}
+          onClosing={dev.menuClosing}
+          onClosed={dev.menuClosed}
+        />
+      )}
     </View>
   );
 }
@@ -113,6 +138,10 @@ function Controls({
       <Button label="typed" onPress={dev.typed} />
       <Button label="latest" onPress={onLatest} />
       <Button label="open m30" onPress={() => dev.openAt("m30")} />
+      <Button
+        label={dev.thread ? "thread" : "chat"}
+        onPress={dev.toggleThread}
+      />
     </View>
   );
 }
