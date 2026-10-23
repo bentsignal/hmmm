@@ -107,7 +107,7 @@ PLIST
   *.apk)
     build="Android"
     if [ "$variant" = production ]; then
-      replacement="Uninstall the Play copy of Vera before installing, then sign in again. Server messages remain; local drafts and cached data are removed. To return, uninstall this build and reinstall Vera from Play."
+      replacement="Uninstall the Play copy of Vera before installing, then sign in again. Server messages remain; local drafts, unsent messages, and cached data are removed. To return, uninstall this build and reinstall Vera from Play."
     fi
     put "$artifact" "$artifact_name.apk" application/vnd.android.package-archive
     link="$CDN/$prefix/$artifact_name.apk"
