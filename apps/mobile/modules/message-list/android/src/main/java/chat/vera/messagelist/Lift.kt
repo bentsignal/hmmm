@@ -12,6 +12,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.animation.PathInterpolator
+import androidx.recyclerview.widget.RecyclerView
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.views.modal.ReactModalHostView
 import kotlin.math.cos
@@ -21,6 +22,26 @@ import kotlin.math.sqrt
 
 data class LiftRequest(val rowId: String, val part: String?, val index: Int?, val shift: Float, val scale: Float, val origin: String)
 data class LiftPieces(val frame: Rect, val views: List<View>, val card: Int?)
+
+/** A screen transition may still own this native child after a viewer closes. */
+internal fun removeForLift(home: ViewGroup, view: View) {
+  view.clearAnimation()
+  home.endViewTransition(view)
+  home.removeView(view)
+}
+
+internal fun nestedLiftHolders(view: View, cell: View): List<RecyclerView.ViewHolder> {
+  val holders = mutableListOf<RecyclerView.ViewHolder>()
+  var ancestor = view.parent
+  while (ancestor is View && ancestor !== cell) {
+    if (ancestor is RecyclerView) {
+      ancestor.stopScroll()
+      ancestor.findContainingViewHolder(view)?.let { holders.add(it) }
+    }
+    ancestor = ancestor.parent
+  }
+  return holders
+}
 
 fun decodeLift(map: ReadableMap?): LiftRequest? {
   val id = map?.str("rowId") ?: return null
@@ -37,7 +58,8 @@ class Lifter(private val units: Units, private val activityRoot: () -> ViewGroup
   private data class Piece(val view: View, val home: ViewGroup, val index: Int, val params: ViewGroup.LayoutParams,
     val frame: Rect, val x: Float, val y: Float)
   private data class Lifted(val request: LiftRequest, val holder: RowHolder, val cell: MessageCell,
-    val pieces: LiftPieces, val moved: List<Piece>, val container: ViewGroup, var host: ViewGroup, val screen: IntArray, val card: View?)
+    val pieces: LiftPieces, val moved: List<Piece>, val pinned: List<RecyclerView.ViewHolder>,
+    val container: ViewGroup, var host: ViewGroup, val screen: IntArray, val card: View?)
   private var lifted: Lifted? = null
   private var animation: ValueAnimator? = null
   private var frame: Choreographer.FrameCallback? = null
@@ -80,6 +102,10 @@ class Lifter(private val units: Units, private val activityRoot: () -> ViewGroup
     val pressed = pressedScale ?: pieces.views.firstOrNull()?.scaleX ?: 1f
     cell.beginLift()
     holder.setIsRecyclable(false)
+    // A media tile belongs to a second RecyclerView inside the message row.
+    // Pin that holder too so its empty card cannot be reused before landing.
+    val pinned = moved.flatMap { nestedLiftHolders(it.view, cell) }.distinct()
+    pinned.forEach { it.setIsRecyclable(false) }
     for (piece in moved) {
       val view = piece.view
       val position = IntArray(2).also { piece.home.getLocationOnScreen(it) }
@@ -90,14 +116,14 @@ class Lifter(private val units: Units, private val activityRoot: () -> ViewGroup
       view.scaleY = 1f
       view.translationX = 0f
       view.translationY = 0f
-      piece.home.removeView(view)
+      removeForLift(piece.home, view)
       container.addView(view)
       val x = position[0] - screen[0] + margin
       val y = position[1] - screen[1] + margin
       view.layout(x, y, x + piece.frame.width(), y + piece.frame.height())
     }
     host.overlay.add(container)
-    val current = Lifted(request, holder, cell, pieces, moved, container, host, screen, card)
+    val current = Lifted(request, holder, cell, pieces, moved, pinned, container, host, screen, card)
     lifted = current
     place(current)
     container.scaleX = pressed
@@ -257,6 +283,7 @@ class Lifter(private val units: Units, private val activityRoot: () -> ViewGroup
     current.cell.endLift()
     current.cell.invalidate()
     current.holder.setIsRecyclable(true)
+    current.pinned.forEach { it.setIsRecyclable(true) }
     completeLanding()
   }
 
