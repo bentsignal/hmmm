@@ -1,13 +1,20 @@
 import type { Reaction } from "@decentralized-convex/messages";
 import type { QueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQueries } from "@tanstack/react-query";
 import { MAX_REACTION_MESSAGES } from "@decentralized-convex/messages";
 import { pdsMutation, pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
 import type { ReactionPart } from "./reaction-part";
-import { parsePart } from "./reaction-part";
+import type { Pending } from "./reaction-toggles";
+import { reactionPart } from "./reaction-part";
+import {
+  overrideKey,
+  parseOverrideKey,
+  settled,
+  toggled,
+} from "./reaction-toggles";
 import { cachedSelected, pdsResultOr } from "./results";
 
 /** The emoji offered first when reacting, in order. */
@@ -17,7 +24,7 @@ export const QUICK_REACTIONS = ["❤️", "👍", "👎", "😂", "😮", "😢"
 const NONE = Object.freeze<ReactionSummary[]>([]);
 
 export type { ReactionPart } from "./reaction-part";
-export { attachmentPart, parsePart } from "./reaction-part";
+export { attachmentPart, parsePart, reactionPart } from "./reaction-part";
 
 /** The reactions on one part of a message. */
 export function reactionsOn(
@@ -50,33 +57,11 @@ export function chunks(ids: readonly string[]) {
   );
 }
 
-/** A reaction's part, from the protocol's `attachment` and `link`. */
-export function reactionPart({
-  attachment,
-  link,
-}: {
-  attachment?: number;
-  link?: number;
-}) {
-  if (link !== undefined) return `link-${link}` as const;
-  return attachment ?? ("message" as const);
-}
-
 /** A part as the protocol's `attachment` and `link` name it. */
 export function partArgs(part: ReactionPart) {
   if (typeof part === "number") return { attachment: part };
   if (part === "message") return {};
   return { link: Number(part.slice("link-".length)) };
-}
-
-/** A pending toggle's key: the message, the part, and the emoji. */
-function overrideKey(messageId: string, part: ReactionPart, emoji: string) {
-  return `${messageId} ${part} ${emoji}`;
-}
-
-function parseOverrideKey(key: string) {
-  const [messageId = "", part = "", emoji = ""] = key.split(" ");
-  return { emoji, messageId, part: parsePart(part) };
 }
 
 /** The key of one emoji on one part, unique within a message. */
@@ -93,7 +78,7 @@ interface Tally {
 function summarize(
   reactions: readonly Reaction[],
   self: string,
-  overrides: ReadonlyMap<string, boolean>,
+  overrides: ReadonlyMap<string, Pending>,
 ) {
   // Who reacted with what on each part, per message, with this device's
   // pending toggles.
@@ -113,7 +98,7 @@ function summarize(
     const { accountId, emoji, messageId } = reaction;
     tally(messageId, reactionPart(reaction), emoji).add(accountId);
   }
-  for (const [key, on] of overrides) {
+  for (const [key, { on }] of overrides) {
     const { emoji, messageId, part } = parseOverrideKey(key);
     const accounts = tally(messageId, part, emoji);
     if (on) accounts.add(self);
@@ -217,9 +202,13 @@ export function useReactions(
    */
   ahead?: Pick<ReactionSources, "messageIds" | "since">,
 ) {
-  const [overrides, setOverrides] = useState<ReadonlyMap<string, boolean>>(
+  // Pending toggles: in state, to show them, and in a ref, so a second
+  // tap before the next render sees the first (see `toggled`).
+  const [overrides, setOverrides] = useState<ReadonlyMap<string, Pending>>(
     new Map(),
   );
+  const pending = useRef<ReadonlyMap<string, Pending>>(overrides);
+  const toggles = useRef(0);
   const batches = messageIds.flatMap(chunks);
   function queriesFor(ids: readonly (readonly string[])[], after?: number) {
     return [
@@ -261,13 +250,9 @@ export function useReactions(
     pdsMutation({ mutation: pds.messages.react, session }),
   );
 
-  function setOverride(key: string, on: boolean | undefined) {
-    setOverrides((current) => {
-      const next = new Map(current);
-      if (on === undefined) next.delete(key);
-      else next.set(key, on);
-      return next;
-    });
+  function setPending(next: ReadonlyMap<string, Pending>) {
+    pending.current = next;
+    setOverrides(next);
   }
 
   const loadedIds = new Set(loaded);
@@ -280,13 +265,15 @@ export function useReactions(
     /** The `since` of the query with a message's reactions, if it's by time. */
     sinceOf: (messageId: string) => (live.has(messageId) ? since : undefined),
     toggle: (messageId: string, emoji: string, part: ReactionPart) => {
-      const on = !(
+      const key = overrideKey(messageId, part, emoji);
+      const mine =
         reactions[messageId]?.some(
           (item) => item.part === part && item.emoji === emoji && item.mine,
-        ) ?? false
-      );
-      const key = overrideKey(messageId, part, emoji);
-      setOverride(key, on);
+        ) ?? false;
+      toggles.current += 1;
+      const seq = toggles.current;
+      const { next, on } = toggled(pending.current, key, mine, seq);
+      setPending(next);
       react.mutate(
         {
           ...partArgs(part),
@@ -295,8 +282,9 @@ export function useReactions(
           messageId,
           on,
         },
-        // The live query has the result by now; drop the stand-in.
-        { onSettled: () => setOverride(key, undefined) },
+        // Done, the live query has the result by now; failed, the server
+        // never changed. Either way the newest toggle's stand-in goes.
+        { onSettled: () => setPending(settled(pending.current, key, seq)) },
       );
     },
   };

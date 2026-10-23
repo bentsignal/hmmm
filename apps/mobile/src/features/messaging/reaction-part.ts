@@ -30,3 +30,15 @@ export function parsePart(part: string) {
   if (link !== undefined) return `link-${Number(link)}` as const;
   return Number(part);
 }
+
+/** A reaction's part, from the protocol's `attachment` and `link`. */
+export function reactionPart({
+  attachment,
+  link,
+}: {
+  attachment?: number;
+  link?: number;
+}) {
+  if (link !== undefined) return `link-${link}` as const;
+  return attachment ?? ("message" as const);
+}
