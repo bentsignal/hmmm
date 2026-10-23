@@ -239,7 +239,7 @@ function Rows({
   );
 }
 
-type MessageListProps = Omit<
+export type MessageListProps = Omit<
   RowsProps,
   "blank" | "freeze" | "latest" | "leaving" | "listRef" | "onReady" | "shown"
 > & {

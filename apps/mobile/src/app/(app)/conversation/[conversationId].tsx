@@ -16,7 +16,6 @@ import {
 } from "~/features/conversation/conversation-header";
 import { FloatingComposer } from "~/features/conversation/floating-composer";
 import { mentionableIn } from "~/features/conversation/mentionable";
-import { MessageList } from "~/features/conversation/message-list";
 import { usePacedMessages } from "~/features/conversation/paced-messages";
 import { useEditing } from "~/features/conversation/use-editing";
 import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
@@ -28,6 +27,7 @@ import { useMemberNotices } from "~/features/messaging/member-events";
 import { useMarkRead, useMessages } from "~/features/messaging/messages";
 import { useStayLive } from "~/features/messaging/stay-live";
 import { useTypingReporter, useTypists } from "~/features/messaging/typing";
+import { ConversationList } from "~/features/native-list/conversation-list";
 import { useActiveConversation } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
 import { useAccountPending } from "~/features/saved/offline-pill";
@@ -202,7 +202,7 @@ function Conversation({
       <KeyboardGestureArea interpolator="ios" offset={60} style={{ flex: 1 }}>
         <Pending phase={pending} />
         {shown && pending === "ready" && (
-          <MessageList
+          <ConversationList
             ref={list}
             key={messages.viewKey}
             messages={shownMessages}

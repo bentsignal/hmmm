@@ -6,6 +6,8 @@ import { MAX_REACTION_MESSAGES } from "@decentralized-convex/messages";
 import { pdsMutation, pdsQuery } from "@decentralized-convex/tanstack-query";
 import { pds } from "@vera/backend/pds";
 
+import type { ReactionPart } from "./reaction-part";
+import { parsePart } from "./reaction-part";
 import { cachedSelected, pdsResultOr } from "./results";
 
 /** The emoji offered first when reacting, in order. */
@@ -14,27 +16,8 @@ export const QUICK_REACTIONS = ["❤️", "👍", "👎", "😂", "😮", "😢"
 /** No reactions, the same array each time so rows don't redraw. */
 const NONE = Object.freeze<ReactionSummary[]>([]);
 
-/**
- * Which part of a message a reaction is on: one of its attachments, by
- * index, one of its link previews (`link-<index>`), or `message`, the
- * message itself (its text, or its first attachment when it has no text,
- * or its first link preview when its text is only links; see `reaction`
- * in the protocol).
- */
-export type ReactionPart = number | "message" | `link-${number}`;
-
-/**
- * The part a message's attachment is: the first of a message without text
- * is the message itself, so a reaction to it is one older apps show too.
- */
-export function attachmentPart(
-  message: { readonly body?: string },
-  index: number,
-) {
-  return index === 0 && message.body === undefined
-    ? ("message" as const)
-    : index;
-}
+export type { ReactionPart } from "./reaction-part";
+export { attachmentPart, parsePart } from "./reaction-part";
 
 /** The reactions on one part of a message. */
 export function reactionsOn(
@@ -84,14 +67,6 @@ export function partArgs(part: ReactionPart) {
   if (typeof part === "number") return { attachment: part };
   if (part === "message") return {};
   return { link: Number(part.slice("link-".length)) };
-}
-
-/** A part written out as text (a route's, or `overrideKey`'s), read back. */
-export function parsePart(part: string) {
-  if (part === "message") return "message" as const;
-  const link = /^link-(\d+)$/.exec(part)?.[1];
-  if (link !== undefined) return `link-${Number(link)}` as const;
-  return Number(part);
 }
 
 /** A pending toggle's key: the message, the part, and the emoji. */

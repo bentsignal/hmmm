@@ -16,7 +16,6 @@ import { useComposerBottomInset } from "~/features/conversation/composer";
 import { useComposerHeight } from "~/features/conversation/composer-height";
 import { FloatingComposer } from "~/features/conversation/floating-composer";
 import { mentionableIn } from "~/features/conversation/mentionable";
-import { MessageList } from "~/features/conversation/message-list";
 import { usePacedMessages } from "~/features/conversation/paced-messages";
 import {
   THREAD_HEADER_HEIGHT,
@@ -35,6 +34,7 @@ import {
   useThreadState,
 } from "~/features/messaging/threads";
 import { useTypingReporter, useTypists } from "~/features/messaging/typing";
+import { ConversationList } from "~/features/native-list/conversation-list";
 import { useActiveThread } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
 import { useAccountPending } from "~/features/saved/offline-pill";
@@ -215,7 +215,7 @@ function Thread({
       <KeyboardGestureArea interpolator="ios" offset={60} style={{ flex: 1 }}>
         <Pending phase={pending} />
         {shown !== null && pending === "ready" && (
-          <MessageList
+          <ConversationList
             ref={list}
             key={thread.viewKey}
             thread={{ replyCount: thread.replyCount, root: shown.root }}

@@ -5,6 +5,7 @@ import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { Image } from "expo-image";
 
 import type { Size } from "./photo-transform";
+import type { Pager } from "./photo-viewer-state";
 import { touchGesture } from "./photo-gestures";
 import { dismissTransform } from "./photo-transform";
 import {
@@ -27,6 +28,7 @@ export function PhotoViewer({
   size,
   onClose,
   chrome,
+  pager,
 }: {
   url: string;
   /** The photo's pixel size, when the message knows it. */
@@ -37,10 +39,12 @@ export function PhotoViewer({
    * fades the viewer out, then calls `onClose`.
    */
   chrome?: (close: () => void) => ReactNode;
+  /** One of a group, swiped through sideways (see `MediaGroupViewer`). */
+  pager?: Pager;
 }) {
   const viewer = useViewer(size);
   const gesture = Gesture.Simultaneous(
-    touchGesture(viewer, onClose),
+    touchGesture(viewer, onClose, pager),
     doubleTapGesture(viewer),
   );
 

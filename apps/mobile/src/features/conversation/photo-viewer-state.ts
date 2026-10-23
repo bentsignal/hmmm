@@ -36,8 +36,10 @@ const SETTLE_SPRING = { dampingRatio: 1, duration: 350 } as const;
  *   still be a tap.
  * - `zoom`: pinching, or dragging a zoomed photo around.
  * - `dismiss`: dragging a photo at fit, to swipe it closed.
+ * - `page`: dragging a photo at fit sideways, to the next or previous one
+ *   of a group (see `Pager`).
  */
-export type Mode = "dismiss" | "idle" | "pending" | "zoom";
+export type Mode = "dismiss" | "idle" | "page" | "pending" | "zoom";
 
 /**
  * The fingers' state, as of the last time their number changed. Each move
@@ -66,6 +68,8 @@ export interface Track {
   samples: Sample[];
   /** The fingers' last center. */
   focal: Point;
+  /** Where the pager was when a sideways drag began (`page`). */
+  pageFrom: number;
 }
 
 export const IDLE = {
@@ -73,6 +77,7 @@ export const IDLE = {
   focal: { x: 0, y: 0 },
   mode: "idle",
   origin: { x: 0, y: 0 },
+  pageFrom: 0,
   raw: IDENTITY,
   samples: [],
   spread: 0,
@@ -100,6 +105,64 @@ export interface Viewer {
   closing: SharedValue<boolean>;
   /** Fades the whole viewer out when the close button is pressed. */
   fade: SharedValue<number>;
+}
+
+/**
+ * A group of photos the viewer swipes through sideways: `position` is the
+ * page shown, fractional mid-swipe, and `onSettle` hears the page it
+ * settles on.
+ */
+export interface Pager {
+  position: SharedValue<number>;
+  count: number;
+  onSettle: (index: number) => void;
+}
+
+/** How far a swipe goes past the first or last page, as a fraction. */
+const PAGE_BAND = 0.25;
+/** A sideways flick this fast (points a second) turns the page. */
+const PAGE_FLICK = 500;
+const PAGE_SPRING = { dampingRatio: 1, duration: 380 } as const;
+
+/** Moves the pager with a sideways drag `dx` from where it began. */
+export function dragPage(
+  pager: Pager,
+  from: number,
+  dx: number,
+  width: number,
+) {
+  "worklet";
+  const raw = from - dx / Math.max(width, 1);
+  const last = pager.count - 1;
+  const over = raw < 0 ? raw : raw > last ? raw - last : 0;
+  pager.position.set(
+    raw - over + Math.sign(over) * Math.min(Math.abs(over), PAGE_BAND),
+  );
+}
+
+/** Lets go of a sideways drag: on to the next page, or back. */
+export function releasePage(
+  pager: Pager,
+  {
+    from,
+    dx,
+    speedX,
+    width,
+  }: { from: number; dx: number; speedX: number; width: number },
+) {
+  "worklet";
+  const toward =
+    Math.abs(speedX) > PAGE_FLICK
+      ? -Math.sign(speedX)
+      : Math.abs(dx) > width / 3
+        ? -Math.sign(dx)
+        : 0;
+  const target = Math.min(pager.count - 1, Math.max(0, from + toward));
+  pager.position.set(
+    withSpring(target, PAGE_SPRING, (finished) => {
+      if (finished === true) scheduleOnRN(pager.onSettle, target);
+    }),
+  );
 }
 
 export function useViewer(size: Size | undefined) {
