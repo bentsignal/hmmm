@@ -429,6 +429,9 @@ stop() {
     fi
     while kill -0 "$RECORD_PID" 2>/dev/null; do sleep 0.2; done
   fi
+  # A transfer retry must not signal an old process ID again.
+  RECORD_PID=""
+  save
   local name
   name="$(cat "$STATE_DIR/$PLATFORM.recording" 2>/dev/null || true)"
   if [ "$PLATFORM" = android ] && [ -n "$name" ]; then
