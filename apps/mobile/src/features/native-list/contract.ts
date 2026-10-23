@@ -463,6 +463,21 @@ export type ListEvent =
 export interface MessageListViewMethods {
   scrollToLatest(animated: boolean): Promise<void>;
   scrollToRow(rowId: string, animated: boolean): Promise<void>;
+  /**
+   * For benchmarks only (`veraDev.list.fling`; binaries with the
+   * `benchFling` feature): scrolls toward older messages at a constant
+   * `speed` (points a second) for `ms`, moved on the display link each
+   * frame on from wherever the list is, with no deceleration. The React
+   * Native list's benchmark drives it the same way (Reanimated's
+   * `scrollTo` in a frame callback), so the two compare fairly, free of a
+   * test driver's injected touches. At the oldest row it waits there while
+   * older rows load. Resolves when done with how far it went and how long
+   * it spent stuck at the oldest row.
+   */
+  benchFling?(
+    speed: number,
+    ms: number,
+  ): Promise<{ travelled: number; edgeMs: number }>;
 }
 
 /** What the installed binary reports (the module's constants). */
@@ -475,6 +490,7 @@ export interface NativeSupport {
    * update knows what it can use. Missing in the first binaries.
    * - `lift`: the `lift` prop (the real message lifts into the menu).
    * - `customRows`: custom rows drawn by React (`MessageListRow`).
+   * - `benchFling`: the `benchFling` method, for benchmarks.
    */
   readonly features?: readonly string[];
 }

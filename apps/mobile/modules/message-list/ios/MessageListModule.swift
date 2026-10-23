@@ -9,7 +9,7 @@ public class MessageListModule: Module {
   static let blockTypes = ["text", "media", "file", "linkCard", "quote", "deleted"]
   /// What this binary does beyond version 1's basics (contract.ts,
   /// `NativeSupport.features`).
-  static let features = ["lift", "customRows"]
+  static let features = ["lift", "customRows", "benchFling"]
 
   public func definition() -> ModuleDefinition {
     Name("MessageList")
@@ -70,6 +70,10 @@ public class MessageListModule: Module {
 
       AsyncFunction("scrollToRow") { (view: MessageListView, rowId: String, animated: Bool?) in
         view.scrollToRow(rowId, animated: animated ?? true)
+      }.runOnQueue(.main)
+
+      AsyncFunction("benchFling") { (view: MessageListView, speed: Double, ms: Double, promise: Promise) in
+        view.benchFling(speed: speed, ms: ms) { result in promise.resolve(result) }
       }.runOnQueue(.main)
     }
 

@@ -603,6 +603,18 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     collectionView.setContentOffset(CGPoint(x: 0, y: latestOffset), animated: animated)
   }
 
+  private var bench: BenchFling?
+
+  /// For benchmarks (contract: `benchFling`; Bench.swift).
+  func benchFling(speed: Double, ms: Double, done: @escaping ([String: Any]) -> Void) {
+    bench?.stop()
+    let run = BenchFling(speed: CGFloat(speed), ms: ms, list: collectionView, oldest: { [weak self] in
+      self?.maxOffset ?? 0
+    }, done: done)
+    bench = run
+    run.run()
+  }
+
   func scrollToRow(_ id: String, animated: Bool) {
     guard let frame = listLayout.frame(of: id) else { return }
     collectionView.setContentOffset(CGPoint(x: 0, y: centeredOffset(frame)), animated: animated)

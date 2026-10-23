@@ -39,6 +39,7 @@ export default function DevNativeList() {
   const dev = useDevRows();
   const screen = useWindowDimensions();
   const [barHeight, setBarHeight] = useState(100);
+  const [bench, setBench] = useState("");
 
   if (MessageListView === null || nativeSupport === null) {
     return (
@@ -78,7 +79,8 @@ export default function DevNativeList() {
         style={{ paddingTop: insets.top }}
       >
         <Text className="text-caption text-muted" numberOfLines={2}>
-          v{nativeSupport.contractVersion} {dev.rows.length} rows {dev.last}
+          v{nativeSupport.contractVersion} {dev.rows.length} rows {bench}{" "}
+          {dev.last}
         </Text>
       </View>
       <KeyboardStickyView
@@ -93,6 +95,11 @@ export default function DevNativeList() {
           <Controls
             dev={dev}
             onLatest={() => void list.current?.scrollToLatest(true)}
+            onBench={() =>
+              void list.current
+                ?.benchFling?.(5500, 5000)
+                .then((result) => setBench(JSON.stringify(result)))
+            }
           />
           <TextInput
             className="bg-fill text-body text-foreground rounded-full px-4 py-2"
@@ -115,9 +122,12 @@ export default function DevNativeList() {
 function Controls({
   dev,
   onLatest,
+  onBench,
 }: {
   dev: ReturnType<typeof useDevRows>;
   onLatest: () => void;
+  /** A constant-speed fling to the top (contract: `benchFling`). */
+  onBench: () => void;
 }) {
   return (
     <View className="flex-row flex-wrap gap-2">
@@ -138,6 +148,7 @@ function Controls({
       <Button label="typed" onPress={dev.typed} />
       <Button label="latest" onPress={onLatest} />
       <Button label="open m30" onPress={() => dev.openAt("m30")} />
+      <Button label="bench" onPress={onBench} />
       <Button
         label={dev.thread ? "thread" : "chat"}
         onPress={dev.toggleThread}
