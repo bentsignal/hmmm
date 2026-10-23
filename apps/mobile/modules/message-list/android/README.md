@@ -9,10 +9,16 @@ mobile app. JavaScript supplies the rows, appearance, timings, and menu layout.
 - `benchFling` scrolls with Choreographer and `scrollBy`, without injected
   touches or fling physics. It reports actual distance and time at the older
   edge. Use the same speed and duration as the React Native benchmark.
+- `liftHandoff` adds `landLift()`. JavaScript starts it as the menu closes
+  and keeps the transparent Modal mounted until its promise resolves.
 - `lift` moves the held native view and its tapbacks into the React Modal
   window's decor overlay. The row keeps its space and defers binding changes
-  until landing. The view returns during the conversation window's pre-draw,
-  so the modal never reveals a cached frame with the part missing.
+  until landing. The view returns during the conversation window's pre-draw. A landing-only
+  drawing of the same native views covers that exact resting position until
+  the source window commits its frame. Android's Dialog and activity buffers
+  commit independently; pre-draw alone left a one-frame hole. The cover does
+  not use a bitmap or create another message view, and it never moves apart
+  from the original.
 - Custom React rows currently use `fallbackText`. This binary does not report
   `customRows`.
 

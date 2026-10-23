@@ -466,6 +466,13 @@ export type ListEvent =
 
 /** Imperative calls on the view (through its ref). */
 export interface MessageListViewMethods {
+  /**
+   * Binaries with `liftHandoff`: plays the real part back over 240 ms and
+   * resolves after the conversation window has drawn it. Keep the menu's
+   * transparent Modal mounted until this resolves, even if its close
+   * animation finished, so Android's independent windows never show a gap.
+   */
+  landLift?(): Promise<void>;
   scrollToLatest(animated: boolean): Promise<void>;
   scrollToRow(rowId: string, animated: boolean): Promise<void>;
   /** Keeps the menu mounted until native landing and the source frame commit. */
@@ -498,6 +505,7 @@ export interface NativeSupport {
    * - `lift`: the `lift` prop (the real message lifts into the menu).
    * - `customRows`: custom rows drawn by React (`MessageListRow`).
    * - `benchFling`: the `benchFling` method, for benchmarks.
+   * - `liftHandoff`: await `landLift` before removing the menu's Modal.
    */
   readonly features?: readonly string[];
 }
