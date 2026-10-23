@@ -426,7 +426,9 @@ stop() {
   name="$(cat "$STATE_DIR/$PLATFORM.recording" 2>/dev/null || true)"
   if [ "$PLATFORM" = android ] && [ -n "$name" ]; then
     sleep 1
-    adb_device pull "/sdcard/$name.mp4" "$EVIDENCE/$name.mp4" >/dev/null
+    # Video is already compressed. Avoid adb's compressed sync transfer,
+    # which can disconnect this emulator during a large pull.
+    adb_device pull -Z "/sdcard/$name.mp4" "$EVIDENCE/$name.mp4" >/dev/null
     adb_device shell rm "/sdcard/$name.mp4"
   fi
   rm -f "$STATE_DIR/$PLATFORM.recording"
