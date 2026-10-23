@@ -1,7 +1,9 @@
 import { useRef, useState } from "react";
 
 import type { Block, ListEvent, Row } from "./contract";
+import type { DevHold } from "./dev-menu";
 import { devMessage, devRows, devTyping, PEOPLE } from "./dev-fixtures";
+import { nativeSupport } from "./native";
 
 /** How many messages the dev screen loads at most, in pages of 50. */
 const MOST = 600;
@@ -18,6 +20,8 @@ export function useDevRows() {
   const [typing, setTyping] = useState<0 | 1 | 2>(0);
   const [lifted, setLifted] = useState<string | undefined>();
   const [last, setLast] = useState("");
+  const [held, setHeld] = useState<DevHold>();
+  const [lifting, setLifting] = useState(false);
   // Opening on a message (a search or notification): a new list each time.
   const [opening, setOpening] = useState({ initialRowId: "", key: 0 });
   // Messages loaded so far, and whether a page is on its way: a ref, so a
@@ -56,18 +60,7 @@ export function useDevRows() {
     setRows([message, ...rows]);
   }
   function toggleReaction() {
-    setRows(
-      rows.map((row, index) => {
-        if (index !== 0 || row.kind !== "message") return row;
-        const has = row.reactions.some((reaction) => reaction.mine);
-        return {
-          ...row,
-          reactions: has
-            ? []
-            : [{ content: { emoji: "👍" }, count: 1, key: "👍", mine: true }],
-        };
-      }),
-    );
+    setRows(withReactionToggled(rows));
   }
   function loadOlder() {
     const { count, loading } = loaded.current;
@@ -81,7 +74,16 @@ export function useDevRows() {
   }
   function onEvent({ nativeEvent }: { nativeEvent: ListEvent }) {
     setLast(JSON.stringify(nativeEvent).slice(0, 160));
-    if (nativeEvent.type === "hold") {
+    if (
+      nativeEvent.type === "hold" &&
+      nativeSupport?.features?.includes("lift")
+    ) {
+      setHeld({
+        ...nativeEvent,
+        card: layout === "stacked" && nativeEvent.part === "message",
+      });
+      setLifting(true);
+    } else if (nativeEvent.type === "hold") {
       // As the menu would: hide the row while it's lifted.
       setLifted(nativeEvent.rowId);
       setTimeout(() => setLifted(undefined), 1200);
@@ -91,6 +93,10 @@ export function useDevRows() {
 
   return {
     arrive,
+    held,
+    lifting,
+    menuClosing: () => setLifting(false),
+    menuClosed: () => setHeld(undefined),
     initialRowId: opening.initialRowId || undefined,
     key: opening.key,
     openAt: (id: string) =>
@@ -107,4 +113,18 @@ export function useDevRows() {
     typed,
     typing,
   };
+}
+
+/** The newest message with your reaction added or removed. */
+function withReactionToggled(rows: Row[]) {
+  return rows.map((row, index) => {
+    if (index !== 0 || row.kind !== "message") return row;
+    const has = row.reactions.some((reaction) => reaction.mine);
+    return {
+      ...row,
+      reactions: has
+        ? []
+        : [{ content: { emoji: "👍" }, count: 1, key: "👍", mine: true }],
+    };
+  });
 }

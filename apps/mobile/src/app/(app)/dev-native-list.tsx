@@ -1,10 +1,18 @@
 import { useRef, useState } from "react";
-import { Pressable, Text, TextInput, useColorScheme, View } from "react-native";
+import {
+  Pressable,
+  Text,
+  TextInput,
+  useColorScheme,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { MessageListViewMethods } from "~/features/native-list/native";
 import { DEV_THEME_DARK } from "~/features/native-list/dev-fixtures";
+import { devLift, DevMenu } from "~/features/native-list/dev-menu";
 import {
   FIXTURE_BEHAVIOR,
   FIXTURE_THEME,
@@ -26,6 +34,7 @@ import { useDevRows } from "~/features/native-list/use-dev-rows";
 export default function DevNativeList() {
   const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
+  const screen = useWindowDimensions();
   const list = useRef<MessageListViewMethods>(null);
   const dev = useDevRows();
   const [barHeight, setBarHeight] = useState(100);
@@ -52,6 +61,11 @@ export default function DevNativeList() {
         insets={{ bottom: barHeight, top: insets.top + 44 }}
         keyboard
         liftedRowId={dev.lifted}
+        lift={
+          dev.held && dev.lifting
+            ? devLift(dev.held, screen, insets).lift
+            : undefined
+        }
         initialRowId={dev.initialRowId}
         onEvent={dev.onEvent}
       />
@@ -75,6 +89,11 @@ export default function DevNativeList() {
           <Controls
             dev={dev}
             onLatest={() => void list.current?.scrollToLatest(true)}
+            onBench={() =>
+              void list.current
+                ?.benchFling?.(5500, 10000)
+                .then((result) => console.log("native-list bench", result))
+            }
           />
           <TextInput
             className="bg-fill text-body text-foreground rounded-full px-4 py-2"
@@ -83,6 +102,13 @@ export default function DevNativeList() {
           />
         </View>
       </KeyboardStickyView>
+      {dev.held && (
+        <DevMenu
+          hold={dev.held}
+          onClosing={dev.menuClosing}
+          onClosed={dev.menuClosed}
+        />
+      )}
     </View>
   );
 }
@@ -90,9 +116,11 @@ export default function DevNativeList() {
 function Controls({
   dev,
   onLatest,
+  onBench,
 }: {
   dev: ReturnType<typeof useDevRows>;
   onLatest: () => void;
+  onBench: () => void;
 }) {
   return (
     <View className="flex-row flex-wrap gap-2">
@@ -113,6 +141,7 @@ function Controls({
       <Button label="typed" onPress={dev.typed} />
       <Button label="latest" onPress={onLatest} />
       <Button label="open m30" onPress={() => dev.openAt("m30")} />
+      <Button label="bench" onPress={onBench} />
     </View>
   );
 }
