@@ -709,3 +709,20 @@ scroll-area accessibility nodes when selecting a message. Final ordered
 lint/typecheck/test/React Doctor against origin/t3/native-message-list,
 then format:fix all pass. Both devices and Metro are down. Private preview
 builds are the remaining deliverable; no store submission or OTA occurred.
+
+Private iOS build began 2026-10-23 14:42 EDT from 7be83bbb using
+`eas build --local --profile preview`. Both production-identity ad hoc
+credentials are ready and Release archive compilation is underway.
+Android follows serially. No build was submitted to a store or TestFlight.
+
+iPhone preview build 10 succeeded at 14:48 EDT. Strict code signature,
+ad hoc provisioning, production push entitlement and associated domains
+pass. Runtime 6e60a1ac81b3d72068021adf0711d38c0f5fc75e matches the production
+source fingerprint. Embedded JS contains vera.chat and no isolated backend
+hostname. Prior store archive 9 and this IPA have the same application ID,
+team and implicit keychain configuration. Install over Vera without deleting
+it to preserve sign-in/data; return by reinstalling TestFlight's Vera.
+The HTTPS install page, manifest identity and delivered IPA size are verified:
+https://vera-evidence.b-cdn.net/preview/ios/20261023-7be83bbb-f0a3d139d4a0/index.html
+The ready link and switch location were sent immediately to the orchestrator.
+Android private preview began at 14:48 EDT and continues independently.
