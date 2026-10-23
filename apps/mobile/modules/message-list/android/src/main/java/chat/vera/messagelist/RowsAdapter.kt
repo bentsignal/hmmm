@@ -2,6 +2,7 @@ package chat.vera.messagelist
 
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.AccessibilityDelegateCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.recyclerview.widget.DiffUtil
@@ -9,7 +10,6 @@ import androidx.recyclerview.widget.RecyclerView
 
 class RowHolder(view: View) : RecyclerView.ViewHolder(view) {
   var row: Row? = null
-  val actionIds = ArrayList<Int>()
 }
 
 /**
@@ -65,7 +65,9 @@ class RowsAdapter(private val env: CellEnv) : RecyclerView.Adapter<RowHolder>() 
     }
   }
 
-  override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RowHolder {
+  override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RowHolder = timed({ "create ${typeKeys[viewType - 1]}" }) { create(parent, viewType) }
+
+  private fun create(parent: ViewGroup, viewType: Int): RowHolder {
     val context = parent.context
     val view = when (val key = typeKeys[viewType - 1]) {
       is Signature -> MessageCell(context, env, key)
@@ -74,7 +76,9 @@ class RowsAdapter(private val env: CellEnv) : RecyclerView.Adapter<RowHolder>() 
       else -> NoticeCell(context, env)
     }
     view.layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-    return RowHolder(view)
+    val holder = RowHolder(view)
+    if (view is MessageCell) watchAccessibility(holder, view)
+    return holder
   }
 
   override fun onBindViewHolder(holder: RowHolder, position: Int) = bind(holder, position, animate = false)
@@ -82,7 +86,9 @@ class RowsAdapter(private val env: CellEnv) : RecyclerView.Adapter<RowHolder>() 
   override fun onBindViewHolder(holder: RowHolder, position: Int, payloads: MutableList<Any>) =
     bind(holder, position, animate = payloads.isNotEmpty())
 
-  private fun bind(holder: RowHolder, position: Int, animate: Boolean) {
+  private fun bind(holder: RowHolder, position: Int, animate: Boolean) = timed({ "bind ${rows[position].id}" }) { bindNow(holder, position, animate) }
+
+  private fun bindNow(holder: RowHolder, position: Int, animate: Boolean) {
     val row = rows[position]
     holder.row = row
     val view = holder.itemView
@@ -97,29 +103,40 @@ class RowsAdapter(private val env: CellEnv) : RecyclerView.Adapter<RowHolder>() 
       is FallbackRow -> (view as NoticeCell).bind(row.text, stacked = false, italic = true)
     }
     view.alpha = if (row.id == liftedRowId) 0f else 1f
-    bindAccessibility(holder)
   }
 
-  private fun bindAccessibility(holder: RowHolder) {
-    val view = holder.itemView
-    for (id in holder.actionIds) ViewCompat.removeAccessibilityAction(view, id)
-    holder.actionIds.clear()
-    val cell = view as? MessageCell ?: return
-    for ((label, target) in cell.accessibilityTargets()) {
-      val id = ViewCompat.addAccessibilityAction(view, label) { _, _ ->
-        onAccessibilityTarget?.invoke(target)
-        true
+  /**
+   * TalkBack: a message is one node read from its label, and its links,
+   * media, reactions and the like are actions on it, worked out when
+   * TalkBack asks (not on every bind, which a fling does many times a
+   * second). A long press holds it, as touch does.
+   */
+  private fun watchAccessibility(holder: RowHolder, cell: MessageCell) {
+    ViewCompat.setAccessibilityDelegate(cell, object : AccessibilityDelegateCompat() {
+      private var targets: List<Target> = emptyList()
+
+      override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfoCompat) {
+        super.onInitializeAccessibilityNodeInfo(host, info)
+        val shown = cell.accessibilityTargets().take(ACTION_IDS.size)
+        targets = shown.map { it.second }
+        shown.forEachIndexed { index, (label, _) ->
+          info.addAction(AccessibilityNodeInfoCompat.AccessibilityActionCompat(ACTION_IDS[index], label))
+        }
+        info.addAction(AccessibilityNodeInfoCompat.AccessibilityActionCompat(AccessibilityNodeInfoCompat.ACTION_LONG_CLICK, "Show actions"))
+        info.isLongClickable = true
       }
-      if (id != View.NO_ID) holder.actionIds.add(id)
-    }
-    ViewCompat.replaceAccessibilityAction(
-      view,
-      AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_LONG_CLICK,
-      "Show actions",
-    ) { _, _ ->
-      onAccessibilityHold?.invoke(holder)
-      true
-    }
+
+      override fun performAccessibilityAction(host: View, action: Int, args: android.os.Bundle?): Boolean {
+        if (action == AccessibilityNodeInfoCompat.ACTION_LONG_CLICK) {
+          onAccessibilityHold?.invoke(holder)
+          return true
+        }
+        val index = ACTION_IDS.indexOf(action)
+        val target = targets.getOrNull(index) ?: return super.performAccessibilityAction(host, action, args)
+        onAccessibilityTarget?.invoke(target)
+        return true
+      }
+    })
   }
 
   override fun onViewRecycled(holder: RowHolder) {
@@ -130,6 +147,13 @@ class RowsAdapter(private val env: CellEnv) : RecyclerView.Adapter<RowHolder>() 
 }
 
 /** Compares two lists of rows by ID, and their contents by value. */
+private val ACTION_IDS = intArrayOf(
+  R.id.message_list_action_0, R.id.message_list_action_1, R.id.message_list_action_2, R.id.message_list_action_3,
+  R.id.message_list_action_4, R.id.message_list_action_5, R.id.message_list_action_6, R.id.message_list_action_7,
+  R.id.message_list_action_8, R.id.message_list_action_9, R.id.message_list_action_10, R.id.message_list_action_11,
+  R.id.message_list_action_12, R.id.message_list_action_13, R.id.message_list_action_14, R.id.message_list_action_15,
+)
+
 class RowsDiff(private val old: List<Row>, private val new: List<Row>) : DiffUtil.Callback() {
   override fun getOldListSize() = old.size
 

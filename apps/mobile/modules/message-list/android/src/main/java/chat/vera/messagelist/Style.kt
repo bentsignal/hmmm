@@ -69,7 +69,13 @@ class TargetSpan(val target: Target) : android.text.style.CharacterStyle() {
   override fun updateDrawState(paint: TextPaint) = Unit
 }
 
+private data class AppliedStyle(val style: TextStyle, val color: Int, val typeface: Typeface)
+
 fun TextView.style(units: Units, style: TextStyle, color: Int, typeface: Typeface = Fonts.regular) {
+  // Rebinding a row styles its text the same way again: skip it then.
+  val applied = AppliedStyle(style, color, typeface)
+  if (getTag(R.id.message_list_style) == applied) return
+  setTag(R.id.message_list_style, applied)
   setTextSize(TypedValue.COMPLEX_UNIT_PX, units.sp(style.size))
   TextViewCompat.setLineHeight(this, Math.round(units.sp(style.lineHeight)))
   setTextColor(color)
