@@ -84,7 +84,9 @@ final class Lifter {
       container.addSubview(view)
       view.frame = inContainer
     }
-    container.transform = Self.transform(scale: pressed, shift: 0, origin: request.origin, size: frame.size)
+    // The press scales about the part's center. The menu's target then
+    // scales from its top corner, but the first frame stays where drawn.
+    container.transform = CGAffineTransform(scaleX: pressed, y: pressed)
     let lifted = Lifted(request: request, container: container, overlay: overlay, pieces: moved, cell: cell)
     self.lifted = lifted
     cell.isLifted = true

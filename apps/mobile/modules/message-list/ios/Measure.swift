@@ -123,9 +123,13 @@ struct TypingLayout {
   var overflow: TextBox?
 }
 
+enum HeaderRules {
+  case none, day, replies
+}
+
 enum RowLayout {
   case message(MessageLayout)
-  case header(TextBox, height: CGFloat, rules: Bool)
+  case header(TextBox, height: CGFloat, rules: HeaderRules)
   case notice(TextBox, height: CGFloat)
   case typing(TypingLayout)
   case fallback(TextBox, height: CGFloat)
@@ -189,8 +193,11 @@ struct Measurer {
     case let .message(message):
       return .message(message.layout == .bubbles ? bubbles(message) : stacked(message))
     case let .header(style, label):
-      // A day separator (stacked) draws between rules; a time header doesn't.
-      return style == "day" ? stackedHeader(label: label) : header(style: style, label: label)
+      switch style {
+      case "time": return header(style: style, label: label)
+      case "replies": return repliesHeader(label: label)
+      default: return stackedHeader(label: label)
+      }
     case let .notice(spans):
       return notice(spans)
     case let .typing(layout, people, label):
@@ -803,7 +810,7 @@ struct Measurer {
     let size = measure(string, width: width - 64, lineHeight: theme.caption.lineHeight)
     let (top, bottom): (CGFloat, CGFloat) = style == "day" ? (12, 12) : (16, 6)
     let frame = CGRect(x: (width - size.width) / 2, y: top, width: size.width, height: size.height)
-    return .header(TextBox(string: string, frame: frame), height: top + size.height + bottom, rules: false)
+    return .header(TextBox(string: string, frame: frame), height: top + size.height + bottom, rules: .none)
   }
 
   /// A stacked day separator: a label between two fading rules.
@@ -811,7 +818,15 @@ struct Measurer {
     let string = plain(label, theme.caption.size, theme.muted, lineHeight: theme.caption.lineHeight, alignment: .center)
     let size = measure(string, width: width - 120, lineHeight: theme.caption.lineHeight)
     let frame = CGRect(x: (width - size.width) / 2, y: 28, width: size.width, height: size.height)
-    return .header(TextBox(string: string, frame: frame), height: 28 + size.height + 8, rules: true)
+    return .header(TextBox(string: string, frame: frame), height: 28 + size.height + 8, rules: .day)
+  }
+
+  /// RepliesDivider.tsx: px-4, pt-5, pb-1, semibold footnote, gap-3.
+  func repliesHeader(label: String) -> RowLayout {
+    let string = plain(label, theme.footnote.size, theme.muted, weight: .semibold, lineHeight: theme.footnote.lineHeight)
+    let size = measure(string, width: width - 32, lineHeight: theme.footnote.lineHeight)
+    let frame = CGRect(x: 16, y: 20, width: size.width, height: size.height)
+    return .header(TextBox(string: string, frame: frame), height: 20 + size.height + 4, rules: .replies)
   }
 
   func notice(_ spans: [Span]) -> RowLayout {

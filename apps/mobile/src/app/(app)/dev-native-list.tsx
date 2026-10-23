@@ -12,7 +12,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { MessageListViewMethods } from "~/features/native-list/native";
 import { DEV_THEME_DARK } from "~/features/native-list/dev-fixtures";
-import { devLift, DevMenu } from "~/features/native-list/dev-menu";
+import { DevMenu } from "~/features/native-list/dev-menu";
+import { devLift } from "~/features/native-list/dev-menu-layout";
 import { DevCustomRows } from "~/features/native-list/dev-poll";
 import {
   FIXTURE_BEHAVIOR,
@@ -97,7 +98,7 @@ export default function DevNativeList() {
             onLatest={() => void list.current?.scrollToLatest(true)}
             onBench={() =>
               void list.current
-                ?.benchFling?.(5500, 5000)
+                ?.benchFling?.(5500, 8000)
                 .then((result) => setBench(JSON.stringify(result)))
             }
           />

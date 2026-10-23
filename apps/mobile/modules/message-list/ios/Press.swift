@@ -44,54 +44,39 @@ final class PressTracker: UIGestureRecognizer {
 /// React Native list), then springs back when it's held or let go.
 final class PressShrink {
   private weak var pressed: UIView?
-  private var pending: DispatchWorkItem?
   static let scale: CGFloat = 0.96
   /// How long a hold takes; the shrink fills it.
   static let holdDuration = 0.32
-  /// A tap or the start of a scroll doesn't shrink anything.
-  static let delay = 0.08
-
-  /// Starts shrinking `find()`'s view a moment from now, unless it's over.
+  /// Matches useSqueeze: shrink from press-in over the hold's full length.
   func begin(_ find: @escaping () -> UIView?) {
-    cancel()
-    let work = DispatchWorkItem { [weak self] in
-      guard let self, let view = find(), Self.shrinks(view) else { return }
-      self.pressed = view
-      UIView.animate(
-        withDuration: Self.holdDuration - Self.delay, delay: 0,
-        options: [.curveEaseOut, .allowUserInteraction, .beginFromCurrentState]
-      ) {
-        view.transform = CGAffineTransform(scaleX: Self.scale, y: Self.scale)
-      }
+    release()
+    guard let view = find(), Self.shrinks(view) else { return }
+    pressed = view
+    UIView.animate(
+      withDuration: Self.holdDuration, delay: 0,
+      options: [.curveEaseInOut, .allowUserInteraction, .beginFromCurrentState]
+    ) {
+      view.transform = CGAffineTransform(scaleX: Self.scale, y: Self.scale)
     }
-    pending = work
-    DispatchQueue.main.asyncAfter(deadline: .now() + Self.delay, execute: work)
   }
 
   /// Springs back (damping 14, stiffness 320 in the RN list).
   func release() {
-    cancel()
     guard let view = pressed else { return }
     pressed = nil
-    UIView.animate(
-      withDuration: 0.45, delay: 0, usingSpringWithDamping: 0.45, initialSpringVelocity: 0,
-      options: [.allowUserInteraction, .beginFromCurrentState]
-    ) {
+    let spring = UISpringTimingParameters(mass: 1, stiffness: 320, damping: 14, initialVelocity: .zero)
+    let animator = UIViewPropertyAnimator(duration: 0, timingParameters: spring)
+    animator.addAnimations {
       view.transform = .identity
     }
+    animator.startAnimation()
   }
 
   /// Whatever is shrunk now goes back at once (it's being lifted).
   func reset() {
-    cancel()
     pressed?.layer.removeAllAnimations()
     pressed?.transform = .identity
     pressed = nil
-  }
-
-  private func cancel() {
-    pending?.cancel()
-    pending = nil
   }
 
   /// Parts that shrink: not cards in a deck or a carousel, which move.

@@ -77,6 +77,14 @@ equal(height(message("a", layout: "stacked", starts: false)), 6 + 22, "a stacked
 equal(measurer.layout(Row(["id": "t", "kind": "typing", "layout": "bubbles", "people": [person("maya")], "label": ""])).height, 59, "typing, bubbles")
 equal(measurer.layout(Row(["id": "t", "kind": "typing", "layout": "stacked", "people": [person("maya")], "label": "Maya is typing"])).height, 32, "typing, stacked")
 equal(measurer.layout(Row(["id": "h", "kind": "header", "style": "time", "label": "Today 9:41 AM"])).height, 38, "a time header")
+if case let .header(box, height, rules) = measurer.layout(Row(["id": "r", "kind": "header", "style": "replies", "label": "No replies yet"])) {
+  equal(box.frame.origin, CGPoint(x: 16, y: 20), "replies divider starts at the RN label's inset")
+  equal(height, 20 + theme.footnote.lineHeight + 4, "replies divider uses footnote height and RN padding")
+  equal(rules, .replies, "replies divider has only a trailing hairline")
+} else { check(false, "replies divider is a header") }
+if case let .header(_, _, rules) = measurer.layout(Row(["id": "h", "kind": "header", "style": "future", "label": "Future header"])) {
+  equal(rules, .day, "an unknown header style falls back to day")
+}
 
 // A bubble never passes three quarters of the row.
 if case let .message(layout) = measurer.layout(Row(message("a", text: long))) {
