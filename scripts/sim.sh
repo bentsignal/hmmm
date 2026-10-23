@@ -389,15 +389,17 @@ shot() {
 record() {
   require_up
   local name="$1"
-  RECORD_PID="$(node - "$PLATFORM" "$DEVICE" "$ADB" "$SERIAL" "$name" "$EVIDENCE" "$STATE_DIR" <<'JS'
+  RECORD_PID="$(node - "$PLATFORM" "$DEVICE" "$ADB" "$SERIAL" "$name" "$EVIDENCE" "$STATE_DIR" "$(hash_of "$ROOT")" <<'JS'
 const { spawn } = require("node:child_process");
 const { openSync, closeSync } = require("node:fs");
-const [platform, device, adb, serial, name, evidence, state] = process.argv.slice(2);
+const [platform, device, adb, serial, name, evidence, state, owner] = process.argv.slice(2);
 const output = openSync(`${state}/${platform}.recording.log`, "w");
 const command = platform === "ios" ? "xcrun" : adb;
+const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
+const androidCommand = `screenrecord --bit-rate 8000000 ${quote(`/sdcard/${name}.mp4`)} & recording_pid=$!; echo "$recording_pid" > /data/local/tmp/vera-recording-${owner}.pid; wait "$recording_pid"`;
 const args = platform === "ios"
   ? ["simctl", "io", device, "recordVideo", "--codec", "h264", "--force", `${evidence}/${name}.mp4`]
-  : ["-s", serial, "shell", "screenrecord", "--bit-rate", "8000000", `/sdcard/${name}.mp4`];
+  : ["-s", serial, "shell", androidCommand];
 const child = spawn(command, args, { detached: true, stdio: ["ignore", output, output] });
 child.unref();
 closeSync(output);
@@ -414,7 +416,12 @@ stop() {
   require_up
   if [ -n "$RECORD_PID" ]; then
     if [ "$PLATFORM" = android ]; then
-      adb_device shell pkill -INT screenrecord >/dev/null 2>&1 || true
+      local remote_pid
+      remote_pid="$(adb_device shell cat "/data/local/tmp/vera-recording-$(hash_of "$ROOT").pid" 2>/dev/null | tr -d '\r' || true)"
+      # Leave the Device panel's separate screenrecord process alone.
+      if [[ "$remote_pid" =~ ^[0-9]+$ ]]; then
+        adb_device shell kill -INT "$remote_pid" >/dev/null 2>&1 || true
+      fi
       # Let screenrecord write its MP4 index before closing its adb shell.
       # Interrupting both at once can leave a large, unplayable file.
     else
@@ -430,6 +437,7 @@ stop() {
     # which can disconnect this emulator during a large pull.
     adb_device pull -Z "/sdcard/$name.mp4" "$EVIDENCE/$name.mp4" >/dev/null
     adb_device shell rm "/sdcard/$name.mp4"
+    adb_device shell rm -f "/data/local/tmp/vera-recording-$(hash_of "$ROOT").pid"
   fi
   rm -f "$STATE_DIR/$PLATFORM.recording"
   RECORD_PID=""
