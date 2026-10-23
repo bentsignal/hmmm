@@ -3,14 +3,14 @@ import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { ListEvent, Row } from "~/features/native-list/native";
+import { withRuns } from "~/features/native-list/fixture-runs";
+import { FIXTURE_THEME_DARK } from "~/features/native-list/fixture-theme-dark";
 import {
   FIXTURE_BEHAVIOR,
   FIXTURE_THEME,
-  FIXTURE_THEME_DARK,
   FIXTURE_TYPING,
   fixtureMessage,
   fixtureRows,
-  withRuns,
 } from "~/features/native-list/fixtures";
 import {
   CONTRACT_VERSION,

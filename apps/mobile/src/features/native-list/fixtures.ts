@@ -8,6 +8,7 @@ import type {
   Row,
   Theme,
 } from "./contract";
+import { withRuns } from "./fixture-runs";
 
 // Made-up rows for building and checking the native list on its own
 // (`/dev-native-list`), before the app's messages are mapped to it: every
@@ -256,27 +257,6 @@ export function fixtureRows(
   return withRuns(rows);
 }
 
-/**
- * Marks runs: a message starts one when the message before it (older) is
- * someone else's or a header or notice sits between them, and ends one
- * when the message after it does.
- */
-export function withRuns(rows: readonly Row[]) {
-  return rows.map((row, index) => {
-    if (row.kind !== "message") return row;
-    const newer = rows[index - 1];
-    const older = rows[index + 1];
-    const startsGroup =
-      older?.kind !== "message" || older.author.id !== row.author.id;
-    const endsGroup =
-      newer?.kind !== "message" || newer.author.id !== row.author.id;
-    if (row.startsGroup === startsGroup && row.endsGroup === endsGroup) {
-      return row;
-    }
-    return { ...row, endsGroup, startsGroup };
-  });
-}
-
 export const FIXTURE_TYPING = {
   id: "typing",
   kind: "typing",
@@ -331,26 +311,3 @@ export const FIXTURE_BEHAVIOR = {
   moveMs: 420,
   nearLatestPoints: 80,
 } satisfies Behavior;
-
-/** The dark theme, as the app's CSS variables have it (global.css). */
-export const FIXTURE_THEME_DARK = {
-  ...FIXTURE_THEME,
-  colors: {
-    accent: "#0a84ff",
-    background: "#000000",
-    bubbleIncoming: "#26252a",
-    bubbleOutgoing: "#0a84ff",
-    destructive: "#ff453a",
-    fill: "rgba(118, 118, 128, 0.24)",
-    foreground: "#ffffff",
-    highlight: "rgba(255, 214, 10, 0.2)",
-    monogramBottom: "#5b5e66",
-    monogramTop: "#7a7e89",
-    muted: "rgba(235, 235, 245, 0.6)",
-    onAccent: "#ffffff",
-    separator: "rgba(84, 84, 88, 0.65)",
-    subtle: "rgba(235, 235, 245, 0.3)",
-    textIncoming: "#ffffff",
-    textOutgoing: "#ffffff",
-  },
-} satisfies Theme;
