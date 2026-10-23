@@ -54,6 +54,17 @@ class BubbleTextView(context: Context, private val units: Units) : TextView(cont
     invalidate()
   }
 
+  /** As wide as its widest line, like a bubble in Messages, not as wide as it may be. */
+  override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+    super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+    val layout = layout ?: return
+    if (layout.lineCount < 2 || MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.EXACTLY) return
+    var widest = 0f
+    for (line in 0 until layout.lineCount) widest = maxOf(widest, layout.getLineWidth(line))
+    val tight = Math.ceil(widest.toDouble()).toInt() + totalPaddingLeft + totalPaddingRight
+    if (tight < measuredWidth) setMeasuredDimension(tight, measuredHeight)
+  }
+
   override fun onDraw(canvas: Canvas) {
     val drop = if (tail) units.pxf(BubbleShape.TAIL_DROP) else 0f
     val key = (width.toLong() shl 32) or height.toLong()
@@ -93,7 +104,7 @@ open class RoundedBox(context: Context, private val radiusPx: Float) : ViewGroup
  */
 class LinkCardView(context: Context, private val units: Units, private val images: Images) :
   RoundedBox(context, units.pxf(16f)) {
-  private val image = ImageView(context).apply { scaleType = ImageView.ScaleType.CENTER_CROP }
+  private val image = FixedImageView(context).apply { scaleType = ImageView.ScaleType.CENTER_CROP }
   private val site = plainText(context).apply {
     isSingleLine = true
     ellipsize = TextUtils.TruncateAt.END

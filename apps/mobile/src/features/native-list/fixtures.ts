@@ -114,16 +114,16 @@ function blocksFor(index: number): Block[] {
 }
 
 /** Who wrote the message `index` back: runs of two or three, like a real chat. */
-function authorAt(index: number): Person {
+function authorAt(index: number) {
   const run = Math.floor((index + 3) / 3) + Math.floor(index / 7);
-  return PEOPLE[run % 4] as Person;
+  return PEOPLE[run % 4]!;
 }
 
 /** A photo, or every third one a video with its length. */
-function media(seed: number, index: number, width = 1200, height = 900): MediaItem {
+function media(seed: number, index: number, width = 1200, height = 900) {
   const item = photo(seed, index, width, height);
   return (seed + index) % 3 === 0
-    ? { ...item, durationSeconds: 7 + ((seed * 13) % 200), kind: "video" }
+    ? { ...item, durationSeconds: 7 + ((seed * 13) % 200), kind: "video" as const }
     : item;
 }
 
@@ -198,7 +198,7 @@ export function fixtureRows(
  * someone else's or a header or notice sits between them, and ends one
  * when the message after it does.
  */
-export function withRuns(rows: readonly Row[]): Row[] {
+export function withRuns(rows: readonly Row[]) {
   return rows.map((row, index) => {
     if (row.kind !== "message") return row;
     const newer = rows[index - 1];

@@ -133,6 +133,7 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
       animator.animate = false
       rows.notifyItemRangeChanged(0, rows.itemCount)
       layoutNow()
+      animator.animate = true
     }
   }
 

@@ -45,9 +45,28 @@ class Images(val requests: RequestManager) {
   }
 }
 
-/** A round photo, or initials on the theme's gray gradient when there's none. */
+/**
+ * An image view whose size never depends on its image, so a photo
+ * arriving doesn't ask the list to lay out again (which, mid-fling, would
+ * redo every visible row for each photo that loads).
+ */
 @SuppressLint("AppCompatCustomView")
-class AvatarView(context: Context, private val units: Units) : ImageView(context) {
+open class FixedImageView(context: Context) : ImageView(context) {
+  private var settingImage = false
+
+  override fun setImageDrawable(drawable: Drawable?) {
+    settingImage = true
+    super.setImageDrawable(drawable)
+    settingImage = false
+  }
+
+  override fun requestLayout() {
+    if (!settingImage) super.requestLayout()
+  }
+}
+
+/** A round photo, or initials on the theme's gray gradient when there's none. */
+class AvatarView(context: Context, private val units: Units) : FixedImageView(context) {
   private var person: Person? = null
   private var theme: Theme = Theme.DEFAULT
   private var sizeDp = 28f
@@ -108,8 +127,7 @@ class AvatarView(context: Context, private val units: Units) : ImageView(context
  * rounded corners on the fill color until it does. Videos get a play
  * badge and their length.
  */
-@SuppressLint("AppCompatCustomView")
-class MediaView(context: Context, private val units: Units) : ImageView(context) {
+class MediaView(context: Context, private val units: Units) : FixedImageView(context) {
   var item: MediaItem? = null
     private set
   private var widthPx = 0

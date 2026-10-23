@@ -375,7 +375,8 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
     val space = units.px(TapbacksView.SPACE)
     for ((slot, view) in blockViews.withIndex()) {
       val taps = tapbacks[slot]
-      val hasTaps = taps != null && taps.visibility == VISIBLE
+      // Room only for tapbacks that stay: one shrinking away gives its room back as it goes.
+      val hasTaps = taps != null && taps.shownCount > 0
       y += when {
         slot == 0 && hasTaps -> if (named) maxOf(0, space - units.px(22f)) else space
         slot == 0 -> 0
