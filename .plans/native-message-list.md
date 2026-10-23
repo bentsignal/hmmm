@@ -364,12 +364,12 @@ threads' explicit native-ready SHAs.
 The first Android diagnostic used 5,500 dp/s for 10 seconds and 150
 arrivals over 15 seconds in the original busy group:
 
-| Scenario | List | Main frames over 16.7 ms | Worst main frame | JS stalls over 50 ms | Worst JS gap | Distance / edge wait |
-| --- | --- | --- | --- | --- | --- | --- |
-| Fling | React Native | 60 / 390 | 62.1 ms | 60 | 676 ms | 27,919 dp / 5,133 ms |
-| Fling | Native | 11 / 401 | 57.4 ms | 33 | 398 ms | 39,874 dp / 2,533 ms |
-| Burst | React Native | 167 / 420 | 127.3 ms | 104 | 889 ms | n/a |
-| Burst | Native | 0 / 112 | 6.5 ms | 17 | 67 ms | n/a |
+| Scenario | List         | Main frames over 16.7 ms | Worst main frame | JS stalls over 50 ms | Worst JS gap | Distance / edge wait |
+| -------- | ------------ | ------------------------ | ---------------- | -------------------- | ------------ | -------------------- |
+| Fling    | React Native | 60 / 390                 | 62.1 ms          | 60                   | 676 ms       | 27,919 dp / 5,133 ms |
+| Fling    | Native       | 11 / 401                 | 57.4 ms          | 33                   | 398 ms       | 39,874 dp / 2,533 ms |
+| Burst    | React Native | 167 / 420                | 127.3 ms         | 104                  | 889 ms       | n/a                  |
+| Burst    | Native       | 0 / 112                  | 6.5 ms           | 17                   | 67 ms        | n/a                  |
 
 These are diagnostic numbers, not the final comparison. That script ran
 the React Native burst before the native fling, adding 150 text messages
@@ -435,12 +435,12 @@ The first fair combined iOS production-bundle run used three-screen page
 lead on both lists, 5,500 pt/s for ten seconds, and 150 arrivals over
 15 seconds. No native builds or device boots overlapped.
 
-| Layout | Scenario | RN slow / frames | Native slow / frames | RN worst | Native worst |
-| --- | --- | --- | --- | --- | --- |
-| Bubbles | Scroll | 85 / 596 | 4 / 727 | 128.9 ms | 40.5 ms |
-| Stacked | Scroll | 69 / 629 | 1 / 729 | 60.8 ms | 43.7 ms |
-| Bubbles | Burst | 167 / 1001 | 3 / 1236 | 91.7 ms | 36.8 ms |
-| Stacked | Burst | 169 / 1024 | 5 / 1249 | 69.1 ms | 43.4 ms |
+| Layout  | Scenario | RN slow / frames | Native slow / frames | RN worst | Native worst |
+| ------- | -------- | ---------------- | -------------------- | -------- | ------------ |
+| Bubbles | Scroll   | 85 / 596         | 4 / 727              | 128.9 ms | 40.5 ms      |
+| Stacked | Scroll   | 69 / 629         | 1 / 729              | 60.8 ms  | 43.7 ms      |
+| Bubbles | Burst    | 167 / 1001       | 3 / 1236             | 91.7 ms  | 36.8 ms      |
+| Stacked | Burst    | 169 / 1024       | 5 / 1249             | 69.1 ms  | 43.4 ms      |
 
 Bubbles travelled 47,461 pt with 707 ms of loaded-edge wait on RN, versus
 54,703 pt with 50 ms on native. Stacked travelled 51,390 pt on RN and
@@ -508,12 +508,12 @@ The five-screen native prefetch recheck used a fresh 600-message media seed,
 started with 50 loaded messages. Capture FPS includes settling and driver
 round trips. There were no concurrent builds or device boots.
 
-| Layout | Scenario | RN capture FPS | Native capture FPS | RN slow | Native slow | RN worst | Native worst |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Bubbles | Scroll | 49.4 | 59.8 | 84 | 2 | 73.2 ms | 35.6 ms |
-| Stacked | Scroll | 52.4 | 59.7 | 72 | 4 | 83.3 ms | 38.6 ms |
-| Bubbles | Burst | 47.2 | 59.6 | 163 | 9 | 80.1 ms | 39.3 ms |
-| Stacked | Burst | 50.8 | 59.6 | 157 | 8 | 75.0 ms | 40.7 ms |
+| Layout  | Scenario | RN capture FPS | Native capture FPS | RN slow | Native slow | RN worst | Native worst |
+| ------- | -------- | -------------- | ------------------ | ------- | ----------- | -------- | ------------ |
+| Bubbles | Scroll   | 49.4           | 59.8               | 84      | 2           | 73.2 ms  | 35.6 ms      |
+| Stacked | Scroll   | 52.4           | 59.7               | 72      | 4           | 83.3 ms  | 38.6 ms      |
+| Bubbles | Burst    | 47.2           | 59.6               | 163     | 9           | 80.1 ms  | 39.3 ms      |
+| Stacked | Burst    | 50.8           | 59.6               | 157     | 8           | 75.0 ms  | 40.7 ms      |
 
 Native scrolled 55,000 pt in both layouts with zero edge wait and loaded
 50 → 450 rows. RN bubbles scrolled 48,097 pt with 483 ms edge wait,
@@ -638,3 +638,74 @@ worst 60.6/2.6 ms. Burst host CPU averaged RN/native 46/16% bubbles,
 31/16% stacked; no builds or boots overlapped. These are sequential bursts
 in the same chat, so histories grow, with normal prefetch/cache behavior.
 The full final numbers and qualifications were sent to the orchestrator.
+
+The final integration simulator clients are Android fingerprint
+74e6d0b780c70a55b1a4fd913bdda567e45a871d and iOS
+2c4ffa31b9fe514107b8d08519d168b6401cabac. Both compile. Final dark-card
+screenshots verify the shared elevated background on both platforms, and
+Android incoming URLs now inherit row text color. The eight Android
+RN/native × bubbles/stacked × light/dark screenshots were refreshed.
+Actual Android composer fill/send, keyboard placement, opening its thread,
+sending a reply, and the reply divider were exercised. Emulator notification
+permission was revoked to keep bot notifications out of captures.
+
+The first Android motion set was invalidated after frame review found a
+Pixel Launcher ANR dialog over it. Vera's fatal buffer stayed empty. The
+system alert was dismissed through agent-device, and the contaminated
+folder is marked invalid-launcher-anr. The clean native replacement is
+20261023-140922: 16/18 scenarios pass with zero Metro errors. Only firehose
+is formally flagged: bubbles 4 failing/3 minor in 51 changed frames,
+stacked 1 failing/3 minor in 53 changed frames. The Android owner has the
+exact windows for source/frame review. RN is running the same scenarios.
+The preserved scroll/burst numbers predate this launcher ANR and are separate.
+
+The matching clean Android RN run is 20261023-141800: 12/18 with zero
+Metro errors. RN firehose has eight bubbles and ten stacked failing flags;
+other flagged scenarios are bubbles first reply/send/delete and stacked
+first reply. Native has only the two firehose scenarios flagged. The
+Android source review found no reverse-scroll path or confirmed native
+defect. Row-identity review of the short native windows remains nonblocking.
+`pnpm release plan` was refreshed at 97d1b670 before the private builds;
+backend differences are still only the previously reviewed dev helpers.
+
+The Android owner completed row-identity review without changing code.
+Bubbles Firehose1 stays present and moves monotonically upward through
+3.435–3.552 s. The apparent 35 pt matches belong to other repeated rows
+while actual updates exceed the 40 pt search. Stacked's neighboring
+captures are 6.754/7.190/7.636 s; Firehose27 moves from bottom to top,
+then 33/31/34/35/36/37 keep order and move upward. No missing or reversing
+row was observed. Retain the formal 16/18 analyzer result and this manual
+alias disposition; thresholds were not widened.
+
+Final third-photo QA on 4f87adfe passed three guarded hold/land/viewer/close
+cycles, with the correct antler image lifting and returning. Later the
+2 GB Android guest entered system-wide swap thrashing and lowmemorykiller
+killed Vera plus numerous system apps. Vera's kill freed 840,848 kB RSS
+and 1,139,368 kB swap; the Java fatal buffer was empty. Retained pushed
+conversation screens are a driver hypothesis, not an established cause.
+The preceding numeric and clean motion captures remain separate evidence.
+
+A bounded fresh-launch ordinary photo-three flow then passed three more
+hold/menu/viewer/close cycles without adding conversation routes. PID14553
+survived throughout. Baseline and cycle PSS, kB: 712675, 745084, 751466, 752836. RSS: 783644, 542256, 527472, 510304; swap PSS: 25493, 281422,
+302288, 320242. The growth tapered to 6.4 MB then 1.4 MB. dumpsys activity
+showed two native Screen views and the same two unique ScreenStackFragments
+before/after. This ordinary path did not reproduce the kill. Keep the
+stress-session memory limit unresolved for phone testing; no heap audit or
+new native code was added.
+
+The Android video route and controls opened, but playback screenshots were
+black in this software-GL emulator. No decoder exception was found. Full
+photo viewer/Close is verified; Android video rendering remains a physical
+phone check. iOS moving-timestamp playback is verified. Do not describe
+Android playback as visually confirmed.
+
+Final Android side-by-side evidence has both layouts for fling, burst,
+reaction and hold, RN left/native right. These short visual clips are
+separate from the numeric captures: six-second flings, firehose sixty
+messages over six seconds, and stacked reaction on/off assembled from
+the clean motion cases. The hold driver now excludes aggregate list and
+scroll-area accessibility nodes when selecting a message. Final ordered
+lint/typecheck/test/React Doctor against origin/t3/native-message-list,
+then format:fix all pass. Both devices and Metro are down. Private preview
+builds are the remaining deliverable; no store submission or OTA occurred.

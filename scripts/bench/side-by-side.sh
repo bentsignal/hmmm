@@ -84,7 +84,7 @@ for scenario in $SCENARIOS; do
         for attempt in {1..5}; do
           local_snapshot=$(${=BENCH_AD:?set BENCH_AD} snapshot -i)
           print -r -- "$local_snapshot" > ".cache/bench/$PREFIX-hold-$list.snapshot.txt"
-          HOLD_TARGET=$(print -r -- "$local_snapshot" | awk -v target="${TARGET[1,20]}" 'index($0, target) && /^@e[0-9]+ / { print $1; exit }')
+          HOLD_TARGET=$(print -r -- "$local_snapshot" | awk -v target="${TARGET[1,20]}" 'index($0, target) && /^@e[0-9]+ / && $0 !~ /\[(list|scroll-area)\]/ { print $1; exit }')
           [[ -n $HOLD_TARGET ]] && break
           sleep 3
         done
