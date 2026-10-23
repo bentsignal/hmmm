@@ -8,6 +8,7 @@ import {
   useScrollOffset,
   useSharedValue,
 } from "react-native-reanimated";
+import { useIsFocused } from "expo-router";
 
 import { env } from "~/env";
 import { registerDevList } from "~/features/dev/dev-list";
@@ -27,6 +28,7 @@ export function useDevFling(
     onLayout?: (event: LayoutChangeEvent) => void;
   },
 ) {
+  const focused = useIsFocused();
   const offset = useScrollOffset(scrollRef);
   const speed = useSharedValue(0);
   const duration = useSharedValue(0);
@@ -52,7 +54,7 @@ export function useDevFling(
 
   // eslint-disable-next-line no-restricted-syntax -- Hands the list to benchmark scripts, which run outside React; dev tools only.
   useEffect(() => {
-    if (!env.devTools) return;
+    if (!env.devTools || !focused) return;
     return registerDevList({
       fling: (pointsPerSecond, ms) => {
         travelled.set(0);
@@ -72,7 +74,7 @@ export function useDevFling(
       },
       kind: "rn",
     });
-  }, [duration, edgeMs, frame, speed, travelled]);
+  }, [duration, edgeMs, focused, frame, speed, travelled]);
 
   return {
     onContentSizeChange: (width: number, height: number) => {

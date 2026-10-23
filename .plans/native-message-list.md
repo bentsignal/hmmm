@@ -351,3 +351,45 @@ at a random moment around its slot, so later messages land between rows
 already shown, which a firehose shows at once. The React Native list fails
 the same scenario worse (bubbles 6 failing, stacked 11 with a blank band,
 against native's 7 and 1).
+
+### Codex handoff and comparison audit (2026-10-23)
+
+Recovered the interrupted run with a clean worktree at `01150da0`.
+The Android build had finished and its production bundle eventually
+connected to Metro's debugger. Confirmed `__DEV__` is false before testing.
+Merged iOS `8c31dc3c` and Android `dab9c9b7`, then Android's conservative
+pagination estimate, `49e6ae66`. Final phone builds wait for both platform
+threads' explicit native-ready SHAs.
+
+The first Android diagnostic used 5,500 dp/s for 10 seconds and 150
+arrivals over 15 seconds in the original busy group:
+
+| Scenario | List | Main frames over 16.7 ms | Worst main frame | JS stalls over 50 ms | Worst JS gap | Distance / edge wait |
+| --- | --- | --- | --- | --- | --- | --- |
+| Fling | React Native | 60 / 390 | 62.1 ms | 60 | 676 ms | 27,919 dp / 5,133 ms |
+| Fling | Native | 11 / 401 | 57.4 ms | 33 | 398 ms | 39,874 dp / 2,533 ms |
+| Burst | React Native | 167 / 420 | 127.3 ms | 104 | 889 ms | n/a |
+| Burst | Native | 0 / 112 | 6.5 ms | 17 | 67 ms | n/a |
+
+These are diagnostic numbers, not the final comparison. That script ran
+the React Native burst before the native fling, adding 150 text messages
+to its starting data. It also captured only Android main-thread work,
+without `sim.sh frames` or the queue's protection against device boots.
+The native burst was checked afterward and did show its newest message.
+The loaded-edge wait was sent to Android, which found that tall visible
+media could delay requesting short rows above it. JavaScript sends
+`loadAheadScreens: 3`.
+
+The corrected comparison runs both flings before either burst and captures
+UI frame timing on both platforms, plus Android main-thread work. It
+checks the production bundle and the mounted list. A new 600-message,
+300-livened seed prevents earlier test bursts from burying the media.
+Its ID is in `.cache/bench-clean-seed.json`; results and evidence stay in
+`.cache/`, not Git.
+
+`scripts/sim.sh build` caches a native client without entering the device
+queue. Run it through `scripts/bench/with-lock.sh`, then `sim.sh up`
+outside the lock. The motion check now accepts `--android`.
+
+The simulator never reproduced the 5 FPS in Shawn's real chat. These
+measurements establish a floor; his phones remain the performance test.

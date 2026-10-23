@@ -1,5 +1,6 @@
 import type { RefObject } from "react";
 import { useEffect } from "react";
+import { useIsFocused } from "expo-router";
 
 import type { MessageListViewMethods } from "./native";
 import { env } from "~/env";
@@ -14,9 +15,10 @@ import { nativeSupport } from "./native";
 export function useDevNativeFling(
   view: RefObject<MessageListViewMethods | null>,
 ) {
+  const focused = useIsFocused();
   // eslint-disable-next-line no-restricted-syntax -- Hands the list to benchmark scripts, which run outside React; dev tools only.
   useEffect(() => {
-    if (!env.devTools) return;
+    if (!env.devTools || !focused) return;
     const flings = nativeSupport?.features?.includes("benchFling") === true;
     return registerDevList({
       fling: async (speed, ms) => {
@@ -26,5 +28,5 @@ export function useDevNativeFling(
       },
       kind: "native",
     });
-  }, [view]);
+  }, [focused, view]);
 }
