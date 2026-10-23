@@ -100,10 +100,15 @@ export interface MessageRow extends RowBase {
   readonly accessibilityLabel: string;
 }
 
-/** A time header (bubbles, after a pause) or day separator (stacked). */
+/**
+ * A time header (bubbles, after a pause), a day separator (stacked), or a
+ * thread's divider under its original (`replies`: the label at the start
+ * in semibold footnote, then a hairline rule to the edge, as Slack draws
+ * it). A binary that doesn't know a style draws it as `day`.
+ */
 export interface HeaderRow extends RowBase {
   readonly kind: "header";
-  readonly style: "time" | "day";
+  readonly style: "time" | "day" | "replies";
   /** The text, already formatted: "Today 9:41 AM". */
   readonly label: string;
 }

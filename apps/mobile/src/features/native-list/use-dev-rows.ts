@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 
 import type { Block, ListEvent, Row } from "./contract";
-import type { DevHold } from "./dev-menu";
+import type { DevHold } from "./dev-menu-layout";
 import { devMessage, devRows, devTyping, PEOPLE } from "./dev-fixtures";
 import { nativeSupport } from "./native";
 
@@ -114,7 +114,7 @@ export function useDevRows() {
     onEvent,
     reset,
     rows: thread
-      ? rows.slice(0, 2)
+      ? threadRows(rows)
       : typing === 0
         ? rows
         : [devTyping(layout, typing), ...rows],
@@ -138,4 +138,18 @@ function withReactionToggled(rows: Row[]) {
         : [{ content: { emoji: "👍" }, count: 1, key: "👍", mine: true }],
     };
   });
+}
+
+/** A reply, its divider, and the original, newest first. */
+function threadRows(rows: readonly Row[]) {
+  return [
+    ...rows.slice(0, 1),
+    {
+      id: "dev-replies",
+      kind: "header",
+      label: "1 reply",
+      style: "replies",
+    } satisfies Row,
+    ...rows.slice(1, 2),
+  ];
 }

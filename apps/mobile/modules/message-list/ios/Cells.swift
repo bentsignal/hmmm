@@ -563,12 +563,20 @@ final class MessageCell: RowCell {
     for block in message.blocks {
       switch block {
       case let .text(spans, _, _):
-        for span in spans where span.style == .link {
-          action(span.text, ["target": "link", "url": span.url ?? span.text])
+        for span in spans {
+          if span.style == .link {
+            action(span.text, ["target": "link", "url": span.url ?? span.text])
+          } else if span.style == .mention, let accountId = span.accountId {
+            action(span.text, ["target": "mention", "accountId": accountId])
+          }
         }
       case let .media(items, _):
         for (index, item) in items.enumerated() {
           action(item.kind == .video ? "Video \(index + 1)" : "Photo \(index + 1)", ["target": "media", "index": index, "part": item.part])
+          for reaction in item.reactions {
+            action("\(reaction.label) \(reaction.count), \(item.kind == .video ? "video" : "photo") \(index + 1)",
+                   ["target": "reaction", "reactionKey": reaction.key, "part": item.part])
+          }
         }
       case let .file(name, _, url, _):
         action(name, ["target": "file", "url": url])
@@ -680,7 +688,7 @@ final class TextRowCell: RowCell {
 
   override func configure(_ row: Row, _ layout: RowLayout, state: ListState, animated: Bool) {
     super.configure(row, layout, state: state, animated: animated)
-    var rules = false
+    var rules = HeaderRules.none
     let box: TextBox
     switch layout {
     case let .header(text, _, hasRules):
@@ -700,9 +708,15 @@ final class TextRowCell: RowCell {
     accessibilityLabel = box.string.string
     CATransaction.begin()
     CATransaction.setDisableActions(true)
-    leftRule.isHidden = !rules
-    rightRule.isHidden = !rules
-    if rules {
+    leftRule.isHidden = rules != .day
+    rightRule.isHidden = rules == .none
+    if rules == .replies {
+      rightRule.opacity = 1
+      rightRule.colors = [state.theme.separator.cgColor, state.theme.separator.cgColor]
+      rightRule.frame = CGRect(x: box.frame.maxX + 12, y: box.frame.midY,
+                               width: max(0, contentView.bounds.width - 16 - box.frame.maxX - 12),
+                               height: 1 / (window?.screen.scale ?? UIScreen.main.scale))
+    } else if rules == .day {
       // Strongest next to the label, fading out toward the edges.
       let colors = [state.theme.separator.withAlphaComponent(0).cgColor, state.theme.separator.cgColor]
       leftRule.opacity = 0.6
@@ -722,7 +736,7 @@ final class TextRowCell: RowCell {
 
 final class TypingCell: RowCell {
   private let bubble = BubbleView()
-  private var faces: [AvatarView] = []
+  private var faces: [String: AvatarView] = [:]
   private let overflow = TextView()
   private let overflowBack = UIView()
   private let label = TextView()
@@ -743,27 +757,39 @@ final class TypingCell: RowCell {
 
   override func configure(_ row: Row, _ rowLayout: RowLayout, state: ListState, animated: Bool) {
     guard case let .typing(layout) = rowLayout, case let .typing(_, people, label) = row.content else { return }
+    let changing = animated && rowId == row.id
     super.configure(row, rowLayout, state: state, animated: animated)
     self.layout = layout
     let theme = state.theme
-    UIView.performWithoutAnimation {
-      while faces.count < layout.faces.count {
-        let face = AvatarView()
-        contentView.insertSubview(face, at: 0)
-        faces.append(face)
+    let moving: [UIView] = Array(faces.values) + [bubble, overflow, overflowBack, self.label] + dots
+    let positions = moving.map { ($0, $0.layer.presentation()?.position ?? $0.layer.position, $0.isHidden) }
+    let oldLabel = changing ? fadingText(self.label, next: layout.label?.string) : nil
+    let oldCount = changing ? fadingText(overflow, next: layout.overflow?.string) : nil
+    let nextIds = Set(layout.faces.map { $0.0.id })
+    for id in Array(faces.keys) where !nextIds.contains(id) {
+      guard let face = faces.removeValue(forKey: id) else { continue }
+      if changing {
+        Self.zoom(face, entering: false)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.154) { face.removeFromSuperview() }
+      } else {
+        face.removeFromSuperview()
       }
-      for (index, face) in faces.enumerated() {
-        guard index < layout.faces.count else {
-          face.isHidden = true
-          continue
-        }
-        let (person, frame) = layout.faces[index]
+    }
+    UIView.performWithoutAnimation {
+      for (person, frame) in layout.faces {
+        let added = faces[person.id] == nil
+        let face = faces[person.id] ?? AvatarView()
+        faces[person.id] = face
+        if added { contentView.insertSubview(face, at: 0) }
         face.isHidden = false
         face.frame = frame.insetBy(dx: -layout.faceRing, dy: -layout.faceRing)
         face.set(person, size: face.frame.width, theme: theme, ring: layout.faceRing)
+        if added && changing { Self.zoom(face, entering: true) }
       }
       // The first face is on top.
-      for face in faces.prefix(layout.faces.count) { contentView.sendSubviewToBack(face) }
+      for (person, _) in layout.faces {
+        if let face = faces[person.id] { contentView.sendSubviewToBack(face) }
+      }
       if let box = layout.overflow {
         overflow.isHidden = false
         overflowBack.isHidden = layout.bubble == nil
@@ -796,8 +822,56 @@ final class TypingCell: RowCell {
         dot.backgroundColor = theme.muted
       }
     }
+    if changing {
+      for (view, from, wasHidden) in positions where !wasHidden && !view.isHidden && view.superview != nil {
+        let to = view.layer.position
+        if from != to {
+          let shift = CABasicAnimation(keyPath: "position")
+          shift.fromValue = NSValue(cgPoint: from)
+          shift.toValue = NSValue(cgPoint: to)
+          shift.duration = 0.22
+          shift.timingFunction = CAMediaTimingFunction(name: .linear)
+          view.layer.add(shift, forKey: "typingShift")
+        }
+      }
+      for (view, old) in [(self.label, oldLabel), (overflow, oldCount)] {
+        guard let old else { continue }
+        Self.fade(view, from: 0, to: 1, duration: 0.22)
+        Self.fade(old, from: 1, to: 0, duration: 0.154)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.154) { old.removeFromSuperview() }
+      }
+    }
     accessibilityLabel = label.isEmpty ? people.map(\.name).joined(separator: ", ") : label
     animateDots()
+  }
+
+  /// typing-parts.tsx: CHANGE_MS 220, exits at 70% of that duration.
+  private static func fade(_ view: UIView, from: Float, to: Float, duration: Double) {
+    let fade = CABasicAnimation(keyPath: "opacity")
+    fade.fromValue = from
+    fade.toValue = to
+    fade.duration = duration
+    view.layer.opacity = to
+    view.layer.add(fade, forKey: "typingChange")
+  }
+
+  private static func zoom(_ view: UIView, entering: Bool) {
+    let zoom = CABasicAnimation(keyPath: "transform.scale")
+    zoom.fromValue = entering ? 0 : 1
+    zoom.toValue = entering ? 1 : 0
+    zoom.duration = entering ? 0.22 : 0.154
+    zoom.fillMode = .forwards
+    zoom.isRemovedOnCompletion = entering
+    view.layer.add(zoom, forKey: "typingFace")
+  }
+
+  /// Keep just the old name/count while the new text crossfades in.
+  private func fadingText(_ text: TextView, next: NSAttributedString?) -> UIView? {
+    guard !text.isHidden, let previous = text.text, let next, previous.string != next.string else { return nil }
+    let old = TextView(frame: text.frame)
+    old.text = previous
+    contentView.addSubview(old)
+    return old
   }
 
   /// 1300 ms loop: each dot brightens and grows in turn.
