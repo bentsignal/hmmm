@@ -16,6 +16,7 @@ import { AccountScope, useAccount } from "~/features/messaging/account";
 import { useConversation } from "~/features/messaging/conversations";
 import { useProfileState } from "~/features/messaging/profiles";
 import { useSpace } from "~/features/messaging/spaces";
+import { ConversationListSection } from "~/features/native-list/native-list-switch";
 import {
   threadPeople,
   useConversationThreads,
@@ -75,6 +76,7 @@ function Details({
         <FieldList clearsNavigationBar>
           <ProfileCard {...card} />
           <InboxSection conversation={conversation} />
+          <ConversationListSection />
           <ThreadsSection
             conversationId={conversationId}
             title={card.name}

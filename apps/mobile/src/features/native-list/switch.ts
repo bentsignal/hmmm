@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
+import { env } from "~/env";
 import { CONTRACT_VERSION, MessageListView, nativeSupport } from "./native";
 
 // Whether conversations use the native message list or the React Native
@@ -10,11 +11,12 @@ import { CONTRACT_VERSION, MessageListView, nativeSupport } from "./native";
 
 export const NATIVE_LIST = {
   /**
-   * Whether it's on for people who haven't chosen. Off until Shawn has
-   * tried it in his group chat; an over-the-air update turns it on for
+   * Whether it's on for people who haven't chosen. On in dev builds, so
+   * every dev client tries it; off in production until Shawn has tried it
+   * in his group chat, when an over-the-air update turns it on for
    * everyone.
    */
-  byDefault: false,
+  byDefault: env.devTools,
   /**
    * Whether a binary without it asks to be updated while it's on
    * (`StoreUpdateCover`). Off until a store build with it is out.
