@@ -7,50 +7,11 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
+import type { ViewerItem } from "./media-group";
 import type { Pager } from "./photo-viewer-state";
 import { PlayBadge } from "./attachment-view";
 import { PhotoViewer } from "./photo-viewer";
 import { ViewerCloseButton } from "./viewer-close-button";
-
-/** One photo or video of a message's group, as the viewer shows it. */
-export interface ViewerItem {
-  readonly kind: "image" | "video";
-  readonly url: string;
-  readonly width?: number;
-  readonly height?: number;
-  /** A video's poster, shown until it's played. */
-  readonly poster?: string;
-}
-
-/** The group as a route param, and back (see `/media`). */
-export function groupParam(items: readonly ViewerItem[]) {
-  return JSON.stringify(items);
-}
-
-function isKind(kind: unknown) {
-  return kind === "image" || kind === "video";
-}
-
-function isItem(value: unknown): value is ViewerItem {
-  if (typeof value !== "object" || value === null) return false;
-  return (
-    isKind(Reflect.get(value, "kind")) &&
-    typeof Reflect.get(value, "url") === "string"
-  );
-}
-
-function itemsOf(parsed: unknown) {
-  return Array.isArray(parsed) && parsed.every(isItem) ? parsed : undefined;
-}
-
-export function parseGroup(param: string | undefined) {
-  if (param === undefined) return undefined;
-  try {
-    return itemsOf(JSON.parse(param));
-  } catch {
-    return undefined;
-  }
-}
 
 function sizeOf(item: ViewerItem) {
   const { height = 0, width = 0 } = item;

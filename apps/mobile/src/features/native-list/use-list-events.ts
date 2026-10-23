@@ -7,7 +7,7 @@ import type { MenuTarget } from "~/features/conversation/glass-message-menu";
 import type { ToggleReaction } from "~/features/conversation/message-actions";
 import type { Message, MessageAttachment } from "~/features/conversation/types";
 import type { MessageLayout } from "~/features/preferences/store";
-import { groupParam } from "~/features/conversation/media-group-viewer";
+import { groupParam } from "~/features/conversation/media-group";
 import { linkCardsOf } from "~/features/conversation/message-text";
 import { showNotSent } from "~/features/conversation/not-sent";
 import { showUploadProblem } from "~/features/conversation/upload-problem";

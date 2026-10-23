@@ -3,10 +3,8 @@ import Animated, { FadeIn } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import {
-  MediaGroupViewer,
-  parseGroup,
-} from "~/features/conversation/media-group-viewer";
+import { parseGroup } from "~/features/conversation/media-group";
+import { MediaGroupViewer } from "~/features/conversation/media-group-viewer";
 import { PhotoViewer } from "~/features/conversation/photo-viewer";
 import { VideoViewer } from "~/features/conversation/video-viewer";
 import { ViewerCloseButton } from "~/features/conversation/viewer-close-button";
