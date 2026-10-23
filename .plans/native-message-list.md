@@ -1320,6 +1320,24 @@ settle it.
   rect (iOS) or the list's last child bounds (Android hierarchy dump),
   and the composer bar's `RCTViewComponentView` rect (the bottom
   full-width container, y 798 here). Compute `bar.y - (cell.y + cell.height)`.
+- Reading a snapshot offline: `node --experimental-strip-types
+scripts/qa/bottom-row.ts <snapshot.txt> --newest "<newest row's label
+start>" [--scale <raw units per point>]`. It prints the row's bottom,
+  the composer bar's top, the gap and the overlap, in logical points, with
+  the raw rects and the row's hittable nodes. It exits 0 for a gap of at
+  least 8 pt (less 1), 1 for closer or overlapped, and 2 when the dump
+  can't answer: the newest row missing or hidden, duplicated, or not the
+  bottom one; no composer bar; an invalid rect. It never stands an older
+  row in for a missing newest one. The bar is the field's outermost
+  full-width ancestor reaching the window's bottom, not the field. On
+  `.cache/polish-ios-group-raw.txt` with `--newest "Leo Martins, send pics"`
+  it gives 790, 798 and 8, exit 0. iOS only: Android reports unsupported
+  until a real Android dump is captured to read its node shape from
+  (Android's would need `--scale` set to the device's density, which it
+  never guesses). One still frame: it says nothing about transitions,
+  and AX `hittable` isn't a tap. Tests: `node --experimental-strip-types
+--test scripts/qa/bottom-row.test.ts`. Root `pnpm run test` doesn't run
+  `scripts/`, so run them by hand.
 - In transition: `scripts/sim.sh record` around each step, then a 3 fps
   (or finer, around the moment) contact sheet, read frame by frame for
   the newest row against the composer's glass top. `scripts/sim.sh frames`
