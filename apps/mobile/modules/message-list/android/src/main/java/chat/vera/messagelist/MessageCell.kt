@@ -644,13 +644,11 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
   }
 
   fun liftPieces(part: String?, index: Int?): LiftPieces? {
-    val slot = blockViews.indexOfFirst { view ->
-      view.holdTarget?.part == part || (view is DeckView && view.currentItem?.part == part)
-    }.let { if (it < 0) 0 else it }
+    val row = row ?: return null
+    val slot = liftBlockSlot(row.blocks, blockIndex, part) ?: return null
     val view = blockViews.getOrNull(slot) ?: return null
     // A carousel lifts only the held media tile, not the whole lane.
-    val media = if (view is CarouselView) view.heldMedia(part, index) else null
-    val held = media ?: view
+    val held = if (view is CarouselView) view.heldMedia(part, index) ?: return null else view
     val pieces = mutableListOf(held)
     tapbacks.getOrNull(slot)?.takeIf { it.visibility == VISIBLE && it.shownCount > 0 }?.let { pieces.add(it) }
     val plain = held is TextView && held !is BubbleTextView

@@ -210,13 +210,11 @@ class CarouselAdapter(private val units: Units, private val images: Images) :
 class CarouselView(context: Context, private val units: Units, images: Images, pool: RecyclerView.RecycledViewPool) :
   RecyclerView(context) {
   private val cards = CarouselAdapter(units, images)
-  private val manager = LinearLayoutManager(context, HORIZONTAL, false)
+  private val manager = carouselLayoutManager(context)
   private var heightPx = 0
 
   init {
     layoutManager = manager
-    manager.recycleChildrenOnDetach = true
-    manager.initialPrefetchItemCount = 3
     setRecycledViewPool(pool)
     adapter = cards
     itemAnimator = null

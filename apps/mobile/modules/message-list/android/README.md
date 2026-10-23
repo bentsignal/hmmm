@@ -48,6 +48,27 @@ photo dimensions. `/dev-native-list` exercises
 both layouts, the lift menu, reactions, typing changes, keyboard, and media.
 Its `bench` button runs 5,500 dp/s for ten seconds and logs the result.
 
+`LiftTargetTest` covers a held third photo whose part differs from its media
+block after a caption, omitted blocks in the rendered slot mapping, and an
+unknown item that must not fall back to lifting the caption. Carousel lifts
+resolve the containing block by item part, then lift only its visible tile.
+
+`CarouselDetachTest` uses Robolectric to model a native screen transition's
+recursive `startViewTransition` ownership, then detaches and reattaches at the
+third photo three times. Restoring `recycleChildrenOnDetach = true` reproduces
+the attached-view recycling exception; the normal detach policy passes.
+It also checks that a transition-owned tile can move to the lift overlay and
+back, and that its inner carousel holder can remain pinned until landing.
+
+Carousels keep their children on window detach. `react-native-screens` marks
+descendants as transitioning, so eagerly removing and recycling a card during
+the same detach traversal can recycle a view that still has a parent. See
+[Screen's recursive transition ownership](https://github.com/software-mansion/react-native-screens/blob/4.26.2/android/src/main/java/com/swmansion/rnscreens/Screen.kt)
+and [LinearLayoutManager's optional detach recycling](<https://developer.android.com/reference/androidx/recyclerview/widget/LinearLayoutManager#setRecycleChildrenOnDetach(boolean)>).
+Lifts end transition ownership before removing a native part and pin both the
+outer row and any inner carousel holder. These changes complement the item-part
+lookup fix; correcting which item lifts alone does not fix the detach crash.
+
 The Android emulator uses software GL on this Mac. Frame intervals include
 that rendering cost and host contention; recordings establish visual behavior,
 not a 60 fps phone result. The integration branch owns the same-chat,
