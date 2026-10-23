@@ -76,7 +76,7 @@ let reversed = false;
 try {
   await run(adb, ["-s", serial, "reverse", `tcp:${port}`, `tcp:${port}`]);
   reversed = true;
-  const expression = `(async () => {
+  const exchange = `(async () => {
     let echoed = 0;
     for (let i = 0; i < 25; i++) {
       await new Promise((resolve, reject) => {
@@ -93,13 +93,30 @@ try {
     }
     return echoed;
   })()`;
-  const result = await run(
-    join(root, "scripts/sim.sh"),
-    ["--android", "eval", expression],
-    { cwd: root, timeout: 180_000 },
-  );
+  // RN's Promise polyfill is not a native Promise to CDP's awaitPromise.
+  // Publish completion explicitly while the server's event loop keeps running.
+  const expression = `globalThis.veraSocketProbe = undefined; void ${exchange}.then(
+    (echoed) => { globalThis.veraSocketProbe = { echoed }; },
+    (error) => { globalThis.veraSocketProbe = { error: String(error) }; }
+  )`;
+  await run(join(root, "scripts/sim.sh"), ["--android", "eval", expression], {
+    cwd: root,
+    timeout: 180_000,
+  });
+  let completed;
+  const until = Date.now() + 60_000;
+  while (Date.now() < until && completed === undefined) {
+    const probe = await run(
+      join(root, "scripts/sim.sh"),
+      ["--android", "eval", "globalThis.veraSocketProbe"],
+      { cwd: root },
+    );
+    if (probe.stdout.trim()) completed = JSON.parse(probe.stdout.trim());
+    else await new Promise((resolve) => setTimeout(resolve, 100));
+  }
   if (wireFailure) throw wireFailure;
-  assert.equal(JSON.parse(result.stdout.trim()), 25);
+  assert.equal(completed?.error, undefined);
+  assert.equal(completed?.echoed, 25);
   assert.equal(received.length, 25);
   assert.equal(echoes.length, 25);
   assert.ok(
