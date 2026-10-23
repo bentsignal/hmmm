@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { useCSSVariable } from "uniwind";
 
 import type { Behavior, Theme } from "./contract";
@@ -77,9 +78,10 @@ const TYPE = {
     name: { lineHeight: 16, size: 12 },
   },
   stacked: {
-    // Stacked text sets no line height, so it has San Francisco's own at
-    // 17 pt (bubbles set 22).
-    body: { lineHeight: 20.3, size: 17 },
+    // Stacked text sets no line height, so it has the font's own at 17:
+    // San Francisco's 20.3 pt, or Roboto's 23.24 dp with Android's font
+    // padding (bubbles set 22).
+    body: { lineHeight: Platform.OS === "android" ? 23.24 : 20.3, size: 17 },
     caption: { lineHeight: 16, size: 12 },
     footnote: { lineHeight: 18, size: 13 },
     jumbo: { lineHeight: 52, size: 48 },
