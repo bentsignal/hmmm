@@ -435,7 +435,15 @@ stop() {
     sleep 1
     # Video is already compressed. Avoid adb's compressed sync transfer,
     # which can disconnect this emulator during a large pull.
-    adb_device pull -Z "/sdcard/$name.mp4" "$EVIDENCE/$name.mp4" >/dev/null
+    local transferred=0
+    for attempt in 1 2 3; do
+      if adb_device pull -Z "/sdcard/$name.mp4" "$EVIDENCE/$name.mp4" >/dev/null; then
+        transferred=1
+        break
+      fi
+      sleep 2
+    done
+    [ "$transferred" = 1 ] || return 1
     adb_device shell rm "/sdcard/$name.mp4"
     adb_device shell rm -f "/data/local/tmp/vera-recording-$(hash_of "$ROOT").pid"
   fi
