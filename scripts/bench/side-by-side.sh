@@ -72,6 +72,9 @@ for scenario in $SCENARIOS; do
     open_fresh $list
     if [[ $scenario == react || $scenario == hold ]]; then
       TARGET="$scenario me"
+      # Native accessibility cells span the row. Give the held bubble enough
+      # width that the cell's center also lands on the actual message.
+      [[ $scenario == hold ]] && TARGET="hold me while the real message moves into the menu"
       say maya "$TARGET"; sleep 4
     fi
     if [[ $scenario == hold ]]; then
