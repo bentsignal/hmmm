@@ -98,6 +98,11 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
 
   init {
     tracing = (context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+    if (tracing) {
+      val paint = android.text.TextPaint().apply { textSize = units.sp(17f) }
+      val fm = paint.fontMetricsInt
+      android.util.Log.i("MessageList", "17sp: font padding ${units.dp((fm.bottom - fm.top).toFloat())} dp, without ${units.dp((fm.descent - fm.ascent).toFloat())} dp, spacing ${units.dp(paint.fontSpacing)} dp")
+    }
     clipChildren = false
     clipToPadding = false
     recycler.layoutManager = manager
