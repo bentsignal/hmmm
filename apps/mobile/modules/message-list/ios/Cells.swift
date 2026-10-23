@@ -444,21 +444,24 @@ final class MessageCell: RowCell {
 
   /// The held part (by the `part` and `index` a hold reported) and its
   /// tapbacks, in the message's coordinates. `frameOnly` asks just where
-  /// it goes (while its views are out).
+  /// it goes (while its views are out). A part this message doesn't have
+  /// lifts nothing, rather than some other part (a caption) in its place.
   func liftPieces(part: String?, index: Int?, frameOnly: Bool = false) -> LiftPieces? {
-    guard let layout else { return nil }
-    func holds(_ candidate: PartLayout) -> Bool {
-      guard let part else { return false }
-      if candidate.part == part { return true }
-      switch candidate.content {
-      case let .media(item, _): return item.part == part
-      case let .carousel(carousel): return carousel.items.contains { $0.part == part }
-      case let .deck(deck): return deck.items.contains { $0.part == part }
-      default: return false
-      }
-    }
-    guard let at = layout.parts.firstIndex(where: holds) ?? (layout.parts.isEmpty ? nil : 0) else { return nil }
+    guard let layout, let at = layout.liftedPart(part, index: index) else { return nil }
     let held = layout.parts[at]
+    if case let .carousel(carousel) = held.content {
+      // A carousel's card lifts alone: its photo, not the strip with its
+      // neighbors. Its chips stay under it, as the React Native menu
+      // lifts just the photo (`MediaCopy`). The frame is the card's as
+      // drawn now, the one the hold reported and the menu laid out from.
+      // No card named, or no photo for it: nothing lifts.
+      guard let card = carousel.liftedItem(part: part, index: index, blockPart: held.part),
+            let strip = at < partViews.count ? partViews[at] as? CarouselView : nil,
+            let frame = carousel.cardFrame(card, offset: strip.contentOffset.x, in: held.frame) else { return nil }
+      if frameOnly { return LiftPieces(frame: frame, views: []) }
+      guard let tile = strip.tile(card) else { return nil }
+      return LiftPieces(frame: frame, views: [tile])
+    }
     if frameOnly { return LiftPieces(frame: held.frame, views: []) }
     guard at < partViews.count else { return nil }
     var views = [partViews[at]]

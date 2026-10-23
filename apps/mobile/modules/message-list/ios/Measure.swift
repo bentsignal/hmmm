@@ -69,6 +69,26 @@ struct CarouselLayout {
     return starts[target]
   }
 
+  /// The card a hold or lift is about (contract: `Lift.part`/`index`, as
+  /// the hold reported them): `index` when it's in range and that item is
+  /// the held part (or the block is), otherwise the item whose part it is.
+  /// Nil when neither names a card: the caller lifts no single card then.
+  func liftedItem(part: String?, index: Int?, blockPart: String?) -> Int? {
+    if let index, items.indices.contains(index), part == nil || items[index].part == part || blockPart == part {
+      return index
+    }
+    guard let part else { return nil }
+    return items.firstIndex { $0.part == part }
+  }
+
+  /// A card's frame in the coordinates the strip is placed in, with the
+  /// strip at `partFrame` scrolled `offset` in: where the card is drawn,
+  /// which is the frame a hold on it reports.
+  func cardFrame(_ index: Int, offset: CGFloat, in partFrame: CGRect) -> CGRect? {
+    guard cards.indices.contains(index) else { return nil }
+    return cards[index].offsetBy(dx: partFrame.minX - offset, dy: partFrame.minY)
+  }
+
   /// The reaction chip at a point in the strip's content.
   func chip(at point: CGPoint) -> ChipLayout? {
     chips.first { $0.frame.insetBy(dx: -4, dy: -4).contains(point) }
@@ -161,6 +181,36 @@ struct MessageLayout {
   /// A stacked row's carousel that starts beside its author's photo: the
   /// scale the photo shrinks to (from its top) as cards scroll under it.
   var avatarRecede: CGFloat?
+
+  /// Which of `parts` a lift is about (`Lift.part` and `index`): the one
+  /// with that part, or the media block with an item of it. With only an
+  /// `index` (an item of a group, contract `hold.index`), the first media
+  /// with that many items, never a caption. With neither (a hold on a
+  /// part that has none), the first part. A part the message doesn't
+  /// have, or an index no media has, is nil: nothing lifts, rather than a
+  /// caption or other photos in its place.
+  func liftedPart(_ part: String?, index: Int? = nil) -> Int? {
+    guard let part else {
+      guard let index else { return parts.isEmpty ? nil : 0 }
+      return parts.firstIndex { candidate in
+        switch candidate.content {
+        case .media: return index == 0
+        case let .carousel(carousel): return index >= 0 && index < carousel.items.count
+        case let .deck(deck): return index >= 0 && index < deck.items.count
+        default: return false
+        }
+      }
+    }
+    return parts.firstIndex { candidate in
+      if candidate.part == part { return true }
+      switch candidate.content {
+      case let .media(item, _): return item.part == part
+      case let .carousel(carousel): return carousel.items.contains { $0.part == part }
+      case let .deck(deck): return deck.items.contains { $0.part == part }
+      default: return false
+      }
+    }
+  }
 
   /// The part a reaction's `part` is on, as taps and holds on it report:
   /// which of `parts`, and for media, which item (`index`). The message's

@@ -249,6 +249,47 @@ if let layout = messageLayout(captioned) {
   check(layout.target(forPart: "2").map { $0.at == 1 && $0.index == 1 } == true, "a photo's under a caption: that photo")
 }
 
+// Holding a carousel card lifts that card alone, framed where it's drawn.
+let strip4 = message("s", layout: "stacked", blocks: [
+  ["type": "text", "part": "message", "spans": [["text": "Trip"]]],
+  media((0..<4).map { item("\($0 + 1)", width: 900, height: 1200) }),
+])
+if let layout = messageLayout(strip4), case let .carousel(strip) = layout.parts[1].content {
+  let partFrame = layout.parts[1].frame
+  equal(layout.liftedPart("3"), 1, "a card's part lifts from the carousel, not the caption")
+  equal(layout.liftedPart("message"), 0, "the caption's part lifts the caption")
+  equal(layout.liftedPart("9"), nil, "a part the message doesn't have lifts nothing, not the caption")
+  equal(layout.liftedPart(nil), 0, "no part: the first, as before")
+  // Composed, as liftPieces resolves a lift: the part, then the card.
+  func lifted(_ part: String?, _ index: Int?) -> Int? {
+    guard let at = layout.liftedPart(part, index: index) else { return nil }
+    guard case let .carousel(cards) = layout.parts[at].content else { return -1 }
+    return cards.liftedItem(part: part, index: index, blockPart: layout.parts[at].part)
+  }
+  equal(lifted("3", 2), 2, "the held third card")
+  equal(lifted("3", 0), 2, "a stale index: still the third card")
+  equal(lifted(nil, 2), 2, "only an index: that card, not the caption")
+  equal(lifted(nil, 9), nil, "an index no card has: nothing, not the caption")
+  equal(lifted("9", 2), nil, "an unknown part: nothing, not the caption or another card")
+  equal(lifted("message", nil), -1, "the caption's own hold still lifts the caption")
+  equal(lifted(nil, nil), -1, "no part or index: the first part, as before")
+  equal(strip.liftedItem(part: "3", index: 2, blockPart: nil), 2, "the reported index, when it's that card")
+  equal(strip.liftedItem(part: "3", index: 0, blockPart: nil), 2, "a stale index: the card whose part it is")
+  equal(strip.liftedItem(part: "3", index: 9, blockPart: nil), 2, "an index past the end: the card whose part it is")
+  equal(strip.liftedItem(part: "9", index: 9, blockPart: nil), nil, "neither: no card")
+  equal(strip.liftedItem(part: nil, index: 1, blockPart: nil), 1, "only an index: that card")
+  let maxOffset = strip.contentWidth - width
+  for offset in [0, maxOffset] {
+    let frame = strip.cardFrame(2, offset: offset, in: partFrame)
+    equal(frame?.minX, strip.cards[2].minX - offset, "the third card where it's drawn, scrolled \(offset)")
+    equal(frame?.minY, partFrame.minY, "at the strip's top")
+    equal(frame?.size, strip.cards[2].size, "its own size, not the strip's")
+  }
+  check(strip.cardFrame(2, offset: maxOffset, in: partFrame).map { $0.maxX <= width - theme.horizontalPadding + 0.5 } == true,
+        "at the last offset the third card is on screen")
+  equal(strip.cardFrame(7, offset: 0, in: partFrame), nil, "no card, no frame")
+} else { check(false, "a captioned stacked carousel") }
+
 // The deck's pile: the next behind on the right, the one before on the
 // left; swipes either way undo each other.
 equal(DeckPile.front(after: 0, forward: true, count: 4), 1, "left: the next card")
