@@ -1208,6 +1208,130 @@ native row.
   updates are a tester's own setting. So the gate is a one-tap prompt,
   with no update SDK.
 
+### 9. The newest message under the composer (acceptance, not a claim)
+
+Shawn asked whether the React Native list's old bug, the bottom message
+stuck under the composer, is fixed once and for all. **It isn't claimed.**
+The native list removes the old mechanism, but two inputs still cross
+threads, and nothing so far has measured the transitions. Below are the
+source mechanism, what the evidence shows, and the acceptance that would
+settle it.
+
+**How the bottom inset is made (source, at `8bb83ce6`).**
+
+- JavaScript, `native-message-list.tsx` (the `insets` prop, about line
+  279): `bottom` is the composer's height plus `COMPOSER_GAP` (8), and
+  `keyboardOverlap` is the composer's own bottom inset. The height is the
+  composer bar's (`Bar` in `composer.tsx`). It includes its padding and
+  the safe area under it, and any reply bar or staged attachments
+  (`FieldTop`), but not the mention picker, which floats over the
+  messages above the bar. The UI thread updates it the frame it changes
+  (`onSentShorter`, `onTyped`, `onHeight` in `composer-height.ts`). It
+  reaches native only through React: `useComposerHeightNow` sends it with
+  `scheduleOnRN` to state, then a render, then the prop. So native gets a
+  new composer height at least one JavaScript render late. That's longer
+  when JavaScript is busy (a send's render, a busy chat, the A16).
+- iOS, `MessageListView.swift`: `setInsets` calls `applyInsets(keepDistance: true)`
+  (about lines 196 to 207 and 324 to 339). The flipped collection view's
+  top inset is `insets.bottom` plus the keyboard, and the offset keeps its
+  distance from the newest row, so a pinned list rides with each change.
+  The keyboard comes from a `keyboardLayoutGuide` tracker in
+  `layoutSubviews`, frame by frame, interactive dismissal included. It's
+  `raw - keyboardOverlap` (about lines 129 to 139 and 290 to 312), held while
+  `keyboardFrozen`, easing back after. Releasing a drag past the newest
+  row settles on it (`scrollViewWillEndDragging`, about line 780). A row
+  arriving counts as pinned within 2 pt, or within 24 pt when not
+  dragging (about line 425).
+- Android, `MessageListView.kt`: `setInsets` calls `applyPadding`, which sets
+  the recycler's bottom padding to `insets.bottom` plus the keyboard and
+  lays out at once (about lines 166 to 171 and 384 to 390). The keyboard
+  is the IME inset minus `keyboardOverlap` (or the navigation bar),
+  followed by `WindowInsetsAnimationCompat` frame by frame (about lines
+  393 to 436). A source grep found no native drag-to-dismiss, so whether
+  dragging the list dismisses the keyboard on Android is unknown. Check
+  it on device.
+- **What changed from the React Native list:** there's no separate room
+  animation that the messages must catch, and no Reanimated layout
+  timing. Each platform applies the inset in its own layout pass. **What
+  still can go wrong:**
+  1. The composer moves with react-native-keyboard-controller, and the
+     list with its own keyboard tracker: two trackers, which may differ
+     for a frame or more, during open, close or interactive dismissal.
+  2. Composer height changes reach native a render late. So while the
+     field grows a line, the newest row can sit under the composer for
+     those frames. After a send, the gap is too large for a moment, not
+     too small.
+  3. A new composer element outside `Bar` (like the mention picker) isn't
+     counted.
+     At rest, both should converge on the last height React sends. Nothing
+     above shows that they can't, but nothing has measured them in
+     transition either.
+
+**Evidence so far (iOS simulator only).**
+
+- `.cache/polish-ios-group-raw.txt` (an AX snapshot of the group, bubbles,
+  keyboard down, at rest): the composer bar is at y 798 to 874 (76 pt with
+  the safe area). The newest cell, "send pics", is 709 to 790, its text
+  753 to 775. That's exactly the 8 pt gap. One resting state, one layout,
+  one platform.
+- `.cache/evidence/polish-ios-dm-typing.mp4` (52 s, 3 slow frames) and its
+  contact sheet show the composer in every sampled frame, with the
+  newest bubble above it, through typing and the morph. The
+  `polish-ios-dm-morph-message.png` read for this review also shows the
+  composer, with the last bubble resting above it. The report that a
+  morph frame appeared without the composer isn't seen in these files.
+  It stays **unconfirmed, not refuted**: a single transition could fall
+  between samples. No source change until it's reproduced.
+- Nothing for Android, stacked, keyboard transitions, multiline growth,
+  tall media at the bottom, or reactions on the newest row.
+
+**Acceptance.** Pass on both platforms, in both layouts, in the
+"Mixed media" group and the DM (`devMixed:seed`):
+
+| #   | Scenario                                                                                     |
+| --- | -------------------------------------------------------------------------------------------- |
+| 1   | At rest, keyboard down: newest text row; then newest tall media (photo, deck, carousel)      |
+| 2   | Keyboard opening, then open at rest                                                          |
+| 3   | Keyboard closing (tap away and Return)                                                       |
+| 4   | Interactive dismissal, dragging the list down (iOS; Android if it exists)                    |
+| 5   | Multiline: type until the field grows to its 10-line cap, then send and watch it clear       |
+| 6   | An arrival while pinned (`dev:replyToMe`), and a burst                                       |
+| 7   | Typing to message: DM (one bot), group (three bots)                                          |
+| 8   | Adding and removing a reaction on the newest row (it grows and shrinks)                      |
+| 9   | Reply bar and staged attachments opening and closing                                         |
+| 10  | The long-press menu opening and closing with the keyboard up (`keyboardFrozen`)              |
+| 11  | Safe areas: iPhone with the home indicator; Android with gesture and three-button navigation |
+| 12  | A thread short enough to sit at the top (`alignTop`), then filling past the composer         |
+
+- **At rest** after each step: the newest row's frame bottom is at or
+  above the composer bar's top, less 8 pt (±1). Its bottom-most part
+  (text, media, the reaction chips, the footer) is visible, and a tap on
+  it does what it should (opens the viewer, toggles the chip).
+- **In transition:** record the most the newest row overlaps the
+  composer, and for how many frames. A frame or two while the field
+  grows or the keyboard moves is the known lag above. Report it as
+  measured, not as a failure or a pass. Anything that stays overlapped at
+  rest, or overlaps for more than about 100 ms, fails.
+
+**How to check, with existing tools and no new probe or API.**
+
+- At rest: `agent-device` snapshot raw, as in
+  `.cache/polish-ios-group-raw.txt`. Take the last `MessageList.MessageCell`
+  rect (iOS) or the list's last child bounds (Android hierarchy dump),
+  and the composer bar's `RCTViewComponentView` rect (the bottom
+  full-width container, y 798 here). Compute `bar.y - (cell.y + cell.height)`.
+- In transition: `scripts/sim.sh record` around each step, then a 3 fps
+  (or finer, around the moment) contact sheet, read frame by frame for
+  the newest row against the composer's glass top. `scripts/sim.sh frames`
+  alongside, so a hitch is counted too.
+- Shawn's phones: the same steps, judged by eye. The A16 matters most,
+  because it's where JavaScript is slowest, and so where the height lag
+  is longest.
+
+**Gaps:** frame-exact transition overlap (video sampling only),
+landscape, Android interactive dismissal, a composer element outside
+`Bar`, and the React Native fallback list (out of scope).
+
 ### Pending checks only a phone can do
 
 - Shawn's iPhone: reaction tap latency and haptic, chip hold, dictation,
