@@ -41,9 +41,20 @@ function viewerItems(message: Message) {
   }));
 }
 
+/** The file a tap landed on: by its address, or by its part. */
+function fileOf(message: Message, event: PressEvent) {
+  const byUrl = message.attachments.find(
+    (attachment) =>
+      attachment.kind === "file" &&
+      event.url !== undefined &&
+      (attachment.url === event.url || attachment.localUrl === event.url),
+  );
+  return byUrl ?? heldPart(message, event).attachment;
+}
+
 /** Opens a file, once it's uploaded, or offers to retry one that wasn't. */
 function openFile(message: Message, event: PressEvent) {
-  const { attachment } = heldPart(message, event);
+  const attachment = fileOf(message, event);
   if (attachment === undefined || handledStuck(attachment)) return;
   const { upload } = attachment;
   if (upload === undefined || upload.state === "uploaded") {
@@ -53,9 +64,10 @@ function openFile(message: Message, event: PressEvent) {
 
 /** Opens a link card's page (its preview's canonical address). */
 function openCard(message: Message, event: PressEvent) {
-  const { link } = heldPart(message, event);
-  const card = linkCardsOf(message).find((each) => each.link === link);
-  const url = card?.preview?.url ?? event.url ?? link;
+  const cards = linkCardsOf(message);
+  const link = event.url ?? heldPart(message, event).link;
+  const card = cards.find((each) => each.link === link);
+  const url = card?.preview?.url ?? link;
   if (url !== undefined) openLink(url);
 }
 
