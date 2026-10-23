@@ -415,8 +415,11 @@ stop() {
   if [ -n "$RECORD_PID" ]; then
     if [ "$PLATFORM" = android ]; then
       adb_device shell pkill -INT screenrecord >/dev/null 2>&1 || true
+      # Let screenrecord write its MP4 index before closing its adb shell.
+      # Interrupting both at once can leave a large, unplayable file.
+    else
+      kill -INT "$RECORD_PID" 2>/dev/null || true
     fi
-    kill -INT "$RECORD_PID" 2>/dev/null || true
     while kill -0 "$RECORD_PID" 2>/dev/null; do sleep 0.2; done
   fi
   local name
