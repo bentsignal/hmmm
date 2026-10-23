@@ -1,4 +1,5 @@
 import type { MessageListProps } from "~/features/conversation/message-list";
+import { useComposerHeight } from "~/features/conversation/composer-height";
 import { MessageList } from "~/features/conversation/message-list";
 import { NativeMessageList } from "./native-message-list";
 import { useNativeList } from "./switch";
@@ -14,4 +15,13 @@ export function ConversationList(props: MessageListProps) {
   ) : (
     <MessageList {...props} />
   );
+}
+
+/**
+ * The composer's height for the list a conversation shows: the React
+ * Native list closes its room after a send, which the field's glass waits
+ * for; the native list takes each height at once (see `useComposerHeight`).
+ */
+export function useConversationComposerHeight() {
+  return useComposerHeight({ roomCloses: !useNativeList() });
 }

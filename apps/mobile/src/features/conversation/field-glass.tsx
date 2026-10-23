@@ -14,6 +14,7 @@ import { scheduleOnUI } from "react-native-worklets";
 
 import type { ComposerReport } from "./composer-height";
 import { GlassSurface } from "~/components/glass-surface";
+import { glassAbove } from "./glass-hold";
 
 const IOS = Platform.OS === "ios";
 /** Frames to wait for the field to get shorter before letting the glass go. */
@@ -28,13 +29,18 @@ const FOLLOW_FRAMES = 120;
  * make room for the one sent (see `useComposerRoom`), so the glass's edge
  * stays on the messages' all the way. It follows the field too, as when
  * attachments close at the same time. If the field doesn't get shorter,
- * the glass lets go.
+ * the glass lets go. With a list whose room doesn't close with the
+ * messages (`roomCloses`), it lets go as soon as the field is shorter.
  */
 function settle(
   field: AnimatedRef<View>,
   held: SharedValue<number>,
   sends: SharedValue<number>,
-  { onSentShorter, room }: Pick<ComposerReport, "onSentShorter" | "room">,
+  {
+    onSentShorter,
+    room,
+    roomCloses,
+  }: Pick<ComposerReport, "onSentShorter" | "room" | "roomCloses">,
 ) {
   "worklet";
   // A later send takes the glass over.
@@ -63,7 +69,7 @@ function settle(
         return;
       }
     }
-    const above = lost - (wasRoom - room.get());
+    const above = glassAbove({ lost, room: room.get(), roomCloses, wasRoom });
     if (above <= 0.5 || frames > FOLLOW_FRAMES) {
       held.set(0);
       return;
@@ -111,9 +117,14 @@ export function useFieldGlass(report: ComposerReport) {
     // Android's bar is solid, with a border along its top that moves at
     // once: glass held above it would show over the messages.
     settle: () => {
-      const { onSentShorter, room } = report;
-      if (IOS)
-        scheduleOnUI(settle, field, held, sends, { onSentShorter, room });
+      const { onSentShorter, room, roomCloses } = report;
+      if (IOS) {
+        scheduleOnUI(settle, field, held, sends, {
+          onSentShorter,
+          room,
+          roomCloses,
+        });
+      }
     },
   };
 }
