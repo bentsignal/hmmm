@@ -11,7 +11,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
 
-import type { MessageListViewMethods } from "./native";
+import type { Lift, MessageListViewMethods } from "./native";
 import type { MessageListProps } from "~/features/conversation/message-list";
 import type { Message } from "~/features/conversation/types";
 import { newestFirst } from "~/features/conversation/build-rows";
@@ -33,6 +33,9 @@ import {
 } from "./native";
 import { BEHAVIOR, useNativeTheme } from "./theme";
 import { useListEvents } from "./use-list-events";
+
+/** The binary lifts the held message into the menu itself (`lift`). */
+const LIFTS = nativeSupport?.features?.includes("lift") === true;
 
 /** The gap between the newest row and the composer (`COMPOSER_GAP`). */
 const COMPOSER_GAP = 8;
@@ -164,6 +167,7 @@ function NativeRows({
     composerHeight.laidOut ?? 0,
   );
   const { messageOf, rows } = useRows(shown);
+  const [lift, setLift] = useState<Lift>();
 
   function scrollToLatest() {
     void view.current?.scrollToLatest(true);
@@ -182,6 +186,7 @@ function NativeRows({
         />
       ),
       self,
+      lift: LIFTS ? setLift : undefined,
     },
     messageOf,
     openMenu: open,
@@ -210,7 +215,8 @@ function NativeRows({
           keyboard
           keyboardFrozen={keyboardFrozen}
           alignTop={shown.thread !== undefined}
-          liftedRowId={lifted}
+          liftedRowId={LIFTS ? undefined : lifted}
+          lift={lift}
           initialRowId={shown.anchorId}
           onEvent={onEvent}
         />

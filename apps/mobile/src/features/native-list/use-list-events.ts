@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useRouter } from "expo-router";
 
 import type { HeldPart } from "./held-part";
-import type { ListEvent } from "./native";
+import type { Lift, ListEvent } from "./native";
 import type { MenuTarget } from "~/features/conversation/glass-message-menu";
 import type { ToggleReaction } from "~/features/conversation/message-actions";
 import type { Message, MessageAttachment } from "~/features/conversation/types";
@@ -106,7 +106,11 @@ function onPress(event: PressEvent, message: Message, actions: PressActions) {
   if (Object.hasOwn(handlers, event.element)) handlers[event.element]();
 }
 
-/** The glass menu over a held part, as the React Native list opens it. */
+/**
+ * The glass menu over a held part. On a binary that lifts the message
+ * itself (`lift`), the menu draws no copy and says where it goes; on older
+ * ones, it lifts a React copy as the React Native list does.
+ */
 function menuTarget(
   event: HoldEvent,
   message: Message,
@@ -114,22 +118,42 @@ function menuTarget(
     layout,
     self,
     preview,
+    lift,
   }: {
     layout: MessageLayout;
     self: string;
     preview: (message: Message, held: HeldPart) => ReactNode;
+    /** Set on binaries with the `lift` feature. */
+    lift?: (lift: Lift | undefined) => void;
   },
 ) {
   const held = heldPart(message, event);
   const text = held.attachment === undefined && held.link === undefined;
+  const align =
+    layout === "bubbles" && message.authorId === self ? "end" : "start";
   return {
-    align: layout === "bubbles" && message.authorId === self ? "end" : "start",
+    align,
     attachment: held.attachment,
     link: held.link,
     message,
     mode: "actions",
     part: held.part,
-    preview: preview(message, held),
+    lift:
+      lift === undefined
+        ? undefined
+        : {
+            onLand: () => lift(undefined),
+            onLift: (place) =>
+              lift({
+                index: event.index,
+                origin: place.fromMiddle ? "middle" : align,
+                part: event.part,
+                rowId: event.rowId,
+                scale: place.scale,
+                shift: place.shift,
+              }),
+          },
+    preview: lift === undefined ? preview(message, held) : null,
     rect: event.frame,
     // Stacked text lifts on a card; everything else as it is.
     shape: layout === "stacked" && text ? "card" : "plain",

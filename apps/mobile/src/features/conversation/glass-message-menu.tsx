@@ -64,6 +64,16 @@ export interface MenuTarget {
    * (`reactions`: a double tap, or tapping its tapbacks).
    */
   readonly mode: "actions" | "reactions";
+  /**
+   * The native list lifts the held message itself (its `lift`), so the
+   * menu draws no copy of it: it says where the message goes as it opens
+   * (`onLift`), and `onLand` as it starts closing, when the message plays
+   * back into place with it.
+   */
+  readonly lift?: {
+    readonly onLift: (layout: MenuLayout) => void;
+    readonly onLand: () => void;
+  };
 }
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
@@ -77,7 +87,8 @@ const OPEN_SPRING = { damping: 19, mass: 0.9, stiffness: 230 };
 /** What lifts: the element, or the card around it. */
 function frameOf(target: MenuTarget) {
   const { rect, shape } = target;
-  if (shape === "plain") return rect;
+  // The native list lifts the element itself, with no card.
+  if (shape === "plain" || target.lift !== undefined) return rect;
   return {
     height: rect.height + CARD_INSET.y * 2,
     width: rect.width + CARD_INSET.x * 2,
@@ -241,10 +252,13 @@ export function GlassMessageMenu({
   });
   const progress = useSharedValue(0);
   const [closing, setClosing] = useState(false);
+  const onLift = target.lift?.onLift;
   useAnimatedReaction(
     () => true,
     (_, previous) => {
-      if (previous === null) progress.set(withSpring(1, OPEN_SPRING));
+      if (previous !== null) return;
+      progress.set(withSpring(1, OPEN_SPRING));
+      if (onLift !== undefined) scheduleOnRN(onLift, layout);
     },
   );
 
@@ -259,6 +273,7 @@ export function GlassMessageMenu({
       then?.();
     }
     onClosing?.();
+    target.lift?.onLand();
     setClosing(true);
     progress.set(
       withTiming(
@@ -279,7 +294,9 @@ export function GlassMessageMenu({
       onRequestClose={() => close()}
     >
       <Backdrop progress={progress} onPress={() => close()} />
-      <Lifted target={target} layout={layout} progress={progress} />
+      {target.lift === undefined && (
+        <Lifted target={target} layout={layout} progress={progress} />
+      )}
       <ReactionBar
         target={target}
         progress={progress}
