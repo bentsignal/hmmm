@@ -1,11 +1,13 @@
 import { Text, View } from "react-native";
-import Animated, { FadeIn, useAnimatedRef } from "react-native-reanimated";
+import Animated, { useAnimatedRef } from "react-native-reanimated";
 
 import type { Message } from "./types";
 import { cn } from "~/lib/cn";
 import { BUBBLE_RADIUS } from "./bubble-shape";
-import { rowOrder } from "./build-rows";
+import { Entrance } from "./entrance";
 import { GrowingSpace, useChangedSinceMount } from "./grow";
+import { BUBBLE_COLUMN_GAP } from "./row-header";
+import { useRowOrder } from "./row-order";
 import { Place } from "./row-place";
 
 // What a message shows of being changed after it was sent: edited, or
@@ -38,9 +40,6 @@ export function DeletedText() {
 
 /** The "Edited" line's height, fixed so its space can open before it. */
 const EDITED_LINE = 16;
-/** The bubble column's gap (`gap-0.5`), which the label's space takes in. */
-const COLUMN_GAP = 2;
-const SHOW = FadeIn.duration(220);
 
 function EditedText({ isOwn }: { isOwn: boolean }) {
   return (
@@ -67,21 +66,29 @@ export function EditedLabel({
 }) {
   const edited = message.editedAt !== undefined;
   const late = useChangedSinceMount(edited);
-  const measured = useAnimatedRef<View>();
   if (!edited) return null;
   if (!late) return <EditedText isOwn={isOwn} />;
+  return <LateEdited message={message} isOwn={isOwn} />;
+}
+
+/** "Edited" as it opens, for a message edited while you watch. */
+function LateEdited({ message, isOwn }: { message: Message; isOwn: boolean }) {
+  const order = useRowOrder(message);
+  const measured = useAnimatedRef<View>();
   return (
-    <Animated.View ref={measured} style={{ marginTop: -COLUMN_GAP }}>
+    <Animated.View ref={measured} style={{ marginTop: -BUBBLE_COLUMN_GAP }}>
       <GrowingSpace
-        height={EDITED_LINE + COLUMN_GAP}
-        order={rowOrder(message.sentAt)}
+        height={EDITED_LINE + BUBBLE_COLUMN_GAP}
+        order={order}
         place={Place.bottom}
         animate
         measured={measured}
       >
-        <Animated.View entering={SHOW} style={{ marginTop: COLUMN_GAP }}>
-          <EditedText isOwn={isOwn} />
-        </Animated.View>
+        <View style={{ marginTop: BUBBLE_COLUMN_GAP }}>
+          <Entrance kind="fade">
+            <EditedText isOwn={isOwn} />
+          </Entrance>
+        </View>
       </GrowingSpace>
     </Animated.View>
   );

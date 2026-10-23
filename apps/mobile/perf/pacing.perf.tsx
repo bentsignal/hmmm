@@ -15,7 +15,7 @@ import { message, OTHER, PAGE, SELF } from "./messages";
 const mockShown = new Array<readonly Message[]>();
 
 function Paced({ messages }: { messages: readonly Message[] }) {
-  const shown = usePacedMessages(messages, SELF);
+  const shown = usePacedMessages(messages, SELF).messages;
   if (mockShown.at(-1) !== shown) mockShown.push(shown);
   return null;
 }

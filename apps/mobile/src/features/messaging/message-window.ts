@@ -4,7 +4,8 @@ import { useQueries, useQueryClient } from "@tanstack/react-query";
 
 import type { PageCursor, PageData, View } from "./window-model";
 import type { Page, WindowSource } from "./window-pages";
-import { isLive } from "./stay-live";
+import { isLive } from "./live-queries";
+import { pdsFailed } from "./results";
 import {
   anchoredView,
   follow,
@@ -44,28 +45,51 @@ function openLatest(
   source: WindowSource,
   now = Date.now(),
 ) {
-  const windowKey = windowKeyOf(session, source);
-  const last = lastWindows.get(windowKey);
+  const last = reusedWindow(queryClient, session, source, now);
+  if (last !== undefined) {
+    // Followed again only once the PDS confirms its pages (`advance`).
+    return isLive(queryClient, session, source.conversationId)
+      ? last
+      : { ...last, followed: [] };
+  }
+  const view = latestView(now);
+  lastWindows.set(windowKeyOf(session, source), { at: now, view });
+  return view;
+}
+
+/** The window last shown, if opening again now would show it again. */
+function reusedWindow(
+  queryClient: QueryClient,
+  session: string,
+  source: WindowSource,
+  now: number,
+) {
+  const last = lastWindows.get(windowKeyOf(session, source));
   const lastCursor = last?.view.pages.at(-1);
   const lastPage =
     lastCursor === undefined
       ? undefined
       : cachedPage(queryClient, session, source, lastCursor);
-  if (
+  const reused =
     last !== undefined &&
     reusable(last.view, lastPage, {
       age: now - last.at,
       maxAge: REUSE_WINDOW_MS,
-    })
-  ) {
-    // Followed again only once the PDS confirms its pages (`advance`).
-    return isLive(queryClient, session, source.conversationId)
-      ? last.view
-      : { ...last.view, followed: [] };
-  }
-  const view = latestView(now);
-  lastWindows.set(windowKey, { at: now, view });
-  return view;
+    });
+  return reused ? last.view : undefined;
+}
+
+/**
+ * Whether the window a conversation or thread last showed opens again as
+ * it was: a long one (scrolled far back) opens afresh at the latest
+ * messages, with pages of its own.
+ */
+export function windowReused(
+  queryClient: QueryClient,
+  session: string,
+  source: WindowSource,
+) {
+  return reusedWindow(queryClient, session, source, Date.now()) !== undefined;
 }
 
 /**
@@ -180,6 +204,9 @@ function useWindowState(
         : anchoredView(anchor),
   }));
   const { next, view } = state;
+  // Whether the reader is at the latest messages (see `filled`), as the
+  // list reports it.
+  const [atLatest, setAtLatest] = useState(true);
   remember(windowKeyOf(session, source), view);
   const results = useQueries({
     queries: [...view.pages, ...(next?.pages ?? [])].map((cursor) =>
@@ -198,13 +225,47 @@ function useWindowState(
           };
     });
   }
+  if (anchorMissing(queryClient, { results, session, source, view })) {
+    setState(() => ({ next: undefined, view: latestView(Date.now()) }));
+  }
   const followed = follow(
     state,
     resultsOf(view, 0),
     resultsOf(next, view.pages.length),
+    atLatest,
   );
   if (followed !== state) setState(followed);
-  return { results, setState, state };
+  return { results, setAtLatest, setState, state };
+}
+
+/**
+ * The window opened at a message its PDS doesn't have (deleted since a
+ * notification about it, or kept on another PDS): it opens at the latest
+ * messages instead of waiting for that one for good.
+ */
+function anchorMissing(
+  queryClient: QueryClient,
+  {
+    results,
+    session,
+    source,
+    view,
+  }: {
+    results: readonly { dataUpdatedAt: number }[];
+    session: string;
+    source: WindowSource;
+    view: View;
+  },
+) {
+  if (view.anchor === undefined) return false;
+  // Read so the window hears when the page's answer comes, error or not.
+  if (results[view.pages.indexOf(view.opened)]?.dataUpdatedAt === 0) {
+    return false;
+  }
+  const raw = queryClient.getQueryData<Parameters<typeof pdsFailed>[0]>(
+    pageQuery(session, source, view.opened).queryKey,
+  );
+  return pdsFailed(raw);
 }
 
 /** What the screen asks of the window, besides what it shows. */
@@ -234,6 +295,7 @@ function windowActions(
     jumpToLatest: () =>
       setState((current) => ({
         ...current,
+        behind: false,
         next: current.next ?? latestView(Date.now()),
       })),
     /**
@@ -288,12 +350,21 @@ export function useMessageWindow(
   source: WindowSource,
   anchor?: string,
 ) {
-  const { results, setState, state } = useWindowState(session, source, anchor);
+  const { results, setAtLatest, setState, state } = useWindowState(
+    session,
+    source,
+    anchor,
+  );
   const { next, view } = state;
   const shown = shownPages(view, results.slice(0, view.pages.length));
   return {
     ...windowActions(setState, windowKeyOf(session, source), shown),
     anchor: view.anchor,
+    /**
+     * Tells the window whether the reader is at the latest messages: away
+     * from them, it never reopens there on its own (see `filled`).
+     */
+    setAtLatest,
     /** Which queries the loaded pages' reactions and threads come from. */
     parts: shown.parts,
     /** A thread's original message, once a page has it. */

@@ -1,10 +1,9 @@
 import type { ReactNode } from "react";
 // eslint-disable-next-line no-restricted-imports -- `memo` for list rows, see `Row`.
-import { memo } from "react";
+import { memo, useState } from "react";
 import { View } from "react-native";
 import Animated, {
   useAnimatedReaction,
-  useAnimatedRef,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -18,7 +17,6 @@ import type { ReplyCard, ThreadReplies } from "./reply-card";
 import type { Message } from "./types";
 import type { MessageLayout } from "~/features/preferences/store";
 import { Arrive } from "./arrive";
-import { orderOfRow } from "./build-rows";
 import { DaySeparator, TimeHeader } from "./day-separator";
 import { useRowLift } from "./grow";
 import { Leave, useLeaveState } from "./leave";
@@ -26,6 +24,8 @@ import { MemberNotice } from "./member-notice";
 import { MessageBubble } from "./message-bubble";
 import { MessageStacked } from "./message-stacked";
 import { RepliesDivider } from "./replies-divider";
+import { RowMountedContext } from "./row-mounted";
+import { RowOrderContext } from "./row-order";
 import { MessageRowTarget } from "./row-target";
 
 export type ProfileOf = (address: string) => {
@@ -101,7 +101,8 @@ export const Row = memo(function Row({
   onFaded: (batch: number) => void;
   onClosed: (batch: number) => void;
 }) {
-  const order = orderOfRow(row);
+  const { order } = row;
+  const [mountedAt] = useState(() => performance.now());
   return (
     <RowLift
       order={order}
@@ -119,13 +120,18 @@ export const Row = memo(function Row({
         arriving={arriving || becoming !== undefined}
         becoming={becoming}
       >
-        <RowContent
-          row={row}
-          self={self}
-          layout={layout}
-          profileOf={profileOf}
-          showAuthors={showAuthors}
-        />
+        {/* What in it moves with the rows moves as this row (see `useRowOrder`). */}
+        <RowOrderContext value={order}>
+          <RowMountedContext value={mountedAt}>
+            <RowContent
+              row={row}
+              self={self}
+              layout={layout}
+              profileOf={profileOf}
+              showAuthors={showAuthors}
+            />
+          </RowMountedContext>
+        </RowOrderContext>
       </RowShell>
     </RowLift>
   );
@@ -150,21 +156,18 @@ function RowLift({
   onClosed: (batch: number) => void;
   children: ReactNode;
 }) {
-  const measured = useAnimatedRef<View>();
-  const leave = useLeaveState();
+  const leave = useLeaveState(leaving !== undefined);
   const lift = useRowLift(order, withOwn, leave, leaving !== undefined);
   return (
     <Animated.View
-      ref={measured}
       // Fading out as one (see `SendingFade`).
       needsOffscreenAlphaCompositing={leaving !== undefined}
       style={lift}
     >
-      {leaving !== undefined && (
+      {leaving !== undefined && leave !== null && (
         <Leave
           leaving={leaving}
           order={order}
-          measured={measured}
           state={leave}
           onFaded={onFaded}
           onClosed={onClosed}
@@ -241,39 +244,68 @@ function threadReplies(message: Message, profileOf: ProfileOf) {
   } satisfies ThreadReplies;
 }
 
-function RowContent({ row, self, layout, profileOf, showAuthors }: RowProps) {
+export function RowContent({
+  row,
+  self,
+  layout,
+  profileOf,
+  showAuthors,
+}: RowProps) {
   const stacked = layout === "stacked";
-  if (row.type === "day") {
-    return (
-      <DaySeparator
-        date={row.date}
-        stacked={stacked}
-        opensThread={row.opensThread}
-      />
-    );
+  switch (row.type) {
+    case "day":
+      return (
+        <DaySeparator
+          date={row.date}
+          stacked={stacked}
+          opensThread={row.opensThread}
+        />
+      );
+    case "time":
+      return (
+        <TimeHeader
+          date={row.date}
+          stacked={stacked}
+          opensThread={row.opensThread}
+          named={showAuthors && row.author !== undefined && row.author !== self}
+        />
+      );
+    case "replies":
+      return <RepliesDivider count={row.count} />;
+    case "notice":
+      return (
+        <MemberNotice
+          notice={row.notice}
+          stacked={stacked}
+          followsNotice={row.followsNotice}
+        />
+      );
+    case "message":
+      return (
+        <MessageContent
+          row={row}
+          self={self}
+          layout={layout}
+          profileOf={profileOf}
+          showAuthors={showAuthors}
+        />
+      );
+    default:
+      return row satisfies never;
   }
-  if (row.type === "time") {
-    return (
-      <TimeHeader
-        date={row.date}
-        stacked={stacked}
-        opensThread={row.opensThread}
-        named={showAuthors && row.author !== undefined && row.author !== self}
-      />
-    );
-  }
-  if (row.type === "replies") {
-    return <RepliesDivider count={row.count} />;
-  }
-  if (row.type === "notice") {
-    return (
-      <MemberNotice
-        notice={row.notice}
-        stacked={stacked}
-        followsNotice={row.followsNotice}
-      />
-    );
-  }
+}
+
+/** A message's row: the message, with its reply card or thread. */
+function MessageContent({
+  row,
+  self,
+  layout,
+  profileOf,
+  showAuthors,
+}: Omit<RowProps, "row"> & {
+  row: Extract<MessageRow, { type: "message" }>;
+}) {
+  const stacked = layout === "stacked";
   const { message } = row;
   const card = replyCard(message, profileOf);
   const replies = threadReplies(message, profileOf);

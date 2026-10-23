@@ -44,7 +44,7 @@ export function useSavedConversation(
   window: {
     anchor: string | undefined;
     openAt: (openedAt: number) => void;
-    pages: readonly { initial: boolean; messageIds?: readonly string[] }[];
+    pages: readonly { initial: boolean; data?: unknown }[];
   },
   loading: boolean,
 ) {
@@ -62,7 +62,7 @@ export function useSavedConversation(
       savedAt: saved.savedAt,
     });
     const pagesLoaded = window.pages.every(
-      (page) => !page.initial || page.messageIds !== undefined,
+      (page) => !page.initial || page.data !== undefined,
     );
     if (
       window.anchor === undefined &&

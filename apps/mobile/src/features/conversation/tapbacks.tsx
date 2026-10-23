@@ -1,6 +1,5 @@
 import { Pressable, View } from "react-native";
 import Animated, {
-  Keyframe,
   useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
@@ -8,10 +7,13 @@ import Animated, {
   ZoomOut,
 } from "react-native-reanimated";
 
+import type { LeavingStyle } from "./leaving";
 import type { ReactionSummary } from "~/features/messaging/reactions";
 import { Emoji } from "~/components/emoji";
 import { useAccount } from "~/features/messaging/account";
 import { cn } from "~/lib/cn";
+import { Entrance } from "./entrance";
+import { useArrivedLater } from "./row-mounted";
 
 /** A tapback bubble's diameter. */
 const SIZE = 34;
@@ -34,11 +36,6 @@ export const NAME_CLEARANCE = 6;
 /** The room tapbacks need above a bubble. */
 export const TAPBACK_SPACE = SIZE - OVERLAP;
 
-const POP_IN = new Keyframe({
-  0: { opacity: 0, transform: [{ scale: 0.3 }] },
-  60: { opacity: 1, transform: [{ scale: 1.12 }] },
-  100: { transform: [{ scale: 1 }] },
-}).duration(320);
 const POP_OUT = ZoomOut.duration(160);
 
 /** One person's reaction, newest last. */
@@ -70,18 +67,33 @@ function tapbacksOf(reactions: readonly ReactionSummary[], self: string) {
  * with the emoji in the middle, and a fine ring the page's color that keeps
  * it apart from the bubble and the tapbacks it overlaps.
  */
-function TapbackBubble({ tapback }: { tapback: Tapback }) {
+function TapbackBubble({
+  tapback,
+  leaving,
+}: {
+  tapback: Tapback;
+  /** All of them are going out together (see `Tapbacks`' `leaving`). */
+  leaving: boolean;
+}) {
+  // Added while you watch, it pops in; there as the row scrolled in, it's
+  // just there.
+  const later = useArrivedLater();
   return (
-    <Animated.View
-      entering={POP_IN}
-      exiting={POP_OUT}
-      className={cn(
-        "border-background items-center justify-center rounded-full",
-        tapback.mine ? "bg-bubble-outgoing" : "bg-bubble-incoming",
-      )}
-      style={{ borderWidth: RING, height: SIZE, width: SIZE }}
-    >
-      <Emoji emoji={tapback.emoji} size={EMOJI_SIZE} />
+    // One taken back while others stay shrinks away on its own; nothing
+    // moves for it. The last go out together instead (`leaving`), as their
+    // space closes, without a layout animation (see `useLeaving`).
+    <Animated.View exiting={leaving ? undefined : POP_OUT}>
+      <Entrance kind="pop" active={later}>
+        <View
+          className={cn(
+            "border-background items-center justify-center rounded-full",
+            tapback.mine ? "bg-bubble-outgoing" : "bg-bubble-incoming",
+          )}
+          style={{ borderWidth: RING, height: SIZE, width: SIZE }}
+        >
+          <Emoji emoji={tapback.emoji} size={EMOJI_SIZE} />
+        </View>
+      </Entrance>
     </Animated.View>
   );
 }
@@ -101,6 +113,7 @@ export function Tapbacks({
   inset = 0,
   onPlaced,
   onPress,
+  leaving,
 }: {
   reactions: readonly ReactionSummary[];
   /** The side the message sits on. */
@@ -112,6 +125,8 @@ export function Tapbacks({
   /** Where their left edge sits, from the bubble's left. */
   onPlaced?: (left: number) => void;
   onPress: () => void;
+  /** The last of them going out, with how (see `useLeaving`). */
+  leaving?: LeavingStyle;
 }) {
   const { address } = useAccount();
   const shown = tapbacksOf(reactions, address).slice(-MAX_SHOWN);
@@ -129,6 +144,7 @@ export function Tapbacks({
           ? { right: CENTER_INSET - SIZE / 2 + inset, top: -TAPBACK_SPACE }
           : { left: CENTER_INSET - SIZE / 2 + inset, top: -TAPBACK_SPACE },
         fade,
+        leaving,
       ]}
     >
       <Pressable
@@ -149,7 +165,7 @@ export function Tapbacks({
                 : { marginRight: index === 0 ? 0 : STACK_OFFSET - SIZE }
             }
           >
-            <TapbackBubble tapback={tapback} />
+            <TapbackBubble tapback={tapback} leaving={leaving !== undefined} />
           </View>
         ))}
       </Pressable>

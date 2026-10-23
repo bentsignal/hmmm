@@ -92,6 +92,27 @@ export function shownTypists({
   };
 }
 
+/**
+ * Who shows as typing, given who did (`last`) and who is now (`shown`):
+ * someone who stopped stays, in their place, while a message of theirs is
+ * waiting its turn to show (`waiting`, see `waitingAuthors`). The PDS says
+ * they stopped as it takes the message; the indicator closing then, and
+ * the message opening a moment later, moved the list down and up again.
+ */
+export function withWaiting(
+  last: readonly string[],
+  shown: readonly string[],
+  waiting: ReadonlySet<string>,
+) {
+  const now = new Set(shown);
+  const before = new Set(last);
+  if (last.every((id) => now.has(id) || !waiting.has(id))) return shown;
+  return [
+    ...last.filter((id) => now.has(id) || waiting.has(id)),
+    ...shown.filter((id) => !before.has(id)),
+  ];
+}
+
 /** The newest message time of each author, from messages oldest first. */
 export function lastSentByAuthor(
   messages: readonly { authorId: string; sentAt: Date }[],

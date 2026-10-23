@@ -15,6 +15,7 @@ import type { Message, MessageAttachment } from "~/features/conversation/types";
 import { useAccount } from "./account";
 import { directConversation } from "./direct";
 import * as optimistic from "./optimistic";
+import { usePhotosReady } from "./photos-ready";
 import { useProfileState } from "./profiles";
 import { pdsResult } from "./results";
 
@@ -151,14 +152,16 @@ export function useConversation(
   function displayName(account: string) {
     return profileOf(account).displayName;
   }
-  const profilesLoaded = useProfilesSettled(
-    data != null,
-    // A channel's members are everyone in its space, so it waits only for
-    // the people its messages show; the rest load for @mentions.
-    (known?.kind === "channel" ? shown : [...members, ...shown]).every(
-      isLoaded,
-    ),
+  // A channel's members are everyone in its space, so it waits only for
+  // the people its messages show; the rest load for @mentions.
+  const waitsFor = known?.kind === "channel" ? shown : [...members, ...shown];
+  const namesIn = waitsFor.every(isLoaded);
+  // Their faces too, so they're there as it fades in (see `Avatar`).
+  const photosIn = usePhotosReady(
+    waitsFor.flatMap((account) => profileOf(account).avatarUrl ?? []),
+    namesIn,
   );
+  const profilesLoaded = useProfilesSettled(data != null, namesIn && photosIn);
   return {
     conversation: data ?? undefined,
     displayName,

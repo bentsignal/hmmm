@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Alert, Pressable, Text } from "react-native";
 import Animated, {
   Easing,
-  FadeIn,
   useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
@@ -14,7 +13,11 @@ import { scheduleOnRN } from "react-native-worklets";
 import type { Message } from "./types";
 import { SymbolIcon } from "~/components/symbol-icon";
 import { deleteOutgoing, retryOutgoing } from "~/features/messaging/outbox";
+import { Appearing } from "./appearing";
 import { Fading } from "./fading";
+import { useChangedSinceMount } from "./grow";
+import { useRowOrder } from "./row-order";
+import { Place } from "./row-place";
 
 function showNotSent(messageId: string) {
   Alert.alert(
@@ -43,6 +46,20 @@ export const SENT_FADE_MS = 300;
  * to full once the PDS has it, instead of a "Sending…" or "Delivered" label.
  */
 export function SendingFade({
+  status,
+  children,
+}: {
+  status: Message["status"];
+  children: ReactNode;
+}) {
+  // Sent before it showed, as nearly every message is: nothing to fade, and
+  // none of the fade's work as it mounts while scrolling.
+  const changed = useChangedSinceMount(status);
+  if (status === undefined && !changed) return children;
+  return <Fade status={status}>{children}</Fade>;
+}
+
+function Fade({
   status,
   children,
 }: {
@@ -82,11 +99,24 @@ export function SendingFade({
   );
 }
 
-/** "Not sent" under a message that failed: tap to try again or delete it. */
-export function NotSent({ message }: { message: Message }) {
-  if (message.status !== "failed") return null;
+/**
+ * "Not sent" under a message that failed: tap to try again or delete it.
+ * Failing while you watch, its line opens (see `Appearing`).
+ */
+export function NotSent({
+  message,
+  gap = 0,
+}: {
+  message: Message;
+  /** Its column's gap before it (see `Appearing`). */
+  gap?: number;
+}) {
+  const failed = message.status === "failed";
+  const late = useChangedSinceMount(failed);
+  const order = useRowOrder(message);
+  if (!failed) return null;
   return (
-    <Animated.View entering={FadeIn.duration(200)}>
+    <Appearing late={late} order={order} place={Place.bottom} gap={gap}>
       <Pressable
         accessibilityRole="button"
         accessibilityHint="Try again or delete the message"
@@ -103,6 +133,6 @@ export function NotSent({ message }: { message: Message }) {
           Not sent. Tap to try again.
         </Text>
       </Pressable>
-    </Animated.View>
+    </Appearing>
   );
 }

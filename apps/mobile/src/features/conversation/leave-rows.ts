@@ -91,11 +91,18 @@ function withLeaving(
 
 /** A row's message, or the message under a header. */
 function messageIdOf(row: MessageRow) {
-  if (row.type === "message") return row.key;
-  if (row.type === "day" || row.type === "time") {
-    return row.key.slice(row.type.length + 1);
+  switch (row.type) {
+    case "message":
+      return row.message.id;
+    case "day":
+    case "time":
+      return row.owner;
+    case "notice":
+    case "replies":
+      return undefined;
+    default:
+      return row satisfies never;
   }
-  return undefined;
 }
 
 /**

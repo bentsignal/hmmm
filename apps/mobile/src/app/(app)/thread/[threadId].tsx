@@ -146,10 +146,10 @@ function shownMessages<Message>({
 function useThreadTyping(
   conversationId: string,
   threadId: string,
-  messages: Parameters<typeof useTypists>[1]["messages"],
+  shown: Pick<Parameters<typeof useTypists>[1], "messages" | "waiting">,
 ) {
   const { isLoading, typists } = useTypists(conversationId, {
-    messages,
+    ...shown,
     threadId,
   });
   const report = useTypingReporter(conversationId, threadId);
@@ -182,8 +182,9 @@ function Thread({
   const layout = useMessageLayout(conversation?.kind);
   const state = useThreadState(conversationId, threadId);
   // Others' new replies, paced in a busy thread (see `usePacedMessages`).
-  const replies = usePacedMessages(thread.messages, address);
-  const typing = useThreadTyping(conversationId, threadId, replies);
+  const paced = usePacedMessages(thread.messages, address);
+  const replies = paced.messages;
+  const typing = useThreadTyping(conversationId, threadId, paced);
   const { composerHeight, report } = useComposerHeight();
   const list = useRef<MessageListHandle>(null);
   const { composer, draftId, editing } = useDraft(conversationId, threadId);
@@ -228,6 +229,7 @@ function Thread({
             onLoadOlder={thread.loadOlder}
             onLoadNewer={thread.loadNewer}
             onJumpToLatest={thread.jumpToLatest}
+            onAtLatest={thread.setAtLatest}
             bottomInset={composerBottomInset}
             topInset={THREAD_HEADER_HEIGHT}
             composerHeight={shown.composerHeight}

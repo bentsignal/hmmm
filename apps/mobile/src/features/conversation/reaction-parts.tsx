@@ -1,4 +1,4 @@
-import type { ReactNode, Ref } from "react";
+import type { ComponentProps, ReactNode, Ref } from "react";
 import type { View as NativeView } from "react-native";
 import type { AnimatedRef } from "react-native-reanimated";
 import { createContext, use, useRef, useState } from "react";
@@ -14,6 +14,7 @@ import type {
 import { reactionsOn } from "~/features/messaging/reactions";
 import { selectionTick } from "~/lib/native-extras";
 import { GrowingSpace, usePieceLift } from "./grow";
+import { useLeaving } from "./leaving";
 import {
   ReactionPartProvider,
   useIsLifted,
@@ -137,24 +138,22 @@ function TapbackPart({
   });
   const top = part === parts.top;
   const has = reactions.length > 0;
+  // Its tapbacks stay mounted from the first, so the last can go out.
+  const [hadSome, setHadSome] = useState(has);
+  if (has && !hadSome) setHadSome(true);
   return (
     <ReactionPartProvider part={part}>
-      {/* One view, so the space adds no gap between parts of its own. */}
-      <View>
-        {!top && (
-          <GrowingSpace
-            height={has ? PART_TAPBACK_SPACE : 0}
-            order={parts.order}
-            place={place}
-            animate={animate}
-            measured={parts.measured}
-          />
-        )}
+      <SpaceAbove
+        open={top ? undefined : has}
+        parts={parts}
+        place={place}
+        animate={animate}
+      >
         <Piece ref={ref} parts={parts} place={place}>
           {children}
           {/* After the part, so they draw over it on every platform. */}
-          {has && (
-            <Tapbacks
+          {hadSome && (
+            <TapbackGroup
               reactions={reactions}
               align={parts.align}
               hidden={lifted}
@@ -166,8 +165,61 @@ function TapbackPart({
             />
           )}
         </Piece>
-      </View>
+      </SpaceAbove>
     </ReactionPartProvider>
+  );
+}
+
+/**
+ * A part's tapbacks, once it's had some: the last to be taken back shrink
+ * away where they are as their space closes (see `useLeaving`).
+ */
+function TapbackGroup({
+  reactions,
+  ...props
+}: ComponentProps<typeof Tapbacks>) {
+  const leave = useLeaving(reactions.length > 0, reactions, "shrink");
+  if (reactions.length === 0 && !leave.leaving) return null;
+  return (
+    <Tapbacks
+      {...props}
+      reactions={leave.value}
+      leaving={leave.leaving ? leave.style : undefined}
+    />
+  );
+}
+
+/**
+ * Space above a part for its tapbacks, open while it has some (`open`),
+ * with the part in one view, so the space adds no gap between parts of
+ * its own. The top part's tapbacks rise into space above the message
+ * instead (`open` undefined), so it's the part alone.
+ */
+function SpaceAbove({
+  open,
+  parts,
+  place,
+  animate,
+  children,
+}: {
+  open: boolean | undefined;
+  parts: Parts;
+  place: number;
+  animate: boolean;
+  children: ReactNode;
+}) {
+  if (open === undefined) return children;
+  return (
+    <View>
+      <GrowingSpace
+        height={open ? PART_TAPBACK_SPACE : 0}
+        order={parts.order}
+        place={place}
+        animate={animate}
+        measured={parts.measured}
+      />
+      {children}
+    </View>
   );
 }
 

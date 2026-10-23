@@ -5,6 +5,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 
 import type { ComposerHandle } from "~/features/conversation/composer";
 import type { MessageListHandle } from "~/features/conversation/message-list";
+import type { Message } from "~/features/conversation/types";
 import type { MessageLayout } from "~/features/preferences/store";
 import { Pending } from "~/components/pending";
 import { useAfterSend } from "~/features/conversation/after-send";
@@ -86,14 +87,21 @@ function useOpenInfo(conversationId: string) {
   };
 }
 
-/** Who else is typing here, and the reporting of this device's. */
-function useConversationTyping(
+/**
+ * Others' new messages, paced in a busy conversation (see
+ * `usePacedMessages`), who else is typing, and the reporting of this
+ * device's. Who's typing follows what's shown, so a message grows out of
+ * its indicator.
+ */
+function useShownAndTyping(
   conversationId: string,
-  messages: Parameters<typeof useTypists>[1]["messages"],
+  messages: readonly Message[],
+  self: string,
 ) {
-  const { isLoading, typists } = useTypists(conversationId, { messages });
+  const paced = usePacedMessages(messages, self);
+  const { isLoading, typists } = useTypists(conversationId, paced);
   const report = useTypingReporter(conversationId);
-  return { isLoading, report, typists };
+  return { isLoading, messages: paced.messages, report, typists };
 }
 
 function MissingConversation({ heading }: { heading: string }) {
@@ -167,10 +175,7 @@ function Conversation({
   const { conversation, isLoading, profileOf, profilesLoaded } = loaded;
   const layout = useMessageLayout(conversation?.kind);
   const notices = useMemberNotices(conversationId, conversation, messages);
-  // Others' new messages, paced in a busy conversation (who's typing
-  // follows what's shown, so a message grows out of its indicator).
-  const shownMessages = usePacedMessages(messages.messages, address);
-  const typing = useConversationTyping(conversationId, shownMessages);
+  const typing = useShownAndTyping(conversationId, messages.messages, address);
   // Not laid out yet: the list leaves room for it under the newest
   // message, so it waits rather than shift once it knows.
   const { composerHeight, report } = useComposerHeight();
@@ -205,7 +210,7 @@ function Conversation({
           <MessageList
             ref={list}
             key={messages.viewKey}
-            messages={shownMessages}
+            messages={typing.messages}
             notices={notices.notices}
             self={address}
             layout={layout}
@@ -216,6 +221,7 @@ function Conversation({
             onLoadOlder={messages.loadOlder}
             onLoadNewer={messages.loadNewer}
             onJumpToLatest={messages.jumpToLatest}
+            onAtLatest={messages.setAtLatest}
             bottomInset={composerBottomInset}
             topInset={CONVERSATION_HEADER_HEIGHT}
             composerHeight={composerHeight}

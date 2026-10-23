@@ -165,12 +165,15 @@ function reached(
 /**
  * The window's newest page is full: if the window followed it as it
  * filled, the next page starts after it; if it was full when first seen,
- * the window is behind.
+ * the window is behind. Behind with the reader scrolled back in older
+ * messages (`atLatest` false), it follows anyway: the pages it adds go
+ * under what they're reading, out of sight, where opening again at the
+ * latest moved the list from under them to the newest message.
  */
-function filled(view: View, key: string, last: PageData) {
+function filled(view: View, key: string, last: PageData, atLatest: boolean) {
   // In older messages: the list asks for newer ones as it scrolls down.
   if (view.liveSince === undefined) return undefined;
-  if (!view.followed.includes(key)) return "behind" as const;
+  if (!view.followed.includes(key) && atLatest) return "behind" as const;
   const newest = last.messages.at(-1);
   if (newest === undefined) return undefined;
   const next = withPage(view, pageAfter(newest), "end");
@@ -187,6 +190,8 @@ function filled(view: View, key: string, last: PageData) {
 export function advance(
   view: View,
   results: readonly (PageResult | undefined)[],
+  /** The reader is at the latest messages (see `filled`). */
+  atLatest = true,
 ) {
   const index = view.pages.length - 1;
   const cursor = view.pages[index];
@@ -194,31 +199,55 @@ export function advance(
   if (cursor === undefined || last?.fresh !== true) return undefined;
   const key = pageKey(cursor);
   return last.data.hasNewer
-    ? filled(view, key, last.data)
+    ? filled(view, key, last.data, atLatest)
     : reached(view, key, results);
 }
 
 /**
  * The window and the one it's opening instead (`next`, see
  * `jumpToLatest`), each advanced with its pages' results. Behind, it opens
- * again at the latest messages as of when it learned it was behind, and
- * shows them once they've loaded. The same state back when nothing changed.
+ * again at the latest messages as of when it learned it was behind
+ * (`behind`), and shows them once they've loaded, unless the reader
+ * scrolls back up first: then it follows from where it is (see `filled`).
+ * The same state back when nothing changed.
  */
 export function follow(
-  state: { readonly view: View; readonly next: View | undefined },
+  state: {
+    readonly view: View;
+    readonly next: View | undefined;
+    readonly behind?: boolean;
+  },
   results: readonly (PageResult | undefined)[],
   nextResults: readonly (PageResult | undefined)[],
+  /** The reader is at the latest messages (see `filled`). */
+  atLatest: boolean,
 ) {
-  const step = advance(state.view, results);
-  const nextStep = state.next && advance(state.next, nextResults);
-  const view = typeof step === "object" ? step.view : state.view;
+  const kept = opening(state, atLatest);
+  const step = advance(state.view, results, atLatest);
+  const view = stepped(state.view, step);
   const behindAt = step === "behind" ? results.at(-1)?.at : undefined;
-  const next =
-    typeof nextStep === "object"
-      ? nextStep.view
-      : (state.next ??
-        (behindAt === undefined ? undefined : latestView(behindAt)));
-  return view === state.view && next === state.next ? state : { next, view };
+  if (kept === undefined && behindAt !== undefined) {
+    return { behind: true, next: latestView(behindAt), view };
+  }
+  const next = kept && stepped(kept, advance(kept, nextResults));
+  if (view === state.view && next === state.next) return state;
+  return { behind: next !== undefined && state.behind === true, next, view };
+}
+
+/**
+ * What the window is still opening instead: not a reopen at the latest the
+ * reader has scrolled up from.
+ */
+function opening(
+  state: { readonly next: View | undefined; readonly behind?: boolean },
+  atLatest: boolean,
+) {
+  return state.behind === true && !atLatest ? undefined : state.next;
+}
+
+/** The view after `advance`'s step, if it took one. */
+function stepped(view: View, step: ReturnType<typeof advance>) {
+  return typeof step === "object" ? step.view : view;
 }
 
 /**

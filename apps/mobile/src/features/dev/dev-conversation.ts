@@ -67,7 +67,7 @@ export function useDevConversation(
   const focused = useIsFocused();
   // eslint-disable-next-line no-restricted-syntax -- Hands the open conversation to dev scripts, which run outside React; debug builds only.
   useEffect(() => {
-    if (!__DEV__ || !env.devTools || !focused) return;
+    if ((!__DEV__ && !env.profileBundle) || !env.devTools || !focused) return;
     function find(text: string) {
       const message = messages.findLast((item) => item.body === text);
       if (message === undefined) throw new Error(`No message "${text}"`);

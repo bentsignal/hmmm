@@ -2,8 +2,8 @@ import type { Conversation } from "@decentralized-convex/messages";
 import type { QueryClient } from "@tanstack/react-query";
 
 import { inboxQuery } from "~/features/messaging/inbox";
+import { isLive } from "~/features/messaging/live-queries";
 import { refetchConversation } from "~/features/messaging/prefetch";
-import { isLive } from "~/features/messaging/stay-live";
 import { recentConversations, versionOf } from "./recent";
 import { liveSelected } from "./saved-cache";
 import { readVersions } from "./saved-files";

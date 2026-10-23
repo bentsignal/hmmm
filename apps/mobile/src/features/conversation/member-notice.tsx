@@ -21,6 +21,12 @@ function spaceAbove(stacked: boolean, followsNotice: boolean) {
   return stacked ? "pt-5" : "pt-3";
 }
 
+/** What a notice says after the person's name, by its kind. */
+const NOTICE_TEXT = {
+  joined: " joined the conversation",
+  left: " left the conversation",
+} satisfies Record<Notice["kind"], string>;
+
 /**
  * iMessage's "Maya left the conversation", centered between messages. A
  * long name wraps onto a second line, still centered. Stacked rows open
@@ -44,9 +50,7 @@ export function MemberNotice({
       )}
     >
       <Text className="font-semibold">{shortened(notice.name)}</Text>
-      {notice.kind === "joined"
-        ? " joined the conversation"
-        : " left the conversation"}
+      {NOTICE_TEXT[notice.kind]}
     </Text>
   );
 }

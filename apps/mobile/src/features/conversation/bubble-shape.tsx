@@ -63,7 +63,10 @@ export function BubbleTail({
         left: 0,
         position: "absolute",
         right: 0,
-        transform: isOwn ? undefined : [{ scaleX: -1 }],
+        // Always a transform: going from one to none (a row reused for
+        // another message, as recycling lists do) reaches the SVG as null,
+        // which it throws on.
+        transform: [{ scaleX: isOwn ? 1 : -1 }],
       }}
     >
       <Path d={TAIL_PATH} fill={color} />

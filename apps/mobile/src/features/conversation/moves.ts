@@ -9,6 +9,8 @@ import {
 } from "react-native-reanimated";
 
 import type { Blank } from "./blank-space";
+import type { MoveNow } from "./move-math";
+import type { OnScreen } from "./screen-range";
 
 // How the messages move as a row's space opens or closes (see `Move`), for
 // `grow.tsx` and the rows that open (see `Arrive`).
@@ -67,13 +69,23 @@ export interface Move {
   readonly batch: SharedValue<number>;
   /** Its space hasn't reached the screen yet. */
   readonly pending: SharedValue<boolean>;
+  /** The list's count of moves as they start to ease (see `Growth`). */
+  readonly moving?: SharedValue<number>;
 }
 
 /** Moves at once: a message, its time header, and typing, together. */
 export const MOVES = 4;
 
 export interface Growth {
+  /** Tells this list apart on the UI thread (see `joinArrivals`). */
+  readonly id: number;
   readonly moves: readonly Move[];
+  /**
+   * The orders of the rows on screen, and as many again either side (see
+   * `onScreenRange`): the rows a move draws. Every row outside it is
+   * drawn where it's laid out, without a transform each frame.
+   */
+  readonly onScreen: SharedValue<OnScreen>;
   /** The list, to tell whether a row is on screen. */
   readonly list: AnimatedRef<View>;
   /** The space under the newest message for who's typing. */
@@ -95,18 +107,46 @@ export interface Growth {
   readonly moving?: SharedValue<number>;
 }
 
+/**
+ * What the rows and pieces need of the moves this frame. Read straight
+ * from the moves in each style: a derived value of them, which would make
+ * each style's closure smaller, reached the styles of rows mounted before
+ * it a frame late (Reanimated didn't order them after it), so rows jumped
+ * for a frame as one opened.
+ */
+export function movesNow(moves: readonly Move[]) {
+  "worklet";
+  return moves.map(
+    (move) =>
+      ({
+        below: move.below.get(),
+        offset: move.offset.get(),
+        pending: move.pending.get(),
+        pivot: move.pivot.get(),
+        place: move.place.get(),
+        whole: move.whole.get(),
+      }) satisfies MoveNow,
+  );
+}
+
 /** No row is growing: no order is below it. No rows closing together. */
 export const NONE = -1;
 
 /**
  * A style prop that doesn't change how anything looks and that Reanimated
  * doesn't send straight to the view, so a style carrying it lands in the
- * same layout commit as a space opening (see `Move`).
+ * same layout commit as a space opening (see `Move`). Reanimated decides
+ * by whether a style has a layout prop (`PropsLayoutFilter.h`), and it
+ * counts `zIndex` as one; 0 is every view's own. (It was
+ * `backfaceVisibility`, which Reanimated 4.5 on React Native 0.85 sends
+ * straight to the view like any other: the moves landed ahead of the
+ * space whenever its commit was late, and the rows jumped.)
  */
-const IN_COMMIT = { backfaceVisibility: "visible" } as const;
+export const IN_COMMIT = { zIndex: 0 } as const;
 
-export function newMove() {
+export function newMove(moving?: SharedValue<number>) {
   return {
+    moving,
     batch: makeMutable(NONE),
     below: makeMutable(0),
     offset: makeMutable(0),
@@ -191,10 +231,35 @@ function blankChange(blank: Blank | undefined, delta: number) {
 }
 
 /**
+ * Eases what `move` draws into place, from where it's held: once the
+ * change it makes up for is on screen (see `land`). Started any sooner, it
+ * ran while the change waited for its layout commit (which waits while
+ * React commits, as it does when a reaction comes in), and the change
+ * landed with the move already partly eased: the rows jumped the rest.
+ */
+function ease(move: Move) {
+  "worklet";
+  const timing = { duration: GROW_MS, easing: GROW_EASING };
+  move.moving?.set(move.moving.get() + 1);
+  move.below.set(withTiming(0, timing));
+  move.offset.set(
+    withTiming(0, timing, (finished) => {
+      if (finished !== true) return;
+      move.batch.set(NONE);
+      // In the layout commit until it's still (see `IN_COMMIT`): sent
+      // straight to the view, the transforms never reached React Native's
+      // copy of the views, and a commit of React's mid-move (or just
+      // after) put an older one back for a frame.
+      move.pending.set(false);
+    }),
+  );
+}
+
+/**
  * Draws what a space at `pivot` moves as before it changed by `delta`,
  * then eases it into place. Rows closing in the same `batch` move what's
  * above the newest of them once, by all their heights. Call it in the same frame callback that
- * changes the space (see `inFrame`). A row below the bottom of the screen
+ * changes the space (see `afterCommit`). A row below the bottom of the screen
  * moves nothing: the list's scroll anchor keeps what's on screen still
  * then.
  */
@@ -220,38 +285,30 @@ export function startMove(
   move.whole.set(pivot.whole ?? false);
   move.batch.set(batch);
   move.pending.set(true);
+  // Held where they were until the change is on screen, then eased into
+  // place (see `land`).
   move.offset.set((carries ? move.offset.get() : 0) + delta + moved);
   move.below.set((carries ? move.below.get() : 0) + moved);
-  // Easing from the frame after, once the change is on screen: the frame
-  // that lays it out can run long, and an ease started with it would skip
-  // ahead by as much.
-  requestAnimationFrame(() => {
-    const ease = { duration: GROW_MS, easing: GROW_EASING };
-    growth.moving?.set(growth.moving.get() + 1);
-    move.below.set(withTiming(0, ease));
-    move.offset.set(
-      withTiming(0, ease, (finished) => {
-        if (finished === true) move.batch.set(NONE);
-      }),
-    );
-  });
   return move;
 }
 
 /**
  * Waits, from the next frame, for `measured` to be `height` tall in the
- * list's layout, then lets `move` go back to the fast path (see `Move`)
- * and calls `done`.
+ * list's layout: then eases `move` into place (see `ease`) and calls
+ * `landed`, in that frame, and `done` the frame after.
  */
 export function land({
   move,
   measured,
   height,
+  landed,
   done,
 }: {
   move: Move | undefined;
   measured: AnimatedRef<View>;
   height: number;
+  /** In the frame it's laid out at `height`, to start what eases with it. */
+  landed?: () => void;
   done?: () => void;
 }) {
   "worklet";
@@ -264,8 +321,9 @@ export function land({
       requestAnimationFrame(check);
       return;
     }
-    move?.pending.set(false);
-    done?.();
+    if (move !== undefined) ease(move);
+    landed?.();
+    requestAnimationFrame(() => done?.());
   }
   requestAnimationFrame(check);
 }
@@ -284,41 +342,17 @@ export function showWithRoom() {
 }
 
 /**
- * Runs `change` at the start of the next frame. Every space and move set
- * in one such callback has its styles worked out together, after it, so
- * they reach the screen in the same frame (see `Move`); and a space that
- * just mounted has its style hooked up by then.
+ * Runs `change` at the start of the frame after next. Every space and move
+ * set in one such callback has its styles worked out together, after it,
+ * so they reach the screen in the same commit (see `Move`). Not the next:
+ * the changes it makes come with a React commit (a reaction, a message, a
+ * line under one), which is still reaching the screen then, and Reanimated
+ * waits while React commits, sending the moves on without the space (see
+ * `IN_COMMIT`).
  */
-export function inFrame(change: () => void) {
+export function afterCommit(change: () => void) {
   "worklet";
-  requestAnimationFrame(change);
-}
-
-/**
- * How far the moves draw a row at `order` from where it's laid out: rows
- * older than a growing one, and, `withOwn`, the growing row itself, move
- * with what's above the space; newer ones with what's below it.
- */
-export function rowShift(
-  moves: readonly Move[],
-  order: number,
-  withOwn: boolean,
-) {
-  "worklet";
-  let shift = 0;
-  let pending = false;
-  for (const move of moves) {
-    const pivot = move.pivot.get();
-    // A space at the top of a row (see `Settle`) leaves the row below it.
-    const own =
-      withOwn && !move.whole.get() && pivot === order && move.place.get() >= 0;
-    let by = 0;
-    if (pivot > order || own) by = move.offset.get();
-    else if (pivot < order) by = move.below.get();
-    shift += by;
-    if (by !== 0 && move.pending.get()) pending = true;
-  }
-  return { pending, shift };
+  requestAnimationFrame(() => requestAnimationFrame(change));
 }
 
 /** Whether any space hasn't reached the screen yet (see `Move`). */
@@ -330,40 +364,14 @@ export function anyPending(moves: readonly Move[]) {
   return false;
 }
 
-/** A transform to `translateY`, in the layout commit while it's `pending`. */
-export function moved(translateY: number, pending: boolean) {
+/** `style`, in the layout commit while `pending` (see `Move`). */
+export function inCommit<Style extends object>(style: Style, pending: boolean) {
   "worklet";
-  const style = { transform: [{ translateY }] };
   return pending ? { ...style, ...IN_COMMIT } : style;
 }
 
-/** How far one move of its own row draws the piece at `place`. */
-function pieceBy(move: Move, place: number, rowMoves: boolean) {
+/** A transform to `translateY`, in the layout commit while it's `pending`. */
+export function moved(translateY: number, pending: boolean) {
   "worklet";
-  const above = move.place.get() > place;
-  // As in `rowShift`: a space at a row's top doesn't move the row.
-  const rowGoes = rowMoves && move.place.get() >= 0;
-  if (above) return rowGoes ? 0 : move.offset.get();
-  return move.below.get() - (rowGoes ? move.offset.get() : 0);
-}
-
-/** How far the moves draw a piece of a row from where it's laid out. */
-export function pieceShift(
-  moves: readonly Move[],
-  {
-    order,
-    place,
-    rowMoves,
-  }: { order: number; place: number; rowMoves: boolean },
-) {
-  "worklet";
-  let shift = 0;
-  let pending = false;
-  for (const move of moves) {
-    if (move.pivot.get() !== order || move.whole.get()) continue;
-    const by = pieceBy(move, place, rowMoves);
-    shift += by;
-    if (by !== 0 && move.pending.get()) pending = true;
-  }
-  return { pending, shift };
+  return inCommit({ transform: [{ translateY }] }, pending);
 }

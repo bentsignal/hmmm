@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import Animated, { Easing, Keyframe, ZoomOut } from "react-native-reanimated";
+import Animated, { ZoomOut } from "react-native-reanimated";
 
 import type { ReactionSummary } from "~/features/messaging/reactions";
 import { Emoji } from "~/components/emoji";
 import { GlassSurface } from "~/components/glass-surface";
 import { cn } from "~/lib/cn";
+import { Entrance } from "./entrance";
 import { useOpaque } from "./fading";
-import { LONG_PRESS_MS } from "./message-actions";
+import { useArrivedLater } from "./row-mounted";
+import { LONG_PRESS_MS } from "./squeeze";
 
 /**
  * Reactions pop in when they arrive and shrink away when taken back. One
@@ -14,59 +17,59 @@ import { LONG_PRESS_MS } from "./message-actions";
  * reaction someone else left, rather than a spring that wobbles for
  * seconds. Only the size changes: glass can't fade (see `GlassSurface`).
  */
-const POP_IN = new Keyframe({
-  0: { transform: [{ scale: 0 }] },
-  60: {
-    easing: Easing.out(Easing.cubic),
-    transform: [{ scale: 1.06 }],
-  },
-  100: { easing: Easing.inOut(Easing.quad), transform: [{ scale: 1 }] },
-}).duration(280);
 const POP_OUT = ZoomOut.duration(140);
 
 function Chip({
   reaction,
+  popIn,
   onPress,
   onLongPress,
 }: {
   reaction: ReactionSummary;
+  /** Added to the row after it showed (see `ChipRow`). */
+  popIn: boolean;
   onPress: () => void;
   onLongPress: () => void;
 }) {
   // Its glass comes in once the message it's under is fully shown.
   const opaque = useOpaque();
+  // Added while you watch, it pops in; there as the row scrolled in, it's
+  // just there.
+  const later = useArrivedLater();
   return (
-    <Animated.View entering={POP_IN} exiting={POP_OUT}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${reaction.emoji} ${reaction.count}`}
-        accessibilityState={{ selected: reaction.mine }}
-        accessibilityHint="Hold to see who reacted"
-        onPress={onPress}
-        delayLongPress={LONG_PRESS_MS}
-        onLongPress={onLongPress}
-      >
-        <GlassSurface
-          // Brought in once laid out and once the message is fully shown:
-          // glass there from the frame a chip mounts often stayed blank.
-          materialize
-          shown={opaque}
-          isInteractive
-          tintColorClassName={reaction.mine ? "accent-accent/25" : undefined}
-          androidClassName={reaction.mine ? "bg-accent/20" : undefined}
-          className="h-[26px] flex-row items-center gap-1 rounded-full px-2"
+    <Animated.View exiting={POP_OUT}>
+      <Entrance kind="grow" active={later && popIn}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${reaction.emoji} ${reaction.count}`}
+          accessibilityState={{ selected: reaction.mine }}
+          accessibilityHint="Hold to see who reacted"
+          onPress={onPress}
+          delayLongPress={LONG_PRESS_MS}
+          onLongPress={onLongPress}
         >
-          <Emoji emoji={reaction.emoji} size={13} />
-          <Text
-            className={cn(
-              "text-footnote font-semibold",
-              reaction.mine ? "text-accent" : "text-muted",
-            )}
+          <GlassSurface
+            // Brought in once laid out and once the message is fully shown:
+            // glass there from the frame a chip mounts often stayed blank.
+            materialize
+            shown={opaque}
+            isInteractive
+            tintColorClassName={reaction.mine ? "accent-accent/25" : undefined}
+            androidClassName={reaction.mine ? "bg-accent/20" : undefined}
+            className="h-[26px] flex-row items-center gap-1 rounded-full px-2"
           >
-            {reaction.count}
-          </Text>
-        </GlassSurface>
-      </Pressable>
+            <Emoji emoji={reaction.emoji} size={13} />
+            <Text
+              className={cn(
+                "text-footnote font-semibold",
+                reaction.mine ? "text-accent" : "text-muted",
+              )}
+            >
+              {reaction.count}
+            </Text>
+          </GlassSurface>
+        </Pressable>
+      </Entrance>
     </Animated.View>
   );
 }
@@ -100,6 +103,11 @@ export function ChipRow({
   onToggle: (emoji: string) => void;
   onHold: (emoji: string) => void;
 }) {
+  // The chips it showed with: they come in with the row, or with its
+  // space (see `GrowingChips`); one added after pops in on its own.
+  const [initial] = useState(
+    () => new Set(reactions.map((reaction) => reaction.emoji)),
+  );
   return (
     <View
       className={cn(
@@ -114,6 +122,7 @@ export function ChipRow({
           <Chip
             key={reaction.emoji}
             reaction={reaction}
+            popIn={!initial.has(reaction.emoji)}
             onPress={() => onToggle(reaction.emoji)}
             onLongPress={() => onHold(reaction.emoji)}
           />

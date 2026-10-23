@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import type { Message } from "./types";
 import { GROW_MS } from "./moves";
-import { onlyOthersArrived, sameMessages } from "./pace";
+import { onlyOthersArrived, sameMessages, waitingAuthors } from "./pace";
 
 // How fast the list takes new messages from other people. Each one that
 // arrives redraws the list and rises in over `GROW_MS`; in a busy
@@ -15,9 +15,10 @@ import { onlyOthersArrived, sameMessages } from "./pace";
 export const PACE_MS = GROW_MS;
 
 /**
- * `messages`, with others' new ones paced (see `onlyOthersArrived`). The
+ * `messages`, with others' new ones paced (see `onlyOthersArrived`): the
  * same array while they're the same messages, so the list redraws only
- * when what it shows changes.
+ * when what it shows changes. And who has one waiting (see
+ * `waitingAuthors`).
  */
 export function usePacedMessages(messages: readonly Message[], self: string) {
   const [shown, setShown] = useState(messages);
@@ -43,5 +44,5 @@ export function usePacedMessages(messages: readonly Message[], self: string) {
     );
     return () => clearTimeout(timer);
   }, [count, rising]);
-  return shown;
+  return { messages: shown, waiting: waitingAuthors(shown, messages) };
 }

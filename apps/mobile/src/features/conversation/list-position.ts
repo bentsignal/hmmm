@@ -408,3 +408,19 @@ export function usePlacement({
     },
   };
 }
+
+/**
+ * Tells `report` whenever the reader comes down to the latest messages or
+ * leaves them (see `useMessageWindow`'s `setAtLatest`).
+ */
+export function useReportLatest(
+  isNearLatest: SharedValue<boolean>,
+  report: ((atLatest: boolean) => void) | undefined,
+) {
+  useAnimatedReaction(
+    () => isNearLatest.get(),
+    (now, before) => {
+      if (report !== undefined && now !== before) scheduleOnRN(report, now);
+    },
+  );
+}

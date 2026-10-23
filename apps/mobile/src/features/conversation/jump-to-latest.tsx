@@ -4,7 +4,6 @@ import { Pressable } from "react-native";
 import Animated, {
   useAnimatedReaction,
   useAnimatedStyle,
-  withTiming,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
@@ -55,12 +54,6 @@ export function JumpToLatest({
       if (now !== before) scheduleOnRN(setShown, now);
     },
   );
-  const chevron = useAnimatedStyle(() => ({
-    opacity: withTiming(visible.value ? 1 : 0, { duration: 160 }),
-    transform: [
-      { scale: withTiming(visible.value ? 1 : 0.6, { duration: 200 }) },
-    ],
-  }));
   return (
     <Animated.View
       pointerEvents={shown ? "box-none" : "none"}
@@ -84,7 +77,20 @@ export function JumpToLatest({
           )}
           style={{ height: JUMP_SIZE, width: JUMP_SIZE }}
         >
-          <Animated.View style={chevron}>
+          {/*
+            With the circle, from the same state: an animated style of its
+            own (shown on the UI thread) went back to its first style,
+            hidden, when the button redrew while scrolling kept JavaScript
+            too busy to keep it, and the circle showed empty.
+          */}
+          <Animated.View
+            style={{
+              opacity: shown ? 1 : 0,
+              transform: [{ scale: shown ? 1 : 0.6 }],
+              transitionDuration: 180,
+              transitionProperty: ["opacity", "transform"],
+            }}
+          >
             <JumpChevron />
           </Animated.View>
         </GlassSurface>

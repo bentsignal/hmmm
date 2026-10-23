@@ -28,7 +28,7 @@ import { newestFirst } from "./build-rows";
 import { GrowthProvider } from "./grow";
 import { JumpToLatest } from "./jump-to-latest";
 import { useLeavingRows } from "./leave-rows";
-import { ANCHOR, useLatest } from "./list-position";
+import { ANCHOR, useLatest, useReportLatest } from "./list-position";
 import { useListRows } from "./list-rows";
 import { useMenuKeyboard } from "./menu-keyboard";
 import { MessageActionsProvider } from "./message-actions";
@@ -105,6 +105,8 @@ export interface RowsProps {
 const COMPOSER_GAP = 8;
 /** How many screens of rows stay mounted, centered on the screen. */
 const WINDOW_SCREENS = 11;
+/** How many screens from either end the next page is asked for. */
+const LOAD_AHEAD_SCREENS = 10;
 /** How long the conversation takes to fade in. */
 const FADE_MS = 220;
 
@@ -135,13 +137,14 @@ function Rows({
 }: RowsProps) {
   // Under the header, from the top of the screen.
   const top = useSafeAreaInsets().top + topInset;
-  const { anchorIndex, listRows, placement, typing } = useListRows({
+  const { anchorIndex, listRows, listProps, placement, typing } = useListRows({
     ...pages,
     anchorId,
     layout,
     listRef,
     rows: leaving.rows,
     toLatest: latest.toLatest,
+    scrollHandlers: latest.scrollHandlers,
     typists,
   });
   return (
@@ -180,6 +183,10 @@ function Rows({
           {...props}
           scrollRef={latest.scrollRef}
           inverted
+          // A tap on the status bar scrolls an iOS list to its top, which
+          // inverted is the newest message: one brushed while flinging up
+          // through older messages took the list all the way down.
+          scrollsToTop={false}
           offset={bottomInset}
           freeze={freeze}
           blankSpace={blank.blankSpace}
@@ -190,35 +197,30 @@ function Rows({
         />
       )}
       // Enough to fill the screen at once, and to reach the message it
-      // opens on, so that one can be scrolled to before it shows. A page
-      // that loads renders all at once, so the list grows (and the scroll
-      // bar moves) once per page, not once per batch.
+      // opens on, so that one can be scrolled to before it shows.
       initialNumToRender={Math.max(20, anchorIndex + 15)}
-      maxToRenderPerBatch={8}
-      // Just the screen until it has faded in: mounting rows takes the UI
-      // thread, and a frame spent on it shows as a hitch in the fade. Then
-      // five screens either way, filled in small batches.
+      // Just the screen until it has faded in (mounting rows on the UI
+      // thread hitches the fade), then five screens either way.
       windowSize={shown ? WINDOW_SCREENS : 1}
       // Rows added or growing below what's on screen leave it be: a new
       // message opens in place (see useLatest). Off until it has faded in,
       // so it opens at the bottom whatever arrives meanwhile.
       maintainVisibleContentPosition={shown ? ANCHOR : undefined}
       // Inverted: the list's end is the oldest message, at the top. Older
-      // ones load three screens early, so a fast scroll rarely reaches
-      // the top before they're there.
+      // ones load ten screens early, so a fast fling doesn't reach the top
+      // before they're there (at three, it did, every page).
       onEndReached={placement.loadOlder}
-      onEndReachedThreshold={3}
+      onEndReachedThreshold={LOAD_AHEAD_SCREENS}
       onStartReached={placement.loadNewer}
-      onStartReachedThreshold={3}
+      onStartReachedThreshold={LOAD_AHEAD_SCREENS}
       onScroll={(event) => latest.onScroll(event.nativeEvent.contentOffset.y)}
-      {...latest.scrollHandlers}
       scrollEventThrottle={16}
       onContentSizeChange={(_, height) => {
         blank.onContentHeight(height);
         latest.onContentChange();
         placement.onLaidOut();
       }}
-      onScrollToIndexFailed={placement.onMissed}
+      {...listProps}
       keyboardDismissMode="interactive"
       keyboardShouldPersistTaps="handled"
       contentInsetAdjustmentBehavior="never"
@@ -259,6 +261,8 @@ type MessageListProps = Omit<
   onReply?: (message: Message) => void;
   /** The menu's Edit and Delete, on your own messages (`useEditing`). */
   editing?: MessageEdits;
+  /** The reader came down to the latest messages, or left them. */
+  onAtLatest?: (atLatest: boolean) => void;
 };
 
 /**
@@ -277,6 +281,7 @@ export function MessageList({
   messages,
   notices,
   thread,
+  onAtLatest,
   ...props
 }: MessageListProps) {
   const listRef = useRef<FlatList<ListRow>>(null);
@@ -302,6 +307,7 @@ export function MessageList({
     keyboardOffset: props.bottomInset,
   });
   const { isNearLatest, scrollToLatest } = latest;
+  useReportLatest(isNearLatest, onAtLatest);
   // Read out first: the worklet must not capture `props` (messages hold
   // Dates, which worklets can't copy).
   const { hasNewer } = props;
@@ -325,7 +331,7 @@ export function MessageList({
       // reports it again on Android; the list stays still through both.
       menuKeyboard={keyboard}
     >
-      <RevealTimes>
+      <RevealTimes opensThreads={onOpenThread !== undefined}>
         <View ref={frame} style={{ flex: 1 }}>
           <GrowthProvider
             list={frame}
