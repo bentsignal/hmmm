@@ -369,3 +369,12 @@ typing indicator is next.
 **The motion check** (`scripts/motion/check.sh`, README there): plays each
 list animation in the simulator, records it, and fails on snaps,
 jump-backs, flickers, and blank bands.
+
+### 2026-10-22: decision to go native
+
+After the 2026-10-22 production regression (about 5 FPS loading older
+messages in a real, media-heavy chat), Shawn decided to rebuild the
+message list natively, with a native core extended from JavaScript.
+The reasons, the decisions, and the open questions are in
+[native-message-list.md](native-message-list.md). This list now gets
+only fixes that keep it usable until the native one replaces it.
