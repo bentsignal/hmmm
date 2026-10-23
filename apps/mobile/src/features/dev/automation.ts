@@ -9,6 +9,7 @@ import { storedAccounts } from "~/features/session/account-store";
 import { devConversation } from "./dev-conversation";
 import { devSignInPath } from "./dev-sign-in-path";
 import { frameReport, startFrames, stopFrames } from "./frames";
+import { openTimings, timeOpening } from "./open-timing";
 
 function isAppPath(path: string): path is Href & string {
   return path.startsWith("/");
@@ -20,11 +21,12 @@ function isAppPath(path: string): path is Href & string {
  * every `simctl openurl`, which scripts cannot answer.
  */
 export function installDevAutomation() {
-  if (!__DEV__ || !env.devTools) return;
+  if ((!__DEV__ && !env.profileBundle) || !env.devTools) return;
   Object.assign(globalThis, {
     veraDev: {
       open(path: string) {
         if (!path.startsWith("/")) throw new Error(`Not an app path: ${path}`);
+        timeOpening();
         const target = devSignInPath(path, storedAccounts().length > 0);
         if (isAppPath(target)) router.push(target);
       },
@@ -40,6 +42,8 @@ export function installDevAutomation() {
       },
       /** The open conversation, to react and send without tapping. */
       conversation: devConversation,
+      /** How long screens took to show, since opening: see open-timing.ts. */
+      timings: openTimings,
       /** `scripts/sim.sh frames start` and `stop`: see frames.ts. */
       frames: { report: frameReport, start: startFrames, stop: stopFrames },
     },
