@@ -12,11 +12,17 @@ import {
   mergePages,
   pageAfter,
   pageKey,
+  pagesAhead,
   reusable,
   windowParts,
   withPage,
 } from "./window-model";
-import { cachedPage, listPageQuery, pageQuery } from "./window-pages";
+import {
+  cachedPage,
+  listPageQuery,
+  pageQuery,
+  prefetchPage,
+} from "./window-pages";
 
 // The pages a screen shows of a conversation or a thread, and how they
 // follow new messages: see window-model.ts.
@@ -278,6 +284,23 @@ function shownPages(view: View, pages: readonly { data?: Page }[]) {
 }
 
 /**
+ * Asks for the pages the list reaches next (see `pagesAhead`), once each:
+ * one cached or already loading isn't asked for again. Only fetched, not
+ * followed, until the window adds it.
+ */
+function usePagesAhead(
+  session: string,
+  source: WindowSource,
+  view: View,
+  pages: readonly (Page | undefined)[],
+) {
+  const queryClient = useQueryClient();
+  for (const cursor of pagesAhead(view, pages)) {
+    prefetchPage(queryClient, session, source, cursor);
+  }
+}
+
+/**
  * A scrollable window over a conversation (or a thread's replies), oldest
  * first, that can open at the latest message or around a specific one and
  * grow in either direction. At the latest messages it follows new ones as
@@ -291,6 +314,12 @@ export function useMessageWindow(
   const { results, setState, state } = useWindowState(session, source, anchor);
   const { next, view } = state;
   const shown = shownPages(view, results.slice(0, view.pages.length));
+  usePagesAhead(
+    session,
+    source,
+    view,
+    results.slice(0, view.pages.length).map((result) => result.data),
+  );
   return {
     ...windowActions(setState, windowKeyOf(session, source), shown),
     anchor: view.anchor,
