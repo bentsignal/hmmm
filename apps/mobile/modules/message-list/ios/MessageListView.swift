@@ -198,13 +198,14 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
 
   /// Lifts the held part into the menu, or plays it back into place.
   private func applyLift() {
-    shrink.reset()
     if let request = liftRequest, let window {
       guard let cell = cell(for: request.rowId) as? MessageCell else { return }
       lifter.lift(request, cell: cell, in: window)
     } else if let rowId = lifter.rowId {
       lifter.land(into: cell(for: rowId) as? MessageCell)
     }
+    // Lifter captures the press's presentation scale before resetting it.
+    shrink.reset()
   }
 
   func setInitialRowId(_ id: String?) {
@@ -400,15 +401,33 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
       grows = (newIds[message], bubble)
     }
 
-    // Before the update: where each row on screen is drawn, and a stand-in
-    // for each, in case it leaves the screen (removed, or pushed off).
+    // Only rows that leave the viewport need stand-ins. Snapshotting all
+    // visible media rows can itself consume an entire frame on a reaction
+    // or typing update, although those snapshots are almost all discarded.
     let oldOffset = collectionView.contentOffset.y
     var leaving: [(id: String, view: UIView, frame: CGRect, removed: Bool)] = []
     if animated {
+      var futureFrames: [String: CGRect] = [:]
+      var height: CGFloat = 0
+      for (index, id) in newIds.enumerated() {
+        let rowHeight = newLayouts[index].height
+        if visible.contains(id) {
+          futureFrames[id] = CGRect(x: 0, y: height, width: bounds.width, height: rowHeight)
+        }
+        height += rowHeight
+      }
+      let bottom = alignTop
+        ? max(insets.bottom + keyboardHeight, collectionView.bounds.height - insets.top - height)
+        : collectionView.adjustedContentInset.top
+      let futureOffset = pinned ? -bottom : anchor.flatMap { anchor in
+        futureFrames[anchor.id].map { $0.minY - anchor.offset }
+      } ?? oldOffset
+      let viewport = CGRect(x: 0, y: futureOffset, width: bounds.width, height: collectionView.bounds.height).insetBy(dx: 0, dy: 1)
       let removedIds = Set(removed.map { oldIds[$0] })
       for cell in collectionView.visibleCells {
-        guard let cell = cell as? RowCell, let id = cell.rowId,
-              let snapshot = cell.snapshotView(afterScreenUpdates: false) else { continue }
+        guard let cell = cell as? RowCell, let id = cell.rowId else { continue }
+        if !removedIds.contains(id), let frame = futureFrames[id], frame.intersects(viewport) { continue }
+        guard let snapshot = cell.snapshotView(afterScreenUpdates: false) else { continue }
         // Include any move still in flight, so the stand-in starts where
         // the row is drawn now.
         var frame = cell.frame
