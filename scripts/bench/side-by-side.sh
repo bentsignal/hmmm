@@ -27,6 +27,7 @@ GROUP=${BENCH_GROUP:?set BENCH_GROUP to the conversation}
 E=.cache/evidence
 LAYOUT=${BENCH_LAYOUT:-stacked}
 PREFIX=h2h${FLAG:+-android}-$LAYOUT
+mkdir -p "$E" .cache/bench
 
 sim() { scripts/sim.sh $FLAG "$@"; }
 js() { sim eval "$1" 2>/dev/null | tail -1; }
@@ -80,7 +81,13 @@ for scenario in $SCENARIOS; do
     if [[ $scenario == hold ]]; then
       HOLD_TARGET=${BENCH_HOLD:-}
       if [[ -z $HOLD_TARGET ]]; then
-        HOLD_TARGET=$(${=BENCH_AD:?set BENCH_AD} snapshot -i | awk -v target="$TARGET" 'index($0, target) && /^@e[0-9]+ / { print $1; exit }')
+        for attempt in {1..5}; do
+          local_snapshot=$(${=BENCH_AD:?set BENCH_AD} snapshot -i)
+          print -r -- "$local_snapshot" > ".cache/bench/$PREFIX-hold-$list.snapshot.txt"
+          HOLD_TARGET=$(print -r -- "$local_snapshot" | awk -v target="${TARGET[1,20]}" 'index($0, target) && /^@e[0-9]+ / { print $1; exit }')
+          [[ -n $HOLD_TARGET ]] && break
+          sleep 3
+        done
       fi
       if [[ -z $HOLD_TARGET ]]; then echo 'held message is not visible' >&2; exit 1; fi
     fi
