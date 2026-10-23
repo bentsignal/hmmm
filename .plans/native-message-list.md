@@ -594,3 +594,36 @@ classified as a blank band in both lists. First and last flagged native
 frames show the complete image moving through, with no missing row.
 Flung rows also exceed the analyzer's 40 pt matching range; its movement
 flags during these fast scroll clips are not a motion pass/fail result.
+
+### Final Android capture recovery
+
+Android source-ready advanced to 4f87adfe, merged on top of ada19507.
+Incoming URL spans now inherit the actual row text color, matching RN;
+mentions retain accent and outgoing links retain onAccent. Its native
+compile, eleven JVM checks, ordered pnpm checks, and all nine CI checks
+passed. This paint-only change needs the final combined binary.
+
+The emulator remains on a standard console port. Profiling now uses
+10.0.2.2 for Metro, avoiding loss of its debugger connection when an ADB
+reverse mapping disappears. Recorders detach from the launching tool,
+finish writing their MP4 index before their adb shell exits, and stop
+only their own remote PID. Videos transfer without redundant ADB
+compression. Failed captures and incomplete MP4s are discarded.
+
+Valid Android scroll captures are 20261023-132229 and 20261023-132616.
+Both use the same fresh 600-message group and 5,500 dp/s for ten seconds,
+with production JavaScript and native ada19507. No builds or boots
+concurred. Bubbles RN/native: 38.0/55.1 capture FPS, 132/51 slow intervals,
+166.7/50.0 ms worst interval, 73/19 JS stalls, 44,396/55,091 dp travel,
+367/0 ms edge wait. RN started with 50 loaded rows; native's normal
+prefetch had already loaded 100. Stacked RN/native: 55.5/58.9 FPS,
+52/13 slow intervals, 50.0/50.0 ms worst, 65/14 JS stalls,
+44,858/55,091 dp travel, 1,850/0 ms edge wait, both starting at 50 rows.
+Native ended at 450 loaded rows versus RN's 350 in both layouts.
+
+Main-thread samples over 16.7 ms were 146/367 versus 2/548 for bubbles,
+and 47/516 versus 1/586 for stacked. Bubbles main-thread p90 was
+48.9/5.1 ms; stacked 16.0/4.4 ms. These distinguish app layout work from
+software-rendered emulator intervals. Mac CPU during bubbles was 59/79%
+average, 81/91% peak; report this load and do not claim a quiet-host or
+zero-slow-frame gate. Burst measurements and motion review follow.
