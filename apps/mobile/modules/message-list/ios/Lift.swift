@@ -13,6 +13,9 @@ import UIKit
 struct LiftPieces {
   let frame: CGRect
   let views: [UIView]
+  /// Text without a bubble (a stacked row, jumbo emoji) lifts on a card
+  /// in this color, as in the React Native menu.
+  var card: UIColor?
 }
 
 final class Lifter {
@@ -26,6 +29,7 @@ final class Lifter {
   }
 
   private var lifted: Lifted?
+  private weak var card: UIView?
   /// The row whose part is out of the list, if any.
   var rowId: String? { lifted?.request.rowId }
 
@@ -56,6 +60,17 @@ final class Lifter {
     container.layer.shadowRadius = 18
     container.layer.shadowOpacity = 0
     overlay.addSubview(container)
+    if let color = pieces.card {
+      // The card reaches 10 past the text at the sides and 8 above and below.
+      let card = UIView(frame: container.bounds.insetBy(dx: -10, dy: -8))
+      card.backgroundColor = color
+      card.layer.cornerRadius = 16
+      card.layer.cornerCurve = .continuous
+      card.alpha = 0
+      container.addSubview(card)
+      UIView.animate(withDuration: 0.2) { card.alpha = 1 }
+      self.card = card
+    }
 
     // The part may be mid-shrink (the press): it lifts from that size.
     let pressed = (pieces.views.first?.layer.presentation()?.value(forKeyPath: "transform.scale.x") as? CGFloat) ?? 1
@@ -105,7 +120,9 @@ final class Lifter {
       return cell.bodyView.convert(pieces.frame, to: window)
     }()
     let animator = UIViewPropertyAnimator(duration: 0.24, timingParameters: Self.land)
+    let card = self.card
     animator.addAnimations {
+      card?.alpha = 0
       container.transform = .identity
       if let destination {
         container.center = CGPoint(x: destination.midX, y: destination.midY)

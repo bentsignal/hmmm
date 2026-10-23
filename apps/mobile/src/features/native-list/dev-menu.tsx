@@ -36,6 +36,11 @@ const EMOJI = ["❤️", "👍", "👎", "😂", "‼️", "❓"];
 
 export interface DevHold {
   readonly rowId: string;
+  /**
+   * Plain text (a stacked row): native lifts it on a card reaching 10 past
+   * it at the sides and 8 above and below, so the menu lays out around that.
+   */
+  readonly card?: boolean;
   readonly part?: string;
   readonly index?: number;
   readonly frame: {
@@ -54,10 +59,18 @@ export function devLift(
 ) {
   const align =
     hold.frame.x + hold.frame.width / 2 > screen.width / 2 ? "end" : "start";
+  const { frame } = hold;
   const layout = menuLayout({
     align,
     bar: { height: BAR_HEIGHT, width: BAR_WIDTH },
-    frame: hold.frame,
+    frame: hold.card
+      ? {
+          height: frame.height + 16,
+          width: frame.width + 20,
+          x: frame.x - 10,
+          y: frame.y - 8,
+        }
+      : frame,
     insets,
     menu: { height: menuHeight(ACTIONS.length), width: MENU_WIDTH },
     screen,

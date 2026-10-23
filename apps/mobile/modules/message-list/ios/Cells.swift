@@ -126,6 +126,7 @@ final class MessageCell: RowCell {
   var bodyView: UIView { body }
   private(set) var layout: MessageLayout?
   private(set) var message: MessageRow?
+  private var theme: Theme?
 
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -161,6 +162,7 @@ final class MessageCell: RowCell {
     super.configure(row, rowLayout, state: state, animated: animated)
     let animate = animated && sameRow
     let theme = state.theme
+    self.theme = theme
     self.layout = layout
     self.message = message
     let apply = {
@@ -430,7 +432,11 @@ final class MessageCell: RowCell {
       where (part != nil && tapback.part == part) || (tapback.frame.midY < held.frame.minY + 10 && corner.contains(tapback.frame)) {
       if let view = tapbacks.views[tapback.id] { views.append(view) }
     }
-    return LiftPieces(frame: held.frame, views: views)
+    var pieces = LiftPieces(frame: held.frame, views: views)
+    if case let .text(_, bubble, _) = held.content, bubble?.fill == nil, bubble?.border == nil {
+      pieces.card = theme?.backgroundElevated
+    }
+    return pieces
   }
 
   // MARK: Taps and holds
@@ -512,10 +518,26 @@ final class MessageCell: RowCell {
       }
     }
     if message.layout == .stacked || hold && layout.bounds.contains(point) {
-      // A stacked row is one target, edge to edge.
+      // A stacked row is one target, edge to edge: a press beside its text
+      // (or between its parts) is on the part at that height, or the
+      // nearest one.
+      let nearest = layout.parts.indices.min { a, b in
+        Self.distance(point.y, layout.parts[a].frame) < Self.distance(point.y, layout.parts[b].frame)
+      }
+      if let at = nearest, case .text = layout.parts[at].content {
+        var event = base
+        if let id = layout.parts[at].part { event["part"] = id }
+        base = event
+        return press("message", frame: layout.parts[at].frame, view: at < partViews.count ? partViews[at] : nil)
+      }
       return press("message", frame: hold ? layout.bounds : body.bounds)
     }
     return nil
+  }
+
+  /// How far `y` is from a frame's span (0 inside it).
+  private static func distance(_ y: CGFloat, _ frame: CGRect) -> CGFloat {
+    y < frame.minY ? frame.minY - y : y > frame.maxY ? y - frame.maxY : 0
   }
 
   // MARK: Accessibility
