@@ -101,8 +101,9 @@ function onPress(event: PressEvent, message: Message, actions: PressActions) {
       actions.toggleReaction(message.id, emoji, part);
     },
     replies: thread,
-  } satisfies Record<PressEvent["target"], () => unknown>;
-  handlers[event.target]();
+  } satisfies Record<PressEvent["element"], () => unknown>;
+  // A binary that reports something this JavaScript doesn't know: nothing.
+  if (Object.hasOwn(handlers, event.element)) handlers[event.element]();
 }
 
 /** The glass menu over a held part, as the React Native list opens it. */
