@@ -232,8 +232,21 @@ ensure_android_device() {
   if [ -n "$SERIAL" ] && adb_device get-state >/dev/null 2>&1; then
     return
   fi
-  local console=$((5560 + 2 * ($(hash_of "$ROOT") % 50)))
-  while "$ADB" devices | grep -q "emulator-$console"; do console=$((console + 2)); done
+  # adb auto-discovers only the standard console ports. Outside this range
+  # a server reconnect can lose a live emulator, which the queue reclaims.
+  local console start=$(( $(hash_of "$ROOT") % 13 )) available=0
+  for offset in $(seq 0 12); do
+    console=$((5560 + 2 * ((start + offset) % 13)))
+    if ! lsof -nP -iTCP:"$console" -sTCP:LISTEN >/dev/null 2>&1 &&
+      ! "$ADB" devices | grep -q "emulator-$console"; then
+      available=1
+      break
+    fi
+  done
+  if [ "$available" != 1 ]; then
+    echo "no standard Android emulator console port is free" >&2
+    exit 1
+  fi
   SERIAL="emulator-$console"
   # A separate session survives the launching tool's process-group cleanup.
   # nohup alone ignores SIGHUP but still dies when that group is terminated.
