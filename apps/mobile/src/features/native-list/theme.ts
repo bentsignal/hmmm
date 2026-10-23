@@ -135,8 +135,9 @@ export const BEHAVIOR = {
   firehoseFrom: 8,
   firehoseUntil: 3,
   firehoseWindowMs: 2000,
-  // `onEndReachedThreshold`.
-  loadAheadScreens: 3,
+  // `onEndReachedThreshold`. Native can keep more rows ready cheaply; five
+  // screens leave time for the network and JS during a 5,500 pt/s fling.
+  loadAheadScreens: 5,
   // `GROW_MS`.
   moveMs: 420,
   // `NEAR_LATEST`.

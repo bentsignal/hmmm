@@ -40,6 +40,11 @@ LAYOUT=${BENCH_LAYOUT:-stacked}
 REVISION=$(git rev-parse HEAD)
 TARGET_PLATFORM=ios
 [[ -n $FLAG ]] && TARGET_PLATFORM=android
+LISTS=(rn native)
+if [[ -n ${BENCH_LIST:-} ]]; then
+  [[ $BENCH_LIST == rn || $BENCH_LIST == native ]] || exit 2
+  LISTS=($BENCH_LIST)
+fi
 RUN=.cache/bench/$(date +%Y%m%d-%H%M%S)-${FLAG:+android-}${WHAT}.jsonl
 mkdir -p .cache/bench
 
@@ -117,7 +122,7 @@ burst() {
 
 for scenario in fling burst; do
   if [[ $WHAT == $scenario || $WHAT == all ]]; then
-    for list in rn native; do
+    for list in $LISTS; do
       $scenario $list
     done
   fi
