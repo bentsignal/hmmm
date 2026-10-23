@@ -58,14 +58,19 @@ start_metro() {
     fi
     # A separate session survives the launching terminal/tool closing.
     # nohup alone leaves Expo in that terminal's process group.
-    node - "$STATE_DIR/metro.log" "$PORT" ${clear[@]+"${clear[@]}"} ${profile[@]+"${profile[@]}"} >"$STATE_DIR/metro.pid" <<'JS'
+    node - "$STATE_DIR/metro.log" "$PORT" "$ROOT/scripts/bench/metro-uncompressed-inspector.cjs" ${clear[@]+"${clear[@]}"} ${profile[@]+"${profile[@]}"} >"$STATE_DIR/metro.pid" <<'JS'
 const { spawn } = require("node:child_process");
 const { openSync, closeSync } = require("node:fs");
-const [log, port, ...flags] = process.argv.slice(2);
+const [log, port, inspectorPreload, ...flags] = process.argv.slice(2);
 const output = openSync(log, "w");
+const env = { ...process.env };
+if (flags.includes("--no-dev")) {
+  env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ""} --require ${JSON.stringify(inspectorPreload)}`;
+}
 const child = spawn("npx", ["expo", "start", "--dev-client", "--port", port, ...flags], {
   detached: true,
   stdio: ["ignore", output, output],
+  env,
 });
 child.unref();
 closeSync(output);

@@ -452,16 +452,25 @@ case "$command" in
     case "${1:-}" in
       start)
         queue perf-start "$PLATFORM"
-        app_eval "globalThis.veraDev.frames.start()" >/dev/null && echo "recording frames"
+        if app_eval "globalThis.veraDev.frames.start()" >/dev/null; then
+          echo "recording frames"
+        else
+          queue perf-stop "$PLATFORM" || true
+          exit 1
+        fi
         ;;
       stop)
-        app_eval "globalThis.veraDev.frames.stop()" >/dev/null
-        for _ in $(seq 1 20); do
-          report="$(app_eval "globalThis.veraDev.frames.report()")"
-          [ -n "$report" ] && echo "$report" && break
-          sleep 0.25
-        done
+        report=""
+        if app_eval "globalThis.veraDev.frames.stop()" >/dev/null; then
+          for _ in $(seq 1 20); do
+            report="$(app_eval "globalThis.veraDev.frames.report()")" || break
+            [ -n "$report" ] && echo "$report" && break
+            sleep 0.25
+          done
+        fi
+        # A crashed app must still release its measurement slot.
         queue perf-stop "$PLATFORM" || true
+        [ -n "$report" ] || exit 1
         ;;
       *) echo "usage: scripts/sim.sh frames start|stop" >&2 && exit 2 ;;
     esac
