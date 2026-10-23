@@ -1,8 +1,8 @@
-import type { ListEvent, Row } from "~/features/native-list/native";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import type { ListEvent, Row } from "~/features/native-list/native";
 import {
   FIXTURE_BEHAVIOR,
   FIXTURE_THEME,
@@ -76,9 +76,7 @@ export default function DevNativeList() {
       </View>
     );
   }
-  const shown = typing
-    ? [{ ...FIXTURE_TYPING, layout }, ...rows]
-    : rows;
+  const shown = typing ? [{ ...FIXTURE_TYPING, layout }, ...rows] : rows;
   return (
     <View className="bg-background flex-1">
       <MessageListView

@@ -9,7 +9,7 @@ import type {
 import { Gesture } from "react-native-gesture-handler";
 
 import type { Point } from "./photo-transform";
-import type { Mode, Viewer } from "./photo-viewer-state";
+import type { Mode, Pager, Viewer } from "./photo-viewer-state";
 import {
   addSample,
   bandDrag,
@@ -24,8 +24,10 @@ import {
   velocity,
 } from "./photo-transform";
 import {
+  dragPage,
   IDLE,
   release,
+  releasePage,
   settle,
   show,
   shownOf,
@@ -106,6 +108,8 @@ function onTouchesDown(
   }
   const points = fingers(viewer, event, false);
   const { mode } = viewer.track.get();
+  // A sideways swipe stays one, whatever lands after it.
+  if (mode === "page") return;
   if (mode === "idle") {
     manager.activate();
     // Caught while springing back from a swipe to close: keep swiping.
@@ -121,30 +125,97 @@ function onTouchesDown(
   rebase(viewer, next === "idle" ? "pending" : next, points);
 }
 
-function onTouchesMove(viewer: Viewer, event: GestureTouchEvent) {
+/**
+ * Starts a sideways swipe through a group (`pager`) when one finger has
+ * moved more across than down; true if it did.
+ */
+function startsPage(viewer: Viewer, points: Point[], pager?: Pager) {
+  "worklet";
+  const track = viewer.track.get();
+  const focal = centroid(points);
+  const across = Math.abs(focal.x - track.origin.x);
+  const down = Math.abs(focal.y - track.origin.y);
+  if (pager === undefined || points.length !== 1 || across <= down) {
+    return false;
+  }
+  rebase(viewer, "page", points);
+  viewer.track.set({
+    ...viewer.track.get(),
+    pageFrom: Math.round(pager.position.get()),
+  });
+  return true;
+}
+
+/** Moves a sideways swipe through a group with the finger. */
+function movePage(viewer: Viewer, focal: Point, pager?: Pager) {
+  "worklet";
+  const track = viewer.track.get();
+  if (pager === undefined) return;
+  const dx = focal.x - track.origin.x;
+  dragPage(pager, track.pageFrom, dx, viewer.frame.get().width);
+  viewer.track.set({
+    ...track,
+    focal,
+    samples: addSample(track.samples, { t: Date.now(), x: dx, y: 0 }),
+  });
+}
+
+/** Lets go of a sideways swipe: on to the next photo, or back. */
+function endPage(viewer: Viewer, pager?: Pager) {
+  "worklet";
+  const track = viewer.track.get();
+  const speed = velocity(liftSamples(track.samples, Date.now()));
+  viewer.track.set(IDLE);
+  if (pager === undefined) return;
+  releasePage(pager, {
+    dx: track.focal.x - track.origin.x,
+    from: track.pageFrom,
+    speedX: speed.x,
+    width: viewer.frame.get().width,
+  });
+}
+
+/**
+ * A finger that has moved far enough starts a drag: at fit, it swipes the
+ * photo away (or sideways, to the next one of a group); zoomed in, it
+ * moves the photo.
+ */
+function startDrag(viewer: Viewer, points: Point[], pager?: Pager) {
+  "worklet";
+  const track = viewer.track.get();
+  const focal = centroid(points);
+  const moved = Math.hypot(focal.x - track.origin.x, focal.y - track.origin.y);
+  if (moved < SLOP) return;
+  const dismissing = viewer.scale.get() <= MIN_SCALE + 0.01;
+  if (dismissing && startsPage(viewer, points, pager)) return;
+  if (dismissing) {
+    viewer.anchor.set(track.origin);
+    viewer.track.set({ ...track, raw: { scale: 1, x: 0, y: 0 } });
+  }
+  // The drag starts here, so the slop doesn't show as a jump.
+  rebase(viewer, dismissing ? "dismiss" : "zoom", points);
+}
+
+function onTouchesMove(
+  viewer: Viewer,
+  event: GestureTouchEvent,
+  pager: Pager | undefined,
+) {
   "worklet";
   const points = fingers(viewer, event, false);
   const track = viewer.track.get();
   if (points.length === 0 || track.mode === "idle") return;
   const focal = centroid(points);
   if (track.mode === "pending") {
-    const moved = Math.hypot(
-      focal.x - track.origin.x,
-      focal.y - track.origin.y,
-    );
-    if (moved < SLOP) return;
-    // At fit, a drag swipes the photo away; zoomed in, it moves the photo.
-    const dismissing = viewer.scale.get() <= MIN_SCALE + 0.01;
-    if (dismissing) {
-      viewer.anchor.set(track.origin);
-      viewer.track.set({ ...track, raw: { scale: 1, x: 0, y: 0 } });
-    }
-    // The drag starts here, so the slop doesn't show as a jump.
-    rebase(viewer, dismissing ? "dismiss" : "zoom", points);
+    startDrag(viewer, points, pager);
     return;
   }
   const now = Date.now();
   const frame = viewer.frame.get();
+  if (track.mode === "page") {
+    movePage(viewer, focal, pager);
+    return;
+  }
   if (track.mode === "dismiss") {
     const raw = {
       scale: 1,
@@ -186,12 +257,18 @@ function onTouchesUp(
   viewer: Viewer,
   event: GestureTouchEvent,
   manager: GestureStateManager,
-  onClose: () => void,
+  { onClose, pager }: { onClose: () => void; pager?: Pager },
 ) {
   "worklet";
   const points = fingers(viewer, event, true);
   const track = viewer.track.get();
   if (track.mode === "idle") return;
+  if (track.mode === "page") {
+    // A sideways swipe ends with its first finger.
+    manager.end();
+    endPage(viewer, pager);
+    return;
+  }
   if (points.length > 0) {
     // Fewer fingers: carry on from here with the ones still down.
     rebase(viewer, track.mode, points);
@@ -210,19 +287,23 @@ function onTouchesUp(
  * keeps the photo continuous when fingers land or lift mid-gesture, the same
  * way on both platforms.
  */
-export function touchGesture(viewer: Viewer, onClose: () => void) {
+export function touchGesture(
+  viewer: Viewer,
+  onClose: () => void,
+  pager?: Pager,
+) {
   return Gesture.Manual()
     .onTouchesDown((event, manager) => onTouchesDown(viewer, event, manager))
-    .onTouchesMove((event) => onTouchesMove(viewer, event))
+    .onTouchesMove((event) => onTouchesMove(viewer, event, pager))
     .onTouchesUp((event, manager) =>
-      onTouchesUp(viewer, event, manager, onClose),
+      onTouchesUp(viewer, event, manager, { onClose, pager }),
     )
     .onTouchesCancelled((event, manager) =>
       onTouchesUp(
         viewer,
         { ...event, changedTouches: event.allTouches },
         manager,
-        onClose,
+        { onClose, pager },
       ),
     );
 }

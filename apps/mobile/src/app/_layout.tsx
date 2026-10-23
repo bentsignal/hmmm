@@ -21,6 +21,7 @@ import {
   noteTouch,
   UpdateNavigation,
 } from "~/features/updates/app-updates";
+import { StoreUpdateCover } from "~/features/updates/store-update-cover";
 import { UpdateCover } from "~/features/updates/update-cover";
 import { WatchBreakingVersion } from "~/features/updates/watch-breaking-version";
 
@@ -76,6 +77,7 @@ export default function RootLayout() {
               <Navigator />
             </SessionProvider>
             <UpdateCover />
+            <StoreUpdateCover />
           </QueryClientProvider>
         </KeyboardProvider>
       </ThemeProvider>
