@@ -15,11 +15,14 @@ final class MediaTileView: UIView {
 
   override init(frame: CGRect) {
     super.init(frame: frame)
-    clipsToBounds = true
+    // The image rounds its own layer: a mask over a container would be
+    // drawn offscreen every frame.
     layer.cornerRadius = Metrics.mediaRadius
     layer.cornerCurve = .continuous
     image.contentMode = .scaleAspectFill
     image.clipsToBounds = true
+    image.layer.cornerRadius = Metrics.mediaRadius
+    image.layer.cornerCurve = .continuous
     addSubview(image)
     play.backgroundColor = UIColor.black.withAlphaComponent(0.4)
     play.layer.cornerRadius = 24
@@ -103,7 +106,7 @@ final class CarouselView: UIScrollView, UIScrollViewDelegate {
     decelerationRate = .fast
     scrollsToTop = false
     delegate = self
-    clipsToBounds = false
+    clipsToBounds = true
   }
 
   required init?(coder: NSCoder) { fatalError() }

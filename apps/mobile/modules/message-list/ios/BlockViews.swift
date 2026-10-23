@@ -18,6 +18,8 @@ final class TextView: UIView {
     backgroundColor = .clear
     contentMode = .redraw
     isUserInteractionEnabled = false
+    // Core Animation replays the drawing off the main thread.
+    layer.drawsAsynchronously = true
   }
 
   required init?(coder: NSCoder) { fatalError() }
@@ -170,12 +172,14 @@ final class LinkCardView: UIView {
 
   override init(frame: CGRect) {
     super.init(frame: frame)
-    clipsToBounds = true
     layer.cornerRadius = 16
     layer.cornerCurve = .continuous
     layer.borderWidth = 1 / UIScreen.main.scale
     image.contentMode = .scaleAspectFill
     image.clipsToBounds = true
+    image.layer.cornerRadius = 16
+    image.layer.cornerCurve = .continuous
+    image.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
     [image, site, title, detail].forEach(addSubview)
   }
 

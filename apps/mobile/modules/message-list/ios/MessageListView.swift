@@ -41,6 +41,8 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
   private var measuring = false
   private var measureAgain = false
   private var measuredWidth: CGFloat = 0
+  /// The theme the rows on screen were drawn with.
+  private var drawnTheme = -1
 
   // Events.
   private var placed = false
@@ -237,6 +239,7 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
 
   private func finish(_ result: MeasureQueue.Output) {
     measuring = false
+    if result.width != measuredWidth { drawnTheme = -1 }
     measuredWidth = result.width
     apply(result.rows, result.layouts)
     if measureAgain || result.width != bounds.width {
@@ -245,8 +248,11 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
   }
 
   private func apply(_ newRows: [Row], _ newLayouts: [RowLayout]) {
+    let started = CACurrentMediaTime()
+    defer { Slow.check("apply \(newRows.count) rows", since: started) }
     let theme = state.theme
     guard placed, !rows.isEmpty else {
+      drawnTheme = theme.version
       rows = newRows
       layouts = newLayouts
       listLayout.update(ids: newRows.map(\.id), heights: newLayouts.map(\.height))
@@ -255,6 +261,9 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
       return
     }
 
+    // A new theme or width redraws every row, without animation.
+    let redraw = drawnTheme != theme.version
+    drawnTheme = theme.version
     let oldRows = rows
     let oldIds = oldRows.map(\.id)
     let newIds = newRows.map(\.id)
@@ -272,7 +281,7 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     var changed: Set<String> = []
     for (index, row) in newRows.enumerated() {
       guard let old = oldIndex[row.id], old < oldRows.count else { continue }
-      if oldRows[old] != row || layouts[old].height != newLayouts[index].height {
+      if redraw || oldRows[old] != row || layouts[old].height != newLayouts[index].height {
         changed.insert(row.id)
       }
     }
@@ -292,7 +301,7 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     let pinned = distanceFromLatest <= 2 || !collectionView.isDragging && distanceFromLatest <= min(24, state.behavior.nearLatestPoints)
     let typingChanged = atBottom.contains { newRows[$0].isTyping } || removed.contains { oldRows[$0].isTyping }
     let visibleChange = !changed.isDisjoint(with: visible) || removed.contains { visible.contains(oldIds[$0]) }
-    let animated = window != nil && !firehose && !reordered
+    let animated = window != nil && !firehose && !reordered && !redraw
       && (pinned ? (!atBottom.isEmpty || typingChanged || visibleChange) : visibleChange && atBottom.isEmpty)
 
     // Keep the reader's place when scrolled up: the lowest row on screen
@@ -314,61 +323,136 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
       grows = (newIds[message], bubble)
     }
 
+    // Before the update: where each row on screen is drawn, and a stand-in
+    // for each, in case it leaves the screen (removed, or pushed off).
+    let oldOffset = collectionView.contentOffset.y
+    var leaving: [(id: String, view: UIView, frame: CGRect, removed: Bool)] = []
     if animated {
-      listLayout.rising = Set(arrived.map { newIds[$0] }.filter { $0 != grows?.id })
-      listLayout.inPlace = grows.map { [$0.id] } ?? []
-      listLayout.sinking = grows == nil ? Set(removed.filter { oldRows[$0].isTyping }.map { oldIds[$0] }) : []
+      let removedIds = Set(removed.map { oldIds[$0] })
+      for cell in collectionView.visibleCells {
+        guard let cell = cell as? RowCell, let id = cell.rowId,
+              let snapshot = cell.snapshotView(afterScreenUpdates: false) else { continue }
+        // Include any move still in flight, so the stand-in starts where
+        // the row is drawn now.
+        var frame = cell.frame
+        frame.origin.y += (cell.layer.presentation()?.value(forKeyPath: "transform.translation.y") as? CGFloat) ?? 0
+        leaving.append((id, snapshot, frame, removedIds.contains(id)))
+      }
     }
 
-    let work = {
+    UIView.performWithoutAnimation {
       if reordered {
-        self.rows = newRows
-        self.layouts = newLayouts
-        self.listLayout.update(ids: newIds, heights: newLayouts.map(\.height))
-        self.collectionView.reloadData()
-        self.collectionView.layoutIfNeeded()
+        rows = newRows
+        layouts = newLayouts
+        listLayout.update(ids: newIds, heights: newLayouts.map(\.height))
+        collectionView.reloadData()
       } else {
-        self.collectionView.performBatchUpdates {
-          self.rows = newRows
-          self.layouts = newLayouts
-          self.listLayout.update(ids: newIds, heights: newLayouts.map(\.height))
-          self.collectionView.deleteItems(at: removed.map { IndexPath(item: $0, section: 0) })
-          self.collectionView.insertItems(at: inserted.map { IndexPath(item: $0, section: 0) })
+        collectionView.performBatchUpdates {
+          rows = newRows
+          layouts = newLayouts
+          listLayout.update(ids: newIds, heights: newLayouts.map(\.height))
+          collectionView.deleteItems(at: removed.map { IndexPath(item: $0, section: 0) })
+          collectionView.insertItems(at: inserted.map { IndexPath(item: $0, section: 0) })
         }
       }
-      // Rows that changed update in place, inside the same animation.
-      for cell in self.collectionView.visibleCells {
-        guard let cell = cell as? RowCell, let id = cell.rowId, changed.contains(id), let index = newIndex[id] else { continue }
-        cell.configure(newRows[index], newLayouts[index], state: self.state, animated: animated)
-        self.setAccessibility(cell)
-      }
       if pinned {
-        self.setOffset(self.latestOffset)
-      } else if let anchor, let frame = self.listLayout.frame(of: anchor.id) {
-        self.setOffset(frame.minY - anchor.offset)
+        setOffset(latestOffset)
+      } else if let anchor, let frame = listLayout.frame(of: anchor.id) {
+        setOffset(frame.minY - anchor.offset)
       }
+      collectionView.layoutIfNeeded()
     }
 
-    if animated {
-      let animator = UIViewPropertyAnimator(
-        duration: state.behavior.moveMs / 1000,
-        controlPoint1: CGPoint(x: 0.25, y: 0.1),
-        controlPoint2: CGPoint(x: 0.25, y: 1),
-        animations: work
-      )
-      animator.startAnimation()
-      for id in arrived.map({ newIds[$0] }) where id != grows?.id {
-        cell(for: id)?.fadeIn(duration: state.behavior.fadeMs / 1000)
+    guard animated else {
+      for cell in collectionView.visibleCells {
+        guard let cell = cell as? RowCell, let id = cell.rowId, changed.contains(id), let index = newIndex[id] else { continue }
+        cell.configure(newRows[index], newLayouts[index], state: state, animated: false)
+        setAccessibility(cell)
       }
-      if let grows, let cell = cell(for: grows.id) as? MessageCell {
-        cell.grow(from: grows.from, duration: 0.32)
-      }
-      for index in atBottom where newRows[index].isTyping {
-        (cell(for: newIds[index]) as? TypingCell)?.appear()
-      }
-    } else {
-      UIView.performWithoutAnimation(work)
+      finishChange(changed: changed, newIndex: newIndex, reordered: reordered)
+      return
     }
+
+    // The move, in one Core Animation transaction: every row on screen
+    // slides from where it was drawn to its new place (FLIP), new rows rise
+    // in and fade, and rows that changed animate inside.
+    let duration = state.behavior.moveMs / 1000
+    let curve = CAMediaTimingFunction(controlPoints: 0.25, 0.1, 0.25, 1)
+    let newOffset = collectionView.contentOffset.y
+    let arrivedIds = Set(arrived.map { newIds[$0] })
+    let shown = Set(collectionView.visibleCells.compactMap { ($0 as? RowCell)?.rowId })
+    CATransaction.begin()
+    CATransaction.setAnimationDuration(duration)
+    CATransaction.setAnimationTimingFunction(curve)
+    for cell in collectionView.visibleCells {
+      guard let cell = cell as? RowCell, let id = cell.rowId else { continue }
+      let frame = cell.frame
+      var from: CGFloat?
+      if arrivedIds.contains(id) {
+        // Rises from just below its place (down is −y in the flipped list).
+        from = id == grows?.id ? nil : -frame.height
+        if id != grows?.id { cell.fadeIn(duration: state.behavior.fadeMs / 1000) }
+      } else if let old = listLayout.oldFrame(of: id) {
+        // The row's top edge (its max y, flipped) stays where it was drawn.
+        from = (old.maxY - oldOffset) - (frame.maxY - newOffset)
+      }
+      if let from, abs(from) > 0.5 { slide(cell.layer, from: from, duration: duration, curve: curve) }
+    }
+    // Rows that left the screen: stand-ins slide to where the row went, or
+    // fade where it was.
+    for (id, view, frame, wasRemoved) in leaving where !shown.contains(id) {
+      view.frame = frame.offsetBy(dx: 0, dy: newOffset - oldOffset)
+      collectionView.addSubview(view)
+      if wasRemoved {
+        let sinks = grows == nil && oldRows.first(where: { $0.id == id })?.isTyping == true
+        UIView.animate(withDuration: sinks ? duration : 0.18, delay: 0, options: [.curveEaseOut]) {
+          view.alpha = 0
+          if sinks { view.frame.origin.y -= frame.height }
+        } completion: { _ in view.removeFromSuperview() }
+      } else if let new = listLayout.frame(of: id) {
+        let distance = (new.maxY - newOffset) - (frame.maxY - oldOffset)
+        UIView.animate(withDuration: duration, delay: 0, options: []) {
+          view.frame.origin.y += distance
+        } completion: { _ in view.removeFromSuperview() }
+      } else {
+        view.removeFromSuperview()
+      }
+    }
+    CATransaction.commit()
+
+    let animator = UIViewPropertyAnimator(duration: duration, timingParameters: UICubicTimingParameters(
+      controlPoint1: CGPoint(x: 0.25, y: 0.1), controlPoint2: CGPoint(x: 0.25, y: 1)
+    ))
+    animator.addAnimations {
+      for cell in self.collectionView.visibleCells {
+        guard let cell = cell as? RowCell, let id = cell.rowId, changed.contains(id), let index = newIndex[id] else { continue }
+        cell.configure(newRows[index], newLayouts[index], state: self.state, animated: true)
+        self.setAccessibility(cell)
+      }
+    }
+    animator.startAnimation()
+    if let grows, let cell = cell(for: grows.id) as? MessageCell {
+      cell.grow(from: grows.from, duration: 0.32)
+    }
+    for index in atBottom where newRows[index].isTyping {
+      (cell(for: newIds[index]) as? TypingCell)?.appear()
+    }
+    finishChange(changed: changed, newIndex: newIndex, reordered: reordered)
+  }
+
+  /// An additive move from `from` points away back to the row's place, so
+  /// moves that overlap add up instead of jumping.
+  private func slide(_ layer: CALayer, from: CGFloat, duration: Double, curve: CAMediaTimingFunction) {
+    let move = CABasicAnimation(keyPath: "transform.translation.y")
+    move.fromValue = from
+    move.toValue = 0
+    move.isAdditive = true
+    move.duration = duration
+    move.timingFunction = curve
+    layer.add(move, forKey: nil)
+  }
+
+  private func finishChange(changed: Set<String>, newIndex: [String: Int], reordered: Bool) {
     // Changed rows off screen may have cells prepared ahead: update those
     // too, so they never show stale.
     if !reordered {
@@ -378,7 +462,6 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
         UIView.performWithoutAnimation { collectionView.reconfigureItems(at: offscreen) }
       }
     }
-    _ = theme
     afterChange()
   }
 
@@ -449,6 +532,8 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
   }
 
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+    let started = CACurrentMediaTime()
+    defer { Slow.check("cell \(rows[indexPath.item].id)", since: started) }
     let row = rows[indexPath.item]
     let identifier: String
     switch row.content {
@@ -458,7 +543,11 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     }
     let cell = collectionView.dequeueReusableCell(withReuseIdentifier: identifier, for: indexPath)
     if let cell = cell as? RowCell {
-      cell.contentView.layer.removeAnimation(forKey: "fadeIn")
+      if cell.rowId != row.id {
+        // A recycled cell drops the last row's moves and fade.
+        cell.layer.removeAllAnimations()
+        cell.contentView.layer.removeAnimation(forKey: "fadeIn")
+      }
       cell.configure(row, layouts[indexPath.item], state: state, animated: false)
       setAccessibility(cell)
     }
@@ -467,7 +556,7 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
 
   private func setAccessibility(_ cell: RowCell) {
     if let cell = cell as? MessageCell, let rowId = cell.rowId {
-      cell.onActivate = { [weak self] in self?.send(["type": "press", "rowId": rowId, "target": "message"]) }
+      cell.onActivate = { [weak self] in self?.send(["type": "press", "rowId": rowId, "element": "message"]) }
       cell.accessibilityCustomActions = cell.accessibilityActions { [weak self] event in self?.send(event) }
     }
   }
@@ -519,7 +608,21 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
 
   func scrollViewDidScroll(_ scrollView: UIScrollView) {
     guard placed else { return }
+    let started = CACurrentMediaTime()
+    defer { Slow.check("scroll", since: started) }
     afterChange()
+  }
+
+  /// After dragging the keyboard away, the bottom inset has shrunk under
+  /// the finger: settle at the newest row instead of past it.
+  func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
+    if targetContentOffset.pointee.y < latestOffset { targetContentOffset.pointee.y = latestOffset }
+  }
+
+  func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+    if !decelerate, collectionView.contentOffset.y < latestOffset - 0.5 {
+      collectionView.setContentOffset(CGPoint(x: 0, y: latestOffset), animated: true)
+    }
   }
 
   func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
@@ -535,12 +638,18 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     if toOldest < ahead, let oldest = rows.last?.id, olderRequestedFor != oldest {
       olderRequestedFor = oldest
       send(["type": "reachedOlder"])
+    } else if toOldest > ahead * 1.5 {
+      // Asks again after the reader leaves the top and comes back, in case
+      // the last request went unanswered.
+      olderRequestedFor = nil
     }
     let toLatest = distanceFromLatest
     if toLatest < ahead, collectionView.isDragging || collectionView.isDecelerating,
        let newest = rows.first?.id, newerRequestedFor != newest {
       newerRequestedFor = newest
       send(["type": "reachedNewer"])
+    } else if toLatest > ahead * 1.5 {
+      newerRequestedFor = nil
     }
     let near = toLatest <= state.behavior.nearLatestPoints
     if near != nearLatest {
@@ -714,5 +823,15 @@ final class MeasureQueue {
     }
     cache = next
     return Output(rows: rows, layouts: layouts, width: input.width)
+  }
+}
+
+/// Debug builds: logs main-thread work that takes long enough to risk a frame.
+enum Slow {
+  static func check(_ what: @autoclosure () -> String, since started: CFTimeInterval) {
+    #if DEBUG
+    let ms = (CACurrentMediaTime() - started) * 1000
+    if ms > 4 { NSLog("[MessageList] slow %.1f ms: %@", ms, what()) }
+    #endif
   }
 }

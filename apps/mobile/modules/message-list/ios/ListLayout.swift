@@ -11,20 +11,12 @@ final class ListLayout: UICollectionViewLayout {
   private var total: CGFloat = 0
   private var cache: [Int: UICollectionViewLayoutAttributes] = [:]
 
-  // The layout before the current update, for items moving into view.
+  // The layout before the last update, for animating rows from where they were.
   private var oldIds: [String] = []
   private var oldOffsets: [CGFloat] = []
   private var oldHeights: [CGFloat] = []
   private var oldIndexById: [String: Int]?
   private var newIndexById: [String: Int]?
-
-  /// New rows that rise into place from below (arrivals at the bottom).
-  var rising: Set<String> = []
-  /// New rows that take another row's place without moving (a message
-  /// growing out of the typing indicator).
-  var inPlace: Set<String> = []
-  /// Rows leaving by sinking out of view (the typing indicator).
-  var sinking: Set<String> = []
 
   func update(ids: [String], heights: [CGFloat]) {
     oldIds = self.ids
@@ -64,6 +56,12 @@ final class ListLayout: UICollectionViewLayout {
     for (index, id) in ids.enumerated() { map[id] = index }
     newIndexById = map
     return map
+  }
+
+  /// Where the row with this ID was before the last update.
+  func oldFrame(of id: String) -> CGRect? {
+    guard let index = oldIndex(of: id), index < oldOffsets.count else { return nil }
+    return CGRect(x: 0, y: oldOffsets[index], width: collectionView?.bounds.width ?? 0, height: oldHeights[index])
   }
 
   private func oldIndex(of id: String) -> Int? {
@@ -115,48 +113,5 @@ final class ListLayout: UICollectionViewLayout {
   override func layoutAttributesForItem(at indexPath: IndexPath) -> UICollectionViewLayoutAttributes? {
     guard indexPath.item < offsets.count else { return nil }
     return attributes(indexPath.item)
-  }
-
-  override func initialLayoutAttributesForAppearingItem(at itemIndexPath: IndexPath) -> UICollectionViewLayoutAttributes? {
-    guard itemIndexPath.item < ids.count else { return nil }
-    let id = ids[itemIndexPath.item]
-    guard let attributes = attributes(itemIndexPath.item).copy() as? UICollectionViewLayoutAttributes else { return nil }
-    if rising.contains(id) {
-      // From just below its place (up is +y in the flipped list, so down is −y).
-      attributes.frame.origin.y -= attributes.frame.height
-      return attributes
-    }
-    if inPlace.contains(id) { return attributes }
-    if let old = oldIndex(of: id), old < oldOffsets.count {
-      // Moving into view: from where it was.
-      attributes.frame = CGRect(x: 0, y: oldOffsets[old], width: attributes.frame.width, height: oldHeights[old])
-      return attributes
-    }
-    // Anything else new (an older page, an insert off to the side) just
-    // appears where it goes.
-    return attributes
-  }
-
-  override func finalLayoutAttributesForDisappearingItem(at itemIndexPath: IndexPath) -> UICollectionViewLayoutAttributes? {
-    let index = itemIndexPath.item
-    guard index < oldIds.count, index < oldOffsets.count else { return nil }
-    let id = oldIds[index]
-    let attributes = UICollectionViewLayoutAttributes(forCellWith: itemIndexPath)
-    attributes.frame = CGRect(x: 0, y: oldOffsets[index], width: collectionView?.bounds.width ?? 0, height: oldHeights[index])
-    if let new = indexById()[id] {
-      // Still here, moving out of view: to where it goes.
-      attributes.frame = frame(at: new)
-      return attributes
-    }
-    attributes.alpha = 0
-    if sinking.contains(id) { attributes.frame.origin.y -= attributes.frame.height }
-    return attributes
-  }
-
-  override func finalizeCollectionViewUpdates() {
-    super.finalizeCollectionViewUpdates()
-    rising.removeAll()
-    inPlace.removeAll()
-    sinking.removeAll()
   }
 }

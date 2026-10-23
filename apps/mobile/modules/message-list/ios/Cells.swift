@@ -348,7 +348,7 @@ final class MessageCell: RowCell {
     func press(_ target: String, _ extra: [String: Any] = [:], frame: CGRect, view: UIView? = nil) -> Hit {
       var event = base
       event["type"] = hold ? "hold" : "press"
-      if !hold { event["target"] = target }
+      if !hold { event["element"] = target }
       for (key, value) in extra { event[key] = value }
       return Hit(event: event, frame: body.convert(frame, to: contentView), view: view)
     }
@@ -432,6 +432,7 @@ final class MessageCell: RowCell {
       var event = event
       event["type"] = "press"
       event["rowId"] = rowId
+      if let target = event.removeValue(forKey: "target") { event["element"] = target }
       actions.append(UIAccessibilityCustomAction(name: name) { _ in send(event); return true })
     }
     for block in message.blocks {

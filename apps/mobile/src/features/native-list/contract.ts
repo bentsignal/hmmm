@@ -355,7 +355,11 @@ export type ListEvent =
   | {
       readonly type: "press";
       readonly rowId: string;
-      readonly target:
+      /**
+       * What was pressed. Not `target`: React Native sets `target` on every
+       * native event to the view's tag, overwriting whatever native sent.
+       */
+      readonly element:
         | "message"
         | "media"
         | "reaction"
