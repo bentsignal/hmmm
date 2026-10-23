@@ -24,9 +24,9 @@ if (( ${#SCENARIOS} == 0 )); then
   SCENARIOS=(fling burst react hold)
 fi
 GROUP=${BENCH_GROUP:?set BENCH_GROUP to the conversation}
-PREFIX=h2h${FLAG:+-android}
 E=.cache/evidence
 LAYOUT=${BENCH_LAYOUT:-stacked}
+PREFIX=h2h${FLAG:+-android}-$LAYOUT
 
 sim() { scripts/sim.sh $FLAG "$@"; }
 js() { sim eval "$1" 2>/dev/null | tail -1; }

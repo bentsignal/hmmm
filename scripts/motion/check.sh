@@ -24,6 +24,7 @@ if [[ ${1:-} == --android ]]; then
 fi
 FILTER=${1:-}
 LIST=${MOTION_LIST:-native}
+APPEARANCE=${MOTION_APPEARANCE:-light}
 if [[ $LIST != native && $LIST != rn ]]; then
   echo "MOTION_LIST is native or rn, not $LIST" >&2
   exit 2
@@ -41,6 +42,7 @@ if ! scripts/sim.sh status 2>/dev/null | grep -E "^$PLATFORM: .+" | grep -qv ': 
 fi
 sim relaunch; sleep 10
 shown=$(js "veraDev.nativeList($([[ $LIST == native ]] && echo true || echo false))" | tr -d '"')
+js "veraDev.preference(\"appearance\", \"$APPEARANCE\")" >/dev/null
 if [[ $shown != "$LIST" ]]; then
   echo "asked for the $LIST list, but conversations show $shown (no native list in this binary?)" >&2
   exit 2
@@ -108,7 +110,7 @@ for layout in bubbles stacked; do
     name=${entry%%:*}; rest=${entry#*:}
     fn=${rest%%:*}; rest=${rest#*:}
     needs=${rest%%:*}; analyzer_flags=${rest#*:}
-    label="$PLATFORM-$LIST-$layout-$name"
+    label="$PLATFORM-$LIST-$APPEARANCE-$layout-$name"
     [[ -n $FILTER && $label != *$FILTER* ]] && continue
     L0=$(wc -l < .cache/sim/metro.log)
     sim relaunch; sleep 10
