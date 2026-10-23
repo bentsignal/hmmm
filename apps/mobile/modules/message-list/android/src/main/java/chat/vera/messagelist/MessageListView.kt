@@ -120,6 +120,7 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
 
     recycler.addOnScrollListener(object : RecyclerView.OnScrollListener() {
       override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+        scrolledPx += abs(dy)
         timed({ "onScrolled" }) {
           report(dy)
           preload()
@@ -573,6 +574,63 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
     event["frame"] = frame
     cell.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
     send(event)
+  }
+
+  // MARK: Benchmarks
+
+  /** Pixels the list scrolled through, as its scroll listener reports them (for `benchFling`). */
+  private var scrolledPx = 0L
+  private var bench: android.view.Choreographer.FrameCallback? = null
+
+  /**
+   * For benchmarks: scrolls toward older rows at a constant `speed` (dp a
+   * second) for `ms`, by `scrollBy` each frame on from wherever the list
+   * is, with no fling physics, so the list's own older-page path runs as in
+   * a real fling. At the oldest row it waits there, counting the time,
+   * until older rows arrive. Resolves with how far it went (dp) and how
+   * long it was stuck at the oldest row (`edgeMs`), as the React Native
+   * list's benchmark (Reanimated's `scrollTo` in a frame callback) does.
+   */
+  fun benchFling(speed: Double, ms: Double, promise: expo.modules.kotlin.Promise) {
+    bench?.let { android.view.Choreographer.getInstance().removeFrameCallback(it) }
+    recycler.stopScroll()
+    val pxPerMs = units.pxf(speed.toFloat()) / 1000.0
+    var last = 0L
+    var elapsed = 0.0
+    var edge = 0.0
+    var owed = 0.0
+    val start = scrolledPx
+    val callback = object : android.view.Choreographer.FrameCallback {
+      override fun doFrame(frameTimeNanos: Long) {
+        if (last != 0L) {
+          val dt = (frameTimeNanos - last) / 1e6
+          elapsed += dt
+          owed += pxPerMs * dt
+          val step = owed.toInt()
+          if (step > 0) {
+            val before = scrolledPx
+            // Toward older rows: up, in the list laid out from the bottom.
+            recycler.scrollBy(0, -step)
+            val moved = abs(scrolledPx - before)
+            owed -= step
+            if (moved == 0L) {
+              // At the oldest row: waiting there for an older page.
+              edge += dt
+              owed = 0.0
+            }
+          }
+        }
+        last = frameTimeNanos
+        if (elapsed >= ms) {
+          bench = null
+          promise.resolve(mapOf("travelled" to units.dp((scrolledPx - start).toFloat()).toDouble(), "edgeMs" to edge))
+          return
+        }
+        android.view.Choreographer.getInstance().postFrameCallback(this)
+      }
+    }
+    bench = callback
+    android.view.Choreographer.getInstance().postFrameCallback(callback)
   }
 
   // MARK: Scrolling from JavaScript

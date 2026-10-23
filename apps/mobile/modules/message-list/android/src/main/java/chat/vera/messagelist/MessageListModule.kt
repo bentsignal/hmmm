@@ -2,6 +2,7 @@ package chat.vera.messagelist
 
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
+import expo.modules.kotlin.Promise
 import expo.modules.kotlin.functions.Queues
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -20,6 +21,8 @@ class MessageListModule : Module() {
         "contractVersion" to CONTRACT_VERSION,
         "rowKinds" to ROW_KINDS,
         "blockTypes" to BLOCK_TYPES,
+        // Beyond version 1's basics (see `NativeSupport.features`).
+        "features" to FEATURES,
       )
     }
 
@@ -42,6 +45,10 @@ class MessageListModule : Module() {
 
       AsyncFunction("scrollToLatest") { view: MessageListView, animated: Boolean? ->
         view.scrollToLatest(animated != false)
+      }.runOnQueue(Queues.MAIN)
+
+      AsyncFunction("benchFling") { view: MessageListView, speed: Double, ms: Double, promise: Promise ->
+        view.benchFling(speed, ms, promise)
       }.runOnQueue(Queues.MAIN)
 
       AsyncFunction("scrollToRow") { view: MessageListView, rowId: String, animated: Boolean? ->

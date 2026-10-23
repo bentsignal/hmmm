@@ -730,12 +730,17 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
   }
 }
 
-/** A time header (bubbles) or a day separator with faint rules (stacked). */
+/**
+ * A time header (bubbles), a day separator with faint rules (stacked), or
+ * a thread's divider under its original: the count at the start, then a
+ * hairline to the edge, as Slack draws it.
+ */
 class HeaderCell(context: Context, private val env: CellEnv) : ViewGroup(context) {
   private val units = env.units
   private val label = plainText(context).apply { centered() }
   private val rule = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
   private var day = false
+  private var replies = false
 
   init {
     setWillNotDraw(false)
@@ -745,9 +750,19 @@ class HeaderCell(context: Context, private val env: CellEnv) : ViewGroup(context
 
   fun bind(row: HeaderRow) {
     val theme = env.theme
-    day = row.day
+    day = row.style == "day"
+    replies = row.style == "replies"
+    if (replies) {
+      label.style(units, theme.footnote, theme.muted, Fonts.semibold)
+      label.text = row.label
+      contentDescription = row.label
+      rule.color = theme.separator
+      requestLayout()
+      invalidate()
+      return
+    }
     label.style(units, theme.caption, theme.muted)
-    label.text = if (row.day) {
+    label.text = if (day) {
       SpannableStringBuilder(row.label).apply { setSpan(WeightSpan(Fonts.semibold), 0, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE) }
     } else timeHeader(row.label)
     contentDescription = row.label
@@ -768,17 +783,33 @@ class HeaderCell(context: Context, private val env: CellEnv) : ViewGroup(context
   override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
     val width = MeasureSpec.getSize(widthMeasureSpec)
     label.measure(MeasureSpec.makeMeasureSpec(width - units.px(64f), MeasureSpec.AT_MOST), MeasureSpec.UNSPECIFIED)
-    val pad = if (day) units.px(28f) + units.px(8f) else units.px(24f)
+    // RN's RepliesDivider: pt-5 pb-1; DaySeparator: pt-7 pb-2; time: py-3.
+    val pad = when {
+      replies -> units.px(20f + 4f)
+      day -> units.px(28f) + units.px(8f)
+      else -> units.px(24f)
+    }
     setMeasuredDimension(width, label.measuredHeight + pad)
   }
 
   override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
-    val top = if (day) units.px(28f) else units.px(12f)
-    val x = (r - l - label.measuredWidth) / 2
+    val top = when {
+      replies -> units.px(20f)
+      day -> units.px(28f)
+      else -> units.px(12f)
+    }
+    val x = if (replies) units.px(env.theme.horizontalPadding) else (r - l - label.measuredWidth) / 2
     label.layout(x, top, x + label.measuredWidth, top + label.measuredHeight)
   }
 
   override fun onDraw(canvas: Canvas) {
+    if (replies) {
+      val y = label.top + label.height / 2f
+      rule.shader = null
+      rule.strokeWidth = maxOf(1f, units.pxf(0.5f))
+      canvas.drawLine(label.right + units.pxf(12f), y, width - units.pxf(env.theme.horizontalPadding), y, rule)
+      return
+    }
     if (!day) return
     // Hairlines either side of the text, fading out toward the edges.
     val y = label.top + label.height / 2f

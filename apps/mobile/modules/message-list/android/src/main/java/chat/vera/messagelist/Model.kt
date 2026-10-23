@@ -8,6 +8,7 @@ package chat.vera.messagelist
 const val CONTRACT_VERSION = 1
 val ROW_KINDS = listOf("message", "header", "notice", "typing", "custom")
 val BLOCK_TYPES = listOf("text", "media", "file", "linkCard", "quote", "deleted")
+val FEATURES = listOf("benchFling")
 
 data class Person(
   val id: String,
@@ -122,7 +123,8 @@ data class MessageRow(
   val accessibilityLabel: String,
 ) : Row()
 
-data class HeaderRow(override val id: String, val day: Boolean, val label: String) : Row()
+/** `style`: "time" (bubbles), "day" (stacked), or "replies" (a thread's divider). */
+data class HeaderRow(override val id: String, val style: String, val label: String) : Row()
 
 data class NoticeRow(override val id: String, val spans: List<Span>) : Row()
 
