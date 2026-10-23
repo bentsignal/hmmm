@@ -743,3 +743,477 @@ preview and reinstalling from Play. Both install links and these facts were
 sent to the orchestrator as soon as each was ready. Native defaults on and
 flips immediately at conversation title/details → Testing → Native Message
 List, also More → About → Testing. No stores or production OTA were used.
+
+## Phone feedback round, 2026-10-23 evening
+
+Shawn installed the private previews (iOS build 10, Android build 7) on
+his actual iPhone and his Samsung Galaxy A16, and reports a dramatic
+improvement on both, including the cheap Android phone. That is not
+approval to merge or release. Keep every performance and real-content
+lift gain while fixing what's below.
+
+Owners: **integration** is the integration Claude in this checkout (shared
+JavaScript, composer, fullscreen media viewer, optimistic-data mapping,
+contract.ts, this plan, the PR text, docs/next-release.md). **iOS** is
+the iOS native thread (#277), **Android** the Android native thread
+(#275). Native files are read-only here. Contract changes go through
+`.cache/claude-integration-polish/20261023-163203/contract-proposal.md`
+and need both native owners' agreement first.
+
+"Confirmed in source" means the code path was read and does what the
+report describes. A fix is verified only once it's checked on a device,
+and the items Shawn raised only on his phones close only when he checks
+them on his phones.
+
+### Status (integration source, not yet verified on a device)
+
+- Inputs: this branch at `78d4c94c`, with iOS source-ready
+  `cd09c26440b079522c06bec9820236f51a0e89bb` and Android source-ready
+  `31c7225980822283b468356d39c6b75af79fd36a` merged in cleanly (no
+  conflicts), plus integration's uncommitted shared changes below. No
+  data-pass merge.
+- Contract revision 3 is adopted in contract.ts, accepted by both native
+  owners: `hold.element`/`reactionKey`, reaction `press.frame`,
+  `TypingRow.showFaces`, no feature flag.
+- Done in shared JavaScript, with focused tests: reaction routing and the
+  menu's part (`reaction-events.ts`), rapid toggles
+  (`reaction-toggles.ts`), the composer glass (`glass-hold.ts`) and
+  Android's empty field (`empty-field.ts`, `field-text.ts`), typing
+  faces and the per-person hold (`typing-hold.ts`), the viewer's
+  coordinates, backdrop, early index and caught springs
+  (`photo-pager.ts`), the outdated-runtime gate (`store-gate.ts`,
+  `watch-outdated-runtimes.ts`, `release.outdatedRuntimes`; off),
+  `devMixed:seed` with reactions on the parts the app draws, and the
+  frame report's fixed thresholds (`frame-summary.ts`).
+- Dictation: a source-backed candidate. It needs iOS built from source
+  (`with-react-native-from-source.cjs`) and the react-native patch.
+  It's unverified until the combined build shows the patched file
+  compiled and Shawn checks it on his iPhone.
+- Root checks, in order, on the final source, all passing:
+  `pnpm run lint` (15 tasks), `pnpm run typecheck` (17), `pnpm run test`
+  (mobile 194, backend 41, jest 3 suites and 7 tests),
+  `pnpm run react-doctor --base origin/t3/native-message-list` (no
+  issues), then `pnpm run format:fix`. Logs are in
+  `.cache/claude-integration-polish/20261023-163203/root-*.log`. Two
+  fixes came out of them. `composer-height.ts` no longer imports the
+  native-list switch, whose secure store broke the React Native list's
+  jest perf test; the screens pass `roomCloses` through
+  `useConversationComposerHeight`. And the typing hold now uses one
+  timer for the soonest expiry, cleaned up in its own effect (`dueBy`,
+  `holdLeftMs`), still per person. After a last review, `holdTypists`
+  takes the newest 20 rows (`recentOf`), not just the newest. When Maya's
+  and Leo's messages land in one update, both leave the typing row with
+  them; before, Maya stayed up to 1 s and the typing row outlived Leo's
+  arrival, which blocks the native hand-off. A regression test covers it,
+  along with one of two typists sending and more arrivals than the 20
+  rows. `devMixed.ts` also uses `.at()` with checks, since the
+  regenerated `api.d.ts` now type-checks it under the app's stricter
+  settings.
+- Pending: the orchestrator's isolated backend push and
+  `devMixed:seed`; the combined simulator builds; after evidence; the
+  iOS chip material measurement (fill stays the default); Vera Dev on
+  both phones. Every item below waits on that, then on Shawn's phones.
+
+### 1. Reactions
+
+Final agreement: contract revision 3, accepted by both native owners. No
+feature flag. Native plays the haptic for reaction **taps** (iOS light
+impact, Android `CLOCK_TICK`). JavaScript plays the haptic for reaction
+**holds** (`impact()`), and Android suppresses its native `LONG_PRESS` for
+holds with `element: "reaction"`. Message holds are unchanged this round:
+iOS plays no native haptic on any hold, so JavaScript's `impact()` is its
+only one, and Android still buzzes twice (native plus JavaScript), a
+known, accepted difference.
+
+- [ ] Holding a stacked chip opens the message menu instead of who
+      reacted. Confirmed in source, on both platforms. iOS `Cells.swift`
+      `hit(at:hold:)` checks chips and tapbacks only when it isn't a hold,
+      so a hold falls through to the part under the chip. Android `hold()`
+      sends no reaction. Revision 3: a reaction hold sends
+      `element: "reaction"` and `reactionKey`, with the `part`, `index` and
+      `frame` of the part the reaction belongs to (the media item for an
+      item's chip, the front card for a deck's tapback). Native (iOS,
+      Android): send it for chips, tapbacks and media-item chips, with no
+      native lift. Integration (done, unverified): stacked opens
+      `viewReactions(message, part, emoji)`, as the React Native list's
+      `PartChips.onHold` does. Bubbles opens the glass menu in reactions
+      mode, as a React Native tapback tap does. The menu opens on the
+      reaction's own part (`reactionMenuPlace`). If a binary ever reports
+      another part (a row's tapback over its text for a reaction on its
+      photo), it uses the reaction key's part, so the menu never shows the
+      wrong piece's reactors. Tests cover photos, files, link cards, and
+      the first photo of a message without text.
+- [ ] An iOS reaction tap visibly waits 0.5 to 1 s, with no haptic or
+      feedback. Confirmed in source: `MessageListView.swift`
+      `tap.require(toFail: doubleTap)` delays every single tap until the
+      double tap fails. iOS: a separate reaction tap recognizer with no
+      double-tap dependency, a native light haptic, and a stacked chip drawn
+      toggled at once until the rows agree or 3 s pass. Android: an
+      immediate 0.9 press shrink and a `CLOCK_TICK`, with no native count
+      preview unless the A16 measures tap-to-redraw over 100 ms. Two taps
+      on a chip are two toggles and never open the menu. A bubble tapback
+      tap shows who reacted, as in React Native, instead of toggling; it
+      uses the press's optional `frame`, or the sheet without one.
+      JavaScript plays no tap haptic. Hypothesis, not measured: the
+      full-row rebuild in JavaScript after a toggle adds latency in a
+      450-row chat. Measure tap-to-chip time once native is fixed.
+- [ ] JavaScript's optimistic toggle (integration, fixed, unverified on a
+      device). Confirmed in source: `useReactions().toggle` worked out
+      `on` from the reactions last rendered, so two taps before the next
+      render both sent `on: true`. Every mutation's `onSettled` also
+      deleted the key's stand-in, so an older answer could drop a newer
+      toggle's. `reaction-toggles.ts` now keeps pending toggles in a ref
+      as well as state, so the second tap sees the first. Each toggle has a
+      sequence number, and only the newest one's answer, done or failed,
+      lets the key go back to the server's answer, which rolls a failure
+      back. Keys stay per message, part and emoji. Tests cover two taps
+      before a render, an older answer after a newer toggle, rollback, and
+      part isolation.
+- [ ] Per-media-item reactions attach to and show on the exact item, on
+      both platforms. JavaScript sends each `MediaItem.reactions` with its
+      own part, and `parseReactionKey` routes a toggle to the part. Agreed
+      placement: stacked chips sit under their photo, as in React Native
+      (Android withdrew its overlap). Bubbles deck tapbacks overlap the
+      front photo's corner and show only the front card's reactions, on
+      both platforms.
+- [ ] Glass stacked chips (the old look) instead of solid, only if
+      measured affordable. Fill stays the default. iOS has fill, sheen and
+      glass in the binary, chosen at launch (`VeraChipMaterial`, on
+      integration's own simulator UDID from `scripts/sim.sh status`, never
+      `booted`). The protocol is interleaved runs (fill, sheen, glass,
+      sheen, glass, fill), a 5,500 pt/s fling for 8 s each, and slow frames
+      over 16.7 ms and 33 ms plus the worst frame. `scripts/sim.sh frames
+stop` now reports `over16ms` and `over33ms` (strictly over exactly
+      16.7 ms and 33 ms, printed as `thresholdsMs`; a 16.67 ms 60 Hz frame
+      isn't counted, a 33.33 ms one is) and `worstMs`, alongside the
+      unchanged `slow`, `dropped` and the worst ten (`frame-summary.ts`).
+      No default changes and no performance claim until it's measured.
+      Android stays fill (no blur on the A16).
+- [ ] Keep the native real-content lift as it is; it works well. The
+      regression check is the existing hold, menu, land and viewer cycles.
+
+### 2. Composer (both platforms)
+
+- [ ] After a multiline send the text clears, but the field takes about
+      1 s to shrink. I read #257 first: it made an empty iOS field measure one
+      line (`numberOfLines={1}` while empty), and it holds the field's glass
+      at the old height until the list's room (`composerHeight.room`, driven
+      by `useComposerRoom` in the React Native list's `list-position.ts`)
+      closes with the messages. Confirmed in source for iOS: with the native
+      list nothing drives `room`, so `settle()` in `field-glass.tsx` holds the
+      glass at the old height until `FOLLOW_FRAMES` (120 frames) runs out.
+      That's 1 s at 120 Hz and 2 s at 60 Hz. Hypothesis for Android, where
+      `settle` does nothing: the field's shrink waits for a Fabric state
+      round trip through a JS thread busy with the send's render.
+      Integration fix: with the native list, the glass doesn't wait for a
+      room (`roomCloses`, `glass-hold.ts`) and lets go as the field
+      shrinks. On Android an
+      empty field's `maxHeight` is one line at the font scale, in the same
+      render that clears it (`empty-field.ts`, `field-text.ts`). iOS keeps
+      #257's `numberOfLines`. Verify on the A16. The baseline iOS simulator
+      screenshot after a send (`polish-ios-composer-before-sent.png`) shows
+      the empty placeholder at the bottom of glass still five lines tall,
+      which matches the glass cause. The caret in it measures about 22 pt,
+      which is the field's line height and normal. So nothing there
+      reproduces the caret or dictation report, which stays pending on a
+      phone.
+- [ ] iOS dictation: the dictation spinner corrupts the selection, the
+      caret size and the field's height, and backspace afterwards leaves
+      the field too small until the next keystroke. Not reproduced. The
+      simulator's dictation button dismissed the keyboard without a
+      spinner, and the baseline's caret is a normal 22 pt (the line
+      height), so nothing on record shows it.
+      Source hypothesis (from iOS's audit, checked by integration in the
+      installed react-native 0.86.3): Fabric's
+      `RCTTextInputComponentView.mm` `_textOf:equals:` (line 874) skips
+      rewriting the field during dictation only when
+      `textInputMode.primaryLanguage` is `"dictation"`. Since iOS 16 it
+      stays the keyboard's language while dictating. The old architecture's
+      `RCTBaseTextInputView.mm` (lines 159–161) also checks
+      `dictationRecognizing` on iOS 16 and later
+      ([facebook/react-native#37188](https://github.com/facebook/react-native/pull/37188),
+      for [#36045](https://github.com/facebook/react-native/issues/36045)).
+      `RCTUITextView` sets that flag for exactly the spinner's time
+      (`dictationRecordingDidEnd` to `removeDictationResultPlaceholder`,
+      `RCTUITextView.mm` 330–339). Upstream main's Fabric file still lacks
+      it. So during the spinner, Fabric may write JavaScript's text over
+      the live dictation, move the selection, and take typing attributes
+      from the placeholder, which would fit Shawn's report.
+      **Source mitigation, built in (integration).** Nothing reproduces
+      Shawn's symptom yet. This is the source-backed candidate, not a
+      confirmed fix.
+
+      **The patch.** `patches/react-native@0.86.3.patch` (made with
+      `pnpm patch` and `pnpm patch-commit`, registered in the root
+      `package.json` `pnpm.patchedDependencies`, hash `f048d109…`) changes
+      one condition in `RCTTextInputComponentView.mm` `_textOf:equals:`.
+      It still checks `primaryLanguage`, and on iOS 16 and later also
+      `_backedTextInputView.dictationRecognizing`, as the old architecture
+      does. It's marked `[vera: dictation-recognizing]`.
+
+      **Building it in.** The app linked React Native's prebuilt core,
+      which would never compile the patch.
+      `plugins/with-react-native-from-source.cjs` sets the generated
+      Podfile's supported switch, `ios.buildReactNativeFromSource`
+      (`RCT_USE_PREBUILT_RNCORE=0`, `RCT_USE_RN_DEP=0`; see
+      [build properties](https://docs.expo.dev/versions/latest/sdk/build-properties/)).
+      It also fails prebuild if the installed react-native lacks the
+      marker. iOS's first native build is much longer. Android is
+      unchanged: it uses the prebuilt AARs, and the patch touches only
+      this iOS file.
+
+      **Fingerprint.** Expo's patch source reads only `apps/mobile/patches`,
+      so `fingerprint.config.cjs` adds the root `patches/`
+      (`pnpmPatches`). Its sources list the plugin and `../../patches`. On
+      the final uncommitted source, on this Mac, the fingerprints are iOS
+      `d6520c60947f6dc1bdfc20367dcf9307bb09c599` and Android
+      `63be93b67e976c0fea59e724ef2aa66bbf577763`. Recompute after commit;
+      they differ on Linux.
+
+      **Lockfile.** A plain `pnpm install` after the patch re-resolved
+      every snapshot depending on react-native, and re-bound
+      `@better-auth/expo`'s nested `better-call` zod peer from 4.6.7 to
+      4.3.6. That's unrelated to this fix, so it isn't kept. The lock is
+      HEAD's graph with only the react-native `patch_hash` qualifier and
+      the `patchedDependencies` entry added. Strip the qualifier and it's
+      identical to HEAD's, and all five `better-call(zod@4.6.7)` bindings
+      stay. `pnpm install --frozen-lockfile` passes; a plain `pnpm install`
+      then says "Lockfile is up to date" and leaves it byte for byte. The
+      installed react-native is the `patch_hash=f048d109` copy, with the
+      marker. HEAD's hashed peer-key digests are kept as they were; pnpm
+      treats them as opaque IDs.
+
+      **Tests.** `plugins/react-native-from-source.test.cjs` checks that
+      the switch is set, the installed file has the parity line, the
+      patch is registered and in the fingerprint, the app config uses the
+      plugin, and an unpatched react-native fails prebuild. They don't
+      simulate dictation.
+
+      **What the combined iOS build must show (orchestrator), or it isn't
+      in the binary:** `ios/Podfile.properties.json` has
+      `"ios.buildReactNativeFromSource": "true"`; `ios/Pods` has no
+      `React-Core-prebuilt`; `ios/Pods/Pods.xcodeproj/project.pbxproj`
+      lists `RCTTextInputComponentView.mm` (none today); the build log has
+      a `CompileC` line for that file from react-native's
+      `patch_hash=f048d109…` directory; and that file has the marker.
+
+      **Still Shawn's iPhone.** Dictate into a multiline field, watch the
+      spinner, then backspace. Check the caret, selection and height, and
+      that normal typing, multiline, send and autocorrect still behave.
+      Only then is it fixed. Remove the plugin and patch once React
+      Native's Fabric has the check (upstream main doesn't yet). The
+      old-runtime gate prelude to main must not include the patch, the
+      plugin, or the fingerprint change.
+
+### 3. Typing
+
+- [ ] A one-on-one DM with the Vera assistant shows the typist's photo.
+      DMs should show only the bubble; photos go in multi-person groups and
+      spaces only. Confirmed in source: `typingRow` always sends people, and
+      both native typing cells draw a face for each. The React Native list uses
+      `showFaces={showAuthors}` for the bubble; its stacked line always
+      shows faces. Shawn wants photos only in multi-person groups and spaces,
+      and the stacked layout is a preference that applies to DMs too, so
+      `TypingRow.showFaces` (contract revision 3) covers both layouts. Absent
+      means draw them. Integration sends `showAuthors`.
+      iOS and Android hide the faces, put the bubble where a DM's bubble
+      starts, and keep the hand-off. iOS also found the morph's tail jumping
+      and text spilling (native fix). Android found the morph jumping 42 dp
+      sideways in DMs, for the same faces reason.
+- [ ] Restore the smooth hand-off from the last typing bubble to its
+      message. Hypothesis, not confirmed: when the typing query reports a stop
+      before the message arrives, they land in separate row updates, and
+      neither native hand-off can run. Android `handoff()` needs the typing
+      row removed in the same update as the arrival, and its author among
+      `people`. Both native owners confirmed they need the removal and the
+      arrival in one rows update, and Android accepted a JavaScript hold of up
+      to 1 s. What the source shows: `send` ends its author's typing in the
+      same write that stores the message (decentralized-convex-messages
+      README), and `shownTypists` drops a typist whose message is newer. So
+      on one PDS, both usually arrive together. The typing and message
+      queries can still arrive in separate updates: typing is gathered from
+      every member's PDS, and a typist can time out first. That split hasn't
+      been measured on a device. Integration adopted the hold anyway, as
+      a safeguard (`typing-hold.ts`, `useHeldTypists`). Someone who stops
+      without sending stays up to 1 s, until their message is the newest row
+      (then both change in one update), they type again, or the time runs
+      out. The cost is up to 1 s of typing shown after someone gives up.
+      Unit tests cover arriving with the stop, arriving after it, someone
+      else's message, typing again and expiry. The timer itself is checked
+      only on a device. To check: record the stop-to-message gap with
+      `dev:replyToMe` in a DM and the busy group, and shorten the hold if the
+      gap is always small.
+- [ ] Dev scenarios: more bots and multi-person typing. Existing helpers
+      are `dev:replyToMe` (DM: one bot; group: three), `dev:replyScene` and
+      `dev:typingCrowd`. Use them in both a DM and the busy group.
+
+### 4. Inline stacked carousel (both platforms, native)
+
+- [ ] The horizontal gesture feels hijacked and stops halfway. Use natural
+      native scroll physics (iOS, Android).
+- [ ] Render edge to edge, with no early clipping or black cutoff by the
+      avatar column.
+- [ ] Android: photos cover the avatar, then disappear too soon. The
+      rightmost photo can't settle fully on screen and snaps back on release.
+- [ ] Avatar treatment: native owners choose one coherent approach. Shawn
+      suggests the avatar shrinking or receding upward as media passes, as
+      Twitter does, and is open to something better. Keep readability and
+      the native gesture feel; no broad rewrite. No contract change unless a
+      value from JavaScript is needed (propose it first).
+
+### 5. Inline bubbles deck (both platforms, native)
+
+- [ ] Both swipe directions advance the same way. Make the traversal
+      reversible, like a pile of physical photos.
+- [ ] iOS: cards should move to the back of the pile, with the neighbors
+      visibly offset and angled, rather than fly a little and disappear.
+- [ ] Smooth drag, spring and transition. The blur-to-sharp change
+      currently snaps.
+- [ ] Reactions overlap the exact media on iOS; on Android they float
+      above it. Make both overlap the item they belong to.
+- [ ] Direction and state stay native. JavaScript reads only `index` on
+      press and hold, which keeps its meaning, so no contract change.
+
+### 6. Shared fullscreen media viewer (both platforms, integration)
+
+The viewer is shared JavaScript (`media-group-viewer.tsx`,
+`photo-viewer.tsx`, `photo-gestures.ts`, `photo-viewer-state.ts`), not a
+native row.
+
+- [ ] Paging tracks at about half the finger's speed and wobbles (the
+      "split, jitter, jiggle"). Confirmed in source: `fingers()` reads
+      `touch.x`, which is relative to the page view, and that view moves with
+      the page. Each move feeds the page's own translate back in. Fix: track
+      paging in window coordinates (`absoluteX/Y`).
+- [ ] Swiping past the first or last page exposes the chat. Confirmed in
+      source: each page draws its own black backdrop and moves it with the
+      page, so the 25% rubber band and the sub-pixel seams between pages show
+      the transparent route underneath. Fix: one opaque backdrop for the
+      group that doesn't move, faded only by the shown page's swipe to close.
+- [ ] An unloaded page exposes the chat, then fades in. Confirmed in
+      source: neighbors mount around `index`, which updates only when the
+      page spring finishes, so a second swipe during the spring reaches an
+      unmounted page. Fix: move `index` to the target when the swipe is
+      released, so the next neighbor mounts while the spring runs, over the
+      shared backdrop.
+- [ ] Keep swipe sideways, swipe down to close, pinch and double-tap zoom,
+      the close button, video play, and back.
+
+### 7. Test phase order
+
+1. **Now:** no-data-pass integration on this worktree's isolated backend,
+   seeded with mixed messages and bots, in Vera Dev dev clients on both
+   phones (`scripts/phone.sh up` and `--android`). Use normal Metro for
+   feedback, not `VERA_METRO_PROFILE`'s production profiling bundle.
+   Rebuild native only when native changed.
+2. **Seed:** a reproducible mixed conversation with per-item reactions,
+   files, links, videos and photo groups, plus DM and multi-person typing
+   scenes. The busy seed has only photos and message-level reactions.
+   Integration added `devMixed:seed` (dev only,
+   `services/backend/convex/devMixed.ts`, its messages in
+   `services/backend/dev-mixed-lines.ts`): a "Mixed media" group with
+   every bot and a DM with Maya. Each gets the same 12 messages: a
+   three-photo group with reactions on items 0 and 2, a video with its
+   own reaction, a photo and video together, a PDF with a reaction, a
+   YouTube link, a captioned four-photo group with reactions on items 1
+   and 3, your own photo with a reaction, long text with three reactions,
+   jumbo emoji, and short text. Typing scenes use the existing
+   `dev:replyToMe` (DM: one bot, group: three), `dev:replyScene` and
+   `dev:typingCrowd`. Fixed after review: a reaction on the first photo
+   of a message without text was sent as `attachment: 0`, which the server
+   stores as is and the app reads as part 0. The app calls that photo the
+   message itself, though, so no row drew those hearts. `reactionAttachment`
+   now sends it as the app does, with no `attachment`. `dev-mixed.test.ts`
+   runs every seeded reaction through the app's own mapping
+   (`reactionPart`, then `nativeRows`) in both layouts, and checks each
+   shows on its intended photo, video, file or message part. With the old
+   arguments it fails on the first photo's hearts.
+   Pending: the orchestrator pushes it to the isolated
+   backend (`scripts/backend.sh push`) and runs
+   `npx convex run devMixed:seed --identity …` for the ios@ and android@
+   accounts.
+3. **Later, separately:** a combined native plus data-pass test, once the
+   fixes above are verified on their own, keeping the isolated comparison.
+   Don't merge data-pass yet. The data pass alone is not the primary
+   test. A joint release is likely; correctness is still checked on its
+   own first.
+4. **Deliverable now:** the exact `scripts/phone.sh up` and `--android`
+   open links, install links if needed, and sign-in links. No more
+   private production builds. In Vera Dev the switch is in conversation
+   info → Testing → Native Message List, or More → Account → Developer →
+   Native Message List (More → About → Testing is only for testers in
+   production builds).
+
+### 8. Required update to a native-list binary
+
+- [ ] Make the dormant `StoreUpdateCover` a proper minimum-native gate:
+      one tap to TestFlight or Play, shown only once a store build is actually
+      available on that platform. Off now, and it must never trap anyone
+      before then. It doesn't depend on the native-list switch: turning the
+      list off doesn't get around it. It checks the binary's native version,
+      not just whether the list exists. An old binary can't report a build
+      number (no `expo-application`, and remote versioning keeps it out of
+      the app config). It does have `Updates.runtimeVersion` and
+      `Updates.channel`, so the gate compares the runtime: a production
+      binary whose runtime isn't in its platform's list of current runtimes
+      gets the prompt. A missing list means off. Dev clients, internal and
+      preview builds never see it.
+- How it reaches old binaries: an OTA reaches a binary only if their
+  runtimes (native fingerprints) match. Production iOS build 9 has
+  runtime f54bfcd2 and Android 46edd031. The last production OTA,
+  `mobile/ota/production/20261023T003538`, was published from main
+  5268ceac and reached both, and main still has those runtimes. A gate
+  bundled only with the native-list binary can never reach the old
+  binaries. Once the native list lands on main, `pnpm release ota production` publishes only
+  for the new runtime: it requires a clean main and the latest binary's
+  runtime.
+- So the gate must reach old binaries through a production OTA from main
+  before the native list merges there. It also has to turn on later
+  without another OTA to them.
+- [x] Built, off (integration): the backend serves `release.outdatedRuntimes`
+      (`services/backend/outdated-runtimes.ts`, empty), and the app watches
+      it (`watch-outdated-runtimes.ts`, rules in `store-gate.ts` with tests).
+      A production binary whose runtime is listed for its platform gets the
+      one-tap "Update Vera". It's a deny list, so a newer build can never be
+      trapped by someone forgetting to add its runtime. Turning it on is a
+      backend deploy that reaches every binary. `NATIVE_LIST.requireBinary`
+      and `useNeedsNativeListBinary` are gone. The rejected options were an
+      older-runtime OTA (the tooling can't) and raising `BREAKING_VERSION`
+      (a 3-minute wait on every launch). The pre-merge PR, then builds,
+      then the list, in that order, is in docs/next-release.md. Dev, internal
+      and preview builds don't subscribe at all. Tests drive the client's
+      real observer: a PDS without the query (an error) lists nothing.
+      Coverage limit, from the release tags: only iOS build 9 (`f54bfcd2`)
+      and Android build 6 (`46edd031`) can get the gate's prelude OTA. iOS 7
+      and 8 and Android 4, 5 and earlier have had no OTA since early October
+      or ever, and `pnpm release ota` can't publish for them (latest
+      runtime only, from a clean main). Their JavaScript also predates the
+      breaking-version watcher. So with current tooling they can't receive
+      the gate, and stay on the React Native list. A per-runtime backport
+      OTA would be a release-tooling change, which isn't planned. docs/next-release.md has the table and
+      what does reach them. Pending: a push to the isolated backend and a
+      check that the query answers (by the orchestrator). Nothing published.
+- Android Play in-app updates (immediate flow) need the Play Core library
+  in the binary, so they can't help binaries already installed. They run
+  only after the user accepts, and only for Play installs, not the
+  private APK. iOS can't install silently. TestFlight's automatic
+  updates are a tester's own setting. So the gate is a one-tap prompt,
+  with no update SDK.
+
+### Pending checks only a phone can do
+
+- Shawn's iPhone: reaction tap latency and haptic, chip hold, dictation,
+  composer shrink at 120 Hz, carousel and deck feel, viewer paging.
+- Galaxy A16: composer shrink, carousel settle on the rightmost photo,
+  deck direction, viewer paging, video playback (black in the emulator).
+- Both: the DM typing bubble and the hand-off with real bots.
+
+### Evidence to collect (orchestrator runs devices)
+
+- Before and after screenshots: DM typing, stacked chips (glass vs
+  solid), carousel edges, deck pile, viewer edges.
+- Videos: chip tap and hold, composer multiline send, viewer paging
+  across the ends and fast double swipes, carousel and deck swipes both
+  ways, typing hand-off in a DM and the busy group.
+- `sim.sh frames` for each motion, before and after. Glass vs solid chips.
+- Nothing committed; upload with `scripts/evidence.sh`.
