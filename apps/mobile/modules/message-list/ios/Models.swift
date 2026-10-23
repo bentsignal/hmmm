@@ -21,7 +21,7 @@ extension Dictionary where Key == String, Value == Any {
     if let number = self[key] as? Double { value = number }
     else if let number = self[key] as? NSNumber { value = number.doubleValue }
     else if let number = self[key] as? Int { value = Double(number) }
-    return value.flatMap { $0.isFinite ? $0 : nil }
+    return value.flatMap { $0.isNaN ? nil : $0 }
   }
 
   /// A whole number, clamped so a huge or infinite value can't trap.
@@ -29,8 +29,9 @@ extension Dictionary where Key == String, Value == Any {
     guard let value = double(key) else { return fallback }
     return Int(Swift.min(Swift.max(value, 0), Double(max)))
   }
+  /// A size or position: finite, or the fallback.
   func cg(_ key: String, _ fallback: CGFloat) -> CGFloat {
-    double(key).map { CGFloat($0) } ?? fallback
+    double(key).flatMap { $0.isFinite ? CGFloat($0) : nil } ?? fallback
   }
   func object(_ key: String) -> JSON? { self[key] as? JSON }
   func objects(_ key: String) -> [JSON] { (self[key] as? [Any])?.compactMap { $0 as? JSON } ?? [] }
@@ -114,7 +115,7 @@ struct MediaItem: Equatable {
     localUrl = json.string("localUrl").flatMap(URL.init(string:))
     width = max(1, json.cg("width", 1))
     height = max(1, json.cg("height", 1))
-    durationSeconds = json.double("durationSeconds")
+    durationSeconds = json.double("durationSeconds").flatMap { $0.isFinite && $0 >= 0 ? $0 : nil }
     part = json.str("part")
     reactions = json.objects("reactions").map(Reaction.init)
     uploading = json.bool("uploading")
@@ -259,7 +260,10 @@ enum RowContent: Equatable {
   case header(style: String, label: String)
   case notice(spans: [Span])
   case typing(layout: MessageRow.Layout, people: [Person], label: String)
-  /// A custom row or an unknown kind: its fallback text.
+  /// A custom row: drawn by React (CustomRows.swift) once its view is
+  /// mounted, its fallback text until then.
+  case custom(fallbackText: String)
+  /// A kind this binary doesn't know: its fallback text.
   case fallback(text: String)
 }
 
@@ -283,6 +287,8 @@ struct Row: Equatable {
         people: json.objects("people").map { Person($0) },
         label: json.str("label")
       )
+    case "custom":
+      content = .custom(fallbackText: fallbackText ?? "")
     default:
       content = .fallback(text: fallbackText ?? "")
     }
@@ -311,12 +317,35 @@ struct Behavior: Equatable {
   init() {}
 
   init(_ json: JSON) {
-    moveMs = json.double("moveMs") ?? moveMs
-    fadeMs = json.double("fadeMs") ?? fadeMs
+    // Durations stay sane: nothing animates forever.
+    moveMs = min(5000, max(0, json.double("moveMs") ?? moveMs))
+    fadeMs = min(5000, max(0, json.double("fadeMs") ?? fadeMs))
     firehoseFrom = json.int("firehoseFrom", firehoseFrom)
     firehoseUntil = json.int("firehoseUntil", firehoseUntil)
     firehoseWindowMs = json.double("firehoseWindowMs") ?? firehoseWindowMs
     loadAheadScreens = json.cg("loadAheadScreens", loadAheadScreens)
     nearLatestPoints = json.cg("nearLatestPoints", nearLatestPoints)
+  }
+}
+
+/// The contract's `lift`: where the held part goes, as the menu laid it out.
+struct LiftRequest: Equatable {
+  let rowId: String
+  let part: String?
+  let index: Int?
+  /// Points down (negative is up), and the scale from its top corner on
+  /// its side (`origin` start or end) or its top middle.
+  let shift: CGFloat
+  let scale: CGFloat
+  let origin: String
+
+  init?(_ json: JSON?) {
+    guard let json, let rowId = json.string("rowId") else { return nil }
+    self.rowId = rowId
+    part = json.string("part")
+    index = json["index"] == nil ? nil : json.int("index", 0)
+    shift = json.cg("shift", 0)
+    scale = max(0.2, min(2, json.cg("scale", 1)))
+    origin = json.str("origin", "start")
   }
 }

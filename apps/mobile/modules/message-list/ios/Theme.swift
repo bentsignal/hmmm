@@ -146,11 +146,12 @@ enum Fonts {
     paragraph.maximumLineHeight = height
     paragraph.alignment = alignment
     paragraph.lineBreakMode = lineBreak
+    // No baseline offset: it changes how tall TextKit measures the lines.
+    // TextView centers the glyphs in their lines when it draws instead.
     return [
       .font: font,
       .foregroundColor: color,
       .paragraphStyle: paragraph,
-      .baselineOffset: (height - font.lineHeight) / 2,
     ]
   }
 }

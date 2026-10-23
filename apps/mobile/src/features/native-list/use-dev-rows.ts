@@ -1,7 +1,12 @@
 import { useRef, useState } from "react";
 
 import type { Block, ListEvent, Row } from "./contract";
+import type { DevHold } from "./dev-menu";
 import { devMessage, devRows, devTyping, PEOPLE } from "./dev-fixtures";
+import { nativeSupport } from "./native";
+
+/** Binaries that lift the held message into the menu themselves. */
+const canLift = nativeSupport?.features?.includes("lift") === true;
 
 /** How many messages the dev screen loads at most, in pages of 50. */
 const MOST = 600;
@@ -17,6 +22,9 @@ export function useDevRows() {
   const [arrivals, setArrivals] = useState(0);
   const [typing, setTyping] = useState<0 | 1 | 2>(0);
   const [lifted, setLifted] = useState<string | undefined>();
+  // The menu over a held message, and whether the message is lifted into it.
+  const [held, setHeld] = useState<DevHold | undefined>();
+  const [lifting, setLifting] = useState(false);
   const [last, setLast] = useState("");
   // Opening on a message (a search or notification): a new list each time.
   const [opening, setOpening] = useState({ initialRowId: "", key: 0 });
@@ -81,8 +89,11 @@ export function useDevRows() {
   }
   function onEvent({ nativeEvent }: { nativeEvent: ListEvent }) {
     setLast(JSON.stringify(nativeEvent).slice(0, 160));
-    if (nativeEvent.type === "hold") {
-      // As the menu would: hide the row while it's lifted.
+    if (nativeEvent.type === "hold" && canLift) {
+      setHeld(nativeEvent);
+      setLifting(true);
+    } else if (nativeEvent.type === "hold") {
+      // An older binary: hide the row while the menu would be up.
       setLifted(nativeEvent.rowId);
       setTimeout(() => setLifted(undefined), 1200);
     }
@@ -91,6 +102,11 @@ export function useDevRows() {
 
   return {
     arrive,
+    held,
+    lifting,
+    /** The menu starts closing: the message plays back into place. */
+    menuClosing: () => setLifting(false),
+    menuClosed: () => setHeld(undefined),
     initialRowId: opening.initialRowId || undefined,
     key: opening.key,
     openAt: (id: string) =>

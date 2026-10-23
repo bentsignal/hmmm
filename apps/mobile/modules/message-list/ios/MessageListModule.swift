@@ -7,6 +7,9 @@ public class MessageListModule: Module {
   static let contractVersion = 1
   static let rowKinds = ["message", "header", "notice", "typing", "custom"]
   static let blockTypes = ["text", "media", "file", "linkCard", "quote", "deleted"]
+  /// What this binary does beyond version 1's basics (contract.ts,
+  /// `NativeSupport.features`).
+  static let features = ["lift", "customRows"]
 
   public func definition() -> ModuleDefinition {
     Name("MessageList")
@@ -16,6 +19,7 @@ public class MessageListModule: Module {
         "contractVersion": Self.contractVersion,
         "rowKinds": Self.rowKinds,
         "blockTypes": Self.blockTypes,
+        "features": Self.features,
       ]
     }
 
@@ -40,6 +44,15 @@ public class MessageListModule: Module {
       Prop("liftedRowId") { (view: MessageListView, id: String?) in
         view.setLiftedRowId(id)
       }
+      Prop("keyboardFrozen") { (view: MessageListView, frozen: Bool?) in
+        view.setKeyboardFrozen(frozen ?? false)
+      }
+      Prop("alignTop") { (view: MessageListView, top: Bool?) in
+        view.setAlignTop(top ?? false)
+      }
+      Prop("lift") { (view: MessageListView, lift: [String: Any]?) in
+        view.setLift(lift)
+      }
       Prop("initialRowId") { (view: MessageListView, id: String?) in
         view.setInitialRowId(id)
       }
@@ -58,6 +71,14 @@ public class MessageListModule: Module {
       AsyncFunction("scrollToRow") { (view: MessageListView, rowId: String, animated: Bool?) in
         view.scrollToRow(rowId, animated: animated ?? true)
       }.runOnQueue(.main)
+    }
+
+    // A custom row's React content, as a child of the list (CustomRows.swift).
+    View(CustomRowView.self) {
+      ViewName("MessageListRow")
+      Prop("rowId") { (view: CustomRowView, rowId: String?) in
+        view.rowId = rowId ?? ""
+      }
     }
   }
 }

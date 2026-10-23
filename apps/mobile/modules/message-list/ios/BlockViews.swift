@@ -33,7 +33,17 @@ final class TextView: UIView {
   required init?(coder: NSCoder) { fatalError() }
 
   override func draw(_ rect: CGRect) {
-    text?.draw(with: bounds, options: [.usesLineFragmentOrigin, .usesFontLeading, .truncatesLastVisibleLine], context: nil)
+    guard let text, text.length > 0 else { return }
+    // A fixed line height puts its extra space above the glyphs: half of it
+    // goes below instead, so the text sits in the middle of its lines.
+    var lift: CGFloat = 0
+    if let font = text.attribute(.font, at: 0, effectiveRange: nil) as? UIFont,
+       let paragraph = text.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle,
+       paragraph.maximumLineHeight > font.lineHeight {
+      lift = (paragraph.maximumLineHeight - font.lineHeight) / 2
+    }
+    let area = CGRect(x: 0, y: -lift, width: bounds.width, height: bounds.height + lift)
+    text.draw(with: area, options: [.usesLineFragmentOrigin, .usesFontLeading, .truncatesLastVisibleLine], context: nil)
   }
 
   /// The index of the link or mention span at a point, if any.

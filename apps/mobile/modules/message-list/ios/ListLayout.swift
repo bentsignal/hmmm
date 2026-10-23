@@ -38,6 +38,9 @@ final class ListLayout: UICollectionViewLayout {
     invalidateLayout()
   }
 
+  /// All the rows, stacked.
+  var contentHeight: CGFloat { total }
+
   func frame(at index: Int) -> CGRect {
     guard index >= 0, index < offsets.count else { return .zero }
     return CGRect(x: 0, y: offsets[index], width: collectionView?.bounds.width ?? 0, height: heights[index])

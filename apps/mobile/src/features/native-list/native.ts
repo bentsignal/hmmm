@@ -1,4 +1,4 @@
-import type { ComponentType, Ref } from "react";
+import type { ComponentType, ReactNode, Ref } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 import { Platform } from "react-native";
 import { requireNativeView, requireOptionalNativeModule } from "expo";
@@ -30,6 +30,8 @@ export const nativeSupport =
 type ViewProps = MessageListViewProps & {
   ref?: Ref<MessageListViewMethods>;
   style?: StyleProp<ViewStyle>;
+  /** Custom rows drawn by React (`MessageListRow`), on `customRows` binaries. */
+  children?: ReactNode;
 };
 
 /** The native list view, once `nativeSupport` says it's there. */
@@ -37,3 +39,16 @@ export const MessageListView =
   nativeSupport === null ? null : requireNativeView<ViewProps>("MessageList");
 
 export type MessageListViewComponent = ComponentType<ViewProps>;
+
+/**
+ * A custom row's React content, as a child of `MessageListView`
+ * (`CustomRow` in the contract), or null when the binary can't host one.
+ */
+export const MessageListRow =
+  nativeSupport?.features?.includes("customRows") === true
+    ? requireNativeView<{
+        rowId: string;
+        style?: StyleProp<ViewStyle>;
+        children?: ReactNode;
+      }>("MessageList", "MessageListRow")
+    : null;
