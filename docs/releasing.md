@@ -40,7 +40,9 @@ build to the App Store, so there is one store profile and one production
 channel.
 
 Private production tests use `eas build --local --profile preview`, then
-`scripts/install-page.sh`. This profile inherits production configuration,
+`scripts/install-page.sh` with its fourth argument `production`, so its
+page names Vera and explains the replacement. This profile inherits
+production configuration,
 uses an empty, separate preview update channel, and submits to no store.
 It can build the integration branch before Shawn approves merging it.
 The native-list switch defaults on in that channel and is available under
