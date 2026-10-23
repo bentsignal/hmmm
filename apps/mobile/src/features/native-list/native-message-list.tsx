@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 import type { SharedValue } from "react-native-reanimated";
-import { useImperativeHandle, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Platform, View } from "react-native";
 import Animated, {
   useAnimatedReaction,
@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
 
 import type { Lift, MessageListViewMethods } from "./native";
+import type { TypingHold } from "./typing-hold";
 import type { MessageListProps } from "~/features/conversation/message-list";
 import type { Message } from "~/features/conversation/types";
 import { newestFirst } from "~/features/conversation/build-rows";
@@ -34,6 +35,16 @@ import {
   V1_ROW_KINDS,
 } from "./native";
 import { BEHAVIOR, useNativeTheme } from "./theme";
+import {
+  dropLeaving,
+  dueBy,
+  holdLeftMs,
+  holdTypists,
+  NO_TYPING,
+  recentOf,
+  sameHold,
+  timerChanges,
+} from "./typing-hold";
 import { useListEvents } from "./use-list-events";
 
 /** The binary lifts the held message into the menu itself (`lift`). */
@@ -90,6 +101,45 @@ function useFrozenKeyboard() {
 }
 
 /**
+ * Who the typing row shows: who's typing, and for a moment anyone who
+ * stopped before their message arrived (see `holdTypists`).
+ */
+function useHeldTypists(
+  typists: readonly string[],
+  recent: ReturnType<typeof recentOf>,
+) {
+  const [hold, setHold] = useState<TypingHold>(NO_TYPING);
+  const next = holdTypists(hold, typists, recent);
+  if (!sameHold(hold, next)) setHold(next);
+  /** When each leaving person stopped (see `timerChanges`). */
+  const stopped = useRef(new Map<string, number>());
+  const leaving = next.leaving.join(" ");
+  // eslint-disable-next-line no-restricted-syntax -- Someone who stopped typing and sent nothing goes once their own time is up, which no data change marks.
+  useEffect(() => {
+    const since = stopped.current;
+    const now = Date.now();
+    const changes = timerChanges(
+      since.keys(),
+      leaving === "" ? [] : leaving.split(" "),
+    );
+    for (const address of changes.stop) since.delete(address);
+    for (const address of changes.start) since.set(address, now);
+    if (since.size === 0) return undefined;
+    // The soonest one's time, from when they stopped, so someone else
+    // stopping later doesn't keep them longer. Their going sets the next.
+    const soonest = Math.min(...since.values());
+    const timer = setTimeout(
+      () => {
+        setHold((current) => dropLeaving(current, dueBy(since, soonest)));
+      },
+      holdLeftMs(soonest, now),
+    );
+    return () => clearTimeout(timer);
+  }, [leaving]);
+  return next.shown;
+}
+
+/**
  * The list's rows (see `nativeRows`), and the message each message row
  * shows, by its ID.
  */
@@ -118,7 +168,8 @@ function useRows({
   for (const row of built) {
     if (row.type === "message") byId.set(row.key, row.message);
   }
-  const rows = nativeRows(built, typists, {
+  const typing = useHeldTypists(typists, recentOf(built));
+  const rows = nativeRows(built, typing, {
     ...context,
     openedAt,
     support: nativeSupport ?? {
@@ -174,7 +225,7 @@ function NativeRows({
 }: RowsProps) {
   const view = useRef<MessageListViewMethods>(null);
   useDevNativeFling(view);
-  const { open } = useMessageActions();
+  const { open, viewReactions } = useMessageActions();
   const { layout, self } = shown;
   const place = usePlace(shown.anchorId === undefined, hasNewer);
   const theme = useNativeTheme(layout);
@@ -210,6 +261,7 @@ function NativeRows({
     openThread: onOpenThread,
     pages: { ...place, onLoadNewer, onLoadOlder },
     toggleReaction: onToggleReaction,
+    viewReactions,
   });
 
   const lifted = useLiftedMessageId();

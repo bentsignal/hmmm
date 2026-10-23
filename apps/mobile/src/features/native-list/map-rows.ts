@@ -251,6 +251,8 @@ function typingRow(typists: readonly string[], context: RowContext) {
       label,
       layout: context.layout,
       people,
+      // Photos only where messages show who sent them: not one-on-one.
+      showFaces: context.showAuthors,
     },
   ] satisfies Row[];
 }

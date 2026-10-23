@@ -124,6 +124,15 @@ export interface TypingRow extends RowBase {
   readonly kind: "typing";
   readonly layout: "bubbles" | "stacked";
   readonly people: readonly Person[];
+  /**
+   * Their photos: true in groups and spaces, false in a one-on-one
+   * conversation (the Vera assistant's too). Without them, bubbles draw
+   * the typing bubble where a DM's incoming bubble starts, and stacked rows
+   * start the label and dots at the text column (`horizontalPadding +
+   * avatarSize + 12`). `people` is still sent, for the hand-off to their
+   * message. Missing (older JavaScript): drawn.
+   */
+  readonly showFaces?: boolean;
   /** "Maya is typing", for stacked rows. */
   readonly label: string;
 }
@@ -413,7 +422,19 @@ export interface Lift {
   readonly origin: "start" | "end" | "middle";
 }
 
-/** What happened in the list, for JavaScript to act on. */
+/** A rectangle in window coordinates. */
+export interface Frame {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+/**
+ * What happened in the list, for JavaScript to act on. A tap on a
+ * reaction plays its haptic in native, before the event is sent;
+ * JavaScript plays a hold's.
+ */
 export type ListEvent =
   | {
       readonly type: "press";
@@ -441,6 +462,13 @@ export type ListEvent =
       readonly url?: string;
       readonly accountId?: string;
       readonly messageId?: string;
+      /**
+       * For `reaction`: where the reaction's part is, in window
+       * coordinates, as a `hold` on it would report. Bubbles show who
+       * reacted over it (the glass menu's reactions); without it, the
+       * sheet. Optional: older binaries don't send it.
+       */
+      readonly frame?: Frame;
     }
   | {
       /** Held (or double tapped): JavaScript opens the menu. */
@@ -448,13 +476,20 @@ export type ListEvent =
       readonly rowId: string;
       readonly part?: string;
       readonly index?: number;
+      /**
+       * "reaction" when the hold was on a reaction (a chip, a tapback, a
+       * carousel or deck item's chip), with its `reactionKey`: JavaScript
+       * shows who reacted instead of the menu. `part`, `index` and `frame`
+       * stay those of the part the reaction belongs to (the media item
+       * for an item's chip, the front card for a deck's tapback), so
+       * JavaScript that doesn't know `element` opens the menu there.
+       * Native starts no lift for it and plays no haptic (JavaScript
+       * does).
+       */
+      readonly element?: "reaction";
+      readonly reactionKey?: string;
       /** Where the held part is, in window coordinates. */
-      readonly frame: {
-        readonly x: number;
-        readonly y: number;
-        readonly width: number;
-        readonly height: number;
-      };
+      readonly frame: Frame;
     }
   | { readonly type: "reachedOlder" }
   | { readonly type: "reachedNewer" }

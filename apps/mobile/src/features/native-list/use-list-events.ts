@@ -2,9 +2,13 @@ import type { ReactNode } from "react";
 import { useRouter } from "expo-router";
 
 import type { HeldPart } from "./held-part";
-import type { Lift, ListEvent } from "./native";
+import type { Frame, Lift, ListEvent } from "./native";
+import type { ReactionAction } from "./reaction-events";
 import type { MenuTarget } from "~/features/conversation/glass-message-menu";
-import type { ToggleReaction } from "~/features/conversation/message-actions";
+import type {
+  ToggleReaction,
+  ViewReactions,
+} from "~/features/conversation/message-actions";
 import type { Message, MessageAttachment } from "~/features/conversation/types";
 import type { MessageLayout } from "~/features/preferences/store";
 import { groupParam } from "~/features/conversation/media-group";
@@ -16,7 +20,7 @@ import { impact } from "~/lib/native-extras";
 import { openLink } from "~/lib/open-link";
 import { heldPart, mediaOf } from "./held-part";
 import { isJumbo } from "./jumbo";
-import { parseReactionKey } from "./map-rows";
+import { reactionAction, reactionMenuPlace } from "./reaction-events";
 
 type PressEvent = Extract<ListEvent, { type: "press" }>;
 type HoldEvent = Extract<ListEvent, { type: "hold" }>;
@@ -78,6 +82,7 @@ interface PressActions {
   readonly openMedia: (message: Message, index: number) => void;
   readonly openProfile: (address: string) => void;
   readonly toggleReaction: ToggleReaction;
+  readonly viewReactions: ViewReactions;
 }
 
 function onPress(event: PressEvent, message: Message, actions: PressActions) {
@@ -96,37 +101,42 @@ function onPress(event: PressEvent, message: Message, actions: PressActions) {
     message: thread,
     notSent: () => showNotSent(message.id),
     quote: thread,
-    reaction: () => {
-      if (event.reactionKey === undefined) return;
-      const { emoji, part } = parseReactionKey(event.reactionKey);
-      actions.toggleReaction(message.id, emoji, part);
-    },
+    // `onReaction` takes one with its `reactionKey`; without, nothing.
+    reaction: () => undefined,
     replies: thread,
   } satisfies Record<PressEvent["element"], () => unknown>;
   // A binary that reports something this JavaScript doesn't know: nothing.
   if (Object.hasOwn(handlers, event.element)) handlers[event.element]();
 }
 
+/** The part a menu opens over: as a hold reports it. */
+interface MenuPlace {
+  readonly rowId: string;
+  readonly part?: string;
+  readonly index?: number;
+  readonly frame: Frame;
+}
+
+/** How the menu lifts a held part (see `menuTarget`). */
+interface MenuOptions {
+  readonly layout: MessageLayout;
+  readonly self: string;
+  readonly preview: (message: Message, held: HeldPart) => ReactNode;
+  /** Set on binaries with the `lift` feature. */
+  readonly lift?: (lift: Lift | undefined) => void | Promise<void>;
+}
+
 /**
- * The glass menu over a held part. On a binary that lifts the message
+ * The glass menu over a held part: its actions, or with `mode`
+ * "reactions", who reacted to it. On a binary that lifts the message
  * itself (`lift`), the menu draws no copy and says where it goes; on older
  * ones, it lifts a React copy as the React Native list does.
  */
 function menuTarget(
-  event: HoldEvent,
+  event: MenuPlace,
   message: Message,
-  {
-    layout,
-    self,
-    preview,
-    lift,
-  }: {
-    layout: MessageLayout;
-    self: string;
-    preview: (message: Message, held: HeldPart) => ReactNode;
-    /** Set on binaries with the `lift` feature. */
-    lift?: (lift: Lift | undefined) => void | Promise<void>;
-  },
+  { layout, self, preview, lift }: MenuOptions,
+  mode: MenuTarget["mode"],
 ) {
   const held = heldPart(message, event);
   const text = held.attachment === undefined && held.link === undefined;
@@ -137,7 +147,7 @@ function menuTarget(
     attachment: held.attachment,
     link: held.link,
     message,
-    mode: "actions",
+    mode,
     part: held.part,
     lift:
       lift === undefined
@@ -180,6 +190,41 @@ function useOpenMedia() {
 }
 
 /**
+ * A tap or hold on a reaction (see `reactionAction`). A tap's haptic is
+ * native's; a hold's is ours, as for any hold.
+ */
+function onReaction(
+  event: HoldEvent | PressEvent,
+  message: Message,
+  action: ReactionAction,
+  {
+    actions,
+    menu,
+    openMenu,
+  }: {
+    actions: PressActions;
+    menu: MenuOptions;
+    openMenu: (target: MenuTarget) => void;
+  },
+) {
+  const { emoji, frame, kind, part } = action;
+  if (kind === "toggle") {
+    actions.toggleReaction(message.id, emoji, part);
+    return;
+  }
+  // A message still sending (or that failed) has no reactions yet, and a
+  // deleted one has none.
+  if (message.status !== undefined || message.deleted === true) return;
+  if (event.type === "hold") impact();
+  if (kind === "sheet" || frame === undefined) {
+    actions.viewReactions(message.id, part, emoji);
+    return;
+  }
+  const place = reactionMenuPlace(message, part, { ...event, frame });
+  openMenu(menuTarget(place, message, menu, "reactions"));
+}
+
+/**
  * What the native list's events do: the same actions the React Native
  * list's rows take (threads, profiles, links, reactions, retries, the
  * photo viewer), and a hold opens the glass menu over the held part.
@@ -188,6 +233,7 @@ export function useListEvents({
   messageOf,
   openThread,
   toggleReaction,
+  viewReactions,
   openMenu,
   menu,
   pages,
@@ -196,9 +242,11 @@ export function useListEvents({
   messageOf: (rowId: string) => Message | undefined;
   openThread: ((message: Message) => void) | undefined;
   toggleReaction: ToggleReaction;
+  /** Who reacted to a part, in the sheet. */
+  viewReactions: ViewReactions;
   openMenu: (target: MenuTarget) => void;
   /** How the menu lifts a held part (see `menuTarget`). */
-  menu: Parameters<typeof menuTarget>[2];
+  menu: MenuOptions;
   /** The list's place: pages to load, the newest message, being ready. */
   pages: {
     onLoadOlder: () => void;
@@ -212,11 +260,17 @@ export function useListEvents({
     openProfile: useOpenProfile(),
     openThread,
     toggleReaction,
+    viewReactions,
   } satisfies PressActions;
 
   function onMessage(event: HoldEvent | PressEvent) {
     const message = messageOf(event.rowId);
     if (message === undefined) return;
+    const reaction = reactionAction(event, menu.layout);
+    if (reaction !== null) {
+      onReaction(event, message, reaction, { actions, menu, openMenu });
+      return;
+    }
     if (event.type === "press") {
       onPress(event, message, actions);
       return;
@@ -225,7 +279,7 @@ export function useListEvents({
     // one has none.
     if (message.status !== undefined || message.deleted === true) return;
     impact();
-    openMenu(menuTarget(event, message, menu));
+    openMenu(menuTarget(event, message, menu, "actions"));
   }
 
   return ({ nativeEvent: event }: { nativeEvent: ListEvent }) => {
