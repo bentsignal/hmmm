@@ -817,10 +817,14 @@ them on his phones.
   root checks again: lint, typecheck, test (mobile 194, backend 41, jest
   3 suites and 7 tests) and React Doctor (no issues), all exit 0, then
   `format:fix`.
-- Pending: the orchestrator's isolated backend push and
-  `devMixed:seed`; the combined simulator builds; after evidence; the
-  iOS chip material measurement (fill stays the default); Vera Dev on
-  both phones. Every item below waits on that, then on Shawn's phones.
+- Done since (see "Runtime checkpoint: iOS simulator, 2026-10-23
+  night"): the isolated backend push and `devMixed:seed`, the combined
+  iOS simulator build with the patched text input compiled, iOS
+  resting-geometry evidence, the jump-to-latest fix, and the iOS chip
+  material measurement (glass now the iOS 26+ default).
+- Pending: the `4cdb168d` client compile, glass look checks in light and
+  dark, the final motion and performance runs, Android runtime, and Vera
+  Dev on both phones. Every item below still waits on Shawn's phones.
 
 ### 1. Reactions
 
@@ -890,13 +894,16 @@ known, accepted difference.
       integration's own simulator UDID from `scripts/sim.sh status`, never
       `booted`). The protocol is interleaved runs (fill, sheen, glass,
       sheen, glass, fill), a 5,500 pt/s fling for 8 s each, and slow frames
-      over 16.7 ms and 33 ms plus the worst frame. `scripts/sim.sh frames
-stop` now reports `over16ms` and `over33ms` (strictly over exactly
+      over 16.7 ms and 33 ms plus the worst frame. The frames report
+      (`frame-summary.ts`, printed by the frames-stop command) now reports `over16ms` and `over33ms` (strictly over exactly
       16.7 ms and 33 ms, printed as `thresholdsMs`; a 16.67 ms 60 Hz frame
       isn't counted, a 33.33 ms one is) and `worstMs`, alongside the
-      unchanged `slow`, `dropped` and the worst ten (`frame-summary.ts`).
+      unchanged `slow`, `dropped` and the worst ten.
       No default changes and no performance claim until it's measured.
-      Android stays fill (no blur on the A16).
+      Android stays fill (no blur on the A16). Measured since, in the
+      simulator (see the runtime checkpoint): glass stayed within fill's
+      noise, so iOS made glass the default on iOS 26 and later (`4cdb168d`),
+      with fill before 26. Not done: the look check, the phone, and dark.
 - [ ] Keep the native real-content lift as it is; it works well. The
       regression check is the existing hold, menu, land and viewer cycles.
 
@@ -1377,6 +1384,173 @@ dragged down and around the menu, on iOS and Android, and taps.
 **Gaps:** frame-exact transition overlap (video sampling only),
 landscape, Android interactive dismissal, a composer element outside
 `Bar`, and the React Native fallback list (out of scope).
+
+### Runtime checkpoint: iOS simulator, 2026-10-23 night
+
+Everything here is the iOS simulator, a Vera Dev client on the isolated
+backend, with no data pass. None of it is a phone result. Android is
+unverified at runtime. Files are under `.cache/evidence/` unless noted.
+These are resting measurements and short clips, not frame-exact proof.
+Nothing here claims the bottom-row problem is fixed once and for all.
+
+**Builds.** The combined client with iOS `5cca8d96` (fingerprint
+`01aeb21b97ef949a403ef016c3158f0d70100431`) compiled, signed and ran. Its
+build log (`.cache/native-polish-build/ios-corrected-source-proof.json`,
+`ios-corrected-source-build.xcactivitylog`) shows
+`RCTTextInputComponentView.mm` compiled from react-native's
+`patch_hash=f048d109…` directory, for arm64 and x86_64. So the dictation
+patch is in that binary. The dictation symptom itself (the spinner,
+caret, selection and height) is still not reproduced or verified. The
+head is now `8c5b496a`, with iOS `4cdb168d` (the chip material default).
+Its client compile is running
+(`.cache/native-polish-build/ios-material-default-client.log`) and isn't
+done. CI was green on all 9 checks at `308a03ae`; `8c5b496a`'s CI isn't
+read yet.
+
+**Chip material (iOS).** Six interleaved runs of the same build (`308a03ae`,
+the `01aeb21b` client): fill, sheen, glass, sheen, glass, fill. Each used
+production JavaScript (`__DEV__` false), the busy group, stacked, light,
+and `benchFling` at 5,500 pt/s for 8 s. LLDB read each run's actual
+`VeraChipMaterial` and detached before capture. The panel stream was
+closed, with no concurrent build or boot
+(`.cache/native-polish-build/material-summary.json`, `material-*.log`,
+`.cache/bench/*.frames-stop.log`):
+
+| Run | Material | Slow | Over 16.7 ms | Over 33 ms |   Worst | Travelled | Edge wait | Rows after |
+| --- | -------- | ---: | -----------: | ---------: | ------: | --------: | --------: | ---------: |
+| 1   | fill     |   14 |           15 |          9 | 43.3 ms |    42,991 |    183 ms |        700 |
+| 2   | sheen    |    6 |            7 |          5 | 43.0 ms |    44,000 |         0 |        750 |
+| 3   | glass    |    5 |            6 |          5 | 43.3 ms |    44,000 |         0 |        750 |
+| 4   | sheen    |    9 |           11 |          7 | 42.9 ms |    44,000 |         0 |        750 |
+| 5   | glass    |    8 |            8 |          5 | 41.5 ms |    44,000 |         0 |        750 |
+| 6   | fill     |    7 |            8 |          6 | 43.7 ms |    44,000 |         0 |        750 |
+
+Run 1 was cold: it travelled less, waited 183 ms at the oldest row, and
+loaded fewer rows, so it decides nothing. iOS applied the rule it had
+declared before the runs (its `material-decision.md`, and
+`.plans/native-message-list-ios.md` → Chip material). Glass stayed within
+fill's own noise, so glass is the default on iOS 26 and later. Fill stays
+the default before iOS 26, where glass would be the unmeasured blur
+fallback. `VeraChipMaterial` still overrides it. This doesn't show that
+glass is faster or free of slow frames (every run had some). It says
+nothing about Shawn's 120 Hz iPhone, the dark theme, the bubbles layout or
+Android. Each material ran twice, all in the simulator. Still needed: the
+`4cdb168d` client compile, light and dark look checks of the default with
+no override, runtime motion, and Shawn's eye on his iPhone.
+
+**Newest row against the composer (item 9), resting measurements.** Each
+was taken with the bottom-row reader, or by hand from the raw rects where
+the reader can't apply:
+
+- Stacked text (`polish-ios-bottom-stacked-{text-closed,text-keyboard,tenlines,sent}.txt`):
+  row bottom against the bar's top, 790/798 with the keyboard down,
+  482/490 with it up, 284/292 with ten lines, and 482/490 after sending.
+  All 8 pt.
+- Stacked, a tall photo newest ("Bottom QA tall photo", `b9b1f9ee`): 790/798
+  with the keyboard down. With the keyboard up and a heart on part 0, the
+  photo's bottom and its chip show above the composer. Holding the chip
+  opened the right who-reacted sheet
+  (`polish-ios-bottom-stacked-media-chip-hold.png`). The snapshot may not
+  carry the chip's label, so that part is visual, plus the hold.
+- Bubbles, media newest (`polish-ios-bottom-bubbles-{media-closed,media-keyboard,tenlines,sent}`):
+  a 385 pt row ending at 790/798 with the keyboard down, and 482/490 with
+  it up and a heart. With ten lines the field grows to 228 (bar 274), and
+  the row ends at 284/292. With the keyboard up and the field tall, only
+  the media's bottom shows: its top runs off the top of the screen, as it
+  should. The whole image doesn't fit, and isn't claimed to.
+- Sending: back at rest, 8 pt. In the video, the field and its glass shrink
+  together. The latency frame by frame isn't measured.
+- Group typing (`dev:replyScene` with Maya, Jonah and Priya,
+  `polish-ios-bottom-bubbles.mp4`, `...-group-replied.txt`): the second
+  and third messages arrived together, and the group's typing faces show.
+  The clip includes a Fast Refresh banner from the jump fix landing
+  mid-capture, so its frame report isn't clean performance data. Stacked
+  114 s with 35 slow, bubbles 79 s with 26 slow, both including XCTest
+  typing and backend arrivals. The logs are kept; no zero-slow claim.
+- Staged photo (`polish-ios-bottom-staged.{mp4,png,txt}`, `...-staged-cleared.png`):
+  Integration's own screenshot was imported into the simulator's Photos,
+  staged, then removed without sending. The AX dump fell back to XCTest
+  classes, so the reader rejects it, as it should. By hand from the raw
+  rects: the newest row (Priya) y 329 + 81 = 410, against the full bar's
+  ancestors (90, 91) at y 418, h 148: an 8 pt gap with the keyboard up.
+  That's the bar's frame, not the field's (498). Cancelling collapses
+  the strip. No user or production data was touched.
+- Short thread: it starts at the top (`polish-ios-short-thread.png`,
+  thread `5f904fc0`). Four long replies from Maya through `dev:say` grew it
+  (`polish-ios-thread-growth.{mp4,txt}`). The newest ends at 301 + 181 =
+  482, against the bar at 490, an 8 pt gap, and is hittable. Stacked
+  (`...-thread-growth-stacked.txt`): 354 + 128 = 482 against 490. No older
+  row was stood in for the newest.
+- **Jump to latest with the keyboard up: a bug, now fixed in JavaScript
+  and checked in the simulator.** Before: the button stayed centred at its
+  keyboard-down place (y 766), behind the keyboard, and couldn't be tapped.
+  After the `composerTop` fix (`308a03ae`,
+  `polish-ios-jump-keyboard-fixed.txt`): the button is at y 438, h 40,
+  ending at 478, with the composer's top at 490, a 12 pt gap. It's
+  hittable. Tapping it landed on the newest row, 482 against 490, 8 pt
+  (`polish-ios-jump-keyboard-landed.{txt,json}`).
+  `polish-ios-jump-keyboard.mp4` has the correct jump, then a failed
+  setup: a hold on the author's name, not the text, which isn't a menu
+  result. Android is unverified.
+- Menu with the keyboard up: a real hold on the text body (`polish-ios-bottom-menu-reply.mp4`)
+  shows the native hold, the menu, closing, the field focused again, and
+  the reply bar. Afterwards, 8 pt each time:
+  `polish-ios-real-menu-keyboard-landed.json`, `polish-ios-bottom-replybar.json`
+  and `polish-ios-bottom-replybar-cancelled.json`.
+- **Interactive dismissal: not verified.** The driver refuses a full swipe
+  (200,300 to 200,720) and a structured pan (dy 450, 1200 ms) as
+  "Gesture trajectory does not fit inside viewport" once it enters the
+  keyboard. A shorter pan inside the list scrolls older messages and
+  keeps the keyboard up. It correctly shows the newest row below the
+  screen while not pinned, which isn't the stuck-row problem.
+  `polish-ios-keyboard-dismiss.mp4` is a failed setup, not a pass. It's
+  left for the phone, with no code change for a driver limit.
+- Still to do from item 9: safe-area variants, Android throughout, and some
+  cells of the matrix. Not every scenario has run in every layout and
+  conversation, so the twelve aren't checked off.
+
+**Carousel lift correction (iOS `5cca8d96`), at runtime.** Holding the
+third photo at the carousel's last offset lifts only that photo above the
+blur, with its neighbours and the chips blurred in place
+(`polish-ios-lift-corrected-open.png`). It lands at the same offset
+(`...-land.png`). The first card lifts alone too
+(`...-first-settled.png`, `...-first-open.png`). The 60 fps sample around
+21.5–22.7 s (`...-landing-60fps.png`) shows the photo present throughout,
+with no visible blank. That isn't proof for every frame: the recording is
+variable frame rate and can repeat frames. The 28 s video has one
+correct open and land of the third photo, then a later automation
+mistake (a wrong first-hold setup), which isn't counted. iOS reported
+the same Swift compile for both architectures and 118 host tests. No new
+source.
+
+**Typing faces.** DM, stacked (`polish-ios-dm-stacked-morph.mp4`, its
+sheet and frames log): 951 frames over 15.85 s at 60 Hz, 0 slow, 0
+dropped, worst 16.7 ms, Mac 8% (peak 13%), no boot. Two seconds of typing,
+then Maya's message through `dev:say`. The sheet shows the label with no
+photo, at the normal text column, then the message arriving above the
+composer. DM bubbles (`polish-ios-dm-typing.mp4`, earlier) showed no face
+too. The DM was a bot (Maya), not the actual Vera assistant. The source
+applies `showFaces: false` to every one-on-one conversation alike.
+
+**Dark theme.** `polish-ios-dark-stacked.png` and `...-dark-bubbles.png`
+show legible chips, but in the fill baseline, before the material
+default. The purple tint is the normal highlight of the message it opened
+on. Glass in light and dark, with no override, waits on the `4cdb168d`
+build. Earlier viewer, deck and reaction clips (real content, reverse
+traversal, per-part reactors, the viewer's opaque edges) keep their
+qualified notes above. No new numbers are added for them.
+
+**Phase and what's next.** Native fixes without the data pass first.
+`devMixed:seed` is done for both phone accounts, and the sign-in links
+are in `scripts/backend.sh status`. Phone clients haven't started. The
+orchestrator's latest estimate is 20:00–21:00 for the iPhone and,
+conditionally, 22:00–23:00 for Android, each once its build actually
+starts. The iPhone's link goes out as soon as it's verified, without
+waiting for Android. The orchestrator owns the final motion and
+performance runs and the builds; source is frozen. Shawn's earlier
+report that the private previews were dramatically better, including on
+the Galaxy A16, stands, and it still isn't approval to merge. No new
+production previews, stores or OTA.
 
 ### Pending checks only a phone can do
 
