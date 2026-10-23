@@ -530,3 +530,34 @@ opening after carousel swipe, deck swipe, video playback, photo menu
 open/close, avatar and mention profile navigation, URL opening in the
 in-app browser, and the timestamp swipe. Recorded evidence is in .cache.
 The iOS simulator and Metro were brought down after capture.
+
+### Android final-pass gaps and transport check
+
+The first final Android capture was discarded after the dev client crashed
+in OkHttp 4.12.0's WebSocket deflater cleanup. Both RN inspector and app
+sync use this provider. A live sync handshake accepts permessage-deflate,
+so the production app can reach the affected code path. This establishes
+source exposure, not observed production incidents. No app crash telemetry
+SDK is configured. A read-only Play Developer Reporting request returned
+403 SERVICE_DISABLED; no API was enabled or console opened.
+
+Profiling Metro now declines compression on /inspector/device and
+/inspector/network only. A real WebSocket handshake test confirms both
+inspector endpoints stay uncompressed while an ordinary application
+endpoint still negotiates compression. Failed frame captures also release
+the simulator queue's measurement slot. Android is adding an early shared
+OkHttp provider policy to disable outbound WebSocket compression while
+retaining existing client configuration and inbound compression.
+
+Real-app carousel QA found that holding the third photo in a captioned
+stacked row lifted its caption instead. Android's containing-block lookup
+must match every media item's part, not only the lane part. The same pass
+caught an eager recycle-on-detach crash during ScreenStack viewer
+navigation; both native fixes must be verified in the combined client.
+
+The Android viewer's Compose Close button did not invoke its handler in
+both single-photo and group viewers, including with an explicit host size.
+It now uses a React Native button with Material close symbol and a 48 dp
+hit area. The real app's close action returned to the conversation, and
+an after-fix recording/screenshot were captured. Temporary probes were
+removed. Carousel/keyboard/media QA continues before final phone builds.
