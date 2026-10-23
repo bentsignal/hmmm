@@ -1,3 +1,4 @@
+import type { RefObject } from "react";
 import type { SharedValue } from "react-native-reanimated";
 import { useImperativeHandle, useRef, useState } from "react";
 import { Platform, View } from "react-native";
@@ -143,6 +144,20 @@ function usePlace(startsAtLatest: boolean, hasNewer: boolean) {
   };
 }
 
+function useLift(view: RefObject<MessageListViewMethods | null>) {
+  const [lift, setLift] = useState<Lift>();
+  function change(next: Lift | undefined) {
+    setLift(next);
+    if (
+      next === undefined &&
+      nativeSupport?.features?.includes("liftHandoff") === true
+    ) {
+      return view.current?.landLift?.();
+    }
+  }
+  return { change, lift };
+}
+
 function NativeRows({
   handle,
   onJumpToLatest,
@@ -169,7 +184,7 @@ function NativeRows({
     composerHeight.laidOut ?? 0,
   );
   const { messageOf, rows } = useRows(shown);
-  const [lift, setLift] = useState<Lift>();
+  const { lift, change: changeLift } = useLift(view);
 
   function scrollToLatest() {
     void view.current?.scrollToLatest(true);
@@ -188,7 +203,7 @@ function NativeRows({
         />
       ),
       self,
-      lift: LIFTS ? setLift : undefined,
+      lift: LIFTS ? changeLift : undefined,
     },
     messageOf,
     openMenu: open,

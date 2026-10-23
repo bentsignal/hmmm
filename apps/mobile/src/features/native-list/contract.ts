@@ -468,6 +468,8 @@ export type ListEvent =
 export interface MessageListViewMethods {
   scrollToLatest(animated: boolean): Promise<void>;
   scrollToRow(rowId: string, animated: boolean): Promise<void>;
+  /** Keeps the menu mounted until native landing and the source frame commit. */
+  landLift?(): Promise<void>;
   /**
    * For benchmarks only (`veraDev.list.fling`; binaries with the
    * `benchFling` feature): scrolls toward older messages at a constant

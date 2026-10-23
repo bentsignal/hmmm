@@ -1,17 +1,14 @@
 import type { ReactNode } from "react";
 import type { SharedValue } from "react-native-reanimated";
-import { useState } from "react";
 import { Modal, Pressable, useWindowDimensions } from "react-native";
 import Animated, {
   clamp,
-  Easing,
   LayoutAnimationConfig,
   useAnimatedProps,
   useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
@@ -38,6 +35,7 @@ import { EDGE, menuLayout } from "./menu-layout";
 import { menuTitleHeight } from "./menu-title";
 import { REACTORS_HEIGHT, reactorsWidth } from "./reactor-rows";
 import { Reactors } from "./reactors";
+import { useMenuClosing } from "./use-menu-closing";
 
 export type TargetAlign = "end" | "start";
 
@@ -72,7 +70,7 @@ export interface MenuTarget {
    */
   readonly lift?: {
     readonly onLift: (layout: MenuLayout) => void;
-    readonly onLand: () => void;
+    readonly onLand: () => void | Promise<void>;
   };
 }
 
@@ -271,30 +269,15 @@ export function GlassMessageMenu({
     screen,
   });
   const progress = useOpening(layout, target.lift?.onLift);
-  const [closing, setClosing] = useState(false);
+  const menuClose = useMenuClosing(progress, target, onClosing, onClosed);
+  const { closing } = menuClose;
 
   /**
    * Plays the overlay back into place, then runs `then`. Back to the chat
    * unless `then` opens something else; reacting stays in the chat.
    */
   function close(then?: () => void, toChat?: boolean) {
-    const backToChat = toChat ?? then === undefined;
-    function closed() {
-      onClosed(backToChat);
-      then?.();
-    }
-    onClosing?.();
-    target.lift?.onLand();
-    setClosing(true);
-    progress.set(
-      withTiming(
-        0,
-        { duration: 240, easing: Easing.out(Easing.cubic) },
-        (finished) => {
-          if (finished === true) scheduleOnRN(closed);
-        },
-      ),
-    );
+    menuClose.close(then, toChat);
   }
 
   return (

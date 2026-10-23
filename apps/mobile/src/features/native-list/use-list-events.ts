@@ -125,7 +125,7 @@ function menuTarget(
     self: string;
     preview: (message: Message, held: HeldPart) => ReactNode;
     /** Set on binaries with the `lift` feature. */
-    lift?: (lift: Lift | undefined) => void;
+    lift?: (lift: Lift | undefined) => void | Promise<void>;
   },
 ) {
   const held = heldPart(message, event);
@@ -144,15 +144,16 @@ function menuTarget(
         ? undefined
         : {
             onLand: () => lift(undefined),
-            onLift: (place) =>
-              lift({
+            onLift: (place) => {
+              void lift({
                 index: event.index,
                 origin: place.fromMiddle ? "middle" : align,
                 part: event.part,
                 rowId: event.rowId,
                 scale: place.scale,
                 shift: place.shift,
-              }),
+              });
+            },
           },
     preview: lift === undefined ? preview(message, held) : null,
     rect: event.frame,
