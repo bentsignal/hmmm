@@ -12,11 +12,19 @@ final class TextView: UIView {
     }
   }
 
+  override var bounds: CGRect {
+    didSet {
+      if bounds.size != oldValue.size { setNeedsDisplay() }
+    }
+  }
+
   override init(frame: CGRect) {
     super.init(frame: frame)
     isOpaque = false
     backgroundColor = .clear
-    contentMode = .redraw
+    // Drawn at its final size and pinned top-left while a frame animates,
+    // never stretched.
+    contentMode = .topLeft
     isUserInteractionEnabled = false
     // Core Animation replays the drawing off the main thread.
     layer.drawsAsynchronously = true

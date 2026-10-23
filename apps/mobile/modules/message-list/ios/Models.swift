@@ -17,10 +17,17 @@ extension Dictionary where Key == String, Value == Any {
     return false
   }
   func double(_ key: String) -> Double? {
-    if let value = self[key] as? Double { return value }
-    if let value = self[key] as? NSNumber { return value.doubleValue }
-    if let value = self[key] as? Int { return Double(value) }
-    return nil
+    var value: Double?
+    if let number = self[key] as? Double { value = number }
+    else if let number = self[key] as? NSNumber { value = number.doubleValue }
+    else if let number = self[key] as? Int { value = Double(number) }
+    return value.flatMap { $0.isFinite ? $0 : nil }
+  }
+
+  /// A whole number, clamped so a huge or infinite value can't trap.
+  func int(_ key: String, _ fallback: Int, max: Int = 1_000_000) -> Int {
+    guard let value = double(key) else { return fallback }
+    return Int(Swift.min(Swift.max(value, 0), Double(max)))
   }
   func cg(_ key: String, _ fallback: CGFloat) -> CGFloat {
     double(key).map { CGFloat($0) } ?? fallback
@@ -80,7 +87,7 @@ struct Reaction: Equatable {
     emoji = content.string("emoji")
     imageUrl = content.string("imageUrl").flatMap(URL.init(string:))
     label = content.string("label") ?? content.string("emoji") ?? json.str("key")
-    count = Int(json.double("count") ?? 1)
+    count = json.int("count", 1)
     mine = json.bool("mine")
   }
 }
@@ -306,8 +313,8 @@ struct Behavior: Equatable {
   init(_ json: JSON) {
     moveMs = json.double("moveMs") ?? moveMs
     fadeMs = json.double("fadeMs") ?? fadeMs
-    firehoseFrom = Int(json.double("firehoseFrom") ?? Double(firehoseFrom))
-    firehoseUntil = Int(json.double("firehoseUntil") ?? Double(firehoseUntil))
+    firehoseFrom = json.int("firehoseFrom", firehoseFrom)
+    firehoseUntil = json.int("firehoseUntil", firehoseUntil)
     firehoseWindowMs = json.double("firehoseWindowMs") ?? firehoseWindowMs
     loadAheadScreens = json.cg("loadAheadScreens", loadAheadScreens)
     nearLatestPoints = json.cg("nearLatestPoints", nearLatestPoints)

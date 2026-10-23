@@ -48,7 +48,9 @@ final class MediaTileView: UIView {
     self.item = item
     backgroundColor = theme.fill
     if changed { image.image = nil }
-    Images.load(image, item.displayUrl, size: size)
+    // The same item at a new URL (uploaded, now its thumbnail) keeps
+    // showing what it has until the new one loads.
+    Images.load(image, item.displayUrl, size: size, placeholder: changed ? nil : image.image)
     let video = item.kind == .video && badges
     play.isHidden = !video
     if video, let seconds = item.durationSeconds {
@@ -135,6 +137,10 @@ final class CarouselView: UIScrollView, UIScrollViewDelegate {
       popOut: { Pop.popOut($0, duration: 0.14) }
     )
     contentSize = CGSize(width: layout.contentWidth, height: bounds.height)
+    if !sameItems {
+      // Another row: stop any fling left over from the last one.
+      setContentOffset(contentOffset, animated: false)
+    }
     if !sameItems || !isTracking && !isDecelerating {
       let maxOffset = max(0, layout.contentWidth - bounds.width)
       contentOffset = CGPoint(x: min(offset, maxOffset), y: 0)
@@ -182,6 +188,9 @@ final class DeckView: UIView, UIGestureRecognizerDelegate {
   private(set) var layout: DeckLayout?
   private(set) var index = 0
   private var theme = Theme()
+  /// Bumped on every `set`, so a throw that ends after the deck shows
+  /// another row (or changed) doesn't touch it.
+  private var generation = 0
   private lazy var pan = UIPanGestureRecognizer(target: self, action: #selector(dragged(_:)))
   var onIndex: ((Int) -> Void)?
 
@@ -200,6 +209,14 @@ final class DeckView: UIView, UIGestureRecognizerDelegate {
   var front: MediaTileView { cards[0] }
 
   func set(_ layout: DeckLayout, theme: Theme, index: Int) {
+    let sameItems = self.layout?.items.map(\.id) == layout.items.map(\.id)
+    // Mid-drag, the same deck keeps the card under the finger.
+    if sameItems, pan.state == .began || pan.state == .changed {
+      self.layout = layout
+      self.theme = theme
+      return
+    }
+    generation += 1
     self.layout = layout
     self.theme = theme
     self.index = min(max(0, index), layout.items.count - 1)
@@ -270,11 +287,12 @@ final class DeckView: UIView, UIGestureRecognizerDelegate {
         return
       }
       let direction: CGFloat = (abs(x) >= 70 ? x : velocity) < 0 ? -1 : 1
+      let generation = self.generation
       UIView.animate(withDuration: 0.16, delay: 0, options: [.curveEaseOut]) {
         self.cards[0].transform = CGAffineTransform(translationX: 260 * direction, y: 0).rotated(by: direction * 12 * .pi / 180)
         self.behind(progress: 1)
       } completion: { _ in
-        guard let layout = self.layout else { return }
+        guard let layout = self.layout, generation == self.generation else { return }
         self.index = (self.index + 1) % layout.items.count
         self.onIndex?(self.index)
         self.show(animated: false)

@@ -88,6 +88,7 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     hold.minimumPressDuration = 0.32
     for gesture in [tap, doubleTap, hold] {
       gesture.cancelsTouchesInView = false
+      gesture.delegate = self
       collectionView.addGestureRecognizer(gesture)
     }
     revealPan.delegate = self
@@ -177,11 +178,10 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     if bounds.width > 0, bounds.width != measuredWidth {
       measure()
     }
-    var keyboard = followsKeyboard ? max(0, bounds.height - keyboardTracker.frame.minY) : 0
-    if #unavailable(iOS 17.0) {
-      // Before iOS 17 the guide stops at the safe area when the keyboard is down.
-      keyboard = max(0, keyboard - safeAreaInsets.bottom)
-    }
+    // `insets.bottom` already covers the bottom safe area (the composer
+    // sits on it), and the keyboard covers that area too: add the rest.
+    // (Before iOS 17 the guide also stops at the safe area when it's down.)
+    let keyboard = followsKeyboard ? max(0, bounds.height - keyboardTracker.frame.minY - safeAreaInsets.bottom) : 0
     if abs(keyboard - keyboardHeight) > 0.5 {
       keyboardHeight = keyboard
       applyInsets(keepDistance: !collectionView.isTracking)
@@ -241,18 +241,17 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     measuring = false
     if result.width != measuredWidth { drawnTheme = -1 }
     measuredWidth = result.width
-    apply(result.rows, result.layouts)
+    apply(result.rows, result.layouts, themeVersion: result.themeVersion)
     if measureAgain || result.width != bounds.width {
       measure()
     }
   }
 
-  private func apply(_ newRows: [Row], _ newLayouts: [RowLayout]) {
+  private func apply(_ newRows: [Row], _ newLayouts: [RowLayout], themeVersion: Int) {
     let started = CACurrentMediaTime()
     defer { Slow.check("apply \(newRows.count) rows", since: started) }
-    let theme = state.theme
     guard placed, !rows.isEmpty else {
-      drawnTheme = theme.version
+      drawnTheme = themeVersion
       rows = newRows
       layouts = newLayouts
       listLayout.update(ids: newRows.map(\.id), heights: newLayouts.map(\.height))
@@ -261,9 +260,10 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
       return
     }
 
-    // A new theme or width redraws every row, without animation.
-    let redraw = drawnTheme != theme.version
-    drawnTheme = theme.version
+    // A new theme or width redraws every row, without animation. The
+    // version is the one these layouts were measured with, not the latest.
+    let redraw = drawnTheme != themeVersion
+    drawnTheme = themeVersion
     let oldRows = rows
     let oldIds = oldRows.map(\.id)
     let newIds = newRows.map(\.id)
@@ -279,20 +279,26 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     let survivorsNew = newIds.filter { oldIndex[$0] != nil }
     let reordered = survivorsOld != survivorsNew
     var changed: Set<String> = []
+    // A row that turns into another kind needs another kind of cell.
+    var reloaded: [Int] = []
     for (index, row) in newRows.enumerated() {
       guard let old = oldIndex[row.id], old < oldRows.count else { continue }
-      if redraw || oldRows[old] != row || layouts[old].height != newLayouts[index].height {
+      if Self.reuseIdentifier(oldRows[old]) != Self.reuseIdentifier(row) {
+        reloaded.append(old)
+      } else if redraw || oldRows[old] != row || layouts[old].height != newLayouts[index].height {
         changed.insert(row.id)
       }
     }
-    if inserted.isEmpty && removed.isEmpty && changed.isEmpty && !reordered {
+    if inserted.isEmpty && removed.isEmpty && changed.isEmpty && reloaded.isEmpty && !reordered {
       rows = newRows
       layouts = newLayouts
       return
     }
 
     // What's new at the bottom: below every row that was already there.
-    let firstSurvivor = survivorsNew.first.flatMap { newIndex[$0] } ?? newRows.count
+    // The typing indicator stays under everything, so it doesn't count.
+    let firstSurvivor = survivorsNew.first { id in newIndex[id].map { !newRows[$0].isTyping } ?? false }
+      .flatMap { newIndex[$0] } ?? newRows.count
     let atBottom = inserted.filter { $0 < firstSurvivor }
     let arrived = atBottom.filter { newRows[$0].message?.arrived == true }
     noteArrivals(arrived.count)
@@ -309,7 +315,8 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     var anchor: (id: String, offset: CGFloat)?
     if !pinned {
       let sorted = collectionView.indexPathsForVisibleItems.map(\.item).sorted()
-      if let first = sorted.first(where: { newIndex[oldIds[$0]] != nil && !changed.contains(oldIds[$0]) }) ?? sorted.first(where: { newIndex[oldIds[$0]] != nil }) {
+      let kept = sorted.filter { $0 < oldIds.count && newIndex[oldIds[$0]] != nil }
+      if let first = kept.first(where: { !changed.contains(oldIds[$0]) }) ?? kept.first {
         anchor = (oldIds[first], listLayout.frame(at: first).minY - collectionView.contentOffset.y)
       }
     }
@@ -353,6 +360,7 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
           listLayout.update(ids: newIds, heights: newLayouts.map(\.height))
           collectionView.deleteItems(at: removed.map { IndexPath(item: $0, section: 0) })
           collectionView.insertItems(at: inserted.map { IndexPath(item: $0, section: 0) })
+          collectionView.reloadItems(at: reloaded.map { IndexPath(item: $0, section: 0) })
         }
       }
       if pinned {
@@ -379,7 +387,10 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     let duration = state.behavior.moveMs / 1000
     let curve = CAMediaTimingFunction(controlPoints: 0.25, 0.1, 0.25, 1)
     let newOffset = collectionView.contentOffset.y
-    let arrivedIds = Set(arrived.map { newIds[$0] })
+    // Everything new at the bottom (an arrival, the time header over it)
+    // rises together from below; the typing indicator appears its own way.
+    let rising = Set(atBottom.filter { !newRows[$0].isTyping }.map { newIds[$0] })
+    let rise = atBottom.filter { !newRows[$0].isTyping }.reduce(CGFloat(0)) { $0 + newLayouts[$1].height }
     let shown = Set(collectionView.visibleCells.compactMap { ($0 as? RowCell)?.rowId })
     CATransaction.begin()
     CATransaction.setAnimationDuration(duration)
@@ -388,9 +399,9 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
       guard let cell = cell as? RowCell, let id = cell.rowId else { continue }
       let frame = cell.frame
       var from: CGFloat?
-      if arrivedIds.contains(id) {
+      if rising.contains(id) {
         // Rises from just below its place (down is −y in the flipped list).
-        from = id == grows?.id ? nil : -frame.height
+        from = id == grows?.id ? nil : -rise
         if id != grows?.id { cell.fadeIn(duration: state.behavior.fadeMs / 1000) }
       } else if let old = listLayout.oldFrame(of: id) {
         // The row's top edge (its max y, flipped) stays where it was drawn.
@@ -535,13 +546,7 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     let started = CACurrentMediaTime()
     defer { Slow.check("cell \(rows[indexPath.item].id)", since: started) }
     let row = rows[indexPath.item]
-    let identifier: String
-    switch row.content {
-    case .message: identifier = "message"
-    case .typing: identifier = "typing"
-    default: identifier = "text"
-    }
-    let cell = collectionView.dequeueReusableCell(withReuseIdentifier: identifier, for: indexPath)
+    let cell = collectionView.dequeueReusableCell(withReuseIdentifier: Self.reuseIdentifier(row), for: indexPath)
     if let cell = cell as? RowCell {
       if cell.rowId != row.id {
         // A recycled cell drops the last row's moves and fade.
@@ -552,6 +557,14 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
       setAccessibility(cell)
     }
     return cell
+  }
+
+  static func reuseIdentifier(_ row: Row) -> String {
+    switch row.content {
+    case .message: return "message"
+    case .typing: return "typing"
+    default: return "text"
+    }
   }
 
   private func setAccessibility(_ cell: RowCell) {
@@ -659,7 +672,8 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     // Images for the next stretch, in both directions.
     let visible = collectionView.indexPathsForVisibleItems.map(\.item)
     if let low = visible.min(), let high = visible.max() {
-      prefetch(Array(max(0, low - 8)..<low) + Array((high + 1)..<min(rows.count, high + 30)))
+      let end = min(rows.count, high + 30)
+      prefetch(Array(max(0, low - 8)..<min(low, rows.count)) + (high + 1 < end ? Array((high + 1)..<end) : []))
     }
     scheduleVisible()
   }
@@ -707,7 +721,9 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
     if gesture is UITapGestureRecognizer, gesture.state != .ended { return }
     guard let (hit, cell) = hit(gesture, hold: true) else { return }
     var event = hit.event
-    let frame = cell.contentView.convert(hit.frame, to: nil)
+    var frame = cell.contentView.convert(hit.frame, to: nil)
+    // Mid-move, where the row is drawn (the list is flipped, so up is −y).
+    frame.origin.y -= (cell.layer.presentation()?.value(forKeyPath: "transform.translation.y") as? CGFloat) ?? 0
     event["frame"] = ["x": frame.minX, "y": frame.minY, "width": frame.width, "height": frame.height]
     send(event)
   }
@@ -723,6 +739,18 @@ final class MessageListView: ExpoView, UICollectionViewDataSource, UICollectionV
       view = current.superview
     }
     return rows.contains { $0.message?.layout == .bubbles }
+  }
+
+  /// A tap that stops a fling (the list's or a carousel's) only stops it.
+  func gestureRecognizer(_ gesture: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+    guard gesture !== revealPan else { return true }
+    if collectionView.isDecelerating { return false }
+    var view = touch.view
+    while let current = view, current !== collectionView {
+      if let strip = current as? CarouselView, strip.isDecelerating { return false }
+      view = current.superview
+    }
+    return true
   }
 
   func gestureRecognizer(_ gesture: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
@@ -770,6 +798,7 @@ final class MeasureQueue {
     let rows: [Row]
     let layouts: [RowLayout]
     let width: CGFloat
+    let themeVersion: Int
   }
 
   private struct Entry {
@@ -822,7 +851,7 @@ final class MeasureQueue {
       next[row.id] = Entry(row: row, layout: layout)
     }
     cache = next
-    return Output(rows: rows, layouts: layouts, width: input.width)
+    return Output(rows: rows, layouts: layouts, width: input.width, themeVersion: input.theme.version)
   }
 }
 

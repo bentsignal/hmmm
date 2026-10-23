@@ -82,7 +82,7 @@ final class ListLayout: UICollectionViewLayout {
   }
 
   private func attributes(_ index: Int) -> UICollectionViewLayoutAttributes {
-    if let cached = cache[index] { return cached }
+    if let cached = cache[index], cached.frame.width == collectionView?.bounds.width { return cached }
     let attributes = UICollectionViewLayoutAttributes(forCellWith: IndexPath(item: index, section: 0))
     attributes.frame = frame(at: index)
     cache[index] = attributes

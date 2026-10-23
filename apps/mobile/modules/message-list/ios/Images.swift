@@ -23,7 +23,7 @@ enum Images {
       view.image = placeholder
       return
     }
-    if view.sd_imageURL == url, view.image != nil, view.image !== placeholder { return }
+    if view.sd_imageURL == url, view.image != nil { return }
     view.sd_imageTransition = .fade(duration: 0.18)
     view.sd_setImage(with: url, placeholderImage: placeholder, options: options, context: context(size))
   }

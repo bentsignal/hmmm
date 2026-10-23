@@ -64,6 +64,16 @@ class RowCell: UICollectionViewCell {
   /// For animating into place: the typing bubble, if this row has one.
   var typingBubbleFrame: CGRect? { nil }
 
+  override func prepareForReuse() {
+    super.prepareForReuse()
+    Self.removeAnimations(contentView.layer)
+  }
+
+  private static func removeAnimations(_ layer: CALayer) {
+    layer.removeAllAnimations()
+    layer.sublayers?.forEach(removeAnimations)
+  }
+
   /// A new row fades in as it rises into place.
   func fadeIn(duration: Double) {
     let fade = CABasicAnimation(keyPath: "opacity")
@@ -144,7 +154,7 @@ final class MessageCell: RowCell {
     if animate { apply() } else { UIView.performWithoutAnimation(apply) }
     accessibilityLabel = message.accessibilityLabel
     isAccessibilityElement = true
-    highlightIfNeeded(row.id, message, state: state, theme: theme)
+    highlightIfNeeded(row.id, message, state: state, theme: theme, sameRow: sameRow)
     setReveal(state.reveal)
   }
 
@@ -157,26 +167,44 @@ final class MessageCell: RowCell {
     highlight.frame = bounds
     parts.alpha = message.status == .sending ? 0.5 : 1
 
+    /// A view that was hidden (or is new) takes its place without flying in
+    /// from wherever it last was, fading in if the row is animating; one
+    /// already showing moves within the animation.
+    func show(_ view: UIView, _ configure: () -> Void) {
+      guard view.isHidden else { return configure() }
+      UIView.performWithoutAnimation(configure)
+      view.isHidden = false
+      if animated {
+        let fade = CABasicAnimation(keyPath: "opacity")
+        fade.fromValue = 0
+        fade.duration = 0.2
+        view.layer.add(fade, forKey: "show")
+      }
+    }
+
     // The sender's name and photo, and a stacked row's time.
     if let box = layout.name {
-      name.isHidden = false
-      name.text = box.string
-      name.frame = box.frame
+      show(name) {
+        name.text = box.string
+        name.frame = box.frame
+      }
     } else {
       name.isHidden = true
     }
     if let box = layout.headerTime {
-      headerTime.isHidden = false
-      headerTime.text = box.string
-      headerTime.frame = box.frame
+      show(headerTime) {
+        headerTime.text = box.string
+        headerTime.frame = box.frame
+      }
       headerTime.alpha = message.status == nil ? 1 : 0
     } else {
       headerTime.isHidden = true
     }
     if let (person, frame) = layout.avatar {
-      avatar.isHidden = false
-      avatar.frame = frame
-      avatar.set(person, size: frame.width, theme: theme)
+      show(avatar) {
+        avatar.frame = frame
+        avatar.set(person, size: frame.width, theme: theme)
+      }
     } else {
       avatar.isHidden = true
     }
@@ -189,6 +217,7 @@ final class MessageCell: RowCell {
       used[key] = index + 1
       if index < pool.count { return pool[index] }
       let view = make()
+      view.isHidden = true
       pool.append(view)
       parts.addSubview(view)
       return view
@@ -199,59 +228,76 @@ final class MessageCell: RowCell {
       switch part.content {
       case let .text(box, bubble, _):
         let view = take(&bubbles) { BubbleView() }
-        view.frame = part.frame
-        view.set(box, bubble: bubble)
+        show(view) {
+          view.frame = part.frame
+          view.set(box, bubble: bubble)
+        }
         views.append(view)
       case let .media(item, _):
         let view = take(&tiles) { MediaTileView() }
-        view.frame = part.frame
-        view.set(item, theme: theme, size: part.frame.size)
+        show(view) {
+          view.frame = part.frame
+          view.set(item, theme: theme, size: part.frame.size)
+        }
         views.append(view)
       case let .carousel(carousel):
         let view = take(&carousels) { CarouselView() }
-        view.frame = part.frame
-        view.onOffset = nil
-        view.set(carousel, theme: theme, offset: state.carouselOffsets[key] ?? 0, animated: animated)
-        view.onOffset = { [weak state] offset in state?.carouselOffsets[key] = offset }
+        show(view) {
+          view.frame = part.frame
+          view.onOffset = nil
+          view.set(carousel, theme: theme, offset: state.carouselOffsets[key] ?? 0, animated: animated)
+          view.onOffset = { [weak state] offset in state?.carouselOffsets[key] = offset }
+        }
         views.append(view)
       case let .deck(deck):
         let view = take(&decks) { DeckView() }
-        view.frame = part.frame
-        view.set(deck, theme: theme, index: state.deckIndices[key] ?? 0)
-        view.onIndex = { [weak state] index in state?.deckIndices[key] = index }
+        show(view) {
+          view.frame = part.frame
+          view.set(deck, theme: theme, index: state.deckIndices[key] ?? 0)
+          view.onIndex = { [weak state] index in state?.deckIndices[key] = index }
+        }
         views.append(view)
       case let .file(nameBox, sizeBox, icon, _):
         let view = take(&files) { FileView() }
-        view.frame = part.frame
-        view.set(name: nameBox, size: sizeBox, icon: icon, theme: theme)
+        show(view) {
+          view.frame = part.frame
+          view.set(name: nameBox, size: sizeBox, icon: icon, theme: theme)
+        }
         views.append(view)
       case let .linkCard(card):
         let view = take(&cards) { LinkCardView() }
-        view.frame = part.frame
-        view.set(card, theme: theme)
+        show(view) {
+          view.frame = part.frame
+          view.set(card, theme: theme)
+        }
         views.append(view)
       case let .quote(author, text, thumbnail, url, _):
         let view = take(&quotes) { QuoteView() }
-        view.frame = part.frame
-        view.set(author: author, text: text, thumbnail: thumbnail, url: url, theme: theme)
+        show(view) {
+          view.frame = part.frame
+          view.set(author: author, text: text, thumbnail: thumbnail, url: url, theme: theme)
+        }
         views.append(view)
       case let .quoteLine(face, person, text, elbow, _):
         let view = take(&quoteLines) { QuoteLineView() }
-        view.frame = part.frame
-        view.set(face: face, person: person, text: text, elbow: elbow, theme: theme)
+        show(view) {
+          view.frame = part.frame
+          view.set(face: face, person: person, text: text, elbow: elbow, theme: theme)
+        }
         views.append(view)
       }
     }
     let pooled: [UIView] = bubbles + tiles + carousels + decks + files + cards + quotes + quoteLines
-    for view in pooled {
-      view.isHidden = !views.contains { $0 === view }
+    for view in pooled where !views.contains(where: { $0 === view }) {
+      view.isHidden = true
     }
     partViews = views
 
     if let frame = layout.replyCurve {
-      replyCurve.isHidden = false
-      replyCurve.frame = frame
-      replyCurve.set(.replyCurve(message.isOwn ? .right : .left), color: theme.separator)
+      show(replyCurve) {
+        replyCurve.frame = frame
+        replyCurve.set(.replyCurve(message.isOwn ? .right : .left), color: theme.separator)
+      }
     } else {
       replyCurve.isHidden = true
     }
@@ -260,11 +306,11 @@ final class MessageCell: RowCell {
     for (index, piece) in layout.footer.enumerated() {
       if index >= footers.count {
         let view = FooterView()
+        view.isHidden = true
         footers.append(view)
         parts.addSubview(view)
       }
-      footers[index].isHidden = false
-      footers[index].set(piece, theme: theme)
+      show(footers[index]) { footers[index].set(piece, theme: theme) }
     }
     for view in footers.dropFirst(layout.footer.count) { view.isHidden = true }
 
@@ -285,18 +331,21 @@ final class MessageCell: RowCell {
     )
 
     if let box = layout.revealTime {
-      revealTime.isHidden = false
-      revealTime.text = box.string
-      revealTime.frame = box.frame
+      show(revealTime) {
+        revealTime.text = box.string
+        revealTime.frame = box.frame
+      }
     } else {
       revealTime.isHidden = true
     }
     accessibilityCustomActions = nil
   }
 
-  private func highlightIfNeeded(_ rowId: String, _ message: MessageRow, state: ListState, theme: Theme) {
-    highlight.layer.removeAllAnimations()
+  private func highlightIfNeeded(_ rowId: String, _ message: MessageRow, state: ListState, theme: Theme, sameRow: Bool) {
     highlight.backgroundColor = theme.highlight
+    // Already fading on this row: let it finish.
+    if sameRow, highlight.layer.animationKeys() != nil { return }
+    highlight.layer.removeAllAnimations()
     guard message.highlighted, !state.highlightsShown.contains(rowId) else {
       highlight.alpha = 0
       return
@@ -425,6 +474,14 @@ final class MessageCell: RowCell {
 
   // MARK: Accessibility
 
+  /// The part the message's own reactions belong to: its text.
+  static func messagePart(_ message: MessageRow) -> String {
+    for block in message.blocks {
+      if case let .text(_, _, part) = block { return part ?? "message" }
+    }
+    return message.blocks.first?.part ?? "message"
+  }
+
   func accessibilityActions(send: @escaping ([String: Any]) -> Void) -> [UIAccessibilityCustomAction] {
     guard let message, let rowId else { return [] }
     var actions: [UIAccessibilityCustomAction] = []
@@ -456,7 +513,7 @@ final class MessageCell: RowCell {
       }
     }
     for reaction in message.reactions {
-      action("\(reaction.label) \(reaction.count)", ["target": "reaction", "reactionKey": reaction.key, "part": layout?.tapbacks.first?.part ?? layout?.chips.first?.part ?? "message"])
+      action("\(reaction.label) \(reaction.count)", ["target": "reaction", "reactionKey": reaction.key, "part": Self.messagePart(message)])
     }
     for line in message.footer where line.kind != .edited {
       action(line.text, ["target": line.kind == .replies ? "replies" : "notSent"])

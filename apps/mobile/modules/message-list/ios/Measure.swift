@@ -239,9 +239,10 @@ struct Measurer {
   /// newest three show, the newest in front at the corner.
   func tapbacks(_ reactions: [Reaction], part: String, over frame: CGRect, side: Side) -> [TapbackLayout] {
     var copies: [(Reaction, Bool, String)] = []
-    for reaction in reactions {
+    // Only the newest three show, so only the last three copies matter.
+    for reaction in reactions.suffix(3) {
       let count = max(1, reaction.count)
-      for copy in 0..<count {
+      for copy in max(0, count - 3)..<count {
         let tinted = reaction.mine && copy == count - 1
         copies.append((reaction, tinted, "\(part)|\(reaction.key)|\(copy)"))
       }
