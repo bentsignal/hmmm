@@ -178,3 +178,7 @@ person typing for 9 s:
 | Documents read | 486 | 45 |
 | Sent to the phone | 12 KB | 1.1 KB |
 | Typing in the thread: sent to the phone | 27 KB | 1.1 KB |
+
+A closed conversation stays live for 3 minutes (`useStayLive`, up to 5 of
+them), so it opens again at once; that no longer includes who's typing,
+which nobody sees while it's closed and is asked for again on opening.
