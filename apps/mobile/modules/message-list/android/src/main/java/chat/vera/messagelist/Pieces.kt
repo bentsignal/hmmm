@@ -483,18 +483,38 @@ class FacesView(context: Context, private val units: Units) : android.view.ViewG
   private var ringDp = 1f
   private val ring = Paint(Paint.ANTI_ALIAS_FLAG)
   private val avatars = ArrayList<AvatarView>()
+  private var ids = emptyList<String>()
+  private var oldPositions = emptyMap<AvatarView, Float>()
+  private var entering = emptySet<AvatarView>()
 
   init {
     setWillNotDraw(false)
     importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
   }
 
-  fun bind(people: List<Person>, theme: Theme, images: Images, sizeDp: Float, overlapDp: Float, ringDp: Float, max: Int) {
+  fun bind(people: List<Person>, theme: Theme, images: Images, sizeDp: Float, overlapDp: Float, ringDp: Float, max: Int, animate: Boolean = false) {
     this.sizeDp = sizeDp
     this.overlapDp = overlapDp
     this.ringDp = ringDp
     ring.color = theme.background
     val shown = people.take(max)
+    if (animate) {
+      val previous = ids.zip(avatars).toMap()
+      oldPositions = avatars.associateWith { it.x }
+      val next = shown.map { previous[it.id] ?: AvatarView(context, units).also { view -> addView(view) } }
+      entering = next.filter { it !in avatars }.toSet()
+      for (removed in avatars.filter { it !in next }) {
+        removeView(removed)
+        overlay.add(removed)
+        removed.animate().alpha(0f).scaleX(0f).scaleY(0f).setDuration(154).withEndAction { overlay.remove(removed) }.start()
+      }
+      avatars.clear()
+      avatars.addAll(next)
+      entering.forEach { it.alpha = 0f; it.scaleX = 0f; it.scaleY = 0f }
+    } else {
+      oldPositions = emptyMap()
+      entering = emptySet()
+    }
     while (avatars.size < shown.size) {
       AvatarView(context, units).also {
         avatars.add(it)
@@ -506,6 +526,7 @@ class FacesView(context: Context, private val units: Units) : android.view.ViewG
       view.visibility = if (person == null) GONE else VISIBLE
       if (person != null) view.bind(person, theme, sizeDp, images)
     }
+    ids = shown.map { it.id }
     requestLayout()
   }
 
@@ -527,9 +548,15 @@ class FacesView(context: Context, private val units: Units) : android.view.ViewG
     for ((index, view) in avatars.withIndex()) {
       if (view.visibility != VISIBLE) continue
       view.layout(x, ringPx, x + view.measuredWidth, ringPx + view.measuredHeight)
+      oldPositions[view]?.let { before -> view.translationX = before - x }
+      if (view in entering || view in oldPositions) {
+        view.animate().translationX(0f).alpha(1f).scaleX(1f).scaleY(1f).setDuration(220).setInterpolator(EASE).start()
+      }
       view.z = (avatars.size - index).toFloat() * 0.001f
       x += step
     }
+    oldPositions = emptyMap()
+    entering = emptySet()
   }
 
   override fun dispatchDraw(canvas: Canvas) {
@@ -538,9 +565,10 @@ class FacesView(context: Context, private val units: Units) : android.view.ViewG
     val visible = avatars.filter { it.visibility == VISIBLE }
     for (index in n - 1 downTo 0) {
       val view = visible[index]
-      val cx = view.left + view.width / 2f
+      val cx = view.x + view.width / 2f
       val cy = view.top + view.height / 2f
-      canvas.drawCircle(cx, cy, view.width / 2f + units.pxf(ringDp), ring)
+      ring.alpha = (255 * view.alpha).toInt()
+      canvas.drawCircle(cx, cy, (view.width / 2f + units.pxf(ringDp)) * view.scaleX, ring)
       drawChild(canvas, view, drawingTime)
     }
   }

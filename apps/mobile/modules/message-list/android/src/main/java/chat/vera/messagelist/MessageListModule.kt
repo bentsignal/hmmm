@@ -37,6 +37,7 @@ class MessageListModule : Module() {
       Prop("keyboardFrozen") { view: MessageListView, frozen: Boolean? -> view.setKeyboardFrozen(frozen == true) }
       Prop("alignTop") { view: MessageListView, alignTop: Boolean? -> view.setAlignTop(alignTop == true) }
       Prop("liftedRowId") { view: MessageListView, id: String? -> view.setLiftedRowId(id) }
+      Prop("lift") { view: MessageListView, lift: ReadableMap? -> view.setLift(decodeLift(lift)) }
       Prop("initialRowId") { view: MessageListView, id: String? -> view.setInitialRowId(id) }
       // Rows this binary can't read are drawn as their fallback text, whatever the version.
       Prop("contractVersion") { _: MessageListView, _: Int? -> }

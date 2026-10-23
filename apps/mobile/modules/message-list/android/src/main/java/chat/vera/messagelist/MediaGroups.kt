@@ -236,6 +236,14 @@ class CarouselView(context: Context, private val units: Units, images: Images, p
   }
 
   /** The tallest of the cards' chip rows, which every card leaves room for. */
+  fun heldMedia(part: String?, index: Int?): View? {
+    for (at in 0 until childCount) {
+      val card = getChildAt(at) as? CarouselCard ?: continue
+      if (card.media.holdTarget?.part == part || getChildAdapterPosition(card) == index) return card.media
+    }
+    return null
+  }
+
   fun laneHeight(items: List<MediaItem>, theme: Theme): Int =
     items.maxOf { ChipMetrics.height(it.reactions, units.px(CarouselSizes.cardWidth(it)), theme, units) }
 
@@ -337,6 +345,9 @@ class DeckView(context: Context, private val units: Units, private val images: I
     front.holdTarget = HoldTarget(rowId, item.part, current)
     val next = items[(current + 1) % items.size]
     back.bind(next, theme, images)
+    if (android.os.Build.VERSION.SDK_INT >= 31) {
+      back.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(units.pxf(8f), units.pxf(8f), android.graphics.Shader.TileMode.CLAMP))
+    }
     resetDrag()
     invalidate()
   }

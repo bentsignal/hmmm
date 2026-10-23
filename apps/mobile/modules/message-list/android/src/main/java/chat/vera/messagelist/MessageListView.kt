@@ -52,6 +52,9 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
   private val manager = ListLayoutManager(context)
   private val animator = ListItemAnimator(units)
   private val recycler = RecyclerView(context)
+  private val lifter = Lifter(units) { appContext.currentActivity?.window?.decorView as? android.view.ViewGroup }
+  private var lift: LiftRequest? = null
+  private var heldScale: Pair<HoldTarget, Float>? = null
 
   private val main = Handler(Looper.getMainLooper())
   private val work = Executors.newSingleThreadExecutor { runnable -> Thread(runnable, "MessageList").apply { priority = Thread.NORM_PRIORITY - 1 } }
@@ -213,6 +216,20 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
 
   fun setInitialRowId(id: String?) {
     if (!shown) initialRowId = id
+  }
+
+  fun setLift(request: LiftRequest?) {
+    if (request == lift) return
+    lift = request
+    if (request == null) lifter.land()
+    else {
+      recycler.stopScroll()
+      val position = rows.rows.indexOfFirst { it.id == request.rowId }
+      val holder = recycler.findViewHolderForAdapterPosition(position) as? RowHolder ?: return
+      val pressed = heldScale?.takeIf { it.first == HoldTarget(request.rowId, request.part, request.index) }?.second
+      heldScale = null
+      lifter.lift(request, holder, pressed)
+    }
   }
 
   /** Applies the props that changed together, once they're all in. */
@@ -439,6 +456,7 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
   }
 
   override fun onDetachedFromWindow() {
+    lifter.finish()
     super.onDetachedFromWindow()
     revealAnimator?.cancel()
   }
@@ -477,7 +495,7 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
     val count = rows.itemCount
     val average = averageRowHeight()
     val ahead = behavior.loadAheadScreens * maxOf(1, visibleHeight())
-    if (olderAt != count && olderRowsWithin(rows.rows, last, units.dp(ahead), env.theme, units.fontScale)) {
+    if (olderAt != count && olderRowsWithin(rows.rows, last, units.dp(ahead), env.theme, units.fontScale, units.dp(recycler.width.toFloat()))) {
       olderAt = count
       send(mapOf("type" to "reachedOlder"))
     }
@@ -562,7 +580,9 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
     val row = holder.row as? MessageRow ?: return
     val cell = holder.itemView as? MessageCell ?: return
     val target = hit?.hold ?: HoldTarget(row.id, row.blocks.firstOrNull { it is TextBlock }?.part ?: row.blocks.firstOrNull()?.part)
-    val rect = cell.holdRect(hit?.holdView)
+    val pieces = cell.liftPieces(target.part, target.index)
+    val rect = pieces?.frame ?: cell.holdRect(hit?.holdView)
+    heldScale = target to (pieces?.views?.firstOrNull()?.scaleX ?: 1f)
     val origin = IntArray(2)
     cell.getLocationInWindow(origin)
     val frame = mapOf(
@@ -700,6 +720,7 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
    * sure it isn't the first of a double tap, which holds it instead.
    */
   private inner class Touch : RecyclerView.OnItemTouchListener {
+    private val shrink = PressShrink(main)
     private val slop = ViewConfiguration.get(context).scaledTouchSlop
     private var downX = 0f
     private var downY = 0f
@@ -722,16 +743,24 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
       tapping = false
       val (holder, hit) = under(downX, downY) ?: return@Runnable
       hold(holder, hit)
+      shrink.release()
     }
 
     private fun under(x: Float, y: Float): Pair<RowHolder, Hit>? {
       val child = recycler.findChildViewUnder(x, y) ?: return null
       val holder = recycler.getChildViewHolder(child) as? RowHolder ?: return null
-      val hit = hitTest(child, x - child.left - child.translationX, y - child.top - child.translationY)
+      var hit = hitTest(child, x - child.left - child.translationX, y - child.top - child.translationY)
+      // Stacked text can be narrower than its column; holding beside a line still holds that part.
+      if (child is MessageCell && (hit.holdView == null || hit.holdView === child)) {
+        child.heldPart(y - child.top - child.translationY)?.let { part ->
+          hit = Hit(hit.press ?: part.pressTarget, hit.pressView ?: part, part.holdTarget, part, hit.horizontal)
+        }
+      }
       return holder to hit
     }
 
     private fun cancelTap() {
+      shrink.release()
       tapping = false
       main.removeCallbacks(holdRunnable)
     }
@@ -754,7 +783,10 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
           }
           val hit = under(e.x, e.y)
           horizontalTaken = hit?.second?.horizontal == true
-          if (tapping && !second && hit?.first?.row is MessageRow) main.postDelayed(holdRunnable, LONG_PRESS_MS)
+          if (tapping && !second && hit?.first?.row is MessageRow) {
+            main.postDelayed(holdRunnable, LONG_PRESS_MS)
+            hit.second.holdView?.let { shrink.begin(it) }
+          }
         }
         MotionEvent.ACTION_MOVE -> {
           if (tapping && (abs(e.x - downX) > slop || abs(e.y - downY) > slop)) cancelTap()
@@ -770,6 +802,7 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
           }
         }
         MotionEvent.ACTION_UP -> {
+          shrink.release()
           main.removeCallbacks(holdRunnable)
           if (tapping) tapped(e)
           tapping = false

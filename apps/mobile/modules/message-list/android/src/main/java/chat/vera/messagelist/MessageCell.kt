@@ -88,6 +88,9 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
   private val footers = ArrayList<FooterView>()
 
   private var row: MessageRow? = null
+  private var pendingBind: Pair<MessageRow, Boolean>? = null
+  var isLifted = false
+    private set
   private val blockTops = IntArray(signature.shapes.size)
   private var blocksTop = 0
   private var blocksBottom = 0
@@ -143,6 +146,10 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
   // MARK: Binding
 
   fun bind(row: MessageRow, animate: Boolean) {
+    if (isLifted) {
+      pendingBind = row to animate
+      return
+    }
     val before = this.row
     this.row = row
     val theme = env.theme
@@ -390,6 +397,10 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
   override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) = timed({ "measure ${row?.id}" }) { measureNow(widthMeasureSpec) }
 
   private fun measureNow(widthMeasureSpec: Int) {
+    if (isLifted) {
+      setMeasuredDimension(measuredWidth, measuredHeight)
+      return
+    }
     val row = row
     val width = MeasureSpec.getSize(widthMeasureSpec)
     if (row == null) {
@@ -510,6 +521,7 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
   }
 
   override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+    if (isLifted) return
     val row = row ?: return
     if (stacked) layoutStacked(row, r - l) else layoutBubbles(row, r - l)
     applyReveal()
@@ -604,6 +616,7 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
 
   /** Slides your bubbles left and brings every time in from the right edge as the list is dragged. */
   fun applyReveal() {
+    if (isLifted) return
     if (stacked) return
     val row = row ?: return
     val reveal = env.reveal
@@ -618,6 +631,39 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
   }
 
   // MARK: Holding
+
+  /** The part on this line, including whitespace beside stacked text. */
+  fun heldPart(y: Float): View? = blockViews.minByOrNull {
+    when {
+      y < it.top -> it.top - y
+      y > it.bottom -> y - it.bottom
+      else -> 0f
+    }
+  }
+
+  fun liftPieces(part: String?, index: Int?): LiftPieces? {
+    val slot = blockViews.indexOfFirst { view ->
+      view.holdTarget?.part == part || (view is DeckView && view.currentItem?.part == part)
+    }.let { if (it < 0) 0 else it }
+    val view = blockViews.getOrNull(slot) ?: return null
+    // A carousel lifts only the held media tile, not the whole lane.
+    val media = if (view is CarouselView) view.heldMedia(part, index) else null
+    val held = media ?: view
+    val pieces = mutableListOf(held)
+    tapbacks.getOrNull(slot)?.takeIf { it.visibility == VISIBLE && it.shownCount > 0 }?.let { pieces.add(it) }
+    val plain = held is TextView && held !is BubbleTextView
+    return LiftPieces(holdRect(held), pieces, if (plain) env.theme.backgroundElevated else null)
+  }
+
+  fun beginLift() { isLifted = true }
+
+  fun endLift() {
+    isLifted = false
+    val pending = pendingBind
+    pendingBind = null
+    pending?.let { bind(it.first, it.second) }
+    requestLayout()
+  }
 
   /** Where a hold lifts from, in this cell: the held part, or for the row, its parts together. */
   fun holdRect(view: View?): Rect {
@@ -806,7 +852,7 @@ class HeaderCell(context: Context, private val env: CellEnv) : ViewGroup(context
     if (replies) {
       val y = label.top + label.height / 2f
       rule.shader = null
-      rule.strokeWidth = maxOf(1f, units.pxf(0.5f))
+      rule.strokeWidth = 1f
       canvas.drawLine(label.right + units.pxf(12f), y, width - units.pxf(env.theme.horizontalPadding), y, rule)
       return
     }
@@ -885,6 +931,8 @@ class TypingCell(context: Context, private val env: CellEnv) : ViewGroup(context
     ellipsize = TextUtils.TruncateAt.END
   }
   private var stacked = false
+  private var people = emptyList<String>()
+  private var shifting = false
 
   init {
     addView(faces)
@@ -897,17 +945,33 @@ class TypingCell(context: Context, private val env: CellEnv) : ViewGroup(context
 
   fun bind(row: TypingRow) {
     val theme = env.theme
+    val nextPeople = row.people.map { it.id }
+    val changed = people.isNotEmpty() && people != nextPeople && stacked == row.stacked
+    people = nextPeople
+    shifting = changed
     stacked = row.stacked
     contentDescription = row.label
     if (stacked) {
-      faces.bind(row.people, theme, env.images, 18f, 4f, 1.5f, 3)
+      faces.bind(row.people, theme, env.images, 18f, 4f, 1.5f, 3, changed)
       dots.bind(theme.muted, 4f, 2f)
       label.style(units, theme.footnote, theme.muted)
+      if (changed && label.text.toString() != row.label) {
+        val previous = plainText(context).apply {
+          style(units, theme.footnote, theme.muted)
+          text = label.text
+          measure(MeasureSpec.makeMeasureSpec(label.width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(label.height, MeasureSpec.EXACTLY))
+          layout(label.left, label.top, label.right, label.bottom)
+        }
+        overlay.add(previous)
+        previous.animate().alpha(0f).setDuration(154).withEndAction { overlay.remove(previous) }.start()
+        label.alpha = 0f
+        label.animate().alpha(1f).setDuration(220).start()
+      }
       label.text = row.label
       label.visibility = VISIBLE
       bubble.visibility = GONE
     } else {
-      faces.bind(row.people, theme, env.images, 28f, 6f, 2f, 3)
+      faces.bind(row.people, theme, env.images, 28f, 6f, 2f, 3, changed)
       dots.bind(theme.muted, 8f, 4f)
       bubble.paint.color = theme.bubbleIncoming
       bubble.visibility = VISIBLE
@@ -936,6 +1000,14 @@ class TypingCell(context: Context, private val env: CellEnv) : ViewGroup(context
 
   override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
     val hpad = units.px(env.theme.horizontalPadding)
+    val positions = if (shifting) listOf(label, dots, bubble).associateWith { it.x } else emptyMap()
+    fun shifted() {
+      for ((view, x) in positions) {
+        view.translationX = x - view.left
+        view.animate().translationX(0f).setDuration(220).setInterpolator(EASE).start()
+      }
+      shifting = false
+    }
     if (stacked) {
       val top = units.px(10f)
       val line = units.px(20f)
@@ -946,6 +1018,7 @@ class TypingCell(context: Context, private val env: CellEnv) : ViewGroup(context
         view.layout(x, y, x + view.measuredWidth, y + view.measuredHeight)
         x += view.measuredWidth + units.px(8f)
       }
+      shifted()
       return
     }
     val bottom = measuredHeight
@@ -961,5 +1034,6 @@ class TypingCell(context: Context, private val env: CellEnv) : ViewGroup(context
     val dx = x + (bubble.measuredWidth - dots.measuredWidth) / 2
     val dy = by + (bubbleHeight - dots.measuredHeight) / 2
     dots.layout(dx, dy, dx + dots.measuredWidth, dy + dots.measuredHeight)
+    shifted()
   }
 }
