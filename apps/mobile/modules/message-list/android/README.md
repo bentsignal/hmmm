@@ -1,0 +1,49 @@
+# Android message list
+
+`MessageListModule` exposes the Expo view backed by a reversed RecyclerView.
+The shared contract is `src/features/native-list/contract.ts`, relative to the
+mobile app. JavaScript supplies the rows, appearance, timings, and menu layout.
+
+## Optional capabilities
+
+- `benchFling` scrolls with Choreographer and `scrollBy`, without injected
+  touches or fling physics. It reports actual distance and time at the older
+  edge. Use the same speed and duration as the React Native benchmark.
+- `lift` moves the held native view and its tapbacks into the React Modal
+  window's decor overlay. The row keeps its space and defers binding changes
+  until landing. The view returns during the conversation window's pre-draw,
+  so the modal never reveals a cached frame with the part missing.
+- Custom React rows currently use `fallbackText`. This binary does not report
+  `customRows`.
+
+A plain text lift gets the same card as the existing menu: 10 dp horizontal
+and 8 dp vertical inset, radius 16. The overlay reserves drawing space around
+its children because Android clips overlay RenderNodes to their bounds.
+
+## Pagination
+
+The older-page signal uses a lower bound for the remaining rows, rather than
+multiplying their count by the height of the currently visible media. Known
+text and media dimensions contribute to the bound; uncertain wrapped lines,
+reactions, and footers are omitted. JavaScript still owns `loadAheadScreens`.
+
+## Validation
+
+Use the repository's simulator skill and shared heavy-work lock. A focused JVM
+check, from `apps/mobile/android`, is:
+
+```sh
+./gradlew :message-list:testDebugUnitTest
+```
+
+`PaginationTest` covers short rows following tall media, sufficient remaining
+content, a newly appended page, font scaling, and ordinary versus panoramic
+photo dimensions. `/dev-native-list` exercises
+both layouts, the lift menu, reactions, typing changes, keyboard, and media.
+Its `bench` button runs 5,500 dp/s for ten seconds and logs the result.
+
+The Android emulator uses software GL on this Mac. Frame intervals include
+that rendering cost and host contention; recordings establish visual behavior,
+not a 60 fps phone result. The integration branch owns the same-chat,
+production-bundle comparison and the final phone clients. Do not enable the
+native list for everyone based on emulator recordings alone.

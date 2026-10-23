@@ -12,7 +12,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { MessageListViewMethods } from "~/features/native-list/native";
 import { DEV_THEME_DARK } from "~/features/native-list/dev-fixtures";
-import { devLift, DevMenu } from "~/features/native-list/dev-menu";
+import { DevMenu } from "~/features/native-list/dev-menu";
+import { devLift } from "~/features/native-list/dev-menu-layout";
 import {
   FIXTURE_BEHAVIOR,
   FIXTURE_THEME,

@@ -31,4 +31,18 @@ class PaginationTest {
     assertTrue(olderRowsWithin(rows, 0, theme.body.lineHeight * 15, theme))
     assertFalse(olderRowsWithin(rows, 0, theme.body.lineHeight * 15, theme, 2f))
   }
+
+  private fun photos(width: Int, height: Int) = (0..20).map { index ->
+    val item = MediaItem(index.toString(), false, "https://example.com/photo", null, null,
+      width, height, null, "photo", emptyList(), false)
+    text(index).copy(blocks = listOf(MediaBlock(listOf(item), "photo")))
+  }
+
+  @Test fun knownPhotoDimensionsKeepDistantPagesOutsideTheLead() {
+    assertFalse(olderRowsWithin(photos(1200, 900), 0, 1800f, theme, width = 400f))
+  }
+
+  @Test fun veryWidePhotosDoNotDelayLoadingTheNextPage() {
+    assertTrue(olderRowsWithin(photos(10000, 10), 0, 1800f, theme, width = 400f))
+  }
 }

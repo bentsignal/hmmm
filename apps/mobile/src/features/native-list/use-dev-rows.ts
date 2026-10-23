@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 
 import type { Block, ListEvent, Row } from "./contract";
-import type { DevHold } from "./dev-menu";
+import type { DevHold } from "./dev-menu-layout";
 import { devMessage, devRows, devTyping, PEOPLE } from "./dev-fixtures";
 import { nativeSupport } from "./native";
 
