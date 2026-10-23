@@ -21,4 +21,5 @@ dependencies {
   // The same Glide expo-image bundles (and configures, with OkHttp), so
   // photos share its caches.
   implementation 'com.github.bumptech.glide:glide:5.0.5'
+  testImplementation 'junit:junit:4.13.2'
 }

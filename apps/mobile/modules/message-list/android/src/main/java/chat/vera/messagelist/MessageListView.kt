@@ -477,7 +477,7 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
     val count = rows.itemCount
     val average = averageRowHeight()
     val ahead = behavior.loadAheadScreens * maxOf(1, visibleHeight())
-    if ((count - 1 - last) * average < ahead && olderAt != count) {
+    if (olderAt != count && olderRowsWithin(rows.rows, last, units.dp(ahead), env.theme, units.fontScale)) {
       olderAt = count
       send(mapOf("type" to "reachedOlder"))
     }
