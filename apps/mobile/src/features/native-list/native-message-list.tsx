@@ -80,6 +80,8 @@ type RowsProps = Omit<
   handle: MessageListProps["ref"];
   /** The menu has the keyboard held where it was (`useMenuKeyboard`). */
   keyboardFrozen: boolean;
+  /** The menu's freeze, as it happens, for the jump button (iOS). */
+  keyboardFreeze: SharedValue<boolean> | undefined;
 };
 
 /**
@@ -221,6 +223,7 @@ function NativeRows({
   composerHeight,
   bottomInset,
   keyboardFrozen,
+  keyboardFreeze,
   ...shown
 }: RowsProps) {
   const view = useRef<MessageListViewMethods>(null);
@@ -298,6 +301,8 @@ function NativeRows({
       <JumpToLatest
         visible={place.showJump}
         above={composerHeight.live}
+        // Native moves the rows with the keyboard; nothing moves this.
+        keyboard={{ bottomInset, frozen: keyboardFreeze }}
         onPress={() => {
           if (hasNewer) onJumpToLatest();
           else scrollToLatest();
@@ -330,7 +335,12 @@ export function NativeMessageList({
       editing={editing}
       menuKeyboard={keyboard}
     >
-      <NativeRows {...props} handle={ref} keyboardFrozen={frozen} />
+      <NativeRows
+        {...props}
+        handle={ref}
+        keyboardFrozen={frozen}
+        keyboardFreeze={Platform.OS === "ios" ? keyboard.freeze : undefined}
+      />
     </MessageActionsProvider>
   );
 }

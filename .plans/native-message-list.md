@@ -1331,7 +1331,15 @@ start>" [--scale <raw units per point>]`. It prints the row's bottom,
   row in for a missing newest one. The bar is the field's outermost
   full-width ancestor reaching the window's bottom, not the field. On
   `.cache/polish-ios-group-raw.txt` with `--newest "Leo Martins, send pics"`
-  it gives 790, 798 and 8, exit 0. iOS only: Android reports unsupported
+  it gives 790, 798 and 8, exit 0. With the keyboard up, the bar ends at
+  the keyboard's top (iOS's `UIKeyboardItemContainerView` or `Keyboard`
+  node), its bottom inset behind the keyboard, and the reader accepts
+  that. On the measured stacked snapshots
+  (`.cache/evidence/polish-ios-bottom-stacked-*.txt`) it gives keyboard
+  closed 790/798/8, keyboard up 482/490/8, ten lines 284/292/8 and after
+  sending 482/490/8, all exit 0. Scrolled away (`dismissed`), the newest
+  row is at 933, below the screen: `belowComposer` true, exit 1, as it
+  should be. iOS only: Android reports unsupported
   until a real Android dump is captured to read its node shape from
   (Android's would need `--scale` set to the device's density, which it
   never guesses). One still frame: it says nothing about transitions,
@@ -1345,6 +1353,26 @@ start>" [--scale <raw units per point>]`. It prints the row's bottom,
 - Shawn's phones: the same steps, judged by eye. The A16 matters most,
   because it's where JavaScript is slowest, and so where the height lag
   is longest.
+
+**Found in runtime QA, fixed in JavaScript (unverified on a device):**
+with the keyboard up and the list scrolled away, the jump-to-latest
+button stayed at its keyboard-down place (y 766), behind the keyboard,
+and couldn't be tapped. Cause: `JumpToLatest` rose by the composer's
+height only (`above`). The composer itself rises with the keyboard in
+`KeyboardStickyView`, by the keyboard's height less its bottom inset.
+The native list has no keyboard wrapper of its own (native moves the
+rows), so nothing moved the button. Now the native list passes
+`keyboard={{ bottomInset, frozen }}`, and the button rises with
+`composerTop` (`jump-lift.ts`, the same math as `KeyboardStickyView`). It
+holds while the long-press menu has the keyboard frozen (iOS only, as
+`useFrozenKeyboard` does), and catches up when the freeze lets go.
+Native insets and the keyboard are untouched, so nothing shifts twice.
+The React Native list passes no `keyboard` and behaves as before. It
+probably has the same gap, but that isn't verified, and isn't changed
+here. Tests check the measured places: the bar's top at 490 with the
+keyboard up, and 292 for ten lines. To verify (orchestrator, Metro): the
+button sits 12 pt over the composer with the keyboard down, up, moving,
+dragged down and around the menu, on iOS and Android, and taps.
 
 **Gaps:** frame-exact transition overlap (video sampling only),
 landscape, Android interactive dismissal, a composer element outside

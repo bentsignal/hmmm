@@ -16,6 +16,9 @@
 // 2: the dump can't answer (no such row, duplicates, no composer bar, an
 // invalid rect, an unsupported platform). It never falls back to another
 // row: a newest row that's hidden or missing is an error, not a pass.
+// With the keyboard up (iOS's `UIKeyboardItemContainerView` or `Keyboard`
+// node in the dump), the bar may end at the keyboard's top instead of the
+// window's bottom.
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 
@@ -92,6 +95,22 @@ function isField(node: SnapshotNode, label: string) {
 }
 
 const bottom = (rect: Rect) => rect.y + rect.height;
+
+/**
+ * The keyboard's top, if it's up: iOS's keyboard container
+ * (`UIKeyboardItemContainerView`, its accessory bar included) or the keys
+ * (`type` "Keyboard"), whichever is higher.
+ */
+function keyboardTopOf(nodes: readonly SnapshotNode[]) {
+  const tops = nodes
+    .filter(
+      (node) =>
+        node.role === "UIKeyboardItemContainerView" || node.type === "Keyboard",
+    )
+    .filter((node) => node.rect.height > 0)
+    .map((node) => node.rect.y);
+  return tops.length === 0 ? undefined : Math.min(...tops);
+}
 
 function ancestors(
   nodes: ReadonlyMap<number, SnapshotNode>,
@@ -186,22 +205,28 @@ export function bottomRow(
   const [input] = fields;
   if (input === undefined) throw new SnapshotError("no field");
   const windowBottom = bottom(window.rect);
-  // Outermost first: the bar is the widest full-width ancestor that ends
-  // at the window's bottom and is shorter than the window.
+  const keyboardTop = keyboardTopOf(all);
+  // Outermost first: the bar is the widest full-width ancestor, shorter
+  // than the window, that ends at the window's bottom, or with the
+  // keyboard up, reaches down to the keyboard (its bottom inset goes
+  // behind it).
   const bar = ancestors(nodes, input)
     .reverse()
     .find(
       (node) =>
         Math.abs(node.rect.x - window.rect.x) <= 0.5 &&
         Math.abs(node.rect.width - window.rect.width) <= 0.5 &&
-        Math.abs(bottom(node.rect) - windowBottom) <= 0.5 &&
         node.rect.height < window.rect.height - 0.5 &&
         node.rect.y <= input.rect.y &&
-        bottom(node.rect) >= bottom(input.rect),
+        bottom(node.rect) >= bottom(input.rect) &&
+        (Math.abs(bottom(node.rect) - windowBottom) <= 0.5 ||
+          (keyboardTop !== undefined &&
+            node.rect.y < keyboardTop &&
+            bottom(node.rect) >= keyboardTop - 0.5)),
     );
   if (bar === undefined) {
     throw new SnapshotError(
-      `the "${field}" field has no full-width ancestor at the window's bottom: not the composer bar`,
+      `the "${field}" field has no full-width ancestor at the window's bottom${keyboardTop === undefined ? "" : " or the keyboard's top"}: not the composer bar`,
     );
   }
   const rowRect = scaled(row.rect, scale);
@@ -222,10 +247,14 @@ export function bottomRow(
     },
     field: { index: input.index, rect: scaled(input.rect, scale) },
     gap,
+    keyboard: keyboardTop === undefined ? null : { top: keyboardTop / scale },
     minGap,
     ok: gap >= minGap - tolerance,
     overlap: Math.max(0, -gap),
     row: {
+      // All of it at or below the composer's top: scrolled away, or out
+      // of sight behind the composer and keyboard.
+      belowComposer: rowRect.y >= barRect.y,
       bottom: bottom(rowRect),
       hittable: row.hittable ?? null,
       hittableDescendants: hittable,

@@ -34,11 +34,17 @@ function snapshot({
   barTop = 798,
   scale = 1,
   fieldInBar = true,
+  barBottom = 874,
+  keyboardTop,
 }: {
   rows?: { bottom: number; label: string }[];
   barTop?: number;
   scale?: number;
   fieldInBar?: boolean;
+  /** Where the bar ends: 874 (the window's bottom) unless the keyboard's up. */
+  barBottom?: number;
+  /** The keyboard's container's top, if it's up. */
+  keyboardTop?: number;
 } = {}) {
   const at = (value: number) => value * scale;
   const nodes: Node[] = [
@@ -81,7 +87,7 @@ function snapshot({
     index: 50,
     parentIndex: 1,
     rect: fieldInBar
-      ? rect(0, at(barTop), at(402), at(874 - barTop))
+      ? rect(0, at(barTop), at(402), at(barBottom - barTop))
       : rect(at(20), at(300), at(362), at(200)),
     role: "RCTViewComponentView",
   });
@@ -103,6 +109,14 @@ function snapshot({
     role: "RCTUITextView",
     type: "TextView",
   });
+  if (keyboardTop !== undefined) {
+    nodes.push({
+      index: 90,
+      rect: rect(0, at(keyboardTop), at(402), at(874 - keyboardTop)),
+      role: "UIKeyboardItemContainerView",
+      type: "Other",
+    });
+  }
   return parseSnapshot(
     [
       "Page: chat.vera.app.dev",
@@ -202,4 +216,43 @@ void test("invalid rects and unsupported platforms are errors", () => {
     () => bottomRow(snapshot(), { newest: NEWEST, platform: "android" }),
     /aren't supported yet/,
   );
+});
+
+void test("with the keyboard up, the bar ending at the keyboard is the composer", () => {
+  // As measured: the bar 490 to 566, the keyboard from 546 (the bar's
+  // bottom inset goes behind it), the newest row ending at 482.
+  const keyboardUp = {
+    barBottom: 566,
+    barTop: 490,
+    keyboardTop: 546,
+    rows: [{ bottom: 482, label: "Leo Martins, send pics, 5:53 PM" }],
+  };
+  const report = bottomRow(snapshot(keyboardUp), { newest: NEWEST });
+  assert.equal(report.composer.top, 490);
+  assert.equal(report.gap, 8);
+  assert.equal(report.ok, true);
+  assert.deepEqual(report.keyboard, { top: 546 });
+  // A bar ending above the window's bottom with no keyboard in the dump
+  // isn't taken for the composer.
+  assert.throws(
+    () =>
+      bottomRow(snapshot({ ...keyboardUp, keyboardTop: undefined }), {
+        newest: NEWEST,
+      }),
+    /not the composer bar/,
+  );
+});
+
+void test("a newest row scrolled below the composer says so, and fails", () => {
+  const report = bottomRow(
+    snapshot({
+      barBottom: 566,
+      barTop: 490,
+      keyboardTop: 546,
+      rows: [{ bottom: 934, label: "Leo Martins, send pics, 5:53 PM" }],
+    }),
+    { newest: NEWEST },
+  );
+  assert.equal(report.row.belowComposer, true);
+  assert.equal(report.ok, false);
 });
