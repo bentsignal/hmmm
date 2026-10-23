@@ -7,7 +7,6 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.util.DisplayMetrics
-import android.view.GestureDetector
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
@@ -81,6 +80,8 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
   private var nearLatest: Boolean? = null
   private var visibleFirst = -1
   private var visibleLast = -1
+  private var visibleSentAt = 0L
+  private var visiblePending = false
 
   /** When recent arrivals came, for the firehose rule. */
   private val arrivalTimes = ArrayDeque<Long>()
@@ -227,14 +228,30 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
     animator.animate = !firehose && changed <= BIG_CHANGE
     animator.inserted = shownIn
     animator.arrivals = arrivals
+    animator.handoff = handoff(before, next, arrivals)
     rows.apply(next, diff)
     val newestInserted = firstKept > 0
     if (wasAtBottom && newestInserted) manager.scrollToPositionWithOffset(0, 0)
     layoutNow()
     animator.inserted = emptySet()
     animator.arrivals = emptySet()
+    animator.handoff = null
     animator.animate = true
     recycler.post { report(0) }
+  }
+
+  /**
+   * A message from someone who was typing, arriving as their indicator
+   * goes (bubbles): it grows out of the typing bubble instead of rising in.
+   */
+  private fun handoff(before: List<Row>, next: List<Row>, arrivals: Set<String>): String? {
+    val typing = before.firstOrNull() as? TypingRow ?: return null
+    if (typing.stacked || next.any { it.id == typing.id }) return null
+    val message = next.firstOrNull() as? MessageRow ?: return null
+    if (message.id !in arrivals || message.isOwn || message.stacked) return null
+    if (typing.people.none { it.id == message.author.id }) return null
+    if (message.blocks.lastOrNull() !is TextBlock) return null
+    return message.id
   }
 
   /** Counts arrivals in the firehose window: past `firehoseFrom`, they show at once until it's down to `firehoseUntil`. */
@@ -396,11 +413,15 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
       send(mapOf("type" to "nearLatest", "near" to near))
     }
     if (first != visibleFirst || last != visibleLast) {
-      visibleFirst = first
-      visibleLast = last
-      val ids = ArrayList<String>()
-      for (position in first..last) rows.rows.getOrNull(position)?.let { ids.add(it.id) }
-      send(mapOf("type" to "visible", "rowIds" to ids))
+      val now = SystemClock.uptimeMillis()
+      if (now - visibleSentAt >= VISIBLE_MS) sendVisible()
+      else if (!visiblePending) {
+        visiblePending = true
+        main.postDelayed({
+          visiblePending = false
+          sendVisible()
+        }, VISIBLE_MS - (now - visibleSentAt))
+      }
     }
     // Asks for older rows well before the top, so a fling never reaches it.
     val count = rows.itemCount
@@ -414,6 +435,19 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
       newerAt = count
       send(mapOf("type" to "reachedNewer"))
     }
+  }
+
+  /** The rows on screen now, if they changed since last sent. */
+  private fun sendVisible() {
+    val first = manager.findFirstVisibleItemPosition()
+    val last = manager.findLastVisibleItemPosition()
+    if (first == RecyclerView.NO_POSITION || (first == visibleFirst && last == visibleLast)) return
+    visibleFirst = first
+    visibleLast = last
+    visibleSentAt = SystemClock.uptimeMillis()
+    val ids = ArrayList<String>()
+    for (position in first..last) rows.rows.getOrNull(position)?.let { ids.add(it.id) }
+    send(mapOf("type" to "visible", "rowIds" to ids))
   }
 
   private fun averageRowHeight(): Float {
@@ -544,17 +578,37 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
     recycler.addOnItemTouchListener(touch)
   }
 
-  private inner class Touch : GestureDetector.SimpleOnGestureListener(), RecyclerView.OnItemTouchListener {
+  /**
+   * Taps, double taps, and holds, with the React Native list's timings (a
+   * double tap within 200 ms, a hold at 320 ms), plus dragging the list
+   * left to bring times in (bubbles). Links, mentions, chips and the like
+   * fire on the first tap; a tap on a message or photo waits 200 ms to be
+   * sure it isn't the first of a double tap, which holds it instead.
+   */
+  private inner class Touch : RecyclerView.OnItemTouchListener {
     private val slop = ViewConfiguration.get(context).scaledTouchSlop
-    private val detector = GestureDetector(context, this).apply { setIsLongpressEnabled(true) }
     private var downX = 0f
     private var downY = 0f
     private var horizontalTaken = false
     private var revealing = false
-    private var firstTapImmediate = false
 
-    /** This touch stopped a fling: it isn't a tap. */
-    private var stoppedScroll = false
+    /** Still a tap: not moved past the slop, not held, not a fling being stopped. */
+    private var tapping = false
+
+    /** A tap's press, waiting to see if a second tap makes it a double tap. */
+    private var pendingTap: Runnable? = null
+    private var lastTapUp = 0L
+    private var lastTapX = 0f
+    private var lastTapY = 0f
+
+    /** This touch is the second of a double tap. */
+    private var second = false
+
+    private val holdRunnable = Runnable {
+      tapping = false
+      val (holder, hit) = under(downX, downY) ?: return@Runnable
+      hold(holder, hit)
+    }
 
     private fun under(x: Float, y: Float): Pair<RowHolder, Hit>? {
       val child = recycler.findChildViewUnder(x, y) ?: return null
@@ -563,38 +617,76 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
       return holder to hit
     }
 
-    private fun cancelGestures() {
-      val now = SystemClock.uptimeMillis()
-      val cancel = MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, 0f, 0f, 0)
-      detector.onTouchEvent(cancel)
-      cancel.recycle()
+    private fun cancelTap() {
+      tapping = false
+      main.removeCallbacks(holdRunnable)
     }
 
     override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
-      if (e.actionMasked == MotionEvent.ACTION_DOWN) stoppedScroll = rv.scrollState != RecyclerView.SCROLL_STATE_IDLE
-      if (!revealing && !stoppedScroll) detector.onTouchEvent(e)
       when (e.actionMasked) {
         MotionEvent.ACTION_DOWN -> {
           downX = e.x
           downY = e.y
           revealing = false
           revealAnimator?.cancel()
-          horizontalTaken = under(e.x, e.y)?.second?.horizontal == true
+          val stoppedScroll = rv.scrollState != RecyclerView.SCROLL_STATE_IDLE
+          tapping = !stoppedScroll
+          second = pendingTap != null &&
+            e.eventTime - lastTapUp <= DOUBLE_TAP_MS &&
+            abs(e.x - lastTapX) < slop * 2 && abs(e.y - lastTapY) < slop * 2
+          if (second) {
+            pendingTap?.let { main.removeCallbacks(it) }
+            pendingTap = null
+          }
+          val hit = under(e.x, e.y)
+          horizontalTaken = hit?.second?.horizontal == true
+          if (tapping && !second && hit?.first?.row is MessageRow) main.postDelayed(holdRunnable, LONG_PRESS_MS)
         }
         MotionEvent.ACTION_MOVE -> {
+          if (tapping && (abs(e.x - downX) > slop || abs(e.y - downY) > slop)) cancelTap()
           if (revealing || horizontalTaken || !hasBubbles || rv.scrollState == RecyclerView.SCROLL_STATE_DRAGGING) return revealing
           val dx = e.x - downX
           val dy = e.y - downY
           if (dx < -slop && abs(dx) > abs(dy) * 1.2f) {
             revealing = true
             downX = e.x
-            cancelGestures()
+            cancelTap()
             rv.parent?.requestDisallowInterceptTouchEvent(true)
             return true
           }
         }
+        MotionEvent.ACTION_UP -> {
+          main.removeCallbacks(holdRunnable)
+          if (tapping) tapped(e)
+          tapping = false
+        }
+        MotionEvent.ACTION_CANCEL -> cancelTap()
       }
       return false
+    }
+
+    private fun tapped(e: MotionEvent) {
+      val found = under(e.x, e.y) ?: return
+      val (holder, hit) = found
+      if (second) {
+        second = false
+        if (holder.row is MessageRow) hold(holder, hit)
+        return
+      }
+      val target = hit.press ?: return
+      if (target.immediate) {
+        press(target)
+        return
+      }
+      lastTapUp = e.eventTime
+      lastTapX = e.x
+      lastTapY = e.y
+      val fire = Runnable {
+        pendingTap = null
+        press(target)
+      }
+      pendingTap = fire
+      main.postDelayed(fire, DOUBLE_TAP_MS)
     }
 
     override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {
@@ -604,9 +696,10 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
         MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
           revealing = false
           val from = env.reveal
+          // Settles back with one small overshoot, not a long wobble.
           revealAnimator = ValueAnimator.ofFloat(from, 0f).apply {
-            duration = 300
-            interpolator = DecelerateInterpolator(1.6f)
+            duration = 360
+            interpolator = android.view.animation.OvershootInterpolator(0.8f)
             addUpdateListener { setReveal(it.animatedValue as Float) }
             start()
           }
@@ -615,36 +708,7 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
     }
 
     override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {
-      if (disallowIntercept) cancelGestures()
-    }
-
-    override fun onDown(e: MotionEvent) = true
-
-    override fun onSingleTapUp(e: MotionEvent): Boolean {
-      val (_, hit) = under(e.x, e.y) ?: return false
-      val target = hit.press ?: return false
-      firstTapImmediate = target.immediate
-      if (target.immediate) press(target)
-      return false
-    }
-
-    override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-      val (_, hit) = under(e.x, e.y) ?: return false
-      val target = hit.press ?: return false
-      if (!target.immediate) press(target)
-      return true
-    }
-
-    override fun onDoubleTap(e: MotionEvent): Boolean {
-      if (firstTapImmediate) return false
-      val (holder, hit) = under(e.x, e.y) ?: return false
-      hold(holder, hit)
-      return true
-    }
-
-    override fun onLongPress(e: MotionEvent) {
-      val (holder, hit) = under(e.x, e.y) ?: return
-      hold(holder, hit)
+      if (disallowIntercept) cancelTap()
     }
   }
 
@@ -653,5 +717,12 @@ class MessageListView(context: Context, appContext: AppContext) : ExpoView(conte
     private const val BIG_CHANGE = 30
     private const val PRELOAD_AHEAD = 10
     private const val JUMP_FROM = 20
+
+    /** The React Native list's: a double tap's second tap within this, and a hold. */
+    private const val DOUBLE_TAP_MS = 200L
+    private const val LONG_PRESS_MS = 320L
+
+    /** `visible` at most this often. */
+    private const val VISIBLE_MS = 100L
   }
 }

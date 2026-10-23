@@ -25,6 +25,9 @@ class CellEnv(
   /** How far the times are dragged in (bubbles), in pixels. */
   var reveal = 0f
 
+  /** Rows whose highlight has shown: it fades once, not each time the row is drawn again. */
+  val tinted = HashSet<String>()
+
   /** A deck brought another card to the front: its row's reactions show for it. */
   var onDeckChanged: ((MessageCell) -> Unit)? = null
 }
@@ -144,7 +147,23 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
     this.row = row
     val theme = env.theme
     growsAtTop = !stacked && before != null && before.reactions != row.reactions && before.footer == row.footer
-    setBackgroundColor(if (row.highlighted) theme.highlight else 0)
+    if (before?.id != row.id) {
+      tintAnimator?.cancel()
+      tint = 0f
+    }
+    // The message a search or notification opened on: tinted, fading after a moment.
+    if (row.highlighted && env.tinted.add(row.id)) {
+      tint = 1f
+      tintAnimator = android.animation.ValueAnimator.ofFloat(1f, 0f).apply {
+        startDelay = 800
+        duration = 1600
+        addUpdateListener {
+          tint = it.animatedValue as Float
+          invalidate()
+        }
+        start()
+      }
+    }
     pressTarget = Target("message", row.id, part = mainPart(row))
     holdTarget = HoldTarget(row.id, mainPart(row))
     contentDescription = row.accessibilityLabel
@@ -170,8 +189,16 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
     for ((slot, view) in blockViews.withIndex()) {
       val index = blockIndex[slot]
       val block = row.blocks.getOrNull(index) ?: continue
-      bindBlock(row, index, block, view, maxWidth, slot == blockViews.lastIndex)
-      view.alpha = if (row.status == "sending") 0.5f else 1f
+      bindBlock(row, index, block, view, maxWidth, index == tailBlock(row))
+      val target = if (row.status == "sending") 0.5f else 1f
+      view.animate().cancel()
+      // Sent: fades up to full (RN's SENT_FADE_MS), instead of a "Delivered" label.
+      if (animate && before?.status == "sending" && target == 1f) {
+        view.alpha = 0.5f
+        view.animate().alpha(1f).setDuration(300).setInterpolator(EASE_OUT).start()
+      } else {
+        view.alpha = target
+      }
       tapbacks[slot]?.let { taps ->
         taps.incoming = !row.isOwn
         val reactions = blockReactions(row, block, view, index == reactionsAt)
@@ -208,6 +235,12 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
     invalidate()
   }
 
+  /** The block that draws the tail at the end of a run: the last text, unless a link card follows. */
+  private fun tailBlock(row: MessageRow): Int {
+    if (!row.endsGroup || row.blocks.any { it is LinkCardBlock }) return -1
+    return row.blocks.indexOfLast { it is TextBlock && !it.jumbo }
+  }
+
   private fun hasText(row: MessageRow) = row.blocks.any { it is TextBlock && !it.jumbo }
 
   private fun mainPart(row: MessageRow): String? =
@@ -226,12 +259,21 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
   }
 
   private fun blockReactions(row: MessageRow, block: Block, view: View, own: Boolean): List<Reaction> {
-    val item = when (block) {
-      is MediaBlock -> if (view is DeckView) view.currentItem else block.items.firstOrNull()
-      else -> null
-    }
     val mine = if (own) row.reactions else emptyList()
-    return if (item == null) mine else item.reactions + mine
+    if (block !is MediaBlock) return mine
+    // A deck shows every card's reactions together, over its front card (as on iOS).
+    if (view is DeckView) return merged(block.items.flatMap { it.reactions }) + mine
+    return block.items.first().reactions + mine
+  }
+
+  /** Reactions with the same key as one: their counts added, yours if any were. */
+  private fun merged(reactions: List<Reaction>): List<Reaction> {
+    val byKey = LinkedHashMap<String, Reaction>()
+    for (reaction in reactions) {
+      val seen = byKey[reaction.key]
+      byKey[reaction.key] = if (seen == null) reaction else seen.copy(count = seen.count + reaction.count, mine = seen.mine || reaction.mine)
+    }
+    return byKey.values.toList()
   }
 
   /** The deck brought another card forward: show its reactions. */
@@ -270,7 +312,7 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
         } else if (view is BubbleTextView) {
           val own = row.isOwn
           view.style(units, theme.body, if (own) theme.textOutgoing else theme.textIncoming)
-          view.bindBubble(if (own) theme.bubbleOutgoing else theme.bubbleIncoming, row.endsGroup && last, own, theme.bubbleRadius)
+          view.bindBubble(if (own) theme.bubbleOutgoing else theme.bubbleIncoming, last, own, theme.bubbleRadius)
           view.text = styledText(block.spans, theme, own, row.id, block.part)
         } else {
           text.style(units, theme.body, theme.foreground)
@@ -289,12 +331,12 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
       is DeletedBlock, is UnknownBlock -> {
         val label = if (block is DeletedBlock) block.label else (block as UnknownBlock).text
         val text = view as TextView
-        text.style(units, theme.body, theme.muted)
-        text.setTypeface(Typeface.DEFAULT, Typeface.ITALIC)
+        text.style(units, theme.body, if (block is DeletedBlock) theme.muted else theme.foreground)
+        text.setTypeface(Typeface.DEFAULT, if (block is DeletedBlock) Typeface.ITALIC else Typeface.NORMAL)
         text.text = label
         if (view is BubbleTextView) {
           if (block is DeletedBlock) view.bindBubble(theme.separator, false, row.isOwn, theme.bubbleRadius, outlined = true)
-          else view.bindBubble(theme.bubbleIncoming, row.endsGroup && last, row.isOwn, theme.bubbleRadius)
+          else view.bindBubble(theme.bubbleIncoming, last, row.isOwn, theme.bubbleRadius)
         }
       }
       is MediaBlock -> {
@@ -373,19 +415,21 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
     }
     blocksTop = y
     val space = units.px(TapbacksView.SPACE)
+    val reply = replyIndent(row)
     for ((slot, view) in blockViews.withIndex()) {
       val taps = tapbacks[slot]
       // Room only for tapbacks that stay: one shrinking away gives its room back as it goes.
       val hasTaps = taps != null && taps.shownCount > 0
+      view.measure(atMost(max - if (slot > 0) reply else 0), unspecified())
+      taps?.measure(unspecified(), unspecified())
       y += when {
-        slot == 0 && hasTaps -> if (named) maxOf(0, space - units.px(22f)) else space
+        // Beside the name when they clear it, else over the bubble under it.
+        slot == 0 && hasTaps -> if (named && tapbacksClearName(view, taps!!)) maxOf(0, space - units.px(22f)) else space
         slot == 0 -> 0
         hasTaps -> maxOf(units.px(4f), space)
         else -> units.px(4f)
       }
       if (slot == 0) blocksTop = y
-      view.measure(atMost(max), unspecified())
-      taps?.measure(unspecified(), unspecified())
       blockTops[slot] = y
       y += view.measuredHeight
     }
@@ -400,6 +444,17 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
     time.measure(atMost(0), unspecified())
     setMeasuredDimension(width, y)
   }
+
+  /** Whether the first part's tapbacks, fanned over its corner, stay 6 pt clear of the name. */
+  private fun tapbacksClearName(view: View, taps: TapbacksView): Boolean {
+    val reach = units.px(TapbacksView.SIZE / 2f - TapbacksView.CENTER_INSET)
+    val fanLeft = view.measuredWidth + reach - taps.contentWidth()
+    return fanLeft >= units.px(12f + 6f) + name.measuredWidth
+  }
+
+  /** How far a reply's parts sit in from its quote (bubbles), for the curve between them. */
+  private fun replyIndent(row: MessageRow): Int =
+    if (!stacked && row.blocks.firstOrNull() is QuoteBlock && row.blocks.size > 1) units.px(REPLY_INDENT) else 0
 
   private fun measureStacked(row: MessageRow, width: Int) {
     val theme = env.theme
@@ -473,8 +528,10 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
       name.visibility = GONE
     }
     time.visibility = GONE
+    val reply = replyIndent(row)
     for ((slot, view) in blockViews.withIndex()) {
-      val x = if (row.isOwn) right - view.measuredWidth else columnLeft
+      val indent = if (slot > 0) reply else 0
+      val x = if (row.isOwn) right - indent - view.measuredWidth else columnLeft + indent
       place(view, x, blockTops[slot])
       tapbacks[slot]?.let { taps ->
         if (taps.visibility != VISIBLE) return@let
@@ -549,11 +606,12 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
     val reveal = env.reveal
     val full = units.pxf(REVEAL_WIDTH)
     revealTime.translationX = full - reveal
-    revealTime.alpha = minOf(1f, reveal / full)
+    revealTime.alpha = (reveal / full).coerceIn(0f, 1f)
     val slide = if (row.isOwn) -reveal else 0f
     for (view in blockViews) view.translationX = slide
     for (taps in tapbacks) taps?.translationX = slide
     for (footer in footers) footer.translationX = slide
+    if (row.isOwn && replyIndent(row) > 0) invalidate()
   }
 
   // MARK: Holding
@@ -610,11 +668,62 @@ class MessageCell(context: Context, private val env: CellEnv, val signature: Sig
     return out
   }
 
-  override fun onDraw(canvas: Canvas) = Unit
+  private var tint = 0f
+  private var tintAnimator: android.animation.ValueAnimator? = null
+
+  private val curvePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+    style = android.graphics.Paint.Style.STROKE
+  }
+  private val curve = android.graphics.Path()
+
+  override fun onDraw(canvas: Canvas) {
+    if (tint > 0f) canvas.drawColor(withAlpha(env.theme.highlight, tint))
+    drawReplyCurve(canvas)
+  }
+
+  /** The curve from under a reply's quote down into its bubble, in the reply's indent. */
+  private fun drawReplyCurve(canvas: Canvas) {
+    val row = row ?: return
+    if (replyIndent(row) == 0 || blockViews.size < 2) return
+    val quote = blockViews[0]
+    val body = blockViews[1]
+    curvePaint.color = env.theme.separator
+    curvePaint.strokeWidth = units.pxf(2f)
+    val hpad = units.px(env.theme.horizontalPadding)
+    val edge = if (row.isOwn) (width - hpad).toFloat() else (hpad + if (avatarColumn) units.px(28f + 10f) else 0).toFloat()
+    val sign = if (row.isOwn) -1f else 1f
+    val x = edge + sign * units.pxf(13f)
+    val end = edge + sign * units.pxf(19f)
+    val top = quote.bottom.toFloat()
+    val bottom = body.top + units.pxf(18f)
+    val r = units.pxf(6f)
+    curve.reset()
+    curve.moveTo(x, top)
+    curve.lineTo(x, bottom - r)
+    curve.quadTo(x, bottom, x + sign * r, bottom)
+    curve.lineTo(end, bottom)
+    canvas.save()
+    if (row.isOwn) canvas.translate(-env.reveal, 0f)
+    canvas.drawPath(curve, curvePaint)
+    canvas.restore()
+  }
+
+  /** Grows its last bubble out of the typing bubble it replaces, its text and name fading in. */
+  fun growFromTyping(ms: Long) {
+    val bubble = blockViews.lastOrNull() as? BubbleTextView ?: return
+    bubble.grow(units.pxf(60f), units.pxf(38f), ms)
+    if (name.visibility == VISIBLE) {
+      name.alpha = 0f
+      name.animate().alpha(1f).setDuration(ms).setInterpolator(EASE).start()
+    }
+  }
 
   companion object {
     /** How far a drag slides your bubbles over to show times. */
     const val REVEAL_WIDTH = 72f
+
+    /** How far a bubble reply sits in from its quote (RN's `REPLY_INDENT`). */
+    const val REPLY_INDENT = 22f
   }
 }
 

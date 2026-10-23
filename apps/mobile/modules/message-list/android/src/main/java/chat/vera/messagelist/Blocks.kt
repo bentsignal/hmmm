@@ -65,7 +65,56 @@ class BubbleTextView(context: Context, private val units: Units) : TextView(cont
     if (tight < measuredWidth) setMeasuredDimension(tight, measuredHeight)
   }
 
+  private var growFromWidth = 0f
+  private var growFromHeight = 0f
+  private var growth = 1f
+  private var growAnimator: android.animation.ValueAnimator? = null
+  private val growPath = Path()
+
+  /**
+   * Grows from a bubble `fromWidth` by `fromHeight` (who's typing) to its
+   * own size, from its tail's corner, as its text fades in.
+   */
+  fun grow(fromWidth: Float, fromHeight: Float, ms: Long) {
+    growAnimator?.cancel()
+    growFromWidth = fromWidth
+    growFromHeight = fromHeight
+    growth = 0f
+    growAnimator = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+      duration = ms
+      interpolator = EASE
+      addUpdateListener {
+        growth = it.animatedValue as Float
+        invalidate()
+      }
+      start()
+    }
+    invalidate()
+  }
+
+  /** A frame of `grow`: the bubble between the typing bubble's size and its own, the text fading in. */
+  private fun drawGrowing(canvas: Canvas) {
+    val drop = if (tail) units.pxf(BubbleShape.TAIL_DROP) else 0f
+    val fullHeight = height - drop
+    val w = growFromWidth + (width - growFromWidth) * growth
+    val h = growFromHeight + (fullHeight - growFromHeight) * growth
+    BubbleShape.path(growPath, w, h, radiusDp, tail, isOwn, units.density)
+    canvas.save()
+    // From the tail's corner: bottom left for theirs, bottom right for yours.
+    canvas.translate(if (isOwn) width - w else 0f, fullHeight - h)
+    canvas.drawPath(growPath, paint)
+    canvas.restore()
+    val alpha = (growth * growth * 255).toInt()
+    val saved = canvas.saveLayerAlpha(0f, 0f, width.toFloat(), height.toFloat(), alpha)
+    super.onDraw(canvas)
+    canvas.restoreToCount(saved)
+  }
+
   override fun onDraw(canvas: Canvas) {
+    if (growth < 1f) {
+      drawGrowing(canvas)
+      return
+    }
     val drop = if (tail) units.pxf(BubbleShape.TAIL_DROP) else 0f
     val key = (width.toLong() shl 32) or height.toLong()
     if (key != pathFor) {
@@ -283,6 +332,18 @@ class QuoteView(context: Context, private val units: Units, private val images: 
   }
   private val text = plainText(context).apply { ellipsize = TextUtils.TruncateAt.END }
   private val avatar = AvatarView(context, units)
+
+  /** The quoted message's photo, beside the text (bubbles). */
+  private val thumb = object : FixedImageView(context) {
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) = setMeasuredDimension(units.px(32f), units.px(32f))
+  }.apply {
+    scaleType = ImageView.ScaleType.CENTER_CROP
+    clipToOutline = true
+    outlineProvider = object : ViewOutlineProvider() {
+      override fun getOutline(view: View, outline: Outline) = outline.setRoundRect(0, 0, view.width, view.height, units.pxf(6f))
+    }
+  }
+  private var hasThumb = false
   private val border = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
   private val curve = Path()
   private var stacked = false
@@ -296,6 +357,7 @@ class QuoteView(context: Context, private val units: Units, private val images: 
     addView(author)
     addView(text)
     addView(avatar)
+    addView(thumb)
   }
 
   fun bind(block: QuoteBlock, theme: Theme, stacked: Boolean, maxWidth: Int) {
@@ -303,6 +365,8 @@ class QuoteView(context: Context, private val units: Units, private val images: 
     this.maxWidth = maxWidth
     border.color = theme.separator
     if (stacked) {
+      thumb.visibility = GONE
+      hasThumb = false
       author.visibility = GONE
       avatar.visibility = VISIBLE
       avatar.bind(block.author, theme, 18f, images)
@@ -315,6 +379,10 @@ class QuoteView(context: Context, private val units: Units, private val images: 
       text.text = line
       border.strokeWidth = units.pxf(2f)
     } else {
+      hasThumb = block.thumbnailUrl != null
+      thumb.visibility = if (hasThumb) VISIBLE else GONE
+      thumb.setBackgroundColor(theme.fill)
+      if (hasThumb) images.load(thumb, block.thumbnailUrl, units.px(32f), units.px(32f))
       author.visibility = VISIBLE
       avatar.visibility = GONE
       author.style(units, theme.caption, theme.muted, Fonts.semibold)
@@ -338,10 +406,12 @@ class QuoteView(context: Context, private val units: Units, private val images: 
       setMeasuredDimension(maxWidth, units.px(16f) + maxOf(avatar.measuredHeight, text.measuredHeight))
       return
     }
-    val inner = maxWidth - units.px(24f)
+    val beside = if (hasThumb) units.px(40f) else 0
+    val inner = maxWidth - units.px(24f) - beside
     author.measure(MeasureSpec.makeMeasureSpec(inner, MeasureSpec.AT_MOST), MeasureSpec.UNSPECIFIED)
     text.measure(MeasureSpec.makeMeasureSpec(inner, MeasureSpec.AT_MOST), MeasureSpec.UNSPECIFIED)
-    val width = maxOf(author.measuredWidth, text.measuredWidth) + units.px(24f)
+    if (hasThumb) thumb.measure(0, 0)
+    val width = maxOf(author.measuredWidth, text.measuredWidth) + units.px(24f) + beside
     setMeasuredDimension(width, author.measuredHeight + text.measuredHeight + units.px(12f))
   }
 
@@ -356,6 +426,11 @@ class QuoteView(context: Context, private val units: Units, private val images: 
       val ty = top + (line - text.measuredHeight) / 2
       text.layout(tx, ty, tx + text.measuredWidth, ty + text.measuredHeight)
       return
+    }
+    if (hasThumb) {
+      val tx = measuredWidth - units.px(12f) - thumb.measuredWidth
+      val ty = (measuredHeight - thumb.measuredHeight) / 2
+      thumb.layout(tx, ty, tx + thumb.measuredWidth, ty + thumb.measuredHeight)
     }
     val x = units.px(12f)
     var y = units.px(6f)
@@ -393,6 +468,13 @@ class FooterView(context: Context, private val units: Units, private val images:
     ellipsize = TextUtils.TruncateAt.END
   }
   private val pill = Paint(Paint.ANTI_ALIAS_FLAG)
+  private val badge = Paint(Paint.ANTI_ALIAS_FLAG)
+  private val badgeMark = android.text.TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+    textAlign = Paint.Align.CENTER
+    typeface = Fonts.bold
+    color = 0xFFFFFFFF.toInt()
+  }
+  private var notSent = false
   private var isPill = false
   private var alignEnd = false
 
@@ -407,6 +489,8 @@ class FooterView(context: Context, private val units: Units, private val images:
     this.alignEnd = alignEnd
     val replies = line.kind == "replies"
     isPill = replies && stacked
+    notSent = line.kind == "notSent"
+    badge.color = theme.destructive
     pill.color = theme.fill
     faces.visibility = if (replies && line.people.isNotEmpty()) VISIBLE else GONE
     if (replies) faces.bind(line.people, theme, images, 18f, 6f, 1f, 3)
@@ -430,7 +514,7 @@ class FooterView(context: Context, private val units: Units, private val images:
     val padL = if (isPill) units.px(6f) else units.px(4f)
     val padR = if (isPill) units.px(10f) else units.px(4f)
     val padV = if (isPill) units.px(4f) else units.px(2f)
-    var used = padL + padR
+    var used = padL + padR + if (notSent) units.px(12f + 4f) else 0
     if (faces.visibility == VISIBLE) {
       faces.measure(0, 0)
       used += faces.measuredWidth + units.px(6f)
@@ -450,7 +534,7 @@ class FooterView(context: Context, private val units: Units, private val images:
     if (faces.visibility == VISIBLE) views.add(faces)
     views.add(label)
     if (alignEnd && !isPill) views.reverse()
-    var x = padL
+    var x = padL + if (notSent) units.px(12f + 4f) else 0
     for (view in views) {
       val y = top + padV + (content - view.measuredHeight) / 2
       view.layout(x, y, x + view.measuredWidth, y + view.measuredHeight)
@@ -459,6 +543,15 @@ class FooterView(context: Context, private val units: Units, private val images:
   }
 
   override fun onDraw(canvas: Canvas) {
+    if (notSent) {
+      // RN's exclamation circle, before "Not sent".
+      val r = units.pxf(6f)
+      val cx = units.pxf(4f) + r
+      val cy = label.top + label.height / 2f
+      canvas.drawCircle(cx, cy, r, badge)
+      badgeMark.textSize = units.pxf(9f)
+      canvas.drawText("!", cx, cy - (badgeMark.descent() + badgeMark.ascent()) / 2f, badgeMark)
+    }
     if (!isPill) return
     val top = units.pxf(6f)
     val rect = RectF(0f, top, width.toFloat(), height.toFloat())

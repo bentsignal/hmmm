@@ -22,6 +22,9 @@ internal fun ReadableMap.num(key: String): Double? =
 internal fun ReadableMap.bool(key: String): Boolean =
   type(key) == ReadableType.Boolean && getBoolean(key)
 
+internal fun ReadableMap.boolOr(key: String, fallback: Boolean): Boolean =
+  if (type(key) == ReadableType.Boolean) getBoolean(key) else fallback
+
 internal fun ReadableMap.map(key: String): ReadableMap? =
   if (type(key) == ReadableType.Map) getMap(key) else null
 
@@ -151,15 +154,18 @@ fun decodeRow(map: ReadableMap): Row? {
   return try {
     when (map.str("kind")) {
       "message" -> {
-        val blocks = map.array("blocks").mapsOf { block(it, fallback) }
+        var blocks = map.array("blocks").mapsOf { block(it, fallback) }
+        // A block this binary can't draw means it can't draw the message as
+        // sent: its fallback text takes the message's place (as on iOS).
+        if (blocks.any { it is UnknownBlock }) blocks = listOf(TextBlock(listOf(Span(fallback, null, null, null)), false, null))
         MessageRow(
           id = id,
           stacked = map.str("layout") == "stacked",
           author = person(map.map("author")),
           isOwn = map.bool("isOwn"),
           showAuthor = map.bool("showAuthor"),
-          startsGroup = map.bool("startsGroup"),
-          endsGroup = map.bool("endsGroup"),
+          startsGroup = map.boolOr("startsGroup", true),
+          endsGroup = map.boolOr("endsGroup", true),
           sentAt = map.num("sentAt") ?: 0.0,
           timeLabel = map.str("timeLabel") ?: "",
           blocks = blocks.ifEmpty { listOf(UnknownBlock(fallback, null)) },
