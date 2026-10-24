@@ -9,14 +9,12 @@ import type { MessageLayout } from "~/features/preferences/store";
 import { Pending } from "~/components/pending";
 import { useAfterSend } from "~/features/conversation/after-send";
 import { useComposerBottomInset } from "~/features/conversation/composer";
-import { useComposerHeight } from "~/features/conversation/composer-height";
 import {
   CONVERSATION_HEADER_HEIGHT,
   ConversationHeader,
 } from "~/features/conversation/conversation-header";
 import { FloatingComposer } from "~/features/conversation/floating-composer";
 import { mentionableIn } from "~/features/conversation/mentionable";
-import { MessageList } from "~/features/conversation/message-list";
 import { usePacedMessages } from "~/features/conversation/paced-messages";
 import { useEditing } from "~/features/conversation/use-editing";
 import { useReactionsSheet } from "~/features/conversation/use-reactions-sheet";
@@ -28,6 +26,10 @@ import { useMemberNotices } from "~/features/messaging/member-events";
 import { useMarkRead, useMessages } from "~/features/messaging/messages";
 import { useStayLive } from "~/features/messaging/stay-live";
 import { useTypingReporter, useTypists } from "~/features/messaging/typing";
+import {
+  ConversationList,
+  useConversationComposerHeight,
+} from "~/features/native-list/conversation-list";
 import { useActiveConversation } from "~/features/notifications/push";
 import { useMessageLayout } from "~/features/preferences/store";
 import { useAccountPending } from "~/features/saved/offline-pill";
@@ -173,7 +175,7 @@ function Conversation({
   const typing = useConversationTyping(conversationId, shownMessages);
   // Not laid out yet: the list leaves room for it under the newest
   // message, so it waits rather than shift once it knows.
-  const { composerHeight, report } = useComposerHeight();
+  const { composerHeight, report } = useConversationComposerHeight();
   const list = useRef<MessageListHandle>(null);
   useWhileOpen(conversationId, messages);
 
@@ -202,7 +204,7 @@ function Conversation({
       <KeyboardGestureArea interpolator="ios" offset={60} style={{ flex: 1 }}>
         <Pending phase={pending} />
         {shown && pending === "ready" && (
-          <MessageList
+          <ConversationList
             ref={list}
             key={messages.viewKey}
             messages={shownMessages}

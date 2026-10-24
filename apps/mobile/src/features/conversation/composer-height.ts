@@ -65,7 +65,16 @@ export type ComposerReport = ReturnType<typeof useComposerHeight>["report"];
  * JavaScript each time, three times as attachments opened or closed, and
  * the list could only catch up after each.
  */
-export function useComposerHeight() {
+export function useComposerHeight({
+  roomCloses,
+}: {
+  /**
+   * Whether the list's room closes with the messages after a send (the
+   * React Native list, `useComposerRoom`), so the field's glass waits for
+   * it. The native list takes each height at once (its `insets`).
+   */
+  roomCloses: boolean;
+}) {
   const live = useSharedValue(0);
   const room = useSharedValue(0);
   const sent = useSharedValue(false);
@@ -118,6 +127,12 @@ export function useComposerHeight() {
     },
     /** The list's room (see `ComposerHeight`), for the field's glass. */
     room,
+    /**
+     * Whether the list's room closes with the messages after a send (the
+     * React Native list, `useComposerRoom`), so the field's glass waits
+     * for it.
+     */
+    roomCloses,
     /** Attachments started to open or close, a height at a time. */
     onAttachmentsMove: () => {
       stepsUntil.set(Date.now() + ATTACHMENTS_MOVE_MS);
