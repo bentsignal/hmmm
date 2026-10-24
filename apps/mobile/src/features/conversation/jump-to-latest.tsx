@@ -105,7 +105,11 @@ export function JumpToLatest({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Jump to latest"
-        accessibilityElementsHidden={!shown}
+        // Hidden, it's out of VoiceOver and TalkBack too: `aria-hidden` sets
+        // iOS's `accessibilityElementsHidden` and Android's
+        // `importantForAccessibility="no-hide-descendants"` (the first was
+        // iOS only, so TalkBack still offered the invisible button).
+        aria-hidden={!shown}
         onPress={onPress}
         hitSlop={6}
       >
