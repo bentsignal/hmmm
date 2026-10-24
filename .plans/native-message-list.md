@@ -765,12 +765,15 @@ report describes. A fix is verified only once it's checked on a device,
 and the items Shawn raised only on his phones close only when he checks
 them on his phones.
 
-### Status (iOS simulator checked; phones and Android runtime pending)
+### Status (simulators checked; both Vera Dev clients delivered; Shawn's phone checks pending)
 
-- Now: the branch head is `b13615a5`, committed and pushed, with all 9
-  CI checks green. It includes iOS `4cdb168d` (the glass default, with
-  the `5cca8d96` exact-tile lift correction) and Android `31c72259`. No
-  data-pass merge. See "Final iOS checkpoint, 2026-10-23 evening" below.
+- Now: the last source commit is `06003b06`, with all 9 CI checks green
+  there. Later commits are docs only. It
+  includes iOS `4cdb168d` (the glass default, with the `5cca8d96`
+  exact-tile lift correction), Android `31c72259`, and the hidden jump
+  button's accessibility fix. No data-pass merge. See "Delivered
+  checkpoint: both platforms and both phones, 2026-10-23 late" below; "Final iOS
+  checkpoint, 2026-10-23 evening" has iOS's numbers.
 - First inputs (historical): this branch at `78d4c94c`, with iOS
   source-ready `cd09c26440b079522c06bec9820236f51a0e89bb` and Android
   source-ready `31c7225980822283b468356d39c6b75af79fd36a` merged in
@@ -829,8 +832,16 @@ them on his phones.
 - Done since, in the iOS simulator: the `4cdb168d` client compile, the
   glass look check in light and dark with no override, the final motion
   runs, and the final head-to-head (see the final checkpoint).
-- Pending: Android runtime; the Vera Dev clients (the iPhone build is
-  running, Android after it); and every item below, on Shawn's phones.
+- Done since, on Android in the simulator: the final head-to-head, the
+  motion check (17/18 in light and dark), resting newest-row gaps (8 dp,
+  8 samples), the jump button with the keyboard up, three
+  lift/viewer cycles of memory, and media, reaction, avatar, typing and
+  composer runs. The iPhone's Vera Dev client was verified and delivered.
+- Both Vera Dev clients were delivered to Shawn at 21:51 EDT (iPhone
+  `ac18b6d7…`, Android `25c41d80…`), and the isolated backend's
+  `release:outdatedRuntimes` answers `{ android: [], ios: [] }`.
+- Pending: every item below, on Shawn's phones. None is closed by the
+  simulators.
 
 ### 1. Reactions
 
@@ -1654,6 +1665,246 @@ data-pass test. The update gate stays off. Its old-runtime OTA order stays
 in docs/next-release.md. Shawn's report of dramatic improvement on his
 iPhone and Galaxy A16 with the earlier previews stands, and isn't merge
 approval. No stores, production OTA, or shared backend deploys.
+
+### Delivered checkpoint: both platforms and both phones, 2026-10-23 late
+
+The last source commit is `06003b06`, with all 9 CI checks green there. It
+adds the hidden jump button's accessibility fix to `b13615a5`. These docs
+come after it, and their CI is the orchestrator's push. Both native owners'
+final source is in: iOS `4cdb168d`, Android `31c72259`. There's no data
+pass. No production action was taken, and there's no merge approval.
+Shawn's report of a dramatic improvement on his iPhone and Galaxy A16,
+from the earlier private previews, stands. Feedback on this polish round
+from his phones is still to come. The update gate is off, and its
+old-runtime order stays in docs/next-release.md. On the isolated backend
+only, `release:outdatedRuntimes` answers `{ android: [], ios: [] }`
+(`.cache/native-polish-build/isolated-release-gate.json`), so the gate
+lists nothing. Files are under `.cache/evidence/` unless noted. Uploaded
+so far: iOS and Android screenshots and six videos, listed in
+`.cache/native-polish-build/{ios-polish-image-links,android-polish-image-links,polish-video-links}.md`.
+Everything else is local.
+
+**Phones.**
+
+- iPhone: verified and delivered. Vera Dev fingerprint
+  `ac18b6d7b77821493b3dac85cb5029cc67efe421`, team 39K6A9FP99, ad hoc, the
+  development channel, `chat.vera.app.dev`. The code signature, manifest
+  and hosted IPA (200, size checked) were verified. Its arm64 build
+  compiled the patched text input
+  (`.cache/native-polish-build/phone-ios-text-input-compile.txt`). That's
+  source inclusion only, and the dictation spinner is still unreproduced.
+  [Install](https://vera-evidence.b-cdn.net/dev-client/ios/ac18b6d7b77821493b3dac85cb5029cc67efe421-fa7041a8f6cf/index.html),
+  then [open in Vera Dev](https://vera-evidence.b-cdn.net/dev-client/open-cfde0a5324fd.html?url=http%3A%2F%2F10.0.0.124%3A8492).
+- Android: verified and delivered. `scripts/phone.sh --android up` exited
+  0 (`.cache/native-polish-build/phone-android-polish.log`). It took the
+  lock at 21:44 EDT and finished at 21:50. Native fingerprint
+  `25c41d804e634b40c90c5385ea90a40c38f4dcdb`. Checked
+  (`.cache/native-polish-build/phone-android-verify/`): package
+  `chat.vera.app.dev`, "Vera Dev", version 0.1.0 (code 2), arm64-v8a,
+  armeabi-v7a, x86 and x86_64, the development channel. `apksigner`
+  verifies it, and its certificate (SHA-256 `4efc689e…33ee793b`) matches
+  the earlier cached Vera Dev's. So it installs over Vera Dev without
+  uninstalling, and keeps Vera Dev's local data. Production Vera and the
+  private previews aren't touched. The APK's `assets/fingerprint` matches
+  `25c41d80…` exactly, and the manifest's runtime version is Expo's
+  standard `file:fingerprint`, which reads that asset. The hosted page and
+  the APK both answer 200, and the APK is 286,626,774 bytes, the same as
+  the local file.
+  [Install](https://vera-evidence.b-cdn.net/dev-client/android/25c41d804e634b40c90c5385ea90a40c38f4dcdb-c3720a46099f/index.html),
+  then paste `http://10.0.0.124:8492` into Vera Dev's launcher; the open
+  link crashes Vera Dev on Android (the Expo bug in apps/mobile/README.md).
+- Both links went to Shawn at 21:51 EDT.
+- Both: normal Metro on port 8492, `__DEV__` true, home Wi-Fi only
+  (Tailscale is stopped). Each installs into the Vera Dev slot, so
+  production Vera isn't touched, and installing over Vera Dev keeps its
+  local data. Sign in with
+  [ios@t3-native-message-list-integration.dev.vera.chat](https://uncommon-curlew-869.convex.site/dev/sign-in?username=ios)
+  or [android@t3-native-message-list-integration.dev.vera.chat](https://uncommon-curlew-869.convex.site/dev/sign-in?username=android).
+  The native list is on by default in Vera Dev. To compare with the React
+  Native list, go to conversation info → Testing → Native Message List, or
+  More → Account → Developer → Native Message List. When done,
+  `scripts/phone.sh main` gives main's Vera Dev install link back. Don't
+  uninstall production Vera.
+
+**Android head-to-head, current** (simulator, software GL). Both lists in
+the real app, with production JavaScript (`__DEV__` false, as the
+orchestrator set up), the same `benchFling` at 5,500 dp/s for 10 s, and a
+burst of 150 messages over 15 s. The heavy lock was held, with no boots or
+builds. The React Native list ran first, then native, one run each. Native
+loads 5 screens ahead, the React Native list 3. Files:
+`.cache/bench/20261023-212404-android-all.jsonl` (bubbles) and
+`.cache/bench/20261023-213011-android-all.jsonl` (stacked), with their
+`.frames-stop.log`, and `.cache/native-polish-build/android-final-h2h-{bubbles,stacked}.log`.
+
+| Layout, scenario | FPS RN → native | Slow intervals | Worst interval  | JS stalls >50 ms | Main thread >16 ms (`gfxinfo`) | Mac CPU avg (peak), RN / native |
+| ---------------- | --------------- | -------------- | --------------- | ---------------- | ------------------------------ | ------------------------------- |
+| Bubbles, scroll  | 41.1 → 51.0     | 119 → 100      | 183.3 → 50 ms   | 72 → 25          | 134/297 → 7/491                | 51% (53%) / 73% (86%)           |
+| Bubbles, burst   | 28.8 → 59.6     | 117 → 8        | 1,366.7 → 50 ms | 68 → 28          | 103/246 → 0/67                 | 41% (57%) / 14% (36%)           |
+| Stacked, scroll  | 56.8 → 59.5     | 32 → 6         | 83.3 → 33.3 ms  | 82 → 22          | 56/467 → 5/595                 | 61% (72%) / 59% (82%)           |
+| Stacked, burst   | 51.8 → 60.0     | 127 → 0        | 83.3 → 16.7 ms  | 117 → 19         | 149/540 → 0/74                 | 58% (72%) / 13% (39%)           |
+
+- Scrolling, native travelled 55,091 dp with no wait at the oldest row in
+  both layouts. The React Native list travelled 28,345 dp waiting 3,483 ms
+  (bubbles) and 32,642 dp waiting 3,600 ms (stacked).
+- Loaded rows went 50 → 400 (React Native) and 150 → 800 (native) in
+  bubbles, and 100 → 550 and 100 → 900 in stacked. So the lists did
+  different amounts of loading, and run order and warm caches affect these
+  numbers.
+- Slow intervals are the UI callback's intervals, which software GL makes
+  coarse. The main-thread column is `gfxinfo`'s drawn frames, a separate
+  measure, and its frame counts differ.
+- The reporter flagged the native bubbles scroll (73%, peak 86%) and the
+  React Native stacked scroll (61%, peak 72%) as "the Mac was busy". Those
+  two rows are the least reliable. Native bubbles scroll still had 100 slow
+  intervals.
+- No zero-slow claim and no universal cost claim. The current iOS numbers
+  are in the final iOS checkpoint above, and the earlier preview-round
+  numbers are separate.
+
+**Android motion check.** Light 17/18 and dark 17/18, both exit 1, with no
+Metro errors (`.cache/native-polish-build/android-final-motion-{light,dark}.log`).
+
+- Light stacked firehose: 51 frames, 1 failing and 9 minor. The fail is a
+  jump-back at 3.299 s (middle, 644 pt, +11).
+- Dark bubbles firehose: 74 frames, 2 failing and 2 minor. The fails are
+  jump-backs at 3.180 s (middle, 332 pt, −28) and 3.197 s (+27).
+
+I read the exact contacts (`polish-android-{light,dark}-firehose-exact.png`,
+frames in `.cache/native-polish-build/android-firehose-review-windows.json`;
+these frames are 10–46 ms apart). In light, Firehose 1 to 4 rise steadily,
+and the rows above hold their order. In dark, Firehose 1 to 3 rise, then
+Firehose 5 arrives before 4: an out-of-order `dev:burst` arrival. Both show
+the same message text repeated several times on screen, which makes an
+analyzer alias plausible, but that isn't proved. I found no reversal or
+missing row, so there's no code change. The formal failures and minors
+stand. It isn't an all-pass. The earlier wide light contact missed the
+actual flag, so only the exact contacts count.
+
+**Newest row against the composer, Android.**
+`.cache/native-polish-build/android-bottom-summary.json` has 8 samples: both
+layouts, with the media newest and the keyboard down, the keyboard up (a
+reaction on it in stacked), ten lines, and after sending. Every gap is 21 px,
+which is 8 dp at density 2.625. The field went 105 → 585 → 105 px and the
+bar 211 → 691 → 211 px. The after-send sample was the first snapshot
+straight after Send, with no delay. That makes it a resting check, not a
+latency or frame-exact one, and it isn't on the A16. With ten lines and the
+keyboard up, a very tall photo's top runs off the screen, but its bottom
+stays 8 dp above the composer.
+
+**Jump to latest, Android.** Shown with the keyboard up, a real tap worked:
+the button sat 12 dp above the composer, and the tap returned to the newest
+row (`polish-android-jump-keyboard-{visible,landed}.png`). The hidden
+button's accessibility fix (`06003b06`, `aria-hidden`) is right in source,
+through React Native's `View` mapping
+(`.cache/claude-integration-polish/20261023-163203/hidden-jump-fix.md`). The
+raw helper still lists views marked unimportant, and the compressed
+uiautomator dump exited 137 with the app still alive. So TalkBack (and
+VoiceOver) focusability isn't verified, and this doesn't claim the node is
+gone from the raw tree.
+
+**Memory, Android** (`.cache/native-polish-build/android-memory-summary.json`).
+A fresh launch, then three ordinary photo-three lift, menu, land, viewer and
+close cycles. PID 7200 survived throughout, with 2 native screens each time.
+
+| Stage    | PSS        | RSS        | Swap PSS   |
+| -------- | ---------- | ---------- | ---------- |
+| Baseline | 745,234 KB | 165,992 KB | 626,568 KB |
+| Cycle 1  | 861,142 KB | 381,980 KB | 535,801 KB |
+| Cycle 2  | 862,373 KB | 387,904 KB | 525,242 KB |
+| Cycle 3  | 897,304 KB | 406,704 KB | 541,619 KB |
+
+Most of the rise is in the first cycle (PSS +115,908 KB); cycles 2 and 3
+add 1,231 KB and 34,931 KB, with no repeated big jump. Caches filling on
+first use could explain the first rise, but that isn't confirmed. That doesn't clear a leak. The earlier 2 GB emulator kill stays a
+stress limit; retained routes are still only a hypothesis.
+`polish-android-memory-flow.mp4` (179 s) covers the first cycle and the
+second open only, not all three, because of the recording limit. The
+emulator's exit record (`polish-android-exit-info-final.txt`) lists 16
+recent Vera Dev exits, all `USER REQUESTED` (`FORCE STOP`): the planned
+relaunches. It's a recent record, not the whole history, and the earlier
+2 GB kill stays on record.
+
+**Media, reactions and typing, Android.**
+
+- Carousel (`polish-android-carousel-{before,last,reversed}.png`): it runs
+  the full width, and the last photo settles fully on screen with a 16 dp
+  right margin.
+- Lift: `polish-android-photo3-lift-retry.png` shows only the right tile, the
+  real view, with its neighbours and chips staying put. The first
+  `polish-android-photo3-lift.png` was a first touch stopping the strip, not
+  a hold, so it doesn't count.
+- Viewer: `polish-android-viewer-photo3-ready.png` shows the right photo
+  (`polish-android-viewer-photo3.png` was taken too early, with the chat
+  still showing, so it isn't proof). Three cycles, with no attached-view
+  exception.
+- Reactions (`polish-android-reactions.mp4`, 133 s; `polish-android-carousel-{heart-hold,heart-toggled,party-hold}.png`):
+  holding the field photo's ❤️ 2 shows Jonah and Leo. A tap adds you (3),
+  and another takes you off (2). The second photo's 🎉 2 shows Maya and you,
+  on that exact part. No haptic or latency claim.
+- Deck (`polish-android-deck-{initial,left,right,last}.png`): left goes
+  0 → 1 (the stump), right back to 0 (Grand Central), and three lefts reach
+  3 (the field). The front tapback overlaps the photo's corner, and tapping
+  it opens Jonah and Leo as reactors, without toggling.
+  `polish-android-deck-viewer.mp4` (190 s) has paging, edges and chains; the
+  late zoom and close may fall after it ends, so it isn't all on video.
+- Viewer screenshots (`polish-android-viewer-{last,last-edge,first,first-edge,zoom}.png`)
+  show the black backdrop with no chat showing at the edges. Zoom out and
+  swipe down closed it, and the native Close worked in 3 cycles. A truly
+  uncached page isn't verified at runtime.
+- Avatar recede (`polish-android-avatar.mp4`, 22 s; `polish-android-avatar-{first-block-before,receded,restored}.{txt,png}`,
+  Jonah at the start of a block): the real rect goes 95 × 95 → 58 × 58 →
+  95 × 95 px, with its top fixed at 1604, as the photo passes the screen's
+  physical left edge. An earlier fixture, Maya with an empty body, was
+  grouped with no avatar and isn't valid for this.
+- Typing: DMs in bubbles (`polish-android-dm-bubbles.mp4`, 9.91 s) and
+  stacked (`polish-android-dm-stacked.mp4`, 6.73 s) show no faces, and the
+  stacked label sits at the text column. It's a DM with Maya, not the
+  actual Vera assistant. The bubbles frame probe (80 slow, worst 50 ms, Mac
+  44%, peak 92%, normal JavaScript, software GL) isn't a clean performance
+  result. In a group (`polish-android-group-typing-final.mp4`, 9.75 s, and
+  its final PNGs), Maya's and Jonah's faces show in the stills, with three
+  bots scheduled and arrivals coalescing. Not three faces in one frame.
+  `polish-android-group-typing.mp4` had LogBox over it, and
+  `polish-android-group-typing-clean.mp4` was a blank setup. Neither is
+  proof.
+- Composer: `polish-android-composer-bubbles.mp4` (125 s) and
+  `polish-android-stacked-send.mp4` (53 s) have a real fill and send.
+  `polish-android-composer-stacked.mp4` (167 s) only closes and opens the
+  keyboard, with no send. The earlier `polish-android-bottom-bubbles.mp4`
+  isn't evidence the field resets.
+- Dark (`polish-android-dark-{stacked,bubbles}.png`): Android's fill chips
+  are legible.
+
+**Android dev warning at launch.** In normal `__DEV__` on Android, a cold
+launch logs "Can't perform a React state update on a component that hasn't
+mounted yet". The source points at expo-router's own Android
+initial-URL path, not this round's code
+(`.cache/claude-integration-polish/20261023-163203/android-mount-warning-assessment.md`).
+That's a hypothesis: there's no base-branch comparison and no traced root
+cause. Waiting 8 s after a fresh relaunch shows the inbox with a small
+toast. Its small X (998, 2233) closes it, and the conversation is stable
+after (`polish-android-launch-waited.png`, `polish-android-group-waited-ready.png`).
+The generic dismiss-overlay sometimes opened the full LogBox, and
+dismissing that once left a blank screen. Shawn may see the warning in
+Vera Dev on Android; it isn't cleared or suppressed. Production
+JavaScript's motion runs had no Metro errors.
+
+**Still open.**
+
+- Everything on Shawn's phones (both clients are delivered):
+  - dictation (physical: the spinner, caret, selection, height and
+    backspace);
+  - TalkBack and VoiceOver;
+  - interactive keyboard dismissal;
+  - safe-area variants;
+  - the A16's composer shrink and frame-exact transitions;
+  - reaction tap feel and haptics;
+  - glass on his 120 Hz iPhone;
+  - video playback on Android;
+  - passkey sign-in on Android;
+  - the typing hand-off with real bots;
+  - an uncached viewer page on a real network.
+- Then the separate combined native plus data-pass test.
 
 ### Pending checks only a phone can do
 
